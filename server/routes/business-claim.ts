@@ -456,10 +456,18 @@ export function registerBusinessClaimRoutes(app: Express) {
       const bizPhone = normalizeClaimPhone(biz.profileData?.phone);
       const bizWebsiteDomain = normalizeClaimWebsiteDomain(biz.profileData?.website);
 
-      const verifiedByEmail = Boolean(bizEmail) && bizEmail === signupEmail;
+      const emailIsVerified = (user as any).emailVerified === true;
+      const phoneVerification = signupPhone
+        ? await storage.getAddressVerificationByUserId(String(userId))
+        : undefined;
+      const phoneIsVerified =
+        Boolean(phoneVerification?.phoneVerifiedAt) &&
+        normalizeClaimPhone(phoneVerification?.phoneNumber) === signupPhone;
+      const verifiedByEmail = emailIsVerified && Boolean(bizEmail) && bizEmail === signupEmail;
       const verifiedByPhone =
-        Boolean(bizPhone) && bizPhone.length >= 10 && bizPhone === signupPhone;
+        phoneIsVerified && Boolean(bizPhone) && bizPhone.length >= 10 && bizPhone === signupPhone;
       const verifiedByWebsite =
+        emailIsVerified &&
         Boolean(bizWebsiteDomain) &&
         Boolean(signupEmailDomain) &&
         bizWebsiteDomain === signupEmailDomain;
@@ -467,28 +475,39 @@ export function registerBusinessClaimRoutes(app: Express) {
       if (!verifiedByEmail && !verifiedByPhone && !verifiedByWebsite) {
         return res.status(403).json({
           message:
-            "Claim requires verification. Email, phone, or website domain did not match the business on file.",
+            "Claim requires a verified email, verified phone, or verified email domain that matches the business on file.",
           code: "CLAIM_NOT_VERIFIED",
         });
       }
 
       const claimed = await storage.claimUnclaimedBusinessForUser(biz.id, String(userId));
-      await storage.updateUser(String(userId), {
-        activeBusinessId: biz.id,
-        role: "business_owner" as any,
-        activeRole: "business_owner",
-        roles: Array.from(
-          new Set([
-            ...(Array.isArray((user as any).roles) ? (user as any).roles : []),
-            "business_owner",
-          ])
-        ),
-        updatedAt: new Date(),
-      } as any);
-
-      return res.json({ status: "claimed", businessId: claimed.id, slug: claimed.slug });
+      const canonicalProfile = (claimed as any).canonicalProfile;
+      if (!canonicalProfile?.id || !canonicalProfile?.slug) {
+        throw new Error("Claim did not attach a canonical profile");
+      }
+      const profileSlug = String(canonicalProfile.slug);
+      return res.json({
+        status: "claimed",
+        businessId: claimed.id,
+        slug: claimed.slug,
+        profileId: canonicalProfile.id,
+        profileSlug,
+        profileEditPath: `/u/${encodeURIComponent(profileSlug)}/edit`,
+      });
     } catch (error: any) {
       console.error("Error claiming business:", error);
+      if (
+        [
+          "Business is not claimable",
+          "Business has multiple linked canonical profiles",
+          "Linked canonical profile belongs to another account",
+        ].includes(String(error?.message || ""))
+      ) {
+        return res.status(409).json({
+          message: "This business claim changed or needs account support. Refresh and try again.",
+          code: "CLAIM_CONFLICT",
+        });
+      }
       return res.status(500).json({ message: "Failed to claim business" });
     }
   });

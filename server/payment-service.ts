@@ -5,6 +5,7 @@ import {
   type ContractorPayment,
   type MarketplaceTransaction,
   type PaymentConfiguration,
+  type ProfileBookingRequest,
 } from "@shared/schema";
 import { TRADESCOUT_TRANSACTION_FEE_USD } from "@shared/platformRevenue";
 
@@ -22,13 +23,82 @@ function getAchIncentiveConfig() {
 export class PaymentService {
   private stripe: Stripe | null = null;
 
-  constructor() {
+  constructor(stripeClient?: Stripe | null) {
+    if (stripeClient !== undefined) {
+      this.stripe = stripeClient;
+      return;
+    }
+
     // Initialize Stripe only if API key is available
     if (process.env.STRIPE_SECRET_KEY) {
       this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
         apiVersion: "2020-08-27" as any,
       });
     }
+  }
+
+  private async getMatchingProfileBookingRequest(
+    paymentIntent: Stripe.PaymentIntent
+  ): Promise<ProfileBookingRequest | null> {
+    const metadata = paymentIntent.metadata;
+    const bookingRequestId = metadata.bookingRequestId;
+    const ownerUserId = metadata.ownerUserId;
+    const buyerUserId = metadata.buyerUserId;
+
+    if (!bookingRequestId || !ownerUserId || !buyerUserId) {
+      return null;
+    }
+
+    const bookingRequest = await storage.getProfileBookingRequestById(bookingRequestId);
+    if (!bookingRequest) {
+      return null;
+    }
+
+    if (
+      bookingRequest.paymentIntentId !== paymentIntent.id ||
+      bookingRequest.ownerUserId !== ownerUserId ||
+      bookingRequest.requesterUserId !== buyerUserId
+    ) {
+      return null;
+    }
+
+    return bookingRequest;
+  }
+
+  private async refundTerminalProfileBookingDeposit(
+    bookingRequest: ProfileBookingRequest,
+    paymentIntent: Stripe.PaymentIntent
+  ): Promise<void> {
+    if (bookingRequest.paymentStatus === "refunded") {
+      return;
+    }
+    if (!this.stripe) {
+      throw new Error(
+        `Cannot refund captured deposit for terminal booking ${bookingRequest.id}: Stripe is not configured`
+      );
+    }
+
+    const refund = await this.stripe.refunds.create(
+      {
+        payment_intent: paymentIntent.id,
+        metadata: {
+          type: "profile_booking_terminal_refund",
+          bookingRequestId: bookingRequest.id,
+        },
+      },
+      {
+        idempotencyKey: `profile-booking:${bookingRequest.id}:terminal-refund:${paymentIntent.id}`,
+      }
+    );
+    if (refund.status !== "succeeded") {
+      throw new Error(
+        `Stripe refund did not succeed for terminal booking ${bookingRequest.id} (${refund.status || "unknown"})`
+      );
+    }
+
+    await storage.updateProfileBookingRequest(bookingRequest.id, {
+      paymentStatus: "refunded",
+    } as any);
   }
 
   // Apply the 5/5/5 impact model for a completed, fee-generating transaction.
@@ -486,12 +556,37 @@ export class PaymentService {
               e
             );
           }
-        } else if (metadata.type === "profile_booking" && metadata.bookingRequestId) {
-          await storage.updateProfileBookingRequest(metadata.bookingRequestId, {
+        } else if (metadata.type === "profile_booking") {
+          const bookingRequest = await this.getMatchingProfileBookingRequest(paymentIntent);
+          if (!bookingRequest) break;
+
+          const bookingStatus = String(bookingRequest.status || "").toLowerCase();
+          if (new Set(["declined", "cancelled", "completed"]).has(bookingStatus)) {
+            await this.refundTerminalProfileBookingDeposit(bookingRequest, paymentIntent);
+            break;
+          }
+
+          // Capturing the optional deposit satisfies only the payment gate.
+          // The business still explicitly accepts the booking request.
+          if (
+            bookingRequest.paymentStatus === "paid" ||
+            bookingRequest.paymentStatus === "refunded"
+          ) {
+            break;
+          }
+
+          await storage.updateProfileBookingRequest(bookingRequest.id, {
             paymentStatus: "paid",
-            status: "accepted",
-            paymentIntentId: paymentIntent.id,
           } as any);
+          const refreshedBooking = await storage.getProfileBookingRequestById(bookingRequest.id);
+          if (
+            refreshedBooking &&
+            new Set(["declined", "cancelled", "completed"]).has(
+              String(refreshedBooking.status || "").toLowerCase()
+            )
+          ) {
+            await this.refundTerminalProfileBookingDeposit(refreshedBooking, paymentIntent);
+          }
         }
         break;
       }
@@ -510,10 +605,23 @@ export class PaymentService {
             isOffPlatform: false,
             status: "failed",
           });
-        } else if (failedMetadata.type === "profile_booking" && failedMetadata.bookingRequestId) {
-          await storage.updateProfileBookingRequest(failedMetadata.bookingRequestId, {
+        } else if (failedMetadata.type === "profile_booking") {
+          const bookingRequest = await this.getMatchingProfileBookingRequest(failedIntent);
+          if (!bookingRequest) break;
+
+          // Failure delivery can be delayed or duplicated. It must not undo a
+          // captured/refunded payment, and the intent match above prevents an
+          // old failure from overwriting a replacement intent.
+          if (
+            bookingRequest.paymentStatus === "paid" ||
+            bookingRequest.paymentStatus === "refunded" ||
+            bookingRequest.paymentStatus === "failed"
+          ) {
+            break;
+          }
+
+          await storage.updateProfileBookingRequest(bookingRequest.id, {
             paymentStatus: "failed",
-            paymentIntentId: failedIntent.id,
           } as any);
         }
         break;

@@ -1,9 +1,21 @@
 import { storage } from "./storage";
 import { formatTradeScoutTitle } from "@shared/brand";
-import { resolveProfileItemShareMetadata } from "./profileItemShareMetadata";
-import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
+import {
+  inventoryCategoriesForProfile,
+  resolveProfileItemShareMetadata,
+} from "./profileItemShareMetadata";
+import {
+  buildProfileGalleryShareSearch,
+  createProfileGalleryItemShareMetadata,
+  listProfileGalleryItems,
+} from "@shared/profileGalleryShare";
 import type { ProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
+import {
+  buildProfileInventoryShareSearch,
+  listProfileInventoryItems,
+} from "@shared/profileItemShare";
 import type { ProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
+import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -28,6 +40,16 @@ type PublicProfileEarlyHtmlOptions = {
   slug: string;
   origin: string;
   templateHtml: string;
+};
+
+type PublicProfileLlmsTextOptions = {
+  slug: string;
+  origin: string;
+};
+
+type PublicProfileSitemapOptions = {
+  slug: string;
+  origin: string;
 };
 
 type PublicProfileItemShareMetadata =
@@ -85,27 +107,172 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
-function profileNameFromSlug(value: string): string {
-  const acronyms = new Set(["co", "inc", "la", "llc", "usa", "jw", "hvac"]);
-  let decoded = value;
+function cleanPublicProfileText(value: unknown, maxLength = 300): string {
+  return sanitizePublicDiscoveryText(value, maxLength)
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function cleanLlmsText(value: unknown, maxLength = 300): string {
+  return cleanPublicProfileText(value, maxLength);
+}
+
+function cleanLlmsLabel(value: unknown, maxLength = 120): string {
+  return cleanPublicProfileText(value, maxLength);
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function normalizePublicOrigin(origin: string): string | null {
   try {
-    decoded = decodeURIComponent(value);
+    const parsed = new URL(origin);
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+    return parsed.origin;
   } catch {
-    // Keep the original path segment when a shared URL is malformed.
+    return null;
+  }
+}
+
+function listPublishedProfileServiceItems(contentBlocks: unknown): string[] {
+  if (!Array.isArray(contentBlocks)) return [];
+  const services = contentBlocks.find(
+    (block) =>
+      block &&
+      typeof block === "object" &&
+      String((block as any).type || "").toLowerCase() === "services"
+  ) as any;
+  const items = Array.isArray(services?.data?.items) ? services.data.items : [];
+  return items
+    .map((item: unknown) => {
+      if (typeof item === "string") return cleanLlmsText(item, 180);
+      if (!item || typeof item !== "object") return "";
+      const source = item as Record<string, unknown>;
+      const title = cleanLlmsText(source.title || source.name || source.label, 100);
+      const detail = cleanLlmsText(source.body || source.description || source.text, 180);
+      return [title, detail].filter(Boolean).join(": ");
+    })
+    .filter((item: string) => item.length > 0)
+    .slice(0, 12);
+}
+
+/**
+ * Host-local, public-only guidance for LLM readers of a configured profile
+ * domain. It intentionally excludes contact details, addresses, account data,
+ * API paths, and unpublished workflow state.
+ */
+export async function buildPublicProfileLlmsText({
+  slug,
+  origin,
+}: PublicProfileLlmsTextOptions): Promise<string | null> {
+  const profileRecord = await storage.getProfileBySlugPublic(slug);
+  if (!profileRecord) return null;
+
+  const publicOrigin = normalizePublicOrigin(origin);
+  if (!publicOrigin) return null;
+
+  const businessRecord = profileRecord.businessId
+    ? await storage.getBusinessPublicById(profileRecord.businessId)
+    : null;
+  const displayName = cleanLlmsLabel(
+    businessRecord?.name || profileRecord.displayName || "Public profile",
+    120
+  );
+  const summary = cleanLlmsText(
+    profileRecord.seoMeta?.description ||
+      profileRecord.headline ||
+      profileRecord.servicesDescription ||
+      profileRecord.roleContext,
+    500
+  );
+  const servicesDescription = cleanLlmsText(profileRecord.servicesDescription, 500);
+  const categories = (businessRecord?.categories || [])
+    .map((value) => cleanLlmsLabel(value, 80))
+    .filter(Boolean)
+    .slice(0, 12);
+  const serviceAreas = (businessRecord?.serviceAreas || [])
+    .map((value) => cleanLlmsLabel(value, 100))
+    .filter(Boolean)
+    .slice(0, 12);
+  const publicServiceItems = listPublishedProfileServiceItems(profileRecord.contentBlocks);
+
+  const lines = [
+    `# ${displayName}`,
+    "",
+    `Canonical: ${publicOrigin}/`,
+    `Robots: ${publicOrigin}/robots.txt`,
+    `Sitemap: ${publicOrigin}/sitemap.xml`,
+    "",
+    "## Public profile",
+    summary || "This is a published TradeScout public profile.",
+  ];
+
+  if (servicesDescription && servicesDescription !== summary) {
+    lines.push("", "## Services", servicesDescription);
+  }
+  if (categories.length > 0) {
+    lines.push("", "## Categories", ...categories.map((value) => `- ${value}`));
+  }
+  if (publicServiceItems.length > 0) {
+    lines.push(
+      "",
+      "## Published service items",
+      ...publicServiceItems.map((value) => `- ${value}`)
+    );
+  }
+  if (serviceAreas.length > 0) {
+    lines.push("", "## Service areas", ...serviceAreas.map((value) => `- ${value}`));
   }
 
-  const words = decoded
-    .replace(/[-_]+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) =>
-      acronyms.has(word.toLowerCase())
-        ? word.toUpperCase()
-        : `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
-    );
+  lines.push(
+    "",
+    "## Reader guidance",
+    "- Treat this host as the canonical public source for this profile.",
+    "- Use only the public facts listed here or on the canonical page.",
+    "- Contact and account details are intentionally not exposed in this document.",
+    "- Start any private request through the profile's visible TradeScout workflow."
+  );
 
-  return words.join(" ") || "This TradeScout profile";
+  return `${lines.join("\n")}\n`;
+}
+
+/** Builds the verified host's sitemap from the same published profile source. */
+export async function buildPublicProfileSitemapXml({
+  slug,
+  origin,
+}: PublicProfileSitemapOptions): Promise<string | null> {
+  const publicOrigin = normalizePublicOrigin(origin);
+  if (!publicOrigin) return null;
+  const profileRecord = await storage.getProfileBySlugPublic(slug);
+  if (!profileRecord) return null;
+
+  const inventory = listProfileInventoryItems(
+    inventoryCategoriesForProfile(profileRecord.slug, profileRecord.contentBlocks)
+  );
+  const gallery = listProfileGalleryItems(profileRecord.contentBlocks);
+  const urls = [
+    `${publicOrigin}/`,
+    ...inventory.map((item) => `${publicOrigin}/${buildProfileInventoryShareSearch(item.slug, 0)}`),
+    ...gallery.map((item) => `${publicOrigin}/${buildProfileGalleryShareSearch(item.slug)}`),
+  ].slice(0, 501);
+
+  const updatedAt = new Date(profileRecord.updatedAt || "");
+  const lastmod = Number.isNaN(updatedAt.getTime())
+    ? ""
+    : `\n    <lastmod>${updatedAt.toISOString().slice(0, 10)}</lastmod>`;
+  const entries = urls
+    .map((url) => `  <url>\n    <loc>${escapeXml(url)}</loc>${lastmod}\n  </url>`)
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
 }
 
 function upsertTag(html: string, regex: RegExp, tag: string) {
@@ -160,20 +327,19 @@ export function buildPublicProfileEarlyHtml({
   origin,
   templateHtml,
 }: PublicProfileEarlyHtmlOptions): string {
-  const profileName = profileNameFromSlug(slug);
-  const title = formatTradeScoutTitle(`${profileName} is opening soon`);
+  const title = formatTradeScoutTitle("Public profile unavailable");
   const description =
-    "You found this TradeScout profile before opening day. Keep the link—the finished profile will live right here.";
+    "This public TradeScout profile is not available. Private account details remain protected.";
   const canonical = `${origin}/u/${encodeURIComponent(slug)}`;
   const tradeScoutHome = `${origin}/`;
   const scoutUrl = `${origin}/scout`;
   const communityUrl = `${origin}/community-feed`;
   const logoUrl = `${origin}/tradescout-logo.png`;
   const reportPayload = JSON.stringify({
-    title: `Public profile link reported: ${profileName}`,
-    description: `A visitor reported the early public-profile fallback at /u/${slug}.`,
+    title: "Unavailable public profile link reported",
+    description: `A visitor reported the unavailable public-profile fallback at /u/${slug}.`,
     errorType: "ui_issue",
-    browserInfo: { profileSlug: slug, arrivalMode: "early" },
+    browserInfo: { profileSlug: slug, arrivalMode: "unavailable" },
   }).replace(/</g, "\\u003c");
   let html = templateHtml.replace(
     /<title>[\s\S]*?<\/title>/i,
@@ -215,7 +381,7 @@ export function buildPublicProfileEarlyHtml({
 <style>
   .ts-early{min-height:100vh;box-sizing:border-box;overflow:hidden;position:relative;padding:24px 22px;background:radial-gradient(circle at 16% 16%,rgba(249,115,22,.2),transparent 34%),radial-gradient(circle at 84% 26%,rgba(14,165,233,.17),transparent 36%),linear-gradient(145deg,#071016 0%,#0b1921 58%,#071016 100%);color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}.ts-early *{box-sizing:border-box}.ts-early-shell{position:relative;z-index:1;max-width:1180px;min-height:calc(100vh - 48px);margin:0 auto;display:flex;flex-direction:column}.ts-early-top{display:flex;align-items:center;justify-content:space-between;padding:4px 0 18px}.ts-early-logo{display:block;height:38px;width:auto}.ts-early-close{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);text-decoration:none;font-size:25px;line-height:1}.ts-early-card{margin:auto 0;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);overflow:hidden;border:1px solid rgba(255,255,255,.11);border-radius:32px;background:rgba(12,23,30,.96);box-shadow:0 36px 110px rgba(0,0,0,.45)}.ts-early-copy{display:flex;flex-direction:column;justify-content:center;padding:56px}.ts-early-badge{display:inline-flex;align-items:center;gap:8px;width:max-content;margin:0 0 28px;padding:8px 12px;border:1px solid rgba(249,115,22,.32);border-radius:999px;background:rgba(249,115,22,.1);color:#fdba74;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.ts-early-name{margin:0 0 12px;color:rgba(125,211,252,.82);font-size:14px;font-weight:750;letter-spacing:.16em;text-transform:uppercase}.ts-early h1{max-width:760px;margin:0;font-size:clamp(42px,6vw,76px);line-height:1.01;letter-spacing:-.045em}.ts-early-lede{max-width:690px;margin:24px 0 0;color:rgba(255,255,255,.68);font-size:18px;line-height:1.7}.ts-early-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}.ts-early-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border:0;border-radius:999px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:15px;font-weight:800;text-decoration:none}.ts-early-button.primary{background:#f97316;color:#fff;box-shadow:0 12px 34px rgba(124,45,18,.3)}.ts-early-button.secondary{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:#fff}.ts-early-button.quiet{padding:0 12px;color:rgba(255,255,255,.62)}.ts-early-button:disabled{cursor:default;color:#86efac}.ts-early-visual{position:relative;display:flex;align-items:center;justify-content:center;min-height:570px;padding:42px;border-left:1px solid rgba(255,255,255,.1);background:radial-gradient(circle at center,rgba(14,165,233,.19),transparent 58%),#0a222d}.ts-early-status{position:relative;width:100%;max-width:370px;padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:28px;background:rgba(7,20,27,.92);box-shadow:0 24px 70px rgba(0,0,0,.4)}.ts-early-status-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}.ts-early-kicker{margin:0;color:rgba(255,255,255,.42);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.ts-early-path{max-width:240px;margin:7px 0 0;overflow:hidden;color:rgba(255,255,255,.92);font-weight:700;text-overflow:ellipsis;white-space:nowrap}.ts-early-spark{display:grid;place-items:center;width:44px;height:44px;border-radius:16px;background:#f97316;color:#fff;font-size:20px;box-shadow:0 12px 28px rgba(124,45,18,.42)}.ts-early-step{display:flex;align-items:center;gap:12px;margin-top:11px;padding:15px 16px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.035);color:rgba(255,255,255,.76);font-size:14px;font-weight:700}.ts-early-step.next{border-color:rgba(249,115,22,.26);background:rgba(249,115,22,.08)}.ts-early-dot{width:10px;height:10px;border-radius:50%;background:#34d399}.ts-early-step.next .ts-early-dot{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.8)}.ts-early-note{margin:24px 0 0;color:rgba(255,255,255,.5);font-size:14px;line-height:1.65}.ts-early-footer{padding:18px 0 2px;text-align:center;color:rgba(255,255,255,.35);font-size:11px;font-weight:750;letter-spacing:.18em;text-transform:uppercase}@media(max-width:840px){.ts-early{padding:16px}.ts-early-shell{min-height:calc(100vh - 32px)}.ts-early-card{grid-template-columns:1fr}.ts-early-copy{padding:38px 28px}.ts-early-visual{min-height:340px;padding:28px;border-top:1px solid rgba(255,255,255,.1);border-left:0}.ts-early h1{font-size:clamp(40px,12vw,60px)}}@media(max-width:520px){.ts-early-actions{flex-direction:column}.ts-early-button{width:100%}.ts-early-copy{padding:32px 22px}.ts-early-visual{padding:22px}.ts-early-status{padding:24px}}
 </style>
-<main data-public-profile-state="early" class="ts-early">
+<main data-public-profile-state="unavailable" class="ts-early">
   <div class="ts-early-shell">
     <header class="ts-early-top">
       <a href="${escapeHtml(tradeScoutHome)}" aria-label="Return to TradeScout"><img class="ts-early-logo" src="${escapeHtml(logoUrl)}" alt="TradeScout" /></a>
@@ -223,10 +389,10 @@ export function buildPublicProfileEarlyHtml({
     </header>
     <section class="ts-early-card">
       <div class="ts-early-copy">
-        <p class="ts-early-badge"><span aria-hidden="true">&#10022;</span> Opening soon</p>
-        <p class="ts-early-name">${escapeHtml(profileName)}</p>
-        <h1>You found it before opening day.</h1>
-        <p class="ts-early-lede">This TradeScout profile is getting its finishing touches. Keep this link—when the doors open, it will happen right here.</p>
+        <p class="ts-early-badge"><span aria-hidden="true">&#10022;</span> Profile unavailable</p>
+        <p class="ts-early-name">TradeScout public profile</p>
+        <h1>This public profile is not available.</h1>
+        <p class="ts-early-lede">The profile may be unpublished, private, moved, or no longer available. No private account details are exposed here.</p>
         <div class="ts-early-actions">
           <a class="ts-early-button primary" href="${escapeHtml(communityUrl)}">Browse the Community &rarr;</a>
           <a class="ts-early-button secondary" href="${escapeHtml(scoutUrl)}">Open Scout</a>
@@ -240,10 +406,10 @@ export function buildPublicProfileEarlyHtml({
             <div><p class="ts-early-kicker">This address</p><p class="ts-early-path">/u/${escapeHtml(slug)}</p></div>
             <span class="ts-early-spark" aria-hidden="true">&#10022;</span>
           </div>
-          <div class="ts-early-step"><span class="ts-early-dot"></span>Right address</div>
-          <div class="ts-early-step"><span class="ts-early-dot"></span>Finishing touches</div>
-          <div class="ts-early-step next"><span class="ts-early-dot"></span>Public profile next</div>
-          <p class="ts-early-note">No detour and no dead end. This same link is where the finished profile will live.</p>
+          <div class="ts-early-step"><span class="ts-early-dot"></span>No public profile at this address</div>
+          <div class="ts-early-step"><span class="ts-early-dot"></span>Private account details stay protected</div>
+          <div class="ts-early-step next"><span class="ts-early-dot"></span>Browse available public spaces</div>
+          <p class="ts-early-note">This page does not reveal whether a private account exists.</p>
         </div>
       </div>
     </section>
@@ -287,9 +453,13 @@ function buildFaqJsonLd(profile: PublicProfileData) {
   const faqs: Array<{ question?: string; answer?: string }> = Array.isArray(faqBlock?.data?.faqs)
     ? faqBlock!.data!.faqs
     : [];
-  const validFaqs = faqs.filter(
-    (faq) => typeof faq.question === "string" && typeof faq.answer === "string"
-  );
+  const validFaqs = faqs
+    .map((faq) => ({
+      question: cleanPublicProfileText(faq?.question, 300),
+      answer: cleanPublicProfileText(faq?.answer, 1200),
+    }))
+    .filter((faq) => faq.question.length > 0 && faq.answer.length > 0)
+    .slice(0, 20);
   if (validFaqs.length === 0) return null;
 
   return {
@@ -305,7 +475,7 @@ function buildFaqJsonLd(profile: PublicProfileData) {
   };
 }
 
-// A profile with a verified custom domain is canonically served there, not
+// A profile with an active custom-domain mapping is canonically served there, not
 // under /u/:slug -- Google and structured-data consumers should be pointed
 // at the business's own domain regardless of which host the request came in on.
 function resolveProfileUrl(profile: PublicProfileData, origin: string): string {
@@ -317,7 +487,8 @@ function resolveProfileUrl(profile: PublicProfileData, origin: string): string {
 function withProfileItemJsonLd(
   baseJsonLd: Record<string, any>,
   itemShare: PublicProfileItemShareMetadata | null,
-  displayName: string
+  profileUrl: string,
+  isBusinessProfile: boolean
 ) {
   if (!itemShare) return baseJsonLd;
 
@@ -330,26 +501,28 @@ function withProfileItemJsonLd(
       ? {
           "@type": "Product",
           "@id": `${itemShare.canonical}#product`,
-          name: itemShare.itemName,
-          description: itemShare.description,
+          name: cleanPublicProfileText(itemShare.itemName, 200),
+          description: cleanPublicProfileText(itemShare.description, 500),
           image: [itemShare.imageUrl],
-          category: itemShare.category || undefined,
+          category: cleanPublicProfileText(itemShare.category, 120) || undefined,
           url: itemShare.canonical,
-          brand: {
-            "@type": "Organization",
-            name: displayName,
-          },
+          ...(isBusinessProfile
+            ? {
+                brand: {
+                  "@id": `${profileUrl}#identity`,
+                },
+              }
+            : {}),
         }
       : {
           "@type": "ImageObject",
           "@id": `${itemShare.canonical}#image`,
-          name: itemShare.itemTitle,
-          description: itemShare.description,
+          name: cleanPublicProfileText(itemShare.itemTitle, 200),
+          description: cleanPublicProfileText(itemShare.description, 500),
           contentUrl: itemShare.imageUrl,
           url: itemShare.canonical,
           creator: {
-            "@type": "Organization",
-            name: displayName,
+            "@id": `${profileUrl}#identity`,
           },
         };
 
@@ -365,13 +538,25 @@ function buildJsonLd(
   itemShare: PublicProfileItemShareMetadata | null
 ) {
   const profileUrl = resolveProfileUrl(profile, origin);
-  const displayName = profile.business?.name?.trim() || profile.profile.displayName;
-  const description =
-    profile.profile.seoMeta?.description ||
-    profile.profile.headline ||
-    profile.profile.servicesDescription ||
-    profile.profile.roleContext ||
+  const displayName =
+    cleanPublicProfileText(profile.business?.name?.trim() || profile.profile.displayName, 200) ||
     "TradeScout public profile";
+  const description = cleanPublicProfileText(
+    profile.profile.seoMeta?.description ||
+      profile.profile.headline ||
+      profile.profile.servicesDescription ||
+      profile.profile.roleContext ||
+      "TradeScout public profile",
+    1000
+  );
+  const publicCategories = (profile.business?.categories || [])
+    .map((value) => cleanPublicProfileText(value, 120))
+    .filter(Boolean)
+    .slice(0, 5);
+  const publicServiceAreas = (profile.business?.serviceAreas || [])
+    .map((value) => cleanPublicProfileText(value, 160))
+    .filter(Boolean)
+    .slice(0, 10);
 
   const faqJsonLd = buildFaqJsonLd(profile);
 
@@ -379,11 +564,12 @@ function buildJsonLd(
     const isTradePartner = profile.business.tradePartner === true;
     const localBusiness: Record<string, any> = {
       "@type": "LocalBusiness",
+      "@id": `${profileUrl}#identity`,
       name: displayName,
       description,
       url: profileUrl,
-      areaServed: profile.business.serviceAreas?.slice(0, 10) || undefined,
-      category: profile.business.categories?.slice(0, 5) || undefined,
+      areaServed: publicServiceAreas.length > 0 ? publicServiceAreas : undefined,
+      category: publicCategories.length > 0 ? publicCategories : undefined,
     };
 
     // Website and location may remain crawlable, but phone is deliberately
@@ -411,20 +597,22 @@ function buildJsonLd(
           "@context": "https://schema.org",
           "@graph": [localBusiness, faqJsonLd],
         };
-    return withProfileItemJsonLd(baseJsonLd, itemShare, displayName);
+    return withProfileItemJsonLd(baseJsonLd, itemShare, profileUrl, true);
   }
 
   return withProfileItemJsonLd(
     {
       "@context": "https://schema.org",
       "@type": "Person",
+      "@id": `${profileUrl}#identity`,
       name: displayName,
       description,
-      jobTitle: profile.profile.roleContext || undefined,
+      jobTitle: cleanPublicProfileText(profile.profile.roleContext, 160) || undefined,
       url: profileUrl,
     },
     itemShare,
-    displayName
+    profileUrl,
+    false
   );
 }
 
@@ -433,17 +621,24 @@ function buildMeta(
   origin: string,
   itemShare: PublicProfileItemShareMetadata | null
 ) {
-  const displayName = profile.business?.name?.trim() || profile.profile.displayName;
-  const title = formatTradeScoutTitle(
-    itemShare?.title || profile.profile.seoMeta?.title || `${displayName} | TradeScout`
+  const displayName =
+    cleanPublicProfileText(profile.business?.name?.trim() || profile.profile.displayName, 200) ||
+    "TradeScout public profile";
+  const titleSource = cleanPublicProfileText(
+    itemShare?.title || profile.profile.seoMeta?.title || `${displayName} | TradeScout`,
+    240
   );
+  const title = formatTradeScoutTitle(titleSource || "TradeScout public profile");
   const description = capDescriptionLength(
-    itemShare?.description ||
-      profile.profile.seoMeta?.description ||
-      profile.profile.headline ||
-      profile.profile.servicesDescription ||
-      profile.profile.roleContext ||
-      "TradeScout public profile"
+    cleanPublicProfileText(
+      itemShare?.description ||
+        profile.profile.seoMeta?.description ||
+        profile.profile.headline ||
+        profile.profile.servicesDescription ||
+        profile.profile.roleContext ||
+        "TradeScout public profile",
+      1000
+    )
   );
   const profileImageUrl = profile.profile.seoMeta?.imageUrl || null;
   const imageUrl =
@@ -452,9 +647,9 @@ function buildMeta(
   const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
   const itemName =
     itemShare?.itemType === "inventory"
-      ? itemShare.itemName
+      ? cleanPublicProfileText(itemShare.itemName, 200)
       : itemShare?.itemType === "gallery"
-        ? itemShare.itemTitle
+        ? cleanPublicProfileText(itemShare.itemTitle, 200)
         : "";
   const keywords = [
     itemName,
@@ -465,7 +660,7 @@ function buildMeta(
     "TradeScout profile",
     "local services",
   ]
-    .map((value) => String(value).trim())
+    .map((value) => cleanPublicProfileText(value, 160))
     .filter((value) => value.length > 0)
     .slice(0, 12)
     .join(", ");
@@ -475,7 +670,9 @@ function buildMeta(
     description,
     imageUrl,
     imageType: imageMimeType(imageUrl),
-    imageAlt: itemShare?.imageAlt || `${displayName} preview`,
+    imageAlt:
+      cleanPublicProfileText(itemShare?.imageAlt || `${displayName} preview`, 240) ||
+      "TradeScout public profile preview",
     imageWidth: itemShare
       ? undefined
       : profileImageUrl
@@ -542,7 +739,9 @@ export async function buildPublicProfileHtml({
       : null,
   };
 
-  const displayName = data.business?.name?.trim() || data.profile.displayName;
+  const displayName =
+    cleanPublicProfileText(data.business?.name?.trim() || data.profile.displayName, 200) ||
+    "TradeScout public profile";
   const inventoryItemShare = resolveProfileItemShareMetadata({
     profileSlug: data.profile.slug,
     profileName: displayName,
@@ -695,40 +894,55 @@ export async function buildPublicProfileHtml({
     Array.isArray(profileRecord.profileBooking?.pricingRows)
       ? profileRecord.profileBooking.pricingRows
           .map((row: any) =>
-            [String(row?.name || "").trim(), String(row?.priceLabel || "").trim()]
+            [cleanPublicProfileText(row?.name, 160), cleanPublicProfileText(row?.priceLabel, 80)]
               .filter((part) => part.length > 0)
               .join(": ")
           )
           .filter((line: string) => line.length > 0)
           .slice(0, 6)
       : [];
+  const bookingPrice = Number(profileRecord.profileBooking?.bookingPriceUsd);
   const bookingSummary =
     profileRecord.profileBooking?.enabled === true
-      ? profileRecord.profileBooking?.paidBookings
-        ? `Appointments are available. Booking deposit: $${Number(profileRecord.profileBooking?.bookingPriceUsd || 0).toFixed(2)}.`
+      ? profileRecord.profileBooking?.paidBookings &&
+        Number.isFinite(bookingPrice) &&
+        bookingPrice > 0
+        ? `Appointments are available. Booking deposit: $${bookingPrice.toFixed(2)}.`
         : "Appointments are available."
-      : "Appointments are coming soon.";
-  const categoriesSummary = (businessRecord?.categories || []).slice(0, 6).join(", ");
-  const areasSummary = (businessRecord?.serviceAreas || []).slice(0, 8).join(", ");
+      : "";
+  const categoriesSummary = (businessRecord?.categories || [])
+    .map((value) => cleanPublicProfileText(value, 120))
+    .filter(Boolean)
+    .slice(0, 6)
+    .join(", ");
+  const areasSummary = (businessRecord?.serviceAreas || [])
+    .map((value) => cleanPublicProfileText(value, 160))
+    .filter(Boolean)
+    .slice(0, 8)
+    .join(", ");
+  const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
   const itemSummary = itemShare
     ? `<section data-seo-profile-item="${itemShare.itemType}">
       <h2>${escapeHtml(
-        itemShare.itemType === "inventory" ? itemShare.itemName : itemShare.itemTitle
+        cleanPublicProfileText(
+          itemShare.itemType === "inventory" ? itemShare.itemName : itemShare.itemTitle,
+          200
+        )
       )}</h2>
-      <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(itemShare.imageAlt)}" />
-      <p>${escapeHtml(itemShare.description)}</p>
+      <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(itemShare.imageAlt, 240))}" />
+      <p>${escapeHtml(cleanPublicProfileText(itemShare.description, 500))}</p>
     </section>`
     : "";
   const rootSummary = `
 <main data-seo-profile="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
-    <h1>${escapeHtml(profileRecord.displayName)}</h1>
+    <h1>${escapeHtml(displayName)}</h1>
     <p>${escapeHtml(meta.description)}</p>
     ${itemSummary}
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
-    ${profileRecord.servicesDescription ? `<p>${escapeHtml(profileRecord.servicesDescription)}</p>` : ""}
-    <p>${escapeHtml(bookingSummary)}</p>
+    ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
+    ${bookingSummary ? `<p>${escapeHtml(bookingSummary)}</p>` : ""}
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
     <p>Send a private request when you are ready. Contact details stay private until both sides choose to connect.</p>
   </article>

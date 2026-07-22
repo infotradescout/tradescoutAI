@@ -23,6 +23,7 @@ import { landingContractHeaders } from "./middleware/landingContractHeaders";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
+import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,7 +175,7 @@ export async function createApp() {
 
   // Body parsing
   const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
-  app.use(express.json({ limit: bodyLimit }));
+  app.use(express.json({ limit: bodyLimit, verify: preserveStripeWebhookRawBody }));
   app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 
   // Request logging (skip in test)

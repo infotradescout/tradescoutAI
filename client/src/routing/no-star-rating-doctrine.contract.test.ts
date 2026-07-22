@@ -21,7 +21,6 @@ const trustSurfaces = [
   "client/src/pages/PublicProfileView.tsx",
   "client/src/pages/ProfilePage.tsx",
   "client/src/pages/SimpleHome.tsx",
-  "client/src/pages/analytics.tsx",
   "client/src/pages/contractor-profile.tsx",
   "client/src/pages/daily-deals.tsx",
   "client/src/pages/trade-deals-lucky.tsx",
@@ -72,6 +71,8 @@ describe("TradeScout trust presentation doctrine", () => {
   it("uses business language in primary navigation", () => {
     const source = read("client/src/components/layout/AppShell.tsx");
     expect(source).toContain('label: "Businesses"');
+    expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
+    expect(source).toContain('label: "Commercial Jobs"');
     expect(source).not.toContain('label: "Commercial"');
   });
 });

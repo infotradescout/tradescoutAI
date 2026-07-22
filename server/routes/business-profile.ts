@@ -22,6 +22,7 @@ import type {
   UpdateProfilePayload,
   BusinessProfile,
 } from "../../shared/businessProfile";
+import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 
 function sanitizePublicCtaConfig(ctaConfig: unknown) {
   const safe = (ctaConfig && typeof ctaConfig === "object" ? ctaConfig : {}) as Record<string, any>;
@@ -132,6 +133,7 @@ function normalizeDomainInput(input: unknown): string | null {
   if (value.includes("://")) {
     try {
       const parsed = new URL(value);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
       value = parsed.hostname.toLowerCase();
     } catch {
       return null;
@@ -156,43 +158,180 @@ function createVerificationToken(): string {
   return `tsv-${randomBytes(16).toString("hex")}`;
 }
 
-async function findDomainConflict(domain: string, userId: string): Promise<boolean> {
-  const [profileConflict] = await db
-    .select({ ownerUserId: profiles.ownerUserId })
+function alternateDomainHost(domain: string): string {
+  return domain.startsWith("www.") ? domain.slice(4) : `www.${domain}`;
+}
+
+function domainIdentityLockKey(domain: string): string {
+  return domain.startsWith("www.") ? domain.slice(4) : domain;
+}
+
+async function findDomainConflict(
+  domain: string,
+  userId: string,
+  profileId: string,
+  database: any = db
+): Promise<boolean> {
+  const alternateDomain = alternateDomainHost(domain);
+  const profileConflicts = await database
+    .select({ id: profiles.id })
     .from(profiles)
-    .innerJoin(users, eq(profiles.ownerUserId, users.id))
     .where(
       and(
-        eq(profiles.status, "published" as any),
-        sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
-        sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${domain}`
+        sql`${profiles.id} <> ${profileId}`,
+        sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) IN (${domain}, ${alternateDomain})`
       )
     )
-    .limit(1);
+    .limit(2);
 
-  if (profileConflict?.ownerUserId && profileConflict.ownerUserId !== userId) {
-    return true;
-  }
+  if (profileConflicts.length > 0) return true;
 
-  const [businessConflict] = await db
+  const businessConflicts = await database
     .select({ id: users.id })
     .from(users)
     .where(
-      sql`lower(COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' ->> 'customDomain')), '')) = ${domain}`
+      and(
+        sql`${users.id} <> ${userId}`,
+        sql`lower(COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' ->> 'customDomain')), '')) IN (${domain}, ${alternateDomain})`,
+        sql`COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' -> 'customDomainVerification' ->> 'state')), 'unverified') = 'verified'`
+      )
     )
-    .limit(1);
+    .limit(2);
 
-  if (businessConflict?.id && businessConflict.id !== userId) {
-    return true;
-  }
+  if (businessConflicts.length > 0) return true;
 
-  const [affiliateConflict] = await db
+  const affiliateConflicts = await database
     .select({ id: affiliateAccounts.id })
     .from(affiliateAccounts)
-    .where(sql`lower(COALESCE(${affiliateAccounts.customDomain}, '')) = ${domain}`)
-    .limit(1);
+    .where(
+      sql`lower(COALESCE(${affiliateAccounts.customDomain}, '')) IN (${domain}, ${alternateDomain})`
+    )
+    .limit(2);
 
-  return Boolean(affiliateConflict?.id);
+  return affiliateConflicts.length > 0;
+}
+
+function domainRouteError(statusCode: number, message: string): Error & { statusCode: number } {
+  return Object.assign(new Error(message), { statusCode });
+}
+
+function buildPreferencesWithDomainState(args: {
+  preferences: unknown;
+  customDomain: string | null;
+  verification: BusinessProfile["customDomainVerification"];
+}) {
+  const preferences = {
+    ...((args.preferences && typeof args.preferences === "object" ? args.preferences : {}) as any),
+  };
+  const provisional = {
+    ...(preferences.provisional && typeof preferences.provisional === "object"
+      ? preferences.provisional
+      : {}),
+  };
+  const profileDraft = {
+    ...(provisional.profileDraft && typeof provisional.profileDraft === "object"
+      ? provisional.profileDraft
+      : {}),
+    customDomain: args.customDomain,
+    customDomainVerification: args.verification,
+    capturedAt: new Date().toISOString(),
+  };
+
+  provisional.profileDraft = profileDraft;
+  preferences.provisional = provisional;
+  return preferences;
+}
+
+function readLegacyBusinessDomainDraft(preferences: unknown): {
+  candidateDomain: string;
+  verification: BusinessProfile["customDomainVerification"] | null;
+} {
+  const draft = (preferences as any)?.provisional?.profileDraft;
+  return {
+    candidateDomain: String(draft?.customDomain || "")
+      .trim()
+      .toLowerCase(),
+    verification:
+      draft?.customDomainVerification && typeof draft.customDomainVerification === "object"
+        ? draft.customDomainVerification
+        : null,
+  };
+}
+
+function readProfileDomainDraft(
+  preferences: unknown,
+  profileId: string
+): {
+  candidateDomain: string;
+  verification: BusinessProfile["customDomainVerification"] | null;
+} {
+  const states = (preferences as any)?.profileDomainStates;
+  const state = states && typeof states === "object" ? states[profileId] : null;
+  if (state && typeof state === "object") {
+    return {
+      candidateDomain: String(state.candidateDomain || "")
+        .trim()
+        .toLowerCase(),
+      verification:
+        state.verification && typeof state.verification === "object" ? state.verification : null,
+    };
+  }
+
+  const legacy = readLegacyBusinessDomainDraft(preferences);
+  return String(legacy.verification?.profileId || "").trim() === profileId
+    ? legacy
+    : { candidateDomain: "", verification: null };
+}
+
+function buildPreferencesWithProfileDomainState(args: {
+  preferences: unknown;
+  profileId: string;
+  candidateDomain: string | null;
+  verification: BusinessProfile["customDomainVerification"];
+}) {
+  const preferences = {
+    ...((args.preferences && typeof args.preferences === "object" ? args.preferences : {}) as any),
+  };
+  const currentStates =
+    preferences.profileDomainStates && typeof preferences.profileDomainStates === "object"
+      ? preferences.profileDomainStates
+      : {};
+  const nextStates = { ...currentStates };
+
+  if (args.candidateDomain && args.verification) {
+    nextStates[args.profileId] = {
+      candidateDomain: args.candidateDomain,
+      verification: args.verification,
+      capturedAt: new Date().toISOString(),
+    };
+  } else {
+    delete nextStates[args.profileId];
+  }
+
+  preferences.profileDomainStates = nextStates;
+  return preferences;
+}
+
+function activeProfileDomain(profile: { seoMeta?: unknown }): string {
+  return String((profile.seoMeta as any)?.customDomain || "")
+    .trim()
+    .toLowerCase();
+}
+
+function profileDomainStatus(
+  profileId: string,
+  profile: { seoMeta?: unknown },
+  preferences: unknown
+) {
+  const draft = readProfileDomainDraft(preferences, profileId);
+  const verificationProfileId = String(draft.verification?.profileId || "").trim();
+  const ownsCurrentDraft = verificationProfileId === profileId;
+  return {
+    profileId,
+    activeDomain: activeProfileDomain(profile) || null,
+    candidateDomain: ownsCurrentDraft ? draft.candidateDomain || null : null,
+    verification: ownsCurrentDraft ? draft.verification : null,
+  };
 }
 
 /**
@@ -270,6 +409,13 @@ export function registerBusinessProfileRoutes(app: Express) {
 
         // Check if user already has a published profile
         const existing = await storage.getBusinessProfileByUserId(userId);
+        const requestedBookingConfig = payload.bookingConfig ?? existing?.bookingConfig ?? null;
+        const normalizedBookingConfig = requestedBookingConfig
+          ? normalizeProfileBookingPrefs(requestedBookingConfig)
+          : null;
+        if (normalizedBookingConfig?.paidBookings && normalizedBookingConfig.bookingPriceUsd <= 0) {
+          return res.status(400).json({ message: "A booking deposit must be greater than zero" });
+        }
 
         const now = new Date().toISOString();
 
@@ -301,7 +447,7 @@ export function registerBusinessProfileRoutes(app: Express) {
           profileSections:
             payload.profileSections || existing?.profileSections || buildDefaultSections(),
           theme: payload.theme || existing?.theme || buildDefaultTheme(),
-          bookingConfig: payload.bookingConfig || existing?.bookingConfig || null,
+          bookingConfig: normalizedBookingConfig,
           visibility:
             payload.visibility === "public" && discoveryUnlocked
               ? "public"
@@ -477,6 +623,14 @@ export function registerBusinessProfileRoutes(app: Express) {
       if (nextCountyFips && !/^\d{5}$/.test(nextCountyFips)) {
         return res.status(400).json({ message: "countyFips must be a 5-digit FIPS value" });
       }
+      const requestedBookingConfig =
+        updates.bookingConfig !== undefined ? updates.bookingConfig : existing.bookingConfig;
+      const normalizedBookingConfig = requestedBookingConfig
+        ? normalizeProfileBookingPrefs(requestedBookingConfig)
+        : null;
+      if (normalizedBookingConfig?.paidBookings && normalizedBookingConfig.bookingPriceUsd <= 0) {
+        return res.status(400).json({ message: "A booking deposit must be greater than zero" });
+      }
 
       const updatedProfile: BusinessProfile = {
         ...existing,
@@ -522,10 +676,7 @@ export function registerBusinessProfileRoutes(app: Express) {
           updates.theme !== undefined
             ? updates.theme || buildDefaultTheme()
             : existing.theme || buildDefaultTheme(),
-        bookingConfig:
-          updates.bookingConfig !== undefined
-            ? updates.bookingConfig || null
-            : existing.bookingConfig || null,
+        bookingConfig: normalizedBookingConfig,
         visibility:
           updates.visibility !== undefined
             ? updates.visibility === "public"
@@ -557,6 +708,44 @@ export function registerBusinessProfileRoutes(app: Express) {
   });
 
   /**
+   * GET /api/business-profile/domain/status
+   * Returns only the selected owned profile's active and provisional state.
+   */
+  app.get(
+    "/api/business-profile/domain/status",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = (req as AuthedRequest).user?.id;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const profileId = String(req.query.profileId || "").trim();
+        if (!profileId) return res.status(400).json({ message: "profileId is required" });
+        const targetProfile = await storage.getProfileByIdForOwner(userId, profileId);
+        if (!targetProfile) return res.status(404).json({ message: "Profile not found" });
+
+        const [ownerUser] = await db
+          .select({ preferences: users.preferences })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (!ownerUser) return res.status(404).json({ message: "User not found" });
+
+        return res.json({
+          success: true,
+          domainStatus: profileDomainStatus(profileId, targetProfile, ownerUser.preferences),
+        });
+      } catch (error) {
+        console.error("Error loading custom domain status:", error);
+        return res.status(500).json({
+          message: "Failed to load domain status",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  /**
    * POST /api/business-profile/domain/start
    * Starts DNS TXT verification for custom domain ownership.
    */
@@ -570,9 +759,13 @@ export function registerBusinessProfileRoutes(app: Express) {
           return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const existing = await storage.getBusinessProfileByUserId(userId);
-        if (!existing) {
-          return res.status(404).json({ message: "No published profile to connect a domain" });
+        const profileId = String((req.body as any)?.profileId || "").trim();
+        if (!profileId) {
+          return res.status(400).json({ message: "profileId is required" });
+        }
+        const targetProfile = await storage.getProfileByIdForOwner(userId, profileId);
+        if (!targetProfile) {
+          return res.status(404).json({ message: "Profile not found" });
         }
 
         const domain = normalizeDomainInput((req.body as any)?.domain);
@@ -580,40 +773,55 @@ export function registerBusinessProfileRoutes(app: Express) {
           return res.status(400).json({ message: "Enter a valid domain (example.com)" });
         }
 
-        const hasConflict = await findDomainConflict(domain, userId);
-        if (hasConflict) {
-          return res.status(409).json({ message: "This domain is already in use" });
-        }
-
         const token = createVerificationToken();
-        const now = new Date().toISOString();
-
-        const updatedProfile: BusinessProfile = {
-          ...existing,
-          customDomain: domain,
-          customDomainVerification: {
-            state: "pending",
-            token,
-            verifiedAt: null,
-            lastCheckedAt: null,
-            error: null,
-          },
-          updatedAt: now,
+        const verification: NonNullable<BusinessProfile["customDomainVerification"]> = {
+          state: "pending",
+          profileId,
+          token,
+          verifiedAt: null,
+          lastCheckedAt: null,
+          error: null,
         };
+        const preferences = await db.transaction(async (tx: any) => {
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${userId}))`);
+          if (await findDomainConflict(domain, userId, profileId, tx)) {
+            throw domainRouteError(409, "This domain is already in use");
+          }
+          const [ownerUser] = await tx
+            .select({ preferences: users.preferences })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+          if (!ownerUser) throw domainRouteError(404, "User not found");
 
-        const saved = await storage.saveBusinessProfile(updatedProfile);
+          const nextPreferences = buildPreferencesWithProfileDomainState({
+            preferences: ownerUser.preferences,
+            profileId,
+            candidateDomain: domain,
+            verification,
+          });
+          await tx
+            .update(users)
+            .set({ preferences: nextPreferences as any, updatedAt: new Date() })
+            .where(eq(users.id, userId));
+          return nextPreferences;
+        });
 
         return res.json({
           success: true,
-          profile: saved,
+          domainStatus: profileDomainStatus(profileId, targetProfile, preferences),
           verification: {
             state: "pending",
+            profileId,
             domain,
             txtHost: `_tradescout-verify.${domain}`,
             txtValue: token,
           },
         });
       } catch (error: any) {
+        if (Number.isInteger(error?.statusCode)) {
+          return res.status(error.statusCode).json({ message: error.message });
+        }
         console.error("Error starting custom domain verification:", error);
         return res.status(500).json({
           message: "Failed to start verification",
@@ -625,7 +833,8 @@ export function registerBusinessProfileRoutes(app: Express) {
 
   /**
    * POST /api/business-profile/domain/verify
-   * Verifies DNS TXT ownership proof for the configured custom domain.
+   * Verifies domain ownership without making an unprovisioned host canonical.
+   * Hosting and TLS activation remain an operator-controlled infrastructure step.
    */
   app.post(
     "/api/business-profile/domain/verify",
@@ -637,63 +846,228 @@ export function registerBusinessProfileRoutes(app: Express) {
           return res.status(401).json({ message: "Unauthorized" });
         }
 
-        const existing = await storage.getBusinessProfileByUserId(userId);
-        if (!existing) {
-          return res.status(404).json({ message: "No published profile found" });
+        const profileId = String((req.body as any)?.profileId || "").trim();
+        if (!profileId) {
+          return res.status(400).json({ message: "profileId is required" });
+        }
+        const targetProfile = await storage.getProfileByIdForOwner(userId, profileId);
+        if (!targetProfile) {
+          return res.status(404).json({ message: "Profile not found" });
         }
 
-        const domain = existing.customDomain?.trim().toLowerCase();
-        const token = existing.customDomainVerification?.token?.trim();
-        if (!domain || !token) {
+        const [ownerUser] = await db
+          .select({ preferences: users.preferences })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        if (!ownerUser) return res.status(404).json({ message: "User not found" });
+        const currentDraft = readProfileDomainDraft(ownerUser.preferences, profileId);
+        const domain = currentDraft.candidateDomain;
+        const token = currentDraft.verification?.token?.trim();
+        const verificationProfileId = String(currentDraft.verification?.profileId || "").trim();
+        if (!domain || !token || verificationProfileId !== profileId) {
           return res.status(400).json({ message: "Start domain verification first" });
         }
 
         const txtHost = `_tradescout-verify.${domain}`;
+        const domainLockKey = domainIdentityLockKey(domain);
         const now = new Date().toISOString();
 
-        let isVerified = false;
+        let ownershipVerified = false;
         let verificationError: string | null = null;
 
         try {
           const records = await resolveTxt(txtHost);
           const values = records.map((parts) => parts.join("").trim());
-          isVerified = values.includes(token);
-          if (!isVerified) {
+          ownershipVerified = values.includes(token);
+          if (!ownershipVerified) {
             verificationError = "TXT record found, but token does not match";
           }
         } catch {
           verificationError = "TXT record not found yet";
         }
 
-        const updatedProfile: BusinessProfile = {
-          ...existing,
-          customDomainVerification: {
-            state: isVerified ? "verified" : "failed",
-            token,
-            verifiedAt: isVerified ? now : null,
-            lastCheckedAt: now,
-            error: verificationError,
-          },
-          updatedAt: now,
+        if (ownershipVerified) {
+          verificationError =
+            "Ownership is verified. TradeScout hosting and TLS setup must be completed before this domain can go live. Your TradeScout profile remains canonical until then.";
+        }
+
+        const verification: NonNullable<BusinessProfile["customDomainVerification"]> = {
+          state: ownershipVerified ? "pending" : "failed",
+          profileId,
+          token,
+          // Reserved for the final hosting/TLS activation state. TXT ownership
+          // alone is recorded by pending + lastCheckedAt.
+          verifiedAt: null,
+          lastCheckedAt: now,
+          error: verificationError,
         };
 
-        const saved = await storage.saveBusinessProfile(updatedProfile);
+        // Re-read before recording the result so a slow DNS lookup cannot
+        // overwrite a newer verification attempt for this account. This route
+        // deliberately never writes profiles.seoMeta.customDomain: TXT proof
+        // establishes ownership, not edge routing or certificate readiness.
+        const savedStatus = await db.transaction(async (tx: any) => {
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${userId}))`);
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${domainLockKey}))`);
+          const [freshOwner] = await tx
+            .select({ preferences: users.preferences })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+          if (!freshOwner) throw domainRouteError(404, "User not found");
+          const freshDraft = readProfileDomainDraft(freshOwner.preferences, profileId);
+          const freshProfileId = String(freshDraft.verification?.profileId || "").trim();
+          if (
+            freshDraft.candidateDomain !== domain ||
+            freshDraft.verification?.token?.trim() !== token ||
+            freshProfileId !== profileId
+          ) {
+            throw domainRouteError(409, "Domain verification changed; try again");
+          }
+
+          const preferences = buildPreferencesWithProfileDomainState({
+            preferences: freshOwner.preferences,
+            profileId,
+            candidateDomain: domain,
+            verification,
+          });
+          await tx
+            .update(users)
+            .set({ preferences: preferences as any, updatedAt: new Date() })
+            .where(eq(users.id, userId));
+          return profileDomainStatus(profileId, targetProfile, preferences);
+        });
 
         return res.json({
-          success: isVerified,
-          profile: saved,
+          success: false,
+          domainStatus: savedStatus,
           verification: {
-            state: updatedProfile.customDomainVerification?.state,
+            state: savedStatus.verification?.state,
+            profileId,
             domain,
             txtHost,
             txtValue: token,
+            ownershipVerified,
+            activationPending: ownershipVerified,
             error: verificationError,
           },
         });
       } catch (error: any) {
+        if (Number.isInteger(error?.statusCode)) {
+          return res.status(error.statusCode).json({ message: error.message });
+        }
         console.error("Error verifying custom domain:", error);
         return res.status(500).json({
           message: "Failed to verify domain",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/business-profile/domain
+   * Disconnects the selected public profile without deleting any profile data.
+   */
+  app.delete(
+    "/api/business-profile/domain",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = (req as AuthedRequest).user?.id;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const profileId = String((req.body as any)?.profileId || "").trim();
+        if (!profileId) return res.status(400).json({ message: "profileId is required" });
+
+        const result = await db.transaction(async (tx: any) => {
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${userId}))`);
+          const [ownedProfile] = await tx
+            .select({ id: profiles.id, seoMeta: profiles.seoMeta })
+            .from(profiles)
+            .where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, userId)))
+            .limit(1);
+          if (!ownedProfile) throw domainRouteError(404, "Profile not found");
+
+          const currentSeoMeta =
+            ownedProfile.seoMeta && typeof ownedProfile.seoMeta === "object"
+              ? ({ ...ownedProfile.seoMeta } as Record<string, unknown>)
+              : {};
+          const activeDomain = String(currentSeoMeta.customDomain || "")
+            .trim()
+            .toLowerCase();
+          if (activeDomain) {
+            const domainLockKey = domainIdentityLockKey(activeDomain);
+            await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${domainLockKey}))`);
+          }
+          delete currentSeoMeta.customDomain;
+
+          const [ownerUser] = await tx
+            .select({ preferences: users.preferences })
+            .from(users)
+            .where(eq(users.id, userId))
+            .limit(1);
+          if (!ownerUser) throw domainRouteError(404, "User not found");
+
+          const profileDomainStates = (ownerUser.preferences as any)?.profileDomainStates;
+          const hasProfileDomainState = Boolean(
+            profileDomainStates &&
+            typeof profileDomainStates === "object" &&
+            Object.prototype.hasOwnProperty.call(profileDomainStates, profileId)
+          );
+          const currentDraft = (ownerUser.preferences as any)?.provisional?.profileDraft;
+          const verificationProfileId = String(
+            currentDraft?.customDomainVerification?.profileId || ""
+          ).trim();
+          const provisionalDomain = String(currentDraft?.customDomain || "")
+            .trim()
+            .toLowerCase();
+          const clearsLegacyMatchingState =
+            !verificationProfileId && Boolean(activeDomain) && provisionalDomain === activeDomain;
+          const clearsProfileState = verificationProfileId === profileId;
+
+          if (hasProfileDomainState || clearsLegacyMatchingState || clearsProfileState) {
+            let preferences = buildPreferencesWithProfileDomainState({
+              preferences: ownerUser.preferences,
+              profileId,
+              candidateDomain: null,
+              verification: null,
+            });
+            if (clearsLegacyMatchingState || clearsProfileState) {
+              preferences = buildPreferencesWithDomainState({
+                preferences,
+                customDomain: null,
+                verification: null,
+              });
+            }
+            await tx
+              .update(users)
+              .set({ preferences: preferences as any, updatedAt: new Date() })
+              .where(eq(users.id, userId));
+          }
+
+          await tx
+            .update(profiles)
+            .set({ seoMeta: currentSeoMeta as any, updatedAt: new Date() })
+            .where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, userId)));
+
+          return { activeDomain, seoMeta: currentSeoMeta };
+        });
+
+        return res.json({
+          success: true,
+          profileId,
+          disconnectedDomain: result.activeDomain || null,
+          seoMeta: result.seoMeta,
+        });
+      } catch (error: any) {
+        if (Number.isInteger(error?.statusCode)) {
+          return res.status(error.statusCode).json({ message: error.message });
+        }
+        console.error("Error disconnecting custom domain:", error);
+        return res.status(500).json({
+          message: "Failed to disconnect domain",
           requestId: (req as any).requestId || null,
         });
       }

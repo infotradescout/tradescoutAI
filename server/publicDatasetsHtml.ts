@@ -204,7 +204,7 @@ export async function buildPublicDatasetsCountiesHtml(opts: PublicHtmlOptions): 
           const state = String(c.stateCode || "").toUpperCase();
           const countySlug = slugifyCountyName(
             String(c.name || "")
-              .replace(/\\s+County$/i, "")
+              .replace(/\s+County$/i, "")
               .trim()
           );
           return `<li><a href="/county/${encodeURIComponent(state.toLowerCase())}/${encodeURIComponent(

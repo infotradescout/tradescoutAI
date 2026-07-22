@@ -61,4 +61,53 @@ describe("community post card adapter", () => {
     expect(post.author).toMatchObject({ name: "TradeScout", role: "Platform", verified: true });
     expect(post.author?.id).toBeUndefined();
   });
+
+  it("rejects branded preview assets as member photos but preserves real uploads", () => {
+    const placeholder = toCommunityPostCardData({
+      id: "placeholder-avatar",
+      content: "Hello",
+      author: {
+        id: "user-placeholder",
+        name: "New Neighbor",
+        profileImageUrl: "/tradescout-social-preview.png?v=12",
+      },
+    });
+    const uploaded = toCommunityPostCardData({
+      id: "uploaded-avatar",
+      content: "Hello",
+      author: {
+        id: "user-uploaded",
+        name: "Photo Neighbor",
+        profileImageUrl: "/objects/uploads/profile-photo.webp",
+      },
+    });
+
+    expect(placeholder.author?.avatar).toBeUndefined();
+    expect(uploaded.author?.avatar).toBe("/objects/uploads/profile-photo.webp");
+  });
+
+  it("turns county routing data into human copy and omits internal author metadata", () => {
+    const post = toCommunityPostCardData({
+      id: "county-1",
+      content: "County update",
+      category: "general",
+      createdAt: "2026-07-13T12:00:00.000Z",
+      countyFips: "12033",
+      stateCode: "FL",
+      location: "12033",
+      author: {
+        id: "user-2",
+        name: "Taylor Neighbor",
+        role: "ops_admin",
+        verified: false,
+        cvsScore: 82,
+      },
+    });
+
+    expect(post.location).toBe("Escambia, FL");
+    expect(post.author).toMatchObject({ name: "Taylor Neighbor" });
+    expect(post.author?.role).toBeUndefined();
+    expect(post.author?.verified).toBeUndefined();
+    expect(post.author?.cvsScore).toBeNull();
+  });
 });

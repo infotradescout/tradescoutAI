@@ -18,10 +18,6 @@ const approvedComingSoonCopy = new Map([
     ["Video posts are coming soon", "Mood updates are coming soon"],
   ],
   [
-    "client/src/components/community/CommunitySnapshotRail.tsx",
-    ["Local offers are coming soon", "Coming soon"],
-  ],
-  [
     "client/src/components/profile/PublicProfileProductCard.tsx",
     ["Photo coming soon"],
   ],

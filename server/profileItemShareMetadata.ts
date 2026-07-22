@@ -50,7 +50,10 @@ const jwStoneInventoryCategories = (() => {
   return Array.from(categories.values());
 })();
 
-function inventoryCategoriesForProfile(profileSlug: string, contentBlocks: unknown): unknown {
+export function inventoryCategoriesForProfile(
+  profileSlug: string,
+  contentBlocks: unknown
+): unknown {
   if (profileSlug === JW_STONE_PROFILE_SLUG) return jwStoneInventoryCategories;
   if (!Array.isArray(contentBlocks)) return [];
 

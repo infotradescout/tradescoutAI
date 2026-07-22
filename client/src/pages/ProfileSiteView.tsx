@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import {
+  qualifyPublicProfileItemDestination,
+  requiresDocumentNavigation,
+} from "@/lib/publicProfileItemDestination";
 import { useAuth } from "@/hooks/useAuth";
 import {
   ArrowRight,
@@ -14,7 +18,6 @@ import {
   Calendar,
   Clock3,
   Compass,
-  DollarSign,
   Flag,
   RefreshCw,
   Sparkles,
@@ -38,6 +41,7 @@ import {
   type CanonicalProfileItems,
 } from "@/components/profile/PublicProfileItems";
 import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
+import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
@@ -65,6 +69,7 @@ import {
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
+import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -123,7 +128,7 @@ function ProfileArrivalState({
   onRetry,
 }: {
   slug: string;
-  mode: "early" | "retry";
+  mode: "unavailable" | "retry";
   onRetry: () => void;
 }) {
   const profileName = getProfileNameFromSlug(slug);
@@ -202,19 +207,21 @@ function ProfileArrivalState({
               ) : (
                 <Sparkles className="h-3.5 w-3.5" />
               )}
-              {isRetry ? "Quick pit stop" : "Opening soon"}
+              {isRetry ? "Quick pit stop" : "Profile unavailable"}
             </div>
 
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-              {profileName}
+              {isRetry ? profileName : "TradeScout public profile"}
             </p>
             <h1 className="max-w-3xl text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-              {isRetry ? "This page took a quick pit stop." : "You found it before opening day."}
+              {isRetry
+                ? "This page took a quick pit stop."
+                : "This public profile is not available."}
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-white/68 sm:text-lg">
               {isRetry
                 ? "The profile is still here; it just did not finish loading. Your link is fine, so give it another try."
-                : "This TradeScout profile is getting its finishing touches. Keep this link—when the doors open, it will happen right here."}
+                : "The profile may be unpublished, private, moved, or no longer available. No private account details are exposed here."}
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -307,11 +314,14 @@ function ProfileArrivalState({
               </div>
 
               <div className="space-y-3">
-                {[
-                  "Right address",
-                  isRetry ? "Loading again" : "Finishing touches",
-                  "Public profile next",
-                ].map((label, index) => (
+                {(isRetry
+                  ? ["Loading interrupted", "Trying again may recover", "Private details protected"]
+                  : [
+                      "No public profile at this address",
+                      "Private account details stay protected",
+                      "Browse available public spaces",
+                    ]
+                ).map((label, index) => (
                   <div
                     key={label}
                     className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 ${
@@ -333,7 +343,9 @@ function ProfileArrivalState({
               </div>
 
               <p className="mt-7 text-sm leading-6 text-white/48">
-                No detour and no dead end. This same link is where the finished profile will live.
+                {isRetry
+                  ? "A temporary load failure does not expose private profile data."
+                  : "This page does not reveal whether a private account exists."}
               </p>
             </div>
           </div>
@@ -569,6 +581,7 @@ export default function ProfileSiteView() {
         if (
           typeof customDomain === "string" &&
           customDomain.trim() &&
+          new URLSearchParams(window.location.search).get("book") !== "1" &&
           window.location.hostname.toLowerCase() !== customDomain.trim().toLowerCase()
         ) {
           const redirectUrl = new URL("/", `https://${customDomain.trim()}`);
@@ -634,7 +647,7 @@ export default function ProfileSiteView() {
     return (
       <ProfileArrivalState
         slug={slug}
-        mode="early"
+        mode="unavailable"
         onRetry={() => setReloadKey((current) => current + 1)}
       />
     );
@@ -669,7 +682,22 @@ export default function ProfileSiteView() {
       ? booking.timezone
       : "America/Chicago";
   const displayName =
-    business?.name && business.name.trim().length > 0 ? business.name : profile.displayName;
+    sanitizePublicDiscoveryText(
+      business?.name && business.name.trim().length > 0 ? business.name : profile.displayName,
+      200
+    ) || "TradeScout public profile";
+  const publicHeadline = sanitizePublicDiscoveryText(profile.headline, 500);
+  const publicCategories = (Array.isArray(business?.categories) ? business.categories : [])
+    .map((value) => sanitizePublicDiscoveryText(value, 120))
+    .filter(Boolean);
+  const bookingCategory = [profile.roleContext, ...publicCategories].some((value) =>
+    /notary/i.test(value)
+  )
+    ? "legal_notary"
+    : publicCategories[0] || profile.roleContext;
+  const publicServiceAreas = (Array.isArray(business?.serviceAreas) ? business.serviceAreas : [])
+    .map((value) => sanitizePublicDiscoveryText(value, 160))
+    .filter(Boolean);
   const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
   // JW Stone's reconciled catalog is versioned with the profile experience so
   // the public page cannot silently fall back to an older database seed. Drive
@@ -770,18 +798,25 @@ export default function ProfileSiteView() {
   const featuredGalleryItem =
     galleryItems.find((item) => item.slug === sharedGallerySlug) || galleryItems[0];
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const profileSeoTitle =
+  const profileSeoTitle = sanitizePublicDiscoveryText(
     typeof profile.seoMeta?.title === "string" && profile.seoMeta.title.trim().length > 0
       ? profile.seoMeta.title
-      : `${displayName} | TradeScout`;
-  const profileSeoDescription =
+      : `${displayName} | TradeScout`,
+    240
+  );
+  const profileSeoDescription = sanitizePublicDiscoveryText(
     typeof profile.seoMeta?.description === "string" &&
-    profile.seoMeta.description.trim().length > 0
+      profile.seoMeta.description.trim().length > 0
       ? profile.seoMeta.description
-      : profile.headline ||
-        `${displayName} on TradeScout. See services, recent work, and local offers, then send a private request when you're ready.`;
-  const seoTitle = itemShareMeta?.title || profileSeoTitle;
-  const seoDescription = itemShareMeta?.description || profileSeoDescription;
+      : publicHeadline ||
+          `${displayName} on TradeScout. See services, recent work, and local offers, then send a private request when you're ready.`,
+    1000
+  );
+  const seoTitle = sanitizePublicDiscoveryText(itemShareMeta?.title || profileSeoTitle, 240);
+  const seoDescription = sanitizePublicDiscoveryText(
+    itemShareMeta?.description || profileSeoDescription,
+    1000
+  );
   const seoImage =
     itemShareMeta?.imageUrl ||
     (typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
@@ -791,11 +826,12 @@ export default function ProfileSiteView() {
   const profileStructuredData = {
     "@context": "https://schema.org",
     "@type": business?.name ? "LocalBusiness" : "Person",
+    "@id": `${profileCanonicalBase}#identity`,
     name: displayName,
     description: profileSeoDescription,
     url: profileCanonicalBase,
-    ...(business?.categories?.length ? { category: business.categories.slice(0, 6) } : {}),
-    ...(business?.serviceAreas?.length ? { areaServed: business.serviceAreas.slice(0, 10) } : {}),
+    ...(publicCategories.length ? { category: publicCategories.slice(0, 6) } : {}),
+    ...(publicServiceAreas.length ? { areaServed: publicServiceAreas.slice(0, 10) } : {}),
   };
   const structuredData = inventoryItemShareMeta
     ? {
@@ -807,12 +843,19 @@ export default function ProfileSiteView() {
           {
             "@type": "Product",
             "@id": `${inventoryItemShareMeta.canonical}#product`,
-            name: inventoryItemShareMeta.itemName,
-            description: inventoryItemShareMeta.description,
+            name: sanitizePublicDiscoveryText(inventoryItemShareMeta.itemName, 200),
+            description: sanitizePublicDiscoveryText(inventoryItemShareMeta.description, 500),
             image: [inventoryItemShareMeta.imageUrl],
-            category: inventoryItemShareMeta.category || undefined,
+            category:
+              sanitizePublicDiscoveryText(inventoryItemShareMeta.category, 120) || undefined,
             url: inventoryItemShareMeta.canonical,
-            brand: { "@type": "Organization", name: displayName },
+            ...(business?.name
+              ? {
+                  brand: {
+                    "@id": `${profileCanonicalBase}#identity`,
+                  },
+                }
+              : {}),
           },
         ],
       }
@@ -826,11 +869,13 @@ export default function ProfileSiteView() {
             {
               "@type": "ImageObject",
               "@id": `${galleryItemShareMeta.canonical}#image`,
-              name: galleryItemShareMeta.itemTitle,
-              description: galleryItemShareMeta.description,
+              name: sanitizePublicDiscoveryText(galleryItemShareMeta.itemTitle, 200),
+              description: sanitizePublicDiscoveryText(galleryItemShareMeta.description, 500),
               contentUrl: galleryItemShareMeta.imageUrl,
               url: galleryItemShareMeta.canonical,
-              creator: { "@type": "Organization", name: displayName },
+              creator: {
+                "@id": `${profileCanonicalBase}#identity`,
+              },
             },
           ],
         }
@@ -871,17 +916,32 @@ export default function ProfileSiteView() {
   const jrsDirectConnectTarget = business?.directConnectOwnerUserId
     ? `target=${encodeURIComponent(business.directConnectOwnerUserId)}`
     : `profile=${encodeURIComponent(profile.slug)}`;
-  const directConnectHref =
+  const directConnectPath =
     profile.slug === "jrs-auto-glass"
       ? `/direct-connect?${jrsDirectConnectTarget}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
       : business?.directConnectOwnerUserId
         ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
-  const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
-  const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
-  const profileActionSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(
-    `/u/${profile.slug}`
-  )}`;
+  const directConnectHref = qualifyPublicProfileItemDestination(
+    directConnectPath,
+    platformBaseHref
+  );
+  const preScoutCreateHref = qualifyPublicProfileItemDestination(
+    `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectPath)}`,
+    platformBaseHref
+  );
+  const preScoutSignInHref = qualifyPublicProfileItemDestination(
+    `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectPath)}`,
+    platformBaseHref
+  );
+  const profileActionSignInHref = qualifyPublicProfileItemDestination(
+    `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/u/${profile.slug}`)}`,
+    platformBaseHref
+  );
+  const bookingSignInHref = qualifyPublicProfileItemDestination(
+    `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/u/${profile.slug}?book=1`)}`,
+    platformBaseHref
+  );
   const renderProfileTrustActions = (tone: "light" | "dark") => (
     <PublicProfileTrustActions
       profileSlug={profile.slug}
@@ -906,7 +966,7 @@ export default function ProfileSiteView() {
               : typeof data.body === "string"
                 ? data.body
                 : "";
-        return raw.trim();
+        return sanitizePublicDiscoveryText(raw, 4000);
       }
       return "";
     })
@@ -914,7 +974,7 @@ export default function ProfileSiteView() {
   const serviceTags = Array.from(
     new Set(
       [
-        ...(Array.isArray(business?.categories) ? business?.categories : []),
+        ...publicCategories,
         ...contentBlocks.flatMap((block: any) => {
           if (block?.type !== "services") return [] as string[];
           const data = block?.data && typeof block.data === "object" ? block.data : {};
@@ -932,19 +992,19 @@ export default function ProfileSiteView() {
           return [] as string[];
         }),
       ]
-        .map((item) => String(item || "").trim())
+        .map((item) => sanitizePublicDiscoveryText(item, 240))
         .filter((item) => item.length > 0)
     )
   );
-  const serviceAreas = Array.isArray(business?.serviceAreas) ? business.serviceAreas : [];
+  const serviceAreas = publicServiceAreas;
   const profilePlaceholderSrc = getCategoryPlaceholderSrc([
-    ...(Array.isArray(business?.categories) ? business.categories.slice(0, 4) : []),
+    ...publicCategories.slice(0, 4),
     ...serviceTags.slice(0, 4),
-    profile.headline,
+    publicHeadline,
     profile.roleContext,
   ]);
   const profilePlaceholderAlt = `${
-    serviceTags[0] || profile.headline || "Business"
+    serviceTags[0] || publicHeadline || "Business"
   } illustration for ${displayName}`;
   const profileTypeLabel = business ? "Local business" : "Community profile";
   const quickFacts = [
@@ -979,7 +1039,10 @@ export default function ProfileSiteView() {
             : typeof data.description === "string"
               ? data.description
               : "";
-      return { title, body: body.trim() };
+      return {
+        title: sanitizePublicDiscoveryText(title, 200),
+        body: sanitizePublicDiscoveryText(body, 2000),
+      };
     })
     .filter((item) => item.body.length > 0);
 
@@ -988,7 +1051,7 @@ export default function ProfileSiteView() {
       profileId={profile.id}
       profileSlug={profile.slug}
       displayName={displayName}
-      headline={profile.headline}
+      headline={publicHeadline}
       contentBlocks={storedContentBlocks}
       siteTemplate={siteTemplate}
       editMode={manageEditMode}
@@ -1044,7 +1107,11 @@ export default function ProfileSiteView() {
           trustActions={renderProfileTrustActions("dark")}
           profileItems={
             hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
             ) : null
           }
         />
@@ -1052,6 +1119,7 @@ export default function ProfileSiteView() {
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}
           profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
           businessName={displayName}
           businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
@@ -1087,7 +1155,11 @@ export default function ProfileSiteView() {
           trustActions={renderProfileTrustActions("dark")}
           profileItems={
             hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
             ) : null
           }
         />
@@ -1095,6 +1167,7 @@ export default function ProfileSiteView() {
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}
           profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
           businessName={displayName}
           businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
@@ -1142,7 +1215,11 @@ export default function ProfileSiteView() {
           communityVerification={business?.communityVerification}
           profileItems={
             hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
             ) : null
           }
         />
@@ -1150,6 +1227,7 @@ export default function ProfileSiteView() {
           open={expressPanelOpen}
           onClose={() => setExpressPanelOpen(false)}
           profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
           businessName={displayName}
           businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
@@ -1178,10 +1256,10 @@ export default function ProfileSiteView() {
           profileSlug={profile.slug}
           displayName={displayName}
           businessAddress={publicBusinessAddress}
-          headline={profile.headline}
+          headline={publicHeadline}
           contentBlocks={contentBlocks}
-          categories={business?.categories || []}
-          serviceAreas={business?.serviceAreas || []}
+          categories={publicCategories}
+          serviceAreas={publicServiceAreas}
           brandColors={business?.brandColors}
           contactReason={profile.contactPolicy?.reason}
           hasViewerSession={hasViewerSession}
@@ -1201,7 +1279,11 @@ export default function ProfileSiteView() {
           featuredStoneSlugs={featuredStoneSlugs}
           profileItems={
             hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
             ) : null
           }
         />
@@ -1261,8 +1343,8 @@ export default function ProfileSiteView() {
                   {profileTypeLabel}
                 </p>
               ) : null}
-              {profile.headline && profileSections.about !== false ? (
-                <p className="text-white/80 max-w-2xl">{profile.headline}</p>
+              {publicHeadline && profileSections.about !== false ? (
+                <p className="text-white/80 max-w-2xl">{publicHeadline}</p>
               ) : null}
             </div>
             {profileSections.stats !== false && quickFacts.length > 0 ? (
@@ -1296,10 +1378,10 @@ export default function ProfileSiteView() {
           </div>
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              {profileSections.about !== false && (aboutText || profile.headline) ? (
+              {profileSections.about !== false && (aboutText || publicHeadline) ? (
                 <section className="space-y-2">
                   <h2 className="text-white font-semibold text-lg">About</h2>
-                  <p className="text-white/75 leading-relaxed">{aboutText || profile.headline}</p>
+                  <p className="text-white/75 leading-relaxed">{aboutText || publicHeadline}</p>
                 </section>
               ) : null}
 
@@ -1350,61 +1432,69 @@ export default function ProfileSiteView() {
                       : "Providers this member chose to recommend appear here."}
                   </p>
                   <div className="space-y-3">
-                    {recommendationsDirectory.slice(0, 24).map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            {entry.recommendationType === "positive" ? (
-                              <Badge className="bg-emerald-600/80 text-white">
-                                <ThumbsUp className="mr-1 h-3.5 w-3.5" />
-                                Recommends
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-red-600/80 text-white">
-                                <ThumbsDown className="mr-1 h-3.5 w-3.5" />
-                                Does not recommend
-                              </Badge>
-                            )}
-                            {entry.projectType ? (
-                              <Badge className="bg-white/10 text-white/80">
-                                {entry.projectType}
-                              </Badge>
-                            ) : null}
+                    {recommendationsDirectory.slice(0, 24).map((entry) => {
+                      const contractorHref = entry.contractor?.slug
+                        ? qualifyPublicProfileItemDestination(
+                            entry.contractor.canonicalBusinessProfileUrl ||
+                              `/contractors/${encodeURIComponent(entry.contractor.slug)}`,
+                            platformBaseHref
+                          )
+                        : "";
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              {entry.recommendationType === "positive" ? (
+                                <Badge className="bg-emerald-600/80 text-white">
+                                  <ThumbsUp className="mr-1 h-3.5 w-3.5" />
+                                  Recommends
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-red-600/80 text-white">
+                                  <ThumbsDown className="mr-1 h-3.5 w-3.5" />
+                                  Does not recommend
+                                </Badge>
+                              )}
+                              {entry.projectType ? (
+                                <Badge className="bg-white/10 text-white/80">
+                                  {entry.projectType}
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <div className="text-xs text-white/60">
+                              {entry.createdAt
+                                ? new Date(entry.createdAt).toLocaleDateString()
+                                : "Recently"}
+                            </div>
                           </div>
-                          <div className="text-xs text-white/60">
-                            {entry.createdAt
-                              ? new Date(entry.createdAt).toLocaleDateString()
-                              : "Recently"}
-                          </div>
-                        </div>
-                        <p className="text-sm text-white/80">{entry.comment}</p>
-                        {recommendationDirectoryMode === "received" ? (
-                          <p className="text-xs font-medium text-white/60">
-                            Shared by {entry.customerName || "a customer"}
-                          </p>
-                        ) : entry.contractor?.slug ? (
-                          <Link
-                            href={
-                              entry.contractor.canonicalBusinessProfileUrl ||
-                              `/contractors/${encodeURIComponent(entry.contractor.slug)}`
-                            }
-                          >
+                          <p className="text-sm text-white/80">{entry.comment}</p>
+                          {recommendationDirectoryMode === "received" ? (
+                            <p className="text-xs font-medium text-white/60">
+                              Shared by {entry.customerName || "a customer"}
+                            </p>
+                          ) : entry.contractor?.slug ? (
                             <Button
+                              asChild
                               size="sm"
                               variant="outline"
                               className="border-white/20 text-white"
                             >
-                              {entry.contractor.companyName}
+                              {requiresDocumentNavigation(contractorHref) ? (
+                                <a href={contractorHref}>{entry.contractor.companyName}</a>
+                              ) : (
+                                <Link href={contractorHref}>{entry.contractor.companyName}</Link>
+                              )}
                             </Button>
-                          </Link>
-                        ) : (
-                          <p className="text-xs text-white/60">{entry.contractor.companyName}</p>
-                        )}
-                      </div>
-                    ))}
+                          ) : (
+                            <p className="text-xs text-white/60">{entry.contractor.companyName}</p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               ) : null}
@@ -1521,37 +1611,49 @@ export default function ProfileSiteView() {
                     </div>
                   ) : null}
                   <div className="flex flex-wrap gap-3">
-                    <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
-                      <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                        Direct Connect
-                      </Button>
-                    </Link>
-                    {paidBookings && bookingPriceUsd > 0 ? (
-                      <Link
-                        href={`/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${encodeURIComponent(`Booking deposit for ${displayName}`)}`}
-                      >
-                        <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          Pay deposit (${bookingPriceUsd.toFixed(2)})
-                        </Button>
-                      </Link>
-                    ) : null}
+                    <ProfileBookingRequestDialog
+                      profileId={profile.id}
+                      profileName={displayName}
+                      timezone={timezone}
+                      pricingRows={pricingRows}
+                      paidBookings={paidBookings}
+                      bookingPriceUsd={bookingPriceUsd}
+                      bookingCategory={bookingCategory}
+                      bookingStateCode={business?.stateCode || ""}
+                      hasViewerSession={hasViewerSession}
+                      viewerCanManage={viewerCanManage}
+                      signInHref={bookingSignInHref}
+                      platformBaseHref={platformBaseHref}
+                    />
+                    <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+                      {requiresDocumentNavigation(
+                        hasViewerSession ? directConnectHref : preScoutCreateHref
+                      ) ? (
+                        <a href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
+                          Direct Connect
+                        </a>
+                      ) : (
+                        <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
+                          Direct Connect
+                        </Link>
+                      )}
+                    </Button>
                   </div>
                 </section>
               ) : null}
             </div>
 
             <aside className="space-y-4">
-              {business && (business.categories.length > 0 || business.serviceAreas.length > 0) ? (
+              {business && (publicCategories.length > 0 || publicServiceAreas.length > 0) ? (
                 <section className="rounded-lg bg-black/20 p-4 space-y-3">
                   <h2 className="text-white font-semibold">At a glance</h2>
                   <div className="text-sm text-white/70 space-y-1">
-                    {business.categories.length > 0 ? (
-                      <p>{business.categories.slice(0, 6).join(" · ")}</p>
+                    {publicCategories.length > 0 ? (
+                      <p>{publicCategories.slice(0, 6).join(" · ")}</p>
                     ) : null}
-                    {business.serviceAreas.length > 0 ? (
+                    {publicServiceAreas.length > 0 ? (
                       <p className="text-white/60">
-                        Serves {business.serviceAreas.slice(0, 6).join(", ")}
+                        Serves {publicServiceAreas.slice(0, 6).join(", ")}
                       </p>
                     ) : null}
                   </div>
@@ -1582,11 +1684,16 @@ export default function ProfileSiteView() {
                       <span>Direct Connect</span>
                     </Button>
                     {!hasViewerSession ? (
-                      <Link href={preScoutSignInHref}>
-                        <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white">
-                          Sign in
-                        </Button>
-                      </Link>
+                      <Button
+                        asChild
+                        className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white"
+                      >
+                        {requiresDocumentNavigation(preScoutSignInHref) ? (
+                          <a href={preScoutSignInHref}>Sign in</a>
+                        ) : (
+                          <Link href={preScoutSignInHref}>Sign in</Link>
+                        )}
+                      </Button>
                     ) : null}
                   </div>
                 </section>
@@ -1595,7 +1702,11 @@ export default function ProfileSiteView() {
           </div>
         </CardContent>
       </Card>
-      <PublicProfileItems items={profileItems} profileSections={profileSections} />
+      <PublicProfileItems
+        items={profileItems}
+        profileSections={profileSections}
+        platformBaseHref={platformBaseHref}
+      />
       <TradeScoutProfileHandoff
         profileSlug={profile.slug}
         profileName={displayName}
@@ -1607,6 +1718,7 @@ export default function ProfileSiteView() {
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}
         profileSlug={profile.slug}
+        platformBaseHref={platformBaseHref}
         businessName={displayName}
         businessAddress={publicBusinessAddress}
         hasViewerSession={hasViewerSession}

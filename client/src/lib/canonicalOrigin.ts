@@ -11,5 +11,7 @@ export function getCanonicalAppOrigin(): string {
   if (host.endsWith(".thetradescout.com")) return "https://www.thetradescout.com";
   if (host.endsWith(".onrender.com")) return "https://www.thetradescout.com";
 
-  return window.location.origin;
+  // Unknown production hosts are customer profile domains, not the platform
+  // origin. Platform-owned routes must leave that host explicitly.
+  return "https://www.thetradescout.com";
 }

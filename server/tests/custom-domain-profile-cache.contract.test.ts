@@ -14,10 +14,16 @@ describe("custom-domain profile cache contract", () => {
     expect(renderProfileSource).toContain(
       'res.setHeader("Cache-Control", "no-cache, must-revalidate")'
     );
+    expect(renderProfileSource).toContain("const origin = `https://${host}`");
+    expect(renderProfileSource).not.toContain("resolvePublicOrigin(req)");
+    expect(renderProfileSource).toContain(
+      "const canonicalProfilePath = `/u/${encodeURIComponent(slug)}`"
+    );
+    expect(renderProfileSource).toContain("pathOverride: canonicalProfilePath");
     expect(renderProfileSource).not.toContain("stale-while-revalidate");
   });
 
-  it("re-resolves root ownership instead of trusting the one-hour domain cache", () => {
+  it("re-resolves authority documents instead of trusting the one-hour domain cache", () => {
     const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf-8");
     const middlewareStart = source.indexOf(
       "app.use(async (req, res, next) => {",
@@ -29,7 +35,7 @@ describe("custom-domain profile cache contract", () => {
     expect(middlewareStart).toBeGreaterThanOrEqual(0);
     expect(middlewareEnd).toBeGreaterThan(middlewareStart);
     expect(middlewareSource).toContain(
-      "const shouldRevalidateProfileDomain = isCustomDomainRootRequest(req)"
+      "const shouldRevalidateProfileDomain = isCustomDomainAuthorityRequest(req)"
     );
     expect(middlewareSource).toContain(
       "if (shouldRevalidateProfileDomain) CUSTOM_DOMAIN_CACHE.delete(host)"
@@ -37,6 +43,47 @@ describe("custom-domain profile cache contract", () => {
     expect(middlewareSource).toContain(
       "const cached = shouldRevalidateProfileDomain ? undefined : CUSTOM_DOMAIN_CACHE.get(host)"
     );
+
+    const helperStart = source.indexOf("function isCustomDomainAuthorityRequest(");
+    const helperEnd = source.indexOf("function redirectToCanonicalCustomDomain(", helperStart);
+    const helperSource = source.slice(helperStart, helperEnd);
+    expect(helperSource).toContain('requestPath === "/"');
+    expect(helperSource).toContain('requestPath === "/robots.txt"');
+    expect(helperSource).toContain('requestPath === "/sitemap.xml"');
+    expect(helperSource).toContain('requestPath === "/llms.txt"');
+    expect(helperSource).toContain('requestPath.startsWith("/api/")');
+    expect(helperSource).toContain('requestPath.startsWith("/u/")');
+  });
+
+  it("serves host-local sitemap and LLM guidance from the published profile source", () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf-8");
+    const start = source.indexOf("async function serveCustomDomainProfilePath(");
+    const end = source.indexOf("app.use(async (req, res, next) => {", start);
+    const handlerSource = source.slice(start, end);
+
+    expect(handlerSource).toContain('path === "/sitemap.xml"');
+    expect(handlerSource).toContain("buildPublicProfileSitemapXml({");
+    expect(handlerSource).toContain('path === "/llms.txt"');
+    expect(handlerSource).toContain("buildPublicProfileLlmsText({");
+    expect(handlerSource).toContain("origin: `https://${host}`");
+    expect(handlerSource).not.toContain("resolvePublicOrigin(req)");
+    expect(handlerSource).not.toContain("new Date().toISOString().slice(0, 10)");
+    expect(handlerSource).toContain(
+      "`https://${CANONICAL_WEB_HOST}/u/${encodeURIComponent(slug)}${requestSearchSuffix(req)}`"
+    );
+    expect(handlerSource).toContain("Allow: /\\nAllow: /llms.txt");
+    for (const privatePath of [
+      "/api/",
+      "/admin/",
+      "/dashboard/",
+      "/scout/",
+      "/messages/",
+      "/settings/",
+      "/auth/",
+    ]) {
+      expect(handlerSource).toContain(`Disallow: ${privatePath}`);
+    }
+    expect(handlerSource).toContain("Sitemap: https://${host}/sitemap.xml");
   });
 
   it("redirects an apex/www alias to the configured host with path and query intact", () => {
@@ -55,7 +102,7 @@ describe("custom-domain profile cache contract", () => {
     );
     expect(customDomainSource).toContain("exactProfileDomains.length === 1");
     expect(customDomainSource).toContain("aliasProfileDomains.length === 1");
-    expect(customDomainSource).toContain("if (exactProfileDomains.length > 1) return next()");
+    expect(customDomainSource).toContain("if (exactProfileDomains.length > 1) {");
     expect(customDomainSource).toContain(
       "return redirectToCanonicalCustomDomain(req, res, aliasCanonicalHost)"
     );
@@ -65,5 +112,44 @@ describe("custom-domain profile cache contract", () => {
     expect(customDomainSource.indexOf("const [account]")).toBeLessThan(
       customDomainSource.indexOf("const aliasProfileSlug")
     );
+  });
+
+  it("does not let a profile host become a canonical mirror of platform pages", () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf-8");
+    const helperStart = source.indexOf("function isCustomDomainMechanicsPath(");
+    const middlewareEnd = source.indexOf("// Core allowed origins", helperStart);
+    const customDomainSource = source.slice(helperStart, middlewareEnd);
+
+    expect(helperStart).toBeGreaterThanOrEqual(0);
+    expect(customDomainSource).toContain('requestPath.startsWith("/api/")');
+    expect(customDomainSource).toContain('"/assets/"');
+    expect(customDomainSource).toContain('"/uploads/"');
+    expect(customDomainSource).toContain('"/images/"');
+    expect(customDomainSource).toContain('requestPath.startsWith("/auth/")');
+    expect(customDomainSource).toContain("isSameProfileCompatibilityPath(requestPath, slug)");
+    expect(customDomainSource).toContain("res.redirect(301, `https://${host}/${suffix}`)");
+    expect(customDomainSource).toContain(
+      "res.redirect(301, `https://${CANONICAL_WEB_HOST}${normalizedPathAndQuery}`)"
+    );
+    expect(customDomainSource).toContain(
+      "if (redirectUnhandledCustomProfilePath(req, res, host, cached.slug)) return"
+    );
+    expect(customDomainSource).toContain(
+      "if (redirectUnhandledCustomProfilePath(req, res, host, profileSlug)) return"
+    );
+    expect(customDomainSource).toContain("return redirectPublicRequestToPlatform(req, res)");
+    expect(customDomainSource).toContain("if (redirectPublicRequestToPlatform(req, res)) return");
+    expect(customDomainSource).toContain('host === "thetradescout.com"');
+    expect(customDomainSource).toContain("host === CANONICAL_WEB_HOST");
+    expect(customDomainSource).toContain('host === "tradescoutai.onrender.com"');
+    expect(customDomainSource).not.toContain('host.endsWith("thetradescout.com")');
+    expect(customDomainSource).not.toContain('host.includes("onrender.com")');
+    expect(customDomainSource).toContain("markMappedProfileDomainRequest(req, host)");
+
+    const canonicalStart = source.indexOf("// Force canonical host:");
+    const canonicalEnd = source.indexOf("// Custom domains:", canonicalStart);
+    const canonicalSource = source.slice(canonicalStart, canonicalEnd);
+    expect(canonicalSource).toContain('host === "tradescoutai.onrender.com"');
+    expect(canonicalSource).not.toContain('host.includes("tradescoutai.onrender.com")');
   });
 });

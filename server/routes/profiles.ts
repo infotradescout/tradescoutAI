@@ -28,9 +28,13 @@ import {
   verifyManageBridgeToken,
 } from "../utils/profileManageBridge";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
-import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
+import {
+  buildHandmadeProductPath,
+  listHandmadeProductImageUrls,
+} from "../../shared/handmadeProductShare";
 import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
 import { sanitizePublicProfileOfferText, toPublicProfileOffer } from "../publicProfileOffer";
+import { buildProfileServiceOfferPath } from "../../shared/profileOfferShare";
 import { resolveSiteTemplateId } from "../../shared/profileSiteTemplates";
 import {
   buildPublicBusinessListingCards,
@@ -47,6 +51,13 @@ import {
   buildPublicContractorPromoCards,
   type PublicContractorPromoCard,
 } from "../../shared/contractorPromoShare";
+import { prepareSitemapUrlSetEntries } from "../sitemapUrlSet";
+import {
+  readProfileBookingConfigBlock,
+  upsertProfileBookingConfigBlock,
+} from "../../shared/profileBookingConfig";
+import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
+import { resolveProfileBookingConfig } from "../services/profileBookingConfig";
 
 const router = Router();
 
@@ -135,6 +146,20 @@ const CORE_STATIC_PATHS = [
 ];
 
 const COUNTY_SLUG_PATTERN = /^[a-z0-9-]+$/;
+const SITEMAP_CUSTOM_DOMAIN_PATTERN = /^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i;
+
+type PublishedProfileSitemapTarget = {
+  profileSlug: string;
+  businessSlug: string | null;
+  customDomain: string | null;
+  isPublic: boolean;
+  updatedAt: unknown;
+};
+
+type PublicBusinessPresenceSitemapRow = {
+  slug: string;
+  updatedAt: unknown;
+};
 
 function xmlEscape(value: unknown): string {
   return String(value ?? "")
@@ -173,12 +198,120 @@ function slugifyCategory(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeSitemapCustomDomain(value: unknown): string | null {
+  const domain = String(value || "")
+    .trim()
+    .toLowerCase();
+  return SITEMAP_CUSTOM_DOMAIN_PATTERN.test(domain) ? domain : null;
+}
+
+function canonicalPublishedProfileSitemapLoc(
+  baseUrl: string,
+  target: Pick<PublishedProfileSitemapTarget, "profileSlug" | "customDomain">
+): string | null {
+  // Custom-domain profiles own a host-local /sitemap.xml and robots.txt.
+  // Do not mix another host into TradeScout's platform sitemap URL sets.
+  if (target.customDomain) return null;
+  return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`;
+}
+
+function canonicalBusinessPresenceSitemapLoc(args: {
+  baseUrl: string;
+  businessSlug: string;
+  linkedProfile?: PublishedProfileSitemapTarget;
+}): string | null {
+  if (args.linkedProfile?.isPublic) {
+    // /business/:slug redirects whenever a published linked profile exists.
+    return canonicalPublishedProfileSitemapLoc(args.baseUrl, args.linkedProfile);
+  }
+  // Private linked profiles are not redirect targets. The public business
+  // page remains the final same-host 200 destination.
+  return `${args.baseUrl}/business/${encodeURIComponent(args.businessSlug)}`;
+}
+
+function indexPublicLinkedProfilesByBusinessSlug(
+  targets: PublishedProfileSitemapTarget[]
+): Map<string, PublishedProfileSitemapTarget> {
+  const indexed = new Map<string, PublishedProfileSitemapTarget>();
+  for (const target of targets) {
+    if (!target.businessSlug || !target.isPublic || indexed.has(target.businessSlug)) continue;
+    // Targets arrive newest-first, so retain the first deterministic match.
+    indexed.set(target.businessSlug, target);
+  }
+  return indexed;
+}
+
+async function listPublishedProfileSitemapTargets(
+  businessSlugs?: string[]
+): Promise<PublishedProfileSitemapTarget[]> {
+  if (businessSlugs && businessSlugs.length === 0) return [];
+  const businessScope = businessSlugs ? "AND b.slug = ANY($1::text[])" : "";
+  const result = await pool.query(
+    `SELECT p.slug AS profile_slug,
+            b.slug AS business_slug,
+            NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
+            COALESCE((u.preferences->>'profileVisibility'), 'private') = 'public' AS is_public,
+            p.updated_at
+       FROM profiles p
+       INNER JOIN users u ON u.id = p.owner_user_id
+       LEFT JOIN businesses b ON b.id = p.business_id
+      WHERE p.status = 'published'
+        ${businessScope}
+      ORDER BY p.updated_at DESC NULLS LAST,
+               p.created_at DESC NULLS LAST,
+               p.slug ASC`,
+    businessSlugs ? [businessSlugs] : []
+  );
+
+  return result.rows
+    .map((row) => {
+      const profileSlug = String(row.profile_slug || "").trim();
+      if (!profileSlug) return null;
+      return {
+        profileSlug,
+        businessSlug: String(row.business_slug || "").trim() || null,
+        customDomain: normalizeSitemapCustomDomain(row.custom_domain),
+        isPublic: row.is_public === true || row.is_public === "true" || row.is_public === "t",
+        updatedAt: row.updated_at ?? null,
+      };
+    })
+    .filter((row): row is PublishedProfileSitemapTarget => Boolean(row));
+}
+
+async function listPublicBusinessPresenceSitemapRows(): Promise<
+  PublicBusinessPresenceSitemapRow[]
+> {
+  const result = await pool.query(
+    `SELECT business_slug,
+            updated_at
+       FROM users
+      WHERE business_slug IS NOT NULL
+        AND preferences->'provisional'->'profileDraft' IS NOT NULL
+        AND COALESCE(preferences->'provisional'->'profileDraft'->>'visibility', 'private') = 'public'
+      ORDER BY updated_at DESC
+      LIMIT 100000`
+  );
+
+  return result.rows
+    .map((row) => {
+      const slug = String(row.business_slug || "").trim();
+      if (!slug) return null;
+      return {
+        slug,
+        updatedAt: row.updated_at ?? null,
+      };
+    })
+    .filter((row): row is PublicBusinessPresenceSitemapRow => Boolean(row));
+}
+
 function buildUrlSet(
   urlEntries: Array<{ loc: string; lastmod: string; changefreq?: string; priority?: string }>
 ) {
+  const preparedEntries = prepareSitemapUrlSetEntries(urlEntries);
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urlEntries
+${preparedEntries
   .map((entry) => {
     const optionalChangefreq = entry.changefreq
       ? `
@@ -480,11 +613,6 @@ const profileSeoSchema = z
     // Separate from imageUrl (the OG/share banner) -- browser tab icons need
     // a square mark, not a wide 1200x630 crop. See publicProfileHtml.ts.
     faviconUrl: z.string().max(500).optional(),
-    customDomain: z
-      .string()
-      .max(255)
-      .regex(/^(?!-)(?:[a-z0-9-]{1,63}\.)+[a-z]{2,63}$/i, "Invalid domain format")
-      .optional(),
   })
   .strict();
 
@@ -613,6 +741,87 @@ router.get("/api/profiles/public-search", async (req, res) => {
   }
 });
 
+router.get("/api/profiles/:id/profile-booking", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const profile = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const owner = await storage.getUser(profile.ownerUserId);
+    if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+
+    const resolved = resolveProfileBookingConfig(profile, owner);
+    res.json({
+      profileId: profile.id,
+      profileBooking: resolved.profileBooking,
+      source: resolved.source,
+    });
+  } catch (error: any) {
+    console.error("Error fetching Profile booking settings:", error);
+    res.status(500).json({ message: "Failed to fetch Profile booking settings" });
+  }
+});
+
+router.patch("/api/profiles/:id/profile-booking", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const profile = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const owner = await storage.getUser(profile.ownerUserId);
+    if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+
+    const existing = resolveProfileBookingConfig(profile, owner).profileBooking;
+    const incoming = req.body && typeof req.body === "object" ? req.body : {};
+    const normalized = normalizeProfileBookingPrefs({
+      ...existing,
+      ...incoming,
+      slots: Object.prototype.hasOwnProperty.call(incoming, "slots")
+        ? (incoming as any).slots
+        : existing.slots,
+      pricingRows: Object.prototype.hasOwnProperty.call(incoming, "pricingRows")
+        ? (incoming as any).pricingRows
+        : existing.pricingRows,
+    });
+
+    if (normalized.paidBookings && normalized.bookingPriceUsd <= 0) {
+      return res.status(400).json({
+        message: "A booking deposit must be greater than zero",
+      });
+    }
+
+    const contentBlocks = upsertProfileBookingConfigBlock(
+      profile.contentBlocks,
+      normalized as unknown as Record<string, unknown>
+    );
+    if (isStaffProfileManager(req)) {
+      await storage.updateProfileById(profileId, { contentBlocks } as any);
+    } else {
+      await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
+    }
+
+    res.json({
+      message: "Profile booking settings updated",
+      profileId,
+      profileBooking: normalized,
+      source: "profile",
+    });
+  } catch (error: any) {
+    console.error("Error updating Profile booking settings:", error);
+    res.status(500).json({ message: "Failed to update Profile booking settings" });
+  }
+});
+
 router.get("/api/profiles/:id", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -664,15 +873,39 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
 
     const profileId = String(req.params.id);
     const updates = updateProfileSchema.parse(req.body);
+    const existing = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!existing) return res.status(404).json({ message: "Profile not found" });
+
+    // A custom domain is an ownership-bearing routing value, not ordinary SEO
+    // copy. It can only be changed by the TXT verification lifecycle in
+    // business-profile.ts. Preserve any active/legacy mapping when unrelated
+    // SEO fields are saved through this generic profile endpoint.
+    const existingCustomDomain = String((existing.seoMeta as any)?.customDomain || "").trim();
+    const nextSeoMeta =
+      updates.seoMeta === undefined
+        ? undefined
+        : {
+            ...updates.seoMeta,
+            ...(existingCustomDomain ? { customDomain: existingCustomDomain } : {}),
+          };
+    const existingProfileBooking = readProfileBookingConfigBlock(existing.contentBlocks);
+    const nextContentBlocks =
+      updates.contentBlocks === undefined
+        ? undefined
+        : existingProfileBooking === undefined
+          ? updates.contentBlocks
+          : upsertProfileBookingConfigBlock(updates.contentBlocks, existingProfileBooking);
     const payload = {
       ...updates,
+      ...(nextSeoMeta === undefined ? {} : { seoMeta: nextSeoMeta }),
+      ...(nextContentBlocks === undefined ? {} : { contentBlocks: nextContentBlocks }),
       roleContext: updates.roleContext as any,
     } as any;
 
     let updated;
     if (isStaffProfileManager(req)) {
-      const existing = await storage.getProfileById(profileId);
-      if (!existing) return res.status(404).json({ message: "Profile not found" });
       updated = await storage.updateProfileById(profileId, payload);
     } else {
       updated = await storage.updateProfileForOwner(userId, profileId, payload);
@@ -2044,6 +2277,14 @@ router.get("/sitemap.xml", async (req, res) => {
     <loc>${baseUrl}/sitemap-exchange-listings.xml</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-handmade-products.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-profile-service-offers.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
 </sitemapindex>`;
 
     res.type("application/xml");
@@ -2116,23 +2357,23 @@ router.get("/sitemap-u-profiles.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
-    let profiles: any[] = [];
+    let profileTargets: PublishedProfileSitemapTarget[] = [];
     try {
-      const maybeProfiles = await storage.listPublicProfilesForSitemap();
-      profiles = Array.isArray(maybeProfiles) ? maybeProfiles : [];
+      profileTargets = (await listPublishedProfileSitemapTargets()).filter(
+        (target) => target.isPublic
+      );
     } catch (error) {
       console.warn("Profiles sitemap fallback: failed to load profiles", error);
-      profiles = [];
+      profileTargets = [];
     }
 
-    const urls = profiles
-      .filter((profile) => profile && typeof profile === "object")
-      .map((profile) => {
-        const slug = String(profile.slug || "").trim();
-        if (!slug) return null;
+    const urls = profileTargets
+      .map((target) => {
+        const loc = canonicalPublishedProfileSitemapLoc(baseUrl, target);
+        if (!loc) return null;
         return {
-          loc: `${baseUrl}/u/${encodeURIComponent(slug)}`,
-          lastmod: toYmd(profile.updatedAt, today),
+          loc,
+          lastmod: toYmd(target.updatedAt, today),
         };
       })
       .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
@@ -2151,23 +2392,32 @@ router.get("/sitemap-business-profiles.xml", async (req, res) => {
     const today = getTodayYmd();
 
     // Business profiles are stored on users.preferences for now (published presence).
-    let businessProfiles: any[] = [];
+    let businessProfiles: PublicBusinessPresenceSitemapRow[] = [];
+    let linkedProfiles: PublishedProfileSitemapTarget[] = [];
     try {
-      const maybe = await storage.listBusinessProfilesForSitemap();
-      businessProfiles = Array.isArray(maybe) ? maybe : [];
+      [businessProfiles, linkedProfiles] = await Promise.all([
+        listPublicBusinessPresenceSitemapRows(),
+        listPublishedProfileSitemapTargets(),
+      ]);
     } catch (error) {
       console.warn("Business profiles sitemap fallback: failed to load business profiles", error);
       businessProfiles = [];
+      linkedProfiles = [];
     }
 
+    const linkedProfileByBusinessSlug = indexPublicLinkedProfilesByBusinessSlug(linkedProfiles);
     const urls = businessProfiles
-      .filter((row) => row && typeof row === "object")
       .map((row) => {
-        const slug = String((row as any).slug || "").trim();
-        if (!slug) return null;
+        const linkedProfile = linkedProfileByBusinessSlug.get(row.slug);
+        const loc = canonicalBusinessPresenceSitemapLoc({
+          baseUrl,
+          businessSlug: row.slug,
+          linkedProfile,
+        });
+        if (!loc) return null;
         return {
-          loc: `${baseUrl}/business/${encodeURIComponent(slug)}`,
-          lastmod: toYmd((row as any).updatedAt, today),
+          loc,
+          lastmod: toYmd(linkedProfile?.updatedAt ?? row.updatedAt, today),
         };
       })
       .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
@@ -2225,25 +2475,41 @@ router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => 
     const offset = safePage * DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE;
 
     let businesses: any[] = [];
+    let linkedProfiles: PublishedProfileSitemapTarget[] = [];
     try {
       const maybe = await storage.listActiveDirectoryBusinessesForSitemap({
         limit: DIRECTORY_BUSINESS_SITEMAP_PAGE_SIZE,
         offset,
       });
       businesses = Array.isArray(maybe) ? maybe : [];
+      const businessSlugs = Array.from(
+        new Set(
+          businesses.map((row) => String(row?.slug || "").trim()).filter((slug) => slug.length > 0)
+        )
+      );
+      linkedProfiles = await listPublishedProfileSitemapTargets(businessSlugs);
     } catch (error) {
       console.warn("Directory businesses sitemap fallback: failed to load businesses", error);
       businesses = [];
+      linkedProfiles = [];
     }
 
+    const linkedProfileByBusinessSlug = indexPublicLinkedProfilesByBusinessSlug(linkedProfiles);
     const urls = businesses
       .filter((row) => row && typeof row === "object")
       .map((row) => {
         const slug = String((row as any).slug || "").trim();
         if (!slug) return null;
+        const linkedProfile = linkedProfileByBusinessSlug.get(slug);
+        const loc = canonicalBusinessPresenceSitemapLoc({
+          baseUrl,
+          businessSlug: slug,
+          linkedProfile,
+        });
+        if (!loc) return null;
         return {
-          loc: `${baseUrl}/business/${encodeURIComponent(slug)}`,
-          lastmod: toYmd((row as any).updatedAt, today),
+          loc,
+          lastmod: toYmd(linkedProfile?.updatedAt ?? (row as any).updatedAt, today),
         };
       })
       .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
@@ -3025,13 +3291,121 @@ router.get("/sitemap-tradepartners.xml", async (req, res) => {
   }
 });
 
+router.get("/sitemap-handmade-products.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    let products: any[] = [];
+    try {
+      const maybeProducts = await storage.getHandmadeProducts({ limit: 50_000, offset: 0 });
+      products = Array.isArray(maybeProducts) ? maybeProducts : [];
+    } catch (error) {
+      console.warn("Handmade products sitemap fallback: failed to load products", error);
+      products = [];
+    }
+
+    const exposureAuthority = await buildExposureAuthorityMap(
+      products.map((product) => String(product?.sellerId || ""))
+    );
+    const urls = products
+      .filter(
+        (product) =>
+          product &&
+          typeof product === "object" &&
+          String(product.status || "") === "active" &&
+          exposureAuthority[String(product.sellerId || "").trim()] === true
+      )
+      .map((product) => {
+        const path = buildHandmadeProductPath(product.id);
+        if (!path) return null;
+        return {
+          loc: `${baseUrl}${path}`,
+          lastmod: toYmd(product.updatedAt, today),
+          changefreq: "weekly",
+          priority: "0.7",
+        };
+      })
+      .filter(
+        (entry): entry is { loc: string; lastmod: string; changefreq: string; priority: string } =>
+          Boolean(entry)
+      );
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating Handmade products sitemap:", error);
+    sendSitemapFallback(res);
+  }
+});
+
+router.get("/sitemap-profile-service-offers.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    let offers: Array<{ id: string; sellerUserId: string; updatedAt: unknown }> = [];
+    try {
+      const result = await pool.query(
+        `SELECT id, seller_user_id, updated_at
+           FROM profile_offers
+          WHERE is_active = true
+            AND offer_type = 'service'
+          ORDER BY updated_at DESC
+          LIMIT 50000`
+      );
+      offers = result.rows.map((row) => ({
+        id: String(row.id || "").trim(),
+        sellerUserId: String(row.seller_user_id || "").trim(),
+        updatedAt: row.updated_at ?? null,
+      }));
+    } catch (error: any) {
+      const message = String(error?.message || "").toLowerCase();
+      if (!message.includes("profile_offers") && error?.code !== "42P01") {
+        console.warn("Profile service offers sitemap fallback: failed to load offers", error);
+      }
+      offers = [];
+    }
+
+    const exposureAuthority = await buildExposureAuthorityMap(
+      offers.map((offer) => offer.sellerUserId)
+    );
+    const urls = offers
+      .filter((offer) => exposureAuthority[offer.sellerUserId] === true)
+      .map((offer) => {
+        const path = buildProfileServiceOfferPath(offer.id);
+        if (!path) return null;
+        return {
+          loc: `${baseUrl}${path}`,
+          lastmod: toYmd(offer.updatedAt, today),
+          changefreq: "weekly",
+          priority: "0.7",
+        };
+      })
+      .filter(
+        (entry): entry is { loc: string; lastmod: string; changefreq: string; priority: string } =>
+          Boolean(entry)
+      );
+
+    res.type("application/xml");
+    res.send(buildUrlSet(urls));
+  } catch (error: any) {
+    console.error("Error generating profile service offers sitemap:", error);
+    sendSitemapFallback(res);
+  }
+});
+
 router.get("/sitemap-exchange-listings.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     // Sitemap URLs are emitted as /exchange/:categorySlug/:id with encodeURIComponent path parts.
-    let listings: Array<{ id: string; categoryName: string; updatedAt: Date | null }> = [];
-    let profileOfferItems: Array<{ id: string; categoryName: string; updatedAt: Date | null }> = [];
+    type ExchangeSitemapItem = {
+      id: string;
+      sellerUserId: string;
+      categoryName: string;
+      updatedAt: Date | null;
+    };
+    let listings: ExchangeSitemapItem[] = [];
+    let profileOfferItems: ExchangeSitemapItem[] = [];
     try {
       const maybeListings = await storage.listActiveExchangeListingsForSitemap();
       listings = Array.isArray(maybeListings) ? maybeListings : [];
@@ -3042,7 +3416,9 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
 
     try {
       const offers = await pool.query(
-        `SELECT id, COALESCE(metadata->>'exchangeCategorySlug', 'other') AS category_slug, updated_at
+        `SELECT id, seller_user_id,
+                COALESCE(metadata->>'exchangeCategorySlug', 'other') AS category_slug,
+                updated_at
          FROM profile_offers
          WHERE is_active = true
            AND offer_type = 'item'
@@ -3051,6 +3427,7 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
       );
       profileOfferItems = offers.rows.map((offer) => ({
         id: `profile-offer-${String(offer.id)}`,
+        sellerUserId: String(offer.seller_user_id || "").trim(),
         categoryName: String(offer.category_slug || "other"),
         updatedAt: offer.updated_at ?? null,
       }));
@@ -3066,8 +3443,14 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
     const { getExchangeCategorySlugFromMarketplaceCategoryName } =
       await import("../../shared/exchangeListingRules");
 
+    const exposureAuthority = await buildExposureAuthorityMap(
+      [...listings, ...profileOfferItems].map((listing) => listing.sellerUserId)
+    );
     const urls = [...listings, ...profileOfferItems]
-      .filter((listing) => listing && typeof listing === "object")
+      .filter(
+        (listing) =>
+          listing && typeof listing === "object" && exposureAuthority[listing.sellerUserId] === true
+      )
       .map((listing) => {
         const id = String(listing.id || "").trim();
         if (!id) return null;

@@ -20,6 +20,25 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain("Visibility does not grant contact access or authority");
   });
 
+  it("publishes human service-area names instead of internal county identifiers", () => {
+    const repository = read("server/repositories/businessRepository.ts");
+    const methodStart = repository.indexOf("async getBusinessPublicById");
+    const methodEnd = repository.indexOf("async getBusinessCountyIds", methodStart);
+    const method = repository.slice(methodStart, methodEnd);
+
+    expect(method).toContain("countyName: counties.name");
+    expect(method).toContain("stateCode: counties.stateCode");
+    expect(method).toContain(".innerJoin(counties, eq(counties.id, businessCounties.countyId))");
+    expect(method).toContain('.join(", ")');
+    expect(method).not.toContain("serviceAreas: countyRows.map((r) => r.countyId)");
+  });
+
+  it("projects the real profile update timestamp for host-local sitemap lastmod", () => {
+    const repository = read("server/repositories/profileRepository.ts");
+    expect(repository).toContain("updatedAt: profiles.updatedAt");
+    expect(repository).toContain("updatedAt: Date | null");
+  });
+
   it("robots guidance includes discovery crawler user agents without exposing private routes", () => {
     const dynamicSource = read("server/routes/profiles.ts");
     const staticRobots = read("client/public/robots.txt");
@@ -67,5 +86,6 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain("seoTitle");
     expect(source).toContain("seoDescription");
     expect(source).toContain("structuredData={structuredData}");
+    expect(source).toContain('"@id": `${profileCanonicalBase}#identity`');
   });
 });

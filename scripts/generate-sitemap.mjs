@@ -33,6 +33,8 @@ const SUBMITTED_SITEMAP_TARGETS = [
   '/sitemap-best-pages.xml',
   '/sitemap-recent-activity.xml',
   '/sitemap-exchange-listings.xml',
+  '/sitemap-handmade-products.xml',
+  '/sitemap-profile-service-offers.xml',
 ];
 
 // Canonical public routes only.

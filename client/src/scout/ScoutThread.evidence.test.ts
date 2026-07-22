@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import ScoutThread from "./ScoutThread";
+import ScoutThread, { EvidenceSourceList } from "./ScoutThread";
 import type { ScoutMessage } from "./state";
 
 function renderThread(
@@ -20,6 +20,34 @@ function renderThread(
 }
 
 describe("ScoutThread evidence strip", () => {
+  it("renders verified sources as links, context separately, and drops unsafe citations", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(EvidenceSourceList, {
+        sources: [
+          {
+            title: "Travis County permit guidance",
+            url: "https://www.traviscountytx.gov/tnr/development-services",
+          },
+          {
+            title: "Unsafe citation",
+            url: "javascript:alert(1)",
+            type: "url_citation",
+          },
+          { title: "TradeScout knowledge context", type: "internal" },
+        ],
+      })
+    );
+
+    expect(html).toContain('href="https://www.traviscountytx.gov/tnr/development-services"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain("Sources:");
+    expect(html).toContain("Context:");
+    expect(html).toContain("TradeScout knowledge context");
+    expect(html).not.toContain("Unsafe citation");
+    expect(html).not.toContain("javascript:");
+  });
+
   it("renders an evidence toggle for assistant messages when controller extras are enabled", () => {
     const assistantMessage: ScoutMessage = {
       id: "a_1",
@@ -35,6 +63,14 @@ describe("ScoutThread evidence strip", () => {
         sourceTitles: [
           "TradeScout Brain (data folder)",
           "Internet Search (Not Local TradeScout Data)",
+        ],
+        sources: [
+          { title: "TradeScout Brain (data folder)" },
+          {
+            title: "Internet Search (Not Local TradeScout Data)",
+            url: "https://example.gov/current-guidance",
+            type: "url_citation",
+          },
         ],
         allowedActions: ["ASK_SCOUT"],
       },

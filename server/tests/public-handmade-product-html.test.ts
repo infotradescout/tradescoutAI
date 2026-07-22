@@ -82,6 +82,9 @@ describe("public Handmade product HTML", () => {
     expect(html).not.toContain("555-867-5309");
     expect(html).not.toContain("oak@example.com");
     expect(html).toContain("Continue through TradeScout");
+    expect(html).toContain('data-seo-handmade-product="true"');
+    expect(html).toContain("<h1>Oak Serving Board</h1>");
+    expect(html).toContain("84.00 USD");
   });
 
   it("fails closed when the maker lacks public exposure authority", async () => {
@@ -116,5 +119,33 @@ describe("public Handmade product HTML", () => {
         productId: "../private",
       })
     ).resolves.toBeNull();
+  });
+
+  it("keeps social fallback art out of Product markup when no item photo exists", async () => {
+    mocks.getHandmadeProduct.mockResolvedValueOnce({
+      id: "no-photo-board",
+      sellerId: "maker-1",
+      title: "No-photo serving board",
+      description: "Handmade serving board.",
+      price: "64.00",
+      currency: "USD",
+      status: "active",
+      inStock: true,
+      images: [],
+    });
+
+    const html = await buildPublicHandmadeProductHtml({
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      productId: "no-photo-board",
+    });
+
+    expect(html).toContain(
+      'property="og:image" content="https://www.thetradescout.com/tradescout-social-preview.png?v=12"'
+    );
+    expect(html).not.toContain('"@type":"Product"');
+    expect(html).not.toContain(
+      '<img src="https://www.thetradescout.com/tradescout-social-preview.png'
+    );
   });
 });

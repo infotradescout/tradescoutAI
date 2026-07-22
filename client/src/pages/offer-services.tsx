@@ -82,6 +82,7 @@ type ProfileOffer = {
 
 type PublicProfileSummary = {
   id: string;
+  businessId?: string | null;
   slug?: string | null;
   status?: string | null;
   displayName?: string | null;
@@ -237,18 +238,6 @@ export default function OfferServicesPage() {
   const publicProfilesQuery = useQuery<PublicProfileSummary[]>({
     queryKey: ["/api/profiles"],
     queryFn: async () => apiRequest("GET", "/api/profiles"),
-    staleTime: 60_000,
-  });
-
-  const businessProfileQuery = useQuery<any | null>({
-    queryKey: ["/api/business-profile/me"],
-    queryFn: async () => {
-      const response = await fetch("/api/business-profile/me", { credentials: "include" });
-      if (response.status === 404) return null;
-      if (!response.ok) throw new Error("Failed to load business profile");
-      return response.json();
-    },
-    retry: false,
     staleTime: 60_000,
   });
 
@@ -605,10 +594,19 @@ export default function OfferServicesPage() {
   const profileOffers = profileOffersQuery.data?.offers || [];
   const profilePurchases = profilePurchasesQuery.data?.purchases || [];
   const publicProfiles = publicProfilesQuery.data || [];
+  const activeProfileId = String((user as any)?.activeProfileId || "");
+  const activeBusinessId = String((user as any)?.activeBusinessId || "");
   const activePublicProfile =
-    publicProfiles.find((profile) => profile.status === "published") || publicProfiles[0] || null;
+    publicProfiles.find((profile) => profile.id === activeProfileId) ||
+    publicProfiles.find((profile) => profile.status === "published") ||
+    publicProfiles[0] ||
+    null;
+  const activeBusinessProfile =
+    publicProfiles.find(
+      (profile) => activeBusinessId && String(profile.businessId || "") === activeBusinessId
+    ) || null;
   const hasPublicProfile = Boolean(activePublicProfile);
-  const hasBusinessProfile = Boolean(businessProfileQuery.data);
+  const hasBusinessProfile = Boolean(activeBusinessProfile);
   const hasFixedPriceOffers = profileOffers.length > 0;
   const hasFinanceFoundation = Number(booksFoundationQuery.data?.counts?.accounts || 0) > 0;
   const businessOnboarding = businessOnboardingQuery.data?.businessOnboarding;
@@ -655,10 +653,9 @@ export default function OfferServicesPage() {
       label: "Business profile",
       description: "Your business page carries services, coverage, proof, and SEO.",
       done: hasBusinessProfile,
-      href:
-        hasBusinessProfile && businessProfileQuery.data?.slug
-          ? `/business/${encodeURIComponent(String(businessProfileQuery.data.slug))}/edit`
-          : "/business-listing",
+      href: activeBusinessProfile?.slug
+        ? `/u/${encodeURIComponent(activeBusinessProfile.slug)}/edit`
+        : "/profile",
       icon: Building2,
     },
     {

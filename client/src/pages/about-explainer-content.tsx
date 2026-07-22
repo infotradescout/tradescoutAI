@@ -218,7 +218,7 @@ const featureGroups = [
       {
         action: "Let customers request a time",
         name: "Bookings",
-        copy: "Show availability, accept booking requests, and collect a disclosed deposit when paid booking is enabled.",
+        copy: "Show availability, accept free booking requests, and optionally require a disclosed deposit.",
         href: routes.createBusiness,
       },
       {

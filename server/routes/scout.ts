@@ -30,6 +30,7 @@ import {
   appendChatKnowledge,
   loadComprehensiveKnowledge,
   getKnowledgeBaseStatus,
+  type KnowledgeSourceReference,
 } from "../services/knowledgeService";
 import {
   enforceTradeScoutIdentityBoundary,
@@ -854,7 +855,12 @@ function buildContextualSynthesisFallbackMessage(
 
 async function synthesizeResponse(
   userMessage: string,
-  knowledge: { answer: string; sources: string[]; layer: number; confidence: string },
+  knowledge: {
+    answer: string;
+    sources: KnowledgeSourceReference[];
+    layer: number;
+    confidence: string;
+  },
   _gemini: GoogleGenerativeAI | null,
   llmProviders: LLMProvider[],
   systemPrompt: string,
@@ -4582,9 +4588,9 @@ router.post("/", async (req: Request, res: Response) => {
       requestId: (req as any).requestId,
     };
 
-    const responseKnowledgeSources = Array.isArray((knowledge as any)?.sources)
-      ? ([...(knowledge as any).sources] as any[])
-      : ([] as any[]);
+    const responseKnowledgeSources: KnowledgeSourceReference[] = Array.isArray(knowledge.sources)
+      ? [...knowledge.sources]
+      : [];
 
     // External data source (partner action bridge)
     // NOTE: This is strictly server-to-server and read-only; it is safe to ignore on failure.

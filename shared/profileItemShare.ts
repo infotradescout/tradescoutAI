@@ -1,6 +1,7 @@
 const PROFILE_ITEM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_PROFILE_ITEM_SLUG_LENGTH = 120;
 const MAX_PROFILE_ITEM_DESCRIPTION_LENGTH = 160;
+const MAX_PROFILE_INVENTORY_ITEMS = 500;
 
 type RawInventoryStone = {
   name?: unknown;
@@ -131,6 +132,38 @@ export function resolveProfileInventoryItem(
   }
 
   return null;
+}
+
+export function listProfileInventoryItems(categories: unknown): ResolvedProfileInventoryItem[] {
+  if (!Array.isArray(categories)) return [];
+  const items: ResolvedProfileInventoryItem[] = [];
+
+  for (const rawCategory of categories as RawInventoryCategory[]) {
+    if (!rawCategory || typeof rawCategory !== "object" || !Array.isArray(rawCategory.stones)) {
+      continue;
+    }
+    const category =
+      firstQueryValue(rawCategory.category) || firstQueryValue(rawCategory.categorySlug);
+
+    for (const rawStone of rawCategory.stones as RawInventoryStone[]) {
+      if (!rawStone || typeof rawStone !== "object") continue;
+      const name = firstQueryValue(rawStone.name);
+      const slug = normalizeProfileInventoryItemSlug(rawStone.slug);
+      const images = Array.isArray(rawStone.images)
+        ? rawStone.images
+            .map(normalizePublicImageReference)
+            .filter((image): image is string => Boolean(image))
+        : [];
+      if (!name || !slug || images.length === 0 || items.some((item) => item.slug === slug)) {
+        continue;
+      }
+
+      items.push({ name, slug, category: category || null, images, imageIndex: 0 });
+      if (items.length >= MAX_PROFILE_INVENTORY_ITEMS) return items;
+    }
+  }
+
+  return items;
 }
 
 export function createProfileInventoryItemShareMetadata(args: {

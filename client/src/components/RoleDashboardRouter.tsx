@@ -6,15 +6,9 @@ import { trackShellEvent } from "@/lib/analytics";
 import { OrientationCard } from "@/components/orientation/OrientationCard";
 import { isSuperAdminLike } from "@/lib/roleChecks";
 
-// Import dashboards
-const SimpleHome = lazy(() => import("@/pages/SimpleHome"));
-const ContractorDashboard = lazy(() => import("@/pages/contractor-dashboard"));
-const RealtorDashboard = lazy(() => import("@/pages/realtor-dashboard"));
-const HOADashboard = lazy(() => import("@/pages/hoa-dashboard"));
-const BusinessOwnerDashboard = lazy(() => import("@/pages/business-owner-dashboard"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const AdminShell = lazy(() => import("@/pages/admin"));
 const StaffDashboard = lazy(() => import("@/pages/staff-dashboard"));
-const HelperDashboard = lazy(() => import("@/pages/helper-dashboard"));
 
 const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   const { user, isLoading } = useAuth();
@@ -124,7 +118,7 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
 
     // Everyone else (homeowners, contractors, realtors, etc.) gets the unified Dashboard
     // This Dashboard shows content based on user activity and interests, not role
-    return lazy(() => import("@/pages/Dashboard"));
+    return Dashboard;
   };
 
   const DashboardComponent = getDashboardComponent();

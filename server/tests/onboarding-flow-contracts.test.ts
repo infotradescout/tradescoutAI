@@ -21,6 +21,12 @@ describe("onboarding flow contracts", () => {
     expect(profileSource).toContain("storeOnboardingNext");
     expect(profileSource).toContain("Setting up a business profile");
     expect(profileSource).toContain("fixed-price offers, verification, and bookkeeping review");
+    expect(profileSource).toContain("Add a profile photo");
+    expect(profileSource).toContain("Recommended");
+    expect(profileSource).toContain("uploadObject(file)");
+    expect(profileSource).toContain("profileImageUrl: profileImageUrl || undefined");
+    expect(profileSource).toContain('data-testid="onboarding-profile-photo-button"');
+    expect(profileSource).toContain("the TradeScout logo appears instead");
   });
 
   it("uses unified lane-first onboarding selection from the intent step", () => {
@@ -134,7 +140,11 @@ describe("onboarding flow contracts", () => {
     expect(offerServicesSource).toContain("startEditingOffer");
     expect(offerServicesSource).toContain("Save offer");
     expect(offerServicesSource).toContain('queryKey: ["/api/profiles"]');
-    expect(offerServicesSource).toContain('queryKey: ["/api/business-profile/me"]');
+    expect(offerServicesSource).not.toContain('queryKey: ["/api/business-profile/me"]');
+    expect(offerServicesSource).toContain("const activeBusinessProfile =");
+    expect(offerServicesSource).toContain(
+      "`/u/${encodeURIComponent(activeBusinessProfile.slug)}/edit`"
+    );
     expect(offerServicesSource).toContain('queryKey: ["/api/accounting/books-foundation"]');
     expect(offerServicesSource).toContain('document.getElementById("fixed-price-offers")');
     expect(offerServicesSource).toContain('method: "PATCH"');

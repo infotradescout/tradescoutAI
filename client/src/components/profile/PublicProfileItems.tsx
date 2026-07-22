@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildCommunityPostPath, listCommunityPostImageUrls } from "@shared/communityPostShare";
 import {
+  qualifyPublicProfileItemDestination,
+  requiresDocumentNavigation,
+} from "@/lib/publicProfileItemDestination";
+import {
   buildHandmadeProductPath,
   listHandmadeProductImageUrls,
 } from "@shared/handmadeProductShare";
@@ -81,6 +85,7 @@ type PublicProfileItemsProps = {
     marketplaceListings?: boolean;
     communityActivity?: boolean;
   } | null;
+  platformBaseHref?: string;
   className?: string;
 };
 
@@ -134,6 +139,7 @@ function formatMoney(value: unknown, currency = "USD"): string {
 export function PublicProfileItems({
   items,
   profileSections,
+  platformBaseHref = "",
   className = "",
 }: PublicProfileItemsProps) {
   const offers = Array.isArray(items?.offers) ? items.offers : [];
@@ -173,52 +179,62 @@ export function PublicProfileItems({
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            {contractorPromos.slice(0, 6).map((promo) => (
-              <article
-                key={promo.slug}
-                className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
-              >
-                {promo.imageUrl ? (
-                  <img
-                    src={promo.imageUrl}
-                    alt={promo.title}
-                    className="aspect-[16/9] w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : null}
-                <div className="space-y-3 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="font-semibold text-white break-words">{promo.title}</h3>
-                      {promo.description ? (
-                        <p className="mt-1 line-clamp-2 text-sm text-white/70">
-                          {promo.description}
-                        </p>
-                      ) : null}
-                    </div>
-                    <Badge variant="outline" className="shrink-0 border-white/20 text-white/80">
-                      {promo.discountLabel}
-                    </Badge>
-                  </div>
-                  {promo.expiresAt ? (
-                    <p className="text-xs text-white/55">
-                      Valid through {new Date(promo.expiresAt).toLocaleDateString()}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={promo.detailPath}>View</Link>
-                    </Button>
-                    <ShareButton
-                      destination={promo.detailPath}
-                      title={promo.title}
-                      text={`See ${promo.title} and ask the business about it`}
-                      className="border-white/20 text-white"
+            {contractorPromos.slice(0, 6).map((promo) => {
+              const destination = qualifyPublicProfileItemDestination(
+                promo.detailPath,
+                platformBaseHref
+              );
+              return (
+                <article
+                  key={promo.slug}
+                  className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
+                >
+                  {promo.imageUrl ? (
+                    <img
+                      src={promo.imageUrl}
+                      alt={promo.title}
+                      className="aspect-[16/9] w-full object-cover"
+                      loading="lazy"
                     />
+                  ) : null}
+                  <div className="space-y-3 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-white break-words">{promo.title}</h3>
+                        {promo.description ? (
+                          <p className="mt-1 line-clamp-2 text-sm text-white/70">
+                            {promo.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <Badge variant="outline" className="shrink-0 border-white/20 text-white/80">
+                        {promo.discountLabel}
+                      </Badge>
+                    </div>
+                    {promo.expiresAt ? (
+                      <p className="text-xs text-white/55">
+                        Valid through {new Date(promo.expiresAt).toLocaleDateString()}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        {requiresDocumentNavigation(destination) ? (
+                          <a href={destination}>View</a>
+                        ) : (
+                          <Link href={destination}>View</Link>
+                        )}
+                      </Button>
+                      <ShareButton
+                        destination={destination}
+                        title={promo.title}
+                        text={`See ${promo.title} and ask the business about it`}
+                        className="border-white/20 text-white"
+                      />
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </CardContent>
         </Card>
       ) : null}
@@ -233,8 +249,9 @@ export function PublicProfileItems({
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             {serviceOffers.slice(0, 8).map((offer) => {
-              const destination = buildProfileServiceOfferPath(offer.id);
-              if (!destination) return null;
+              const path = buildProfileServiceOfferPath(offer.id);
+              if (!path) return null;
+              const destination = qualifyPublicProfileItemDestination(path, platformBaseHref);
               const image = listProfileOfferImageUrls(offer.metadata)[0];
               return (
                 <article
@@ -268,7 +285,11 @@ export function PublicProfileItems({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={destination}>View service</Link>
+                        {requiresDocumentNavigation(destination) ? (
+                          <a href={destination}>View service</a>
+                        ) : (
+                          <Link href={destination}>View service</Link>
+                        )}
                       </Button>
                       <ShareButton
                         destination={destination}
@@ -295,11 +316,12 @@ export function PublicProfileItems({
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
             {productOffers.slice(0, 8).map((offer) => {
-              const destination = buildProfileOfferExchangePath(
+              const path = buildProfileOfferExchangePath(
                 offer.id,
                 offer.metadata?.exchangeCategorySlug || offer.metadata?.itemCategory
               );
-              if (!destination) return null;
+              if (!path) return null;
+              const destination = qualifyPublicProfileItemDestination(path, platformBaseHref);
               const image = listProfileOfferImageUrls(offer.metadata)[0];
               const hasStockCount =
                 offer.itemStockQuantity !== null &&
@@ -336,6 +358,10 @@ export function PublicProfileItems({
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             {homeScoutListings.slice(0, 6).map((listing) => {
+              const destination = qualifyPublicProfileItemDestination(
+                listing.detailPath,
+                platformBaseHref
+              );
               const location = [listing.city, listing.stateCode].filter(Boolean).join(", ");
               const facts = [
                 listing.beds != null ? `${listing.beds} bd` : null,
@@ -381,10 +407,14 @@ export function PublicProfileItems({
                     <p className="font-semibold text-ts-orange">{formatMoney(listing.price)}</p>
                     <div className="flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={listing.detailPath}>View</Link>
+                        {requiresDocumentNavigation(destination) ? (
+                          <a href={destination}>View</a>
+                        ) : (
+                          <Link href={destination}>View</Link>
+                        )}
                       </Button>
                       <ShareButton
-                        destination={listing.detailPath}
+                        destination={destination}
                         title={listing.title}
                         text={`View ${listing.title} on TradeScout HomeScout`}
                         className="border-white/20 text-white"
@@ -408,13 +438,17 @@ export function PublicProfileItems({
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
             {marketplaceListings.slice(0, 6).map((listing) => {
+              const destination = qualifyPublicProfileItemDestination(
+                listing.detailPath,
+                platformBaseHref
+              );
               const location = [listing.county, listing.state].filter(Boolean).join(", ");
               return (
                 <PublicProfileProductCard
                   key={listing.id}
                   title={listing.title}
                   description={listing.description}
-                  destination={listing.detailPath}
+                  destination={destination}
                   imageUrl={listing.imageUrl}
                   price={formatMoney(listing.price)}
                   eyebrow={listing.categoryName || "Exchange"}
@@ -438,8 +472,9 @@ export function PublicProfileItems({
           </CardHeader>
           <CardContent className="grid gap-5 md:grid-cols-2">
             {handmadeProducts.slice(0, 8).map((product) => {
-              const destination = buildHandmadeProductPath(product.id);
-              if (!destination) return null;
+              const path = buildHandmadeProductPath(product.id);
+              if (!path) return null;
+              const destination = qualifyPublicProfileItemDestination(path, platformBaseHref);
               const image = listHandmadeProductImageUrls({
                 primaryImageUrl: product.imageUrls?.[0],
                 images: product.imageUrls,
@@ -473,8 +508,9 @@ export function PublicProfileItems({
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             {communityPosts.slice(0, 6).map((post) => {
-              const destination = buildCommunityPostPath(post.id);
-              if (!destination) return null;
+              const path = buildCommunityPostPath(post.id);
+              if (!path) return null;
+              const destination = qualifyPublicProfileItemDestination(path, platformBaseHref);
               const image = listCommunityPostImageUrls(post.imageUrls)[0];
               return (
                 <article
@@ -504,7 +540,11 @@ export function PublicProfileItems({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={destination}>View</Link>
+                        {requiresDocumentNavigation(destination) ? (
+                          <a href={destination}>View</a>
+                        ) : (
+                          <Link href={destination}>View</Link>
+                        )}
                       </Button>
                       <ShareButton
                         destination={destination}

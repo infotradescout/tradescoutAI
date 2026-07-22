@@ -49,10 +49,6 @@ export async function buildPublicProfileServiceOfferHtml(
     image: metadata.imageUrl ? [metadata.imageUrl] : undefined,
     serviceType: offer.serviceCategory || undefined,
     url: metadata.canonical,
-    provider: {
-      "@type": "Organization",
-      name: "TradeScout provider",
-    },
   };
   if (Number.isFinite(price) && price >= 0) {
     serviceJsonLd.offers = {
@@ -161,6 +157,22 @@ export async function buildPublicProfileServiceOfferHtml(
   html = html.replace(
     "</head>",
     '<meta name="tradescout:contact-access" content="protected-request-only" />\n</head>'
+  );
+  const publicPrice =
+    Number.isFinite(price) && price >= 0
+      ? `${price.toFixed(2)} ${String(offer.currency || "USD").toUpperCase()}`
+      : "";
+  html = html.replace(
+    /<div id="root">\s*<\/div>/i,
+    `<div id="root"><main data-seo-profile-service="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+      <article>
+        <h1>${escapeHtml(metadata.title)}</h1>
+        <p>${escapeHtml(metadata.description)}</p>
+        ${publicPrice ? `<p>${escapeHtml(publicPrice)}</p>` : ""}
+        ${metadata.imageUrl ? `<img src="${escapeHtml(metadata.imageUrl)}" alt="${escapeHtml(metadata.imageAlt)}" loading="eager" />` : ""}
+        <p>Continue through TradeScout to send a protected service request.</p>
+      </article>
+    </main></div>`
   );
   return html;
 }

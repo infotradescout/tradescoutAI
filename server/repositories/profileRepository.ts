@@ -2,6 +2,7 @@ import { profiles, users, type InsertProfile, type Profile, type User } from "@s
 import { db } from "../db";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 
 export type PublicProfileRecord = {
   id: string;
@@ -13,6 +14,7 @@ export type PublicProfileRecord = {
   ctaConfig: any;
   seoMeta: any;
   businessId: string | null;
+  updatedAt: Date | null;
   profileSections: any | null;
   profileBooking: any | null;
   ownerFirstName: string | null;
@@ -87,8 +89,9 @@ export class ProfileRepository {
         ctaConfig: profiles.ctaConfig,
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
+        updatedAt: profiles.updatedAt,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
-        profileBooking: sql`(${users.preferences} -> 'profileBooking')`,
+        legacyProfileBooking: sql`(${users.preferences} -> 'profileBooking')`,
         ownerFirstName: users.firstName,
         ownerLastName: users.lastName,
         ownerProfileImageUrl: users.profileImageUrl,
@@ -107,7 +110,14 @@ export class ProfileRepository {
         )
       )
       .limit(1);
-    return rows[0];
+    const row = rows[0];
+    if (!row) return undefined;
+    const { legacyProfileBooking, ...publicProfile } = row;
+    return {
+      ...publicProfile,
+      profileBooking:
+        readProfileBookingConfigBlock(publicProfile.contentBlocks) ?? legacyProfileBooking ?? null,
+    };
   }
 
   async searchProfilesPublic(args: { query: string; limit?: number }): Promise<

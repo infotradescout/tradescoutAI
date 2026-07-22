@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CommentsSection } from "./CommentsSection";
-import { ShareModal } from "./ShareModal";
 import { ReportModal } from "./ReportModal";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -25,7 +24,6 @@ import {
 import {
   Heart,
   MessageCircle,
-  Share2,
   MoreHorizontal,
   Pin,
   BookmarkPlus,
@@ -50,7 +48,6 @@ export function PostCard({ post }: PostCardProps) {
   const [, navigate] = useLocation();
 
   const [showComments, setShowComments] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const [isLiked, setIsLiked] = useState(Boolean(post.userReaction || post.isLiked));
@@ -112,10 +109,6 @@ export function PostCard({ post }: PostCardProps) {
       return;
     }
     likeMutation.mutate();
-  };
-
-  const handleShare = () => {
-    setShowShareModal(true);
   };
 
   const handleSave = () => {
@@ -396,16 +389,6 @@ export function PostCard({ post }: PostCardProps) {
               <MessageCircle className="h-4 w-4" />
               <span>{post.commentCount || 0}</span>
             </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
-            >
-              <Share2 className="h-4 w-4" />
-              <span>Share</span>
-            </Button>
           </div>
 
           {/* Engagement Stats */}
@@ -439,9 +422,6 @@ export function PostCard({ post }: PostCardProps) {
       {contactOutcome && (
         <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
       )}
-
-      {/* Share Modal */}
-      <ShareModal open={showShareModal} onOpenChange={setShowShareModal} post={post} />
 
       {/* Report Modal */}
       <ReportModal

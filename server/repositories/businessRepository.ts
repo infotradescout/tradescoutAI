@@ -2,10 +2,13 @@ import {
   businesses,
   businessCounties,
   businessVerifications,
+  counties,
+  profiles,
   users,
   workers,
   type Business,
   type InsertBusiness,
+  type Profile,
   type User,
 } from "@shared/schema";
 import { db } from "../db";
@@ -33,6 +36,10 @@ export type PublicBusinessRecord = {
   city?: string;
   stateCode?: string;
   zipCode?: string;
+};
+
+export type ClaimedBusinessWithProfile = Business & {
+  canonicalProfile: Profile;
 };
 
 type BusinessMutation = Omit<InsertBusiness, "id" | "ownerUserId" | "createdAt" | "updatedAt"> & {
@@ -206,9 +213,14 @@ export class BusinessRepository {
     if (!business) return undefined;
 
     const countyRows = await db
-      .select({ countyId: businessCounties.countyId })
+      .select({
+        countyName: counties.name,
+        stateCode: counties.stateCode,
+      })
       .from(businessCounties)
-      .where(eq(businessCounties.businessId, businessId));
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .where(eq(businessCounties.businessId, businessId))
+      .orderBy(asc(counties.name), asc(counties.stateCode));
 
     const categories = business.profileData?.category ? [business.profileData.category] : [];
     const contactEmail = business.profileData?.email || undefined;
@@ -219,7 +231,17 @@ export class BusinessRepository {
       id: business.id,
       name: business.name,
       categories,
-      serviceAreas: countyRows.map((r) => r.countyId),
+      serviceAreas: Array.from(
+        new Set(
+          countyRows
+            .map((row) =>
+              [String(row.countyName || "").trim(), String(row.stateCode || "").trim()]
+                .filter(Boolean)
+                .join(", ")
+            )
+            .filter(Boolean)
+        )
+      ),
       tradePartner: isTradePartner,
       ...(business.profileData?.brandColors
         ? { brandColors: business.profileData.brandColors }
@@ -450,12 +472,22 @@ export class BusinessRepository {
     });
   }
 
-  async claimUnclaimedBusinessForUser(businessId: string, userId: string): Promise<Business> {
+  async claimUnclaimedBusinessForUser(
+    businessId: string,
+    userId: string
+  ): Promise<ClaimedBusinessWithProfile> {
     return await db.transaction(async (tx) => {
       const rows = await tx
         .update(businesses)
         .set({ ownerUserId: userId, claimStatus: "claimed", updatedAt: new Date() } as any)
-        .where(and(eq(businesses.id, businessId), isNull(businesses.ownerUserId)))
+        .where(
+          and(
+            eq(businesses.id, businessId),
+            isNull(businesses.ownerUserId),
+            eq(businesses.claimStatus, "unclaimed"),
+            ne(businesses.status, "suspended")
+          )
+        )
         .returning();
 
       const business = rows[0];
@@ -527,7 +559,131 @@ export class BusinessRepository {
         console.warn("[claim-business] failed to convert imported license extras:", err);
       }
 
-      return business as Business;
+      const profileData =
+        (business as any).profileData && typeof (business as any).profileData === "object"
+          ? ((business as any).profileData as Record<string, unknown>)
+          : {};
+      const linkedProfiles = await tx
+        .select()
+        .from(profiles)
+        .where(eq(profiles.businessId, business.id))
+        .orderBy(desc(profiles.updatedAt))
+        .limit(2);
+      if (linkedProfiles.length > 1) {
+        throw new Error("Business has multiple linked canonical profiles");
+      }
+      const linkedProfile = linkedProfiles[0];
+
+      let canonicalProfile: Profile;
+      if (linkedProfile) {
+        if (String(linkedProfile.ownerUserId) !== String(userId)) {
+          throw new Error("Linked canonical profile belongs to another account");
+        }
+        const [reassignedProfile] = await tx
+          .update(profiles)
+          .set({
+            ownerUserId: userId,
+            roleContext: (business as any).roleContext,
+            updatedAt: new Date(),
+          } as any)
+          .where(
+            and(
+              eq(profiles.id, linkedProfile.id),
+              eq(profiles.businessId, business.id),
+              eq(profiles.ownerUserId, userId)
+            )
+          )
+          .returning();
+        if (!reassignedProfile) throw new Error("Failed to attach canonical business profile");
+        canonicalProfile = reassignedProfile as Profile;
+      } else {
+        const baseSlug = slugify(String((business as any).slug || (business as any).name || ""));
+        const safeBaseSlug = baseSlug || `business-${String(business.id).slice(0, 8)}`;
+
+        // Profile slugs are global. Serialize claim provisioning for this base so two
+        // unrelated claims cannot select the same suffix between the read and insert.
+        await tx.execute(
+          sql`SELECT pg_advisory_xact_lock(hashtext(${`claim-profile:${safeBaseSlug}`}))`
+        );
+        const matchingSlugs = await tx
+          .select({ slug: profiles.slug })
+          .from(profiles)
+          .where(like(profiles.slug, `${safeBaseSlug}%`));
+        const usedSlugs = new Set(matchingSlugs.map((row) => String(row.slug)));
+        let profileSlug = safeBaseSlug;
+        for (let suffix = 2; usedSlugs.has(profileSlug) && suffix <= 200; suffix += 1) {
+          profileSlug = `${safeBaseSlug}-${suffix}`;
+        }
+        if (usedSlugs.has(profileSlug)) {
+          profileSlug = `${safeBaseSlug}-${randomUUID().slice(0, 8)}`;
+        }
+
+        const description = String(profileData.description || "")
+          .trim()
+          .slice(0, 4000);
+        const services = Array.isArray(profileData.services)
+          ? profileData.services
+              .map((service) =>
+                String(service || "")
+                  .trim()
+                  .slice(0, 240)
+              )
+              .filter(Boolean)
+              .slice(0, 50)
+          : [];
+        const contentBlocks = [
+          ...(description ? [{ type: "about", data: { body: description } }] : []),
+          ...(services.length > 0 ? [{ type: "services", data: { items: services } }] : []),
+        ];
+        const [createdProfile] = await tx
+          .insert(profiles)
+          .values({
+            ownerUserId: userId,
+            businessId: business.id,
+            roleContext: (business as any).roleContext,
+            slug: profileSlug,
+            displayName: String((business as any).name || profileSlug),
+            headline: String(profileData.tagline || profileData.category || "").trim() || null,
+            contentBlocks,
+            ctaConfig: {},
+            seoMeta: {
+              title: String((business as any).name || profileSlug),
+              ...(description ? { description: description.slice(0, 320) } : {}),
+            },
+            status: "draft",
+          } as any)
+          .returning();
+        if (!createdProfile) throw new Error("Failed to create canonical business profile");
+        canonicalProfile = createdProfile as Profile;
+      }
+
+      const [claimingUser] = await tx
+        .select({ roles: users.roles })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      if (!claimingUser) throw new Error("Claiming user not found");
+
+      const [updatedUser] = await tx
+        .update(users)
+        .set({
+          activeBusinessId: business.id,
+          activeProfileId: canonicalProfile.id,
+          role: "business_owner",
+          activeRole: "business_owner",
+          roles: Array.from(
+            new Set([
+              ...(Array.isArray(claimingUser.roles) ? claimingUser.roles : []),
+              "business_owner",
+            ])
+          ),
+          updatedAt: new Date(),
+        } as any)
+        .where(eq(users.id, userId))
+        .returning({ id: users.id });
+      if (!updatedUser) throw new Error("Failed to activate claimed business profile");
+
+      return { ...(business as Business), canonicalProfile };
     });
   }
 

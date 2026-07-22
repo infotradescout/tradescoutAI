@@ -29,7 +29,7 @@ describe("Scout entry framing contracts", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("Search local help, compare options, or review your next step.");
+    expect(inputSource).toContain("Describe a project, permit question, estimate, or decision.");
     expect(inputSource).toContain("Search");
     expect(inputSource).toContain("Compare");
     expect(inputSource).toContain("Choose");
@@ -37,19 +37,25 @@ describe("Scout entry framing contracts", () => {
     expect(inputSource).not.toContain("Send message");
     expect(inputSource).not.toContain("Your area:");
     expect(inputSource).not.toContain("Use current location");
-    expect(promptsSource).toContain("What's happening near me today?");
-    expect(promptsSource).toContain("Who nearby can help with this?");
-    expect(promptsSource).toContain("Any local prices or deals I should know about?");
-    expect(promptsSource).toContain("What's my next step?");
+    expect(promptsSource).toContain("Continue my open work");
+    expect(promptsSource).toContain("Plan my project");
+    expect(promptsSource).toContain("Check codes and permits");
+    expect(promptsSource).toContain("Build a realistic estimate");
+    expect(promptsSource).toContain("Compare a quote");
+    expect(promptsSource).toContain("Find the right professional");
   });
 
-  it("Scout home exposes the production Scout 2 capability map honestly", () => {
+  it("keeps the capability map in the full Scout experience while home stays compact", () => {
     const homeSource = read("client/src/scout/ScoutHome.tsx");
     const experienceSource = read("client/src/scout/scoutExperience.ts");
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(homeSource).toContain("Explore what to review next");
-    expect(homeSource).toContain("SCOUT_CAPABILITY_COPY");
+    expect(homeSource).toContain("understand codes and permits");
+    expect(homeSource).toContain("price the work");
+    expect(homeSource).toContain("compare options");
+    expect(homeSource).toContain("You review every next step.");
+    expect(homeSource).toContain("<ScoutControlSnapshot");
+    expect(homeSource).not.toContain("SCOUT_CAPABILITY_COPY");
     expect(experienceSource).toContain("Plan work");
     expect(experienceSource).toContain("Collect the right details");
     expect(experienceSource).toContain("Find local help");
@@ -94,11 +100,9 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("formatPriceSignalSource");
     expect(experienceSource).toContain("priceSignalEvidenceSources");
     expect(experienceSource).toContain("Snapshot freshness unavailable");
-    expect(homeSource).toContain("Price signal freshness");
-    expect(homeSource).toContain("Opportunity Radar");
-    expect(homeSource).toContain("OpportunityMoveItem");
-    expect(homeSource).toContain("formatPriceSignalFreshness(signal.updatedAt)");
-    expect(homeSource).toContain("formatPriceSignalSource(signal)");
+    expect(homeSource).not.toContain("OpportunityMoveItem");
+    expect(homeSource).not.toContain("formatPriceSignalFreshness");
+    expect(homeSource).not.toContain("formatPriceSignalSource");
     expect(scoutOsSource).toContain("priceSignals: Array.isArray(data?.priceSignals)");
     expect(scoutOsSource).toContain("opportunityMoves: Array.isArray(data?.opportunityMoves)");
     expect(scoutOsSource).toContain("sourceSignals: scoutSourceSignalsQuery.data");
@@ -248,7 +252,7 @@ describe("Scout entry framing contracts", () => {
   it("active Scout conversations use a focused result layout", () => {
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(scoutOsSource).toContain("const showDiscoveryRail = !isMobile && !hasUserMessages");
+    expect(scoutOsSource).toContain("const showDiscoveryRail = false");
     expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
     expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");

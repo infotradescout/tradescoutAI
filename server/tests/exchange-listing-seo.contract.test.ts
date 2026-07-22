@@ -20,6 +20,12 @@
 import { describe, it, expect } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
+import {
+  buildExchangeOfferJsonLd,
+  buildProductJsonLd,
+  resolvePersistedExchangeCategorySlug,
+} from "../publicExchangeListingHtml";
+import { toPublicExchangeListing } from "../publicExchangeListing";
 
 const ROOT = path.resolve(__dirname, "../..");
 const SERVER_DIR = path.resolve(ROOT, "server");
@@ -113,6 +119,170 @@ describe("publicExchangeListingHtml.ts", () => {
     expect(src).toContain("priceCurrency");
     expect(src).toContain("USD");
   });
+
+  it("uses the listing's real commerce data in Product and Offer JSON-LD", () => {
+    const listingUrl = "https://tradescout.com/exchange/tools/pump-7";
+    const listing = toPublicExchangeListing({
+      id: "pump-7",
+      sellerId: "seller-9",
+      status: "active",
+      title: "Transfer pump",
+      description: "Commercial transfer pump with hose kit.",
+      price: 425,
+      currency: "CAD",
+      itemSku: "PUMP-7-CAD",
+      itemStockQuantity: 0,
+      condition: "new",
+      businessName: "North Ridge Pump Supply",
+      willShip: true,
+      shippingCost: 31.25,
+      shippingQuote: {
+        destinationCountry: "CA",
+        estimatedDaysMin: 2,
+        estimatedDaysMax: 5,
+        buyerPays: true,
+      },
+    });
+    expect(listing).not.toBeNull();
+    const product = buildProductJsonLd(
+      listing,
+      "https://tradescout.com",
+      listingUrl,
+      "https://tradescout.com/pump.jpg"
+    );
+    if (!product) throw new Error("Expected Product JSON-LD for a listing with a real image");
+
+    expect(product.sku).toBe("PUMP-7-CAD");
+    expect(product.offers).toMatchObject({
+      "@type": "Offer",
+      price: "425.00",
+      priceCurrency: "CAD",
+      availability: "https://schema.org/OutOfStock",
+      url: listingUrl,
+      seller: {
+        "@type": "Organization",
+        name: "North Ridge Pump Supply",
+      },
+      availableDeliveryMethod: "https://schema.org/ParcelService",
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: "31.25",
+          currency: "CAD",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 2,
+            maxValue: 5,
+            unitCode: "DAY",
+          },
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "CA",
+        },
+      },
+    });
+  });
+
+  it("derives schema and canonical category from persisted data, never the request path", () => {
+    expect(
+      resolvePersistedExchangeCategorySlug(
+        { specifications: { itemCategory: "Tools & Hardware" } },
+        undefined
+      )
+    ).toBe("tools");
+    expect(resolvePersistedExchangeCategorySlug({ categoryId: "category-1" }, "Vehicles")).toBe(
+      "vehicles"
+    );
+    expect(src).not.toContain('categoryParam === "vehicles"');
+    expect(src).not.toContain('categoryParam === "real-estate"');
+  });
+
+  it("withholds merchant Product markup when the listing has no real item image", () => {
+    expect(
+      buildProductJsonLd(
+        { title: "No-photo tool", price: 80 },
+        "https://www.thetradescout.com",
+        "https://www.thetradescout.com/exchange/tools/no-photo",
+        null
+      )
+    ).toBeNull();
+  });
+
+  it("withholds incomplete merchant shipping markup while retaining the real delivery method", () => {
+    const offer = buildExchangeOfferJsonLd(
+      {
+        title: "Transfer pump",
+        price: 425,
+        currency: "CAD",
+        willShip: true,
+        shippingCost: 31.25,
+        shippingQuote: { estimatedDaysMin: 2, estimatedDaysMax: 5 },
+      },
+      "https://tradescout.com/exchange/tools/pump-7"
+    );
+
+    expect(offer).toMatchObject({
+      availableDeliveryMethod: "https://schema.org/ParcelService",
+    });
+    expect(offer).not.toHaveProperty("shippingDetails");
+  });
+
+  it("normalizes reversed delivery estimates before publishing merchant markup", () => {
+    const offer = buildExchangeOfferJsonLd(
+      {
+        title: "Transfer pump",
+        price: 425,
+        willShip: true,
+        shippingCost: 20,
+        shippingQuote: {
+          destinationCountry: "US",
+          estimatedDaysMin: 7,
+          estimatedDaysMax: 3,
+        },
+      },
+      "https://www.thetradescout.com/exchange/tools/pump-7"
+    );
+
+    expect(offer?.shippingDetails?.deliveryTime?.transitTime).toMatchObject({
+      minValue: 3,
+      maxValue: 7,
+    });
+  });
+
+  it("keeps active-listing fallbacks without fabricating a seller or shipping promise", () => {
+    const offer = buildExchangeOfferJsonLd(
+      { title: "Legacy active listing", price: 80 },
+      "https://tradescout.com/exchange/other/legacy-1"
+    );
+
+    expect(offer).toMatchObject({
+      price: "80.00",
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+    });
+    expect(offer).not.toHaveProperty("seller");
+    expect(offer).not.toHaveProperty("shippingDetails");
+    expect(offer).not.toHaveProperty("availableDeliveryMethod");
+  });
+
+  it("carries profile-offer commerce fields into the Exchange listing mapper", () => {
+    expect(src).toContain("currency: offer.currency");
+    expect(src).toContain("itemSku: offer.itemSku");
+    expect(src).toContain("itemStockQuantity: offer.itemStockQuantity");
+    expect(src).toContain('offer.fulfillmentMode === "shipping"');
+    expect(src).not.toContain("u.active_business_id");
+    expect(src).not.toContain("row.business_name");
+  });
+
+  it("injects a crawlable listing summary for non-JavaScript consumers", () => {
+    expect(src).toContain('data-seo-exchange-listing="true"');
+    expect(src).toContain("Continue through TradeScout to review the listing");
+  });
 });
 
 // ─── 2. server/index.ts — /exchange/:category/:listingId route ────────────────
@@ -144,10 +314,12 @@ describe("server/index.ts exchange listing detail route", () => {
     expect(listingDetailIdx).toBeLessThan(categoryIdx);
   });
 
-  it("falls back to sendFile on error for listing detail route", () => {
+  it("returns terminal non-indexable responses instead of a soft-404 SPA", () => {
     const block = src.slice(src.indexOf('"/exchange/:category/:listingId"'));
-    expect(block.slice(0, 1500)).toContain("catch");
-    expect(block.slice(0, 1500)).toContain("sendFile");
+    const route = block.slice(0, 1700);
+    expect(route).toContain("sendPublicPageNotFound");
+    expect(route).toContain("sendPublicPageRenderFailure");
+    expect(route).not.toContain("sendFile");
   });
 
   it("sets cache-control header for found listings", () => {
@@ -192,7 +364,7 @@ describe("server/routes/profiles.ts sitemap-exchange-listings.xml", () => {
   it("falls back to sendSitemapFallback on error", () => {
     const routeIdx = src.indexOf(ROUTE_MARKER);
     const block = src.slice(routeIdx);
-    expect(block.slice(0, 3000)).toContain("sendSitemapFallback");
+    expect(block).toContain("sendSitemapFallback");
   });
 });
 
@@ -328,7 +500,8 @@ describe("server/storage.ts IStorage interface", () => {
     expect(src).toContain("listActiveExchangeListingsForSitemap");
   });
 
-  it("returns Array<{ id: string; categoryName: string; updatedAt: Date | null }>", () => {
+  it("returns seller identity with each sitemap listing for exposure gating", () => {
+    expect(src).toContain("sellerUserId: string");
     expect(src).toContain("categoryName: string");
   });
 });

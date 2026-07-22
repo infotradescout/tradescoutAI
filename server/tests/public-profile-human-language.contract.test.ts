@@ -6,7 +6,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("public profile human-language contract", () => {
-  it("treats a failed load as retryable and an unpublished link as early access", () => {
+  it("treats a failed load as retryable and an unavailable link without future claims", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const serverEntry = read("server/index.ts");
     const profileHtml = read("server/publicProfileHtml.ts");
@@ -14,16 +14,18 @@ describe("public profile human-language contract", () => {
     expect(profileView).toContain("setLoadFailed(true)");
     expect(profileView).toContain("This page took a quick pit stop.");
     expect(profileView).toContain("Try again");
-    expect(profileView).toContain("You found it before opening day.");
+    expect(profileView).toContain("This public profile is not available.");
+    expect(profileView).toContain("No private account details are exposed here.");
     expect(profileView).toContain("Browse the Community");
     expect(profileView).toContain("Report this link");
     expect(profileView).toContain('fetch("/api/error-reports"');
     expect(profileView).not.toContain("Profile not found");
-    expect(profileView).not.toContain("private, unpublished, or unavailable");
+    expect(profileView).not.toMatch(/opening soon|opening day|finishing touches|finished profile/i);
     expect(serverEntry).toContain("buildPublicProfileEarlyHtml({ slug, origin, templateHtml })");
     expect(serverEntry).not.toContain('res.status(404).send("Profile not found")');
-    expect(profileHtml).toContain('data-public-profile-state="early"');
-    expect(profileHtml).toContain("You found it before opening day.");
+    expect(profileHtml).toContain('data-public-profile-state="unavailable"');
+    expect(profileHtml).toContain("This public profile is not available.");
+    expect(profileHtml).not.toMatch(/opening soon|opening day|finishing touches|finished profile/i);
     expect(profileHtml).toContain("Browse the Community");
     expect(profileHtml).toContain('id="ts-report-link"');
     expect(profileHtml).toContain('fetch("/api/error-reports"');

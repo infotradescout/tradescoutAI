@@ -1,7 +1,68 @@
 import { describe, expect, it } from "vitest";
-import { shouldUseInternetFallback } from "../services/knowledgeService";
+import {
+  buildInternetKnowledgeSources,
+  hasCitableInternetSource,
+  shouldUseInternetFallback,
+} from "../services/knowledgeService";
 
 describe("knowledgeService internet fallback sufficiency", () => {
+  it("keeps provider citation URLs for the active Scout knowledge response", () => {
+    expect(
+      buildInternetKnowledgeSources({
+        provider: "openai-web-search",
+        sources: [
+          {
+            title: "Official county permit guidance",
+            url: "https://example.gov/permits",
+            type: "url_citation",
+          },
+          {
+            title: "Unsafe provider URL",
+            url: "data:text/html,bad",
+            type: "url_citation",
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        title: "Official county permit guidance",
+        url: "https://example.gov/permits",
+        type: "url_citation",
+        provider: "openai-web-search",
+      },
+    ]);
+  });
+
+  it("requires a real provider URL before rules-search output is citable", () => {
+    expect(
+      hasCitableInternetSource([
+        { title: "Official permit office", url: "https://example.gov/permits" },
+      ])
+    ).toBe(true);
+    expect(
+      hasCitableInternetSource([
+        { title: "Unsafe", url: "javascript:alert(1)", type: "url_citation" },
+        { title: "Internet Search", type: "internet" },
+      ])
+    ).toBe(false);
+  });
+
+  it("returns no internet evidence when a provider supplies no citation metadata", () => {
+    expect(buildInternetKnowledgeSources({ provider: "gemini:test" })).toEqual([]);
+  });
+
+  it("drops title-only and unsafe sources instead of manufacturing internet provenance", () => {
+    expect(
+      buildInternetKnowledgeSources({
+        provider: "model-only",
+        sources: [
+          { title: "Generated source title", type: "internet" },
+          { title: "Unsafe source", url: "javascript:alert(1)", type: "url_citation" },
+        ],
+      })
+    ).toEqual([]);
+  });
+
   it("triggers web fallback for discovery queries when only knowledge docs are present", () => {
     const shouldFallback = shouldUseInternetFallback({
       message: "find a roofer near me",
@@ -48,5 +109,17 @@ describe("knowledgeService internet fallback sufficiency", () => {
     });
 
     expect(shouldFallback).toBe(false);
+  });
+
+  it("requires a current authority lookup for code and permit questions", () => {
+    const shouldFallback = shouldUseInternetFallback({
+      message: "Do I need a permit and inspections for a new deck?",
+      mode: "kb_site_then_web",
+      sources: ["TradeScout Brain (data folder)"],
+      meta: {},
+      hasManualOverride: false,
+    });
+
+    expect(shouldFallback).toBe(true);
   });
 });

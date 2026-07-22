@@ -46,6 +46,10 @@ describe("canonical profile item parity", () => {
 
     expect(profileView).toContain("const profileItems = data.profileItems || {};");
     expect(profileView.match(/<PublicProfileItems/g)?.length).toBe(5);
+    expect(
+      profileView.match(/<PublicProfileItems[^>]*platformBaseHref=\{platformBaseHref\}[^>]*\/>/g)
+        ?.length
+    ).toBe(5);
     expect(profileView).toContain("profileItems={");
     for (const theme of [wholesaler, autoGlass, localService, proFab]) {
       expect(theme).toContain("profileItems?: ReactNode");

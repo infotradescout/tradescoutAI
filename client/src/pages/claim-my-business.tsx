@@ -187,10 +187,10 @@ export default function ClaimMyBusinessPage() {
     try {
       const result = await apiRequest("POST", "/api/business-claim/claim", { businessId });
       toast({ title: "Claimed", description: "Business attached to your account." });
-      if (result?.slug) {
-        navigate(`/business/${encodeURIComponent(result.slug)}/edit`);
+      if (result?.profileSlug) {
+        navigate(`/u/${encodeURIComponent(String(result.profileSlug))}/edit`);
       } else {
-        navigate("/settings");
+        navigate("/profile-settings");
       }
     } catch (e: any) {
       const code = String(e?.code || "");

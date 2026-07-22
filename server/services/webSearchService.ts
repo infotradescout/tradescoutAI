@@ -1,13 +1,18 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import OpenAI from "openai";
-import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 
 export interface WebSearchResult {
   success: boolean;
   content?: string;
   provider?: string;
   error?: string;
-  sources?: Array<{ title?: string; url?: string }>;
+  sources?: WebSearchSource[];
+}
+
+export interface WebSearchSource {
+  title?: string;
+  url?: string;
+  type?: string;
+  provider?: string;
 }
 
 /**
@@ -34,16 +39,7 @@ async function webSearchWithOpenAI(query: string, nResults = 5): Promise<WebSear
       ],
     });
 
-    const text = extractOpenAIResponseText(response);
-    if (!text) {
-      return { success: false, error: "Empty web search response from OpenAI" };
-    }
-
-    return {
-      success: true,
-      content: text,
-      provider: "openai-web-search",
-    };
+    return buildOpenAIWebSearchResult(response);
   } catch (error: any) {
     console.error("[Web Search] OpenAI web search failed:", error?.message);
     return { success: false, error: error?.message || "OpenAI web search failed" };
@@ -51,44 +47,18 @@ async function webSearchWithOpenAI(query: string, nResults = 5): Promise<WebSear
 }
 
 /**
- * Fallback web search using Gemini with web capability.
- * Returns summarized text; callers should indicate that content is from the wider internet.
- */
-async function webSearchWithGemini(query: string, nResults = 5): Promise<WebSearchResult> {
-  if (!process.env.GEMINI_API_KEY) {
-    return { success: false, error: "GEMINI_API_KEY not configured" };
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const prompt = `Search the open web for: ${query}\nReturn ${nResults} concise findings with sources when possible.`;
-    const { text, model } = await generateGeminiTextWithFallback(genAI, prompt);
-    if (!text) {
-      return { success: false, error: "Empty web search response from Gemini" };
-    }
-    return { success: true, content: text, provider: `gemini:${model}` };
-  } catch (error: any) {
-    console.error("[Web Search] Gemini web search failed:", error?.message);
-    return { success: false, error: error?.message || "Gemini web search failed" };
-  }
-}
-
-/**
- * Primary web search function with intelligent fallback.
- * Tries OpenAI first (real web search), falls back to Gemini if needed.
+ * Citation-capable web search. Plain model generation is deliberately not a
+ * fallback: a prompt asking a model to search does not prove that browsing or
+ * grounding occurred.
  */
 export async function webSearch(query: string, nResults = 5): Promise<WebSearchResult> {
-  // Try OpenAI first if configured
-  if (process.env.OPENAI_API_KEY) {
-    const result = await webSearchWithOpenAI(query, nResults);
-    if (result.success) {
-      return result;
-    }
-    console.warn("[Web Search] OpenAI search failed, falling back to Gemini");
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      success: false,
+      error: "Citation-capable web search is not configured",
+    };
   }
-
-  // Fall back to Gemini
-  return webSearchWithGemini(query, nResults);
+  return webSearchWithOpenAI(query, nResults);
 }
 
 /**
@@ -116,4 +86,74 @@ function extractOpenAIResponseText(response: any): string {
   }
 
   return chunks.join("\n").trim();
+}
+
+/**
+ * Accept a web-search response only when the provider returned both content
+ * and machine-readable citation metadata. Generated prose URLs are never
+ * promoted into evidence.
+ */
+export function buildOpenAIWebSearchResult(response: unknown): WebSearchResult {
+  const provider = "openai-web-search";
+  const content = extractOpenAIResponseText(response);
+  if (!content) {
+    return { success: false, provider, error: "Empty web search response from OpenAI" };
+  }
+
+  const sources = extractOpenAIResponseSources(response).map((source) => ({
+    ...source,
+    provider,
+  }));
+  if (sources.length === 0) {
+    return {
+      success: false,
+      provider,
+      error: "Web search returned no valid provider citation metadata",
+    };
+  }
+
+  return { success: true, content, provider, sources };
+}
+
+function normalizeHttpUrl(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim().length === 0) return undefined;
+
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Read only provider-supplied URL citations from the Responses API payload.
+ * URLs mentioned in generated prose are deliberately not parsed into links.
+ */
+export function extractOpenAIResponseSources(response: unknown): WebSearchSource[] {
+  const output = Array.isArray((response as any)?.output) ? (response as any).output : [];
+  const sources: WebSearchSource[] = [];
+  const seenUrls = new Set<string>();
+
+  for (const item of output) {
+    const content = Array.isArray(item?.content) ? item.content : [];
+    for (const part of content) {
+      const annotations = Array.isArray(part?.annotations) ? part.annotations : [];
+      for (const annotation of annotations) {
+        if (annotation?.type !== "url_citation") continue;
+        const url = normalizeHttpUrl(annotation?.url);
+        if (!url || seenUrls.has(url)) continue;
+
+        const title =
+          typeof annotation?.title === "string" && annotation.title.trim().length > 0
+            ? annotation.title.trim()
+            : url;
+        seenUrls.add(url);
+        sources.push({ title, url, type: "url_citation" });
+      }
+    }
+  }
+
+  return sources;
 }

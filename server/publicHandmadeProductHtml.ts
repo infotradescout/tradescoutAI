@@ -76,10 +76,11 @@ export async function buildPublicHandmadeProductHtml(
     product.description,
     `${itemTitle}, offered by a local maker on TradeScout Handmade.`
   );
-  const imageUrl =
+  const productImageUrl =
     listHandmadeProductImageUrls(product)
       .map((image) => absoluteImageUrl(origin, image))
-      .find(Boolean) || `${origin}/tradescout-social-preview.png?v=12`;
+      .find(Boolean) || null;
+  const socialImageUrl = productImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
   const price = Number(product.price);
   const currency = String(product.currency || "USD")
     .toUpperCase()
@@ -93,7 +94,7 @@ export async function buildPublicHandmadeProductHtml(
     "@type": "Product",
     name: itemTitle,
     description,
-    image: imageUrl,
+    image: productImageUrl,
     url: canonical,
   };
   if (Array.isArray(product.materials) && product.materials.length > 0) {
@@ -152,11 +153,11 @@ export async function buildPublicHandmadeProductHtml(
     ],
     [
       /<meta property="og:image"[^>]*>/i,
-      `<meta property="og:image" content="${escapeHtml(imageUrl)}" />`,
+      `<meta property="og:image" content="${escapeHtml(socialImageUrl)}" />`,
     ],
     [
       /<meta property="og:image:secure_url"[^>]*>/i,
-      `<meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />`,
+      `<meta property="og:image:secure_url" content="${escapeHtml(socialImageUrl)}" />`,
     ],
     [
       /<meta property="og:image:alt"[^>]*>/i,
@@ -176,12 +177,26 @@ export async function buildPublicHandmadeProductHtml(
     ],
     [
       /<meta name="twitter:image"[^>]*>/i,
-      `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />`,
+      `<meta name="twitter:image" content="${escapeHtml(socialImageUrl)}" />`,
     ],
   ];
   for (const [pattern, tag] of tags) html = upsertTag(html, pattern, tag);
 
   html = injectJsonLd(html, breadcrumbJsonLd);
-  html = injectJsonLd(html, productJsonLd);
+  if (productImageUrl) html = injectJsonLd(html, productJsonLd);
+  const publicPrice =
+    Number.isFinite(price) && price >= 0 ? `${price.toFixed(2)} ${currency || "USD"}` : "";
+  html = html.replace(
+    /<div id="root">\s*<\/div>/i,
+    `<div id="root"><main data-seo-handmade-product="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+      <article>
+        <h1>${escapeHtml(itemTitle)}</h1>
+        <p>${escapeHtml(description)}</p>
+        ${publicPrice ? `<p>${escapeHtml(publicPrice)}</p>` : ""}
+        ${productImageUrl ? `<img src="${escapeHtml(productImageUrl)}" alt="${escapeHtml(itemTitle)}" loading="eager" />` : ""}
+        <p>Continue through TradeScout to review the product and protected contact options.</p>
+      </article>
+    </main></div>`
+  );
   return html;
 }

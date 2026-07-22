@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router } from "wouter";
 import { describe, expect, it } from "vitest";
 import { ContactOutcomeModal } from "../../client/src/components/community/ContactOutcomeModal";
-import { ScoutRecommendationCard } from "../../client/src/components/community/ScoutRecommendationCard";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -14,12 +13,9 @@ const read = (relativePath: string) =>
 const communitySurfaceFiles = [
   "client/src/pages/community-feed.tsx",
   "client/src/components/community/CommunityCTA.tsx",
-  "client/src/components/community/CommunityEmptyState.tsx",
   "client/src/components/community/CommunityPostCard.tsx",
-  "client/src/components/community/CommunitySnapshotRail.tsx",
   "client/src/components/community/ContactOutcomeModal.tsx",
   "client/src/components/community/DecisionCard.tsx",
-  "client/src/components/community/ScoutRecommendationCard.tsx",
 ];
 
 describe("Community app surface UX contract", () => {
@@ -67,92 +63,78 @@ describe("Community app surface UX contract", () => {
 
   it("anchors Community in human outcomes and inviting early states", () => {
     const feed = read("client/src/pages/community-feed.tsx");
-    const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
-    const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
+    const postCard = read("client/src/components/community/CommunityPostCard.tsx");
     const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
 
-    expect(feed).toContain("What&apos;s happening near you");
-    expect(feed).toContain("Ask a question, recommend someone, share an update");
-    expect(feed).toContain("Get local help");
-    expect(feed).toContain("Find someone for a job");
-    expect(feed).toContain("What would you like to share?");
+    expect(feed).toContain("Community");
+    expect(feed).toContain("location.countyName");
+    expect(feed).not.toContain("What do you need nearby?");
+    expect(feed).not.toContain("Ask Scout for a next step");
+    expect(feed).toContain("Share with your community");
+    expect(feed).toContain("Community feed views");
+    expect(feed).toContain("Explore");
+    expect(feed).toContain("New neighbors");
+    expect(feed).toContain("What do you need?");
+    expect(feed).toContain("Turn a need into action");
+    expect(feed).toContain("Reach interested buyers");
+    expect(feed).toContain("This week");
+    expect(feed).toContain("People need help with");
+    expect(feed).toContain("Your contact details stay private until you choose to connect");
+    expect(feed).toContain("buildCommunityRoutedDestination");
+    expect(feed).not.toContain("CommunitySnapshotRail");
+    expect(feed).not.toContain("Community scope");
+    expect(feed).not.toContain("Feed order");
+    expect(postCard).not.toContain("<CommunityCTA");
+    expect(postCard).not.toContain("Job help soon");
+    expect(postCard).not.toContain("Messaging soon");
     expect(feed).toContain("Not sure what to write?");
-    expect(feed).toContain("You&apos;re here early");
-    expect(emptyState).toContain("You&apos;re here early");
-    expect(snapshotRail).toContain("Local offers are coming soon");
-    expect(snapshotRail).toContain("Coming soon");
-    expect(snapshotRail).toContain("Try again");
+    expect(feed).toContain(`"You're here early"`);
+    expect(feed).not.toContain("You&apos;re here early");
     expect(contactModal).toContain("Your privacy stays protected");
     expect(contactModal).toContain("Send message");
     expect(contactModal).toContain("bg-[color:var(--surface-card)]");
     expect(contactModal).not.toContain("bg-white rounded-lg");
   });
 
-  it("keeps default recommendation cards out of system-level framing", () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
+  it("keeps county activity metrics aligned with the categories the composer writes", () => {
+    const routes = read("server/routes.ts");
 
-    const html = renderToStaticMarkup(
-      React.createElement(
-        QueryClientProvider,
-        { client: queryClient },
-        React.createElement(ScoutRecommendationCard, {
-          recommendation: {
-            recommendationId: "rec_1",
-            targetUserId: "user_1",
-            targetUserName: "Jordan Lee",
-            targetRole: "Electrician",
-            targetLocation: "Fort Worth",
-            suggestedIntent: "hire",
-            reasoning:
-              "Internal AI scoring says confidence tier is high from recommendation vector weights.",
-            confidenceScore: 0.91,
-            confidenceTier: "auto_allow",
-            confidenceComponents: {
-              expertise_match: 0.95,
-              location_match: 0.9,
-              trust_signal: 0.86,
-              past_success: 0.82,
-              availability_match: 0.76,
-            },
-            riskFlags: ["debug risk flag should stay hidden by default"],
-            decisionScope: "system state: mutationAllowed=true",
-            createdAt: new Date("2026-06-15T00:00:00.000Z"),
-          },
-        })
-      )
+    expect(routes).toContain(
+      "category in ('request', 'question', 'questions', 'project', 'projects')"
     );
+    expect(routes).toContain("category in ('recommendation', 'recommendations')");
+    expect(routes).toContain("(user as any).stateCode");
+    expect(routes).toContain("(user as any).countyName");
+    expect(routes).toContain("isUsefulPublicCommunityBrowsePost(post)");
+    expect(routes).toContain("furnace|\\bac\\b|air\\s+conditioner");
+    expect(routes).not.toContain("furnace|ac|air\\s+conditioner");
+  });
 
-    const defaultVisibleForbiddenTerms = [
-      "assistant",
-      "recommendation vector",
-      "AI scoring",
-      "scoring",
-      "confidence",
-      "confidence tier",
-      "risk flag",
-      "mutationAllowed",
-      "raw JSON",
-      "debug",
-      "system state",
-      "recommendation engine",
+  it("deletes displaced Community snapshot, recommendation, and duplicate empty-state sources", () => {
+    const removedFiles = [
+      "client/src/components/community/CommunitySnapshotRail.tsx",
+      "client/src/components/community/ScoutRecommendationCard.tsx",
+      "client/src/components/community/CommunityEmptyState.tsx",
     ];
+    const feed = read("client/src/pages/community-feed.tsx");
 
-    for (const term of defaultVisibleForbiddenTerms) {
-      expect(
-        html.toLowerCase(),
-        `Default Community recommendation HTML leaked "${term}"`
-      ).not.toContain(term.toLowerCase());
+    for (const file of removedFiles) {
+      expect(fs.existsSync(path.resolve(process.cwd(), file))).toBe(false);
     }
+    expect(feed).not.toContain("CommunitySnapshotRail");
+    expect(feed).not.toContain("ScoutRecommendationCard");
+    expect(feed).not.toContain("CommunityEmptyState");
+  });
 
-    expect(html).toContain("Local match");
-    expect(html).toContain("Review before contact");
-    expect(html).toContain("Why this appears");
-    expect(html).toContain("Jordan Lee");
+  it("demotes generated welcome posts without emitting positional ORDER BY zero", () => {
+    const storage = read("server/storage.ts");
+
+    expect(storage).toContain("ARRAY['welcome']::text[]");
+    expect(storage).toContain("ARRAY['new_neighbor']::text[]");
+    expect(storage).toContain("const onboardingWelcomeOrder = onboardingWelcomeRank");
+    expect(storage).toContain("baseQuery.orderBy(...recentOrder)");
+    expect(storage).toContain("fallbackBaseQuery.orderBy(...recentOrder)");
+    expect(storage).not.toContain(": sql`0`;");
   });
 
   it("renders contact review as a readable TradeScout surface", () => {

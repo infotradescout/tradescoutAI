@@ -1112,7 +1112,7 @@ export const explainerChapters: readonly ExplainerChapter[] = [
             action: "Let customers request a time",
             name: "Bookings",
             description:
-              "Show availability, accept booking requests, and collect a disclosed deposit when paid booking is enabled.",
+              "Show availability, accept free booking requests, and optionally require a disclosed deposit.",
           },
           {
             number: "02.12",

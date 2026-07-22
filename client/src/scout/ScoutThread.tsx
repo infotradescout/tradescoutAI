@@ -20,7 +20,13 @@ import {
   Users2,
 } from "lucide-react";
 import type { ScoutLocality, ScoutMode } from "./api";
-import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
+import type {
+  ScoutAction,
+  ScoutCluster,
+  ScoutKnowledgeSource,
+  ScoutMessage,
+  ScoutStatus,
+} from "./state";
 import type { ScoutContextCard } from "./scoutContextCards";
 import { validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
@@ -31,6 +37,7 @@ import {
   inferScoutIntentDetails,
 } from "./intentDetails";
 import { ScoutResultActionCard, classifyScoutResultIntent } from "./ScoutResultActionCard";
+import { safeScoutSourceUrl } from "./provenance";
 
 /* ----------------------------------------------------------
    ScoutThread — Morphic OS v2
@@ -472,15 +479,61 @@ function buildEvidenceChips(msg: ScoutMessage): string[] {
   Use: Collapsible "Why this answer" strip below any Scout message.
    Shows provenance chips and source titles when expanded.
    ---------------------------------------------------------- */
+export function EvidenceSourceList({ sources }: { sources: ScoutKnowledgeSource[] }) {
+  const usableSources = sources.filter(
+    (source) => source.type !== "url_citation" || Boolean(safeScoutSourceUrl(source.url))
+  );
+  if (usableSources.length === 0) return null;
+  const linkedSources = usableSources.filter((source) => safeScoutSourceUrl(source.url));
+  const contextSources = usableSources.filter((source) => !safeScoutSourceUrl(source.url));
+
+  const renderSources = (items: ScoutKnowledgeSource[]) =>
+    items.map((source, index) => {
+      const url = safeScoutSourceUrl(source.url);
+      return (
+        <React.Fragment key={`${source.title}-${url || index}`}>
+          {index > 0 ? " · " : null}
+          {url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-foreground"
+            >
+              {source.title}
+            </a>
+          ) : (
+            <span>{source.title}</span>
+          )}
+        </React.Fragment>
+      );
+    });
+
+  return (
+    <div className="space-y-1 text-[10px]" style={{ color: "rgba(250,250,250,0.35)" }}>
+      {linkedSources.length > 0 ? <div>Sources: {renderSources(linkedSources)}</div> : null}
+      {contextSources.length > 0 ? <div>Context: {renderSources(contextSources)}</div> : null}
+    </div>
+  );
+}
+
 function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }) {
   const [open, setOpen] = React.useState(false);
   const chips = React.useMemo(() => buildEvidenceChips(msg), [msg]);
   const evidenceSources = React.useMemo(() => {
+    const detailedSources = Array.isArray(msg.provenance?.sources) ? msg.provenance.sources : [];
     const sourceTitles = Array.isArray(msg.provenance?.sourceTitles)
       ? msg.provenance?.sourceTitles
       : [];
-    return sourceTitles.slice(0, 2);
-  }, [msg.provenance?.sourceTitles]);
+    const merged = [...detailedSources];
+    for (const title of sourceTitles) {
+      if (!merged.some((source) => source.title === title)) merged.push({ title });
+    }
+    return [
+      ...merged.filter((source) => safeScoutSourceUrl(source.url)),
+      ...merged.filter((source) => !safeScoutSourceUrl(source.url)),
+    ].slice(0, 2);
+  }, [msg.provenance?.sourceTitles, msg.provenance?.sources]);
 
   if (!enabled) return null;
   if (chips.length === 0 && evidenceSources.length === 0) return null;
@@ -523,11 +576,7 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
               ))}
             </div>
           )}
-          {evidenceSources.length > 0 && (
-            <div className="text-[10px]" style={{ color: "rgba(250,250,250,0.35)" }}>
-              Checked: {evidenceSources.join(" · ")}
-            </div>
-          )}
+          <EvidenceSourceList sources={evidenceSources} />
         </div>
       )}
     </div>

@@ -25,6 +25,7 @@ import ExpressDirectConnectPanel, {
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import PremiumProductProfileSections from "./PremiumProductProfileSections";
 import { ShareButton } from "@/components/ShareButton";
+import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
 import {
   buildProfileInventoryShareSearch,
   resolveProfileInventoryItem,
@@ -663,6 +664,10 @@ export default function WholesalerProfileTheme({
       setExpressStoneName(stoneName || null);
       setExpressRequestType(requestType || (stoneName ? "request_material" : null));
       setExpressPanelOpen(true);
+      return;
+    }
+    if (requiresDocumentNavigation(ctaHref)) {
+      window.location.assign(ctaHref);
       return;
     }
     navigate(ctaHref);
@@ -2208,6 +2213,7 @@ export default function WholesalerProfileTheme({
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}
         profileSlug={profileSlug}
+        platformBaseHref={platformBaseHref}
         businessName={displayName}
         businessAddress={businessAddress}
         hasViewerSession={hasViewerSession}

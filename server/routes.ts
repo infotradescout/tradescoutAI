@@ -92,7 +92,13 @@ import {
   toPublicHandmadeSellerProfile,
 } from "./publicHandmadeProduct";
 import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
-import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "./publicCommunityPost";
+import {
+  isUsefulPublicCommunityBrowsePost,
+  isAutomaticCommunityWelcomePost,
+  normalizeAutomaticCommunityWelcomePost,
+  sanitizePublicCommunityFeedPost,
+  toPublicCommunityPost,
+} from "./publicCommunityPost";
 import {
   getHomeScoutAuthorityUserId,
   HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES,
@@ -813,6 +819,18 @@ import {
   normalizeProfileBookingPrefs,
   toPublicProfileBookingPrefs,
 } from "./services/profileBookingService";
+import { resolveProfileBookingOwner } from "./services/profileBookingIdentity";
+import { resolveProfileBookingConfig } from "./services/profileBookingConfig";
+import {
+  normalizeOptionalBookingText,
+  refundPaidProfileBookingDeposit,
+  resolveBookingVerificationContext,
+  resolveProfileBookingPaymentIntent,
+  validateExistingProfileBookingPayment,
+  validateProfileBookingStatusTransition,
+  validateRequestedBookingWindow,
+} from "./services/profileBookingPayment";
+import { registerPaymentWebhookRoutes } from "./paymentWebhookRoutes";
 // Shared HTTP types for all route handlers
 type AuthedRequest = Request & {
   user?: {
@@ -2328,11 +2346,14 @@ export async function registerRoutes(app: any) {
     return Array.from(merged);
   };
 
-  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-social-preview.png?v=12";
+  // Missing profile photos stay missing so avatar components can render the
+  // compact TradeScout mark. The social-share preview is not a member photo.
+  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "";
   const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
     "/tradescout-logo.png",
     "/tradescout-logo.jpg",
     "/tradescout-brand.png",
+    "/tradescout-social-preview.png",
     "/logo.png",
     "/favicon.ico",
     "/favicon.svg",
@@ -7964,6 +7985,9 @@ export async function registerRoutes(app: any) {
             ? (incoming as any).pricingRows
             : existingProfileBooking.pricingRows,
       });
+      if (normalized.paidBookings && normalized.bookingPriceUsd <= 0) {
+        return res.status(400).json({ message: "A booking deposit must be greater than zero" });
+      }
 
       const updatedPreferences = {
         ...currentPrefs,
@@ -7990,61 +8014,78 @@ export async function registerRoutes(app: any) {
     isAuthenticated,
     async (req: Request, res: Response) => {
       try {
-        const requesterUserId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-        const ownerUserId = String((req.body as any)?.ownerUserId || "").trim();
-        const requestMessage =
-          typeof (req.body as any)?.requestMessage === "string"
-            ? (req.body as any).requestMessage.trim().slice(0, 1000)
-            : null;
-        const serviceLabel =
-          typeof (req.body as any)?.serviceLabel === "string"
-            ? (req.body as any).serviceLabel.trim().slice(0, 120)
-            : null;
+        const requesterUserId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        const requestMessage = normalizeOptionalBookingText(
+          (req.body as any)?.requestMessage,
+          1000
+        );
+        const serviceLabel = normalizeOptionalBookingText((req.body as any)?.serviceLabel, 120);
         const timezone =
           typeof (req.body as any)?.timezone === "string"
             ? (req.body as any).timezone.trim().slice(0, 80)
             : null;
-        const requestedStartAtRaw = (req.body as any)?.requestedStartAt;
-        const requestedEndAtRaw = (req.body as any)?.requestedEndAt;
-        const requestedStartAt =
-          requestedStartAtRaw && !Number.isNaN(new Date(requestedStartAtRaw).getTime())
-            ? new Date(requestedStartAtRaw)
-            : null;
-        const requestedEndAt =
-          requestedEndAtRaw && !Number.isNaN(new Date(requestedEndAtRaw).getTime())
-            ? new Date(requestedEndAtRaw)
-            : null;
+        const requestedWindow = validateRequestedBookingWindow(
+          (req.body as any)?.requestedStartAt,
+          (req.body as any)?.requestedEndAt
+        );
+        if (!requestedWindow.ok) {
+          return res.status(400).json({ message: requestedWindow.message });
+        }
+        const { requestedStartAt, requestedEndAt } = requestedWindow;
         const deliveryModeRaw = String((req.body as any)?.deliveryMode || "").toLowerCase();
         const deliveryMode =
           deliveryModeRaw === "remote" || deliveryModeRaw === "mobile" ? deliveryModeRaw : "onsite";
-        const locationNote =
-          typeof (req.body as any)?.locationNote === "string"
-            ? (req.body as any).locationNote.trim().slice(0, 500)
-            : null;
-        const bookingContext =
-          (req.body as any)?.bookingContext && typeof (req.body as any).bookingContext === "object"
-            ? (req.body as any).bookingContext
-            : {};
+        const locationNote = normalizeOptionalBookingText((req.body as any)?.locationNote, 120);
+        const rawBookingContext = (req.body as any)?.bookingContext;
 
-        if (!ownerUserId) {
-          return res.status(400).json({ message: "ownerUserId is required" });
+        const bookingIdentity = await resolveProfileBookingOwner(storage, req.body);
+        if (!bookingIdentity.ok) {
+          return res.status(bookingIdentity.status).json({ message: bookingIdentity.message });
         }
+        const { ownerUserId, owner } = bookingIdentity;
+
         if (ownerUserId === requesterUserId) {
           return res
             .status(400)
             .json({ message: "Cannot create booking request for your own profile" });
         }
 
-        const owner = await storage.getUser(ownerUserId);
-        if (!owner) return res.status(404).json({ message: "Profile owner not found" });
-        if ((owner.preferences?.profileVisibility || "private") !== "public") {
+        const businessProfileSlug = String((req.body as any)?.businessProfileSlug || "")
+          .trim()
+          .toLowerCase();
+        const legacyBusinessProfile =
+          !bookingIdentity.profileId && businessProfileSlug
+            ? await storage.getBusinessProfileBySlug(businessProfileSlug)
+            : null;
+        if (
+          businessProfileSlug &&
+          (!legacyBusinessProfile ||
+            legacyBusinessProfile.visibility !== "public" ||
+            legacyBusinessProfile.userId !== ownerUserId)
+        ) {
           return res.status(404).json({ message: "Profile not available for booking" });
         }
-
-        const booking = normalizeProfileBookingPrefs((owner.preferences as any)?.profileBooking);
+        const bookingProfile = bookingIdentity.profileId
+          ? await storage.getProfileById(bookingIdentity.profileId)
+          : null;
+        const booking = legacyBusinessProfile
+          ? normalizeProfileBookingPrefs(legacyBusinessProfile.bookingConfig)
+          : resolveProfileBookingConfig(bookingProfile, owner).profileBooking;
         if (!booking.enabled) {
           return res.status(400).json({ message: "Bookings are not enabled on this profile" });
         }
+        const depositRequired =
+          booking.paidBookings &&
+          Number.isFinite(booking.bookingPriceUsd) &&
+          booking.bookingPriceUsd > 0;
+        const bookingContext = resolveBookingVerificationContext(
+          owner,
+          rawBookingContext,
+          deliveryMode,
+          serviceLabel
+        );
 
         const verificationGate = evaluateNotaryPaidRemoteGate({
           owner: {
@@ -8055,7 +8096,7 @@ export async function registerRoutes(app: any) {
             preferences: owner.preferences,
           },
           bookingContext: bookingContext as any,
-          paidBooking: booking.paidBookings,
+          paidBooking: depositRequired,
         });
 
         if (verificationGate.applied && !verificationGate.allowed) {
@@ -8076,11 +8117,9 @@ export async function registerRoutes(app: any) {
           timezone,
           deliveryMode,
           locationNote,
-          depositRequired: booking.paidBookings,
-          depositAmountUsd: booking.paidBookings
-            ? String(booking.bookingPriceUsd.toFixed(2))
-            : null,
-          paymentStatus: booking.paidBookings ? "requires_payment" : "none",
+          depositRequired,
+          depositAmountUsd: depositRequired ? String(booking.bookingPriceUsd.toFixed(2)) : null,
+          paymentStatus: depositRequired ? "requires_payment" : "none",
           paymentIntentId: null,
           bookingContext,
           verificationSnapshot: {
@@ -8113,6 +8152,7 @@ export async function registerRoutes(app: any) {
               status: "done",
               metadata: {
                 bookingRequestId: created?.id ?? null,
+                profileId: bookingIdentity.profileId,
                 ownerUserId,
                 deliveryMode,
               },
@@ -8198,10 +8238,68 @@ export async function registerRoutes(app: any) {
         if (nextStatus === "cancelled" && !actorIsRequester && !actorIsOwner) {
           return res.status(403).json({ message: "Only participants can cancel this request" });
         }
+        const transition = validateProfileBookingStatusTransition(existing.status, nextStatus);
+        if (!transition.ok) {
+          return res.status(409).json({ message: transition.message });
+        }
+        if (
+          (existing.status === "requested" || transition.idempotent) &&
+          (nextStatus === "declined" || nextStatus === "cancelled")
+        ) {
+          try {
+            await refundPaidProfileBookingDeposit({
+              stripe,
+              request: existing,
+              updatePaymentState: (patch) =>
+                storage.updateProfileBookingRequest(existing.id, patch as any),
+            });
+          } catch (refundError) {
+            console.error(
+              "[profile-booking] Could not refund pre-acceptance deposit:",
+              refundError
+            );
+            return res.status(503).json({
+              message: "The booking deposit could not be refunded, so the status was not changed",
+            });
+          }
+        }
+        if (transition.idempotent) {
+          const current = await storage.getProfileBookingRequestById(existing.id);
+          return res.json(current || existing);
+        }
+        if (
+          existing.depositRequired &&
+          existing.paymentStatus !== "paid" &&
+          (nextStatus === "accepted" || nextStatus === "completed")
+        ) {
+          return res.status(409).json({ message: "Required booking deposit has not been paid" });
+        }
 
-        const updated = await storage.updateProfileBookingRequest(id, {
+        let updated = await storage.updateProfileBookingRequest(id, {
           status: nextStatus as any,
         });
+        if (
+          existing.status === "requested" &&
+          (nextStatus === "declined" || nextStatus === "cancelled")
+        ) {
+          try {
+            await refundPaidProfileBookingDeposit({
+              stripe,
+              request: updated,
+              updatePaymentState: (patch) =>
+                storage.updateProfileBookingRequest(updated.id, patch as any),
+            });
+            updated = (await storage.getProfileBookingRequestById(updated.id)) || updated;
+          } catch (refundError) {
+            console.error(
+              "[profile-booking] Status changed but deposit refund is pending:",
+              refundError
+            );
+            return res.status(503).json({
+              message: "The booking was closed, but its deposit refund is still pending",
+            });
+          }
+        }
 
         // Optional: sync status transitions into a linked Property Program.
         try {
@@ -19469,6 +19567,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         authorId: req.query.authorId as string,
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0,
+        demoteOnboardingWelcomes: true,
       };
 
       // Attach viewer context for social scopes when authenticated
@@ -19590,16 +19689,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           post?.content,
           post?.category
         );
-        const roleTagRaw =
-          typeof post?.author?.role === "string"
-            ? String(post.author.role).trim().toLowerCase()
-            : "";
-        const roleTag = roleTagRaw
-          ? roleTagRaw.replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "")
-          : "";
-        const merged = Array.from(
-          new Set([...cleaned, ...derivedFromContent, roleTag].filter(Boolean))
-        )
+        const merged = Array.from(new Set([...cleaned, ...derivedFromContent].filter(Boolean)))
           .filter(Boolean)
           .slice(0, 12);
         const author =
@@ -19612,8 +19702,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
                 avatar: normalizeProfileImageUrl(post.author.avatar ?? post.author.profileImageUrl),
               }
             : post?.author;
-        return { ...post, author, tags: merged };
+        return normalizeAutomaticCommunityWelcomePost(
+          { ...post, author, tags: merged },
+          isAutomaticCommunityWelcomePost(post)
+        );
       });
+
+      if (normalizedScope === "global" || normalizedScope === "all") {
+        posts = posts.filter((post: any) => isUsefulPublicCommunityBrowsePost(post));
+      }
 
       // Attach related, verified, on-platform businesses to posts that mention a
       // supplier/materials need (e.g. natural stone work), scoped to the same
@@ -19641,30 +19738,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Public feed payloads never expose moderation notes, moderator identity,
       // or author contact fields, regardless of geographic scope.
       posts = posts.map(sanitizePublicCommunityFeedPost);
-
-      // Phase 1: Fail-safe field stripping for global scope (posts-only)
-      // Strip contact fields, profile shortcuts, action-enabling metadata
-      if (wantsGlobalScope && !isSuperAdminLike) {
-        posts = posts.map((post) => {
-          const { author, ...safePost } = post as any;
-
-          // Strip sensitive author fields, keep only safe display fields
-          const safeAuthor = author
-            ? {
-                id: author.id,
-                firstName: author.firstName,
-                lastName: author.lastName,
-                profileImageUrl: author.profileImageUrl,
-                // Explicitly exclude: email, phone, address, city, state, zipCode, etc.
-              }
-            : null;
-
-          return {
-            ...safePost,
-            author: safeAuthor,
-          };
-        });
-      }
 
       // Phase 2B/2C authority surfaces are guarded by observation mode and explicit toggles.
       // - Phase 2B: render interpretive labels
@@ -19728,13 +19801,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             from community_posts
             where created_at >= ${sevenDaysAgo}
               and county_fips = ${countyFips}
-              and category in ('questions', 'projects')
+              and category in ('request', 'question', 'questions', 'project', 'projects')
           `)) as any)
         : ((await db.execute(sql`
             select count(*)::int as count
             from community_posts
             where created_at >= ${sevenDaysAgo}
-              and category in ('questions', 'projects')
+              and category in ('request', 'question', 'questions', 'project', 'projects')
           `)) as any);
 
       const recommendationsResult = hasCountyScope
@@ -19743,13 +19816,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             from community_posts
             where created_at >= ${sevenDaysAgo}
               and county_fips = ${countyFips}
-              and category = 'recommendations'
+              and category in ('recommendation', 'recommendations')
           `)) as any)
         : ((await db.execute(sql`
             select count(*)::int as count
             from community_posts
             where created_at >= ${sevenDaysAgo}
-              and category = 'recommendations'
+              and category in ('recommendation', 'recommendations')
           `)) as any);
 
       const verifiedProsResult = hasCountyScope
@@ -20024,7 +20097,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     if (/insulation|spray\s+foam|attic\s+insulation/.test(text)) tags.add("insulation");
     if (/plumb|leak|pipe|drain/.test(text)) tags.add("plumbing");
     if (/electric|breaker|panel|outlet|switch/.test(text)) tags.add("electrical");
-    if (/hvac|furnace|ac|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
+    if (/hvac|furnace|\bac\b|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
     if (/concrete|foundation|slab|driveway/.test(text)) tags.add("concrete");
     if (/siding|stucco|fascia/.test(text)) tags.add("siding");
     if (/window|windows|door|doors|garage\s+door/.test(text)) tags.add("windows_doors");
@@ -20058,7 +20131,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     if (/event|meetup|meeting|gathering/.test(text)) tags.add("events");
     if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text))
       tags.add("recommendations");
-    if (/lead|leads|job|jobs|work\b|bid|estimate|quote/.test(text)) tags.add("work");
+    if (
+      /\b(leads?|jobs?|bids?|estimates?|quotes?)\b|looking\s+for\s+work|work\s+(needed|available|wanted)|need\s+[^.!?]{0,48}\s+work/.test(
+        text
+      )
+    )
+      tags.add("work");
     if (/diy|do\s+it\s+yourself|how\s+to\b|tutorial/.test(text)) tags.add("diy");
 
     if (category && typeof category === "string") {
@@ -20074,9 +20152,19 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     _options?: { createdViaScout?: boolean }
   ): Promise<void> {
     try {
-      const resolvedStateCode = (user.state as string | undefined) || undefined;
+      const resolvedStateCode =
+        ((user as any).stateCode as string | undefined) ||
+        (user.state as string | undefined) ||
+        undefined;
       const resolvedCountyFips = ((user as any).countyFips as string | undefined) || undefined;
-      const countyLabel = ((user as any).county as string | undefined) || undefined;
+      const countyLabel =
+        ((user as any).countyName as string | undefined) ||
+        ((user as any).county as string | undefined) ||
+        undefined;
+
+      // Community activity is county-bound. Do not create orphan announcements
+      // before onboarding has committed a real county context.
+      if (!resolvedStateCode || !/^\d{5}$/.test(resolvedCountyFips || "")) return;
 
       const rolesRaw: string[] =
         Array.isArray((user as any).roles) && (user as any).roles.length
@@ -20085,38 +20173,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             ? [(user as any).role]
             : [];
 
-      const formatRoleLabel = (role: string) =>
-        role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-      const rolesLabel = rolesRaw.length ? rolesRaw.map((r) => formatRoleLabel(r)).join(", ") : "";
-
       const firstName = (user.firstName as string | undefined) || "A neighbor";
       const lastName = (user.lastName as string | undefined) || "";
+      const displayName = `${firstName}${lastName ? ` ${lastName[0]}.` : ""}`;
 
       const locationLabel =
         countyLabel && resolvedStateCode
-          ? `${countyLabel} County, ${resolvedStateCode}`
+          ? `${countyLabel.replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}, ${resolvedStateCode}`
           : resolvedStateCode || "your area";
 
       const roleContext = (() => {
-        if (!rolesLabel) return "";
         const lowerRoles = rolesRaw.map((r) => String(r).toLowerCase());
         if (lowerRoles.some((r) => r.includes("contractor") || r.includes("builder"))) {
-          return " They offer local services and project support.";
+          return "They joined to share practical experience and take part in project conversations.";
         }
         if (lowerRoles.some((r) => r.includes("homeowner"))) {
-          return " They are here to connect with trusted local services and neighbors.";
+          return "They joined to exchange recommendations, questions, and useful advice.";
         }
-        return " They are joining to stay connected and contribute locally.";
+        return "They joined to stay informed and contribute to the community.";
       })();
 
       const welcomeTitle = `Welcome ${firstName}`;
-      const welcomeContent =
-        `Say hello to ${firstName}${lastName ? " " + lastName[0] + "." : ""} in ${locationLabel}. ` +
-        `Share helpful tips, local recommendations, or groups worth following.` +
-        roleContext;
-
-      const welcomeTags = deriveCommunityTagsFromContent(welcomeTitle, welcomeContent, "welcome");
+      const welcomeContent = `${displayName} recently joined ${locationLabel}. ${roleContext}`;
+      const welcomeTags = ["new_neighbor"];
 
       await storage.createCommunityPost({
         title: welcomeTitle,
@@ -25357,63 +25436,61 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       try {
         const buyerUserId = req.user?.claims?.sub || req.user?.id;
         const bookingRequestId = String(req.body?.bookingRequestId || "").trim();
-        const ownerUserId = String(req.body?.ownerUserId || "").trim();
         const requestedAmount = Number(req.body?.amount);
         const descriptionRaw =
           typeof req.body?.description === "string" ? req.body.description.trim() : "";
         const slotId = typeof req.body?.slotId === "string" ? req.body.slotId.trim() : "";
-        const requestMessage =
-          typeof req.body?.requestMessage === "string"
-            ? req.body.requestMessage.trim().slice(0, 1000)
-            : null;
-        const serviceLabel =
-          typeof req.body?.serviceLabel === "string"
-            ? req.body.serviceLabel.trim().slice(0, 120)
-            : null;
-        const bookingContext =
-          req.body?.bookingContext && typeof req.body.bookingContext === "object"
-            ? req.body.bookingContext
-            : {};
-
         if (!buyerUserId) {
           return res.status(401).json({ message: "User not authenticated" });
         }
-        let requestRecord = bookingRequestId
-          ? await storage.getProfileBookingRequestById(bookingRequestId)
-          : undefined;
+        if (!bookingRequestId) {
+          return res.status(404).json({ message: "Booking request not found" });
+        }
+        const normalizedBuyerUserId = String(buyerUserId);
+        const requestRecord = await storage.getProfileBookingRequestById(bookingRequestId);
+        const bookingContext =
+          requestRecord?.bookingContext && typeof requestRecord.bookingContext === "object"
+            ? requestRecord.bookingContext
+            : {};
 
-        if (requestRecord && requestRecord.requesterUserId !== buyerUserId) {
+        if (!requestRecord) {
+          return res.status(404).json({ message: "Booking request not found" });
+        }
+
+        if (requestRecord.requesterUserId !== normalizedBuyerUserId) {
           return res.status(403).json({ message: "Not authorized to pay this booking request" });
         }
 
-        const resolvedOwnerUserId = requestRecord?.ownerUserId || ownerUserId;
-        if (!resolvedOwnerUserId) {
-          return res.status(400).json({ message: "ownerUserId is required" });
+        const existingPayment = validateExistingProfileBookingPayment(
+          requestRecord,
+          requestedAmount
+        );
+        if (!existingPayment.ok) {
+          return res.status(existingPayment.status).json({ message: existingPayment.message });
         }
-        if (resolvedOwnerUserId === buyerUserId) {
+
+        const bookingIdentity = await resolveProfileBookingOwner(
+          storage,
+          req.body,
+          requestRecord.ownerUserId
+        );
+        if (!bookingIdentity.ok) {
+          return res.status(bookingIdentity.status).json({ message: bookingIdentity.message });
+        }
+        const { ownerUserId: resolvedOwnerUserId, owner } = bookingIdentity;
+
+        if (resolvedOwnerUserId === normalizedBuyerUserId) {
           return res
             .status(400)
             .json({ message: "You cannot create a paid booking intent for your own profile" });
         }
 
-        const owner = await storage.getUser(resolvedOwnerUserId);
-        if (!owner) {
-          return res.status(404).json({ message: "Profile owner not found" });
-        }
-        if ((owner.preferences?.profileVisibility || "private") !== "public") {
-          return res.status(404).json({ message: "Profile not available for booking" });
-        }
-
-        const booking = normalizeProfileBookingPrefs((owner.preferences as any)?.profileBooking);
-        if (!booking.enabled) {
-          return res.status(400).json({ message: "Bookings are not enabled on this profile" });
-        }
-        if (!booking.paidBookings) {
-          return res.status(400).json({ message: "Paid bookings are not enabled on this profile" });
-        }
-        if (!Number.isFinite(booking.bookingPriceUsd) || booking.bookingPriceUsd <= 0) {
-          return res.status(400).json({ message: "Booking payment amount is not configured" });
-        }
+        const resolvedBookingContext = resolveBookingVerificationContext(
+          owner,
+          bookingContext,
+          requestRecord.deliveryMode || "onsite",
+          requestRecord.serviceLabel || null
+        );
 
         const verificationGate = evaluateNotaryPaidRemoteGate({
           owner: {
@@ -25423,8 +25500,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             roles: owner.roles || [],
             preferences: owner.preferences,
           },
-          bookingContext: (requestRecord?.bookingContext as any) || bookingContext,
-          paidBooking: booking.paidBookings,
+          bookingContext: resolvedBookingContext as any,
+          paidBooking: requestRecord.depositRequired === true,
         });
 
         if (verificationGate.applied && !verificationGate.allowed) {
@@ -25434,76 +25511,44 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           });
         }
 
-        const finalAmount =
-          Number.isFinite(requestedAmount) && requestedAmount > 0
-            ? Number(requestedAmount.toFixed(2))
-            : booking.bookingPriceUsd;
-        if (Math.abs(finalAmount - booking.bookingPriceUsd) > 0.01) {
-          return res
-            .status(400)
-            .json({ message: "Booking amount does not match profile settings" });
-        }
+        const finalAmount = existingPayment.amountUsd;
 
         const description =
           descriptionRaw.length > 0
             ? descriptionRaw.slice(0, 280)
             : `Booking deposit for ${owner.firstName || "TradeScout"} ${owner.lastName || "User"}`.trim();
 
-        if (!requestRecord) {
-          requestRecord = await storage.createProfileBookingRequest({
-            ownerUserId: resolvedOwnerUserId,
-            requesterUserId: String(buyerUserId),
-            status: "requested",
-            requestMessage,
-            serviceLabel,
-            requestedStartAt: null,
-            requestedEndAt: null,
-            timezone: booking.timezone,
-            deliveryMode: "onsite",
-            locationNote: null,
-            depositRequired: true,
-            depositAmountUsd: String(finalAmount.toFixed(2)),
-            paymentStatus: "requires_payment",
-            paymentIntentId: null,
-            bookingContext,
-            verificationSnapshot: {
-              gate: verificationGate.applied ? "notary_remote_paid_la" : "none",
-              passed: verificationGate.allowed,
-              missing: verificationGate.missing || [],
-              checkedAt: new Date().toISOString(),
-            },
-          } as any);
-        }
-
         if (!stripe) {
           return res.status(400).json({ message: "Stripe not configured" });
         }
 
-        const intent = await stripe.paymentIntents.create({
-          amount: Math.round(finalAmount * 100),
-          currency: "usd",
+        const paymentIntentResult = await resolveProfileBookingPaymentIntent({
+          stripe,
+          bookingRequestId: String(requestRecord.id),
+          existingPaymentIntentId: requestRecord.paymentIntentId,
+          currentPaymentStatus: existingPayment.paymentStatus,
+          amountUsd: finalAmount,
           description,
-          metadata: {
-            type: "profile_booking",
-            ownerUserId: resolvedOwnerUserId,
-            buyerUserId: String(buyerUserId),
-            bookingRequestId: String(requestRecord.id),
-            slotId,
-            timestamp: new Date().toISOString(),
-          },
+          ownerUserId: resolvedOwnerUserId,
+          buyerUserId: normalizedBuyerUserId,
+          profileId: bookingIdentity.profileId,
+          slotId,
+          updatePaymentState: (patch) =>
+            storage.updateProfileBookingRequest(requestRecord.id, patch as any),
         });
-
-        await storage.updateProfileBookingRequest(requestRecord.id, {
-          paymentIntentId: intent.id,
-          paymentStatus: "processing",
-        } as any);
+        if (!paymentIntentResult.ok) {
+          return res
+            .status(paymentIntentResult.status)
+            .json({ message: paymentIntentResult.message });
+        }
+        const { intent } = paymentIntentResult;
 
         // Optional: sync payment intent creation into a linked Property Program.
         try {
           const ctx =
             requestRecord?.bookingContext && typeof requestRecord.bookingContext === "object"
               ? (requestRecord.bookingContext as any)
-              : (bookingContext as any) || {};
+              : (resolvedBookingContext as any) || {};
           const propertyProgramId =
             typeof ctx.propertyProgramId === "string" ? String(ctx.propertyProgramId).trim() : "";
           if (propertyProgramId) {
@@ -25756,19 +25801,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
-  // Stripe webhook endpoint (generic platform payments)
-  app.post("/api/payments/webhook", async (req: Request, res: Response) => {
-    try {
-      // For this generic endpoint we trust the parsed JSON payload.
-      // Signature-verified flows use /api/payments/stripe/webhook instead.
-      const event = req.body as any;
-
-      await paymentService.handleStripeWebhook(event);
-      res.json({ received: true });
-    } catch (error: any) {
-      console.error("Error handling webhook:", error);
-      res.status(500).json({ message: "Webhook handler failed" });
-    }
+  registerPaymentWebhookRoutes(app, {
+    stripe,
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+    paymentService,
+    communityBuilderPaymentService,
+    platformSupportPaymentService,
   });
 
   // Admin payment configuration routes
@@ -27652,68 +27690,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     } catch (error: any) {
       console.error("Error creating payment intent:", error);
       res.status(500).json({ message: "Failed to create payment intent" });
-    }
-  });
-
-  // (Generic Stripe webhook handler now lives above and delegates to paymentService.handleStripeWebhook)
-
-  // Stripe webhook dedicated to Community Builder checkout + payouts
-  app.post("/api/payments/stripe/webhook", async (req: Request, res: Response) => {
-    try {
-      if (!stripe) return res.status(400).json({ message: "Stripe not configured" });
-
-      const sig = req.headers["stripe-signature"] as string;
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!webhookSecret)
-        return res.status(400).json({ message: "STRIPE_WEBHOOK_SECRET not configured" });
-
-      const rawBody = Buffer.isBuffer(req.body)
-        ? req.body
-        : Buffer.from(typeof req.body === "string" ? req.body : JSON.stringify(req.body));
-
-      let event;
-      try {
-        event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-      } catch (err: any) {
-        console.error("[stripe] signature verification failed", err.message);
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-      }
-
-      try {
-        switch (event.type) {
-          case "checkout.session.completed":
-            {
-              const session = event.data.object as any;
-              const metaType = session?.metadata?.type;
-
-              // Route MVP payment intents by explicit metadata type.
-              if (metaType === "community_vault_donation" || metaType === "platform_support") {
-                await platformSupportPaymentService.handleStripeEvent(event);
-              } else {
-                await communityBuilderPaymentService.handleCheckoutSessionCompleted(session);
-              }
-            }
-            break;
-          case "invoice.paid":
-            await platformSupportPaymentService.handleStripeEvent(event);
-            break;
-          case "transfer.created":
-          case "transfer.updated":
-            await communityBuilderPaymentService.handleStripeWebhook(event);
-            break;
-          default:
-            // No-op for unrelated events
-            break;
-        }
-      } catch (err: any) {
-        console.error(`[stripe] webhook handler failed for ${event.type}`, err);
-        return res.status(500).json({ message: "Webhook handling failed" });
-      }
-
-      res.json({ received: true });
-    } catch (error: any) {
-      console.error("[stripe] webhook error", error);
-      res.status(500).json({ message: "Webhook processing failed" });
     }
   });
 

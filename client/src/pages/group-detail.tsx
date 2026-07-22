@@ -15,9 +15,11 @@ import {
   ArrowLeft,
   Camera,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Link, useParams } from "wouter";
+import { Link, useParams, useSearch } from "wouter";
+import { share } from "@/utils/share";
+import { buildCommunityGroupPath } from "@/components/community/communityRouting";
 
 interface GroupPost {
   id: string;
@@ -39,8 +41,10 @@ export default function GroupDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const params = useParams();
-  const groupId = params?.groupId || "group-1";
+  const params = useParams<{ id: string }>();
+  const groupId = params?.id || "";
+  const search = useSearch();
+  const sharedPostId = new URLSearchParams(search).get("post")?.trim() || null;
 
   const [newPost, setNewPost] = useState("");
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -48,12 +52,24 @@ export default function GroupDetail() {
   const { data: group, isLoading: groupLoading } = useQuery({
     queryKey: ["/api/groups", groupId],
     queryFn: () => fetch(`/api/groups/${groupId}`).then((res) => res.json()),
+    enabled: Boolean(groupId),
   });
 
   const { data: posts = [], isLoading: postsLoading } = useQuery({
     queryKey: ["/api/groups", groupId, "posts"],
     queryFn: () => fetch(`/api/groups/${groupId}/posts`).then((res) => res.json()),
+    enabled: Boolean(groupId),
   });
+
+  useEffect(() => {
+    if (!sharedPostId || postsLoading) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`group-post-${sharedPostId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [posts.length, postsLoading, sharedPostId]);
 
   const createPostMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -129,7 +145,18 @@ export default function GroupDetail() {
               Back to Groups
             </Button>
           </Link>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              void share({
+                path: buildCommunityGroupPath(groupId),
+                title: group.name || "TradeScout group",
+                text: group.description || "",
+                contextLabel: "Group link",
+              })
+            }
+          >
             <Share2 className="w-4 h-4 mr-2" />
             Share Group
           </Button>
@@ -240,9 +267,15 @@ export default function GroupDetail() {
             posts.map((post: GroupPost) => (
               <Card
                 key={post.id}
-                className="border-white/10"
+                id={`group-post-${post.id}`}
+                className={
+                  post.id === sharedPostId
+                    ? "border-ts-orange/60 ring-1 ring-ts-orange/30"
+                    : "border-white/10"
+                }
                 style={{ backgroundColor: "var(--surface-card)" }}
                 data-testid={`post-${post.id}`}
+                data-shared-post={post.id === sharedPostId ? "true" : undefined}
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
@@ -309,6 +342,16 @@ export default function GroupDetail() {
                       variant="ghost"
                       size="sm"
                       className="text-white/60 hover:text-green-400"
+                      onClick={() =>
+                        void share({
+                          path: buildCommunityGroupPath(groupId, post.id),
+                          title: `${group.name || "TradeScout group"} post`,
+                          text: post.content,
+                          contextLabel: "Post link",
+                          kind: "community_post",
+                          imageUrl: post.images?.[0],
+                        })
+                      }
                     >
                       <Share2 className="w-4 h-4 mr-1" />
                       Share

@@ -31,7 +31,7 @@ describe("first-use guidance production smoke", () => {
     expect(source).toContain("window.localStorage.removeItem(DISMISS_KEY)");
   });
 
-  it("shows state-based prompts on HomeID, Direct Connect, and Scout surfaces", () => {
+  it("shows state-based prompts on HomeID and Direct Connect without blocking the Scout snapshot", () => {
     const resolverSource = read("client/src/lib/firstUseTaskPrompts.ts");
     expect(resolverSource).toContain("Add one home detail.");
     expect(resolverSource).toContain("Add a system or component.");
@@ -48,8 +48,11 @@ describe("first-use guidance production smoke", () => {
     const scoutSource = read("client/src/scout/ScoutHome.tsx");
     expect(homesSource).toContain("homeIdFirstTaskPrompt.message");
     expect(directConnectSource).toContain("directConnectFirstTaskPrompt.message");
-    expect(scoutSource).toContain("contextualPrompt={scoutFirstTaskPrompt}");
-    expect(scoutSource).toContain("contextualPrompt.message");
+    expect(scoutSource).not.toContain("contextualPrompt={scoutFirstTaskPrompt}");
+    expect(scoutSource).toContain("<ScoutControlSnapshot");
+    expect(scoutSource).toContain('data-testid="scout-control-snapshot"');
+    expect(scoutSource).not.toContain("<LocalCommandCenter");
+    expect(scoutSource).not.toContain("<CommunitySnapshot");
   });
 
   it("avoids banned internal language in first-use guidance surfaces", () => {

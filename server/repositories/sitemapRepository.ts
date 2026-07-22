@@ -324,13 +324,16 @@ export class SitemapRepository {
 
   async listActiveExchangeListingsForSitemap(args?: {
     limit?: number;
-  }): Promise<Array<{ id: string; categoryName: string; updatedAt: Date | null }>> {
+  }): Promise<
+    Array<{ id: string; sellerUserId: string; categoryName: string; updatedAt: Date | null }>
+  > {
     const limitRequested = Number(args?.limit ?? 50_000) || 50_000;
     const limit = Math.max(1, Math.min(100_000, limitRequested));
 
     const rows = await db
       .select({
         id: marketplaceListings.id,
+        sellerUserId: marketplaceListings.sellerId,
         categoryName: marketplaceCategories.name,
         updatedAt: marketplaceListings.updatedAt,
       })
@@ -342,6 +345,7 @@ export class SitemapRepository {
 
     return rows.map((row) => ({
       id: row.id,
+      sellerUserId: String(row.sellerUserId || "").trim(),
       categoryName: row.categoryName ?? "",
       updatedAt: row.updatedAt ?? null,
     }));

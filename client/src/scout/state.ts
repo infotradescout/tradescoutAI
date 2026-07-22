@@ -115,6 +115,13 @@ export interface OnboardingMetadata {
   question?: OnboardingQuestion;
 }
 
+export interface ScoutKnowledgeSource {
+  title: string;
+  url?: string;
+  type?: string;
+  provider?: string;
+}
+
 export interface ScoutMessage {
   id: string;
   role: ScoutRole;
@@ -155,6 +162,7 @@ export interface ScoutMessage {
       | "route_exception";
     confidenceBand?: "low" | "medium" | "high" | "unknown";
     knowledgeLayer?: number;
+    sources?: ScoutKnowledgeSource[];
     sourceTitles?: string[];
     resolvedStage?: string;
     blockingReason?: string | null;

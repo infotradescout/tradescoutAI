@@ -27,7 +27,9 @@ import {
 import { LocalImpactCard } from "@/components/dashboard/LocalImpactCard";
 import { HoaLeadershipBadge } from "@/components/dashboard/HoaLeadershipBadge";
 import { uploadObject } from "@/lib/objectUpload";
+import { share } from "@/utils/share";
 import { Page, Section } from "@/components/layout/PagePrimitives";
+import { buildCommunityPostPath } from "@shared/communityPostShare";
 
 interface Post {
   id: string;
@@ -261,7 +263,6 @@ const Dashboard = memo(function Dashboard() {
           </Link>
         }
       >
-
         {/* Local Impact (always visible) */}
         <LocalImpactCard className="mb-0" />
 
@@ -471,11 +472,33 @@ const Dashboard = memo(function Dashboard() {
                         <Heart className="h-4 w-4" />
                         <span className="text-sm font-medium">Like</span>
                       </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors">
+                      <Link
+                        href={buildCommunityPostPath(post.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors"
+                      >
                         <MessageSquare className="h-4 w-4" />
                         <span className="text-sm font-medium">Comment</span>
-                      </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors">
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void share({
+                            path: buildCommunityPostPath(post.id),
+                            title: post.title || "TradeScout community post",
+                            text: post.content,
+                            contextLabel: "Post link",
+                            kind: "community_post",
+                            imageUrl:
+                              Array.isArray((post as any).imageUrls) &&
+                              (post as any).imageUrls.length
+                                ? (post as any).imageUrls[0]
+                                : Array.isArray(post.images)
+                                  ? post.images[0]
+                                  : undefined,
+                          })
+                        }
+                        className="flex-1 flex items-center justify-center gap-2 py-2 text-white/60 dark:text-white/60 hover:bg-white/5 dark:hover:bg-white/10 rounded-lg transition-colors"
+                      >
                         <Share2 className="h-4 w-4" />
                         <span className="text-sm font-medium">Share</span>
                       </button>

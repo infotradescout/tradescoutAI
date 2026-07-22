@@ -6,6 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  qualifyPublicProfileItemDestination,
+  requiresDocumentNavigation,
+} from "@/lib/publicProfileItemDestination";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import {
@@ -88,7 +92,10 @@ export default function ProfileSiteManageChrome({
     [contentBlocks]
   );
 
-  const editorHref = `${platformBaseHref}/u/${encodeURIComponent(profileSlug)}/edit`;
+  const editorHref = qualifyPublicProfileItemDestination(
+    `/u/${encodeURIComponent(profileSlug)}/edit`,
+    platformBaseHref
+  );
   const templates = listSelectableProfileSiteTemplates();
   const isJwStone = profileSlug === "jw-stone";
   const inventoryStones = useMemo(
@@ -225,16 +232,13 @@ export default function ProfileSiteManageChrome({
           >
             Change template
           </Button>
-          <Link href={editorHref}>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="border-white/20 bg-white/5"
-            >
-              Full editor
-            </Button>
-          </Link>
+          <Button asChild size="sm" variant="outline" className="border-white/20 bg-white/5">
+            {requiresDocumentNavigation(editorHref) ? (
+              <a href={editorHref}>Full editor</a>
+            ) : (
+              <Link href={editorHref}>Full editor</Link>
+            )}
+          </Button>
           {customDomain && !isOnCustomDomain ? (
             <Button
               type="button"

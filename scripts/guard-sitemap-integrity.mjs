@@ -42,6 +42,8 @@ const runtimeGenerated = new Set([
   "sitemap-best-pages.xml",
   "sitemap-recent-activity.xml",
   "sitemap-exchange-listings.xml",
+  "sitemap-handmade-products.xml",
+  "sitemap-profile-service-offers.xml",
 ]);
 
 const missing = matches.filter(
