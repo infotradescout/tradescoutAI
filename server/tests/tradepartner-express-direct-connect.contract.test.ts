@@ -33,6 +33,21 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(repository).not.toContain("phone: business.profileData?.phone");
   });
 
+  it("shows a public business address with the call-or-form choice when one is available", () => {
+    const publicProfileRoute = read("server/routes/profiles.ts");
+    const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+
+    expect(publicProfileRoute).toContain("business.tradePartner === true && business.address");
+    expect(profileView).toContain("const publicBusinessAddress = business?.address?.trim()");
+    expect(profileView).toContain("businessAddress={publicBusinessAddress}");
+    expect(wholesalerTheme).toContain("businessAddress={businessAddress}");
+    expect(panel).toContain("{businessAddress ? (");
+    expect(panel).toContain("<address");
+    expect(panel).toContain("<MapPin");
+  });
+
   it("uses required phone entry—not SMS or OTP—as request friction", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const phoneAuthority = read("server/services/directConnectPhone.ts");

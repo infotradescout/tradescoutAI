@@ -424,6 +424,10 @@ type PublicBusinessSubset = {
     call?: boolean;
     request?: boolean;
   };
+  address?: string;
+  city?: string;
+  stateCode?: string;
+  zipCode?: string;
 } | null;
 
 type PublicProfileResponse = {
@@ -847,6 +851,17 @@ export default function ProfileSiteView() {
   // business. The /direct-connect portal retains the full discovery path.
   const useExpressDirectConnect = true;
   const canExpressCall = business?.expressContactCapabilities?.call === true;
+  const publicBusinessAddress = business?.address?.trim()
+    ? [
+        business.address.trim(),
+        [business.city, business.stateCode, business.zipCode]
+          .map((part) => String(part || "").trim())
+          .filter(Boolean)
+          .join(" "),
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : null;
   // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
   // Connect targeted straight at their own account (via the target/targetName
   // prefill params DirectConnectShell already reads), instead of the
@@ -1038,6 +1053,7 @@ export default function ProfileSiteView() {
           onClose={() => setExpressPanelOpen(false)}
           profileSlug={profile.slug}
           businessName={displayName}
+          businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
           requestMode="auto_glass"
@@ -1080,6 +1096,7 @@ export default function ProfileSiteView() {
           onClose={() => setExpressPanelOpen(false)}
           profileSlug={profile.slug}
           businessName={displayName}
+          businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
           requestMode="service"
@@ -1134,6 +1151,7 @@ export default function ProfileSiteView() {
           onClose={() => setExpressPanelOpen(false)}
           profileSlug={profile.slug}
           businessName={displayName}
+          businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
           requestMode="service"
@@ -1159,6 +1177,7 @@ export default function ProfileSiteView() {
         <WholesalerProfileTheme
           profileSlug={profile.slug}
           displayName={displayName}
+          businessAddress={publicBusinessAddress}
           headline={profile.headline}
           contentBlocks={contentBlocks}
           categories={business?.categories || []}
@@ -1589,6 +1608,7 @@ export default function ProfileSiteView() {
         onClose={() => setExpressPanelOpen(false)}
         profileSlug={profile.slug}
         businessName={displayName}
+        businessAddress={publicBusinessAddress}
         hasViewerSession={hasViewerSession}
         allowCall={canExpressCall}
         requestMode="service"

@@ -117,6 +117,7 @@ export type WholesalerBrandColors = {
 type WholesalerProfileThemeProps = {
   profileSlug: string;
   displayName: string;
+  businessAddress?: string | null;
   headline: string | null;
   contentBlocks: ContentBlock[];
   categories: string[];
@@ -304,6 +305,7 @@ function blockString(block: ContentBlock | undefined, key: string): string {
 export default function WholesalerProfileTheme({
   profileSlug,
   displayName,
+  businessAddress,
   headline,
   contentBlocks,
   categories,
@@ -2207,6 +2209,7 @@ export default function WholesalerProfileTheme({
         onClose={() => setExpressPanelOpen(false)}
         profileSlug={profileSlug}
         businessName={displayName}
+        businessAddress={businessAddress}
         hasViewerSession={hasViewerSession}
         allowCall={allowExpressCall}
         stayInProfile
