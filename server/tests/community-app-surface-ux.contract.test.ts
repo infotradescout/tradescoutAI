@@ -67,15 +67,24 @@ describe("Community app surface UX contract", () => {
 
   it("anchors Community in human outcomes and inviting early states", () => {
     const feed = read("client/src/pages/community-feed.tsx");
+    const postCard = read("client/src/components/community/CommunityPostCard.tsx");
     const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
     const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
     const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
 
-    expect(feed).toContain("What do you need nearby?");
-    expect(feed).toContain("Ask Scout for a next step");
-    expect(feed).toContain("Ask Scout");
-    expect(feed).toContain("Start a request");
-    expect(feed).toContain("What would you like to share?");
+    expect(feed).toContain("Community");
+    expect(feed).toContain("location.countyName");
+    expect(feed).not.toContain("What do you need nearby?");
+    expect(feed).not.toContain("Ask Scout for a next step");
+    expect(feed).toContain("Share with your community");
+    expect(feed).toContain("Open Community views");
+    expect(feed).toContain("Browse all communities");
+    expect(feed).not.toContain("CommunitySnapshotRail");
+    expect(feed).not.toContain("Community scope");
+    expect(feed).not.toContain("Feed order");
+    expect(postCard).not.toContain("<CommunityCTA");
+    expect(postCard).not.toContain("Job help soon");
+    expect(postCard).not.toContain("Messaging soon");
     expect(feed).toContain("Not sure what to write?");
     expect(feed).toContain("You&apos;re here early");
     expect(emptyState).toContain("You&apos;re here early");

@@ -35,7 +35,6 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { UserBadges } from "@/components/user-badges";
-import { CommunityCTA } from "./CommunityCTA";
 import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -454,14 +453,6 @@ export function CommunityPostCard({
     return null;
   })();
 
-  const canDirectConnect =
-    !readOnly &&
-    (!!post.hasWorkRequest ||
-      post.category === "recommendation_request" ||
-      post.postType === "recommendation_request");
-
-  const isContractor = (role || "").toLowerCase().includes("contractor");
-
   return (
     <>
       <Card
@@ -669,6 +660,17 @@ export function CommunityPostCard({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      navigate(
+                        `/scout?source=community_post&postId=${encodeURIComponent(String(post.id))}`
+                      )
+                    }
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 mr-2" />
+                    Ask about this
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {canOpenMessages && (
                     <DropdownMenuItem onClick={handleOpenMessages}>
                       <MessagesSquare className="w-3.5 h-3.5 mr-2" />
@@ -873,19 +875,6 @@ export function CommunityPostCard({
                   </button>
                 )}
               </div>
-              {!readOnly && (
-                <CommunityCTA
-                  layout="grid"
-                  source="community_post"
-                  contextId={post.id}
-                  ownerUserId={post.author?.id ? String(post.author.id) : undefined}
-                  canDirectConnect={canDirectConnect}
-                  canMessage={canOpenMessages}
-                  disableDirectConnect={isContractor}
-                  scope={post.county} // Pass county for authority scope
-                />
-              )}
-
               {commentsOpen && commentsSlot}
 
               {/* Authority label - interpretive guidance from Scout */}
