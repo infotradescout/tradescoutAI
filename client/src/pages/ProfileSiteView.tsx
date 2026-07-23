@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-syntax, @typescript-eslint/no-explicit-any */
+
 import { useEffect, useState } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

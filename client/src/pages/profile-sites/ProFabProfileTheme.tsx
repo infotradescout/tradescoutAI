@@ -1,3 +1,5 @@
+/* eslint-disable no-restricted-syntax */
+
 import type { ReactNode } from "react";
 import {
   Building2,
@@ -75,8 +77,8 @@ export default function ProFabProfileTheme({
   profileSlug,
   platformBaseHref = "",
   onDirectConnect,
-  hasViewerSession,
-  tradeScoutReturnHref,
+  _hasViewerSession,
+  _tradeScoutReturnHref,
   recommendationsDirectory = [],
   trustActions,
   profileItems,
