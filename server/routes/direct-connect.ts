@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { isAuthenticated, isStaff } from "../auth";
 import { db, pool } from "../db";
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import {
   type WorkRequest,
   directConnectGiveawayEntries,
@@ -117,6 +117,17 @@ function resolveDirectConnectGiveawayEligibility(params: {
 
 function createId(prefix: string) {
   return `${prefix}_${randomBytes(12).toString("hex")}`;
+}
+
+function createStableHomeIdProjectionId(
+  kind: "timeline_completed" | "completed_work" | "evidence",
+  ...parts: Array<string | null | undefined>
+) {
+  const digest = createHash("sha256")
+    .update(parts.map((part) => String(part || "").trim()).join("\u001f"))
+    .digest("hex")
+    .slice(0, 32);
+  return `homeid_dc_${kind}_${digest}`;
 }
 
 function toNumber(value: unknown) {
@@ -1150,8 +1161,19 @@ async function upsertHomeIdEvidenceFromDirectConnect(params: {
     ? (payload?.evidence as HomeIdEvidenceRecord[]) || []
     : [];
   const nowIso = new Date().toISOString();
+  const evidenceId = createStableHomeIdProjectionId(
+    "evidence",
+    params.homeId,
+    params.requestId,
+    params.source,
+    params.evidenceType,
+    params.fileUrl,
+    params.title
+  );
+  const evidenceIndex = existingEvidence.findIndex((evidence) => evidence.id === evidenceId);
+  const existing = evidenceIndex >= 0 ? existingEvidence[evidenceIndex] : null;
   const nextEvidence: HomeIdEvidenceRecord = {
-    id: `evd_${randomBytes(8).toString("hex")}`,
+    id: evidenceId,
     homeId: params.homeId,
     componentId: params.componentId || undefined,
     directConnectRequestId: params.requestId,
@@ -1168,12 +1190,17 @@ async function upsertHomeIdEvidenceFromDirectConnect(params: {
     fileUrl: params.fileUrl ? params.fileUrl.trim().slice(0, 1000) : undefined,
     fileName: params.fileName ? params.fileName.trim().slice(0, 260) : undefined,
     mimeType: params.mimeType ? params.mimeType.trim().slice(0, 120) : undefined,
-    createdAt: nowIso,
+    createdAt: existing?.createdAt || nowIso,
     updatedAt: nowIso,
   };
 
   const nextPayload = {
-    evidence: [...existingEvidence, nextEvidence].slice(-1200),
+    evidence: (evidenceIndex >= 0
+      ? existingEvidence.map((evidence, index) =>
+          index === evidenceIndex ? nextEvidence : evidence
+        )
+      : [...existingEvidence, nextEvidence]
+    ).slice(-1200),
     updatedAt: nowIso,
   };
   if (existingRecord?.id) {
@@ -1355,7 +1382,7 @@ async function appendHomeIdTimelineEventFromDirectConnect(params: {
 
   const nowIso = new Date().toISOString();
   const occurredAt = params.occurredAt || nowIso;
-  await db.insert(userHomeRecords).values({
+  const values = {
     homeId: context.homeId,
     createdByUserId: context.requestOwnerUserId,
     recordType: "note",
@@ -1377,7 +1404,29 @@ async function appendHomeIdTimelineEventFromDirectConnect(params: {
     tags: ["homeid", "timeline", "direct_connect_jobflow", params.eventType],
     occurredAt: new Date(occurredAt),
     updatedAt: new Date(),
-  } as any);
+  } as any;
+
+  if (params.eventType === "direct_connect_completed") {
+    const id = createStableHomeIdProjectionId(
+      "timeline_completed",
+      context.homeId,
+      params.requestId
+    );
+    await db
+      .insert(userHomeRecords)
+      .values({ ...values, id } as any)
+      .onConflictDoUpdate({
+        target: userHomeRecords.id,
+        set: {
+          details: values.details,
+          tags: values.tags,
+          updatedAt: new Date(),
+        } as any,
+      });
+    return;
+  }
+
+  await db.insert(userHomeRecords).values(values);
 }
 
 async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
@@ -1390,7 +1439,9 @@ async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
 
   const nowIso = new Date().toISOString();
   const completedAt = params.completedAt || nowIso;
-  await db.insert(userHomeRecords).values({
+  const id = createStableHomeIdProjectionId("completed_work", context.homeId, params.requestId);
+  const values = {
+    id,
     homeId: context.homeId,
     createdByUserId: context.requestOwnerUserId,
     recordType: "note",
@@ -1410,7 +1461,18 @@ async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
     tags: ["homeid", "completed_work", "direct_connect"],
     occurredAt: new Date(completedAt),
     updatedAt: new Date(),
-  } as any);
+  } as any;
+  await db
+    .insert(userHomeRecords)
+    .values(values)
+    .onConflictDoUpdate({
+      target: userHomeRecords.id,
+      set: {
+        details: values.details,
+        tags: values.tags,
+        updatedAt: new Date(),
+      } as any,
+    });
 
   await upsertHomeIdComponentFromDirectConnect({
     homeId: context.homeId,
@@ -1451,6 +1513,21 @@ async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
       fileName: `direct-connect-${params.requestId}-attachment-1`,
     });
   }
+}
+
+async function syncHomeIdCompletionFromDirectConnect(params: {
+  requestId: string;
+  completedAt: string;
+  workSummary?: string | null;
+}) {
+  await appendHomeIdTimelineEventFromDirectConnect({
+    requestId: params.requestId,
+    eventType: "direct_connect_completed",
+    title: "Direct Connect request completed",
+    summary: "The linked Direct Connect request was marked complete.",
+    occurredAt: params.completedAt,
+  });
+  await appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params);
 }
 
 type DirectConnectFunnelEventType =
@@ -6051,6 +6128,7 @@ export function registerDirectConnectRoutes(app: Express) {
     "/api/direct-connect/requests/:id/complete",
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
+      let completionCommitted = false;
       try {
         // Contract anchor: status(200) on success
         const userId = req.user?.id || req.user?.claims?.sub;
@@ -6075,6 +6153,24 @@ export function registerDirectConnectRoutes(app: Express) {
           return res
             .status(400)
             .json({ message: "Only Direct Connect requests can be completed here" });
+        }
+
+        if (requestRow.status === "completed") {
+          completionCommitted = true;
+          const completedAt =
+            requestRow.updatedAt instanceof Date
+              ? requestRow.updatedAt.toISOString()
+              : new Date(requestRow.updatedAt || Date.now()).toISOString();
+          await syncHomeIdCompletionFromDirectConnect({
+            requestId,
+            completedAt,
+            workSummary: String(requestRow.description || requestRow.title || "").trim() || null,
+          });
+          return res.status(200).json({
+            status: "completed",
+            alreadyCompleted: true,
+            homeIdSync: "complete",
+          });
         }
 
         const allowedStatuses = ["in_progress", "pending_outcome"];
@@ -6106,6 +6202,7 @@ export function registerDirectConnectRoutes(app: Express) {
             console.warn("[direct-connect] Failed to record status_changed event on complete", e);
           }
         });
+        completionCommitted = true;
 
         try {
           await recordTrustLedgerEvent({
@@ -6186,20 +6283,23 @@ export function registerDirectConnectRoutes(app: Express) {
         } catch (e) {
           console.warn("[direct-connect] Failed to send completion notifications to providers", e);
         }
-        await appendHomeIdTimelineEventFromDirectConnect({
+        await syncHomeIdCompletionFromDirectConnect({
           requestId,
-          eventType: "direct_connect_completed",
-          title: "Direct Connect request completed",
-          summary: "The linked Direct Connect request was marked complete.",
-        });
-        await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
-          requestId,
-          completedAt: new Date().toISOString(),
+          completedAt: now.toISOString(),
           workSummary: String(requestRow.description || requestRow.title || "").trim() || null,
         });
-        res.status(200).json({ status: "completed" });
+        res.status(200).json({ status: "completed", homeIdSync: "complete" });
       } catch (error: any) {
         console.error("Error completing direct connect request:", error);
+        if (completionCommitted) {
+          return res.status(503).json({
+            message:
+              "Your request is complete, but its HomeID history has not been saved yet. Retry to finish saving the record.",
+            status: "completed",
+            homeIdSync: "pending",
+            retryable: true,
+          });
+        }
         res.status(500).json({ message: "Failed to complete request" });
       }
     }
@@ -11987,6 +12087,7 @@ export function registerDirectConnectRoutes(app: Express) {
     "/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond",
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
+      let completionConfirmed = false;
       try {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -11999,7 +12100,7 @@ export function registerDirectConnectRoutes(app: Express) {
           });
 
         const completionRows = await db.execute(sql`
-        SELECT id, request_id, requester_user_id, status
+        SELECT id, request_id, requester_user_id, status, requester_notes, responded_at
         FROM job_completion_requests
         WHERE workspace_id = ${jobWorkspaceId}
         ORDER BY created_at DESC
@@ -12012,6 +12113,29 @@ export function registerDirectConnectRoutes(app: Express) {
           return res
             .status(403)
             .json({ message: "Only the request owner can respond to completion." });
+        if (
+          String(completionRequest.status || "requested") === "confirmed" &&
+          parse.data.decision === "confirm"
+        ) {
+          completionConfirmed = true;
+          const completedAt = completionRequest.responded_at
+            ? new Date(completionRequest.responded_at).toISOString()
+            : new Date().toISOString();
+          await syncHomeIdCompletionFromDirectConnect({
+            requestId: String(completionRequest.request_id || ""),
+            completedAt,
+            workSummary: completionRequest.requester_notes
+              ? String(completionRequest.requester_notes).trim()
+              : null,
+          });
+          return res.status(200).json({
+            ok: true,
+            completionRequestId: String(completionRequest.id),
+            status: "confirmed",
+            alreadyConfirmed: true,
+            homeIdSync: "complete",
+          });
+        }
         if (String(completionRequest.status || "requested") !== "requested")
           return res.status(409).json({ message: "Completion request is no longer pending." });
 
@@ -12032,15 +12156,16 @@ export function registerDirectConnectRoutes(app: Express) {
         }
 
         const nextStatus = parse.data.decision === "confirm" ? "confirmed" : "rejected";
+        const respondedAt = new Date();
         await db.execute(sql`
         UPDATE job_completion_requests
-        SET status = ${nextStatus}, requester_notes = ${parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null}, responded_at = now(), updated_at = now()
+        SET status = ${nextStatus}, requester_notes = ${parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null}, responded_at = ${respondedAt}, updated_at = ${respondedAt}
         WHERE id = ${String(completionRequest.id)}
       `);
         if (parse.data.decision === "confirm") {
           await db.execute(sql`
           UPDATE direct_connect_job_workspaces
-          SET active_stage = 'completed', status = 'completed', updated_at = now()
+          SET active_stage = 'completed', status = 'completed', updated_at = ${respondedAt}
           WHERE id = ${jobWorkspaceId}
         `);
         }
@@ -12060,15 +12185,10 @@ export function registerDirectConnectRoutes(app: Express) {
             eventType: "job_completed",
             metadata: { completionRequestId: String(completionRequest.id) },
           });
-          await appendHomeIdTimelineEventFromDirectConnect({
+          completionConfirmed = true;
+          await syncHomeIdCompletionFromDirectConnect({
             requestId: String(completionRequest.request_id || ""),
-            eventType: "direct_connect_completed",
-            title: "Job completed",
-            summary: "Direct Connect completion was confirmed for this request.",
-          });
-          await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
-            requestId: String(completionRequest.request_id || ""),
-            completedAt: new Date().toISOString(),
+            completedAt: respondedAt.toISOString(),
             workSummary: parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null,
           });
         }
@@ -12076,9 +12196,20 @@ export function registerDirectConnectRoutes(app: Express) {
           ok: true,
           completionRequestId: String(completionRequest.id),
           status: nextStatus,
+          ...(nextStatus === "confirmed" ? { homeIdSync: "complete" } : {}),
         });
       } catch (error) {
         console.error("Error responding to completion request:", error);
+        if (completionConfirmed) {
+          return res.status(503).json({
+            message:
+              "Completion is confirmed, but its HomeID history has not been saved yet. Retry to finish saving the record.",
+            status: "confirmed",
+            homeIdSync: "pending",
+            retryable: true,
+            requestId: (req as any).requestId || null,
+          });
+        }
         return res.status(500).json({
           message: "Failed to respond to completion request",
           requestId: (req as any).requestId || null,

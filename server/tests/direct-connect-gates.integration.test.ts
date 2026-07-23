@@ -10,7 +10,10 @@ import {
   counties,
   tradeRequirements,
   trades,
+  userHomeRecords,
+  userHomes,
   workRequestAssignments,
+  workRequestEvents,
   workRequests,
 } from "@shared/schema";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
@@ -35,6 +38,103 @@ function isProductionBypassLockActive() {
 }
 
 describeWithDb("direct-connect gate integration (no mocks)", () => {
+  it("retries completed HomeID-linked requests without duplicating completion history", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const [home] = await db
+      .insert(userHomes)
+      .values({
+        ownerUserId: String(user.id),
+        nickname: `Completion retry ${Date.now()}`,
+        propertyType: "other",
+      })
+      .returning();
+    const [request] = await db
+      .insert(workRequests)
+      .values({
+        createdByUserId: String(user.id),
+        title: `HomeID completion retry ${Date.now()}`,
+        description: "Replace the leaking outdoor faucet and record the completed work.",
+        category: "service_request",
+        source: "direct_connect",
+        status: "in_progress",
+        scope: "personal",
+        visibility: "private",
+        attachments: ["private/direct-connect/00000000-0000-4000-8000-000000000099"],
+      })
+      .returning();
+    await db.insert(workRequestEvents).values({
+      workRequestId: String(request.id),
+      type: "created",
+      actorUserId: String(user.id),
+      metadata: {
+        source: "direct_connect",
+        homeId: String(home.id),
+      },
+    });
+
+    const first = await agent.post(`/api/direct-connect/requests/${request.id}/complete`).send({});
+    expect(first.status).toBe(200);
+    expect(first.body).toMatchObject({
+      status: "completed",
+      homeIdSync: "complete",
+    });
+
+    const retry = await agent.post(`/api/direct-connect/requests/${request.id}/complete`).send({});
+    expect(retry.status).toBe(200);
+    expect(retry.body).toMatchObject({
+      status: "completed",
+      alreadyCompleted: true,
+      homeIdSync: "complete",
+    });
+
+    const timelineRecords = await db
+      .select()
+      .from(userHomeRecords)
+      .where(
+        and(
+          eq(userHomeRecords.homeId, String(home.id)),
+          eq(userHomeRecords.title, "homeid:timeline:direct_connect_completed")
+        )
+      );
+    const completionRecords = await db
+      .select()
+      .from(userHomeRecords)
+      .where(
+        and(
+          eq(userHomeRecords.homeId, String(home.id)),
+          eq(userHomeRecords.title, "homeid:completed_work_enrichment")
+        )
+      );
+    const [evidenceRecord] = await db
+      .select()
+      .from(userHomeRecords)
+      .where(
+        and(
+          eq(userHomeRecords.homeId, String(home.id)),
+          eq(userHomeRecords.title, "homeid:persistence:evidence")
+        )
+      );
+
+    expect(timelineRecords).toHaveLength(1);
+    expect(completionRecords).toHaveLength(1);
+    expect(JSON.parse(String(completionRecords[0]?.details || "{}")).directConnectRequestId).toBe(
+      String(request.id)
+    );
+
+    const evidence = JSON.parse(String(evidenceRecord?.details || "{}")).evidence;
+    expect(
+      (Array.isArray(evidence) ? evidence : []).filter(
+        (item: any) => String(item?.directConnectRequestId || "") === String(request.id)
+      )
+    ).toHaveLength(1);
+  });
+
   it("keeps non-targeted direct connect requests open unless routing creates assignments", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
