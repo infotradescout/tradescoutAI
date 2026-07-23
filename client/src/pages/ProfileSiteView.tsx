@@ -181,7 +181,7 @@ function ProfileArrivalState({
         className="pointer-events-none absolute -right-20 bottom-16 h-80 w-80 rounded-full border border-ts-orange/20"
       />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col">
+      <div className="relative mx-auto flex min-h-full max-w-6xl flex-col">
         <header className="flex items-center justify-between py-2">
           <a
             href={tradeScoutHome}

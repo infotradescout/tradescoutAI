@@ -1,14 +1,11 @@
 # UI Surface Audit
 
 Scanned files: **454**
-Root violations (viewport-height + bg-*): **3**
-Files claiming viewport height: **3**
+Root violations (viewport-height + bg-*): **0**
+Files claiming viewport height: **0**
 Files with bg-* classes: **280**
 
 ## Top offenders
-- 🚫 `client/src/pages/ProfileSiteView.tsx` — min-h-viewport (1) @ lines 184 | bg-* (47) @ lines 166,196,196,202,204
-- 🚫 `client/src/pages/trade-up-for-trade-schools.tsx` — min-h-viewport (1) @ lines 68 | h-screen (1) @ lines 68 | bg-* (32) @ lines 68,69,73,81,81
-- 🚫 `client/src/pages/profile-sites/ProFabProfileTheme.tsx` — min-h-viewport (1) @ lines 89 | h-screen (1) @ lines 89 | bg-* (13) @ lines 89,90,106,106,114
 - • `client/src/pages/admin-live-stream.tsx` — bg-* (193) @ lines 254,255,256,257,261
 - • `client/src/pages/direct-connect/DirectConnectShell.tsx` — bg-* (152) @ lines 201,786,789,792,794
 - • `client/src/pages/exchange.tsx` — bg-* (139) @ lines 885,886,887,888,889 | gradient (2) @ lines 316,2147
@@ -34,6 +31,7 @@ Files with bg-* classes: **280**
 - • `client/src/pages/api-integrations.tsx` — bg-* (49) @ lines 157,157,159,159,161
 - • `client/src/pages/community-feed.tsx` — bg-* (49) @ lines 190,191,239,240,243
 - • `client/src/pages/hoa-management.tsx` — bg-* (45) @ lines 543,550,550,564,575 | gradient (3) @ lines 564,564,564
+- • `client/src/pages/ProfileSiteView.tsx` — bg-* (47) @ lines 166,196,196,202,204
 - • `client/src/pages/admin-business-import.tsx` — bg-* (44) @ lines 635,655,661,661,701 | gradient (2) @ lines 240,296
 - • `client/src/pages/referral-dashboard.tsx` — bg-* (46) @ lines 164,177,190,203,218
 - • `client/src/pages/social-integration.tsx` — bg-* (46) @ lines 41,50,59,68,77
@@ -46,3 +44,5 @@ Files with bg-* classes: **280**
 - • `client/src/pages/groups.tsx` — bg-* (23) @ lines 216,230,230,267,280 | gradient (19) @ lines 267,267,267,339,339
 - • `client/src/pages/exchange/ExchangeCategoryPage.tsx` — bg-* (41) @ lines 316,322,325,334,337
 - • `client/src/pages/scout-info-showcase.tsx` — bg-* (38) @ lines 189,202,203,216,217 | gradient (3) @ lines 374,374,374
+- • `client/src/pages/ad-creator.tsx` — bg-* (27) @ lines 27,33,39,45,71 | gradient (13) @ lines 27,27,27,33,33
+- • `client/src/pages/offer-services.tsx` — bg-* (38) @ lines 136,142,147,705,718 | gradient (1) @ lines 627

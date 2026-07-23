@@ -65,7 +65,7 @@ const TradeUpForTradeSchoolsPage = memo(function TradeUpForTradeSchoolsPage() {
         canonical="https://www.thetradescout.com/trade-up-for-trade-schools"
       />
 
-      <main className="min-h-screen overflow-x-hidden bg-[color:var(--ts-bg)] text-[color:var(--text-primary)]">
+      <main className="overflow-x-hidden bg-[color:var(--ts-bg)] text-[color:var(--text-primary)]">
         <header className="border-b border-[color:var(--border-subtle)] bg-[color:var(--surface-frame)]">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <Link href="/">

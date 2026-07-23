@@ -1,97 +1,11 @@
 {
   "summary": {
     "scannedFiles": 454,
-    "rootViolations": 3,
-    "filesWithViewportHeight": 3,
+    "rootViolations": 0,
+    "filesWithViewportHeight": 0,
     "filesWithBg": 280
   },
   "results": [
-    {
-      "file": "client/src/pages/ProfileSiteView.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            184
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 47,
-          "lines": [
-            166,
-            196,
-            196,
-            202,
-            204
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/trade-up-for-trade-schools.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            68
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            68
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 32,
-          "lines": [
-            68,
-            69,
-            73,
-            81,
-            81
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            89
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            89
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 13,
-          "lines": [
-            89,
-            90,
-            106,
-            106,
-            114
-          ]
-        }
-      ]
-    },
     {
       "file": "client/src/pages/admin-live-stream.tsx",
       "isRootViolation": false,
@@ -635,6 +549,23 @@
             564,
             564,
             564
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/ProfileSiteView.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 47,
+          "lines": [
+            166,
+            196,
+            196,
+            202,
+            204
           ]
         }
       ]
@@ -1230,6 +1161,23 @@
             187,
             201,
             213
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/trade-up-for-trade-schools.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 32,
+          "lines": [
+            68,
+            69,
+            73,
+            81,
+            81
           ]
         }
       ]
@@ -3223,6 +3171,23 @@
             101,
             101,
             109
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 13,
+          "lines": [
+            89,
+            90,
+            106,
+            106,
+            114
           ]
         }
       ]
