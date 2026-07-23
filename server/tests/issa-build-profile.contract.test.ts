@@ -21,6 +21,7 @@ const read = (relativePath: string) =>
 describe("ISSA Build public profile contract", () => {
   it("provisions ISSA Build as its own business without borrowing another company's contact", () => {
     const provisioner = read("server/services/issaBuildProfileProvisioning.ts");
+    const businessRepository = read("server/repositories/businessRepository.ts");
     const entry = read("server/index.ts");
     const recommendationInsertStart = provisioner.indexOf("} else if (hasNoRecommendationBinding)");
     const recommendationUpdateStart = provisioner.indexOf(
@@ -63,6 +64,12 @@ describe("ISSA Build public profile contract", () => {
     expect(provisioner).toContain('status: "suspended"');
     expect(provisioner).toContain('status: "draft"');
     expect(provisioner).toContain('profileVisibility: "public"');
+    expect(provisioner).toContain("publicContactEnabled: false");
+    expect(provisioner).toContain("publicLocationEnabled: false");
+    expect(provisioner).toContain("publicWebsiteEnabled: false");
+    expect(businessRepository).toContain("business.profileData?.publicContactEnabled !== false");
+    expect(businessRepository).toContain("business.profileData?.publicLocationEnabled !== false");
+    expect(businessRepository).toContain("business.profileData?.publicWebsiteEnabled !== false");
     expect(provisioner).toContain("profileOwnerUserId === String(steward.id)");
     expect(provisioner).toContain("eq(contractors.userId, profileOwnerUserId)");
     expect(provisioner).toContain("eq(contractors.businessId, business.id)");
@@ -194,8 +201,8 @@ describe("ISSA Build public profile contract", () => {
 
     expect(entry).toContain("slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(entry).toContain("`${origin}/u/${ISSA_BUILD_PROFILE_SLUG}${requestSearchSuffix(req)}`");
-    expect(api).toContain("requestUrl.replace(");
-    expect(api).toContain("`/api/u/${ISSA_BUILD_PROFILE_SLUG}`");
+    expect(api).toContain('const remainingUrl = String(req.url || "")');
+    expect(api).toContain("`/api/u/${ISSA_BUILD_PROFILE_SLUG}${suffix}`");
     expect(api).toContain('router.use("/api/u/:slug"');
     expect(api).toContain('req.method === "GET" || req.method === "HEAD" ? 301 : 308');
     expect(client).toContain("slug.toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG");

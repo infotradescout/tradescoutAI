@@ -73,11 +73,14 @@ router.use("/api/u/:slug", (req, res, next) => {
     .toLowerCase();
   if (slug !== ISSA_BUILD_LEGACY_PROFILE_SLUG) return next();
 
-  const requestUrl = String(req.originalUrl || req.url || "");
-  const canonicalUrl = requestUrl.replace(
-    /\/api\/u\/honey-onyx(?=\/|\?|$)/i,
-    `/api/u/${ISSA_BUILD_PROFILE_SLUG}`
-  );
+  const remainingUrl = String(req.url || "");
+  const suffix =
+    remainingUrl === "/"
+      ? ""
+      : remainingUrl.startsWith("/?")
+        ? remainingUrl.slice(1)
+        : remainingUrl;
+  const canonicalUrl = `/api/u/${ISSA_BUILD_PROFILE_SLUG}${suffix}`;
   const status = req.method === "GET" || req.method === "HEAD" ? 301 : 308;
   return res.redirect(status, canonicalUrl);
 });

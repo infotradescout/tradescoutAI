@@ -225,11 +225,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
       .toLowerCase();
     if (slug !== ISSA_BUILD_LEGACY_PROFILE_SLUG) return next();
 
-    const requestUrl = String(req.originalUrl || req.url || "");
-    const canonicalUrl = requestUrl.replace(
-      /\/api\/tradepartner-profiles\/honey-onyx(?=\/|\?|$)/i,
-      `/api/tradepartner-profiles/${ISSA_BUILD_PROFILE_SLUG}`
-    );
+    const remainingUrl = String(req.url || "");
+    const suffix =
+      remainingUrl === "/"
+        ? ""
+        : remainingUrl.startsWith("/?")
+          ? remainingUrl.slice(1)
+          : remainingUrl;
+    const canonicalUrl = `/api/tradepartner-profiles/${ISSA_BUILD_PROFILE_SLUG}${suffix}`;
     return res.redirect(308, canonicalUrl);
   });
 

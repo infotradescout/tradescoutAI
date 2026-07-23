@@ -18,6 +18,10 @@ describe("ISSA Build legacy API aliases", () => {
       "/api/u/honey-onyx?stone=multi-green-onyx&photo=3",
       "/api/u/issa-build?stone=multi-green-onyx&photo=3",
     ],
+    [
+      "/api/u/honey%2Donyx?stone=multi-green-onyx&photo=3",
+      "/api/u/issa-build?stone=multi-green-onyx&photo=3",
+    ],
     ["/api/u/honey-onyx/views?window=30", "/api/u/issa-build/views?window=30"],
     [
       "/api/u/honey-onyx/trust-actions?source=profile",
@@ -46,6 +50,10 @@ describe("ISSA Build legacy API aliases", () => {
     ],
     [
       "/api/tradepartner-profiles/honey-onyx/express-request?stone=multi-green-onyx",
+      "/api/tradepartner-profiles/issa-build/express-request?stone=multi-green-onyx",
+    ],
+    [
+      "/api/tradepartner-profiles/honey%2Donyx/express-request?stone=multi-green-onyx",
       "/api/tradepartner-profiles/issa-build/express-request?stone=multi-green-onyx",
     ],
   ])("preserves method and source context for Direct Connect alias %s", async (source, target) => {

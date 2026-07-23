@@ -205,6 +205,11 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           "Project and fabrication coordination",
         ],
         contactPreference: "message",
+        // Preserve any operator-only contact/location values already stored,
+        // but keep them out of every generic public-business projection.
+        publicContactEnabled: false,
+        publicLocationEnabled: false,
+        publicWebsiteEnabled: false,
         // Keep only contact already stored on this business. Never copy from
         // another company. Owner attaches private DC routing later.
         phone: String(existingProfileData.phone || "").trim(),
