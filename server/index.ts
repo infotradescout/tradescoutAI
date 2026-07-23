@@ -89,7 +89,7 @@ import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
-import { provisionIssaBuildProfile } from "./services/honeyOnyxProfileProvisioning";
+import { provisionIssaBuildProfile } from "./services/issaBuildProfileProvisioning";
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
@@ -100,6 +100,7 @@ import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/pub
 import { resolveCurrentEntryStylesheet } from "./staticAssetRecovery";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
+import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -1529,6 +1530,16 @@ app.use(landingContractHeaders);
 
                   const slug = String(req.params.slug || "");
 
+                  // The old product-only profile is a URL alias, never a second
+                  // public profile. Preserve item/photo context while sending
+                  // every request to the canonical ISSA Build business profile.
+                  if (slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG) {
+                    return res.redirect(
+                      301,
+                      `${origin}/u/${ISSA_BUILD_PROFILE_SLUG}${requestSearchSuffix(req)}`
+                    );
+                  }
+
                   // A profile with an active custom-domain mapping is canonically
                   // served there -- send visitors straight to the business's
                   // own domain instead of dual-hosting the same profile under
@@ -1586,6 +1597,13 @@ app.use(landingContractHeaders);
                   const origin = resolvePublicOrigin(req);
                   const slug = String(req.params.slug || "");
                   const gallerySlug = normalizeProfileGalleryItemSlug(req.query.gallery);
+
+                  if (slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG) {
+                    return res.redirect(
+                      301,
+                      `${origin}/u/${ISSA_BUILD_PROFILE_SLUG}${requestSearchSuffix(req)}`
+                    );
+                  }
 
                   // SEO: if this business has its own published, richer profile site
                   // (/u/:slug), consolidate authority there instead of serving a

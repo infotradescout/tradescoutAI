@@ -17,7 +17,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["server/tests/**/*.test.ts", "server/utils/**/*.test.ts", "client/src/**/*.test.ts"],
+    include: [
+      "server/tests/**/*.test.ts",
+      "server/utils/**/*.test.ts",
+      "client/src/**/*.test.{ts,tsx}",
+    ],
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     passWithNoTests: false,
     fileParallelism: !serialNoSkips,

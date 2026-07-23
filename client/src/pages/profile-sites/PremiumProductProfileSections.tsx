@@ -9,13 +9,17 @@ import {
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import { buildProfileInventoryShareSearch } from "@shared/profileItemShare";
+import {
+  buildProfileInventoryShareSearch,
+  profileInventoryShareIndexForDisplay,
+} from "@shared/profileItemShare";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
 
 type Product = {
   name: string;
   slug: string;
   images: string[];
+  shareImageOrder?: number[];
 };
 
 type FaqItem = {
@@ -24,9 +28,11 @@ type FaqItem = {
 };
 
 type Props = {
-  profileSlug: string;
   profileName: string;
   product: Product;
+  products?: Product[];
+  initialProductSlug?: string | null;
+  initialPhotoIndex?: number;
   data: PremiumProductProfileData;
   trustFacts: string[];
   faqItems: FaqItem[];
@@ -39,16 +45,12 @@ function safeImage(images: string[], index: number): string {
   return images[index] || images[0] || "";
 }
 
-function isPortraitProductPhoto(profileSlug: string, index: number): boolean {
-  return (
-    (profileSlug === "issa-build" || profileSlug === "honey-onyx") && (index === 1 || index === 2)
-  );
-}
-
 export default function PremiumProductProfileSections({
-  profileSlug,
   profileName,
   product,
+  products = [product],
+  initialProductSlug,
+  initialPhotoIndex = 0,
   data,
   trustFacts,
   faqItems,
@@ -56,7 +58,23 @@ export default function PremiumProductProfileSections({
   platformBaseHref: _platformBaseHref = "",
   onDirectConnect,
 }: Props) {
+  const [activeProductSlug, setActiveProductSlug] = useState(product.slug);
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
+  const activeGalleryProduct =
+    products.find((entry) => entry.slug === activeProductSlug) || product;
+  const requestedProduct = initialProductSlug
+    ? products.find((entry) => entry.slug === initialProductSlug)
+    : null;
+
+  useEffect(() => {
+    if (!requestedProduct) return;
+    const requestedIndex = Math.min(
+      Math.max(0, initialPhotoIndex),
+      Math.max(0, requestedProduct.images.length - 1)
+    );
+    setActiveProductSlug(requestedProduct.slug);
+    setActivePhoto(requestedIndex);
+  }, [initialPhotoIndex, requestedProduct]);
 
   useEffect(() => {
     if (activePhoto === null) return;
@@ -64,14 +82,17 @@ export default function PremiumProductProfileSections({
     document.body.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setActivePhoto(null);
-      if (event.key === "ArrowLeft" && product.images.length > 1) {
+      if (event.key === "ArrowLeft" && activeGalleryProduct.images.length > 1) {
         setActivePhoto((current) =>
-          current === null ? null : (current - 1 + product.images.length) % product.images.length
+          current === null
+            ? null
+            : (current - 1 + activeGalleryProduct.images.length) %
+              activeGalleryProduct.images.length
         );
       }
-      if (event.key === "ArrowRight" && product.images.length > 1) {
+      if (event.key === "ArrowRight" && activeGalleryProduct.images.length > 1) {
         setActivePhoto((current) =>
-          current === null ? null : (current + 1) % product.images.length
+          current === null ? null : (current + 1) % activeGalleryProduct.images.length
         );
       }
     };
@@ -80,12 +101,19 @@ export default function PremiumProductProfileSections({
       document.body.style.overflow = previous;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activePhoto, product.images.length]);
+  }, [activeGalleryProduct.images.length, activePhoto]);
 
-  const openPhoto = (index: number) => setActivePhoto(index);
-  const startProductRequest = () => onDirectConnect(product.name);
+  const openProductPhoto = (selectedProduct: Product, index: number) => {
+    setActiveProductSlug(selectedProduct.slug);
+    setActivePhoto(index);
+  };
+  const openPhoto = (index: number) => openProductPhoto(product, index);
+  const startFeaturedProductRequest = () => onDirectConnect(product.name);
   const activePhotoIndex = activePhoto ?? 0;
-  const activePhotoDetail = data.gallery.photos?.[activePhotoIndex];
+  const activePhotoDetail =
+    activeGalleryProduct.slug === product.slug
+      ? data.gallery.photos?.[activePhotoIndex]
+      : undefined;
 
   return (
     <div data-testid="premium-product-profile-sections" className="overflow-hidden bg-stone-950">
@@ -100,6 +128,115 @@ export default function PremiumProductProfileSections({
                 <span>{fact}</span>
               </div>
             ))}
+          </div>
+        </section>
+      ) : null}
+
+      {data.offerings && products.length > 1 ? (
+        <section
+          id="offerings"
+          data-testid="premium-product-offerings"
+          className="bg-stone-100 px-4 py-16 sm:px-6 sm:py-24"
+        >
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-8 max-w-3xl sm:mb-12">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700 sm:text-xs">
+                {data.offerings.eyebrow}
+              </p>
+              <h2 className="mt-3 text-3xl font-black leading-[1.02] tracking-[-0.045em] text-stone-950 sm:text-5xl">
+                {data.offerings.title}
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-600 sm:text-base">
+                {data.offerings.body}
+              </p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {data.offerings.items.map((offering) => {
+                const offeringProduct = products.find((entry) => entry.slug === offering.slug);
+                if (!offeringProduct) return null;
+                return (
+                  <article
+                    key={offering.slug}
+                    className="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm"
+                  >
+                    <div className="grid grid-cols-3 gap-1 bg-stone-900 p-1">
+                      {offeringProduct.images.slice(0, 3).map((image, index) => (
+                        <button
+                          key={image}
+                          type="button"
+                          onClick={() => openProductPhoto(offeringProduct, index)}
+                          aria-label={`Open ${offering.title} photo ${index + 1}`}
+                          className="overflow-hidden rounded-xl"
+                        >
+                          <img
+                            src={image}
+                            alt={index === 0 ? `${offering.title} from ${profileName}` : ""}
+                            aria-hidden={index === 0 ? undefined : "true"}
+                            loading="lazy"
+                            className="aspect-[4/3] h-full w-full object-contain transition duration-500 hover:scale-[1.02]"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-5 sm:p-7">
+                      {offering.eyebrow ? (
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
+                          {offering.eyebrow}
+                        </p>
+                      ) : null}
+                      <h3 className="mt-2 text-2xl font-black text-stone-950 sm:text-3xl">
+                        {offering.title}
+                      </h3>
+                      <p className="mt-3 text-sm leading-7 text-stone-600">{offering.body}</p>
+                      {offering.highlights?.length ? (
+                        <ul
+                          className="mt-4 flex flex-wrap gap-2"
+                          aria-label={`${offering.title} highlights`}
+                        >
+                          {offering.highlights.map((highlight) => (
+                            <li
+                              key={highlight}
+                              className="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-bold text-stone-700"
+                            >
+                              {highlight}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => openProductPhoto(offeringProduct, 0)}
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-5 text-sm font-black text-stone-900 transition hover:bg-stone-50"
+                        >
+                          View collection
+                          <ArrowUpRight className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDirectConnect(offeringProduct.name)}
+                          aria-label={`Direct Connect about ${offeringProduct.name}`}
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-stone-950 px-5 text-sm font-black text-white transition hover:bg-ts-orange"
+                        >
+                          Direct Connect
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                        <ShareButton
+                          destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
+                            offeringProduct.slug
+                          )}`}
+                          title={offeringProduct.name}
+                          text={`See ${offeringProduct.name} from ${profileName} on TradeScout`}
+                          label={`Share ${offeringProduct.name}`}
+                          className="border-stone-300 bg-white text-stone-900 hover:bg-stone-50"
+                        />
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </section>
       ) : null}
@@ -134,7 +271,9 @@ export default function PremiumProductProfileSections({
                 type="button"
                 onClick={() => openPhoto(index)}
                 className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-stone-900 text-left ${
-                  isPortraitProductPhoto(profileSlug, index) ? "aspect-[3/4]" : "aspect-[4/3]"
+                  data.gallery.portraitPhotoIndexes?.includes(index)
+                    ? "aspect-[3/4]"
+                    : "aspect-[4/3]"
                 }`}
                 aria-label={`Open ${label.toLowerCase()} photo of ${product.name}`}
               >
@@ -189,7 +328,7 @@ export default function PremiumProductProfileSections({
           <div className="grid grid-cols-2 items-start gap-2.5 sm:grid-cols-3 sm:gap-4">
             {product.images.map((image, index) => {
               const photoDetail = data.gallery.photos?.[index];
-              const isPortrait = isPortraitProductPhoto(profileSlug, index);
+              const isPortrait = data.gallery.portraitPhotoIndexes?.includes(index);
               return (
                 <button
                   key={image}
@@ -291,7 +430,8 @@ export default function PremiumProductProfileSections({
             </p>
             <button
               type="button"
-              onClick={startProductRequest}
+              onClick={startFeaturedProductRequest}
+              aria-label={`Direct Connect about ${product.name}`}
               className="mt-7 inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-ts-orange/45 bg-stone-950/5 px-7 py-3.5 text-sm font-black text-ts-orange-dark transition hover:-translate-y-0.5 hover:bg-ts-orange/10"
             >
               <MessageCircle className="h-4 w-4" />
@@ -361,20 +501,12 @@ export default function PremiumProductProfileSections({
         className="relative isolate overflow-hidden px-4 py-20 text-white sm:px-6 sm:py-28"
       >
         <picture>
-          {profileSlug === "issa-build" || profileSlug === "honey-onyx" ? (
-            <source
-              media="(min-width: 768px)"
-              srcSet={safeImage(product.images, data.contrast.backlitImageIndex)}
-            />
-          ) : null}
           <img
             src={safeImage(product.images, data.closing.imageIndex)}
             alt=""
             aria-hidden="true"
             className={`absolute inset-0 -z-20 h-full w-full ${
-              profileSlug === "issa-build" || profileSlug === "honey-onyx"
-                ? "object-contain"
-                : "object-cover"
+              data.closing.imageFit === "contain" ? "object-contain" : "object-cover"
             }`}
           />
         </picture>
@@ -392,7 +524,8 @@ export default function PremiumProductProfileSections({
             </p>
             <button
               type="button"
-              onClick={startProductRequest}
+              onClick={() => onDirectConnect(null)}
+              aria-label={`Direct Connect with ${profileName}`}
               className="mt-8 inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-ts-orange px-8 text-base font-black text-white shadow-2xl shadow-black/30 transition hover:-translate-y-0.5 hover:bg-ts-orange-dark"
             >
               Direct Connect
@@ -407,7 +540,7 @@ export default function PremiumProductProfileSections({
           className="fixed inset-0 z-[65] flex items-center justify-center bg-black/95 p-3 sm:p-6"
           role="dialog"
           aria-modal="true"
-          aria-label={`${product.name} photo gallery`}
+          aria-label={`${activeGalleryProduct.name} photo gallery`}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setActivePhoto(null);
           }}
@@ -416,23 +549,27 @@ export default function PremiumProductProfileSections({
             <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6 sm:py-4">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
-                  {activePhotoDetail?.label || product.name}
+                  {activePhotoDetail?.label || activeGalleryProduct.name}
                 </p>
                 <p className="mt-0.5 text-sm font-black">
-                  {activePhotoDetail?.title || product.name}
+                  {activePhotoDetail?.title || activeGalleryProduct.name}
                 </p>
                 <p className="text-xs text-stone-400">
-                  Photo {activePhotoIndex + 1} of {product.images.length}
+                  Photo {activePhotoIndex + 1} of {activeGalleryProduct.images.length}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <ShareButton
                   destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                    product.slug,
-                    activePhotoIndex
+                    activeGalleryProduct.slug,
+                    profileInventoryShareIndexForDisplay(
+                      activeGalleryProduct.images,
+                      activeGalleryProduct.shareImageOrder,
+                      activePhotoIndex
+                    )
                   )}`}
-                  title={product.name}
-                  text={`See this ${product.name} photo on TradeScout`}
+                  title={activeGalleryProduct.name}
+                  text={`See this ${activeGalleryProduct.name} photo on TradeScout`}
                   size="icon"
                   label=""
                   className="rounded-full border-white/15 bg-white/5 text-white hover:bg-white/10"
@@ -450,21 +587,22 @@ export default function PremiumProductProfileSections({
 
             <div className="relative flex min-h-[280px] flex-1 items-center justify-center bg-black">
               <img
-                src={product.images[activePhotoIndex]}
+                src={activeGalleryProduct.images[activePhotoIndex]}
                 alt={
                   activePhotoDetail
-                    ? `${product.name}: ${activePhotoDetail.title}`
-                    : `${product.name} material photo ${activePhotoIndex + 1}`
+                    ? `${activeGalleryProduct.name}: ${activePhotoDetail.title}`
+                    : `${activeGalleryProduct.name} material photo ${activePhotoIndex + 1}`
                 }
                 className="max-h-[68vh] w-full object-contain"
               />
-              {product.images.length > 1 ? (
+              {activeGalleryProduct.images.length > 1 ? (
                 <>
                   <button
                     type="button"
                     onClick={() =>
                       setActivePhoto(
-                        (activePhotoIndex - 1 + product.images.length) % product.images.length
+                        (activePhotoIndex - 1 + activeGalleryProduct.images.length) %
+                          activeGalleryProduct.images.length
                       )
                     }
                     className="absolute left-2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80 sm:left-4"
@@ -474,7 +612,9 @@ export default function PremiumProductProfileSections({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActivePhoto((activePhotoIndex + 1) % product.images.length)}
+                    onClick={() =>
+                      setActivePhoto((activePhotoIndex + 1) % activeGalleryProduct.images.length)
+                    }
                     className="absolute right-2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur hover:bg-black/80 sm:right-4"
                     aria-label="Next photo"
                   >
@@ -492,7 +632,7 @@ export default function PremiumProductProfileSections({
                   </p>
                 ) : null}
                 <div className="flex gap-2 overflow-x-auto">
-                  {product.images.map((image, index) => (
+                  {activeGalleryProduct.images.map((image, index) => (
                     <button
                       key={image}
                       type="button"
@@ -503,7 +643,9 @@ export default function PremiumProductProfileSections({
                           : "border-transparent opacity-55 hover:opacity-100"
                       }`}
                       aria-label={`View ${
-                        data.gallery.photos?.[index]?.title || `photo ${index + 1}`
+                        activeGalleryProduct.slug === product.slug
+                          ? data.gallery.photos?.[index]?.title || `photo ${index + 1}`
+                          : `${activeGalleryProduct.name} photo ${index + 1}`
                       }`}
                     >
                       <img src={image} alt="" className="h-full w-full object-cover" />
@@ -515,8 +657,9 @@ export default function PremiumProductProfileSections({
                 type="button"
                 onClick={() => {
                   setActivePhoto(null);
-                  startProductRequest();
+                  onDirectConnect(activeGalleryProduct.name);
                 }}
+                aria-label={`Direct Connect about ${activeGalleryProduct.name}`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-ts-orange/45 bg-ts-orange/10 px-6 text-sm font-black text-ts-orange hover:bg-ts-orange/15"
               >
                 Direct Connect

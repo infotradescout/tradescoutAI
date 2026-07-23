@@ -468,6 +468,10 @@ export default function WholesalerProfileTheme({
   const pendingInventoryScrollRef = useRef(false);
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
   const [openImageIndex, setOpenImageIndex] = useState(0);
+  const [premiumSharedItem, setPremiumSharedItem] = useState<{
+    slug: string;
+    imageIndex: number;
+  } | null>(null);
   const [lightboxImageFailed, setLightboxImageFailed] = useState(false);
   const triedLightboxIndexesRef = useRef<Set<number>>(new Set());
   useEffect(() => {
@@ -505,7 +509,12 @@ export default function WholesalerProfileTheme({
     ? premiumProductBlock.data
     : null;
   const premiumProduct =
-    premiumProductData && allInventoryStones.length === 1 ? allInventoryStones[0] : null;
+    premiumProductData && premiumProductData.featuredProductSlug
+      ? allInventoryStones.find((stone) => stone.slug === premiumProductData.featuredProductSlug) ||
+        null
+      : premiumProductData && allInventoryStones.length === 1
+        ? allInventoryStones[0]
+        : null;
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
   useEffect(() => {
@@ -518,6 +527,10 @@ export default function WholesalerProfileTheme({
     if (!sharedItem) return;
     const match = allInventoryStones.find((stone) => stone.slug === sharedItem.slug);
     if (!match) return;
+    if (premiumProductData) {
+      setPremiumSharedItem({ slug: sharedItem.slug, imageIndex: sharedItem.imageIndex });
+      return;
+    }
     setOpenStone(match);
     setOpenImageIndex(sharedItem.imageIndex);
   }, []);
@@ -1193,16 +1206,18 @@ export default function WholesalerProfileTheme({
 
       {premiumProductData && premiumProduct ? (
         <PremiumProductProfileSections
-          profileSlug={profileSlug}
           profileName={displayName}
           product={premiumProduct}
+          products={allInventoryStones}
+          initialProductSlug={premiumSharedItem?.slug}
+          initialPhotoIndex={premiumSharedItem?.imageIndex}
           data={premiumProductData}
           trustFacts={trustFacts}
           faqItems={faqItems}
           profileShareDestination={profileShareDestination}
           platformBaseHref={platformBaseHref}
           onDirectConnect={(productName) =>
-            startDirectConnect(productName || premiumProduct.name, "request_material")
+            startDirectConnect(productName ?? null, productName ? "request_material" : null)
           }
         />
       ) : (

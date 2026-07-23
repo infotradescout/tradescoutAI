@@ -22,6 +22,7 @@ import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectP
 import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
+import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -117,9 +118,11 @@ function requestTitle(requestType: (typeof EXPRESS_REQUEST_TYPES)[number], busin
 }
 
 async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarget | null> {
-  const normalizedSlug = String(slug || "")
+  const requestedSlug = String(slug || "")
     .trim()
     .toLowerCase();
+  const normalizedSlug =
+    requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG ? ISSA_BUILD_PROFILE_SLUG : requestedSlug;
   if (!normalizedSlug) return null;
 
   const [row] = await db
@@ -212,6 +215,23 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         store: store("tradepartner_express_submit"),
       })
     : noopLimiter;
+
+  // Keep every legacy ISSA Build contact action on the canonical profile.
+  // The method-preserving redirect retains POST bodies and query context;
+  // resolveTradePartnerTarget also canonicalizes as defense in depth.
+  app.use("/api/tradepartner-profiles/:slug", (req, res, next) => {
+    const slug = String(req.params.slug || "")
+      .trim()
+      .toLowerCase();
+    if (slug !== ISSA_BUILD_LEGACY_PROFILE_SLUG) return next();
+
+    const requestUrl = String(req.originalUrl || req.url || "");
+    const canonicalUrl = requestUrl.replace(
+      /\/api\/tradepartner-profiles\/honey-onyx(?=\/|\?|$)/i,
+      `/api/tradepartner-profiles/${ISSA_BUILD_PROFILE_SLUG}`
+    );
+    return res.redirect(308, canonicalUrl);
+  });
 
   // Clicking Direct Connect records intent; choosing Call is the decision.
   // Only then is the number returned. It never appears in the public profile.

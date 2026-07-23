@@ -52,7 +52,9 @@ import {
 } from "@shared/profileGalleryShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import {
+  ISSA_BUILD_LEGACY_PROFILE_SLUG,
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
+  ISSA_BUILD_PROFILE_SLUG,
   isIssaBuildProfileSlug,
 } from "@shared/issaBuildProfile";
 import {
@@ -542,6 +544,13 @@ export default function ProfileSiteView() {
 
   useEffect(() => {
     if (!slug) return;
+
+    if (typeof window !== "undefined" && slug.toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG) {
+      window.location.replace(
+        `/u/${ISSA_BUILD_PROFILE_SLUG}${window.location.search}${window.location.hash}`
+      );
+      return;
+    }
 
     if (matchP) {
       navigate(`/u/${encodeURIComponent(slug)}`, { replace: true });
