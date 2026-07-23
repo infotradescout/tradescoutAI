@@ -14,6 +14,7 @@ import {
   profileInventoryShareIndexForDisplay,
 } from "@shared/profileItemShare";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
+import OnyxStoneShowcase from "./OnyxStoneShowcase";
 
 type Product = {
   name: string;
@@ -45,7 +46,14 @@ function safeImage(images: string[], index: number): string {
   return images[index] || images[0] || "";
 }
 
-export default function PremiumProductProfileSections({
+export default function PremiumProductProfileSections(props: Props) {
+  if (props.data.presentation === "horizontal-luxury-showcase") {
+    return <OnyxStoneShowcase {...props} />;
+  }
+  return <EditorialProductProfileSections {...props} />;
+}
+
+function EditorialProductProfileSections({
   profileName,
   product,
   products = [product],

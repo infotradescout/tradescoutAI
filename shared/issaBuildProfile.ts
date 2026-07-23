@@ -111,6 +111,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "premiumProduct",
     data: {
       variant: PREMIUM_PRODUCT_PROFILE_VARIANT,
+      presentation: "horizontal-luxury-showcase",
       featuredProductSlug: "honey-onyx",
       offerings: {
         eyebrow: "Two distinct offerings",

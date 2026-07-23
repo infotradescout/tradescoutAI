@@ -36,11 +36,7 @@ import {
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
-import {
-  ISSA_BUILD_HERO_POSTER,
-  ISSA_BUILD_HERO_VIDEO,
-  isIssaBuildProfileSlug,
-} from "@shared/issaBuildProfile";
+import { isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -333,14 +329,12 @@ export default function WholesalerProfileTheme({
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
   const isIssaBuild = isIssaBuildProfileSlug(profileSlug);
-  const heroVideo = isIssaBuild
-    ? { src: ISSA_BUILD_HERO_VIDEO, poster: ISSA_BUILD_HERO_POSTER }
-    : isJwStone
-      ? {
-          src: "/images/businesses/jw-stone/video/hero.mp4",
-          poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
-        }
-      : null;
+  const heroVideo = isJwStone
+    ? {
+        src: "/images/businesses/jw-stone/video/hero.mp4",
+        poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
+      }
+    : null;
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
@@ -1093,7 +1087,7 @@ export default function WholesalerProfileTheme({
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-center ${
               isJwStone || isIssaBuild ? "bg-transparent" : "bg-stone-950"
-            } ${premiumProductData ? "object-contain" : "object-cover"}`}
+            } ${premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"}`}
           />
         ) : null}
         {heroVideo ? (
@@ -1112,7 +1106,13 @@ export default function WholesalerProfileTheme({
             <source src={heroVideo.src} type="video/mp4" />
           </video>
         ) : null}
-        {/* No full-bleed wash on JW Stone / ISSA Build — stone/video stays true. */}
+        {isIssaBuild ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,7,4,0.08)_15%,rgba(10,7,4,0.72)_100%)] md:bg-[linear-gradient(90deg,rgba(10,7,4,0.78)_0%,rgba(10,7,4,0.42)_48%,rgba(10,7,4,0.08)_100%)]"
+          />
+        ) : null}
+        {/* JW Stone keeps its source video unobscured. */}
         {!isJwStone && !isIssaBuild ? (
           <span
             aria-hidden="true"
