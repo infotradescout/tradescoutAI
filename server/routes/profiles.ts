@@ -58,8 +58,32 @@ import {
 } from "../../shared/profileBookingConfig";
 import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 import { resolveProfileBookingConfig } from "../services/profileBookingConfig";
+import {
+  ISSA_BUILD_LEGACY_PROFILE_SLUG,
+  ISSA_BUILD_PROFILE_SLUG,
+} from "../../shared/issaBuildProfile";
 
 const router = Router();
+
+// Canonicalize every public-profile API surface, including views and
+// trust-action mutations. A 308 keeps non-GET methods and bodies intact.
+router.use("/api/u/:slug", (req, res, next) => {
+  const slug = String(req.params.slug || "")
+    .trim()
+    .toLowerCase();
+  if (slug !== ISSA_BUILD_LEGACY_PROFILE_SLUG) return next();
+
+  const remainingUrl = String(req.url || "");
+  const suffix =
+    remainingUrl === "/"
+      ? ""
+      : remainingUrl.startsWith("/?")
+        ? remainingUrl.slice(1)
+        : remainingUrl;
+  const canonicalUrl = `/api/u/${ISSA_BUILD_PROFILE_SLUG}${suffix}`;
+  const status = req.method === "GET" || req.method === "HEAD" ? 301 : 308;
+  return res.redirect(status, canonicalUrl);
+});
 
 // Trust snapshots are produced daily. Two days permits one delayed run while
 // preventing a stale approval or score from remaining public indefinitely.
@@ -2063,8 +2087,15 @@ router.delete("/api/u/:slug/trust-actions/:action", isAuthenticated, async (req,
 
 // Legacy alias for backward compatibility.
 router.get("/api/p/:slug", async (req, res) => {
-  const slug = String(req.params.slug || "");
-  return res.redirect(301, `/api/u/${encodeURIComponent(slug)}`);
+  const requestedSlug = String(req.params.slug || "");
+  const slug =
+    requestedSlug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG
+      ? ISSA_BUILD_PROFILE_SLUG
+      : requestedSlug;
+  const requestUrl = String(req.originalUrl || req.url || "");
+  const queryIndex = requestUrl.indexOf("?");
+  const querySuffix = queryIndex >= 0 ? requestUrl.slice(queryIndex) : "";
+  return res.redirect(301, `/api/u/${encodeURIComponent(slug)}${querySuffix}`);
 });
 
 const CRAWLER_PUBLIC_ALLOW_PATHS = [

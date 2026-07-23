@@ -223,8 +223,15 @@ export class BusinessRepository {
       .orderBy(asc(counties.name), asc(counties.stateCode));
 
     const categories = business.profileData?.category ? [business.profileData.category] : [];
-    const contactEmail = business.profileData?.email || undefined;
-    const contactPhone = business.profileData?.phone || undefined;
+    const publicContactEnabled = business.profileData?.publicContactEnabled !== false;
+    const publicLocationEnabled = business.profileData?.publicLocationEnabled !== false;
+    const publicWebsiteEnabled = business.profileData?.publicWebsiteEnabled !== false;
+    const contactEmail = publicContactEnabled
+      ? business.profileData?.email || undefined
+      : undefined;
+    const contactPhone = publicContactEnabled
+      ? business.profileData?.phone || undefined
+      : undefined;
     const isTradePartner = business.profileData?.tradePartner === true;
 
     return {
@@ -251,9 +258,11 @@ export class BusinessRepository {
       // TradePartner location/website data can power richer public SEO. Phone
       // remains intentionally absent: Express Direct Connect reveals it only
       // after a visitor clicks the profile CTA and chooses Call.
-      ...(isTradePartner
+      ...(isTradePartner && publicWebsiteEnabled
+        ? { website: business.profileData?.website || undefined }
+        : {}),
+      ...(isTradePartner && publicLocationEnabled
         ? {
-            website: business.profileData?.website || undefined,
             address: business.profileData?.address || undefined,
             city: business.profileData?.city || undefined,
             stateCode: business.profileData?.stateCode || undefined,

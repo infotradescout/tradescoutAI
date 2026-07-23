@@ -20,6 +20,42 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(theme).toContain("navigate(ctaHref)");
   });
 
+  it("preserves all five material intents and the selected product source context", () => {
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const route = read("server/routes/tradepartner-express.ts");
+    const materialsStart = panel.indexOf("materials: {");
+    const materialsEnd = panel.indexOf("auto_glass: {", materialsStart);
+    const materialsConfig = panel.slice(materialsStart, materialsEnd);
+
+    expect(materialsConfig.match(/value: "/g)).toHaveLength(5);
+    expect(materialsConfig).toContain('{ value: "request_material", label: "Request material" }');
+    expect(materialsConfig).toContain(
+      '{ value: "match_project", label: "Match stone to a project" }'
+    );
+    expect(materialsConfig).toContain('{ value: "ask_about_bundle", label: "Ask about a bundle" }');
+    expect(materialsConfig).toContain(
+      '{ value: "schedule_showroom", label: "Schedule a showroom visit" }'
+    );
+    expect(materialsConfig).toContain('{ value: "other", label: "Something else" }');
+
+    expect(theme).toContain('requestMode="materials"');
+    expect(theme).toContain("initialStoneName={expressStoneName}");
+    expect(theme).toContain("initialRequestType={expressRequestType}");
+    expect(theme).toContain(
+      'startDirectConnect(productName ?? null, productName ? "request_material" : null)'
+    );
+    expect(route).toContain("sourceRefId: target.profileId");
+    expect(route).toContain('source: "tradepartner_profile"');
+    expect(route).toContain('connectionMode: "express"');
+    expect(route).toContain("profileId: target.profileId");
+    expect(route).toContain("businessId: target.businessId");
+    expect(route).toContain("requestType: body.requestType");
+    expect(route).toContain("stoneName: body.stoneName || null");
+    expect(route).toContain("requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG");
+    expect(route).toContain("? ISSA_BUILD_PROFILE_SLUG");
+  });
+
   it("reveals the business number only after the profile CTA call decision", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const publicHtml = read("server/publicProfileHtml.ts");

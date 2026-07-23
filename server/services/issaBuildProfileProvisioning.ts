@@ -16,12 +16,72 @@ function recordValue(value: unknown): Record<string, any> {
 }
 
 /**
+ * If an older duplicate survived a prior deployment, make it non-public in a
+ * standalone transaction. This safety action must not be rolled back when a
+ * later ownership or provisioning check rejects the canonical update.
+ */
+async function quarantineDuplicateIssaBuildRecords(): Promise<void> {
+  await db.transaction(async (tx) => {
+    const now = new Date();
+    const [canonicalBusiness] = await tx
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(eq(businesses.slug, ISSA_BUILD_PROFILE_SLUG))
+      .limit(1);
+    const [legacyBusiness] = await tx
+      .select({ id: businesses.id })
+      .from(businesses)
+      .where(eq(businesses.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
+      .limit(1);
+    if (
+      canonicalBusiness &&
+      legacyBusiness &&
+      String(canonicalBusiness.id) !== String(legacyBusiness.id)
+    ) {
+      await tx
+        .update(businesses)
+        .set({
+          status: "suspended",
+          publicDiscoveryEnabled: false,
+          updatedAt: now,
+        })
+        .where(eq(businesses.id, legacyBusiness.id));
+      console.warn("[profile-provisioning] Suspended duplicate ISSA Build legacy business record");
+    }
+
+    const [canonicalProfile] = await tx
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.slug, ISSA_BUILD_PROFILE_SLUG))
+      .limit(1);
+    const [legacyProfile] = await tx
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
+      .limit(1);
+    if (
+      canonicalProfile &&
+      legacyProfile &&
+      String(canonicalProfile.id) !== String(legacyProfile.id)
+    ) {
+      await tx
+        .update(profiles)
+        .set({ status: "draft", updatedAt: now })
+        .where(eq(profiles.id, legacyProfile.id));
+      console.warn("[profile-provisioning] Unpublished duplicate ISSA Build legacy profile record");
+    }
+  });
+}
+
+/**
  * Publishes ISSA Build as its own independent business profile.
  * Never use another business as owner, distributor, or Direct Connect routing.
  * Private DC fields are only kept if already present on this record.
  */
 export async function provisionIssaBuildProfile(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
+
+  await quarantineDuplicateIssaBuildRecords();
 
   await db.transaction(async (tx) => {
     const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
@@ -55,19 +115,18 @@ export async function provisionIssaBuildProfile(): Promise<void> {
     if (!steward?.id) {
       throw new Error("ISSA Build needs a verified admin steward before publication");
     }
+    const now = new Date();
 
     const [existingByCanonical] = await tx
       .select()
       .from(businesses)
       .where(eq(businesses.slug, ISSA_BUILD_PROFILE_SLUG))
       .limit(1);
-    const [existingByLegacy] = existingByCanonical
-      ? []
-      : await tx
-          .select()
-          .from(businesses)
-          .where(eq(businesses.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
-          .limit(1);
+    const [existingByLegacy] = await tx
+      .select()
+      .from(businesses)
+      .where(eq(businesses.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
+      .limit(1);
     const existingBusiness = existingByCanonical || existingByLegacy;
 
     const [existingProfileByCanonical] = await tx
@@ -75,13 +134,11 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       .from(profiles)
       .where(eq(profiles.slug, ISSA_BUILD_PROFILE_SLUG))
       .limit(1);
-    const [existingProfileByLegacy] = existingProfileByCanonical
-      ? []
-      : await tx
-          .select()
-          .from(profiles)
-          .where(eq(profiles.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
-          .limit(1);
+    const [existingProfileByLegacy] = await tx
+      .select()
+      .from(profiles)
+      .where(eq(profiles.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
+      .limit(1);
     const existingProfile = existingProfileByCanonical || existingProfileByLegacy;
 
     const existingBusinessOwnerId = String(existingBusiness?.ownerUserId || "").trim();
@@ -101,8 +158,6 @@ export async function provisionIssaBuildProfile(): Promise<void> {
     const existingSources = Array.isArray(existingBusiness?.sources)
       ? existingBusiness.sources.filter((value): value is string => typeof value === "string")
       : [];
-    const now = new Date();
-
     // Temporary TradeScout stewardship must explicitly opt the steward into
     // public visibility for this profile gate — without borrowing another
     // business's contact routing or changing the steward's active profile.
@@ -140,9 +195,9 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       profileData: {
         ...existingProfileData,
         tagline:
-          "Premium book-matched translucent onyx for luxury interiors — honey and jade tones that glow when lit.",
+          "Honey Onyx and Multi Green Onyx — two distinct, book-matched materials for luxury interiors.",
         description:
-          "ISSA Build supplies premium, book-matched translucent onyx slabs for high-end homes and interior design projects.",
+          "ISSA Build supplies separate Honey Onyx and Multi Green Onyx collections for high-end homes and interior design projects.",
         category: "Natural Onyx",
         services: [
           "Translucent onyx slab availability",
@@ -150,6 +205,11 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           "Project and fabrication coordination",
         ],
         contactPreference: "message",
+        // Preserve any operator-only contact/location values already stored,
+        // but keep them out of every generic public-business projection.
+        publicContactEnabled: false,
+        publicLocationEnabled: false,
+        publicWebsiteEnabled: false,
         // Keep only contact already stored on this business. Never copy from
         // another company. Owner attaches private DC routing later.
         phone: String(existingProfileData.phone || "").trim(),
@@ -272,9 +332,9 @@ export async function provisionIssaBuildProfile(): Promise<void> {
         },
       },
       seoMeta: {
-        title: "ISSA Build | Translucent Honey & Jade Onyx",
+        title: "ISSA Build | Honey Onyx & Multi Green Onyx",
         description:
-          "Explore ISSA Build translucent onyx installations and material photos, then ask about availability through private TradeScout Direct Connect.",
+          "Explore separate ISSA Build Honey Onyx and Multi Green Onyx installations and material photos, then start a private TradeScout Direct Connect request.",
         imageUrl: "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: 1600,
         imageHeight: 1200,
@@ -296,6 +356,3 @@ export async function provisionIssaBuildProfile(): Promise<void> {
     if (!profile) throw new Error("ISSA Build profile provisioning failed");
   });
 }
-
-/** @deprecated Use provisionIssaBuildProfile. */
-export const provisionHoneyOnyxProfile = provisionIssaBuildProfile;

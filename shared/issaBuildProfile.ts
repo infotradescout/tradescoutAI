@@ -30,7 +30,7 @@ export const ISSA_BUILD_APPLICATION_IMAGES = [
   "/images/businesses/issa-build/applications/09.jpg",
 ] as const;
 
-/** Close material views for the Honey Green / honey translucent onyx product. */
+/** Close material views across the two distinct ISSA Build onyx offerings. */
 export const ISSA_BUILD_SLAB_IMAGES = [
   "/images/businesses/issa-build/slabs/2.jpg",
   "/images/businesses/issa-build/slabs/6.jpg",
@@ -38,6 +38,29 @@ export const ISSA_BUILD_SLAB_IMAGES = [
   "/images/businesses/issa-build/slabs/3.jpg",
   "/images/businesses/issa-build/slabs/4.jpg",
   "/images/businesses/issa-build/slabs/5.jpg",
+] as const;
+
+/** Owner-supplied project and material photography identified as Honey Onyx. */
+export const ISSA_BUILD_HONEY_ONYX_IMAGES = [
+  ISSA_BUILD_APPLICATION_IMAGES[2],
+  ISSA_BUILD_APPLICATION_IMAGES[4],
+  ISSA_BUILD_APPLICATION_IMAGES[5],
+  ISSA_BUILD_APPLICATION_IMAGES[6],
+  ISSA_BUILD_APPLICATION_IMAGES[7],
+  ISSA_BUILD_APPLICATION_IMAGES[8],
+  ISSA_BUILD_SLAB_IMAGES[0],
+  ISSA_BUILD_SLAB_IMAGES[1],
+] as const;
+
+/** Owner-supplied project and material photography identified as Multi Green Onyx. */
+export const ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES = [
+  ISSA_BUILD_APPLICATION_IMAGES[0],
+  ISSA_BUILD_APPLICATION_IMAGES[1],
+  ISSA_BUILD_APPLICATION_IMAGES[3],
+  ISSA_BUILD_SLAB_IMAGES[2],
+  ISSA_BUILD_SLAB_IMAGES[3],
+  ISSA_BUILD_SLAB_IMAGES[4],
+  ISSA_BUILD_SLAB_IMAGES[5],
 ] as const;
 
 /** Primary gallery shown on the public profile (six application views). */
@@ -64,20 +87,20 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       eyebrow: "ISSA Build",
       headerLabel: "Luxury translucent onyx",
       teaser:
-        "Premium book-matched onyx slabs for high-end interiors — honey and jade tones that glow when the light comes on.",
+        "Honey Onyx and Multi Green Onyx for high-end interiors — two distinct, book-matched materials that glow when lit.",
     },
   },
   {
     type: "about",
     data: {
-      text: "ISSA Build supplies premium, book-matched translucent onyx for luxury homes and interior design projects. The material reads soft honey and jade in daylight, then turns luminous when backlit. Each slab is hand-finished so the natural movement stays intact. The photos here show real installations and the actual stone — judge the character before you start a conversation.",
+      text: "ISSA Build supplies premium, book-matched translucent onyx for luxury homes and interior design projects. Honey Onyx brings warm gold movement; Multi Green Onyx brings layered green character. Both are hand-finished and naturally translucent. The photos here show real ISSA Build installations and material — compare each offering before you start a conversation.",
     },
   },
   {
     type: "trust",
     data: {
       items: [
-        "Book-matched translucent onyx",
+        "Honey Onyx and Multi Green Onyx",
         "Hand-finished slabs",
         "Real installation photography",
         "Private Direct Connect",
@@ -88,49 +111,82 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "premiumProduct",
     data: {
       variant: PREMIUM_PRODUCT_PROFILE_VARIANT,
+      featuredProductSlug: "honey-onyx",
+      offerings: {
+        eyebrow: "Two distinct offerings",
+        title: "Choose the onyx by character, not a blended label.",
+        body: "Honey Onyx and Multi Green Onyx are separate ISSA Build materials. Open either collection to share its photos or carry that exact material into Direct Connect.",
+        items: [
+          {
+            slug: "honey-onyx",
+            eyebrow: "Warm translucent onyx",
+            title: "Honey Onyx",
+            body: "Golden, amber, and cream movement with a warm glow when backlit.",
+            highlights: ["Book-matched", "Hand-finished", "Naturally translucent"],
+          },
+          {
+            slug: "multi-green-onyx",
+            eyebrow: "Layered green onyx",
+            title: "Multi Green Onyx",
+            body: "Green, ivory, and mineral movement with its own distinct translucent character.",
+            highlights: ["Book-matched", "Hand-finished", "Naturally translucent"],
+          },
+        ],
+      },
       contrast: {
-        eyebrow: "Honey and jade. Day and night.",
-        title: "Cool movement in daylight. Warm glow when lit.",
-        body: "Translucent honey and light-green jade tones make the same slab feel completely different once light passes through it. Compare real rooms and real material before deciding where the drama belongs.",
+        eyebrow: "Honey Onyx. Day and night.",
+        title: "Warm movement in daylight. A deeper glow when lit.",
+        body: "Honey Onyx changes as light moves through its amber, gold, and cream pattern. Compare real ISSA Build rooms and material before deciding where the glow belongs.",
         daylightLabel: "Installed daylight",
         backlitLabel: "Translucent glow",
         daylightImageIndex: 0,
-        backlitImageIndex: 2,
+        backlitImageIndex: 6,
       },
       gallery: {
-        eyebrow: "In the room",
-        title: "See how the stone lands in real spaces.",
-        body: "Bathrooms, kitchens, living rooms, and entertainment walls — these are ISSA Build project photos of Honey Green translucent onyx. Open any view you want to discuss.",
+        eyebrow: "Honey Onyx in the room",
+        title: "See the warm material in real spaces.",
+        body: "Bathrooms, kitchens, living rooms, and close material views — these are real ISSA Build Honey Onyx photos. Open any view you want to discuss.",
+        portraitPhotoIndexes: [7],
         photos: [
           {
             label: "Bathroom",
-            title: "Honey Green vanity and walls",
-            body: "Warm honey movement wrapping a bathroom as the focal finish.",
-          },
-          {
-            label: "Bathroom",
-            title: "Translucent bath feature",
-            body: "Backlit and translucent character in a wet-area application.",
-          },
-          {
-            label: "Entertainment",
-            title: "Feature wall glow",
-            body: "A living / entertainment plane where translucency becomes the light source.",
+            title: "Honey Onyx vanity and walls",
+            body: "Warm Honey Onyx movement wrapping a bathroom as the focal finish.",
           },
           {
             label: "Kitchen",
-            title: "Honey kitchen surfaces",
-            body: "Honey-toned translucent onyx working as a kitchen statement surface.",
+            title: "Honey Onyx surfaces",
+            body: "Warm translucent movement used as a kitchen statement surface.",
+          },
+          {
+            label: "Kitchen",
+            title: "Honey Onyx island",
+            body: "A large Honey Onyx plane showing book-matched movement at room scale.",
+          },
+          {
+            label: "Kitchen",
+            title: "Book-matched Honey Onyx",
+            body: "Natural movement carried across a high-impact kitchen application.",
           },
           {
             label: "Living",
-            title: "Living-room rectangle field",
-            body: "A large rectangular plane showing book-matched movement at room scale.",
+            title: "Honey Onyx feature wall",
+            body: "A large wall plane where warm translucent movement becomes the focal finish.",
           },
           {
             label: "Living",
-            title: "Living-room modular field",
+            title: "Honey Onyx modular field",
             body: "Smaller square modules showing how the pattern repeats across a wall.",
+          },
+          {
+            label: "Material",
+            title: "Backlit Honey Onyx",
+            body: "A close view of Honey Onyx with light passing through the material.",
+          },
+          {
+            label: "Material",
+            title: "Honey Onyx movement",
+            body: "A second close material view for comparing color and natural variation.",
           },
         ],
       },
@@ -146,13 +202,13 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           },
           {
             title: "Kitchens",
-            body: "Honey and jade movement for counters, islands, and back walls.",
-            imageIndex: 3,
+            body: "Honey Onyx for counters, islands, and statement back walls.",
+            imageIndex: 1,
           },
           {
             title: "Feature walls",
             body: "One strong illuminated plane instead of competing finishes.",
-            imageIndex: 2,
+            imageIndex: 4,
           },
           {
             title: "Living and hospitality",
@@ -175,9 +231,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       },
       closing: {
         eyebrow: "Ready when the idea is",
-        title: "Put ISSA Build in the conversation.",
-        body: "Call now or send the project through Direct Connect. Your contact details stay private unless the request is accepted.",
-        imageIndex: 1,
+        title: "Put the right ISSA Build material in the conversation.",
+        body: "Choose Honey Onyx or Multi Green Onyx, then send the project through Direct Connect. Your contact details stay private unless the request is accepted.",
+        imageIndex: 6,
+        imageFit: "contain",
       },
     } satisfies PremiumProductProfileData,
   },
@@ -194,8 +251,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           body: "A fully manual finish path that keeps the natural movement readable in the room.",
         },
         {
-          title: "Honey and jade tones",
-          body: "Translucent honey and light-green jade color suited to counters, walls, floors, and stairs.",
+          title: "Two distinct onyx offerings",
+          body: "Honey Onyx and Multi Green Onyx stay separate so every shared photo and request carries the right material context.",
         },
         {
           title: "One private path to answers",
@@ -231,23 +288,33 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "inventoryCatalog",
     data: {
-      title: "Honey Green translucent onyx",
+      title: "ISSA Build translucent onyx",
       description:
-        "Open the product to compare installation and material photos. Share any individual view and its photo will become the link preview.",
+        "Open Honey Onyx or Multi Green Onyx to compare its real project and material photos. Share any individual view and its photo will become the link preview.",
       categories: [
         {
           category: "Onyx",
           categorySlug: "onyx",
           stones: [
             {
-              name: "Honey Green Onyx",
-              slug: "honey-green-onyx",
-              images: [...ISSA_BUILD_PROFILE_IMAGES, ...ISSA_BUILD_SLAB_IMAGES],
+              name: "Honey Onyx",
+              slug: "honey-onyx",
+              images: [...ISSA_BUILD_HONEY_ONYX_IMAGES],
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
               hideFinishDetails: true,
               sourceNote:
-                "ISSA Build photography shows Honey Green translucent onyx in installed rooms and close material views.",
+                "Owner-supplied ISSA Build photography shows Honey Onyx in installed rooms and close material views.",
+            },
+            {
+              name: "Multi Green Onyx",
+              slug: "multi-green-onyx",
+              images: [...ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES],
+              materialStatus: "user_confirmed",
+              finishStatus: "unconfirmed",
+              hideFinishDetails: true,
+              sourceNote:
+                "Owner-supplied ISSA Build photography shows Multi Green Onyx in installed rooms and close material views.",
             },
           ],
         },
@@ -261,7 +328,12 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         {
           question: "What does ISSA Build supply?",
           answer:
-            "ISSA Build supplies premium book-matched translucent onyx slabs for luxury interiors — including honey and jade (light green) colorways suited to counters, walls, floors, and stairs.",
+            "ISSA Build supplies premium book-matched translucent onyx slabs for luxury interiors. Honey Onyx and Multi Green Onyx are two separate offerings suited to counters, walls, floors, and stairs.",
+        },
+        {
+          question: "Are Honey Onyx and Multi Green Onyx the same material?",
+          answer:
+            "No. They are separate ISSA Build offerings with distinct color and movement. Choose the material and photo you mean before starting Direct Connect so the request keeps that context.",
         },
         {
           question: "What changes when the stone is backlit?",
@@ -288,10 +360,11 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       description:
         "Call or send the product, project, dimensions, timing, and location through one private Direct Connect.",
       requestExamples: [
-        "Product availability",
-        "Slab dimensions",
-        "Backlighting plans",
-        "Fabrication questions",
+        "Request material",
+        "Match stone to a project",
+        "Ask about a bundle",
+        "Schedule a showroom visit",
+        "Something else",
       ],
       footerText: "Your contact details stay private until the recipient accepts your request.",
     },

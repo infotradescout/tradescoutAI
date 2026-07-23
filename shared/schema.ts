@@ -727,6 +727,10 @@ export const businesses = pgTable(
         stateCode?: string;
         zipCode?: string;
         contactPreference?: "call" | "email" | "message";
+        /** Generic public-record gates; private Direct Connect fields remain stored. */
+        publicContactEnabled?: boolean;
+        publicLocationEnabled?: boolean;
+        publicWebsiteEnabled?: boolean;
         importExtras?: Record<string, string>;
         tradePartner?: boolean;
         brandColors?: {
