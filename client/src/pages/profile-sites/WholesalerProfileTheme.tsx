@@ -356,7 +356,13 @@ export default function WholesalerProfileTheme({
         setHeroVideoZoomed(false);
         heroVideoRef.current?.pause();
       } else {
-        zoomTimer = window.setTimeout(() => setHeroVideoZoomed(true), 100);
+        // ISSA uses a fixed cover crop (no Ken Burns) so the fireplace film
+        // stays one seamless full-bleed frame instead of zooming into a split.
+        if (isIssaBuild) {
+          setHeroVideoZoomed(false);
+        } else {
+          zoomTimer = window.setTimeout(() => setHeroVideoZoomed(true), 100);
+        }
         void heroVideoRef.current?.play().catch(() => undefined);
       }
     };
@@ -366,7 +372,7 @@ export default function WholesalerProfileTheme({
       if (zoomTimer !== null) window.clearTimeout(zoomTimer);
       motionQuery.removeEventListener("change", syncMotionPreference);
     };
-  }, [heroVideo?.src]);
+  }, [heroVideo?.src, isIssaBuild]);
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
   const themeVars = {
@@ -1057,8 +1063,7 @@ export default function WholesalerProfileTheme({
           ) : null}
           {(premiumProductData?.presentation === "horizontal-luxury-showcase"
             ? [
-                ["Collections", "collection"],
-                ["Details", "why-us"],
+                ["Lookbook", "collection"],
                 ["Connect", "connect"],
               ]
             : premiumProductData
@@ -1093,7 +1098,9 @@ export default function WholesalerProfileTheme({
       <section
         className={`relative isolate flex items-end overflow-hidden py-8 md:items-center md:py-20 ${
           isIssaBuild
-            ? "min-h-[calc(100svh-3.5rem)] bg-transparent md:min-h-[calc(100svh-4.5rem)]"
+            ? // Fixed viewport height (not min-height) so manage chrome + sticky bar
+              // cannot stretch the stage and reveal a stacked poster/video crop.
+              "h-[calc(100svh-var(--ts-profile-top-offset,0px)-3.5rem)] max-h-[calc(100svh-var(--ts-profile-top-offset,0px)-3.5rem)] bg-black md:h-[calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem)] md:max-h-[calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem)]"
             : isJwStone
               ? "min-h-[460px] bg-transparent md:min-h-[600px]"
               : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
@@ -1109,7 +1116,37 @@ export default function WholesalerProfileTheme({
             } ${premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"}`}
           />
         ) : null}
-        {heroVideo ? (
+        {heroVideo && isIssaBuild ? (
+          <div
+            className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
+            aria-hidden="true"
+            data-testid="issa-hero-media"
+          >
+            {/*
+              Landscape 16:9 film inside a tall first viewport needs a zoomed
+              cover crop (not 1:1 object-cover) or the upper wall + fireplace
+              read as a split poster/video stack. Poster layer uses the same
+              crop so load never flashes a foreign slab image above the film.
+            */}
+            <img
+              src={heroVideo.poster}
+              alt=""
+              className="absolute inset-0 h-full w-full origin-center scale-[1.48] object-cover object-[center_68%] md:scale-[1.22] md:object-center"
+            />
+            <video
+              ref={heroVideoRef}
+              autoPlay={!prefersReducedMotion}
+              muted
+              loop
+              playsInline
+              poster={heroVideo.poster}
+              className="absolute inset-0 h-full w-full origin-center scale-[1.48] object-cover object-[center_68%] md:scale-[1.22] md:object-center"
+            >
+              <source src={heroVideo.src} type="video/mp4" />
+            </video>
+          </div>
+        ) : null}
+        {heroVideo && !isIssaBuild ? (
           <video
             ref={heroVideoRef}
             autoPlay={!prefersReducedMotion}
@@ -1216,28 +1253,31 @@ export default function WholesalerProfileTheme({
                 }
                 className={
                   isIssaBuild
-                    ? "inline-flex min-h-12 items-center justify-center gap-2 border border-white/55 bg-transparent px-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-white transition hover:bg-white hover:text-[#1a1510]"
+                    ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
                     : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
                 }
               >
-                {isIssaBuild ? "The lookbook" : premiumProductData ? "See the material" : "Explore Inventory"}
+                {isIssaBuild
+                  ? "Lookbook"
+                  : premiumProductData
+                    ? "See the material"
+                    : "Explore Inventory"}
+                {isIssaBuild ? (
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                ) : null}
               </button>
             )}
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className={
-                isIssaBuild
-                  ? "inline-flex min-h-12 items-center justify-center gap-2 bg-white px-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1a1510] transition hover:bg-[#efd393]"
-                  : `flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                      isJwStone
-                        ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
-                        : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
-                    }`
-              }
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
+                isJwStone || isIssaBuild
+                  ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
+                  : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
+              }`}
             >
-              {isIssaBuild ? "Inquire" : "Direct Connect"}
-              {!isIssaBuild ? <ChevronRight className="h-4 w-4" /> : null}
+              Direct Connect
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -2283,22 +2323,22 @@ export default function WholesalerProfileTheme({
               </div>
             </div>
           </section>
-
-          {/* Brand footer, then TradeScout site footer at the absolute bottom */}
-          <footer className="bg-[#241d0f] py-10 text-white/70">
-            <div className="container mx-auto px-4 text-center text-sm md:px-6">
-              <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
-              <p>{footerText}</p>
-            </div>
-          </footer>
-
-          <TradeScoutProfileHandoff
-            profileSlug={profileSlug}
-            profileName={displayName}
-            platformBaseHref={platformBaseHref}
-          />
         </>
       )}
+
+      {/* Shared TradeScout theme chrome — always outside premium lookbook content. */}
+      <footer className="bg-[#241d0f] py-10 text-white/70" data-testid="wholesaler-brand-footer">
+        <div className="container mx-auto px-4 text-center text-sm md:px-6">
+          <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
+          <p>{footerText}</p>
+        </div>
+      </footer>
+
+      <TradeScoutProfileHandoff
+        profileSlug={profileSlug}
+        profileName={displayName}
+        platformBaseHref={platformBaseHref}
+      />
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}
