@@ -99,6 +99,28 @@ describe("PremiumProductProfileSections multi-offering behavior", () => {
     expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(products[1].images[2]);
   });
 
+  it("keeps the shared-photo counter after closing a deep-linked lightbox", async () => {
+    const onDirectConnect = renderProfile();
+    renderProfile(onDirectConnect, "multi-green-onyx", 2);
+
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(
+      container.querySelector('[aria-live="polite"]')?.textContent?.replace(/\s+/g, " ")
+    ).toContain("03 / 07");
+
+    await act(async () => {
+      container
+        .querySelector('button[aria-label="Close expanded gallery"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await new Promise((resolve) => window.requestAnimationFrame(() => resolve(undefined)));
+    });
+
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(
+      container.querySelector('[aria-live="polite"]')?.textContent?.replace(/\s+/g, " ")
+    ).toContain("03 / 07");
+  });
+
   it("switches the full showcase and keeps narrative and CTA context product-specific", () => {
     const onDirectConnect = renderProfile();
     const multiGreenToggle = Array.from(
