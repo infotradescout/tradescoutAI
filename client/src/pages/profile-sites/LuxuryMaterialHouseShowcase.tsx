@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
 import type { DirectConnectTarget } from "./directConnectMaterial";
@@ -28,6 +28,8 @@ type Props = {
   profileShareDestination: string;
   platformBaseHref?: string;
   onDirectConnect: (target?: DirectConnectTarget) => void;
+  /** Platform Recommend / Like / Favorite / Share — placed after showcase. */
+  platformEngagement?: ReactNode;
 };
 
 /**
@@ -46,6 +48,7 @@ export default function LuxuryMaterialHouseShowcase({
   profileShareDestination: _profileShareDestination,
   platformBaseHref: _platformBaseHref,
   onDirectConnect,
+  platformEngagement,
 }: Props) {
   const house = data.luxuryHouse;
   if (!house) {
@@ -203,6 +206,7 @@ export default function LuxuryMaterialHouseShowcase({
             const chapterImages = chapterProduct.images.length
               ? chapterProduct.images
               : [chapter.applicationImage, chapter.detailImage];
+            const chapterHeadline = chapter.title || chapter.name;
 
             return (
               <article
@@ -267,7 +271,7 @@ export default function LuxuryMaterialHouseShowcase({
                     {chapter.eyebrow}
                   </p>
                   <h3 className="mt-3 font-editorial text-3xl font-medium leading-[1.02] tracking-[-0.02em] sm:text-4xl md:text-5xl">
-                    {chapter.name}
+                    {chapterHeadline}
                   </h3>
                   <p className="mt-4 text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
                     {chapter.body}
@@ -279,7 +283,7 @@ export default function LuxuryMaterialHouseShowcase({
                       connectMaterial(chapter.slug, chapter.name);
                     }}
                     aria-label={`Direct Connect about ${chapter.name}`}
-                    className="mt-8 inline-flex min-h-12 w-fit items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
+                    className="mt-8 inline-flex min-h-12 w-fit items-center justify-center gap-2 border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent,#d9a441)]/90"
                   >
                     Discuss {chapter.name}
                     <ChevronRight className="h-4 w-4" />
@@ -291,41 +295,40 @@ export default function LuxuryMaterialHouseShowcase({
         </div>
       </section>
 
-      {/* 3. From stone to space — capabilities */}
+      {/* 3. Capabilities — clean list, Designed-with-light typography */}
       <section
         id="capabilities"
         data-testid="luxury-house-capabilities"
-        className="scroll-mt-24 bg-[#f7f0e4] px-4 py-16 text-[#17100b] sm:px-8 sm:py-24"
+        className="scroll-mt-24 bg-[#0c0a08] px-4 py-16 sm:px-8 sm:py-24"
       >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-10 max-w-3xl sm:mb-14">
+          <div className="mb-10 max-w-3xl sm:mb-12">
             <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
               {house.capabilities.eyebrow}
             </p>
             <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl">
               {house.capabilities.title}
             </h2>
-            <p className="mt-4 max-w-2xl text-sm font-light leading-7 text-[#5c5348] sm:text-base">
-              {house.capabilities.body}
-            </p>
+            {house.capabilities.body ? (
+              <p className="mt-4 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base sm:leading-8">
+                {house.capabilities.body}
+              </p>
+            ) : null}
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:gap-8">
-            {house.capabilities.items.map((item, index) => (
-              <div key={item.title} className="border-t border-[#342316]/15 pt-5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent,#d9a441)]">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
-                <h3 className="mt-2 font-editorial text-2xl font-medium tracking-[-0.02em]">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-sm font-light leading-7 text-[#5c5348]">{item.body}</p>
-              </div>
+          <ul className="max-w-xl space-y-3 border-t border-white/10 pt-6">
+            {house.capabilities.items.map((item) => (
+              <li
+                key={item.title}
+                className="border-b border-white/10 py-3 text-sm font-light tracking-wide text-[#f4efe6]/90 sm:text-base"
+              >
+                {item.title}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
-      {/* 4. Curated project showcase — application images only */}
+      {/* 4. Installed work — photographs lead */}
       <section
         id="showcase"
         data-testid="luxury-house-showcase"
@@ -339,9 +342,11 @@ export default function LuxuryMaterialHouseShowcase({
             <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl">
               {house.showcase.title}
             </h2>
-            <p className="mt-4 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
-              {house.showcase.body}
-            </p>
+            {house.showcase.body ? (
+              <p className="mt-4 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
+                {house.showcase.body}
+              </p>
+            ) : null}
           </div>
           <div className="grid grid-cols-2 items-start gap-2.5 sm:gap-4 lg:grid-cols-12">
             {house.showcase.images.map((image, index) => {
@@ -368,82 +373,72 @@ export default function LuxuryMaterialHouseShowcase({
         </div>
       </section>
 
-      {/* 5. Private project consultation */}
+      {platformEngagement ? (
+        <section
+          className="border-y border-white/10 bg-[#0c0a08] py-5"
+          aria-label="Trust and profile actions"
+          data-testid="luxury-house-platform-engagement"
+        >
+          {platformEngagement}
+        </section>
+      ) : null}
+
+      {/* 5. Private Direct Connect — single final action (no duplicate closing) */}
       <section
         id="consult"
         data-testid="luxury-house-consultation"
         className="scroll-mt-24 bg-[#f7f0e4] px-4 py-16 text-[#17100b] sm:px-8 sm:py-24"
       >
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
-              {house.consultation.eyebrow}
-            </p>
-            <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl">
-              {house.consultation.title}
-            </h2>
-            <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#5c5348] sm:text-base">
-              {house.consultation.body}
-            </p>
-            <p className="mt-3 font-editorial text-2xl font-medium text-[#342316]">
-              {house.consultation.prompt}
-            </p>
+        <div className="mx-auto max-w-3xl">
+          <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
+            {house.consultation.eyebrow}
+          </p>
+          <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl">
+            {house.consultation.title}
+          </h2>
+          <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#5c5348] sm:text-base sm:leading-8">
+            {house.consultation.body}
+          </p>
 
-            {house.materialChapters.length > 1 ? (
-              <div
-                className="mt-8 flex w-fit flex-wrap gap-1 border border-[#342316]/20 p-1"
-                role="group"
-                aria-label="Select material for consultation"
-              >
-                {house.materialChapters.map((chapter) => (
-                  <button
-                    key={chapter.slug}
-                    type="button"
-                    onClick={() => setSelectedMaterialSlug(chapter.slug)}
-                    aria-pressed={chapter.slug === selectedMaterialSlug}
-                    className={`min-h-11 px-5 text-[10px] font-semibold uppercase tracking-[0.22em] transition ${
-                      chapter.slug === selectedMaterialSlug
-                        ? "bg-[var(--brand-accent,#d9a441)] text-[var(--brand-primary-dark,#17100b)]"
-                        : "text-[#342316]/70 hover:text-[#342316]"
-                    }`}
-                  >
-                    {chapter.name}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={startConsultation}
-              aria-label={`Direct Connect about ${selectedChapter.name}`}
-              className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[#17100b] px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[#24180f]"
+          {house.materialChapters.length > 1 ? (
+            <div
+              className="mt-8 flex w-fit flex-wrap gap-1 border border-[#342316]/20 p-1"
+              role="group"
+              aria-label="Select material for consultation"
             >
-              <MessageCircle className="h-4 w-4" />
-              Direct Connect
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="border border-[#342316]/12 bg-white/70 p-5 backdrop-blur sm:p-7">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a7f70]">
-              A useful first message includes
-            </p>
-            <ul className="mt-5 space-y-3">
-              {house.consultation.fields.map((field, index) => (
-                <li
-                  key={field}
-                  className="flex items-center gap-3 border border-[#342316]/10 bg-white px-4 py-3.5"
+              {house.materialChapters.map((chapter) => (
+                <button
+                  key={chapter.slug}
+                  type="button"
+                  onClick={() => setSelectedMaterialSlug(chapter.slug)}
+                  aria-pressed={chapter.slug === selectedMaterialSlug}
+                  className={`min-h-11 px-5 text-[10px] font-semibold uppercase tracking-[0.22em] transition ${
+                    chapter.slug === selectedMaterialSlug
+                      ? "bg-[var(--brand-accent,#d9a441)] text-[var(--brand-primary-dark,#17100b)]"
+                      : "text-[#342316]/70 hover:text-[#342316]"
+                  }`}
                 >
-                  <span className="inline-flex h-8 w-8 flex-none items-center justify-center bg-[#17100b] text-[10px] font-semibold tracking-[0.14em] text-[var(--brand-accent,#d9a441)]">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="text-sm font-medium text-[#342316]">{field}</span>
-                </li>
+                  {chapter.name}
+                </button>
               ))}
-            </ul>
-            <p className="mt-5 text-xs leading-5 text-[#5c5348]">{house.consultation.note}</p>
-          </div>
+            </div>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={startConsultation}
+            aria-label={`Direct Connect about ${selectedChapter.name}`}
+            className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent,#d9a441)]/90"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Discuss your project
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          {house.consultation.note ? (
+            <p className="mt-5 max-w-xl text-xs leading-5 text-[#5c5348]">
+              {house.consultation.note}
+            </p>
+          ) : null}
         </div>
       </section>
 
@@ -471,42 +466,6 @@ export default function LuxuryMaterialHouseShowcase({
           </div>
         </section>
       ) : null}
-
-      <section
-        id="connect"
-        className="relative isolate min-h-[52svh] overflow-hidden px-4 py-20 sm:px-8"
-      >
-        <SafeProfileImg
-          src={house.showcase.images[2] || house.designedWithLight.image}
-          alt=""
-          aria-hidden="true"
-          loading="lazy"
-          className="absolute inset-0 -z-20 h-full w-full object-cover"
-        />
-        <span className="absolute inset-0 -z-10 bg-gradient-to-r from-black/92 via-black/70 to-black/20" />
-        <div className="mx-auto flex min-h-[40svh] max-w-7xl items-center">
-          <div className="max-w-2xl">
-            <p className="text-[10px] uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
-              {data.closing.eyebrow}
-            </p>
-            <h2 className="mt-4 font-editorial text-5xl font-medium leading-[0.95] sm:text-6xl">
-              {data.closing.title}
-            </h2>
-            <p className="mt-5 max-w-xl text-sm font-light leading-7 text-white/75">
-              {data.closing.body}
-            </p>
-            <button
-              type="button"
-              onClick={startConsultation}
-              aria-label={`Direct Connect about ${selectedChapter.name}`}
-              className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
-            >
-              Direct Connect
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </section>
 
       {activePhoto !== null && lightboxImages[photoIndex] ? (
         <div
@@ -588,7 +547,7 @@ export default function LuxuryMaterialHouseShowcase({
                   setActivePhoto(null);
                   connectMaterial(lightboxSlug, lightboxName);
                 }}
-                className="inline-flex min-h-11 flex-none items-center justify-center border-2 border-ts-orange px-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-ts-orange"
+                className="inline-flex min-h-11 flex-none items-center justify-center border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#17100b]"
               >
                 Direct Connect
               </button>

@@ -27,6 +27,8 @@ export type LuxuryMaterialHouseChapter = {
   slug: string;
   name: string;
   eyebrow: string;
+  /** Editorial headline under the eyebrow; falls back to name. */
+  title?: string;
   body: string;
   /** Installed-interior / application image (first). */
   applicationImage: string;
@@ -154,6 +156,7 @@ function isLuxuryMaterialHouseData(value: unknown): value is LuxuryMaterialHouse
         isString(chapter.slug) &&
         isString(chapter.name) &&
         isString(chapter.eyebrow) &&
+        (chapter.title === undefined || isString(chapter.title)) &&
         isString(chapter.body) &&
         isString(chapter.applicationImage) &&
         isString(chapter.detailImage)

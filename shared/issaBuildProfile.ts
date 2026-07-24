@@ -91,15 +91,16 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     data: {
       // Editor title ↔ headerLabel (H1). Editor text ↔ teaser.
       // Sticky brand uses displayName; subtitle uses eyebrow — never repeat the brand as H1.
-      eyebrow: "ISSA BUILD · TRANSLUCENT ONYX",
-      headerLabel: "Crafted for light.",
-      teaser: "Honey Onyx and Multi Green Onyx for interiors designed to glow.",
+      eyebrow: "CUSTOM BACKLIT ONYX",
+      headerLabel: "Onyx, brought to light.",
+      teaser:
+        "Custom Honey Onyx and Multi Green Onyx installations for residential and commercial interiors.",
     },
   },
   {
     type: "about",
     data: {
-      text: "Translucent onyx for interiors designed to glow — private project consultation through Direct Connect.",
+      text: "Custom Honey Onyx and Multi Green Onyx installations for residential and commercial interiors.",
     },
   },
   {
@@ -139,56 +140,48 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       },
       luxuryHouse: {
         designedWithLight: {
-          eyebrow: "Atmosphere",
+          eyebrow: "BACKLIGHTING",
           title: "Designed with light.",
-          body: "When translucent onyx is illuminated, the room changes. Warmth moves through the stone, edges soften, and an installed interior takes on a quiet glow that photographs cannot fully hold.",
+          body: "Translucent onyx reveals its depth when the material and lighting are considered together. ISSA Build works across selection, customization, backlighting, and installation so the finished surface belongs to the room.",
           image: ISSA_BUILD_APPLICATION_IMAGES[2],
         },
         materialChapters: [
           {
             slug: "honey-onyx",
             name: "Honey Onyx",
-            eyebrow: "Material chapter",
-            body: "Amber translucence for suites, walls, and islands meant to glow from within.",
+            eyebrow: "HONEY ONYX",
+            title: "Warm, luminous, unmistakable.",
+            body: "Golden movement and soft translucency for baths, bars, kitchens, feature walls, and statement interiors.",
             applicationImage: ISSA_BUILD_APPLICATION_IMAGES[4],
             detailImage: ISSA_BUILD_SLAB_IMAGES[0],
           },
           {
             slug: "multi-green-onyx",
             name: "Multi Green Onyx",
-            eyebrow: "Material chapter",
-            body: "Layered green depth for feature walls and custom installations shaped by light.",
+            eyebrow: "MULTI GREEN ONYX",
+            title: "A deeper architectural tone.",
+            body: "Layered green movement for bathrooms, feature walls, and custom interiors shaped around the stone.",
             applicationImage: ISSA_BUILD_APPLICATION_IMAGES[0],
             detailImage: ISSA_BUILD_SLAB_IMAGES[2],
           },
         ],
         capabilities: {
-          eyebrow: "From stone to space",
-          title: "From stone to space.",
-          body: "ISSA Build carries onyx from material into installed interiors — light, custom work, and private consultation.",
+          eyebrow: "WHAT ISSA BUILD DOES",
+          title: "From material to installation.",
+          body: "Each project begins with the space, dimensions, intended use, and the way the stone will be illuminated.",
           items: [
-            {
-              title: "Custom onyx installation",
-              body: "Installed interiors planned around how the stone meets the room.",
-            },
-            {
-              title: "Backlighting solutions",
-              body: "Illumination designed so translucent onyx can glow as atmosphere.",
-            },
-            {
-              title: "Onyx customization",
-              body: "Cuts, matches, and detailing shaped to the project — not a catalog pick.",
-            },
-            {
-              title: "Project consultation",
-              body: "A private conversation about material, application, scale, and timing.",
-            },
+            { title: "Material selection", body: "" },
+            { title: "Custom cutting and shaping", body: "" },
+            { title: "Backlighting", body: "" },
+            { title: "Custom installation", body: "" },
+            { title: "Residential and commercial projects", body: "" },
+            { title: "Private project consultation", body: "" },
           ],
         },
         showcase: {
-          eyebrow: "Projects",
-          title: "Curated project showcase.",
-          body: "Installed spaces where translucent onyx becomes the light in the room.",
+          eyebrow: "INSTALLED WORK",
+          title: "Onyx in the room.",
+          body: "",
           images: [
             ISSA_BUILD_APPLICATION_IMAGES[0],
             ISSA_BUILD_APPLICATION_IMAGES[1],
@@ -202,10 +195,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           ],
         },
         consultation: {
-          eyebrow: "Private consultation",
-          title: "Private project consultation.",
-          body: "Tell ISSA Build what you are creating.",
-          prompt: "Tell ISSA Build what you are creating.",
+          eyebrow: "PRIVATE DIRECT CONNECT",
+          title: "Start with the room.",
+          body: "Share the space, approximate dimensions, location, schedule, and whether you are considering backlighting. ISSA Build can respond privately with the appropriate next step.",
+          prompt: "",
           fields: [
             "Selected material",
             "Room / application",
@@ -254,8 +247,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       },
       brief: {
         eyebrow: "Consultation",
-        title: "Discuss a project",
-        body: "Material, room, scale, place, timing, and backlighting — one private Direct Connect.",
+        title: "Discuss your project",
+        body: "Share the space, dimensions, location, schedule, and backlighting intent — one private Direct Connect.",
         steps: [
           "Selected material",
           "Room / application",
@@ -266,10 +259,11 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         ],
         note: "Contact details stay private until accepted.",
       },
+      // Schema-retained; luxury-material-house collapses closing into consultation.
       closing: {
-        eyebrow: "Direct Connect",
-        title: "Discuss a project.",
-        body: "Honey Onyx or Multi Green Onyx. Private until accepted.",
+        eyebrow: "PRIVATE DIRECT CONNECT",
+        title: "Start with the room.",
+        body: "Share the space, approximate dimensions, location, schedule, and whether you are considering backlighting.",
         imageIndex: 2,
         imageFit: "cover",
       },
@@ -320,10 +314,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "cta",
     data: {
-      heading: "Discuss a project.",
+      heading: "Start with the room.",
       description:
-        "Tell ISSA Build what you are creating — material, room, scale, place, timing, and light.",
-      requestExamples: ["Discuss a project", "Ask about backlighting", "Something else"],
+        "Share the space, approximate dimensions, location, schedule, and whether you are considering backlighting.",
+      requestExamples: ["Discuss your project", "Ask about backlighting", "Something else"],
       footerText: "Contact details stay private until accepted.",
     },
   },
