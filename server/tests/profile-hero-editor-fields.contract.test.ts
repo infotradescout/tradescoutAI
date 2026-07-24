@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  patchHeroBlock,
-  readHeroEditorFields,
-} from "@shared/profileSiteTemplates";
+import { patchHeroBlock, readHeroEditorFields } from "@shared/profileSiteTemplates";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -23,15 +20,15 @@ describe("profile hero editor field mapping", () => {
       {
         type: "hero",
         data: {
-          eyebrow: "ISSA Build",
-          headerLabel: "ISSA Build",
-          teaser: "Honey Onyx. Multi Green Onyx. Crafted for light.",
+          eyebrow: "Luxury translucent onyx",
+          headerLabel: "Crafted for light.",
+          teaser: "Honey Onyx · Multi Green Onyx.",
         },
       },
     ];
     expect(readHeroEditorFields(seeded)).toEqual({
-      title: "ISSA Build",
-      text: "Honey Onyx. Multi Green Onyx. Crafted for light.",
+      title: "Crafted for light.",
+      text: "Honey Onyx · Multi Green Onyx.",
     });
 
     const patched = patchHeroBlock(seeded, {

@@ -88,9 +88,11 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "hero",
     data: {
+      // Editor title ↔ headerLabel (H1). Editor text ↔ teaser.
+      // Sticky brand uses displayName; subtitle uses eyebrow — never repeat the brand as H1.
       eyebrow: "Luxury translucent onyx",
-      headerLabel: "ISSA Build",
-      teaser: "Honey Onyx. Multi Green Onyx. Crafted for light.",
+      headerLabel: "Crafted for light.",
+      teaser: "Honey Onyx · Multi Green Onyx.",
     },
   },
   {
@@ -100,10 +102,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     },
   },
   {
-    // Intentionally empty on the public luxury path — no fact-pill clutter.
+    // Sparse trust line only — no catalog / stoneyard fact spam.
     type: "trust",
     data: {
-      items: [] as string[],
+      items: ["Honey Onyx · Multi Green Onyx", "Private Direct Connect"] as string[],
     },
   },
   {
@@ -115,20 +117,20 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       offerings: {
         eyebrow: "Lookbook",
         title: "The collection.",
-        body: "Honey Onyx or Multi Green Onyx.",
+        body: "",
         items: [
           {
             slug: "honey-onyx",
             eyebrow: "Honey Onyx",
             title: "Honey Onyx",
-            body: "Amber and gold translucence.",
+            body: "Amber translucence.",
             highlights: ["Translucent"],
           },
           {
             slug: "multi-green-onyx",
             eyebrow: "Multi Green Onyx",
             title: "Multi Green Onyx",
-            body: "Green and ivory depth.",
+            body: "Green depth.",
             highlights: ["Translucent"],
           },
         ],
@@ -147,15 +149,16 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         title: "In situ.",
         body: "",
         portraitPhotoIndexes: [7],
+        // Sparse captions — image leads; no essay-per-slide.
         photos: [
-          { label: "Bath", title: "Private suite", body: "" },
-          { label: "Kitchen", title: "Statement plane", body: "" },
-          { label: "Kitchen", title: "Island", body: "" },
-          { label: "Kitchen", title: "Matched face", body: "" },
-          { label: "Living", title: "Feature wall", body: "" },
-          { label: "Living", title: "Modular field", body: "" },
-          { label: "Atelier", title: "Backlit", body: "" },
-          { label: "Atelier", title: "Detail", body: "" },
+          { label: "Suite", title: "", body: "" },
+          { label: "Kitchen", title: "", body: "" },
+          { label: "Island", title: "", body: "" },
+          { label: "Match", title: "", body: "" },
+          { label: "Wall", title: "", body: "" },
+          { label: "Field", title: "", body: "" },
+          { label: "Backlit", title: "", body: "" },
+          { label: "Detail", title: "", body: "" },
         ],
       },
       applications: {
@@ -176,9 +179,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         note: "",
       },
       closing: {
-        eyebrow: "ISSA Build",
+        eyebrow: "Direct Connect",
         title: "Inquire privately.",
-        body: "Select Honey Onyx or Multi Green Onyx. Direct Connect stays private until accepted.",
+        body: "Honey Onyx or Multi Green Onyx. Private until accepted.",
         imageIndex: 2,
         imageFit: "cover",
       },
