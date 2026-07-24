@@ -234,16 +234,18 @@ export default function ProfileSiteEditor() {
       if (!slug) return;
 
       try {
-        const listRes = await apiRequest("GET", "/api/profiles");
-        const list = (await listRes.json()) as OwnedProfile[];
+        // apiRequest already returns parsed JSON (not a Fetch Response).
+        const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
         const found = list.find((p) => p.slug === slug);
         if (!found) {
           setProfile(null);
           return;
         }
 
-        const detailRes = await apiRequest("GET", `/api/profiles/${found.id}`);
-        const detail = (await detailRes.json()) as ProfileDetail;
+        const detail = (await apiRequest(
+          "GET",
+          `/api/profiles/${found.id}`
+        )) as ProfileDetail;
         setProfile(detail);
 
         setDisplayName(detail.displayName || "");
@@ -275,11 +277,10 @@ export default function ProfileSiteEditor() {
         setFaviconUrl(String(detail.seoMeta?.faviconUrl || ""));
 
         try {
-          const bookingRes = await apiRequest(
+          const bookingPayload = (await apiRequest(
             "GET",
             `/api/profiles/${encodeURIComponent(detail.id)}/profile-booking`
-          );
-          const bookingPayload = (await bookingRes.json()) as ProfileBookingResponse;
+          )) as ProfileBookingResponse;
           const stored = bookingPayload.profileBooking;
           setProfileBooking(
             stored && typeof stored === "object"
@@ -314,11 +315,11 @@ export default function ProfileSiteEditor() {
     const loadDomainVerification = async () => {
       if (!profile?.id) return;
       try {
-        const response = await apiRequest(
-          "GET",
-          `/api/business-profile/domain/status?profileId=${encodeURIComponent(profile.id)}`
-        );
-        const payload = await response.json().catch(() => ({}) as any);
+        const payload =
+          ((await apiRequest(
+            "GET",
+            `/api/business-profile/domain/status?profileId=${encodeURIComponent(profile.id)}`
+          )) as any) ?? {};
         const domainStatus = payload?.domainStatus;
         const verification = domainStatus?.verification as
           | ProfileDomainVerification
@@ -350,8 +351,8 @@ export default function ProfileSiteEditor() {
     const loadPublicSettings = async () => {
       if (!slug) return;
       try {
-        const prefsRes = await apiRequest("GET", "/api/users/preferences");
-        const prefsPayload = await prefsRes.json().catch(() => ({}) as any);
+        const prefsPayload =
+          ((await apiRequest("GET", "/api/users/preferences")) as any) ?? {};
         const prefs =
           prefsPayload && typeof prefsPayload.preferences === "object"
             ? prefsPayload.preferences
@@ -382,8 +383,8 @@ export default function ProfileSiteEditor() {
           text: prefs?.colorScheme?.text || COLOR_PRESETS.default.text,
         });
 
-        const userProfileRes = await apiRequest("GET", "/api/user/profile");
-        const userProfile = await userProfileRes.json().catch(() => ({}) as any);
+        const userProfile =
+          ((await apiRequest("GET", "/api/user/profile")) as any) ?? {};
         setUserLocation({
           address: typeof userProfile?.address === "string" ? userProfile.address : "",
           city: typeof userProfile?.city === "string" ? userProfile.city : "",
@@ -404,8 +405,8 @@ export default function ProfileSiteEditor() {
         });
 
         try {
-          const businessProfileRes = await apiRequest("GET", "/api/business-profile/me");
-          const businessProfile = await businessProfileRes.json().catch(() => ({}) as any);
+          const businessProfile =
+            ((await apiRequest("GET", "/api/business-profile/me")) as any) ?? {};
           setHasBusinessProfile(true);
           setBusinessLocation({
             address: typeof businessProfile?.address === "string" ? businessProfile.address : "",
@@ -610,14 +611,13 @@ export default function ProfileSiteEditor() {
           : {}),
       };
 
-      const res = await apiRequest("PUT", `/api/profiles/${profile.id}`, {
+      const updated = (await apiRequest("PUT", `/api/profiles/${profile.id}`, {
         displayName,
         headline: headline || null,
         contentBlocks: normalizeContentBlocks,
         ctaConfig: normalizedCtaConfig,
         seoMeta: normalizedSeoMeta,
-      });
-      const updated = (await res.json()) as ProfileDetail;
+      })) as ProfileDetail;
       setProfile(updated);
 
       toast({ title: "Saved", description: "Your profile has been updated." });
@@ -653,11 +653,10 @@ export default function ProfileSiteEditor() {
 
     setDomainStarting(true);
     try {
-      const response = await apiRequest("POST", "/api/business-profile/domain/start", {
+      const payload = await apiRequest("POST", "/api/business-profile/domain/start", {
         profileId: profile.id,
         domain,
       });
-      const payload = await response.json();
       const candidate = String(
         payload?.domainStatus?.candidateDomain || payload?.verification?.domain || domain
       );
@@ -684,10 +683,9 @@ export default function ProfileSiteEditor() {
     if (!profile || !domainCandidate || !domainVerification?.token) return;
     setDomainVerifying(true);
     try {
-      const response = await apiRequest("POST", "/api/business-profile/domain/verify", {
+      const payload = await apiRequest("POST", "/api/business-profile/domain/verify", {
         profileId: profile.id,
       });
-      const payload = await response.json();
       const nextVerification = payload?.domainStatus?.verification || null;
       setDomainVerification(nextVerification);
       const ownershipVerified = payload?.verification?.ownershipVerified === true;
@@ -726,10 +724,9 @@ export default function ProfileSiteEditor() {
 
     setDomainDisconnecting(true);
     try {
-      const response = await apiRequest("DELETE", "/api/business-profile/domain", {
+      const payload = await apiRequest("DELETE", "/api/business-profile/domain", {
         profileId: profile.id,
       });
-      const payload = await response.json();
       setCustomDomain("");
       setDomainCandidate("");
       setDomainInput("");
@@ -760,8 +757,10 @@ export default function ProfileSiteEditor() {
   const publish = async () => {
     if (!profile) return;
     try {
-      const res = await apiRequest("PUT", `/api/profiles/${profile.id}/publish`);
-      const updated = (await res.json()) as ProfileDetail;
+      const updated = (await apiRequest(
+        "PUT",
+        `/api/profiles/${profile.id}/publish`
+      )) as ProfileDetail;
       setProfile(updated);
       toast({
         title: "Published",
@@ -779,8 +778,10 @@ export default function ProfileSiteEditor() {
   const unpublish = async () => {
     if (!profile) return;
     try {
-      const res = await apiRequest("PUT", `/api/profiles/${profile.id}/unpublish`);
-      const updated = (await res.json()) as ProfileDetail;
+      const updated = (await apiRequest(
+        "PUT",
+        `/api/profiles/${profile.id}/unpublish`
+      )) as ProfileDetail;
       setProfile(updated);
       toast({ title: "Unpublished", description: "Your profile is now private (draft)." });
     } catch (error: any) {
@@ -794,10 +795,10 @@ export default function ProfileSiteEditor() {
 
   const setVisibility = async (next: "public" | "private") => {
     try {
-      const firstRes = await apiRequest("PATCH", "/api/users/profile-visibility", {
-        profileVisibility: next,
-      });
-      const firstPayload = await firstRes.json().catch(() => ({}) as any);
+      const firstPayload =
+        ((await apiRequest("PATCH", "/api/users/profile-visibility", {
+          profileVisibility: next,
+        })) as any) ?? {};
 
       if (firstPayload?.allowProceedUnverified && next === "public") {
         const proceed = window.confirm(
@@ -975,7 +976,7 @@ export default function ProfileSiteEditor() {
     if (!profile) return;
     setSavingPublicSettings(true);
     try {
-      const response = await apiRequest(
+      const payload = (await apiRequest(
         "PATCH",
         `/api/profiles/${encodeURIComponent(profile.id)}/profile-booking`,
         {
@@ -992,8 +993,7 @@ export default function ProfileSiteEditor() {
             (row) => row.name?.trim().length && row.priceLabel?.trim().length
           ),
         }
-      );
-      const payload = (await response.json()) as ProfileBookingResponse;
+      )) as ProfileBookingResponse;
       if (payload.profileBooking) setProfileBooking(payload.profileBooking);
       toast({
         title: "Saved",

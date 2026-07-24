@@ -19,7 +19,8 @@ export class ApiError extends Error {
   }
 }
 
-// Enhanced API request function with better error handling
+// Enhanced API request function with better error handling.
+// Contract: resolves to already-parsed JSON (or null/text). Callers must NOT call `.json()`.
 export async function apiRequest(method: string, url: string, data?: any): Promise<any>;
 export async function apiRequest(
   url: string,
