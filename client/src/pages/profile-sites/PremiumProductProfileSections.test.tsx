@@ -125,7 +125,9 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     expect(designed).not.toBeNull();
     expect(chapters).not.toBeNull();
     expect(honey?.textContent).toContain("Honey Onyx");
+    expect(honey?.textContent).toContain("Warm, luminous, unmistakable.");
     expect(multiGreen?.textContent).toContain("Multi Green Onyx");
+    expect(multiGreen?.textContent).toContain("A deeper architectural tone.");
     expect(container.textContent).not.toContain("Honey Green");
 
     const designedImage = designed?.querySelector("img")?.getAttribute("src") || "";
@@ -144,18 +146,50 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     for (let i = 1; i < positions.length; i += 1) {
       expect(positions[i]).toBeGreaterThan(positions[i - 1]);
     }
+
+    // Platform engagement (when provided) sits after showcase, before consult.
+    const onDirectConnect = vi.fn();
+    act(() => {
+      root.render(
+        <PremiumProductProfileSections
+          profileName="ISSA Build"
+          product={products[0]}
+          products={products}
+          data={data}
+          trustFacts={[]}
+          faqItems={[]}
+          profileShareDestination="/u/issa-build"
+          onDirectConnect={onDirectConnect}
+          platformEngagement={<div data-testid="profile-trust-section">Trust</div>}
+        />
+      );
+    });
+    const engagementPos = container.innerHTML.indexOf(
+      'data-testid="luxury-house-platform-engagement"'
+    );
+    const showcasePos = container.innerHTML.indexOf('id="showcase"');
+    const consultPos = container.innerHTML.indexOf('id="consult"');
+    expect(engagementPos).toBeGreaterThan(showcasePos);
+    expect(consultPos).toBeGreaterThan(engagementPos);
   });
 
   it("surfaces installation, backlighting, customization, and consultation as business story", () => {
     renderProfile();
     const capabilities = container.querySelector('[data-testid="luxury-house-capabilities"]');
-    expect(capabilities?.textContent).toContain("Custom onyx installation");
-    expect(capabilities?.textContent).toContain("Backlighting solutions");
-    expect(capabilities?.textContent).toContain("Onyx customization");
-    expect(capabilities?.textContent).toContain("Project consultation");
+    expect(capabilities?.textContent).toContain("Material selection");
+    expect(capabilities?.textContent).toContain("Custom cutting and shaping");
+    expect(capabilities?.textContent).toContain("Backlighting");
+    expect(capabilities?.textContent).toContain("Custom installation");
+    expect(capabilities?.textContent).toContain("Residential and commercial projects");
+    expect(capabilities?.textContent).toContain("Private project consultation");
     expect(
       container.querySelector('[data-testid="luxury-house-consultation"]')?.textContent
-    ).toContain("Tell ISSA Build what you are creating.");
+    ).toContain("Start with the room.");
+    expect(
+      container.querySelector('[data-testid="luxury-house-consultation"]')?.textContent
+    ).toContain("Discuss your project");
+    expect(container.textContent).not.toContain("A useful first message includes");
+    expect(container.querySelector("#connect")).toBeNull();
   });
 
   it("wires Direct Connect with stable itemId slug, not only display name", () => {
@@ -170,7 +204,7 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
 
     const consultCta = Array.from(
       container.querySelectorAll('[data-testid="luxury-house-consultation"] button')
-    ).find((button) => /Direct Connect/i.test(button.textContent || ""));
+    ).find((button) => /Discuss your project/i.test(button.textContent || ""));
     expect(consultCta).toBeTruthy();
     act(() => consultCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onDirectConnect).toHaveBeenCalledWith({

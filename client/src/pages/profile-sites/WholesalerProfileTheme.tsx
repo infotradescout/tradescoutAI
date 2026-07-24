@@ -39,6 +39,7 @@ import {
 } from "@shared/profileGalleryShare";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
 import {
+  ISSA_BUILD_APPLICATION_IMAGES,
   ISSA_BUILD_HERO_POSTER,
   ISSA_BUILD_HERO_VIDEO,
   isIssaBuildProfileSlug,
@@ -1144,14 +1145,13 @@ export default function WholesalerProfileTheme({
 
       {/* Hero */}
       <section
-        className={`relative isolate flex items-end overflow-hidden py-8 md:items-center md:py-20 ${
+        className={`relative isolate flex items-end overflow-hidden py-8 md:items-end md:py-16 ${
           isIssaBuild
-            ? // Fixed viewport height (not min-height) so manage chrome + sticky bar
-              // cannot stretch the stage and reveal a stacked poster/video crop.
-              "h-[calc(100svh-var(--ts-profile-top-offset,0px)-3.5rem)] max-h-[calc(100svh-var(--ts-profile-top-offset,0px)-3.5rem)] bg-black md:h-[calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem)] md:max-h-[calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem)]"
+            ? // Designed-with-light benchmark: ~72–78svh, not full first-screen tall.
+              "h-[74svh] max-h-[78svh] bg-black"
             : isJwStone
-              ? "min-h-[460px] bg-transparent md:min-h-[600px]"
-              : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
+              ? "min-h-[460px] bg-transparent md:min-h-[600px] md:items-center md:py-20"
+              : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px] md:items-center md:py-20"
         }`}
       >
         {!heroVideo && heroImage ? (
@@ -1171,10 +1171,14 @@ export default function WholesalerProfileTheme({
             data-testid="issa-hero-media"
           >
             {/*
-              One media plane only once ready. A permanent poster <img> under the
-              video created the mid-frame split/seam (especially tall mobile).
-              Soft object-cover keeps the fireplace in frame without dual layers.
+              Mobile: installed-room application still (room reads immediately).
+              Desktop+: hero video with Designed-with-light lower gradient.
             */}
+            <img
+              src={ISSA_BUILD_APPLICATION_IMAGES[2]}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover object-[center_28%] md:hidden"
+            />
             <video
               ref={heroVideoRef}
               autoPlay={!prefersReducedMotion}
@@ -1185,7 +1189,7 @@ export default function WholesalerProfileTheme({
               poster={heroVideo.poster}
               onLoadedData={() => setIssaHeroReady(true)}
               onPlaying={() => setIssaHeroReady(true)}
-              className={`absolute inset-0 h-full w-full object-cover object-[center_42%] transition-opacity duration-500 md:object-center ${
+              className={`absolute inset-0 hidden h-full w-full object-cover object-center transition-opacity duration-500 md:block ${
                 issaHeroReady || prefersReducedMotion ? "opacity-100" : "opacity-0"
               }`}
             >
@@ -1195,7 +1199,7 @@ export default function WholesalerProfileTheme({
               <img
                 src={heroVideo.poster}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover object-[center_42%] md:object-center"
+                className="absolute inset-0 hidden h-full w-full object-cover object-center md:block"
               />
             ) : null}
           </div>
@@ -1219,7 +1223,7 @@ export default function WholesalerProfileTheme({
         {isIssaBuild ? (
           <span
             aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,6,4,0.15)_0%,rgba(8,6,4,0.35)_45%,rgba(8,6,4,0.82)_100%)] md:bg-[linear-gradient(105deg,rgba(8,6,4,0.72)_0%,rgba(8,6,4,0.28)_42%,rgba(8,6,4,0.12)_100%)]"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,6,5,0.25)_0%,rgba(7,6,5,0.55)_48%,rgba(7,6,5,0.92)_100%)]"
           />
         ) : null}
         {/* JW Stone keeps its source video unobscured. */}
@@ -1232,7 +1236,7 @@ export default function WholesalerProfileTheme({
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
             isIssaBuild
-              ? "flex min-h-[inherit] flex-col justify-end pb-10 md:px-10 md:pb-16"
+              ? "flex min-h-[inherit] flex-col justify-end pb-10 md:px-10 md:pb-14"
               : isJwStone
                 ? "md:px-8"
                 : "md:px-6 md:text-center"
@@ -1241,7 +1245,7 @@ export default function WholesalerProfileTheme({
           {heroEyebrow ? (
             isIssaBuild ? (
               <p
-                className={`mb-5 text-[11px] font-medium uppercase tracking-[0.42em] text-white/75 md:mb-7 ${heroReveal(1)}`}
+                className={`mb-4 text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent)] md:mb-5 ${heroReveal(1)}`}
               >
                 {heroEyebrow}
               </p>
@@ -1258,9 +1262,9 @@ export default function WholesalerProfileTheme({
             )
           ) : null}
           <h1
-            className={`mb-3 max-w-[18ch] text-white md:mb-6 md:max-w-3xl md:leading-tight ${
+            className={`mb-3 max-w-[18ch] text-white md:mb-5 md:max-w-3xl md:leading-tight ${
               isIssaBuild
-                ? "font-editorial text-[3.1rem] font-medium leading-[0.94] tracking-[-0.02em] [text-shadow:0_2px_28px_rgba(0,0,0,0.45)] md:text-[4.75rem] md:leading-[0.9]"
+                ? "font-editorial text-[2.75rem] font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl"
                 : isJwStone
                   ? `text-[2.2rem] font-bold leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96] ${DISPLAY_FONT}`
                   : `text-[2.55rem] font-bold leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto ${DISPLAY_FONT}`
@@ -1270,9 +1274,9 @@ export default function WholesalerProfileTheme({
           </h1>
           {heroTeaser ? (
             <p
-              className={`mb-5 max-w-[34rem] text-white md:mb-10 ${
+              className={`mb-5 max-w-[34rem] text-white md:mb-8 ${
                 isIssaBuild
-                  ? "max-w-[28rem] text-base font-light leading-7 tracking-wide text-white/85 md:text-lg md:leading-8"
+                  ? "max-w-xl text-sm font-light leading-7 text-white/80 sm:text-base sm:leading-8"
                   : isJwStone
                     ? "text-sm font-medium leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
                     : "text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:text-lg"
@@ -1284,7 +1288,7 @@ export default function WholesalerProfileTheme({
           <div
             className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
               isIssaBuild
-                ? "max-w-[36rem] gap-3"
+                ? "max-w-[36rem] items-start gap-4 sm:items-center"
                 : isJwStone
                   ? "max-w-[38rem]"
                   : "md:justify-center"
@@ -1304,13 +1308,9 @@ export default function WholesalerProfileTheme({
                 <button
                   type="button"
                   onClick={() => startDirectConnect()}
-                  className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                    isIssaBuild
-                      ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
-                      : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
-                  }`}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
                 >
-                  Discuss a project
+                  Start a private consultation
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <button
@@ -1318,14 +1318,10 @@ export default function WholesalerProfileTheme({
                   onClick={() =>
                     document.getElementById("showcase")?.scrollIntoView({ behavior: "smooth" })
                   }
-                  className={
-                    isIssaBuild
-                      ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
-                      : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                  }
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80 transition hover:text-white"
                 >
-                  View the showcase
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                  View installed work
+                  <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </>
             ) : (
@@ -1368,30 +1364,32 @@ export default function WholesalerProfileTheme({
         </div>
       </section>
 
-      <section
-        className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5"
-        aria-label="Trust and profile actions"
-        data-testid="profile-trust-section"
-      >
-        <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
-        {isIssaBuild && trustFacts.length > 0 ? (
-          <div
-            className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-primary)]/75 md:px-6"
-            data-testid="issa-trust-facts"
-          >
-            {trustFacts.map((fact, i) => (
-              <span key={fact} className="inline-flex items-center">
-                {i > 0 ? (
-                  <span className="mr-3 text-[var(--brand-primary)]/25" aria-hidden="true">
-                    ·
-                  </span>
-                ) : null}
-                {fact}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </section>
+      {!isLuxuryMaterialHouse ? (
+        <section
+          className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5"
+          aria-label="Trust and profile actions"
+          data-testid="profile-trust-section"
+        >
+          <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+          {isIssaBuild && trustFacts.length > 0 ? (
+            <div
+              className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-primary)]/75 md:px-6"
+              data-testid="issa-trust-facts"
+            >
+              {trustFacts.map((fact, i) => (
+                <span key={fact} className="inline-flex items-center">
+                  {i > 0 ? (
+                    <span className="mr-3 text-[var(--brand-primary)]/25" aria-hidden="true">
+                      ·
+                    </span>
+                  ) : null}
+                  {fact}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {isLuxuryMaterialHouse ? (
         premiumProductData?.luxuryHouse && luxuryHouseFeaturedProduct ? (
@@ -1407,6 +1405,28 @@ export default function WholesalerProfileTheme({
             profileShareDestination={profileShareDestination}
             platformBaseHref={platformBaseHref}
             onDirectConnect={startDirectConnectFromTarget}
+            platformEngagement={
+              <div data-testid="profile-trust-section">
+                <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+                {trustFacts.length > 0 ? (
+                  <div
+                    className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b7aa98] md:px-6"
+                    data-testid="issa-trust-facts"
+                  >
+                    {trustFacts.map((fact, i) => (
+                      <span key={fact} className="inline-flex items-center">
+                        {i > 0 ? (
+                          <span className="mr-3 text-white/25" aria-hidden="true">
+                            ·
+                          </span>
+                        ) : null}
+                        {fact}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            }
           />
         ) : (
           <section

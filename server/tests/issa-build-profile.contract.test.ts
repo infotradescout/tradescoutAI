@@ -179,8 +179,9 @@ describe("ISSA Build public profile contract", () => {
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
     expect(theme).toContain("font-editorial");
-    expect(theme).toContain("Discuss a project");
-    expect(theme).toContain("View the showcase");
+    expect(theme).toContain("Start a private consultation");
+    expect(theme).toContain("View installed work");
+    expect(theme).toContain("ISSA_BUILD_APPLICATION_IMAGES");
   });
 
   it("uses the reusable luxury-material-house archetype below the hero", () => {
@@ -234,11 +235,24 @@ describe("ISSA Build public profile contract", () => {
     expect(house.designedWithLight.image).toMatch(/\/applications\//);
     expect(house.materialChapters[0].applicationImage).toMatch(/\/applications\//);
     expect(house.capabilities.items.map((item: any) => item.title)).toEqual([
-      "Custom onyx installation",
-      "Backlighting solutions",
-      "Onyx customization",
-      "Project consultation",
+      "Material selection",
+      "Custom cutting and shaping",
+      "Backlighting",
+      "Custom installation",
+      "Residential and commercial projects",
+      "Private project consultation",
     ]);
+    expect(house.designedWithLight.eyebrow).toBe("BACKLIGHTING");
+    expect(house.designedWithLight.body).toContain(
+      "Translucent onyx reveals its depth when the material and lighting are considered together"
+    );
+    expect(house.materialChapters[0].title).toBe("Warm, luminous, unmistakable.");
+    expect(house.materialChapters[1].title).toBe("A deeper architectural tone.");
+    expect(house.showcase.eyebrow).toBe("INSTALLED WORK");
+    expect(house.showcase.title).toBe("Onyx in the room.");
+    expect(house.showcase.body).toBe("");
+    expect(house.consultation.eyebrow).toBe("PRIVATE DIRECT CONNECT");
+    expect(house.consultation.title).toBe("Start with the room.");
     expect(house.consultation.fields).toEqual([
       "Selected material",
       "Room / application",
@@ -276,20 +290,24 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("stickySubtitle");
     expect(theme).toContain('data-testid="issa-trust-facts"');
     expect(theme).not.toContain("scale-[1.48]");
-    expect(theme).toContain("--ts-profile-top-offset");
+    expect(theme).toContain("platformEngagement=");
+    expect(theme).toContain("!isLuxuryMaterialHouse");
+    expect(theme).toContain("h-[74svh]");
     expect(theme).toContain("border-ts-orange");
     expect(theme).toContain("Direct Connect");
     expect(theme).not.toContain('["Inquire", "connect"]');
     expect(theme).toContain('premiumProductData?.presentation === "horizontal-luxury-showcase"');
     expect(
       (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.eyebrow
-    ).toBe("ISSA BUILD · TRANSLUCENT ONYX");
+    ).toBe("CUSTOM BACKLIT ONYX");
     expect(
       (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.headerLabel
-    ).toBe("Crafted for light.");
+    ).toBe("Onyx, brought to light.");
     expect(
       (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.teaser
-    ).toBe("Honey Onyx and Multi Green Onyx for interiors designed to glow.");
+    ).toBe(
+      "Custom Honey Onyx and Multi Green Onyx installations for residential and commercial interiors."
+    );
     expect(
       (
         (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "trust")?.data as any)?.items ||
@@ -310,14 +328,19 @@ describe("ISSA Build public profile contract", () => {
     expect(luxuryHouse).toContain("capabilities");
     expect(luxuryHouse).toContain("showcase");
     expect(luxuryHouse).toContain("consult");
+    expect(luxuryHouse).toContain("platformEngagement");
+    expect(luxuryHouse).toContain("luxury-house-platform-engagement");
     expect(luxuryHouse).toContain("onDirectConnect");
     expect(luxuryHouse).toContain("itemId:");
     expect(luxuryHouse).toContain("initialPhotoIndex");
     expect(luxuryHouse).toContain("luxury-house-deep-link-lightbox");
     expect(luxuryHouse).toContain("SafeProfileImg");
-    expect(luxuryHouse).toContain("Direct Connect");
+    expect(luxuryHouse).toContain("Discuss your project");
     expect(luxuryHouse).toContain("font-editorial");
-    expect(luxuryHouse).toContain("border-ts-orange");
+    expect(luxuryHouse).toContain("var(--brand-accent");
+    expect(luxuryHouse).not.toContain('id="connect"');
+    expect(luxuryHouse).not.toContain("A useful first message includes");
+    expect(luxuryHouse).not.toContain("From stone to space");
     expect(luxuryHouse).not.toContain("profile-inventory-card");
     expect(luxuryHouse).not.toContain("snap-x snap-mandatory");
     expect(luxuryHouse).not.toContain("Lookbook");
