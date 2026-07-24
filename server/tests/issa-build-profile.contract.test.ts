@@ -277,6 +277,18 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain('data-testid="issa-trust-facts"');
     expect(theme).not.toContain("scale-[1.48]");
     expect(theme).toContain("--ts-profile-top-offset");
+    // Landscape hero film (1280×720): mobile uses aspect-video so object-cover
+    // shows the full horizontal room — never a tall portrait + object-position crop.
+    expect(theme).toContain("aspect-video");
+    expect(theme).toContain(
+      'className="pointer-events-none relative aspect-video w-full shrink-0 overflow-hidden bg-black md:absolute md:inset-0 md:aspect-auto md:h-full"'
+    );
+    expect(theme).toContain("object-cover object-center");
+    expect(theme).not.toContain("object-[center_42%]");
+    expect(theme).not.toContain("object-[center_28%]");
+    expect(theme).not.toMatch(
+      /isIssaBuild[\s\S]{0,220}h-\[calc\(100svh-var\(--ts-profile-top-offset/
+    );
     expect(theme).toContain("border-ts-orange");
     expect(theme).toContain("Direct Connect");
     expect(theme).not.toContain('["Inquire", "connect"]');

@@ -362,8 +362,8 @@ export default function WholesalerProfileTheme({
         setHeroVideoZoomed(false);
         heroVideoRef.current?.pause();
       } else {
-        // ISSA uses a fixed cover crop (no Ken Burns) so the fireplace film
-        // stays one seamless full-bleed frame instead of zooming into a split.
+        // ISSA keeps a static landscape frame (no Ken Burns) so the 16:9 room
+        // film is not zoomed into a fragment.
         if (isIssaBuild) {
           setHeroVideoZoomed(false);
         } else {
@@ -1144,14 +1144,14 @@ export default function WholesalerProfileTheme({
 
       {/* Hero */}
       <section
-        className={`relative isolate flex items-end overflow-hidden py-8 md:items-center md:py-20 ${
+        className={`relative isolate overflow-hidden ${
           isIssaBuild
-            ? // Fixed viewport height (not min-height) so manage chrome + sticky bar
-              // cannot stretch the stage and reveal a stacked poster/video crop.
-              "h-[calc(100svh-var(--ts-profile-top-offset,0px)-3.5rem)] max-h-[calc(100svh-var(--ts-profile-top-offset,0px)-3.5rem)] bg-black md:h-[calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem)] md:max-h-[calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem)]"
+            ? // Landscape 16:9 film: mobile uses aspect-video (full horizontal scene).
+              // Desktop keeps a cinematic stage with cover — never a tall portrait crop.
+              "flex flex-col bg-black md:block md:h-[min(70svh,calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem))] md:max-h-[78svh]"
             : isJwStone
-              ? "min-h-[460px] bg-transparent md:min-h-[600px]"
-              : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
+              ? "flex min-h-[460px] items-end bg-transparent py-8 md:min-h-[600px] md:items-center md:py-20"
+              : "flex min-h-[min(690px,calc(100svh-150px))] items-end bg-[var(--brand-primary)] bg-cover bg-center py-8 md:min-h-[500px] md:items-center md:py-20"
         }`}
       >
         {!heroVideo && heroImage ? (
@@ -1166,14 +1166,13 @@ export default function WholesalerProfileTheme({
         ) : null}
         {heroVideo && isIssaBuild ? (
           <div
-            className="pointer-events-none absolute inset-0 overflow-hidden bg-black"
+            className="pointer-events-none relative aspect-video w-full shrink-0 overflow-hidden bg-black md:absolute md:inset-0 md:aspect-auto md:h-full"
             aria-hidden="true"
             data-testid="issa-hero-media"
           >
             {/*
-              One media plane only once ready. A permanent poster <img> under the
-              video created the mid-frame split/seam (especially tall mobile).
-              Soft object-cover keeps the fireplace in frame without dual layers.
+              Asset is landscape (1280×720). Mobile frame matches aspect-video so
+              object-cover shows the full room — not a vertical center-slice.
             */}
             <video
               ref={heroVideoRef}
@@ -1185,7 +1184,7 @@ export default function WholesalerProfileTheme({
               poster={heroVideo.poster}
               onLoadedData={() => setIssaHeroReady(true)}
               onPlaying={() => setIssaHeroReady(true)}
-              className={`absolute inset-0 h-full w-full object-cover object-[center_42%] transition-opacity duration-500 md:object-center ${
+              className={`absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500 ${
                 issaHeroReady || prefersReducedMotion ? "opacity-100" : "opacity-0"
               }`}
             >
@@ -1195,9 +1194,10 @@ export default function WholesalerProfileTheme({
               <img
                 src={heroVideo.poster}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover object-[center_42%] md:object-center"
+                className="absolute inset-0 h-full w-full object-cover object-center"
               />
             ) : null}
+            <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,6,4,0.12)_0%,rgba(8,6,4,0.28)_55%,rgba(8,6,4,0.72)_100%)] md:bg-[linear-gradient(105deg,rgba(8,6,4,0.72)_0%,rgba(8,6,4,0.28)_42%,rgba(8,6,4,0.12)_100%)]" />
           </div>
         ) : null}
         {heroVideo && !isIssaBuild ? (
@@ -1216,12 +1216,6 @@ export default function WholesalerProfileTheme({
             <source src={heroVideo.src} type="video/mp4" />
           </video>
         ) : null}
-        {isIssaBuild ? (
-          <span
-            aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,6,4,0.15)_0%,rgba(8,6,4,0.35)_45%,rgba(8,6,4,0.82)_100%)] md:bg-[linear-gradient(105deg,rgba(8,6,4,0.72)_0%,rgba(8,6,4,0.28)_42%,rgba(8,6,4,0.12)_100%)]"
-          />
-        ) : null}
         {/* JW Stone keeps its source video unobscured. */}
         {!isJwStone && !isIssaBuild ? (
           <span
@@ -1232,7 +1226,7 @@ export default function WholesalerProfileTheme({
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
             isIssaBuild
-              ? "flex min-h-[inherit] flex-col justify-end pb-10 md:px-10 md:pb-16"
+              ? "w-full bg-[#0c0a08] py-8 md:absolute md:inset-0 md:flex md:flex-col md:justify-end md:bg-transparent md:px-10 md:pb-14 md:pt-0"
               : isJwStone
                 ? "md:px-8"
                 : "md:px-6 md:text-center"
