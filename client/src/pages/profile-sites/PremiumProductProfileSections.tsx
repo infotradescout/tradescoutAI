@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   ArrowUpRight,
   Check,
@@ -42,6 +42,8 @@ type Props = {
   profileShareDestination: string;
   platformBaseHref?: string;
   onDirectConnect: (target?: DirectConnectTarget) => void;
+  /** Luxury-material-house: platform engagement rendered after showcase. */
+  platformEngagement?: ReactNode;
 };
 
 function safeImage(images: string[], index: number): string {

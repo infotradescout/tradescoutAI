@@ -1235,7 +1235,7 @@ export default function WholesalerProfileTheme({
           {heroEyebrow ? (
             isIssaBuild ? (
               <p
-                className={`mb-5 text-[11px] font-medium uppercase tracking-[0.42em] text-white/75 md:mb-7 ${heroReveal(1)}`}
+                className={`mb-4 text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent)] md:mb-5 ${heroReveal(1)}`}
               >
                 {heroEyebrow}
               </p>
@@ -1254,7 +1254,7 @@ export default function WholesalerProfileTheme({
           <h1
             className={`mb-3 max-w-[18ch] text-white md:mb-6 md:max-w-3xl md:leading-tight ${
               isIssaBuild
-                ? "font-editorial text-[3.1rem] font-medium leading-[0.94] tracking-[-0.02em] [text-shadow:0_2px_28px_rgba(0,0,0,0.45)] md:text-[4.75rem] md:leading-[0.9]"
+                ? "font-editorial text-[2.75rem] font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl"
                 : isJwStone
                   ? `text-[2.2rem] font-bold leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96] ${DISPLAY_FONT}`
                   : `text-[2.55rem] font-bold leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto ${DISPLAY_FONT}`
@@ -1266,7 +1266,7 @@ export default function WholesalerProfileTheme({
             <p
               className={`mb-5 max-w-[34rem] text-white md:mb-10 ${
                 isIssaBuild
-                  ? "max-w-[28rem] text-base font-light leading-7 tracking-wide text-white/85 md:text-lg md:leading-8"
+                  ? "max-w-xl text-sm font-light leading-7 text-white/80 sm:text-base sm:leading-8"
                   : isJwStone
                     ? "text-sm font-medium leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
                     : "text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:text-lg"
@@ -1278,7 +1278,7 @@ export default function WholesalerProfileTheme({
           <div
             className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
               isIssaBuild
-                ? "max-w-[36rem] gap-3"
+                ? "max-w-[36rem] items-start gap-4 sm:items-center"
                 : isJwStone
                   ? "max-w-[38rem]"
                   : "md:justify-center"
@@ -1298,13 +1298,9 @@ export default function WholesalerProfileTheme({
                 <button
                   type="button"
                   onClick={() => startDirectConnect()}
-                  className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                    isIssaBuild
-                      ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
-                      : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
-                  }`}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
                 >
-                  Discuss a project
+                  Start a private consultation
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <button
@@ -1312,14 +1308,10 @@ export default function WholesalerProfileTheme({
                   onClick={() =>
                     document.getElementById("showcase")?.scrollIntoView({ behavior: "smooth" })
                   }
-                  className={
-                    isIssaBuild
-                      ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
-                      : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                  }
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80 transition hover:text-white"
                 >
-                  View the showcase
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                  View installed work
+                  <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </>
             ) : (
@@ -1362,30 +1354,32 @@ export default function WholesalerProfileTheme({
         </div>
       </section>
 
-      <section
-        className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5"
-        aria-label="Trust and profile actions"
-        data-testid="profile-trust-section"
-      >
-        <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
-        {isIssaBuild && trustFacts.length > 0 ? (
-          <div
-            className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-primary)]/75 md:px-6"
-            data-testid="issa-trust-facts"
-          >
-            {trustFacts.map((fact, i) => (
-              <span key={fact} className="inline-flex items-center">
-                {i > 0 ? (
-                  <span className="mr-3 text-[var(--brand-primary)]/25" aria-hidden="true">
-                    ·
-                  </span>
-                ) : null}
-                {fact}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </section>
+      {!isLuxuryMaterialHouse ? (
+        <section
+          className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5"
+          aria-label="Trust and profile actions"
+          data-testid="profile-trust-section"
+        >
+          <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+          {isIssaBuild && trustFacts.length > 0 ? (
+            <div
+              className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-primary)]/75 md:px-6"
+              data-testid="issa-trust-facts"
+            >
+              {trustFacts.map((fact, i) => (
+                <span key={fact} className="inline-flex items-center">
+                  {i > 0 ? (
+                    <span className="mr-3 text-[var(--brand-primary)]/25" aria-hidden="true">
+                      ·
+                    </span>
+                  ) : null}
+                  {fact}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {isLuxuryMaterialHouse ? (
         premiumProductData?.luxuryHouse && luxuryHouseFeaturedProduct ? (
@@ -1401,6 +1395,28 @@ export default function WholesalerProfileTheme({
             profileShareDestination={profileShareDestination}
             platformBaseHref={platformBaseHref}
             onDirectConnect={startDirectConnectFromTarget}
+            platformEngagement={
+              <div data-testid="profile-trust-section">
+                <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+                {trustFacts.length > 0 ? (
+                  <div
+                    className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b7aa98] md:px-6"
+                    data-testid="issa-trust-facts"
+                  >
+                    {trustFacts.map((fact, i) => (
+                      <span key={fact} className="inline-flex items-center">
+                        {i > 0 ? (
+                          <span className="mr-3 text-white/25" aria-hidden="true">
+                            ·
+                          </span>
+                        ) : null}
+                        {fact}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            }
           />
         ) : (
           <section
