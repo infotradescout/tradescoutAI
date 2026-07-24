@@ -41,10 +41,12 @@ describe("Public-profile Express Direct Connect contract", () => {
 
     expect(theme).toContain('requestMode="materials"');
     expect(theme).toContain("initialStoneName={expressStoneName}");
+    expect(theme).toContain("initialItemId={expressItemId}");
     expect(theme).toContain("initialRequestType={expressRequestType}");
-    expect(theme).toContain(
-      'startDirectConnect(productName ?? null, productName ? "request_material" : null)'
-    );
+    expect(theme).toContain("startDirectConnectFromTarget");
+    expect(theme).toContain("resolveDirectConnectMaterial");
+    expect(panel).toContain("itemId: stableItemId || undefined");
+    expect(panel).toContain('params.set("item", itemParam)');
     expect(route).toContain("sourceRefId: target.profileId");
     expect(route).toContain('source: "tradepartner_profile"');
     expect(route).toContain('connectionMode: "express"');
@@ -52,6 +54,7 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("businessId: target.businessId");
     expect(route).toContain("requestType: body.requestType");
     expect(route).toContain("stoneName: body.stoneName || null");
+    expect(route).toContain("itemId: body.itemId || null");
     expect(route).toContain("requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(route).toContain("? ISSA_BUILD_PROFILE_SLUG");
   });

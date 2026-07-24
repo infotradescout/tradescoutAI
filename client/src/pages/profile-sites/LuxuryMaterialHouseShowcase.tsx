@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
-import { ChevronRight, MessageCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
+import type { DirectConnectTarget } from "./directConnectMaterial";
+import { SafeProfileImg } from "./safeProfileImage";
 
 type Product = {
   name: string;
@@ -25,7 +27,7 @@ type Props = {
   faqItems: FaqItem[];
   profileShareDestination: string;
   platformBaseHref?: string;
-  onDirectConnect: (productName?: string | null) => void;
+  onDirectConnect: (target?: DirectConnectTarget) => void;
 };
 
 /**
@@ -37,9 +39,12 @@ export default function LuxuryMaterialHouseShowcase({
   product,
   products = [product],
   initialProductSlug,
+  initialPhotoIndex = 0,
   data,
   trustFacts: _trustFacts,
   faqItems,
+  profileShareDestination: _profileShareDestination,
+  platformBaseHref: _platformBaseHref,
   onDirectConnect,
 }: Props) {
   const house = data.luxuryHouse;
@@ -57,10 +62,29 @@ export default function LuxuryMaterialHouseShowcase({
   const selectedChapter =
     house.materialChapters.find((chapter) => chapter.slug === selectedMaterialSlug) ||
     initialChapter;
-  const selectedProduct =
-    products.find((entry) => entry.slug === selectedMaterialSlug) ||
-    products.find((entry) => entry.slug === selectedChapter.slug) ||
-    product;
+
+  const materialProductFor = (
+    slug: string,
+    name: string,
+    applicationImage: string,
+    detailImage: string
+  ) =>
+    products.find((entry) => entry.slug === slug) || {
+      name,
+      slug,
+      images: [applicationImage, detailImage],
+    };
+
+  const lightboxProduct = materialProductFor(
+    selectedChapter.slug,
+    selectedChapter.name,
+    selectedChapter.applicationImage,
+    selectedChapter.detailImage
+  );
+
+  const [activePhoto, setActivePhoto] = useState<number | null>(null);
+  const deepLinkAppliedRef = useRef(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!initialProductSlug) return;
@@ -68,7 +92,67 @@ export default function LuxuryMaterialHouseShowcase({
     if (match) setSelectedMaterialSlug(match.slug);
   }, [house.materialChapters, initialProductSlug]);
 
-  const startConsultation = () => onDirectConnect(selectedProduct.name);
+  // Restore exact stone + photo deep links (?stone=&photo=) via lightbox + chapter focus.
+  useEffect(() => {
+    if (!initialProductSlug || deepLinkAppliedRef.current) return;
+    const chapter = house.materialChapters.find((entry) => entry.slug === initialProductSlug);
+    if (!chapter) return;
+    const linked = materialProductFor(
+      chapter.slug,
+      chapter.name,
+      chapter.applicationImage,
+      chapter.detailImage
+    );
+    if (!linked.images.length) return;
+    const clamped = Math.min(Math.max(0, initialPhotoIndex), linked.images.length - 1);
+    deepLinkAppliedRef.current = true;
+    setSelectedMaterialSlug(linked.slug);
+    setActivePhoto(clamped);
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`chapter-${linked.slug}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const anchorIndex = Math.min(clamped, 1);
+      document
+        .getElementById(`luxury-house-photo-${linked.slug}-${anchorIndex}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [house.materialChapters, initialPhotoIndex, initialProductSlug, products]);
+
+  useEffect(() => {
+    if (activePhoto === null) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const imageCount = lightboxProduct.images.length;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActivePhoto(null);
+      if (imageCount <= 1) return;
+      if (event.key === "ArrowLeft") {
+        setActivePhoto((current) =>
+          current === null ? null : (current - 1 + imageCount) % imageCount
+        );
+      }
+      if (event.key === "ArrowRight") {
+        setActivePhoto((current) => (current === null ? null : (current + 1) % imageCount));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [activePhoto, lightboxProduct.images.length]);
+
+  const connectMaterial = (slug: string, name: string) =>
+    onDirectConnect({ itemId: slug, itemName: name });
+
+  const startConsultation = () => connectMaterial(selectedChapter.slug, selectedChapter.name);
+
+  const lightboxImages = lightboxProduct.images;
+  const lightboxName = lightboxProduct.name;
+  const lightboxSlug = lightboxProduct.slug;
+  const photoIndex = activePhoto ?? 0;
 
   return (
     <div
@@ -81,7 +165,7 @@ export default function LuxuryMaterialHouseShowcase({
         data-testid="luxury-house-designed-with-light"
         className="relative isolate min-h-[78svh] scroll-mt-24 overflow-hidden"
       >
-        <img
+        <SafeProfileImg
           src={house.designedWithLight.image}
           alt=""
           aria-hidden="true"
@@ -110,60 +194,100 @@ export default function LuxuryMaterialHouseShowcase({
         className="scroll-mt-24 bg-[#0c0a08] px-4 py-16 sm:px-8 sm:py-24"
       >
         <div className="mx-auto max-w-7xl space-y-20 sm:space-y-28">
-          {house.materialChapters.map((chapter, chapterIndex) => (
-            <article
-              key={chapter.slug}
-              id={`chapter-${chapter.slug}`}
-              data-testid={`luxury-house-chapter-${chapter.slug}`}
-              className="grid gap-8 lg:grid-cols-12 lg:gap-10"
-            >
-              <div className={`lg:col-span-7 ${chapterIndex % 2 === 1 ? "lg:order-2" : ""}`}>
-                <div className="overflow-hidden">
-                  <img
-                    src={chapter.applicationImage}
-                    alt={`${chapter.name} installed interior`}
-                    loading={chapterIndex === 0 ? "eager" : "lazy"}
-                    className="aspect-[4/3] h-full w-full object-cover transition duration-[1200ms] ease-out hover:scale-[1.015] motion-reduce:transition-none"
-                  />
-                </div>
-                <div className="mt-3 overflow-hidden">
-                  <img
-                    src={chapter.detailImage}
-                    alt={`${chapter.name} material detail`}
-                    loading="lazy"
-                    className="aspect-[16/7] w-full object-cover"
-                  />
-                </div>
-              </div>
-              <div
-                className={`flex flex-col justify-center lg:col-span-5 ${
-                  chapterIndex % 2 === 1 ? "lg:order-1" : ""
-                }`}
+          {house.materialChapters.map((chapter, chapterIndex) => {
+            const chapterProduct = products.find((entry) => entry.slug === chapter.slug) || {
+              name: chapter.name,
+              slug: chapter.slug,
+              images: [chapter.applicationImage, chapter.detailImage],
+            };
+            const chapterImages = chapterProduct.images.length
+              ? chapterProduct.images
+              : [chapter.applicationImage, chapter.detailImage];
+
+            return (
+              <article
+                key={chapter.slug}
+                id={`chapter-${chapter.slug}`}
+                data-testid={`luxury-house-chapter-${chapter.slug}`}
+                className="grid gap-8 lg:grid-cols-12 lg:gap-10"
               >
-                <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
-                  {chapter.eyebrow}
-                </p>
-                <h3 className="mt-3 font-editorial text-3xl font-medium leading-[1.02] tracking-[-0.02em] sm:text-4xl md:text-5xl">
-                  {chapter.name}
-                </h3>
-                <p className="mt-4 text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
-                  {chapter.body}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedMaterialSlug(chapter.slug);
-                    onDirectConnect(chapter.name);
-                  }}
-                  aria-label={`Direct Connect about ${chapter.name}`}
-                  className="mt-8 inline-flex min-h-12 w-fit items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
+                <div className={`lg:col-span-7 ${chapterIndex % 2 === 1 ? "lg:order-2" : ""}`}>
+                  <div className="overflow-hidden">
+                    <button
+                      type="button"
+                      id={`luxury-house-photo-${chapter.slug}-0`}
+                      data-testid={`luxury-house-photo-${chapter.slug}-0`}
+                      data-photo-index="0"
+                      onClick={() => {
+                        setSelectedMaterialSlug(chapter.slug);
+                        setActivePhoto(0);
+                      }}
+                      className="block w-full text-left"
+                      aria-label={`Open ${chapter.name} application image`}
+                    >
+                      <SafeProfileImg
+                        src={chapter.applicationImage}
+                        fallbackSrcs={chapterImages.slice(1)}
+                        alt={`${chapter.name} installed interior`}
+                        loading={chapterIndex === 0 ? "eager" : "lazy"}
+                        className="aspect-[4/3] h-full w-full object-cover transition duration-[1200ms] ease-out hover:scale-[1.015] motion-reduce:transition-none"
+                      />
+                    </button>
+                  </div>
+                  <div className="mt-3 overflow-hidden">
+                    <button
+                      type="button"
+                      id={`luxury-house-photo-${chapter.slug}-1`}
+                      data-testid={`luxury-house-photo-${chapter.slug}-1`}
+                      data-photo-index="1"
+                      onClick={() => {
+                        setSelectedMaterialSlug(chapter.slug);
+                        const detailIndex = Math.min(1, Math.max(0, chapterImages.length - 1));
+                        setActivePhoto(detailIndex);
+                      }}
+                      className="block w-full text-left"
+                      aria-label={`Open ${chapter.name} detail image`}
+                    >
+                      <SafeProfileImg
+                        src={chapter.detailImage}
+                        fallbackSrcs={chapterImages}
+                        alt={`${chapter.name} material detail`}
+                        loading="lazy"
+                        className="aspect-[16/7] w-full object-cover"
+                      />
+                    </button>
+                  </div>
+                </div>
+                <div
+                  className={`flex flex-col justify-center lg:col-span-5 ${
+                    chapterIndex % 2 === 1 ? "lg:order-1" : ""
+                  }`}
                 >
-                  Discuss {chapter.name}
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-            </article>
-          ))}
+                  <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
+                    {chapter.eyebrow}
+                  </p>
+                  <h3 className="mt-3 font-editorial text-3xl font-medium leading-[1.02] tracking-[-0.02em] sm:text-4xl md:text-5xl">
+                    {chapter.name}
+                  </h3>
+                  <p className="mt-4 text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
+                    {chapter.body}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMaterialSlug(chapter.slug);
+                      connectMaterial(chapter.slug, chapter.name);
+                    }}
+                    aria-label={`Direct Connect about ${chapter.name}`}
+                    className="mt-8 inline-flex min-h-12 w-fit items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
+                  >
+                    Discuss {chapter.name}
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -229,7 +353,7 @@ export default function LuxuryMaterialHouseShowcase({
                     wide ? "col-span-2 lg:col-span-8" : "col-span-1 lg:col-span-4"
                   } ${index % 3 === 1 ? "lg:mt-10" : ""}`}
                 >
-                  <img
+                  <SafeProfileImg
                     src={image}
                     alt={`${profileName} installed project ${index + 1}`}
                     loading={index < 2 ? "eager" : "lazy"}
@@ -292,7 +416,7 @@ export default function LuxuryMaterialHouseShowcase({
             <button
               type="button"
               onClick={startConsultation}
-              aria-label={`Direct Connect about ${selectedProduct.name}`}
+              aria-label={`Direct Connect about ${selectedChapter.name}`}
               className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[#17100b] px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[#24180f]"
             >
               <MessageCircle className="h-4 w-4" />
@@ -352,7 +476,7 @@ export default function LuxuryMaterialHouseShowcase({
         id="connect"
         className="relative isolate min-h-[52svh] overflow-hidden px-4 py-20 sm:px-8"
       >
-        <img
+        <SafeProfileImg
           src={house.showcase.images[2] || house.designedWithLight.image}
           alt=""
           aria-hidden="true"
@@ -374,7 +498,7 @@ export default function LuxuryMaterialHouseShowcase({
             <button
               type="button"
               onClick={startConsultation}
-              aria-label={`Direct Connect about ${selectedProduct.name}`}
+              aria-label={`Direct Connect about ${selectedChapter.name}`}
               className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
             >
               Direct Connect
@@ -383,6 +507,95 @@ export default function LuxuryMaterialHouseShowcase({
           </div>
         </div>
       </section>
+
+      {activePhoto !== null && lightboxImages[photoIndex] ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${lightboxName} photo gallery`}
+          data-testid="luxury-house-deep-link-lightbox"
+          data-stone-slug={lightboxSlug}
+          data-photo-index={String(photoIndex)}
+          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/96 p-2 sm:p-6"
+          onMouseDown={(event) => event.target === event.currentTarget && setActivePhoto(null)}
+        >
+          <div className="flex max-h-[96svh] w-full max-w-7xl flex-col overflow-hidden border border-white/10 bg-[#070605]">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#efd393]">
+                  {lightboxName} · {String(photoIndex + 1).padStart(2, "0")} /{" "}
+                  {String(lightboxImages.length).padStart(2, "0")}
+                </p>
+                <h3 className="mt-1 font-editorial text-2xl font-medium">{lightboxName}</h3>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={() => setActivePhoto(null)}
+                className="h-11 w-11 border border-white/15"
+                aria-label="Close expanded gallery"
+              >
+                <X className="mx-auto h-5 w-5" />
+              </button>
+            </div>
+            <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
+              <SafeProfileImg
+                src={lightboxImages[photoIndex]}
+                fallbackSrcs={lightboxImages}
+                alt={`${lightboxName}: view ${photoIndex + 1}`}
+                data-testid="luxury-house-deep-link-image"
+                data-photo-index={String(photoIndex)}
+                className="max-h-[74svh] w-full object-contain"
+              />
+              {lightboxImages.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePhoto((current) =>
+                        current === null
+                          ? null
+                          : (current - 1 + lightboxImages.length) % lightboxImages.length
+                      )
+                    }
+                    className="absolute left-2 h-12 w-12 border border-white/15 bg-black/55"
+                    aria-label="Previous expanded image"
+                  >
+                    <ChevronLeft className="mx-auto" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePhoto((current) =>
+                        current === null ? null : (current + 1) % lightboxImages.length
+                      )
+                    }
+                    className="absolute right-2 h-12 w-12 border border-white/15 bg-black/55"
+                    aria-label="Next expanded image"
+                  >
+                    <ChevronRight className="mx-auto" />
+                  </button>
+                </>
+              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-white/10 p-4 sm:px-6">
+              <p className="text-xs font-light text-white/65">
+                Shared image for {lightboxSlug}. Use the arrow keys to continue.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePhoto(null);
+                  connectMaterial(lightboxSlug, lightboxName);
+                }}
+                className="inline-flex min-h-11 flex-none items-center justify-center border-2 border-ts-orange px-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-ts-orange"
+              >
+                Direct Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   profileInventoryShareIndexForDisplay,
 } from "@shared/profileItemShare";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
+import type { DirectConnectTarget } from "./directConnectMaterial";
 
 type Product = {
   name: string;
@@ -30,7 +31,7 @@ type Props = {
   trustFacts: string[];
   faqItems: Array<{ question?: string; answer?: string }>;
   profileShareDestination: string;
-  onDirectConnect: (productName?: string | null) => void;
+  onDirectConnect: (target?: DirectConnectTarget) => void;
 };
 
 export default function OnyxStoneShowcase({

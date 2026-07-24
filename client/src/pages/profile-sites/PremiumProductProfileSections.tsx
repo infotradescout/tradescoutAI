@@ -14,6 +14,7 @@ import {
   profileInventoryShareIndexForDisplay,
 } from "@shared/profileItemShare";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
+import type { DirectConnectTarget } from "./directConnectMaterial";
 import LuxuryMaterialHouseShowcase from "./LuxuryMaterialHouseShowcase";
 import OnyxStoneShowcase from "./OnyxStoneShowcase";
 
@@ -40,7 +41,7 @@ type Props = {
   faqItems: FaqItem[];
   profileShareDestination: string;
   platformBaseHref?: string;
-  onDirectConnect: (productName?: string | null) => void;
+  onDirectConnect: (target?: DirectConnectTarget) => void;
 };
 
 function safeImage(images: string[], index: number): string {

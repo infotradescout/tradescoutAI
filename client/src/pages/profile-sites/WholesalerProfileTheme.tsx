@@ -28,6 +28,8 @@ import { ShareButton } from "@/components/ShareButton";
 import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
 import {
   buildProfileInventoryShareSearch,
+  normalizeProfileInventoryItemSlug,
+  normalizeProfileInventoryPhotoIndex,
   profileInventoryShareIndexForDisplay,
   resolveProfileInventoryItem,
 } from "@shared/profileItemShare";
@@ -41,6 +43,8 @@ import {
   ISSA_BUILD_HERO_VIDEO,
   isIssaBuildProfileSlug,
 } from "@shared/issaBuildProfile";
+import { resolveDirectConnectMaterial, type DirectConnectTarget } from "./directConnectMaterial";
+import { createFallbackImageHandlers, isDecodedFrameBlack } from "./safeProfileImage";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -509,11 +513,22 @@ export default function WholesalerProfileTheme({
   }, [openStone]);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
   const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
+  const [expressItemId, setExpressItemId] = useState<string | null>(null);
   const [expressRequestType, setExpressRequestType] =
     useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
   const premiumInventoryStones = inventoryCatalogFromContent.flatMap((category) => category.stones);
+  const rawPremiumPresentation =
+    premiumProductBlock?.data &&
+    typeof premiumProductBlock.data === "object" &&
+    !Array.isArray(premiumProductBlock.data)
+      ? (premiumProductBlock.data as Record<string, unknown>).presentation
+      : undefined;
+  // Presentation flag is checked before full validation so a broken/edited
+  // luxury-material-house payload fails closed instead of falling through to
+  // wholesaler inventory chrome.
+  const isLuxuryMaterialHouse = rawPremiumPresentation === "luxury-material-house";
   const premiumProductData = isPremiumProductProfileData(premiumProductBlock?.data)
     ? premiumProductBlock.data
     : null;
@@ -525,15 +540,54 @@ export default function WholesalerProfileTheme({
       : premiumProductData && premiumInventoryStones.length === 1
         ? premiumInventoryStones[0]
         : null;
+  const luxuryHouseProducts = useMemo(() => {
+    if (!isLuxuryMaterialHouse || !premiumProductData?.luxuryHouse) return [];
+    return premiumProductData.luxuryHouse.materialChapters.map((chapter) => {
+      const fromInventory = premiumInventoryStones.find((stone) => stone.slug === chapter.slug);
+      return {
+        name: chapter.name,
+        slug: chapter.slug,
+        images:
+          fromInventory?.images?.length && fromInventory.images.length > 0
+            ? fromInventory.images
+            : [chapter.applicationImage, chapter.detailImage],
+        shareImageOrder: fromInventory?.shareImageOrder,
+      };
+    });
+  }, [isLuxuryMaterialHouse, premiumInventoryStones, premiumProductData]);
+  const luxuryHouseFeaturedProduct =
+    luxuryHouseProducts.find((entry) => entry.slug === premiumProductData?.featuredProductSlug) ||
+    luxuryHouseProducts[0] ||
+    null;
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const sharedItem = resolveProfileInventoryItem(
-      inventoryCatalog,
-      params.get("stone"),
-      params.get("photo")
-    );
+    const stoneParam = params.get("stone");
+    const photoParam = params.get("photo");
+
+    // Presentation-first: luxury-material-house deep links resolve from chapters
+    // even when inventoryCatalog is missing/edited.
+    if (isLuxuryMaterialHouse && premiumProductData?.luxuryHouse) {
+      const fromInventory = resolveProfileInventoryItem(inventoryCatalog, stoneParam, photoParam);
+      if (fromInventory) {
+        setPremiumSharedItem({ slug: fromInventory.slug, imageIndex: fromInventory.imageIndex });
+        return;
+      }
+      const slug = normalizeProfileInventoryItemSlug(stoneParam);
+      const chapter = premiumProductData.luxuryHouse.materialChapters.find(
+        (entry) => entry.slug === slug
+      );
+      if (!chapter) return;
+      const chapterImages = [chapter.applicationImage, chapter.detailImage];
+      setPremiumSharedItem({
+        slug: chapter.slug,
+        imageIndex: normalizeProfileInventoryPhotoIndex(photoParam, chapterImages.length),
+      });
+      return;
+    }
+
+    const sharedItem = resolveProfileInventoryItem(inventoryCatalog, stoneParam, photoParam);
     if (!sharedItem) return;
     const match = allInventoryStones.find((stone) => stone.slug === sharedItem.slug);
     if (!match) return;
@@ -628,6 +682,7 @@ export default function WholesalerProfileTheme({
   )?.images[1];
   const heroImage =
     (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
+    luxuryHouseFeaturedProduct?.images[0] ||
     premiumProduct?.images[0] ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
     galleryItems[0]?.imageUrl;
@@ -690,11 +745,13 @@ export default function WholesalerProfileTheme({
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
   const startDirectConnect = (
     stoneName?: string | null,
-    requestType?: ExpressDirectConnectRequestType | null
+    requestType?: ExpressDirectConnectRequestType | null,
+    itemId?: string | null
   ) => {
     if (useExpressDirectConnect) {
       setExpressStoneName(stoneName || null);
-      setExpressRequestType(requestType || (stoneName ? "request_material" : null));
+      setExpressItemId(itemId || null);
+      setExpressRequestType(requestType || (stoneName || itemId ? "request_material" : null));
       setExpressPanelOpen(true);
       return;
     }
@@ -703,6 +760,15 @@ export default function WholesalerProfileTheme({
       return;
     }
     navigate(ctaHref);
+  };
+
+  const startDirectConnectFromTarget = (target?: DirectConnectTarget) => {
+    const material = resolveDirectConnectMaterial(target);
+    startDirectConnect(
+      material.itemName,
+      material.itemId || material.itemName ? "request_material" : null,
+      material.itemId
+    );
   };
 
   const scrollToInventoryBrowser = () => {
@@ -769,61 +835,30 @@ export default function WholesalerProfileTheme({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // A handful of source files are truncated mid-upload (correct WebP header
-  // and dimensions, but the compressed frame data cuts off) -- the browser
-  // reports them as loaded successfully, so onError never fires. Sampling a
-  // downscaled draw catches the "decoded to solid black" case those produce.
-  const isDecodedFrameBlack = (img: HTMLImageElement): boolean => {
-    try {
-      const w = 24;
-      const h = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * w) || 24);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return false;
-      ctx.drawImage(img, 0, 0, w, h);
-      const { data } = ctx.getImageData(0, 0, w, h);
-      let sum = 0;
-      for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
-      return sum / (data.length / 4) < 4;
-    } catch {
-      return false;
-    }
-  };
-
   // Falls through the material's other photos before giving up. JW Stone has
   // an approved fallback mark; other profiles must never inherit that brand.
-  const advanceStoneImage = (img: HTMLImageElement, stone: InventoryStone) => {
-    const nextIndex = Number(img.dataset.fallbackIndex || "0") + 1;
-    if (nextIndex < stone.images.length) {
-      img.dataset.fallbackIndex = String(nextIndex);
-      img.src = stone.images[nextIndex];
-      return;
-    }
-    img.onerror = null;
-    if (isJwStone) {
-      img.src = "/images/businesses/jw-stone/logo.svg";
-      img.className =
-        "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
-      return;
-    }
-    img.removeAttribute("src");
-    img.alt = `${stone.name} photo temporarily unavailable`;
-    img.style.visibility = "hidden";
-  };
+  // Black-frame detection is shared via safeProfileImage (also used by luxury house).
+  const stoneImageHandlers = (stone: InventoryStone) =>
+    createFallbackImageHandlers(stone.images, (img) => {
+      if (isJwStone) {
+        img.src = "/images/businesses/jw-stone/logo.svg";
+        img.className =
+          "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
+        return;
+      }
+      img.removeAttribute("src");
+      img.alt = `${stone.name} photo temporarily unavailable`;
+      img.style.visibility = "hidden";
+    });
 
   const handleStoneImageError =
     (stone: InventoryStone) => (event: SyntheticEvent<HTMLImageElement>) => {
-      advanceStoneImage(event.currentTarget, stone);
+      stoneImageHandlers(stone).onError(event);
     };
 
   const handleStoneImageLoad =
     (stone: InventoryStone) => (event: SyntheticEvent<HTMLImageElement>) => {
-      const img = event.currentTarget;
-      if (isDecodedFrameBlack(img)) {
-        advanceStoneImage(img, stone);
-      }
+      stoneImageHandlers(stone).onLoad(event);
     };
 
   const renderStoneCard = (
@@ -1358,7 +1393,49 @@ export default function WholesalerProfileTheme({
         ) : null}
       </section>
 
-      {premiumProductData && premiumProduct ? (
+      {isLuxuryMaterialHouse ? (
+        premiumProductData?.luxuryHouse && luxuryHouseFeaturedProduct ? (
+          <PremiumProductProfileSections
+            profileName={displayName}
+            product={luxuryHouseFeaturedProduct}
+            products={luxuryHouseProducts}
+            initialProductSlug={premiumSharedItem?.slug}
+            initialPhotoIndex={premiumSharedItem?.imageIndex}
+            data={premiumProductData}
+            trustFacts={trustFacts}
+            faqItems={faqItems}
+            profileShareDestination={profileShareDestination}
+            platformBaseHref={platformBaseHref}
+            onDirectConnect={startDirectConnectFromTarget}
+          />
+        ) : (
+          <section
+            className="bg-[var(--brand-bg)] px-4 py-16 text-center md:px-6"
+            data-testid="luxury-material-house-unavailable"
+          >
+            <div className="mx-auto max-w-xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent)]">
+                Presentation unavailable
+              </p>
+              <h2 className={`mt-3 text-2xl font-bold text-[var(--brand-primary)] ${DISPLAY_FONT}`}>
+                This material house cannot be shown right now.
+              </h2>
+              <p className="mt-3 text-sm font-medium leading-relaxed text-[var(--brand-primary)]/70">
+                The luxury presentation is locked for this profile. Inventory browsing is not shown
+                as a fallback.
+              </p>
+              <button
+                type="button"
+                onClick={() => startDirectConnect()}
+                className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-primary)] px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Direct Connect
+              </button>
+            </div>
+          </section>
+        )
+      ) : premiumProductData && premiumProduct ? (
         <PremiumProductProfileSections
           profileName={displayName}
           product={premiumProduct}
@@ -1370,9 +1447,7 @@ export default function WholesalerProfileTheme({
           faqItems={faqItems}
           profileShareDestination={profileShareDestination}
           platformBaseHref={platformBaseHref}
-          onDirectConnect={(productName) =>
-            startDirectConnect(productName ?? null, productName ? "request_material" : null)
-          }
+          onDirectConnect={startDirectConnectFromTarget}
         />
       ) : (
         <>
@@ -2418,6 +2493,7 @@ export default function WholesalerProfileTheme({
         stayInProfile
         requestMode="materials"
         initialStoneName={expressStoneName}
+        initialItemId={expressItemId}
         initialRequestType={expressRequestType}
         contactOperatorName={contactOperatorName || undefined}
         contactOperatorRole={contactOperatorRole || undefined}

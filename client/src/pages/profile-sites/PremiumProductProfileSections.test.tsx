@@ -81,14 +81,15 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
   function renderProfile(
     onDirectConnect = vi.fn(),
     initialProductSlug?: string,
-    initialPhotoIndex = 0
+    initialPhotoIndex = 0,
+    overrideProducts = products
   ) {
     act(() => {
       root.render(
         <PremiumProductProfileSections
           profileName="ISSA Build"
-          product={products[0]}
-          products={products}
+          product={overrideProducts[0]}
+          products={overrideProducts}
           initialProductSlug={initialProductSlug}
           initialPhotoIndex={initialPhotoIndex}
           data={data}
@@ -157,7 +158,7 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     ).toContain("Tell ISSA Build what you are creating.");
   });
 
-  it("wires Direct Connect with the selected material identity", () => {
+  it("wires Direct Connect with stable itemId slug, not only display name", () => {
     const onDirectConnect = renderProfile();
     const multiGreenToggle = Array.from(container.querySelectorAll("button")).find(
       (button) =>
@@ -172,7 +173,10 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     ).find((button) => /Direct Connect/i.test(button.textContent || ""));
     expect(consultCta).toBeTruthy();
     act(() => consultCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onDirectConnect).toHaveBeenCalledWith("Multi Green Onyx");
+    expect(onDirectConnect).toHaveBeenCalledWith({
+      itemId: "multi-green-onyx",
+      itemName: "Multi Green Onyx",
+    });
   });
 
   it("preserves honey-onyx and multi-green-onyx identity through chapter CTAs", () => {
@@ -187,9 +191,33 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     expect(multiCta).toBeTruthy();
     act(() => honeyCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     act(() => multiCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onDirectConnect).toHaveBeenCalledWith("Honey Onyx");
-    expect(onDirectConnect).toHaveBeenCalledWith("Multi Green Onyx");
+    expect(onDirectConnect).toHaveBeenCalledWith({
+      itemId: "honey-onyx",
+      itemName: "Honey Onyx",
+    });
+    expect(onDirectConnect).toHaveBeenCalledWith({
+      itemId: "multi-green-onyx",
+      itemName: "Multi Green Onyx",
+    });
     expect(products.map((product) => product.slug)).toEqual(["honey-onyx", "multi-green-onyx"]);
+  });
+
+  it("opens the exact shared stone photo from initialProductSlug + initialPhotoIndex", () => {
+    const multiGreen = products.find((product) => product.slug === "multi-green-onyx");
+    expect(multiGreen).toBeTruthy();
+    const photoIndex = 3;
+    expect(multiGreen!.images[photoIndex]).toBeTruthy();
+
+    renderProfile(vi.fn(), "multi-green-onyx", photoIndex);
+
+    const lightbox = container.querySelector('[data-testid="luxury-house-deep-link-lightbox"]');
+    expect(lightbox).not.toBeNull();
+    expect(lightbox?.getAttribute("data-stone-slug")).toBe("multi-green-onyx");
+    expect(lightbox?.getAttribute("data-photo-index")).toBe(String(photoIndex));
+
+    const image = container.querySelector('[data-testid="luxury-house-deep-link-image"]');
+    expect(image?.getAttribute("src")).toBe(multiGreen!.images[photoIndex]);
+    expect(image?.getAttribute("data-photo-index")).toBe(String(photoIndex));
   });
 
   it("does not render inventory or catalog chrome strings", () => {
@@ -200,6 +228,37 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
       expect(text).not.toContain(forbidden.toLowerCase());
       expect(html).not.toContain(forbidden.toLowerCase());
     }
+  });
+
+  it("renders luxury-material-house from chapter identity without inventoryCatalog products", () => {
+    const chapterOnlyProducts =
+      data.luxuryHouse?.materialChapters.map((chapter) => ({
+        name: chapter.name,
+        slug: chapter.slug,
+        images: [chapter.applicationImage, chapter.detailImage],
+      })) || [];
+    expect(chapterOnlyProducts.length).toBeGreaterThan(0);
+
+    const onDirectConnect = renderProfile(vi.fn(), undefined, 0, chapterOnlyProducts);
+    expect(
+      container.querySelector('[data-testid="luxury-material-house-showcase"]')
+    ).not.toBeNull();
+
+    const text = (container.textContent || "").toLowerCase();
+    const html = container.innerHTML.toLowerCase();
+    for (const forbidden of FORBIDDEN_RENDER_STRINGS) {
+      expect(text).not.toContain(forbidden.toLowerCase());
+      expect(html).not.toContain(forbidden.toLowerCase());
+    }
+
+    const honeyCta = Array.from(container.querySelectorAll("button")).find((button) =>
+      /Discuss Honey Onyx/i.test(button.textContent || "")
+    );
+    act(() => honeyCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onDirectConnect).toHaveBeenCalledWith({
+      itemId: "honey-onyx",
+      itemName: "Honey Onyx",
+    });
   });
 
   it("keeps horizontal-luxury-showcase on OnyxStoneShowcase for non-house profiles", () => {
