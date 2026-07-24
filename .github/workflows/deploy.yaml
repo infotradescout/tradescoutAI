@@ -1,22 +1,103 @@
+# Production deploy is intentionally NOT triggered by push to main.
+# Render auto-deploy must also be Off (see RELEASE_CONTROL.md).
+# Approved releases only: workflow_dispatch with an explicit SHA after validation.
 name: Production Release & Deploy
+
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      approved_sha:
+        description: Full git SHA approved for production deploy (must equal the commit Render will build).
+        required: true
+        type: string
+      confirm_production:
+        description: Type exactly DEPLOY_PRODUCTION to proceed.
+        required: true
+        type: string
+
 jobs:
   deploy-render:
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-render-production
-      cancel-in-progress: true
+      cancel-in-progress: false
     steps:
-      - name: Verify deploy hook is configured
+      - name: Reject accidental confirmations
+        env:
+          CONFIRM: ${{ inputs.confirm_production }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
         run: |
-          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" ]; then
-            echo "Missing secret: RENDER_DEPLOY_HOOK_URL"
+          set -euo pipefail
+          if [ "$CONFIRM" != "DEPLOY_PRODUCTION" ]; then
+            echo "::error::Refusing deploy. confirm_production must be exactly DEPLOY_PRODUCTION."
             exit 1
           fi
-      - name: Trigger Render
+          if ! [[ "$APPROVED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::approved_sha must be a full 40-char commit SHA."
+            exit 1
+          fi
+
+      - name: Checkout approved SHA
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.approved_sha }}
+
+      - name: Verify checked-out commit matches approved SHA
+        env:
+          APPROVED_SHA: ${{ inputs.approved_sha }}
         run: |
-          curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-          echo "Render deploy hook triggered."
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "$HEAD_SHA" != "$APPROVED_SHA" ]; then
+            echo "::error::Checkout mismatch. HEAD=$HEAD_SHA approved=$APPROVED_SHA"
+            exit 1
+          fi
+          echo "Deploy target SHA: $HEAD_SHA"
+
+      - name: Require successful CI check for approved SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Gate on the CI workflow job name (see .github/workflows/ci.yml).
+          # Do not treat a failed/missing check as deployable.
+          CONCLUSION="$(gh api "repos/${REPO}/commits/${APPROVED_SHA}/check-runs" \
+            --jq '.check_runs[] | select(.name=="build-and-guard") | .conclusion' \
+            | head -n 1)"
+          if [ "$CONCLUSION" != "success" ]; then
+            echo "::error::CI check 'build-and-guard' is not success for ${APPROVED_SHA} (got: ${CONCLUSION:-missing})."
+            echo "Fix GitHub Actions billing/minutes, re-run CI, then dispatch deploy."
+            exit 1
+          fi
+          echo "CI gate passed: build-and-guard=success for ${APPROVED_SHA}"
+
+      - name: Verify deploy hook is configured
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HOOK}" ]; then
+            echo "::error::Missing secret RENDER_DEPLOY_HOOK_URL. Deploy was NOT triggered."
+            exit 1
+          fi
+
+      - name: Trigger Render deploy hook
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          APPROVED_SHA: ${{ inputs.approved_sha }}
+        run: |
+          set -euo pipefail
+          # Hook deploys the service's configured branch HEAD. Operators must ensure
+          # main (or the linked branch) points at approved_sha before dispatching.
+          echo "Triggering Render deploy hook for approved SHA ${APPROVED_SHA}"
+          HTTP_CODE="$(curl -sS -o /tmp/render-hook-body.txt -w "%{http_code}" -X POST "${HOOK}")"
+          BODY="$(cat /tmp/render-hook-body.txt || true)"
+          echo "Render hook HTTP ${HTTP_CODE}"
+          echo "$BODY"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            echo "::error::Render deploy hook failed (HTTP ${HTTP_CODE}). Deploy NOT confirmed."
+            exit 1
+          fi
+          echo "Render deploy hook accepted the request. Verify live build marker separately."
