@@ -22,6 +22,7 @@ export type PremiumProductOffering = {
 
 export type PremiumProductProfileData = {
   variant: typeof PREMIUM_PRODUCT_PROFILE_VARIANT;
+  presentation?: "horizontal-luxury-showcase";
   /** Selects the product used by the editorial gallery when a catalog has multiple offerings. */
   featuredProductSlug?: string;
   /** Optional reusable collection overview for profiles with multiple distinct offerings. */
@@ -111,6 +112,8 @@ export function isPremiumProductProfileData(value: unknown): value is PremiumPro
 
   return (
     candidate.variant === PREMIUM_PRODUCT_PROFILE_VARIANT &&
+    (candidate.presentation === undefined ||
+      candidate.presentation === "horizontal-luxury-showcase") &&
     (candidate.featuredProductSlug === undefined || isString(candidate.featuredProductSlug)) &&
     validOfferings &&
     isRecord(contrast) &&

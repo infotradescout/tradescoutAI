@@ -111,6 +111,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "premiumProduct",
     data: {
       variant: PREMIUM_PRODUCT_PROFILE_VARIANT,
+      presentation: "horizontal-luxury-showcase",
       featuredProductSlug: "honey-onyx",
       offerings: {
         eyebrow: "Two distinct offerings",
@@ -233,8 +234,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         eyebrow: "Ready when the idea is",
         title: "Put the right ISSA Build material in the conversation.",
         body: "Choose Honey Onyx or Multi Green Onyx, then send the project through Direct Connect. Your contact details stay private unless the request is accepted.",
-        imageIndex: 6,
-        imageFit: "contain",
+        imageIndex: 2,
+        imageFit: "cover",
       },
     } satisfies PremiumProductProfileData,
   },

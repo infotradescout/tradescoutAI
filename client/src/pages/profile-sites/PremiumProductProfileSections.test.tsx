@@ -87,7 +87,11 @@ describe("PremiumProductProfileSections multi-offering behavior", () => {
   }
 
   it("opens the exact product and photo carried by a shared inventory link", () => {
-    renderProfile(vi.fn(), "multi-green-onyx", 2);
+    const onDirectConnect = renderProfile();
+
+    // ProfileSiteView resolves the query after the profile payload arrives, so
+    // the component must react to updated props rather than only its first render.
+    renderProfile(onDirectConnect, "multi-green-onyx", 2);
 
     const dialog = container.querySelector('[role="dialog"]');
     expect(dialog?.getAttribute("aria-label")).toBe("Multi Green Onyx photo gallery");
@@ -95,38 +99,44 @@ describe("PremiumProductProfileSections multi-offering behavior", () => {
     expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(products[1].images[2]);
   });
 
-  it("opens either full collection and preserves product-specific or generic CTA context", () => {
+  it("switches the full showcase and keeps narrative and CTA context product-specific", () => {
     const onDirectConnect = renderProfile();
-    const multiGreenCard = Array.from(container.querySelectorAll("article")).find((article) =>
-      article.textContent?.includes("Multi Green Onyx")
+    const multiGreenToggle = Array.from(
+      container.querySelectorAll('button[aria-pressed="false"]')
+    ).find((button) => button.textContent?.includes("Multi Green Onyx"));
+
+    act(() => multiGreenToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(
+      container
+        .querySelector('[role="region"][aria-label="Multi Green Onyx horizontal showcase"]')
+        ?.getAttribute("tabindex")
+    ).toBe("0");
+    expect(container.querySelector("#why-us")?.textContent).toContain(
+      "Green, ivory, and mineral movement"
     );
-    const viewCollection = Array.from(multiGreenCard?.querySelectorAll("button") || []).find(
-      (button) => button.textContent?.includes("View collection")
+    expect(container.querySelector("#connect")?.textContent).toContain(
+      "Put Multi Green Onyx in the conversation."
     );
 
-    act(() => viewCollection?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const expand = container.querySelector(
+      'button[aria-label="Expand Multi Green Onyx photo 1"]'
+    );
+    act(() => expand?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
       "Multi Green Onyx photo gallery"
     );
 
     act(() =>
       container
-        .querySelector('button[aria-label="Close gallery"]')
+        .querySelector('button[aria-label="Close expanded gallery"]')
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
+    const lowerProductCta = container.querySelector("#why-us button");
     act(() =>
-      multiGreenCard
-        ?.querySelector('button[aria-label="Direct Connect about Multi Green Onyx"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      lowerProductCta?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
     expect(onDirectConnect).toHaveBeenCalledWith("Multi Green Onyx");
-
-    act(() =>
-      container
-        .querySelector('button[aria-label="Direct Connect with ISSA Build"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    );
-    expect(onDirectConnect).toHaveBeenLastCalledWith(null);
+    expect(onDirectConnect).not.toHaveBeenCalledWith(null);
   });
 
   it("shares the stable photo ordinal when presentation order differs", async () => {
@@ -165,5 +175,47 @@ describe("PremiumProductProfileSections multi-offering behavior", () => {
         url: expect.stringContaining("/u/issa-build?stone=reordered-onyx&photo=2"),
       })
     );
+  });
+
+  it("keeps dialog navigation focus stable and returns focus after Escape", async () => {
+    renderProfile();
+    const expand = container.querySelector<HTMLButtonElement>(
+      'button[aria-label^="Expand Honey Onyx"]'
+    );
+    act(() => expand?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+
+    const close = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close expanded gallery"]'
+    );
+    expect(document.activeElement).toBe(close);
+
+    const next = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Next expanded image"]'
+    );
+    next?.focus();
+    act(() => next?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("Photo 2 of 8");
+    expect(document.activeElement).toBe(next);
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" })));
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("Photo 3 of 8");
+    expect(document.activeElement).toBe(next);
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      await new Promise((resolve) => window.setTimeout(resolve, 25));
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(expand);
+  });
+
+  it("provides real section targets and a visible keyboard focus treatment for the rail", () => {
+    renderProfile();
+    expect(container.querySelector("#collection")).not.toBeNull();
+    expect(container.querySelector("#why-us")).not.toBeNull();
+    expect(container.querySelector("#connect")).not.toBeNull();
+    expect(
+      container.querySelector('[role="region"][aria-label$="horizontal showcase"]')?.className
+    ).toContain("focus-visible:ring-2");
   });
 });

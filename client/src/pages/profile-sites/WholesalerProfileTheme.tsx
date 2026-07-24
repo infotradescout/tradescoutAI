@@ -36,11 +36,7 @@ import {
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
-import {
-  ISSA_BUILD_HERO_POSTER,
-  ISSA_BUILD_HERO_VIDEO,
-  isIssaBuildProfileSlug,
-} from "@shared/issaBuildProfile";
+import { isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -333,14 +329,12 @@ export default function WholesalerProfileTheme({
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
   const isIssaBuild = isIssaBuildProfileSlug(profileSlug);
-  const heroVideo = isIssaBuild
-    ? { src: ISSA_BUILD_HERO_VIDEO, poster: ISSA_BUILD_HERO_POSTER }
-    : isJwStone
-      ? {
-          src: "/images/businesses/jw-stone/video/hero.mp4",
-          poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
-        }
-      : null;
+  const heroVideo = isJwStone
+    ? {
+        src: "/images/businesses/jw-stone/video/hero.mp4",
+        poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
+      }
+    : null;
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
@@ -505,15 +499,17 @@ export default function WholesalerProfileTheme({
     useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
+  const premiumInventoryStones = inventoryCatalogFromContent.flatMap((category) => category.stones);
   const premiumProductData = isPremiumProductProfileData(premiumProductBlock?.data)
     ? premiumProductBlock.data
     : null;
   const premiumProduct =
     premiumProductData && premiumProductData.featuredProductSlug
-      ? allInventoryStones.find((stone) => stone.slug === premiumProductData.featuredProductSlug) ||
-        null
-      : premiumProductData && allInventoryStones.length === 1
-        ? allInventoryStones[0]
+      ? premiumInventoryStones.find(
+          (stone) => stone.slug === premiumProductData.featuredProductSlug
+        ) || null
+      : premiumProductData && premiumInventoryStones.length === 1
+        ? premiumInventoryStones[0]
         : null;
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
@@ -618,6 +614,7 @@ export default function WholesalerProfileTheme({
   )?.images[1];
   const heroImage =
     (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
+    premiumProduct?.images[0] ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
     galleryItems[0]?.imageUrl;
   const heroEyebrow =
@@ -1050,19 +1047,25 @@ export default function WholesalerProfileTheme({
               Browse full inventory
             </button>
           ) : null}
-          {(premiumProductData
+          {(premiumProductData?.presentation === "horizontal-luxury-showcase"
             ? [
-                ["Day + glow", "why-us"],
-                ["Ideas", "audience"],
-                ["Photos", "collection"],
+                ["Collections", "collection"],
+                ["Details", "why-us"],
                 ["Connect", "connect"],
               ]
-            : [
-                ["Why Us", "why-us"],
-                ["Who We Serve", "audience"],
-                ["Materials", "materials"],
-                ["Connect", "connect"],
-              ]
+            : premiumProductData
+              ? [
+                  ["Day + glow", "why-us"],
+                  ["Ideas", "audience"],
+                  ["Photos", "collection"],
+                  ["Connect", "connect"],
+                ]
+              : [
+                  ["Why Us", "why-us"],
+                  ["Who We Serve", "audience"],
+                  ["Materials", "materials"],
+                  ["Connect", "connect"],
+                ]
           ).map(([label, sectionId]) => (
             <button
               key={sectionId}
@@ -1093,7 +1096,7 @@ export default function WholesalerProfileTheme({
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-center ${
               isJwStone || isIssaBuild ? "bg-transparent" : "bg-stone-950"
-            } ${premiumProductData ? "object-contain" : "object-cover"}`}
+            } ${premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"}`}
           />
         ) : null}
         {heroVideo ? (
@@ -1112,7 +1115,13 @@ export default function WholesalerProfileTheme({
             <source src={heroVideo.src} type="video/mp4" />
           </video>
         ) : null}
-        {/* No full-bleed wash on JW Stone / ISSA Build — stone/video stays true. */}
+        {isIssaBuild ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,7,4,0.08)_15%,rgba(10,7,4,0.72)_100%)] md:bg-[linear-gradient(90deg,rgba(10,7,4,0.78)_0%,rgba(10,7,4,0.42)_48%,rgba(10,7,4,0.08)_100%)]"
+          />
+        ) : null}
+        {/* JW Stone keeps its source video unobscured. */}
         {!isJwStone && !isIssaBuild ? (
           <span
             aria-hidden="true"
@@ -1208,7 +1217,7 @@ export default function WholesalerProfileTheme({
         <PremiumProductProfileSections
           profileName={displayName}
           product={premiumProduct}
-          products={allInventoryStones}
+          products={premiumInventoryStones}
           initialProductSlug={premiumSharedItem?.slug}
           initialPhotoIndex={premiumSharedItem?.imageIndex}
           data={premiumProductData}
