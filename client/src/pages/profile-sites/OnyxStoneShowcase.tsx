@@ -93,10 +93,32 @@ export default function OnyxStoneShowcase({
     [activeProduct.images.length]
   );
 
+  const scrollRailToIndex = useCallback(
+    (index: number, behavior: "auto" | "smooth" = "auto") => {
+      const rail = railRef.current;
+      if (!rail) return;
+      const clamped = Math.max(0, Math.min(activeProduct.images.length - 1, index));
+      const nextItem = rail.children.item(clamped) as HTMLElement | null;
+      const left = nextItem?.offsetLeft || 0;
+      if (typeof rail.scrollTo === "function") {
+        rail.scrollTo({ left, behavior });
+      } else {
+        rail.scrollLeft = left;
+      }
+      setVisiblePhoto(clamped);
+    },
+    [activeProduct.images.length]
+  );
+
   const closeLightbox = useCallback(() => {
+    const index = activePhoto;
     setActivePhoto(null);
+    if (index !== null) {
+      // Keep counter + rail aligned to the last viewed photo after deep-link close.
+      window.requestAnimationFrame(() => scrollRailToIndex(index, "auto"));
+    }
     window.requestAnimationFrame(() => returnFocusRef.current?.focus());
-  }, []);
+  }, [activePhoto, scrollRailToIndex]);
 
   useEffect(() => {
     if (!requestedProduct) return;
@@ -108,6 +130,25 @@ export default function OnyxStoneShowcase({
     setVisiblePhoto(requestedIndex);
     setActivePhoto(requestedIndex);
   }, [initialPhotoIndex, requestedProduct]);
+
+  useEffect(() => {
+    if (!requestedProduct) return;
+    if (activeProductSlug !== requestedProduct.slug) return;
+    const requestedIndex = Math.min(
+      Math.max(0, initialPhotoIndex),
+      Math.max(0, requestedProduct.images.length - 1)
+    );
+    // Wait until the product rail has painted, then scroll the shared photo into view.
+    const frame = window.requestAnimationFrame(() => {
+      scrollRailToIndex(requestedIndex, "auto");
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    activeProductSlug,
+    initialPhotoIndex,
+    requestedProduct,
+    scrollRailToIndex,
+  ]);
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -145,29 +186,15 @@ export default function OnyxStoneShowcase({
 
   const selectProduct = (slug: string) => {
     setActiveProductSlug(slug);
-    setVisiblePhoto(0);
-    if (typeof railRef.current?.scrollTo === "function") {
-      railRef.current.scrollTo({ left: 0, behavior: "auto" });
-    } else if (railRef.current) {
-      railRef.current.scrollLeft = 0;
-    }
+    scrollRailToIndex(0, "auto");
   };
 
   const scrollRail = (direction: -1 | 1) => {
-    const rail = railRef.current;
-    if (!rail) return;
     const next = Math.max(0, Math.min(activeProduct.images.length - 1, visiblePhoto + direction));
-    const nextItem = rail.children.item(next) as HTMLElement | null;
-    const left = nextItem?.offsetLeft || 0;
-    if (typeof rail.scrollTo === "function") {
-      rail.scrollTo({
-        left,
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      });
-    } else {
-      rail.scrollLeft = left;
-    }
-    setVisiblePhoto(next);
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+    scrollRailToIndex(next, behavior);
   };
 
   const onRailKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {

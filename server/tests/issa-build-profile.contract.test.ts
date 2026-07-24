@@ -208,8 +208,11 @@ describe("ISSA Build public profile contract", () => {
     expect(showcase).toContain("prefers-reduced-motion: reduce");
     expect(showcase).toContain("Choose onyx collection");
     expect(showcase).toContain("useCallback");
+    expect(showcase).toContain("scrollRailToIndex");
     expect(showcase).toContain("rail.scrollTo");
     expect(showcase).toContain('aria-live="polite"');
+    // Deep-linked shared photos must scroll the rail into view so counter/nav stay aligned.
+    expect(showcase).toContain("scrollRailToIndex(requestedIndex, \"auto\")");
   });
 
   it("canonicalizes every legacy public route without losing source context", () => {
