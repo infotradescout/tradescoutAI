@@ -21,7 +21,9 @@ import { COLOR_PRESETS, getPresetNames } from "@shared/colorPresets";
 import { StateCountySelector } from "@/components/state-county-selector";
 import {
   listSelectableProfileSiteTemplates,
+  patchHeroBlock,
   readFeaturedStoneSlugs,
+  readHeroEditorFields,
   resolveSiteTemplateId,
   seedBlocksForTemplate,
   upsertFeaturedStoneSlugs,
@@ -257,19 +259,9 @@ export default function ProfileSiteEditor() {
         delete editableSeoMeta.customDomain;
         setSeoMetaText(JSON.stringify(editableSeoMeta, null, 2));
         setFeaturedSlugsText(readFeaturedStoneSlugs(detail.contentBlocks).join(", "));
-        const heroBlock = Array.isArray(detail.contentBlocks)
-          ? detail.contentBlocks.find((block: any) => block?.type === "hero")
-          : null;
-        const heroData =
-          heroBlock?.data && typeof heroBlock.data === "object" ? heroBlock.data : {};
-        setHeroTitle(typeof heroData.title === "string" ? heroData.title : "");
-        setHeroText(
-          typeof heroData.text === "string"
-            ? heroData.text
-            : typeof heroData.body === "string"
-              ? heroData.body
-              : ""
-        );
+        const heroFields = readHeroEditorFields(detail.contentBlocks);
+        setHeroTitle(heroFields.title);
+        setHeroText(heroFields.text);
         const activeCustomDomain = String(detail.seoMeta?.customDomain || "");
         setCustomDomain(activeCustomDomain);
         setDomainInput(activeCustomDomain);
@@ -481,9 +473,9 @@ export default function ProfileSiteEditor() {
     });
     setContentBlocksText(JSON.stringify(next, null, 2));
     setFeaturedSlugsText(readFeaturedStoneSlugs(next).join(", "));
-    const hero = next.find((block: any) => block?.type === "hero") as any;
-    setHeroTitle(typeof hero?.data?.title === "string" ? hero.data.title : "");
-    setHeroText(typeof hero?.data?.text === "string" ? hero.data.text : "");
+    const heroFields = readHeroEditorFields(next);
+    setHeroTitle(heroFields.title);
+    setHeroText(heroFields.text);
     toast({
       title: "Template selected",
       description: "Save to publish this template on the live profile.",
@@ -494,22 +486,10 @@ export default function ProfileSiteEditor() {
     if (!parsedPayload) return null;
     let blocks = Array.isArray(parsedPayload.contentBlocks) ? [...parsedPayload.contentBlocks] : [];
     blocks = upsertSiteTemplateBlock(blocks, selectedTemplateId);
-    const heroIndex = blocks.findIndex((block: any) => block?.type === "hero");
-    const heroData = {
+    blocks = patchHeroBlock(blocks, {
       title: heroTitle,
       text: heroText,
-    };
-    if (heroIndex >= 0) {
-      blocks[heroIndex] = {
-        ...blocks[heroIndex],
-        data: {
-          ...((blocks[heroIndex] as any).data || {}),
-          ...heroData,
-        },
-      };
-    } else {
-      blocks.push({ type: "hero", data: heroData });
-    }
+    });
     if (selectedTemplateId === "wholesaler") {
       const slugs = featuredSlugsText
         .split(",")

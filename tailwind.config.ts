@@ -9,6 +9,7 @@ export default {
         sans: ["DM Sans", "system-ui", "sans-serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
         display: ["Sora", "DM Sans", "system-ui", "sans-serif"],
+        editorial: ["Cormorant Garamond", "Georgia", "Times New Roman", "serif"],
         mono: ["JetBrains Mono", "Fira Code", "monospace"],
       },
       screens: {

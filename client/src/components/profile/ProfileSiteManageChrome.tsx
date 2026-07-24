@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
   listSelectableProfileSiteTemplates,
   patchHeroBlock,
   readFeaturedStoneSlugs,
+  readHeroEditorFields,
   readInventoryLeadImageBySlug,
   resolveSiteTemplateId,
   seedBlocksForTemplate,
@@ -42,22 +43,7 @@ type Props = {
 };
 
 function readHeroFields(contentBlocks: unknown): { title: string; text: string } {
-  if (!Array.isArray(contentBlocks)) return { title: "", text: "" };
-  const hero = contentBlocks.find(
-    (block) => block && typeof block === "object" && (block as any).type === "hero"
-  ) as { data?: Record<string, unknown> } | undefined;
-  const data = hero?.data && typeof hero.data === "object" ? hero.data : {};
-  return {
-    title: typeof data.title === "string" ? data.title : "",
-    text:
-      typeof data.text === "string"
-        ? data.text
-        : typeof data.body === "string"
-          ? data.body
-          : typeof data.description === "string"
-            ? data.description
-            : "",
-  };
+  return readHeroEditorFields(contentBlocks);
 }
 
 export default function ProfileSiteManageChrome({
@@ -87,6 +73,16 @@ export default function ProfileSiteManageChrome({
   const [draftFeatured, setDraftFeatured] = useState(() =>
     readFeaturedStoneSlugs(contentBlocks).join(", ")
   );
+
+  // Keep drafts aligned when the live profile payload refreshes after save.
+  useEffect(() => {
+    if (editMode) return;
+    setDraftDisplayName(displayName);
+    setDraftHeadline(headline || "");
+    setDraftHeroTitle(hero.title);
+    setDraftHeroText(hero.text);
+    setDraftFeatured(readFeaturedStoneSlugs(contentBlocks).join(", "));
+  }, [contentBlocks, displayName, editMode, headline, hero.text, hero.title]);
   const leadImageBySlug = useMemo(
     () => readInventoryLeadImageBySlug(contentBlocks),
     [contentBlocks]
@@ -362,6 +358,7 @@ export default function ProfileSiteManageChrome({
                 value={draftHeroTitle}
                 onChange={(event) => setDraftHeroTitle(event.target.value)}
                 className="border-white/15 bg-black/40 text-white"
+                data-testid="profile-manage-hero-title"
               />
             </div>
             <div className="space-y-1 md:col-span-2">
@@ -371,6 +368,7 @@ export default function ProfileSiteManageChrome({
                 onChange={(event) => setDraftHeroText(event.target.value)}
                 rows={2}
                 className="border-white/15 bg-black/40 text-white"
+                data-testid="profile-manage-hero-text"
               />
             </div>
             {siteTemplate === "wholesaler" ? (

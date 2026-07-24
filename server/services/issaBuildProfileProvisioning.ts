@@ -322,7 +322,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       slug: ISSA_BUILD_PROFILE_SLUG,
       displayName: ISSA_BUILD_BUSINESS_NAME,
-      headline: "Premium book-matched translucent onyx for luxury interiors.",
+      headline: "Honey Onyx. Multi Green Onyx. Crafted for light.",
       contentBlocks: ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
@@ -332,9 +332,9 @@ export async function provisionIssaBuildProfile(): Promise<void> {
         },
       },
       seoMeta: {
-        title: "ISSA Build | Honey Onyx & Multi Green Onyx",
+        title: "ISSA Build | Luxury Translucent Onyx",
         description:
-          "Explore separate ISSA Build Honey Onyx and Multi Green Onyx installations and material photos, then start a private TradeScout Direct Connect request.",
+          "ISSA Build — Honey Onyx and Multi Green Onyx. Luxury translucent stone for interiors. Inquire privately on TradeScout.",
         imageUrl: "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: 1600,
         imageHeight: 1200,

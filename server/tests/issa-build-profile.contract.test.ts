@@ -147,11 +147,16 @@ describe("ISSA Build public profile contract", () => {
       )
     ).toBe(true);
     expect(theme).toContain("isIssaBuildProfileSlug");
-    expect(theme).toContain('src: "/images/businesses/jw-stone/video/hero.mp4"');
+    expect(theme).toContain("ISSA_BUILD_HERO_VIDEO");
+    expect(theme).toContain("ISSA_BUILD_HERO_POSTER");
+    expect(theme.indexOf("ISSA_BUILD_HERO_VIDEO")).toBeLessThan(
+      theme.indexOf('src: "/images/businesses/jw-stone/video/hero.mp4"')
+    );
     expect(theme).toContain(
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
-    expect(theme).toContain("rgba(10,7,4,0.78)");
+    expect(theme).toContain("font-editorial");
+    expect(theme).toContain("The lookbook");
   });
 
   it("uses the reusable editorial product template below the hero", () => {
@@ -187,11 +192,14 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain('["Collections", "collection"]');
     expect(theme).toContain('["Details", "why-us"]');
     expect(theme).toContain('premiumProductData?.presentation === "horizontal-luxury-showcase"');
-    expect(JSON.stringify(premiumBlock)).toContain("Honey Onyx. Day and night.");
+    expect(JSON.stringify(premiumBlock)).toContain("By day. By light.");
+    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toContain("Two distinct offerings");
+    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toMatch(/book-matched/i);
     expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(8);
     expect((premiumBlock?.data as any)?.closing).toMatchObject({
       imageIndex: 2,
       imageFit: "cover",
+      title: "Request the material.",
     });
     expect(sections).toContain("<OnyxStoneShowcase");
     expect(sections).toContain("buildProfileInventoryShareSearch");
@@ -199,7 +207,7 @@ describe("ISSA Build public profile contract", () => {
     expect(sections).not.toContain("<TradeScoutProfileHandoff");
     expect(showcase).toContain("activeProduct.images.map");
     expect(showcase).toContain("snap-x snap-mandatory");
-    expect(showcase).toContain("Swipe, scroll, or use arrow keys");
+    expect(showcase).toContain("Lookbook");
     expect(showcase).toContain('role="dialog"');
     expect(showcase).toContain('event.key === "Escape"');
     expect(showcase).toContain('event.key !== "Tab"');
@@ -211,8 +219,10 @@ describe("ISSA Build public profile contract", () => {
     expect(showcase).toContain("scrollRailToIndex");
     expect(showcase).toContain("rail.scrollTo");
     expect(showcase).toContain('aria-live="polite"');
+    expect(showcase).toContain("data.closing.title");
+    expect(showcase).toContain("font-editorial");
     // Deep-linked shared photos must scroll the rail into view so counter/nav stay aligned.
-    expect(showcase).toContain("scrollRailToIndex(requestedIndex, \"auto\")");
+    expect(showcase).toContain('scrollRailToIndex(requestedIndex, "auto")');
   });
 
   it("canonicalizes every legacy public route without losing source context", () => {
@@ -239,11 +249,13 @@ describe("ISSA Build public profile contract", () => {
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
     const profileCopy = JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
 
-    expect(profileCopy).toContain("Private Direct Connect");
+    expect(profileCopy).toContain("Direct Connect");
     expect(profileCopy).toContain("ISSA Build");
     expect(profileCopy).toContain("Honey Onyx");
     expect(profileCopy).toContain("Multi Green Onyx");
     expect(profileCopy).not.toContain("Honey Green Onyx");
+    expect(profileCopy).not.toContain("Two distinct offerings");
+    expect(profileCopy).not.toMatch(/book-matched/i);
     expect(profileCopy).toContain('"hideFinishDetails":true');
     expect(profileCopy).not.toMatch(/distribut(?:or|ed|ion)/i);
     expect(profileCopy).not.toContain("JW Stone");
