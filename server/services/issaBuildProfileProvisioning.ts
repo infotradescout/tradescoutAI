@@ -194,10 +194,9 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       profileData: {
         ...existingProfileData,
-        tagline:
-          "Honey Onyx and Multi Green Onyx — two distinct, book-matched materials for luxury interiors.",
+        tagline: "Honey Onyx · Multi Green Onyx. Crafted for light.",
         description:
-          "ISSA Build supplies separate Honey Onyx and Multi Green Onyx collections for high-end homes and interior design projects.",
+          "ISSA Build — Honey Onyx and Multi Green Onyx. Luxury translucent stone for private interiors.",
         category: "Natural Onyx",
         services: [
           "Translucent onyx slab availability",
@@ -322,7 +321,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       slug: ISSA_BUILD_PROFILE_SLUG,
       displayName: ISSA_BUILD_BUSINESS_NAME,
-      headline: "Honey Onyx. Multi Green Onyx. Crafted for light.",
+      headline: "Crafted for light.",
       contentBlocks: ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {

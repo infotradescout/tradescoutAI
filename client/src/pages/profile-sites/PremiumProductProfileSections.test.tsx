@@ -184,9 +184,7 @@ describe("PremiumProductProfileSections multi-offering behavior", () => {
 
   it("keeps dialog navigation focus stable and returns focus after Escape", async () => {
     renderProfile();
-    const expand = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Expand Private suite"]'
-    );
+    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Suite"]');
     expect(expand).toBeTruthy();
     act(() => expand?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 

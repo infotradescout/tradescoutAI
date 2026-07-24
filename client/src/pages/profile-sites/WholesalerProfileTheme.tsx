@@ -344,8 +344,10 @@ export default function WholesalerProfileTheme({
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
+  const [issaHeroReady, setIssaHeroReady] = useState(false);
   useEffect(() => {
     if (!heroVideo) return;
+    setIssaHeroReady(false);
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let zoomTimer: number | null = null;
     const syncMotionPreference = () => {
@@ -647,6 +649,10 @@ export default function WholesalerProfileTheme({
       : blockString(heroBlock, "teaser") || aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
   const headerLabel =
     blockString(heroBlock, "headerLabel") || categories.slice(0, 2).join(" · ") || "Natural stone";
+  // ISSA sticky subtitle must not repeat displayName/H1 — eyebrow is the category line.
+  const stickySubtitle = isIssaBuild
+    ? blockString(heroBlock, "eyebrow") || categories.slice(0, 2).join(" · ") || "Natural stone"
+    : headerLabel;
   const inventoryTitle =
     blockString(inventoryCatalogBlock, "title") ||
     (isJwStone ? "Current Inventory" : "Explore the collection");
@@ -1021,7 +1027,7 @@ export default function WholesalerProfileTheme({
                   {displayName}
                 </span>
                 <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
-                  {headerLabel}
+                  {stickySubtitle}
                 </p>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">
@@ -1123,27 +1129,33 @@ export default function WholesalerProfileTheme({
             data-testid="issa-hero-media"
           >
             {/*
-              Landscape 16:9 film inside a tall first viewport needs a zoomed
-              cover crop (not 1:1 object-cover) or the upper wall + fireplace
-              read as a split poster/video stack. Poster layer uses the same
-              crop so load never flashes a foreign slab image above the film.
+              One media plane only once ready. A permanent poster <img> under the
+              video created the mid-frame split/seam (especially tall mobile).
+              Soft object-cover keeps the fireplace in frame without dual layers.
             */}
-            <img
-              src={heroVideo.poster}
-              alt=""
-              className="absolute inset-0 h-full w-full origin-center scale-[1.48] object-cover object-[center_68%] md:scale-[1.22] md:object-center"
-            />
             <video
               ref={heroVideoRef}
               autoPlay={!prefersReducedMotion}
               muted
               loop
               playsInline
+              preload="auto"
               poster={heroVideo.poster}
-              className="absolute inset-0 h-full w-full origin-center scale-[1.48] object-cover object-[center_68%] md:scale-[1.22] md:object-center"
+              onLoadedData={() => setIssaHeroReady(true)}
+              onPlaying={() => setIssaHeroReady(true)}
+              className={`absolute inset-0 h-full w-full object-cover object-[center_42%] transition-opacity duration-500 md:object-center ${
+                issaHeroReady || prefersReducedMotion ? "opacity-100" : "opacity-0"
+              }`}
             >
               <source src={heroVideo.src} type="video/mp4" />
             </video>
+            {!issaHeroReady && !prefersReducedMotion ? (
+              <img
+                src={heroVideo.poster}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover object-[center_42%] md:object-center"
+              />
+            ) : null}
           </div>
         ) : null}
         {heroVideo && !isIssaBuild ? (
@@ -1289,6 +1301,23 @@ export default function WholesalerProfileTheme({
         data-testid="profile-trust-section"
       >
         <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+        {isIssaBuild && trustFacts.length > 0 ? (
+          <div
+            className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--brand-primary)]/75 md:px-6"
+            data-testid="issa-trust-facts"
+          >
+            {trustFacts.map((fact, i) => (
+              <span key={fact} className="inline-flex items-center">
+                {i > 0 ? (
+                  <span className="mr-3 text-[var(--brand-primary)]/25" aria-hidden="true">
+                    ·
+                  </span>
+                ) : null}
+                {fact}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       {premiumProductData && premiumProduct ? (

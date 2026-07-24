@@ -67,7 +67,6 @@ export default function OnyxStoneShowcase({
   const isLightboxOpen = activePhoto !== null;
   const isFeaturedProduct = activeProduct.slug === data.featuredProductSlug;
   const photoDetail = isFeaturedProduct ? data.gallery.photos?.[photoIndex] : undefined;
-  const offering = data.offerings?.items.find((entry) => entry.slug === activeProduct.slug);
 
   const movePhoto = useCallback(
     (direction: -1 | 1) =>
@@ -168,8 +167,8 @@ export default function OnyxStoneShowcase({
 
   return (
     <div data-testid="onyx-stone-showcase" className="overflow-hidden bg-[#070605] text-[#f4efe6]">
-      <section id="collection" className="scroll-mt-24 pt-10 sm:pt-14">
-        <div className="mx-auto mb-8 max-w-7xl px-4 sm:mb-10 sm:px-8">
+      <section id="collection" className="scroll-mt-24 pt-8 sm:pt-12">
+        <div className="mx-auto mb-6 max-w-7xl px-4 sm:mb-8 sm:px-8">
           <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
             {data.offerings?.eyebrow || data.gallery.eyebrow}
           </p>
@@ -235,29 +234,32 @@ export default function OnyxStoneShowcase({
           >
             {activeProduct.images.map((image, index) => {
               const detail = isFeaturedProduct ? data.gallery.photos?.[index] : undefined;
+              const caption = detail?.title || detail?.label || "";
               return (
                 <article
                   key={image}
-                  className="group relative h-[78svh] min-h-[520px] w-[94vw] max-w-none flex-none snap-center overflow-hidden bg-[#120f0c] sm:h-[82svh] sm:w-[86vw] lg:w-[78vw]"
+                  className="group relative h-[82svh] min-h-[540px] w-[96vw] max-w-none flex-none snap-center overflow-hidden bg-[#120f0c] sm:h-[86svh] sm:w-[88vw] lg:w-[82vw]"
                 >
                   <img
                     src={image}
-                    alt={`${activeProduct.name}: ${detail?.title || `view ${index + 1}`}`}
+                    alt={`${activeProduct.name}: ${caption || `view ${index + 1}`}`}
                     loading={index === 0 ? "eager" : "lazy"}
-                    sizes="(min-width: 1024px) 78vw, 94vw"
+                    sizes="(min-width: 1024px) 82vw, 96vw"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out motion-reduce:transition-none group-hover:scale-[1.02]"
                   />
-                  <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,4,3,0)_35%,rgba(5,4,3,0.88)_100%)]" />
-                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-6 sm:p-10">
+                  <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,4,3,0)_48%,rgba(5,4,3,0.78)_100%)]" />
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-8">
                     <div className="max-w-lg">
                       <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-[var(--brand-accent,#d9a441)]">
-                        {detail?.label || offering?.eyebrow || activeProduct.name}
+                        {activeProduct.name}
                         <span className="mx-2 text-white/35">·</span>
                         {String(index + 1).padStart(2, "0")}
                       </p>
-                      <h3 className="mt-3 font-editorial text-3xl font-medium tracking-[-0.02em] sm:text-5xl">
-                        {detail?.title || activeProduct.name}
-                      </h3>
+                      {caption ? (
+                        <h3 className="mt-2 font-editorial text-2xl font-medium tracking-[-0.02em] sm:text-4xl">
+                          {caption}
+                        </h3>
+                      ) : null}
                     </div>
                     <button
                       type="button"
@@ -266,7 +268,7 @@ export default function OnyxStoneShowcase({
                         setActivePhoto(index);
                       }}
                       className="inline-flex min-h-11 flex-none items-center gap-2 border border-white/40 bg-black/25 px-4 text-[10px] font-semibold uppercase tracking-[0.24em] backdrop-blur-md transition hover:bg-[var(--brand-accent,#d9a441)] hover:text-[var(--brand-primary-dark,#17100b)]"
-                      aria-label={`Expand ${detail?.title || `${activeProduct.name} photo ${index + 1}`}`}
+                      aria-label={`Expand ${caption || `${activeProduct.name} photo ${index + 1}`}`}
                     >
                       Expand <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
@@ -368,7 +370,7 @@ export default function OnyxStoneShowcase({
                   {String(activeProduct.images.length).padStart(2, "0")}
                 </p>
                 <h3 className="mt-1 font-editorial text-2xl font-medium">
-                  {photoDetail?.title || activeProduct.name}
+                  {photoDetail?.title || photoDetail?.label || activeProduct.name}
                 </h3>
               </div>
               <div className="flex gap-2">

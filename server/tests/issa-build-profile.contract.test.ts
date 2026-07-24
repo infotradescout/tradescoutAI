@@ -201,6 +201,10 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain('["Lookbook", "collection"]');
     expect(theme).toContain('["Connect", "connect"]');
     expect(theme).toContain("issa-hero-media");
+    expect(theme).toContain("issaHeroReady");
+    expect(theme).toContain("stickySubtitle");
+    expect(theme).toContain('data-testid="issa-trust-facts"');
+    expect(theme).not.toContain("scale-[1.48]");
     expect(theme).toContain("--ts-profile-top-offset");
     expect(theme).toContain("border-ts-orange");
     expect(theme).toContain("Direct Connect");
@@ -211,6 +215,18 @@ describe("ISSA Build public profile contract", () => {
       "Two distinct offerings"
     );
     expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toMatch(/book-matched/i);
+    expect(
+      (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.headerLabel
+    ).toBe("Crafted for light.");
+    expect(
+      (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.teaser
+    ).toBe("Honey Onyx · Multi Green Onyx.");
+    expect(
+      (
+        (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "trust")?.data as any)?.items ||
+        []
+      ).length
+    ).toBeGreaterThan(0);
     expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(8);
     expect((premiumBlock?.data as any)?.closing).toMatchObject({
       imageIndex: 2,
@@ -277,6 +293,7 @@ describe("ISSA Build public profile contract", () => {
     expect(profileCopy).not.toContain("Honey Green Onyx");
     expect(profileCopy).not.toContain("Two distinct offerings");
     expect(profileCopy).not.toMatch(/book-matched/i);
+    expect(read("server/services/issaBuildProfileProvisioning.ts")).not.toMatch(/book-matched/i);
     expect(profileCopy).toContain('"hideFinishDetails":true');
     expect(profileCopy).not.toMatch(/distribut(?:or|ed|ion)/i);
     expect(profileCopy).not.toContain("JW Stone");
