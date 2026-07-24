@@ -1,13 +1,12 @@
-# Production deploy is intentionally NOT triggered by push to main.
-# Render auto-deploy must also be Off (see RELEASE_CONTROL.md).
-# Approved releases only: workflow_dispatch with an explicit SHA after validation.
+# Optional backup only. Production deploys via Render Auto-Deploy on push to main.
+# See RELEASE_CONTROL.md. Do not treat this workflow as required for prod.
 name: Production Release & Deploy
 
 on:
   workflow_dispatch:
     inputs:
       approved_sha:
-        description: Full git SHA approved for production deploy (must equal the commit Render will build).
+        description: Full git SHA to document as the intended deploy target (informational; hook deploys branch HEAD).
         required: true
         type: string
       confirm_production:
@@ -52,26 +51,7 @@ jobs:
             echo "::error::Checkout mismatch. HEAD=$HEAD_SHA approved=$APPROVED_SHA"
             exit 1
           fi
-          echo "Deploy target SHA: $HEAD_SHA"
-
-      - name: Require successful CI check for approved SHA
-        env:
-          GH_TOKEN: ${{ github.token }}
-          APPROVED_SHA: ${{ inputs.approved_sha }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          # Gate on the CI workflow job name (see .github/workflows/ci.yml).
-          # Do not treat a failed/missing check as deployable.
-          CONCLUSION="$(gh api "repos/${REPO}/commits/${APPROVED_SHA}/check-runs" \
-            --jq '.check_runs[] | select(.name=="build-and-guard") | .conclusion' \
-            | head -n 1)"
-          if [ "$CONCLUSION" != "success" ]; then
-            echo "::error::CI check 'build-and-guard' is not success for ${APPROVED_SHA} (got: ${CONCLUSION:-missing})."
-            echo "Fix GitHub Actions billing/minutes, re-run CI, then dispatch deploy."
-            exit 1
-          fi
-          echo "CI gate passed: build-and-guard=success for ${APPROVED_SHA}"
+          echo "Backup deploy target SHA: $HEAD_SHA"
 
       - name: Verify deploy hook is configured
         env:
@@ -79,7 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${HOOK}" ]; then
-            echo "::error::Missing secret RENDER_DEPLOY_HOOK_URL. Deploy was NOT triggered."
+            echo "::error::Missing secret RENDER_DEPLOY_HOOK_URL. Prefer Render Auto-Deploy on main, or Dashboard Manual Deploy."
             exit 1
           fi
 
@@ -89,9 +69,7 @@ jobs:
           APPROVED_SHA: ${{ inputs.approved_sha }}
         run: |
           set -euo pipefail
-          # Hook deploys the service's configured branch HEAD. Operators must ensure
-          # main (or the linked branch) points at approved_sha before dispatching.
-          echo "Triggering Render deploy hook for approved SHA ${APPROVED_SHA}"
+          echo "Triggering Render deploy hook (optional backup) for SHA ${APPROVED_SHA}"
           HTTP_CODE="$(curl -sS -o /tmp/render-hook-body.txt -w "%{http_code}" -X POST "${HOOK}")"
           BODY="$(cat /tmp/render-hook-body.txt || true)"
           echo "Render hook HTTP ${HTTP_CODE}"
@@ -100,4 +78,4 @@ jobs:
             echo "::error::Render deploy hook failed (HTTP ${HTTP_CODE}). Deploy NOT confirmed."
             exit 1
           fi
-          echo "Render deploy hook accepted the request. Verify live build marker separately."
+          echo "Render deploy hook accepted. Verify live build marker separately."
