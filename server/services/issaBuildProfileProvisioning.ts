@@ -194,14 +194,15 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       profileData: {
         ...existingProfileData,
-        tagline: "Honey Onyx · Multi Green Onyx. Crafted for light.",
+        tagline: "Honey Onyx and Multi Green Onyx for interiors designed to glow.",
         description:
-          "ISSA Build — Honey Onyx and Multi Green Onyx. Luxury translucent stone for private interiors.",
+          "ISSA Build — translucent onyx crafted for light. Custom installation, backlighting, customization, and private project consultation.",
         category: "Natural Onyx",
         services: [
-          "Translucent onyx slab availability",
-          "Backlit application planning",
-          "Project and fabrication coordination",
+          "Custom onyx installation",
+          "Backlighting solutions",
+          "Onyx customization",
+          "Project consultation",
         ],
         contactPreference: "message",
         // Preserve any operator-only contact/location values already stored,
@@ -210,7 +211,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
         publicLocationEnabled: false,
         publicWebsiteEnabled: false,
         // Keep only contact already stored on this business. Never copy from
-        // another company. Owner attaches private DC routing later.
+        // another company or the owner website. Owner attaches private DC routing later.
         phone: String(existingProfileData.phone || "").trim(),
         notificationEmail: String(
           existingProfileData.notificationEmail || existingProfileData.email || ""
@@ -223,6 +224,18 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           owner_confirmation: "confirmed_by_tradescout_operator",
           owner_identity_visibility: "not_publicly_disclosed",
           stewardship_status: ISSA_BUILD_STEWARDSHIP_STATUS,
+          presentation_archetype: "luxury-material-house",
+          capability_source: "owner_business_story",
+          inherited_platform_capabilities: [
+            "direct_connect",
+            "material_identity",
+            "private_consultation",
+          ],
+          rejected_presentation_grammar: [
+            "inventory_browser",
+            "warehouse_yard_language",
+            "catalog_product_cards",
+          ],
         },
         brandColors: {
           primary: "#342316",
@@ -325,7 +338,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       contentBlocks: ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
-          label: "Direct Connect",
+          label: "Discuss a project",
           kind: "message" as const,
           value: "/direct-connect",
         },
@@ -333,7 +346,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       seoMeta: {
         title: "ISSA Build | Luxury Translucent Onyx",
         description:
-          "ISSA Build — Honey Onyx and Multi Green Onyx. Luxury translucent stone for interiors. Inquire privately on TradeScout.",
+          "ISSA Build — Honey Onyx and Multi Green Onyx for interiors designed to glow. Private project consultation on TradeScout.",
         imageUrl: "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: 1600,
         imageHeight: 1200,

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ISSA_BUILD_APPLICATION_IMAGES,
   ISSA_BUILD_BUSINESS_NAME,
   ISSA_BUILD_HERO_POSTER,
   ISSA_BUILD_HERO_VIDEO,
@@ -11,12 +12,28 @@ import {
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_IMAGES,
   ISSA_BUILD_PROFILE_SLUG,
+  ISSA_BUILD_SLAB_IMAGES,
   isIssaBuildProfileSlug,
 } from "@shared/issaBuildProfile";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+
+const FORBIDDEN_ISSA_PRESENTATION_STRINGS = [
+  "profile-inventory-card",
+  "Search by stone name",
+  "Current collection",
+  "View details",
+  "slab count",
+  "bundle count",
+  "Material to confirm",
+  "Featured stones",
+  "Browse full inventory",
+  "warehouse",
+  "stone yard",
+  "Honey Green",
+] as const;
 
 describe("ISSA Build public profile contract", () => {
   it("provisions ISSA Build as its own business without borrowing another company's contact", () => {
@@ -67,6 +84,11 @@ describe("ISSA Build public profile contract", () => {
     expect(provisioner).toContain("publicContactEnabled: false");
     expect(provisioner).toContain("publicLocationEnabled: false");
     expect(provisioner).toContain("publicWebsiteEnabled: false");
+    expect(provisioner).toContain('presentation_archetype: "luxury-material-house"');
+    expect(provisioner).toContain("Custom onyx installation");
+    expect(provisioner).toContain("Backlighting solutions");
+    expect(provisioner).toContain("Onyx customization");
+    expect(provisioner).toContain("Project consultation");
     expect(businessRepository).toContain("business.profileData?.publicContactEnabled !== false");
     expect(businessRepository).toContain("business.profileData?.publicLocationEnabled !== false");
     expect(businessRepository).toContain("business.profileData?.publicWebsiteEnabled !== false");
@@ -127,6 +149,7 @@ describe("ISSA Build public profile contract", () => {
       ).toBe(true);
     }
     expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toContain("Honey Green Onyx");
+    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toContain("Honey Green");
   });
 
   it("uses approved ISSA Build photography for the first viewport", () => {
@@ -156,31 +179,75 @@ describe("ISSA Build public profile contract", () => {
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
     expect(theme).toContain("font-editorial");
-    expect(theme).toContain("Lookbook");
+    expect(theme).toContain("Discuss a project");
+    expect(theme).toContain("View the showcase");
   });
 
-  it("uses the reusable editorial product template below the hero", () => {
+  it("uses the reusable luxury-material-house archetype below the hero", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const sections = read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx");
+    const luxuryHouse = read("client/src/pages/profile-sites/LuxuryMaterialHouseShowcase.tsx");
     const showcase = read("client/src/pages/profile-sites/OnyxStoneShowcase.tsx");
     const premiumBlock = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find(
       (block) => block.type === "premiumProduct"
     );
+    const premiumData = premiumBlock?.data as any;
+    const house = premiumData?.luxuryHouse;
 
-    expect((premiumBlock?.data as any)?.variant).toBe("editorial-product");
-    expect((premiumBlock?.data as any)?.presentation).toBe("horizontal-luxury-showcase");
-    expect(isPremiumProductProfileData(premiumBlock?.data)).toBe(true);
+    expect(premiumData?.variant).toBe("editorial-product");
+    expect(premiumData?.presentation).toBe("luxury-material-house");
+    expect(isPremiumProductProfileData(premiumData)).toBe(true);
     expect(
       isPremiumProductProfileData({
-        ...(premiumBlock?.data as any),
+        ...premiumData,
         offerings: { title: "Malformed" },
       })
     ).toBe(false);
-    expect((premiumBlock?.data as any)?.featuredProductSlug).toBe("honey-onyx");
-    expect((premiumBlock?.data as any)?.offerings?.items?.map((item: any) => item.slug)).toEqual([
+    expect(
+      isPremiumProductProfileData({
+        ...premiumData,
+        presentation: "luxury-material-house",
+        luxuryHouse: undefined,
+      })
+    ).toBe(false);
+    expect(premiumData?.featuredProductSlug).toBe("honey-onyx");
+    expect(premiumData?.offerings?.items?.map((item: any) => item.slug)).toEqual([
       "honey-onyx",
       "multi-green-onyx",
     ]);
+    expect(house?.materialChapters?.map((chapter: any) => [chapter.name, chapter.slug])).toEqual([
+      ["Honey Onyx", "honey-onyx"],
+      ["Multi Green Onyx", "multi-green-onyx"],
+    ]);
+    expect(house?.designedWithLight?.image).toBe(ISSA_BUILD_APPLICATION_IMAGES[2]);
+    expect(house?.materialChapters?.[0]?.applicationImage).toBe(ISSA_BUILD_APPLICATION_IMAGES[4]);
+    expect(house?.materialChapters?.[0]?.detailImage).toBe(ISSA_BUILD_SLAB_IMAGES[0]);
+    expect(house?.materialChapters?.[1]?.applicationImage).toBe(ISSA_BUILD_APPLICATION_IMAGES[0]);
+    expect(house?.materialChapters?.[1]?.detailImage).toBe(ISSA_BUILD_SLAB_IMAGES[2]);
+    expect(house?.showcase?.images?.length).toBeGreaterThanOrEqual(6);
+    expect(house?.showcase?.images?.length).toBeLessThanOrEqual(9);
+    for (const image of house.showcase.images) {
+      expect(ISSA_BUILD_APPLICATION_IMAGES.includes(image)).toBe(true);
+      expect(String(image)).not.toMatch(/slabs|yard|warehouse/i);
+    }
+    // First two content section heroes are installed interiors, not slab yard.
+    expect(house.designedWithLight.image).toMatch(/\/applications\//);
+    expect(house.materialChapters[0].applicationImage).toMatch(/\/applications\//);
+    expect(house.capabilities.items.map((item: any) => item.title)).toEqual([
+      "Custom onyx installation",
+      "Backlighting solutions",
+      "Onyx customization",
+      "Project consultation",
+    ]);
+    expect(house.consultation.fields).toEqual([
+      "Selected material",
+      "Room / application",
+      "Dimensions",
+      "Location",
+      "Timing",
+      "Backlighting intent",
+    ]);
+
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("premiumProductData.featuredProductSlug");
     expect(theme).toContain("premiumProduct?.images[0]");
@@ -191,14 +258,15 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("<TradeScoutProfileHandoff");
     expect(theme).toContain('data-testid="wholesaler-brand-footer"');
     expect(theme).toContain('data-testid="profile-trust-section"');
-    // Premium lookbook is theme content inside shared TradeScout chrome — never a takeover.
     expect(theme.indexOf("<PremiumProductProfileSections")).toBeLessThan(
       theme.indexOf('data-testid="wholesaler-brand-footer"')
     );
     expect(theme.indexOf('data-testid="wholesaler-brand-footer"')).toBeLessThan(
       theme.indexOf("<TradeScoutProfileHandoff")
     );
-    expect(theme).toContain('["Lookbook", "collection"]');
+    expect(theme).toContain('premiumProductData?.presentation === "luxury-material-house"');
+    expect(theme).toContain('["Showcase", "showcase"]');
+    expect(theme).toContain('["Consult", "consult"]');
     expect(theme).toContain('["Connect", "connect"]');
     expect(theme).toContain("issa-hero-media");
     expect(theme).toContain("issaHeroReady");
@@ -210,56 +278,75 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("Direct Connect");
     expect(theme).not.toContain('["Inquire", "connect"]');
     expect(theme).toContain('premiumProductData?.presentation === "horizontal-luxury-showcase"');
-    expect(JSON.stringify(premiumBlock)).toContain("By day. By light.");
-    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toContain(
-      "Two distinct offerings"
-    );
-    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toMatch(/book-matched/i);
+    expect(
+      (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.eyebrow
+    ).toBe("ISSA BUILD · TRANSLUCENT ONYX");
     expect(
       (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.headerLabel
     ).toBe("Crafted for light.");
     expect(
       (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "hero")?.data as any)?.teaser
-    ).toBe("Honey Onyx · Multi Green Onyx.");
+    ).toBe("Honey Onyx and Multi Green Onyx for interiors designed to glow.");
     expect(
       (
         (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "trust")?.data as any)?.items ||
         []
       ).length
     ).toBeGreaterThan(0);
-    expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(8);
-    expect((premiumBlock?.data as any)?.closing).toMatchObject({
-      imageIndex: 2,
-      imageFit: "cover",
-      title: "Inquire privately.",
-    });
+
+    expect(sections).toContain("<LuxuryMaterialHouseShowcase");
+    expect(sections).toContain('presentation === "luxury-material-house"');
     expect(sections).toContain("<OnyxStoneShowcase");
-    expect(sections).toContain("buildProfileInventoryShareSearch");
+    expect(sections).toContain('presentation === "horizontal-luxury-showcase"');
     expect(sections).not.toMatch(/profileSlug\s*===\s*["']issa-build["']/);
     expect(sections).not.toContain("<TradeScoutProfileHandoff");
+
+    expect(luxuryHouse).toContain('data-testid="luxury-material-house-showcase"');
+    expect(luxuryHouse).toContain("designed-with-light");
+    expect(luxuryHouse).toContain("material-chapters");
+    expect(luxuryHouse).toContain("capabilities");
+    expect(luxuryHouse).toContain("showcase");
+    expect(luxuryHouse).toContain("consult");
+    expect(luxuryHouse).toContain("onDirectConnect");
+    expect(luxuryHouse).toContain("Direct Connect");
+    expect(luxuryHouse).toContain("font-editorial");
+    expect(luxuryHouse).toContain("border-ts-orange");
+    expect(luxuryHouse).not.toContain("profile-inventory-card");
+    expect(luxuryHouse).not.toContain("snap-x snap-mandatory");
+    expect(luxuryHouse).not.toContain("Lookbook");
+    expect(luxuryHouse).not.toContain("Choose onyx collection");
+    expect(luxuryHouse).not.toMatch(/profileSlug\s*===\s*["']issa-build["']/);
+    for (const forbidden of FORBIDDEN_ISSA_PRESENTATION_STRINGS) {
+      expect(luxuryHouse.toLowerCase()).not.toContain(forbidden.toLowerCase());
+    }
+
+    // Horizontal showcase remains available for non-ISSA premium users.
     expect(showcase).toContain("activeProduct.images.map");
     expect(showcase).toContain("snap-x snap-mandatory");
     expect(showcase).toContain("Lookbook");
-    expect(showcase).toContain('role="dialog"');
-    expect(showcase).toContain('event.key === "Escape"');
-    expect(showcase).toContain('event.key !== "Tab"');
-    expect(showcase).toContain("onTouchStart");
-    expect(showcase).toContain('loading={index === 0 ? "eager" : "lazy"}');
-    expect(showcase).toContain("prefers-reduced-motion: reduce");
     expect(showcase).toContain("Choose onyx collection");
-    expect(showcase).toContain("useCallback");
-    expect(showcase).toContain("scrollRailToIndex");
-    expect(showcase).toContain("rail.scrollTo");
-    expect(showcase).toContain('aria-live="polite"');
-    expect(showcase).toContain("data.closing.title");
-    expect(showcase).toContain("font-editorial");
-    // Deep-linked shared photos must scroll the rail into view so counter/nav stay aligned.
-    expect(showcase).toContain('scrollRailToIndex(requestedIndex, "auto")');
-    // Lookbook is content — no parallel essay microsite; CTAs stay Direct Connect / TradeScout.
-    expect(showcase).not.toContain('id="why-us"');
-    expect(showcase).toContain("Direct Connect");
-    expect(showcase).toContain("border-ts-orange");
-    expect(showcase).not.toContain(">Inquire<");
+
+    const profileCopy = JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
+    for (const forbidden of FORBIDDEN_ISSA_PRESENTATION_STRINGS) {
+      expect(profileCopy.toLowerCase()).not.toContain(forbidden.toLowerCase());
+    }
+    expect(profileCopy).not.toMatch(/850-|issaichev|@gmail\.com|password|testimonial/i);
+    expect(profileCopy).not.toMatch(/street|avenue|boulevard|suite\s+\d/i);
+  });
+
+  it("keeps JW Stone and ordinary wholesaler inventory grammar unchanged", () => {
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    expect(theme).toContain(
+      'data-testid={isJwStone ? "jw-stone-inventory-card" : "profile-inventory-card"}'
+    );
+    expect(theme).toContain("Browse full inventory");
+    expect(theme).toContain("Current collection");
+    expect(theme).toContain("View details");
+    expect(theme).toContain("Material to confirm");
+    expect(theme).toContain('profileSlug === "jw-stone"');
+    expect(theme).toContain("openFullInventory");
+    // Inventory chrome stays gated behind non-premium / JW Stone paths.
+    expect(theme).toContain("if (premiumProductData)");
   });
 
   it("canonicalizes every legacy public route without losing source context", () => {

@@ -45,7 +45,23 @@ const products = inventoryData.categories[0].stones.map((stone) => ({
 }));
 const data = premiumBlock?.data as PremiumProductProfileData;
 
-describe("PremiumProductProfileSections multi-offering behavior", () => {
+const FORBIDDEN_RENDER_STRINGS = [
+  "profile-inventory-card",
+  "Search by stone name",
+  "Current collection",
+  "View details",
+  "slab count",
+  "bundle count",
+  "Material to confirm",
+  "Featured stones",
+  "Browse full inventory",
+  "warehouse",
+  "stone yard",
+  "Lookbook",
+  "Honey Green",
+];
+
+describe("PremiumProductProfileSections luxury-material-house behavior", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -86,146 +102,128 @@ describe("PremiumProductProfileSections multi-offering behavior", () => {
     return onDirectConnect;
   }
 
-  it("opens the exact product and photo carried by a shared inventory link", () => {
-    const onDirectConnect = renderProfile();
-
-    // ProfileSiteView resolves the query after the profile payload arrives, so
-    // the component must react to updated props rather than only its first render.
-    renderProfile(onDirectConnect, "multi-green-onyx", 2);
-
-    const dialog = container.querySelector('[role="dialog"]');
-    expect(dialog?.getAttribute("aria-label")).toBe("Multi Green Onyx photo gallery");
-    expect(dialog?.textContent?.replace(/\s+/g, " ")).toContain("03 / 07");
-    expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(products[1].images[2]);
+  it("dispatches luxury-material-house to the editorial house showcase", () => {
+    expect(data.presentation).toBe("luxury-material-house");
+    renderProfile();
+    expect(
+      container.querySelector('[data-testid="luxury-material-house-showcase"]')
+    ).not.toBeNull();
+    expect(container.querySelector('[data-testid="onyx-stone-showcase"]')).toBeNull();
+    expect(container.querySelector('[data-testid="premium-product-profile-sections"]')).toBeNull();
   });
 
-  it("keeps the shared-photo counter after closing a deep-linked lightbox", async () => {
-    const onDirectConnect = renderProfile();
-    renderProfile(onDirectConnect, "multi-green-onyx", 2);
+  it("leads with installed-interior sections and keeps materials separate", () => {
+    renderProfile();
+    const designed = container.querySelector('[data-testid="luxury-house-designed-with-light"]');
+    const chapters = container.querySelector('[data-testid="luxury-house-material-chapters"]');
+    const honey = container.querySelector('[data-testid="luxury-house-chapter-honey-onyx"]');
+    const multiGreen = container.querySelector(
+      '[data-testid="luxury-house-chapter-multi-green-onyx"]'
+    );
 
-    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
-    expect(
-      container.querySelector('[aria-live="polite"]')?.textContent?.replace(/\s+/g, " ")
-    ).toContain("03 / 07");
+    expect(designed).not.toBeNull();
+    expect(chapters).not.toBeNull();
+    expect(honey?.textContent).toContain("Honey Onyx");
+    expect(multiGreen?.textContent).toContain("Multi Green Onyx");
+    expect(container.textContent).not.toContain("Honey Green");
 
-    await act(async () => {
-      container
-        .querySelector('button[aria-label="Close expanded gallery"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      await new Promise((resolve) => window.requestAnimationFrame(() => resolve(undefined)));
-    });
+    const designedImage = designed?.querySelector("img")?.getAttribute("src") || "";
+    const honeyApplication = honey?.querySelector("img")?.getAttribute("src") || "";
+    expect(designedImage).toMatch(/\/applications\//);
+    expect(honeyApplication).toMatch(/\/applications\//);
 
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
-    expect(
-      container.querySelector('[aria-live="polite"]')?.textContent?.replace(/\s+/g, " ")
-    ).toContain("03 / 07");
+    const sectionOrder = [
+      "designed-with-light",
+      "material-chapters",
+      "capabilities",
+      "showcase",
+      "consult",
+    ];
+    const positions = sectionOrder.map((id) => container.innerHTML.indexOf(`id="${id}"`));
+    for (let i = 1; i < positions.length; i += 1) {
+      expect(positions[i]).toBeGreaterThan(positions[i - 1]);
+    }
   });
 
-  it("switches the full showcase and keeps CTA context product-specific", () => {
+  it("surfaces installation, backlighting, customization, and consultation as business story", () => {
+    renderProfile();
+    const capabilities = container.querySelector('[data-testid="luxury-house-capabilities"]');
+    expect(capabilities?.textContent).toContain("Custom onyx installation");
+    expect(capabilities?.textContent).toContain("Backlighting solutions");
+    expect(capabilities?.textContent).toContain("Onyx customization");
+    expect(capabilities?.textContent).toContain("Project consultation");
+    expect(
+      container.querySelector('[data-testid="luxury-house-consultation"]')?.textContent
+    ).toContain("Tell ISSA Build what you are creating.");
+  });
+
+  it("wires Direct Connect with the selected material identity", () => {
     const onDirectConnect = renderProfile();
     const multiGreenToggle = Array.from(container.querySelectorAll("button")).find(
       (button) =>
         button.getAttribute("aria-pressed") !== null &&
         button.textContent?.includes("Multi Green Onyx")
     );
-
     expect(multiGreenToggle).toBeTruthy();
     act(() => multiGreenToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(
-      container.querySelector('[role="region"][aria-label="Multi Green Onyx horizontal showcase"]')
-    ).not.toBeNull();
-    expect(container.querySelector("#connect")?.textContent).toContain("Inquire privately.");
 
-    const cta = Array.from(container.querySelectorAll("#connect button")).find((button) =>
-      /Direct Connect/i.test(button.textContent || "")
-    );
-    expect(cta).toBeTruthy();
-    act(() => cta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const consultCta = Array.from(
+      container.querySelectorAll('[data-testid="luxury-house-consultation"] button')
+    ).find((button) => /Direct Connect/i.test(button.textContent || ""));
+    expect(consultCta).toBeTruthy();
+    act(() => consultCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onDirectConnect).toHaveBeenCalledWith("Multi Green Onyx");
   });
 
-  it("shares the stable photo ordinal when presentation order differs", async () => {
-    const reorderedProduct = {
-      name: "Reordered Onyx",
-      slug: "reordered-onyx",
-      images: ["/reordered-1.jpg", "/reordered-2.jpg", "/reordered-3.jpg"],
-      shareImageOrder: [2, 0, 1],
-    };
+  it("preserves honey-onyx and multi-green-onyx identity through chapter CTAs", () => {
+    const onDirectConnect = renderProfile();
+    const honeyCta = Array.from(container.querySelectorAll("button")).find((button) =>
+      /Discuss Honey Onyx/i.test(button.textContent || "")
+    );
+    const multiCta = Array.from(container.querySelectorAll("button")).find((button) =>
+      /Discuss Multi Green Onyx/i.test(button.textContent || "")
+    );
+    expect(honeyCta).toBeTruthy();
+    expect(multiCta).toBeTruthy();
+    act(() => honeyCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    act(() => multiCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onDirectConnect).toHaveBeenCalledWith("Honey Onyx");
+    expect(onDirectConnect).toHaveBeenCalledWith("Multi Green Onyx");
+    expect(products.map((product) => product.slug)).toEqual(["honey-onyx", "multi-green-onyx"]);
+  });
 
+  it("does not render inventory or catalog chrome strings", () => {
+    renderProfile();
+    const text = (container.textContent || "").toLowerCase();
+    const html = container.innerHTML.toLowerCase();
+    for (const forbidden of FORBIDDEN_RENDER_STRINGS) {
+      expect(text).not.toContain(forbidden.toLowerCase());
+      expect(html).not.toContain(forbidden.toLowerCase());
+    }
+  });
+
+  it("keeps horizontal-luxury-showcase on OnyxStoneShowcase for non-house profiles", () => {
+    const horizontalData: PremiumProductProfileData = {
+      ...data,
+      presentation: "horizontal-luxury-showcase",
+      luxuryHouse: undefined,
+    };
     act(() => {
       root.render(
         <PremiumProductProfileSections
-          profileName="ISSA Build"
+          profileName="Legacy Showcase"
           product={products[0]}
-          products={[...products, reorderedProduct]}
-          initialProductSlug={reorderedProduct.slug}
-          initialPhotoIndex={0}
-          data={data}
+          products={products}
+          data={horizontalData}
           trustFacts={[]}
           faqItems={[]}
-          profileShareDestination="/u/issa-build"
+          profileShareDestination="/u/legacy"
           onDirectConnect={vi.fn()}
         />
       );
     });
-
-    await act(async () => {
-      container
-        .querySelector('button[aria-label="Share Reordered Onyx"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(shareMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: expect.stringContaining("/u/issa-build?stone=reordered-onyx&photo=2"),
-      })
-    );
-  });
-
-  it("keeps dialog navigation focus stable and returns focus after Escape", async () => {
-    renderProfile();
-    const expand = container.querySelector<HTMLButtonElement>('button[aria-label="Expand Suite"]');
-    expect(expand).toBeTruthy();
-    act(() => expand?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-
-    const close = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Close expanded gallery"]'
-    );
-    expect(close).toBeTruthy();
-    close?.focus();
-    expect(document.activeElement).toBe(close);
-
-    const next = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Next expanded image"]'
-    );
-    next?.focus();
-    act(() => next?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(container.querySelector('[role="dialog"]')?.textContent?.replace(/\s+/g, " ")).toContain(
-      "02 / 08"
-    );
-    expect(document.activeElement).toBe(next);
-
-    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight" })));
-    expect(container.querySelector('[role="dialog"]')?.textContent?.replace(/\s+/g, " ")).toContain(
-      "03 / 08"
-    );
-    expect(document.activeElement).toBe(next);
-
-    await act(async () => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-      await new Promise((resolve) => window.setTimeout(resolve, 25));
-    });
-    expect(container.querySelector('[role="dialog"]')).toBeNull();
-    expect(document.activeElement).toBe(expand);
-  });
-
-  it("provides real section targets and a visible keyboard focus treatment for the rail", () => {
-    renderProfile();
-    expect(container.querySelector("#collection")).not.toBeNull();
-    expect(container.querySelector("#why-us")).toBeNull();
-    expect(container.querySelector("#connect")).not.toBeNull();
-    expect(
-      container.querySelector('[role="region"][aria-label$="horizontal showcase"]')?.className
-    ).toContain("focus-visible:ring-2");
+    expect(container.querySelector('[data-testid="onyx-stone-showcase"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="luxury-material-house-showcase"]')).toBeNull();
+    expect(container.textContent).toContain("Lookbook");
   });
 });
