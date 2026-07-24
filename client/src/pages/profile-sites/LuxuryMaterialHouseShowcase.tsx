@@ -187,11 +187,7 @@ export default function LuxuryMaterialHouseShowcase({
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:gap-8">
             {house.capabilities.items.map((item, index) => (
-              <div
-                key={item.title}
-                className="border-t border-[#342316]/15 pt-5"
-                style={{ animationDelay: `${index * 80}ms` }}
-              >
+              <div key={item.title} className="border-t border-[#342316]/15 pt-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent,#d9a441)]">
                   {String(index + 1).padStart(2, "0")}
                 </p>
