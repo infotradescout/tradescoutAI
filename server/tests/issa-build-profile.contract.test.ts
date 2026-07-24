@@ -148,7 +148,9 @@ describe("ISSA Build public profile contract", () => {
     ).toBe(true);
     expect(theme).toContain("isIssaBuildProfileSlug");
     expect(theme).toContain('src: "/images/businesses/jw-stone/video/hero.mp4"');
-    expect(theme).toContain('premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"');
+    expect(theme).toContain(
+      'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
+    );
     expect(theme).toContain("rgba(10,7,4,0.78)");
   });
 
@@ -176,13 +178,21 @@ describe("ISSA Build public profile contract", () => {
     ]);
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("premiumProductData.featuredProductSlug");
-    expect(theme).toContain("products={allInventoryStones}");
+    expect(theme).toContain("premiumProduct?.images[0]");
+    expect(theme).toContain("products={premiumInventoryStones}");
     expect(theme).toContain("initialProductSlug={premiumSharedItem?.slug}");
     expect(theme).toContain("initialPhotoIndex={premiumSharedItem?.imageIndex}");
     expect(theme).toContain("<PremiumProductProfileSections");
     expect(theme).toContain("<TradeScoutProfileHandoff");
+    expect(theme).toContain('["Collections", "collection"]');
+    expect(theme).toContain('["Details", "why-us"]');
+    expect(theme).toContain('premiumProductData?.presentation === "horizontal-luxury-showcase"');
     expect(JSON.stringify(premiumBlock)).toContain("Honey Onyx. Day and night.");
     expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(8);
+    expect((premiumBlock?.data as any)?.closing).toMatchObject({
+      imageIndex: 2,
+      imageFit: "cover",
+    });
     expect(sections).toContain("<OnyxStoneShowcase");
     expect(sections).toContain("buildProfileInventoryShareSearch");
     expect(sections).not.toMatch(/profileSlug\s*===\s*["']issa-build["']/);
@@ -197,6 +207,9 @@ describe("ISSA Build public profile contract", () => {
     expect(showcase).toContain('loading={index === 0 ? "eager" : "lazy"}');
     expect(showcase).toContain("prefers-reduced-motion: reduce");
     expect(showcase).toContain("Choose onyx collection");
+    expect(showcase).toContain("useCallback");
+    expect(showcase).toContain("rail.scrollTo");
+    expect(showcase).toContain('aria-live="polite"');
   });
 
   it("canonicalizes every legacy public route without losing source context", () => {

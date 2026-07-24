@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -8,7 +14,10 @@ import {
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import { buildProfileInventoryShareSearch } from "@shared/profileItemShare";
+import {
+  buildProfileInventoryShareSearch,
+  profileInventoryShareIndexForDisplay,
+} from "@shared/profileItemShare";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
 
 type Product = {
@@ -58,25 +67,50 @@ export default function OnyxStoneShowcase({
   const touchStartX = useRef<number | null>(null);
   const activeProduct =
     products.find((entry) => entry.slug === activeProductSlug) || initialProduct;
+  const requestedProduct = initialProductSlug
+    ? products.find((entry) => entry.slug === initialProductSlug)
+    : null;
   const photoIndex = activePhoto ?? 0;
+  const isLightboxOpen = activePhoto !== null;
   const isFeaturedProduct = activeProduct.slug === data.featuredProductSlug;
   const photoDetail = isFeaturedProduct ? data.gallery.photos?.[photoIndex] : undefined;
   const offering = data.offerings?.items.find((entry) => entry.slug === activeProduct.slug);
+  const narrativeEyebrow =
+    (isFeaturedProduct ? data.contrast.eyebrow : offering?.eyebrow) || activeProduct.name;
+  const narrativeTitle =
+    (isFeaturedProduct ? data.contrast.title : offering?.title) || activeProduct.name;
+  const narrativeBody =
+    (isFeaturedProduct ? data.contrast.body : offering?.body) ||
+    `Explore the approved ${activeProduct.name} photography before starting a conversation.`;
 
-  const movePhoto = (direction: -1 | 1) =>
-    setActivePhoto((current) =>
-      current === null
-        ? null
-        : (current + direction + activeProduct.images.length) % activeProduct.images.length
-    );
+  const movePhoto = useCallback(
+    (direction: -1 | 1) =>
+      setActivePhoto((current) =>
+        current === null
+          ? null
+          : (current + direction + activeProduct.images.length) % activeProduct.images.length
+      ),
+    [activeProduct.images.length]
+  );
 
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
     setActivePhoto(null);
     window.requestAnimationFrame(() => returnFocusRef.current?.focus());
-  };
+  }, []);
 
   useEffect(() => {
-    if (activePhoto === null) return;
+    if (!requestedProduct) return;
+    const requestedIndex = Math.min(
+      Math.max(0, initialPhotoIndex),
+      Math.max(0, requestedProduct.images.length - 1)
+    );
+    setActiveProductSlug(requestedProduct.slug);
+    setVisiblePhoto(requestedIndex);
+    setActivePhoto(requestedIndex);
+  }, [initialPhotoIndex, requestedProduct]);
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     closeRef.current?.focus();
@@ -107,23 +141,32 @@ export default function OnyxStoneShowcase({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activePhoto, activeProduct.images.length]);
+  }, [closeLightbox, isLightboxOpen, movePhoto]);
 
   const selectProduct = (slug: string) => {
     setActiveProductSlug(slug);
     setVisiblePhoto(0);
-    railRef.current?.scrollTo({ left: 0, behavior: "auto" });
+    if (typeof railRef.current?.scrollTo === "function") {
+      railRef.current.scrollTo({ left: 0, behavior: "auto" });
+    } else if (railRef.current) {
+      railRef.current.scrollLeft = 0;
+    }
   };
 
   const scrollRail = (direction: -1 | 1) => {
     const rail = railRef.current;
     if (!rail) return;
     const next = Math.max(0, Math.min(activeProduct.images.length - 1, visiblePhoto + direction));
-    rail.children.item(next)?.scrollIntoView({
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
-      block: "nearest",
-      inline: "start",
-    });
+    const nextItem = rail.children.item(next) as HTMLElement | null;
+    const left = nextItem?.offsetLeft || 0;
+    if (typeof rail.scrollTo === "function") {
+      rail.scrollTo({
+        left,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      });
+    } else {
+      rail.scrollLeft = left;
+    }
     setVisiblePhoto(next);
   };
 
@@ -200,10 +243,18 @@ export default function OnyxStoneShowcase({
             onScroll={(event) => {
               const first = event.currentTarget.firstElementChild as HTMLElement | null;
               setVisiblePhoto(
-                Math.round(event.currentTarget.scrollLeft / Math.max(1, first?.offsetWidth || 1))
+                Math.max(
+                  0,
+                  Math.min(
+                    activeProduct.images.length - 1,
+                    Math.round(
+                      event.currentTarget.scrollLeft / Math.max(1, first?.offsetWidth || 1)
+                    )
+                  )
+                )
               );
             }}
-            className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth outline-none [scrollbar-color:#d8b675_#211b16] [scrollbar-width:thin] motion-reduce:scroll-auto"
+            className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth outline-none [scrollbar-color:#d8b675_#211b16] [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#efd393] motion-reduce:scroll-auto"
           >
             {activeProduct.images.map((image, index) => {
               const detail = isFeaturedProduct ? data.gallery.photos?.[index] : undefined;
@@ -216,7 +267,6 @@ export default function OnyxStoneShowcase({
                     src={image}
                     alt={`${activeProduct.name}: ${detail?.title || `material view ${index + 1}`}`}
                     loading={index === 0 ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : "auto"}
                     sizes="(min-width: 1024px) 82vw, 92vw"
                     className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 motion-reduce:transition-none group-hover:scale-[1.01]"
                   />
@@ -273,7 +323,7 @@ export default function OnyxStoneShowcase({
         </div>
         <div className="mx-auto mt-4 flex max-w-7xl justify-between px-4 text-[10px] uppercase tracking-[0.18em] text-[#a89b8b] sm:px-6">
           <p>Swipe, scroll, or use arrow keys</p>
-          <p className="text-[#d8b675]">
+          <p className="text-[#d8b675]" aria-live="polite" aria-atomic="true">
             {String(visiblePhoto + 1).padStart(2, "0")} /{" "}
             {String(activeProduct.images.length).padStart(2, "0")}
           </p>
@@ -284,12 +334,12 @@ export default function OnyxStoneShowcase({
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#88662d]">
-              {data.contrast.eyebrow}
+              {narrativeEyebrow}
             </p>
             <h2 className="mt-2 max-w-[18ch] font-serif text-3xl font-medium leading-[1.02] sm:text-5xl">
-              {data.contrast.title}
+              {narrativeTitle}
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#665b50]">{data.contrast.body}</p>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#665b50]">{narrativeBody}</p>
             <button
               type="button"
               onClick={() => onDirectConnect(activeProduct.name)}
@@ -299,19 +349,37 @@ export default function OnyxStoneShowcase({
             </button>
           </div>
           <div className="divide-y divide-[#211a14]/15 border-y border-[#211a14]/15">
-            <details className="group py-4" open>
+            <details className="group py-4">
               <summary className="flex cursor-pointer list-none justify-between font-semibold">
-                Where the material belongs
+                {isFeaturedProduct ? "Where the material belongs" : `About ${activeProduct.name}`}
                 <ChevronDown className="h-5 w-5 transition group-open:rotate-180" />
               </summary>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {data.applications.items.map((item) => (
-                  <div key={item.title}>
-                    <h3 className="text-sm font-semibold">{item.title}</h3>
-                    <p className="mt-1 text-xs leading-5 text-[#665b50]">{item.body}</p>
-                  </div>
-                ))}
-              </div>
+              {isFeaturedProduct ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {data.applications.items.map((item) => (
+                    <div key={item.title}>
+                      <h3 className="text-sm font-semibold">{item.title}</h3>
+                      <p className="mt-1 text-xs leading-5 text-[#665b50]">{item.body}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <p className="text-sm leading-6 text-[#665b50]">{narrativeBody}</p>
+                  {offering?.highlights?.length ? (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {offering.highlights.map((highlight) => (
+                        <li
+                          key={highlight}
+                          className="rounded-full border border-[#88662d]/30 px-3 py-1 text-xs font-semibold"
+                        >
+                          {highlight}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              )}
             </details>
             <details className="group py-4">
               <summary className="flex cursor-pointer list-none justify-between font-semibold">
@@ -336,7 +404,9 @@ export default function OnyxStoneShowcase({
                 <div className="mt-3 space-y-3">
                   {faqItems.map((faq, index) => (
                     <details key={`${faq.question}-${index}`} className="border-l pl-3">
-                      <summary className="cursor-pointer text-sm font-semibold">{faq.question}</summary>
+                      <summary className="cursor-pointer text-sm font-semibold">
+                        {faq.question}
+                      </summary>
                       <p className="mt-2 text-xs leading-5 text-[#665b50]">{faq.answer}</p>
                     </details>
                   ))}
@@ -347,7 +417,10 @@ export default function OnyxStoneShowcase({
         </div>
       </section>
 
-      <section id="connect" className="relative isolate min-h-[52svh] overflow-hidden px-4 py-16 sm:px-6">
+      <section
+        id="connect"
+        className="relative isolate min-h-[52svh] overflow-hidden px-4 py-16 sm:px-6"
+      >
         <img
           src={activeProduct.images[data.closing.imageIndex] || activeProduct.images[0]}
           alt=""
@@ -359,12 +432,15 @@ export default function OnyxStoneShowcase({
         <div className="mx-auto flex min-h-[40svh] max-w-7xl items-center">
           <div className="max-w-2xl">
             <p className="text-[10px] uppercase tracking-[0.28em] text-[#efd393]">
-              {data.closing.eyebrow}
+              {offering?.eyebrow || data.closing.eyebrow}
             </p>
             <h2 className="mt-3 font-serif text-4xl font-medium leading-[0.98] sm:text-6xl">
-              {data.closing.title}
+              Put {activeProduct.name} in the conversation.
             </h2>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-white/75">{data.closing.body}</p>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-white/75">
+              Share the {activeProduct.name} view that fits your idea, then send the project through
+              Direct Connect. Your contact details stay private unless the request is accepted.
+            </p>
             <button
               type="button"
               onClick={() => onDirectConnect(activeProduct.name)}
@@ -380,13 +456,15 @@ export default function OnyxStoneShowcase({
         <div
           role="dialog"
           aria-modal="true"
-          aria-labelledby="onyx-lightbox-title"
+          aria-label={`${activeProduct.name} photo gallery`}
           className="fixed inset-0 z-[65] flex items-center justify-center bg-black/95 p-2 sm:p-6"
           onMouseDown={(event) => event.target === event.currentTarget && closeLightbox()}
         >
           <div
             className="flex max-h-[96svh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0907]"
-            onTouchStart={(event) => (touchStartX.current = event.changedTouches[0]?.clientX ?? null)}
+            onTouchStart={(event) =>
+              (touchStartX.current = event.changedTouches[0]?.clientX ?? null)
+            }
             onTouchEnd={(event) => {
               if (touchStartX.current === null) return;
               const distance = event.changedTouches[0].clientX - touchStartX.current;
@@ -397,9 +475,9 @@ export default function OnyxStoneShowcase({
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-[#efd393]">
-                  {activeProduct.name} · {photoIndex + 1} of {activeProduct.images.length}
+                  {activeProduct.name} · Photo {photoIndex + 1} of {activeProduct.images.length}
                 </p>
-                <h3 id="onyx-lightbox-title" className="mt-1 font-serif text-xl">
+                <h3 className="mt-1 font-serif text-xl">
                   {photoDetail?.title || activeProduct.name}
                 </h3>
               </div>
@@ -407,7 +485,11 @@ export default function OnyxStoneShowcase({
                 <ShareButton
                   destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
                     activeProduct.slug,
-                    photoIndex
+                    profileInventoryShareIndexForDisplay(
+                      activeProduct.images,
+                      activeProduct.shareImageOrder,
+                      photoIndex
+                    )
                   )}`}
                   title={activeProduct.name}
                   text={`See this ${activeProduct.name} photo on TradeScout`}
@@ -429,7 +511,9 @@ export default function OnyxStoneShowcase({
             <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
               <img
                 src={activeProduct.images[photoIndex]}
-                alt={`${activeProduct.name} material view ${photoIndex + 1}`}
+                alt={`${activeProduct.name}: ${
+                  photoDetail?.title || `material view ${photoIndex + 1}`
+                }`}
                 className="max-h-[74svh] w-full object-contain"
               />
               <button
@@ -456,7 +540,7 @@ export default function OnyxStoneShowcase({
               <button
                 type="button"
                 onClick={() => {
-                  closeLightbox();
+                  setActivePhoto(null);
                   onDirectConnect(activeProduct.name);
                 }}
                 className="min-h-11 flex-none rounded-full border border-ts-orange/45 px-5 text-xs font-semibold text-ts-orange"

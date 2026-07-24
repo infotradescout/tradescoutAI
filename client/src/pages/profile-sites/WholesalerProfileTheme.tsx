@@ -499,15 +499,17 @@ export default function WholesalerProfileTheme({
     useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
+  const premiumInventoryStones = inventoryCatalogFromContent.flatMap((category) => category.stones);
   const premiumProductData = isPremiumProductProfileData(premiumProductBlock?.data)
     ? premiumProductBlock.data
     : null;
   const premiumProduct =
     premiumProductData && premiumProductData.featuredProductSlug
-      ? allInventoryStones.find((stone) => stone.slug === premiumProductData.featuredProductSlug) ||
-        null
-      : premiumProductData && allInventoryStones.length === 1
-        ? allInventoryStones[0]
+      ? premiumInventoryStones.find(
+          (stone) => stone.slug === premiumProductData.featuredProductSlug
+        ) || null
+      : premiumProductData && premiumInventoryStones.length === 1
+        ? premiumInventoryStones[0]
         : null;
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
@@ -612,6 +614,7 @@ export default function WholesalerProfileTheme({
   )?.images[1];
   const heroImage =
     (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
+    premiumProduct?.images[0] ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
     galleryItems[0]?.imageUrl;
   const heroEyebrow =
@@ -1044,19 +1047,25 @@ export default function WholesalerProfileTheme({
               Browse full inventory
             </button>
           ) : null}
-          {(premiumProductData
+          {(premiumProductData?.presentation === "horizontal-luxury-showcase"
             ? [
-                ["Day + glow", "why-us"],
-                ["Ideas", "audience"],
-                ["Photos", "collection"],
+                ["Collections", "collection"],
+                ["Details", "why-us"],
                 ["Connect", "connect"],
               ]
-            : [
-                ["Why Us", "why-us"],
-                ["Who We Serve", "audience"],
-                ["Materials", "materials"],
-                ["Connect", "connect"],
-              ]
+            : premiumProductData
+              ? [
+                  ["Day + glow", "why-us"],
+                  ["Ideas", "audience"],
+                  ["Photos", "collection"],
+                  ["Connect", "connect"],
+                ]
+              : [
+                  ["Why Us", "why-us"],
+                  ["Who We Serve", "audience"],
+                  ["Materials", "materials"],
+                  ["Connect", "connect"],
+                ]
           ).map(([label, sectionId]) => (
             <button
               key={sectionId}
@@ -1208,7 +1217,7 @@ export default function WholesalerProfileTheme({
         <PremiumProductProfileSections
           profileName={displayName}
           product={premiumProduct}
-          products={allInventoryStones}
+          products={premiumInventoryStones}
           initialProductSlug={premiumSharedItem?.slug}
           initialPhotoIndex={premiumSharedItem?.imageIndex}
           data={premiumProductData}
