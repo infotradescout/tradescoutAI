@@ -1,54 +1,46 @@
-# Release control (P0 posture)
+# Release control
 
-**Status:** Production must not deploy on every merge to `main`.
+**Status:** `main` is the production release channel. Render auto-deploys on every push/merge to `main`.
 
-Billing exposed a deeper control-plane failure: when GitHub Actions cannot run, merges to `main` still reach production via Render auto-deploy and/or push-triggered deploy hooks. Restoring billing alone is not enough.
+## Control plane
 
-## Current control plane (intended)
-
-| Layer | Required posture |
+| Layer | Posture |
 | --- | --- |
-| Render auto-deploy | **Off** for production web service (`tradescout-pro`) |
-| GitHub Actions deploy workflow | `workflow_dispatch` only, with approved SHA + `DEPLOY_PRODUCTION` confirmation + green `build-and-guard` |
-| Branch protection | PRs required; required check `build-and-guard`; no direct pushes to `main` |
-| Merge policy (human) | Only approved release/remediation merges during this period |
+| Render auto-deploy | **On Commit** for production web service (`tradescout-pro`) |
+| Production path | Merge/push to `main` → Render builds and deploys |
+| GitHub Actions deploy workflow | Optional backup only (`workflow_dispatch`). **Not required** for production |
+| CI | Advisory until billing/minutes work. Do **not** block Render on Actions |
 
-Repo file `render.yaml` sets `autoDeployTrigger: "off"`. **Blueprint sync / Dashboard must match** or Render will keep deploying on commit.
+Repo file `render.yaml` sets `autoDeployTrigger: commit`. **Dashboard Auto-Deploy must stay On** (or Blueprint sync must keep commit) so merges to `main` reach production.
 
-## Human P0 checklist (Render — required)
+## Operating rule
 
-Do these in the Render Dashboard before further feature merges:
+**Push/merge to `main` deploys production via Render. GitHub Actions is not required for that path.**
 
-1. Open the production web service for TradeScout (`tradescout-pro` / tradescoutai.onrender.com).
-2. **Settings → Build & Deploy → Auto-Deploy → Off** (or apply/sync Blueprint so `autoDeployTrigger: "off"` is live).
-3. Confirm there is no secondary path that redeploys `main` on every commit.
-4. After Auto-Deploy is Off, deploy only by:
-   - Dashboard **Manual Deploy** of an approved SHA, or
-   - GitHub Action **Production Release & Deploy** (`workflow_dispatch`) after CI is green for that SHA.
-5. Verify production with the live build/commit marker (not “workflow ran”).
+## Human checklist (Render)
 
-No Render API token is assumed in this repo remediation.
+1. Open production web service `tradescout-pro` (tradescoutai.onrender.com).
+2. **Settings → Build & Deploy → Auto-Deploy → On** (On Commit).
+3. Do not switch Auto-Deploy Off to “wait for Actions.”
+4. Optional: use Dashboard Manual Deploy or the `workflow_dispatch` deploy workflow only as a backup.
+5. Verify production with the live build/commit marker.
 
-## GitHub Actions / billing evidence (observed)
+## GitHub Actions / billing
 
-Annotation on failed jobs (both org repos):
+When billing is locked, jobs may finish in seconds with empty steps. That does not stop Render auto-deploy. Prefer admin merge bypass for merge gates while Actions cannot go green, rather than turning Auto-Deploy Off.
 
-> The job was not started because your account is locked due to a billing issue.
+Do not require Actions-green before Render can deploy.
 
-Pattern: runs complete in ~3–5s with **empty steps** (no checkout/install/test). When billing was healthy, substantive CI ran ~2+ minutes.
+## Branch protection
 
-Until billing is unlocked, required checks cannot go green. That correctly blocks the approved deploy workflow; it does **not** stop Render if Auto-Deploy is still On Commit.
+| Check name (job) | Workflow | Role |
+| --- | --- | --- |
+| `build-and-guard` | `CI` (`.github/workflows/ci.yml`) | Preferred merge signal when Actions works |
 
-## Branch protection vs check names
+While Actions billing is locked, admins may merge with bypass so `main` can move. Render will still deploy that push.
 
-| Required check name (job) | Workflow |
-| --- | --- |
-| `build-and-guard` | `CI` (`.github/workflows/ci.yml`) |
+## Agent rules
 
-Other workflows (`Release Gates`, `E2E`, `Bot Army`, etc.) are validation lanes, not the minimum merge gate documented here.
-
-## Agent rules during this period
-
-- Do not merge unrelated features to `main`.
-- Do not claim production deploy succeeded from a green local command or a hook HTTP 2xx alone.
+- Treat merge to `main` as a production release.
+- Do not claim production is updated from a green local command or Actions hook alone; confirm the live build marker.
 - See `AGENTS.md` release-control section.

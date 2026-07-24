@@ -3,10 +3,10 @@ services:
     name: tradescout-pro
     runtime: node
     branch: main
-    # Off = no deploy on merge. Approved path: Render manual/hook or workflow_dispatch deploy.
-    # Do NOT use checksPass while Production Deploy Drift-style checks exist elsewhere;
-    # TradeScout gate is the approved-SHA Actions workflow + human Render confirm.
-    autoDeployTrigger: "off"
+    # main is the release channel: Render auto-deploys on commit.
+    # Do NOT use checksPass (deadlock risk with post-deploy observers).
+    # GitHub Actions deploy workflow is optional backup only — not required for prod.
+    autoDeployTrigger: commit
     preDeployCommand: npm run db:migrate
     buildCommand: npm run build
     startCommand: npm start
