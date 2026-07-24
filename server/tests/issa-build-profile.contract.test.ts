@@ -156,7 +156,7 @@ describe("ISSA Build public profile contract", () => {
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
     expect(theme).toContain("font-editorial");
-    expect(theme).toContain("The lookbook");
+    expect(theme).toContain("Lookbook");
   });
 
   it("uses the reusable editorial product template below the hero", () => {
@@ -189,17 +189,33 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("initialPhotoIndex={premiumSharedItem?.imageIndex}");
     expect(theme).toContain("<PremiumProductProfileSections");
     expect(theme).toContain("<TradeScoutProfileHandoff");
-    expect(theme).toContain('["Collections", "collection"]');
-    expect(theme).toContain('["Details", "why-us"]');
+    expect(theme).toContain('data-testid="wholesaler-brand-footer"');
+    expect(theme).toContain('data-testid="profile-trust-section"');
+    // Premium lookbook is theme content inside shared TradeScout chrome — never a takeover.
+    expect(theme.indexOf("<PremiumProductProfileSections")).toBeLessThan(
+      theme.indexOf('data-testid="wholesaler-brand-footer"')
+    );
+    expect(theme.indexOf('data-testid="wholesaler-brand-footer"')).toBeLessThan(
+      theme.indexOf("<TradeScoutProfileHandoff")
+    );
+    expect(theme).toContain('["Lookbook", "collection"]');
+    expect(theme).toContain('["Connect", "connect"]');
+    expect(theme).toContain("issa-hero-media");
+    expect(theme).toContain("--ts-profile-top-offset");
+    expect(theme).toContain("border-ts-orange");
+    expect(theme).toContain("Direct Connect");
+    expect(theme).not.toContain('["Inquire", "connect"]');
     expect(theme).toContain('premiumProductData?.presentation === "horizontal-luxury-showcase"');
     expect(JSON.stringify(premiumBlock)).toContain("By day. By light.");
-    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toContain("Two distinct offerings");
+    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toContain(
+      "Two distinct offerings"
+    );
     expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toMatch(/book-matched/i);
     expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(8);
     expect((premiumBlock?.data as any)?.closing).toMatchObject({
       imageIndex: 2,
       imageFit: "cover",
-      title: "Request the material.",
+      title: "Inquire privately.",
     });
     expect(sections).toContain("<OnyxStoneShowcase");
     expect(sections).toContain("buildProfileInventoryShareSearch");
@@ -223,6 +239,11 @@ describe("ISSA Build public profile contract", () => {
     expect(showcase).toContain("font-editorial");
     // Deep-linked shared photos must scroll the rail into view so counter/nav stay aligned.
     expect(showcase).toContain('scrollRailToIndex(requestedIndex, "auto")');
+    // Lookbook is content — no parallel essay microsite; CTAs stay Direct Connect / TradeScout.
+    expect(showcase).not.toContain('id="why-us"');
+    expect(showcase).toContain("Direct Connect");
+    expect(showcase).toContain("border-ts-orange");
+    expect(showcase).not.toContain(">Inquire<");
   });
 
   it("canonicalizes every legacy public route without losing source context", () => {

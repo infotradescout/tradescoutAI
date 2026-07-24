@@ -5,13 +5,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import {
-  ArrowUpRight,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
 import {
   buildProfileInventoryShareSearch,
@@ -40,14 +34,14 @@ type Props = {
 };
 
 export default function OnyxStoneShowcase({
-  profileName,
+  profileName: _profileName,
   product,
   products = [product],
   initialProductSlug,
   initialPhotoIndex = 0,
   data,
-  trustFacts,
-  faqItems,
+  trustFacts: _trustFacts,
+  faqItems: _faqItems,
   profileShareDestination,
   onDirectConnect,
 }: Props) {
@@ -74,13 +68,6 @@ export default function OnyxStoneShowcase({
   const isFeaturedProduct = activeProduct.slug === data.featuredProductSlug;
   const photoDetail = isFeaturedProduct ? data.gallery.photos?.[photoIndex] : undefined;
   const offering = data.offerings?.items.find((entry) => entry.slug === activeProduct.slug);
-  const narrativeEyebrow =
-    (isFeaturedProduct ? data.contrast.eyebrow : offering?.eyebrow) || activeProduct.name;
-  const narrativeTitle =
-    (isFeaturedProduct ? data.contrast.title : offering?.title) || activeProduct.name;
-  const narrativeBody =
-    (isFeaturedProduct ? data.contrast.body : offering?.body) ||
-    `Explore ${activeProduct.name} before starting a conversation.`;
 
   const movePhoto = useCallback(
     (direction: -1 | 1) =>
@@ -100,7 +87,11 @@ export default function OnyxStoneShowcase({
       const child = rail.children[clamped] as HTMLElement | undefined;
       if (!child) return;
       setVisiblePhoto(clamped);
-      rail.scrollTo({ left: child.offsetLeft, behavior });
+      if (typeof rail.scrollTo === "function") {
+        rail.scrollTo({ left: child.offsetLeft, behavior });
+      } else {
+        rail.scrollLeft = child.offsetLeft;
+      }
     },
     [activeProduct.images.length]
   );
@@ -177,24 +168,9 @@ export default function OnyxStoneShowcase({
 
   return (
     <div data-testid="onyx-stone-showcase" className="overflow-hidden bg-[#070605] text-[#f4efe6]">
-      {trustFacts.length ? (
-        <section className="border-y border-white/[0.08]" aria-label={`${profileName} highlights`}>
-          <div className="mx-auto flex max-w-7xl snap-x snap-mandatory overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-8">
-            {trustFacts.map((fact) => (
-              <p
-                key={fact}
-                className="flex min-h-12 min-w-[70vw] snap-start items-center border-r border-white/[0.08] px-5 text-[10px] font-medium uppercase tracking-[0.32em] text-[#c4b59a] first:border-l sm:min-w-0 sm:flex-1 sm:justify-center sm:text-center"
-              >
-                {fact}
-              </p>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
       <section id="collection" className="scroll-mt-24 pt-10 sm:pt-14">
         <div className="mx-auto mb-8 max-w-7xl px-4 sm:mb-10 sm:px-8">
-          <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[#d4b87a]">
+          <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
             {data.offerings?.eyebrow || data.gallery.eyebrow}
           </p>
           <div className="mt-3 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
@@ -202,9 +178,11 @@ export default function OnyxStoneShowcase({
               <h2 className="max-w-[16ch] font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl">
                 {data.offerings?.title || data.gallery.title}
               </h2>
-              <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
-                {data.offerings?.body || data.gallery.body}
-              </p>
+              {data.offerings?.body || data.gallery.body ? (
+                <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
+                  {data.offerings?.body || data.gallery.body}
+                </p>
+              ) : null}
             </div>
             {products.length > 1 ? (
               <div
@@ -220,7 +198,7 @@ export default function OnyxStoneShowcase({
                     aria-pressed={entry.slug === activeProduct.slug}
                     className={`min-h-11 px-5 text-[10px] font-semibold uppercase tracking-[0.22em] transition ${
                       entry.slug === activeProduct.slug
-                        ? "bg-[#f0e2c8] text-[#1a1510]"
+                        ? "bg-[var(--brand-accent,#d9a441)] text-[var(--brand-primary-dark,#17100b)]"
                         : "text-white/65 hover:text-white"
                     }`}
                   >
@@ -253,7 +231,7 @@ export default function OnyxStoneShowcase({
                 )
               );
             }}
-            className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#efd393] motion-reduce:scroll-auto"
+            className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-accent,#d9a441)] motion-reduce:scroll-auto"
           >
             {activeProduct.images.map((image, index) => {
               const detail = isFeaturedProduct ? data.gallery.photos?.[index] : undefined;
@@ -272,7 +250,7 @@ export default function OnyxStoneShowcase({
                   <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,4,3,0)_35%,rgba(5,4,3,0.88)_100%)]" />
                   <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-6 sm:p-10">
                     <div className="max-w-lg">
-                      <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-[#efd393]">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-[var(--brand-accent,#d9a441)]">
                         {detail?.label || offering?.eyebrow || activeProduct.name}
                         <span className="mx-2 text-white/35">·</span>
                         {String(index + 1).padStart(2, "0")}
@@ -287,7 +265,7 @@ export default function OnyxStoneShowcase({
                         returnFocusRef.current = event.currentTarget;
                         setActivePhoto(index);
                       }}
-                      className="inline-flex min-h-11 flex-none items-center gap-2 border border-white/40 bg-black/25 px-4 text-[10px] font-semibold uppercase tracking-[0.24em] backdrop-blur-md transition hover:bg-white hover:text-[#1a1510]"
+                      className="inline-flex min-h-11 flex-none items-center gap-2 border border-white/40 bg-black/25 px-4 text-[10px] font-semibold uppercase tracking-[0.24em] backdrop-blur-md transition hover:bg-[var(--brand-accent,#d9a441)] hover:text-[var(--brand-primary-dark,#17100b)]"
                       aria-label={`Expand ${detail?.title || `${activeProduct.name} photo ${index + 1}`}`}
                     >
                       Expand <ArrowUpRight className="h-3.5 w-3.5" />
@@ -320,77 +298,10 @@ export default function OnyxStoneShowcase({
         </div>
         <div className="mx-auto mt-5 flex max-w-7xl justify-between px-4 text-[10px] uppercase tracking-[0.28em] text-[#8f8374] sm:px-8">
           <p>Lookbook</p>
-          <p className="text-[#d4b87a]" aria-live="polite" aria-atomic="true">
+          <p className="text-[var(--brand-accent,#d9a441)]" aria-live="polite" aria-atomic="true">
             {String(visiblePhoto + 1).padStart(2, "0")} /{" "}
             {String(activeProduct.images.length).padStart(2, "0")}
           </p>
-        </div>
-      </section>
-
-      <section id="why-us" className="px-4 py-16 text-[#f4efe6] sm:px-8 sm:py-20">
-        <div className="mx-auto grid max-w-7xl gap-12 border-t border-white/[0.08] pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[#d4b87a]">
-              {narrativeEyebrow}
-            </p>
-            <h2 className="mt-3 max-w-[14ch] font-editorial text-4xl font-medium leading-[0.98] sm:text-5xl">
-              {narrativeTitle}
-            </h2>
-            <p className="mt-5 max-w-xl text-sm font-light leading-7 text-[#b7aa98]">{narrativeBody}</p>
-            <button
-              type="button"
-              onClick={() => onDirectConnect(activeProduct.name)}
-              className="mt-8 inline-flex min-h-11 items-center bg-white px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#1a1510] transition hover:bg-[#efd393]"
-            >
-              Inquire
-            </button>
-          </div>
-          <div className="divide-y divide-white/[0.1] border-y border-white/[0.1]">
-            <details className="group py-5">
-              <summary className="flex cursor-pointer list-none justify-between text-sm font-medium tracking-wide">
-                Placement
-                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
-              </summary>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {data.applications.items.map((item) => (
-                  <div key={item.title}>
-                    <h3 className="font-editorial text-xl font-medium">{item.title}</h3>
-                    <p className="mt-1 text-xs leading-5 text-[#a89b8b]">{item.body}</p>
-                  </div>
-                ))}
-              </div>
-            </details>
-            <details className="group py-5">
-              <summary className="flex cursor-pointer list-none justify-between text-sm font-medium tracking-wide">
-                How to inquire
-                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
-              </summary>
-              <p className="mt-3 text-sm font-light leading-6 text-[#b7aa98]">{data.brief.body}</p>
-              <ul className="mt-4 grid gap-2 text-xs uppercase tracking-[0.18em] text-[#c4b59a] sm:grid-cols-2">
-                {data.brief.steps.map((step) => (
-                  <li key={step} className="border-l border-[#d4b87a]/50 pl-3 py-1">
-                    {step}
-                  </li>
-                ))}
-              </ul>
-            </details>
-            {faqItems.length ? (
-              <details className="group py-5">
-                <summary className="flex cursor-pointer list-none justify-between text-sm font-medium tracking-wide">
-                  Questions
-                  <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
-                </summary>
-                <div className="mt-3 space-y-4">
-                  {faqItems.map((faq, index) => (
-                    <div key={`${faq.question}-${index}`}>
-                      <p className="text-sm font-medium">{faq.question}</p>
-                      <p className="mt-1 text-xs leading-5 text-[#a89b8b]">{faq.answer}</p>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            ) : null}
-          </div>
         </div>
       </section>
 
@@ -408,7 +319,7 @@ export default function OnyxStoneShowcase({
         <span className="absolute inset-0 -z-10 bg-gradient-to-r from-black/92 via-black/70 to-black/20" />
         <div className="mx-auto flex min-h-[42svh] max-w-7xl items-center">
           <div className="max-w-2xl">
-            <p className="text-[10px] uppercase tracking-[0.36em] text-[#efd393]">
+            <p className="text-[10px] uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
               {data.closing.eyebrow}
             </p>
             <h2 className="mt-4 font-editorial text-5xl font-medium leading-[0.95] sm:text-6xl">
@@ -417,13 +328,15 @@ export default function OnyxStoneShowcase({
             <p className="mt-5 max-w-xl text-sm font-light leading-7 text-white/75">
               {data.closing.body}
             </p>
-            <button
-              type="button"
-              onClick={() => onDirectConnect(activeProduct.name)}
-              className="mt-8 min-h-12 bg-white px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#1a1510] transition hover:bg-[#efd393]"
-            >
-              Direct Connect
-            </button>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => onDirectConnect(activeProduct.name)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
+              >
+                Direct Connect
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -488,9 +401,7 @@ export default function OnyxStoneShowcase({
             <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black">
               <img
                 src={activeProduct.images[photoIndex]}
-                alt={`${activeProduct.name}: ${
-                  photoDetail?.title || `view ${photoIndex + 1}`
-                }`}
+                alt={`${activeProduct.name}: ${photoDetail?.title || `view ${photoIndex + 1}`}`}
                 className="max-h-[74svh] w-full object-contain"
               />
               <button
@@ -520,9 +431,9 @@ export default function OnyxStoneShowcase({
                   setActivePhoto(null);
                   onDirectConnect(activeProduct.name);
                 }}
-                className="min-h-11 flex-none border border-white/35 px-5 text-[10px] font-semibold uppercase tracking-[0.22em]"
+                className="inline-flex min-h-11 flex-none items-center justify-center border-2 border-ts-orange px-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-ts-orange"
               >
-                Inquire
+                Direct Connect
               </button>
             </div>
           </div>

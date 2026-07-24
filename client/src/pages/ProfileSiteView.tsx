@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1261,41 +1261,50 @@ export default function ProfileSiteView() {
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
         />
-        <WholesalerProfileTheme
-          profileSlug={profile.slug}
-          displayName={displayName}
-          businessAddress={publicBusinessAddress}
-          headline={publicHeadline}
-          contentBlocks={contentBlocks}
-          categories={publicCategories}
-          serviceAreas={publicServiceAreas}
-          brandColors={business?.brandColors}
-          contactReason={profile.contactPolicy?.reason}
-          hasViewerSession={hasViewerSession}
-          isSuperAdminViewer={isSuperAdminViewer}
-          useExpressDirectConnect={useExpressDirectConnect}
-          allowExpressCall={canExpressCall}
-          profileShareDestination={profileShareDestination}
-          platformBaseHref={platformBaseHref}
-          sharedGallerySlug={sharedGallerySlug}
-          tradeScoutReturnHref={tradeScoutReturnHref}
-          directConnectHref={directConnectHref}
-          preScoutCreateHref={preScoutCreateHref}
-          preScoutSignInHref={preScoutSignInHref}
-          recommendationsDirectory={recommendationsDirectory}
-          recommendationDirectorySummary={recommendationDirectorySummary}
-          trustActions={renderProfileTrustActions("light")}
-          featuredStoneSlugs={featuredStoneSlugs}
-          profileItems={
-            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
-              <PublicProfileItems
-                items={profileItems}
-                profileSections={profileSections}
-                platformBaseHref={platformBaseHref}
-              />
-            ) : null
+        <div
+          style={
+            {
+              ["--ts-profile-top-offset" as string]:
+                viewerCanManage || wantsManageUi ? "3.5rem" : "0px",
+            } as CSSProperties
           }
-        />
+        >
+          <WholesalerProfileTheme
+            profileSlug={profile.slug}
+            displayName={displayName}
+            businessAddress={publicBusinessAddress}
+            headline={publicHeadline}
+            contentBlocks={contentBlocks}
+            categories={publicCategories}
+            serviceAreas={publicServiceAreas}
+            brandColors={business?.brandColors}
+            contactReason={profile.contactPolicy?.reason}
+            hasViewerSession={hasViewerSession}
+            isSuperAdminViewer={isSuperAdminViewer}
+            useExpressDirectConnect={useExpressDirectConnect}
+            allowExpressCall={canExpressCall}
+            profileShareDestination={profileShareDestination}
+            platformBaseHref={platformBaseHref}
+            sharedGallerySlug={sharedGallerySlug}
+            tradeScoutReturnHref={tradeScoutReturnHref}
+            directConnectHref={directConnectHref}
+            preScoutCreateHref={preScoutCreateHref}
+            preScoutSignInHref={preScoutSignInHref}
+            recommendationsDirectory={recommendationsDirectory}
+            recommendationDirectorySummary={recommendationDirectorySummary}
+            trustActions={renderProfileTrustActions("light")}
+            featuredStoneSlugs={featuredStoneSlugs}
+            profileItems={
+              hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+                <PublicProfileItems
+                  items={profileItems}
+                  profileSections={profileSections}
+                  platformBaseHref={platformBaseHref}
+                />
+              ) : null
+            }
+          />
+        </div>
         {manageChromeSpacer}
         {manageChrome}
       </>
