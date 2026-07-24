@@ -2,6 +2,13 @@
 
 This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, copy, or concepts.
 
+## 0) Release control (P0 — read before merging to main)
+
+- Every merge to `main` must **not** equal production deploy. See `RELEASE_CONTROL.md`.
+- Render Auto-Deploy for production must be **Off**; approved deploys are manual/hook/`workflow_dispatch` with an explicit SHA.
+- Do not merge feature work during release-control incidents; only approved remediation/release.
+- GitHub Actions may fail in seconds with a billing lock; that is not a green CI gate and must not be ignored.
+
 ## 1) Platform law (must be preserved)
 - Visibility does not equal access: being seen never grants contact or power.
 - All contact is gated: Intent → Decision Card → Contact.
