@@ -1,5 +1,7 @@
 export const PREMIUM_PRODUCT_PROFILE_VARIANT = "editorial-product" as const;
 
+export type PremiumProductPresentation = "horizontal-luxury-showcase" | "luxury-material-house";
+
 export type PremiumProductApplication = {
   title: string;
   body: string;
@@ -20,9 +22,56 @@ export type PremiumProductOffering = {
   highlights?: string[];
 };
 
+/** Reusable luxury-material-house editorial model (not a catalog/browser). */
+export type LuxuryMaterialHouseChapter = {
+  slug: string;
+  name: string;
+  eyebrow: string;
+  body: string;
+  /** Installed-interior / application image (first). */
+  applicationImage: string;
+  /** Close material detail (second). */
+  detailImage: string;
+};
+
+export type LuxuryMaterialHouseCapability = {
+  title: string;
+  body: string;
+};
+
+export type LuxuryMaterialHouseData = {
+  designedWithLight: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    image: string;
+  };
+  materialChapters: LuxuryMaterialHouseChapter[];
+  capabilities: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    items: LuxuryMaterialHouseCapability[];
+  };
+  showcase: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    images: string[];
+  };
+  consultation: {
+    eyebrow: string;
+    title: string;
+    body: string;
+    prompt: string;
+    fields: string[];
+    note: string;
+  };
+};
+
 export type PremiumProductProfileData = {
   variant: typeof PREMIUM_PRODUCT_PROFILE_VARIANT;
-  presentation?: "horizontal-luxury-showcase";
+  presentation?: PremiumProductPresentation;
   /** Selects the product used by the editorial gallery when a catalog has multiple offerings. */
   featuredProductSlug?: string;
   /** Optional reusable collection overview for profiles with multiple distinct offerings. */
@@ -32,6 +81,8 @@ export type PremiumProductProfileData = {
     body: string;
     items: PremiumProductOffering[];
   };
+  /** Present when presentation === "luxury-material-house". */
+  luxuryHouse?: LuxuryMaterialHouseData;
   contrast: {
     eyebrow: string;
     title: string;
@@ -82,6 +133,56 @@ function isImageIndex(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
+function isLuxuryMaterialHouseData(value: unknown): value is LuxuryMaterialHouseData {
+  if (!isRecord(value)) return false;
+  const designed = value.designedWithLight;
+  const chapters = value.materialChapters;
+  const capabilities = value.capabilities;
+  const showcase = value.showcase;
+  const consultation = value.consultation;
+  return (
+    isRecord(designed) &&
+    isString(designed.eyebrow) &&
+    isString(designed.title) &&
+    isString(designed.body) &&
+    isString(designed.image) &&
+    Array.isArray(chapters) &&
+    chapters.length >= 1 &&
+    chapters.every(
+      (chapter) =>
+        isRecord(chapter) &&
+        isString(chapter.slug) &&
+        isString(chapter.name) &&
+        isString(chapter.eyebrow) &&
+        isString(chapter.body) &&
+        isString(chapter.applicationImage) &&
+        isString(chapter.detailImage)
+    ) &&
+    isRecord(capabilities) &&
+    isString(capabilities.eyebrow) &&
+    isString(capabilities.title) &&
+    isString(capabilities.body) &&
+    Array.isArray(capabilities.items) &&
+    capabilities.items.every(
+      (item) => isRecord(item) && isString(item.title) && isString(item.body)
+    ) &&
+    isRecord(showcase) &&
+    isString(showcase.eyebrow) &&
+    isString(showcase.title) &&
+    isString(showcase.body) &&
+    Array.isArray(showcase.images) &&
+    showcase.images.every(isString) &&
+    isRecord(consultation) &&
+    isString(consultation.eyebrow) &&
+    isString(consultation.title) &&
+    isString(consultation.body) &&
+    isString(consultation.prompt) &&
+    Array.isArray(consultation.fields) &&
+    consultation.fields.every(isString) &&
+    isString(consultation.note)
+  );
+}
+
 export function isPremiumProductProfileData(value: unknown): value is PremiumProductProfileData {
   if (!isRecord(value)) return false;
   const candidate = value as Record<string, unknown>;
@@ -91,6 +192,15 @@ export function isPremiumProductProfileData(value: unknown): value is PremiumPro
   const brief = candidate.brief;
   const closing = candidate.closing;
   const offerings = candidate.offerings;
+  const presentation = candidate.presentation;
+
+  const validPresentation =
+    presentation === undefined ||
+    presentation === "horizontal-luxury-showcase" ||
+    presentation === "luxury-material-house";
+
+  const validLuxuryHouse =
+    presentation !== "luxury-material-house" || isLuxuryMaterialHouseData(candidate.luxuryHouse);
 
   const validOfferings =
     offerings === undefined ||
@@ -112,8 +222,8 @@ export function isPremiumProductProfileData(value: unknown): value is PremiumPro
 
   return (
     candidate.variant === PREMIUM_PRODUCT_PROFILE_VARIANT &&
-    (candidate.presentation === undefined ||
-      candidate.presentation === "horizontal-luxury-showcase") &&
+    validPresentation &&
+    validLuxuryHouse &&
     (candidate.featuredProductSlug === undefined || isString(candidate.featuredProductSlug)) &&
     validOfferings &&
     isRecord(contrast) &&

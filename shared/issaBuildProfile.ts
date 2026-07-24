@@ -81,8 +81,9 @@ export function isIssaBuildProfileSlug(slug: string | null | undefined): boolean
 }
 
 /**
- * ISSA Build public copy — luxury-house voice.
+ * ISSA Build public copy — luxury-material-house voice.
  * Honey Onyx and Multi Green Onyx stay distinct. No catalog spam.
+ * inventoryCatalog remains for Direct Connect / material identity only.
  */
 export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
@@ -90,15 +91,15 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     data: {
       // Editor title ↔ headerLabel (H1). Editor text ↔ teaser.
       // Sticky brand uses displayName; subtitle uses eyebrow — never repeat the brand as H1.
-      eyebrow: "Luxury translucent onyx",
+      eyebrow: "ISSA BUILD · TRANSLUCENT ONYX",
       headerLabel: "Crafted for light.",
-      teaser: "Honey Onyx · Multi Green Onyx.",
+      teaser: "Honey Onyx and Multi Green Onyx for interiors designed to glow.",
     },
   },
   {
     type: "about",
     data: {
-      text: "Two translucent onyxes. Choose the material, then inquire privately.",
+      text: "Translucent onyx for interiors designed to glow — private project consultation through Direct Connect.",
     },
   },
   {
@@ -112,28 +113,109 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "premiumProduct",
     data: {
       variant: PREMIUM_PRODUCT_PROFILE_VARIANT,
-      presentation: "horizontal-luxury-showcase",
+      presentation: "luxury-material-house",
       featuredProductSlug: "honey-onyx",
+      // Legacy fields retained for schema compatibility; public path uses luxuryHouse.
       offerings: {
-        eyebrow: "Lookbook",
-        title: "The collection.",
-        body: "",
+        eyebrow: "Materials",
+        title: "Two translucent onyxes.",
+        body: "Honey Onyx and Multi Green Onyx — separate materials for interiors designed with light.",
         items: [
           {
             slug: "honey-onyx",
             eyebrow: "Honey Onyx",
             title: "Honey Onyx",
-            body: "Amber translucence.",
+            body: "Warm amber translucence for illuminated interiors.",
             highlights: ["Translucent"],
           },
           {
             slug: "multi-green-onyx",
             eyebrow: "Multi Green Onyx",
             title: "Multi Green Onyx",
-            body: "Green depth.",
+            body: "Layered green depth that comes alive with light.",
             highlights: ["Translucent"],
           },
         ],
+      },
+      luxuryHouse: {
+        designedWithLight: {
+          eyebrow: "Atmosphere",
+          title: "Designed with light.",
+          body: "When translucent onyx is illuminated, the room changes. Warmth moves through the stone, edges soften, and an installed interior takes on a quiet glow that photographs cannot fully hold.",
+          image: ISSA_BUILD_APPLICATION_IMAGES[2],
+        },
+        materialChapters: [
+          {
+            slug: "honey-onyx",
+            name: "Honey Onyx",
+            eyebrow: "Material chapter",
+            body: "Amber translucence for suites, walls, and islands meant to glow from within.",
+            applicationImage: ISSA_BUILD_APPLICATION_IMAGES[4],
+            detailImage: ISSA_BUILD_SLAB_IMAGES[0],
+          },
+          {
+            slug: "multi-green-onyx",
+            name: "Multi Green Onyx",
+            eyebrow: "Material chapter",
+            body: "Layered green depth for feature walls and custom installations shaped by light.",
+            applicationImage: ISSA_BUILD_APPLICATION_IMAGES[0],
+            detailImage: ISSA_BUILD_SLAB_IMAGES[2],
+          },
+        ],
+        capabilities: {
+          eyebrow: "From stone to space",
+          title: "From stone to space.",
+          body: "ISSA Build carries onyx from material into installed interiors — light, custom work, and private consultation.",
+          items: [
+            {
+              title: "Custom onyx installation",
+              body: "Installed interiors planned around how the stone meets the room.",
+            },
+            {
+              title: "Backlighting solutions",
+              body: "Illumination designed so translucent onyx can glow as atmosphere.",
+            },
+            {
+              title: "Onyx customization",
+              body: "Cuts, matches, and detailing shaped to the project — not a catalog pick.",
+            },
+            {
+              title: "Project consultation",
+              body: "A private conversation about material, application, scale, and timing.",
+            },
+          ],
+        },
+        showcase: {
+          eyebrow: "Projects",
+          title: "Curated project showcase.",
+          body: "Installed spaces where translucent onyx becomes the light in the room.",
+          images: [
+            ISSA_BUILD_APPLICATION_IMAGES[0],
+            ISSA_BUILD_APPLICATION_IMAGES[1],
+            ISSA_BUILD_APPLICATION_IMAGES[2],
+            ISSA_BUILD_APPLICATION_IMAGES[3],
+            ISSA_BUILD_APPLICATION_IMAGES[4],
+            ISSA_BUILD_APPLICATION_IMAGES[5],
+            ISSA_BUILD_APPLICATION_IMAGES[6],
+            ISSA_BUILD_APPLICATION_IMAGES[7],
+            ISSA_BUILD_APPLICATION_IMAGES[8],
+          ],
+        },
+        consultation: {
+          eyebrow: "Private consultation",
+          title: "Private project consultation.",
+          body: "Tell ISSA Build what you are creating.",
+          prompt: "Tell ISSA Build what you are creating.",
+          fields: [
+            "Selected material",
+            "Room / application",
+            "Dimensions",
+            "Location",
+            "Timing",
+            "Backlighting intent",
+          ],
+          note: "Contact details stay private until accepted. Direct Connect carries material and source context.",
+        },
       },
       contrast: {
         eyebrow: "Honey Onyx",
@@ -145,11 +227,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         backlitImageIndex: 6,
       },
       gallery: {
-        eyebrow: "Lookbook",
+        eyebrow: "Showcase",
         title: "In situ.",
         body: "",
         portraitPhotoIndexes: [7],
-        // Sparse captions — image leads; no essay-per-slide.
         photos: [
           { label: "Suite", title: "", body: "" },
           { label: "Kitchen", title: "", body: "" },
@@ -172,15 +253,22 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         ],
       },
       brief: {
-        eyebrow: "Inquiry",
-        title: "Inquire",
-        body: "Image, scale, place, timing — one private Direct Connect.",
-        steps: ["Image", "Scale", "Place", "Timing"],
-        note: "",
+        eyebrow: "Consultation",
+        title: "Discuss a project",
+        body: "Material, room, scale, place, timing, and backlighting — one private Direct Connect.",
+        steps: [
+          "Selected material",
+          "Room / application",
+          "Dimensions",
+          "Location",
+          "Timing",
+          "Backlighting intent",
+        ],
+        note: "Contact details stay private until accepted.",
       },
       closing: {
         eyebrow: "Direct Connect",
-        title: "Inquire privately.",
+        title: "Discuss a project.",
         body: "Honey Onyx or Multi Green Onyx. Private until accepted.",
         imageIndex: 2,
         imageFit: "cover",
@@ -188,6 +276,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     } satisfies PremiumProductProfileData,
   },
   {
+    // Identity + Direct Connect resolution only — not a public inventory browser.
     type: "inventoryCatalog",
     data: {
       title: "ISSA Build",
@@ -231,9 +320,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "cta",
     data: {
-      heading: "Inquire privately.",
-      description: "One Direct Connect for material, scale, timing, and place.",
-      requestExamples: ["Request material", "Match to a project", "Something else"],
+      heading: "Discuss a project.",
+      description:
+        "Tell ISSA Build what you are creating — material, room, scale, place, timing, and light.",
+      requestExamples: ["Discuss a project", "Ask about backlighting", "Something else"],
       footerText: "Contact details stay private until accepted.",
     },
   },

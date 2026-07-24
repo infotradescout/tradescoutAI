@@ -1067,24 +1067,31 @@ export default function WholesalerProfileTheme({
               Browse full inventory
             </button>
           ) : null}
-          {(premiumProductData?.presentation === "horizontal-luxury-showcase"
+          {(premiumProductData?.presentation === "luxury-material-house"
             ? [
-                ["Lookbook", "collection"],
-                ["Connect", "connect"],
+                ["Light", "designed-with-light"],
+                ["Materials", "material-chapters"],
+                ["Showcase", "showcase"],
+                ["Consult", "consult"],
               ]
-            : premiumProductData
+            : premiumProductData?.presentation === "horizontal-luxury-showcase"
               ? [
-                  ["Day + glow", "why-us"],
-                  ["Ideas", "audience"],
-                  ["Photos", "collection"],
+                  ["Lookbook", "collection"],
                   ["Connect", "connect"],
                 ]
-              : [
-                  ["Why Us", "why-us"],
-                  ["Who We Serve", "audience"],
-                  ["Materials", "materials"],
-                  ["Connect", "connect"],
-                ]
+              : premiumProductData
+                ? [
+                    ["Day + glow", "why-us"],
+                    ["Ideas", "audience"],
+                    ["Photos", "collection"],
+                    ["Connect", "connect"],
+                  ]
+                : [
+                    ["Why Us", "why-us"],
+                    ["Who We Serve", "audience"],
+                    ["Materials", "materials"],
+                    ["Connect", "connect"],
+                  ]
           ).map(([label, sectionId]) => (
             <button
               key={sectionId}
@@ -1257,40 +1264,71 @@ export default function WholesalerProfileTheme({
                 Browse full inventory
                 <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() =>
-                  document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" })
-                }
-                className={
-                  isIssaBuild
-                    ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
-                    : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                }
-              >
-                {isIssaBuild
-                  ? "Lookbook"
-                  : premiumProductData
-                    ? "See the material"
-                    : "Explore Inventory"}
-                {isIssaBuild ? (
+            ) : premiumProductData?.presentation === "luxury-material-house" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => startDirectConnect()}
+                  className={`flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
+                    isIssaBuild
+                      ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
+                      : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
+                  }`}
+                >
+                  Discuss a project
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    document.getElementById("showcase")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className={
+                    isIssaBuild
+                      ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
+                      : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                  }
+                >
+                  View the showcase
                   <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
-                ) : null}
-              </button>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" })
+                  }
+                  className={
+                    isIssaBuild
+                      ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
+                      : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                  }
+                >
+                  {isIssaBuild
+                    ? "Lookbook"
+                    : premiumProductData
+                      ? "See the material"
+                      : "Explore Inventory"}
+                  {isIssaBuild ? (
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                  ) : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startDirectConnect()}
+                  className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
+                    isJwStone || isIssaBuild
+                      ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
+                      : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
+                  }`}
+                >
+                  Direct Connect
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              onClick={() => startDirectConnect()}
-              className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                isJwStone || isIssaBuild
-                  ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
-                  : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
-              }`}
-            >
-              Direct Connect
-              <ChevronRight className="h-4 w-4" />
-            </button>
           </div>
         </div>
       </section>
