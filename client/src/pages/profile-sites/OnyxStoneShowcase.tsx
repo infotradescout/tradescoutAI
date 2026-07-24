@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  MessageCircle,
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
@@ -81,7 +80,7 @@ export default function OnyxStoneShowcase({
     (isFeaturedProduct ? data.contrast.title : offering?.title) || activeProduct.name;
   const narrativeBody =
     (isFeaturedProduct ? data.contrast.body : offering?.body) ||
-    `Explore the approved ${activeProduct.name} photography before starting a conversation.`;
+    `Explore ${activeProduct.name} before starting a conversation.`;
 
   const movePhoto = useCallback(
     (direction: -1 | 1) =>
@@ -98,27 +97,18 @@ export default function OnyxStoneShowcase({
       const rail = railRef.current;
       if (!rail) return;
       const clamped = Math.max(0, Math.min(activeProduct.images.length - 1, index));
-      const nextItem = rail.children.item(clamped) as HTMLElement | null;
-      const left = nextItem?.offsetLeft || 0;
-      if (typeof rail.scrollTo === "function") {
-        rail.scrollTo({ left, behavior });
-      } else {
-        rail.scrollLeft = left;
-      }
+      const child = rail.children[clamped] as HTMLElement | undefined;
+      if (!child) return;
       setVisiblePhoto(clamped);
+      rail.scrollTo({ left: child.offsetLeft, behavior });
     },
     [activeProduct.images.length]
   );
 
   const closeLightbox = useCallback(() => {
-    const index = activePhoto;
     setActivePhoto(null);
-    if (index !== null) {
-      // Keep counter + rail aligned to the last viewed photo after deep-link close.
-      window.requestAnimationFrame(() => scrollRailToIndex(index, "auto"));
-    }
     window.requestAnimationFrame(() => returnFocusRef.current?.focus());
-  }, [activePhoto, scrollRailToIndex]);
+  }, []);
 
   useEffect(() => {
     if (!requestedProduct) return;
@@ -129,26 +119,8 @@ export default function OnyxStoneShowcase({
     setActiveProductSlug(requestedProduct.slug);
     setVisiblePhoto(requestedIndex);
     setActivePhoto(requestedIndex);
-  }, [initialPhotoIndex, requestedProduct]);
-
-  useEffect(() => {
-    if (!requestedProduct) return;
-    if (activeProductSlug !== requestedProduct.slug) return;
-    const requestedIndex = Math.min(
-      Math.max(0, initialPhotoIndex),
-      Math.max(0, requestedProduct.images.length - 1)
-    );
-    // Wait until the product rail has painted, then scroll the shared photo into view.
-    const frame = window.requestAnimationFrame(() => {
-      scrollRailToIndex(requestedIndex, "auto");
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [
-    activeProductSlug,
-    initialPhotoIndex,
-    requestedProduct,
-    scrollRailToIndex,
-  ]);
+    window.requestAnimationFrame(() => scrollRailToIndex(requestedIndex, "auto"));
+  }, [initialPhotoIndex, requestedProduct, scrollRailToIndex]);
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -204,14 +176,14 @@ export default function OnyxStoneShowcase({
   };
 
   return (
-    <div data-testid="onyx-stone-showcase" className="overflow-hidden bg-[#0b0907] text-[#f7f0e5]">
+    <div data-testid="onyx-stone-showcase" className="overflow-hidden bg-[#070605] text-[#f4efe6]">
       {trustFacts.length ? (
-        <section className="border-y border-white/10" aria-label={`${profileName} highlights`}>
-          <div className="mx-auto flex max-w-7xl snap-x snap-mandatory overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-6">
+        <section className="border-y border-white/[0.08]" aria-label={`${profileName} highlights`}>
+          <div className="mx-auto flex max-w-7xl snap-x snap-mandatory overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-8">
             {trustFacts.map((fact) => (
               <p
                 key={fact}
-                className="flex min-h-14 min-w-[72vw] snap-start items-center border-r border-white/10 px-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d9c8ad] first:border-l sm:min-w-0 sm:flex-1 sm:justify-center sm:text-center"
+                className="flex min-h-12 min-w-[70vw] snap-start items-center border-r border-white/[0.08] px-5 text-[10px] font-medium uppercase tracking-[0.32em] text-[#c4b59a] first:border-l sm:min-w-0 sm:flex-1 sm:justify-center sm:text-center"
               >
                 {fact}
               </p>
@@ -220,23 +192,23 @@ export default function OnyxStoneShowcase({
         </section>
       ) : null}
 
-      <section id="collection" className="scroll-mt-24 py-8 sm:py-12">
-        <div className="mx-auto mb-6 max-w-7xl px-4 sm:px-6">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#d8b675]">
+      <section id="collection" className="scroll-mt-24 pt-10 sm:pt-14">
+        <div className="mx-auto mb-8 max-w-7xl px-4 sm:mb-10 sm:px-8">
+          <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[#d4b87a]">
             {data.offerings?.eyebrow || data.gallery.eyebrow}
           </p>
-          <div className="mt-2 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-            <div className="max-w-3xl">
-              <h2 className="max-w-[20ch] font-serif text-3xl font-medium leading-[1.02] tracking-[-0.035em] sm:text-5xl">
+          <div className="mt-3 flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+            <div className="max-w-2xl">
+              <h2 className="max-w-[16ch] font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl">
                 {data.offerings?.title || data.gallery.title}
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-[#c9beb0] sm:text-base">
+              <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
                 {data.offerings?.body || data.gallery.body}
               </p>
             </div>
             {products.length > 1 ? (
               <div
-                className="flex w-fit rounded-full border border-white/15 bg-white/5 p-1"
+                className="flex w-fit gap-1 border border-white/15 p-1"
                 role="group"
                 aria-label="Choose onyx collection"
               >
@@ -246,10 +218,10 @@ export default function OnyxStoneShowcase({
                     type="button"
                     onClick={() => selectProduct(entry.slug)}
                     aria-pressed={entry.slug === activeProduct.slug}
-                    className={`min-h-11 rounded-full px-4 text-xs font-semibold transition ${
+                    className={`min-h-11 px-5 text-[10px] font-semibold uppercase tracking-[0.22em] transition ${
                       entry.slug === activeProduct.slug
-                        ? "bg-[#e8d6b4] text-[#211a14]"
-                        : "text-white/70 hover:text-white"
+                        ? "bg-[#f0e2c8] text-[#1a1510]"
+                        : "text-white/65 hover:text-white"
                     }`}
                   >
                     {entry.name}
@@ -281,35 +253,33 @@ export default function OnyxStoneShowcase({
                 )
               );
             }}
-            className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth outline-none [scrollbar-color:#d8b675_#211b16] [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#efd393] motion-reduce:scroll-auto"
+            className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth outline-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#efd393] motion-reduce:scroll-auto"
           >
             {activeProduct.images.map((image, index) => {
               const detail = isFeaturedProduct ? data.gallery.photos?.[index] : undefined;
               return (
                 <article
                   key={image}
-                  className="group relative h-[62svh] min-h-[430px] w-[92vw] max-w-[1180px] flex-none snap-start overflow-hidden border-r border-white/10 bg-stone-900 sm:h-[68svh] sm:min-h-[540px] sm:w-[82vw]"
+                  className="group relative h-[78svh] min-h-[520px] w-[94vw] max-w-none flex-none snap-center overflow-hidden bg-[#120f0c] sm:h-[82svh] sm:w-[86vw] lg:w-[78vw]"
                 >
                   <img
                     src={image}
-                    alt={`${activeProduct.name}: ${detail?.title || `material view ${index + 1}`}`}
+                    alt={`${activeProduct.name}: ${detail?.title || `view ${index + 1}`}`}
                     loading={index === 0 ? "eager" : "lazy"}
-                    sizes="(min-width: 1024px) 82vw, 92vw"
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 motion-reduce:transition-none group-hover:scale-[1.01]"
+                    sizes="(min-width: 1024px) 78vw, 94vw"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1200ms] ease-out motion-reduce:transition-none group-hover:scale-[1.02]"
                   />
-                  <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,4,3,0.05)_25%,rgba(5,4,3,0.9)_100%)]" />
-                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-8">
-                    <div className="max-w-xl">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#efd393]">
-                        {detail?.label || offering?.eyebrow || "Material view"} ·{" "}
+                  <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,4,3,0)_35%,rgba(5,4,3,0.88)_100%)]" />
+                  <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-6 sm:p-10">
+                    <div className="max-w-lg">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.32em] text-[#efd393]">
+                        {detail?.label || offering?.eyebrow || activeProduct.name}
+                        <span className="mx-2 text-white/35">·</span>
                         {String(index + 1).padStart(2, "0")}
                       </p>
-                      <h3 className="mt-2 font-serif text-2xl font-medium sm:text-4xl">
+                      <h3 className="mt-3 font-editorial text-3xl font-medium tracking-[-0.02em] sm:text-5xl">
                         {detail?.title || activeProduct.name}
                       </h3>
-                      <p className="mt-2 hidden text-sm leading-6 text-white/75 sm:block">
-                        {detail?.body || offering?.body}
-                      </p>
                     </div>
                     <button
                       type="button"
@@ -317,10 +287,10 @@ export default function OnyxStoneShowcase({
                         returnFocusRef.current = event.currentTarget;
                         setActivePhoto(index);
                       }}
-                      className="inline-flex min-h-12 flex-none items-center gap-2 rounded-full border border-white/35 bg-black/30 px-4 text-xs font-semibold backdrop-blur-md transition hover:bg-white hover:text-stone-950"
+                      className="inline-flex min-h-11 flex-none items-center gap-2 border border-white/40 bg-black/25 px-4 text-[10px] font-semibold uppercase tracking-[0.24em] backdrop-blur-md transition hover:bg-white hover:text-[#1a1510]"
                       aria-label={`Expand ${detail?.title || `${activeProduct.name} photo ${index + 1}`}`}
                     >
-                      Expand <ArrowUpRight className="h-4 w-4" />
+                      Expand <ArrowUpRight className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </article>
@@ -332,7 +302,7 @@ export default function OnyxStoneShowcase({
               type="button"
               onClick={() => scrollRail(-1)}
               disabled={!visiblePhoto}
-              className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-black/50 disabled:opacity-20"
+              className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center border border-white/20 bg-black/45 disabled:opacity-15"
               aria-label="Previous showcase image"
             >
               <ChevronLeft />
@@ -341,101 +311,81 @@ export default function OnyxStoneShowcase({
               type="button"
               onClick={() => scrollRail(1)}
               disabled={visiblePhoto >= activeProduct.images.length - 1}
-              className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-black/50 disabled:opacity-20"
+              className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center border border-white/20 bg-black/45 disabled:opacity-15"
               aria-label="Next showcase image"
             >
               <ChevronRight />
             </button>
           </div>
         </div>
-        <div className="mx-auto mt-4 flex max-w-7xl justify-between px-4 text-[10px] uppercase tracking-[0.18em] text-[#a89b8b] sm:px-6">
-          <p>Swipe, scroll, or use arrow keys</p>
-          <p className="text-[#d8b675]" aria-live="polite" aria-atomic="true">
+        <div className="mx-auto mt-5 flex max-w-7xl justify-between px-4 text-[10px] uppercase tracking-[0.28em] text-[#8f8374] sm:px-8">
+          <p>Lookbook</p>
+          <p className="text-[#d4b87a]" aria-live="polite" aria-atomic="true">
             {String(visiblePhoto + 1).padStart(2, "0")} /{" "}
             {String(activeProduct.images.length).padStart(2, "0")}
           </p>
         </div>
       </section>
 
-      <section id="why-us" className="bg-[#efe9df] px-4 py-10 text-[#211a14] sm:px-6 sm:py-14">
-        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <section id="why-us" className="px-4 py-16 text-[#f4efe6] sm:px-8 sm:py-20">
+        <div className="mx-auto grid max-w-7xl gap-12 border-t border-white/[0.08] pt-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[#88662d]">
+            <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[#d4b87a]">
               {narrativeEyebrow}
             </p>
-            <h2 className="mt-2 max-w-[18ch] font-serif text-3xl font-medium leading-[1.02] sm:text-5xl">
+            <h2 className="mt-3 max-w-[14ch] font-editorial text-4xl font-medium leading-[0.98] sm:text-5xl">
               {narrativeTitle}
             </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-[#665b50]">{narrativeBody}</p>
+            <p className="mt-5 max-w-xl text-sm font-light leading-7 text-[#b7aa98]">{narrativeBody}</p>
             <button
               type="button"
               onClick={() => onDirectConnect(activeProduct.name)}
-              className="mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-[#211a14] px-6 text-sm font-semibold text-white"
+              className="mt-8 inline-flex min-h-11 items-center bg-white px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#1a1510] transition hover:bg-[#efd393]"
             >
-              <MessageCircle className="h-4 w-4" /> Direct Connect
+              Inquire
             </button>
           </div>
-          <div className="divide-y divide-[#211a14]/15 border-y border-[#211a14]/15">
-            <details className="group py-4">
-              <summary className="flex cursor-pointer list-none justify-between font-semibold">
-                {isFeaturedProduct ? "Where the material belongs" : `About ${activeProduct.name}`}
-                <ChevronDown className="h-5 w-5 transition group-open:rotate-180" />
+          <div className="divide-y divide-white/[0.1] border-y border-white/[0.1]">
+            <details className="group py-5">
+              <summary className="flex cursor-pointer list-none justify-between text-sm font-medium tracking-wide">
+                Placement
+                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
               </summary>
-              {isFeaturedProduct ? (
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {data.applications.items.map((item) => (
-                    <div key={item.title}>
-                      <h3 className="text-sm font-semibold">{item.title}</h3>
-                      <p className="mt-1 text-xs leading-5 text-[#665b50]">{item.body}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-4">
-                  <p className="text-sm leading-6 text-[#665b50]">{narrativeBody}</p>
-                  {offering?.highlights?.length ? (
-                    <ul className="mt-3 flex flex-wrap gap-2">
-                      {offering.highlights.map((highlight) => (
-                        <li
-                          key={highlight}
-                          className="rounded-full border border-[#88662d]/30 px-3 py-1 text-xs font-semibold"
-                        >
-                          {highlight}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              )}
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {data.applications.items.map((item) => (
+                  <div key={item.title}>
+                    <h3 className="font-editorial text-xl font-medium">{item.title}</h3>
+                    <p className="mt-1 text-xs leading-5 text-[#a89b8b]">{item.body}</p>
+                  </div>
+                ))}
+              </div>
             </details>
-            <details className="group py-4">
-              <summary className="flex cursor-pointer list-none justify-between font-semibold">
-                Plan a useful request
-                <ChevronDown className="h-5 w-5 transition group-open:rotate-180" />
+            <details className="group py-5">
+              <summary className="flex cursor-pointer list-none justify-between text-sm font-medium tracking-wide">
+                How to inquire
+                <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
               </summary>
-              <p className="mt-3 text-sm leading-6 text-[#665b50]">{data.brief.body}</p>
-              <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <p className="mt-3 text-sm font-light leading-6 text-[#b7aa98]">{data.brief.body}</p>
+              <ul className="mt-4 grid gap-2 text-xs uppercase tracking-[0.18em] text-[#c4b59a] sm:grid-cols-2">
                 {data.brief.steps.map((step) => (
-                  <li key={step} className="border-l border-[#88662d]/45 pl-3">
+                  <li key={step} className="border-l border-[#d4b87a]/50 pl-3 py-1">
                     {step}
                   </li>
                 ))}
               </ul>
             </details>
             {faqItems.length ? (
-              <details className="group py-4">
-                <summary className="flex cursor-pointer list-none justify-between font-semibold">
-                  Questions before connecting
-                  <ChevronDown className="h-5 w-5 transition group-open:rotate-180" />
+              <details className="group py-5">
+                <summary className="flex cursor-pointer list-none justify-between text-sm font-medium tracking-wide">
+                  Questions
+                  <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
                 </summary>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 space-y-4">
                   {faqItems.map((faq, index) => (
-                    <details key={`${faq.question}-${index}`} className="border-l pl-3">
-                      <summary className="cursor-pointer text-sm font-semibold">
-                        {faq.question}
-                      </summary>
-                      <p className="mt-2 text-xs leading-5 text-[#665b50]">{faq.answer}</p>
-                    </details>
+                    <div key={`${faq.question}-${index}`}>
+                      <p className="text-sm font-medium">{faq.question}</p>
+                      <p className="mt-1 text-xs leading-5 text-[#a89b8b]">{faq.answer}</p>
+                    </div>
                   ))}
                 </div>
               </details>
@@ -446,7 +396,7 @@ export default function OnyxStoneShowcase({
 
       <section
         id="connect"
-        className="relative isolate min-h-[52svh] overflow-hidden px-4 py-16 sm:px-6"
+        className="relative isolate min-h-[58svh] overflow-hidden px-4 py-20 sm:px-8"
       >
         <img
           src={activeProduct.images[data.closing.imageIndex] || activeProduct.images[0]}
@@ -455,23 +405,22 @@ export default function OnyxStoneShowcase({
           loading="lazy"
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <span className="absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/65 to-black/15" />
-        <div className="mx-auto flex min-h-[40svh] max-w-7xl items-center">
+        <span className="absolute inset-0 -z-10 bg-gradient-to-r from-black/92 via-black/70 to-black/20" />
+        <div className="mx-auto flex min-h-[42svh] max-w-7xl items-center">
           <div className="max-w-2xl">
-            <p className="text-[10px] uppercase tracking-[0.28em] text-[#efd393]">
-              {offering?.eyebrow || data.closing.eyebrow}
+            <p className="text-[10px] uppercase tracking-[0.36em] text-[#efd393]">
+              {data.closing.eyebrow}
             </p>
-            <h2 className="mt-3 font-serif text-4xl font-medium leading-[0.98] sm:text-6xl">
-              Put {activeProduct.name} in the conversation.
+            <h2 className="mt-4 font-editorial text-5xl font-medium leading-[0.95] sm:text-6xl">
+              {data.closing.title}
             </h2>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-white/75">
-              Share the {activeProduct.name} view that fits your idea, then send the project through
-              Direct Connect. Your contact details stay private unless the request is accepted.
+            <p className="mt-5 max-w-xl text-sm font-light leading-7 text-white/75">
+              {data.closing.body}
             </p>
             <button
               type="button"
               onClick={() => onDirectConnect(activeProduct.name)}
-              className="mt-7 min-h-12 rounded-full bg-ts-orange px-7 text-sm font-semibold text-white"
+              className="mt-8 min-h-12 bg-white px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#1a1510] transition hover:bg-[#efd393]"
             >
               Direct Connect
             </button>
@@ -484,11 +433,11 @@ export default function OnyxStoneShowcase({
           role="dialog"
           aria-modal="true"
           aria-label={`${activeProduct.name} photo gallery`}
-          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/95 p-2 sm:p-6"
+          className="fixed inset-0 z-[65] flex items-center justify-center bg-black/96 p-2 sm:p-6"
           onMouseDown={(event) => event.target === event.currentTarget && closeLightbox()}
         >
           <div
-            className="flex max-h-[96svh] w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0907]"
+            className="flex max-h-[96svh] w-full max-w-7xl flex-col overflow-hidden border border-white/10 bg-[#070605]"
             onTouchStart={(event) =>
               (touchStartX.current = event.changedTouches[0]?.clientX ?? null)
             }
@@ -501,10 +450,11 @@ export default function OnyxStoneShowcase({
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#efd393]">
-                  {activeProduct.name} · Photo {photoIndex + 1} of {activeProduct.images.length}
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[#efd393]">
+                  {activeProduct.name} · {String(photoIndex + 1).padStart(2, "0")} /{" "}
+                  {String(activeProduct.images.length).padStart(2, "0")}
                 </p>
-                <h3 className="mt-1 font-serif text-xl">
+                <h3 className="mt-1 font-editorial text-2xl font-medium">
                   {photoDetail?.title || activeProduct.name}
                 </h3>
               </div>
@@ -522,13 +472,13 @@ export default function OnyxStoneShowcase({
                   text={`See this ${activeProduct.name} photo on TradeScout`}
                   size="icon"
                   label=""
-                  className="rounded-full border-white/15 bg-white/5 text-white"
+                  className="rounded-none border-white/15 bg-white/5 text-white"
                 />
                 <button
                   ref={closeRef}
                   type="button"
                   onClick={closeLightbox}
-                  className="h-11 w-11 rounded-full border border-white/15"
+                  className="h-11 w-11 border border-white/15"
                   aria-label="Close expanded gallery"
                 >
                   <X className="mx-auto h-5 w-5" />
@@ -539,14 +489,14 @@ export default function OnyxStoneShowcase({
               <img
                 src={activeProduct.images[photoIndex]}
                 alt={`${activeProduct.name}: ${
-                  photoDetail?.title || `material view ${photoIndex + 1}`
+                  photoDetail?.title || `view ${photoIndex + 1}`
                 }`}
                 className="max-h-[74svh] w-full object-contain"
               />
               <button
                 type="button"
                 onClick={() => movePhoto(-1)}
-                className="absolute left-2 h-12 w-12 rounded-full bg-black/55"
+                className="absolute left-2 h-12 w-12 border border-white/15 bg-black/55"
                 aria-label="Previous expanded image"
               >
                 <ChevronLeft className="mx-auto" />
@@ -554,15 +504,15 @@ export default function OnyxStoneShowcase({
               <button
                 type="button"
                 onClick={() => movePhoto(1)}
-                className="absolute right-2 h-12 w-12 rounded-full bg-black/55"
+                className="absolute right-2 h-12 w-12 border border-white/15 bg-black/55"
                 aria-label="Next expanded image"
               >
                 <ChevronRight className="mx-auto" />
               </button>
             </div>
             <div className="flex items-center justify-between gap-3 border-t border-white/10 p-4 sm:px-6">
-              <p className="text-xs text-white/65">
-                {photoDetail?.body || "Swipe or use the arrow keys to explore the stone."}
+              <p className="text-xs font-light text-white/65">
+                {photoDetail?.body || "Use the arrow keys to continue."}
               </p>
               <button
                 type="button"
@@ -570,9 +520,9 @@ export default function OnyxStoneShowcase({
                   setActivePhoto(null);
                   onDirectConnect(activeProduct.name);
                 }}
-                className="min-h-11 flex-none rounded-full border border-ts-orange/45 px-5 text-xs font-semibold text-ts-orange"
+                className="min-h-11 flex-none border border-white/35 px-5 text-[10px] font-semibold uppercase tracking-[0.22em]"
               >
-                Direct Connect
+                Inquire
               </button>
             </div>
           </div>

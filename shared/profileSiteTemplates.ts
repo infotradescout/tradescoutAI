@@ -525,6 +525,28 @@ export function seedBlocksForTemplate(
   return next;
 }
 
+export function readHeroEditorFields(contentBlocks: unknown): {
+  title: string;
+  text: string;
+} {
+  if (!Array.isArray(contentBlocks)) return { title: "", text: "" };
+  const hero = contentBlocks.find(
+    (block) => block && typeof block === "object" && (block as { type?: string }).type === "hero"
+  ) as { data?: Record<string, unknown> } | undefined;
+  const data = hero?.data && typeof hero.data === "object" ? hero.data : {};
+  const title =
+    (typeof data.headerLabel === "string" && data.headerLabel) ||
+    (typeof data.title === "string" && data.title) ||
+    "";
+  const text =
+    (typeof data.teaser === "string" && data.teaser) ||
+    (typeof data.text === "string" && data.text) ||
+    (typeof data.body === "string" && data.body) ||
+    (typeof data.description === "string" && data.description) ||
+    "";
+  return { title, text };
+}
+
 export function patchHeroBlock(
   contentBlocks: unknown,
   patch: { title?: string; text?: string; imageUrl?: string }
@@ -540,8 +562,12 @@ export function patchHeroBlock(
       ...block,
       data: {
         ...(block.data && typeof block.data === "object" ? block.data : {}),
-        ...(patch.title !== undefined ? { title: patch.title } : {}),
-        ...(patch.text !== undefined ? { text: patch.text } : {}),
+        // Wholesaler themes (incl. ISSA Build) render headerLabel + teaser.
+        // Keep title/text aliases so older templates and JSON editors stay compatible.
+        ...(patch.title !== undefined
+          ? { title: patch.title, headerLabel: patch.title }
+          : {}),
+        ...(patch.text !== undefined ? { text: patch.text, teaser: patch.text } : {}),
         ...(patch.imageUrl !== undefined ? { imageUrl: patch.imageUrl } : {}),
       },
     };
@@ -551,7 +577,9 @@ export function patchHeroBlock(
       type: "hero",
       data: {
         title: patch.title || "",
+        headerLabel: patch.title || "",
         text: patch.text || "",
+        teaser: patch.text || "",
         ...(patch.imageUrl ? { imageUrl: patch.imageUrl } : {}),
       },
     });

@@ -36,7 +36,11 @@ import {
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
-import { isIssaBuildProfileSlug } from "@shared/issaBuildProfile";
+import {
+  ISSA_BUILD_HERO_POSTER,
+  ISSA_BUILD_HERO_VIDEO,
+  isIssaBuildProfileSlug,
+} from "@shared/issaBuildProfile";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -329,12 +333,14 @@ export default function WholesalerProfileTheme({
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
   const isIssaBuild = isIssaBuildProfileSlug(profileSlug);
-  const heroVideo = isJwStone
-    ? {
-        src: "/images/businesses/jw-stone/video/hero.mp4",
-        poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
-      }
-    : null;
+  const heroVideo = isIssaBuild
+    ? { src: ISSA_BUILD_HERO_VIDEO, poster: ISSA_BUILD_HERO_POSTER }
+    : isJwStone
+      ? {
+          src: "/images/businesses/jw-stone/video/hero.mp4",
+          poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
+        }
+      : null;
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
@@ -624,7 +630,9 @@ export default function WholesalerProfileTheme({
   const heroHeadline =
     profileSlug === "jw-stone"
       ? "Natural stone, selected at the source."
-      : headline || "Hand-selected stone. Direct from the source.";
+      : isIssaBuild
+        ? blockString(heroBlock, "headerLabel") || headline || displayName
+        : headline || "Hand-selected stone. Direct from the source.";
   // The hero is a glance, not a read -- keep it to one sentence and let the
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser =
@@ -1084,9 +1092,11 @@ export default function WholesalerProfileTheme({
       {/* Hero */}
       <section
         className={`relative isolate flex items-end overflow-hidden py-8 md:items-center md:py-20 ${
-          isJwStone || isIssaBuild
-            ? "min-h-[460px] bg-transparent md:min-h-[600px]"
-            : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
+          isIssaBuild
+            ? "min-h-[calc(100svh-3.5rem)] bg-transparent md:min-h-[calc(100svh-4.5rem)]"
+            : isJwStone
+              ? "min-h-[460px] bg-transparent md:min-h-[600px]"
+              : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
         }`}
       >
         {!heroVideo && heroImage ? (
@@ -1118,7 +1128,7 @@ export default function WholesalerProfileTheme({
         {isIssaBuild ? (
           <span
             aria-hidden="true"
-            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,7,4,0.08)_15%,rgba(10,7,4,0.72)_100%)] md:bg-[linear-gradient(90deg,rgba(10,7,4,0.78)_0%,rgba(10,7,4,0.42)_48%,rgba(10,7,4,0.08)_100%)]"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,6,4,0.15)_0%,rgba(8,6,4,0.35)_45%,rgba(8,6,4,0.82)_100%)] md:bg-[linear-gradient(105deg,rgba(8,6,4,0.72)_0%,rgba(8,6,4,0.28)_42%,rgba(8,6,4,0.12)_100%)]"
           />
         ) : null}
         {/* JW Stone keeps its source video unobscured. */}
@@ -1130,35 +1140,51 @@ export default function WholesalerProfileTheme({
         ) : null}
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
-            isJwStone || isIssaBuild ? "md:px-8" : "md:px-6 md:text-center"
+            isIssaBuild
+              ? "flex min-h-[inherit] flex-col justify-end pb-10 md:px-10 md:pb-16"
+              : isJwStone
+                ? "md:px-8"
+                : "md:px-6 md:text-center"
           }`}
         >
           {heroEyebrow ? (
-            <span
-              className={`mb-3 inline-block rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white md:mb-6 md:px-4 md:text-xs ${
-                isJwStone || isIssaBuild
-                  ? "border-white/40 bg-black/35"
-                  : "border-white/25 bg-black/25 backdrop-blur-sm"
-              } ${heroReveal(1)}`}
-            >
-              {heroEyebrow}
-            </span>
+            isIssaBuild ? (
+              <p
+                className={`mb-5 text-[11px] font-medium uppercase tracking-[0.42em] text-white/75 md:mb-7 ${heroReveal(1)}`}
+              >
+                {heroEyebrow}
+              </p>
+            ) : (
+              <span
+                className={`mb-3 inline-block rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white md:mb-6 md:px-4 md:text-xs ${
+                  isJwStone
+                    ? "border-white/40 bg-black/35"
+                    : "border-white/25 bg-black/25 backdrop-blur-sm"
+                } ${heroReveal(1)}`}
+              >
+                {heroEyebrow}
+              </span>
+            )
           ) : null}
           <h1
-            className={`mb-3 max-w-[18ch] font-bold text-white md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
-              isJwStone || isIssaBuild
-                ? "text-[2.2rem] leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96]"
-                : "text-[2.55rem] leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto"
-            } ${DISPLAY_FONT} ${heroReveal(2)}`}
+            className={`mb-3 max-w-[18ch] text-white md:mb-6 md:max-w-3xl md:leading-tight ${
+              isIssaBuild
+                ? "font-editorial text-[3.1rem] font-medium leading-[0.94] tracking-[-0.02em] [text-shadow:0_2px_28px_rgba(0,0,0,0.45)] md:text-[4.75rem] md:leading-[0.9]"
+                : isJwStone
+                  ? `text-[2.2rem] font-bold leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96] ${DISPLAY_FONT}`
+                  : `text-[2.55rem] font-bold leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto ${DISPLAY_FONT}`
+            } ${heroReveal(2)}`}
           >
             {heroHeadline}
           </h1>
           {heroTeaser ? (
             <p
-              className={`mb-5 max-w-[34rem] text-sm leading-relaxed text-white md:mb-10 md:text-lg ${
-                isJwStone || isIssaBuild
-                  ? "font-medium [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
-                  : "text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto"
+              className={`mb-5 max-w-[34rem] text-white md:mb-10 ${
+                isIssaBuild
+                  ? "max-w-[28rem] text-base font-light leading-7 tracking-wide text-white/85 md:text-lg md:leading-8"
+                  : isJwStone
+                    ? "text-sm font-medium leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
+                    : "text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:text-lg"
               } ${heroReveal(3)}`}
             >
               {heroTeaser}
@@ -1166,7 +1192,11 @@ export default function WholesalerProfileTheme({
           ) : null}
           <div
             className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
-              isJwStone || isIssaBuild ? "max-w-[38rem]" : "md:justify-center"
+              isIssaBuild
+                ? "max-w-[36rem] gap-3"
+                : isJwStone
+                  ? "max-w-[38rem]"
+                  : "md:justify-center"
             } ${heroReveal(4)}`}
           >
             {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
@@ -1184,22 +1214,30 @@ export default function WholesalerProfileTheme({
                 onClick={() =>
                   document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                className={
+                  isIssaBuild
+                    ? "inline-flex min-h-12 items-center justify-center gap-2 border border-white/55 bg-transparent px-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-white transition hover:bg-white hover:text-[#1a1510]"
+                    : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                }
               >
-                {premiumProductData ? "See the material" : "Explore Inventory"}
+                {isIssaBuild ? "The lookbook" : premiumProductData ? "See the material" : "Explore Inventory"}
               </button>
             )}
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                isJwStone || isIssaBuild
-                  ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
-                  : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
-              }`}
+              className={
+                isIssaBuild
+                  ? "inline-flex min-h-12 items-center justify-center gap-2 bg-white px-8 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#1a1510] transition hover:bg-[#efd393]"
+                  : `flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
+                      isJwStone
+                        ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
+                        : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
+                    }`
+              }
             >
-              Direct Connect
-              <ChevronRight className="h-4 w-4" />
+              {isIssaBuild ? "Inquire" : "Direct Connect"}
+              {!isIssaBuild ? <ChevronRight className="h-4 w-4" /> : null}
             </button>
           </div>
         </div>

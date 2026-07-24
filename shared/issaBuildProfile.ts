@@ -30,7 +30,7 @@ export const ISSA_BUILD_APPLICATION_IMAGES = [
   "/images/businesses/issa-build/applications/09.jpg",
 ] as const;
 
-/** Close material views across the two distinct ISSA Build onyx offerings. */
+/** Close material views across the two ISSA Build onyx materials. */
 export const ISSA_BUILD_SLAB_IMAGES = [
   "/images/businesses/issa-build/slabs/2.jpg",
   "/images/businesses/issa-build/slabs/6.jpg",
@@ -80,31 +80,29 @@ export function isIssaBuildProfileSlug(slug: string | null | undefined): boolean
   return normalized === ISSA_BUILD_PROFILE_SLUG || normalized === ISSA_BUILD_LEGACY_PROFILE_SLUG;
 }
 
+/**
+ * ISSA Build public copy — luxury-house voice.
+ * Honey Onyx and Multi Green Onyx stay distinct. No catalog spam.
+ */
 export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "hero",
     data: {
-      eyebrow: "ISSA Build",
-      headerLabel: "Luxury translucent onyx",
-      teaser:
-        "Honey Onyx and Multi Green Onyx for high-end interiors — two distinct, book-matched materials that glow when lit.",
+      eyebrow: "Luxury translucent onyx",
+      headerLabel: "ISSA Build",
+      teaser: "Honey Onyx. Multi Green Onyx. Crafted for light.",
     },
   },
   {
     type: "about",
     data: {
-      text: "ISSA Build supplies premium, book-matched translucent onyx for luxury homes and interior design projects. Honey Onyx brings warm gold movement; Multi Green Onyx brings layered green character. Both are hand-finished and naturally translucent. The photos here show real ISSA Build installations and material — compare each offering before you start a conversation.",
+      text: "ISSA Build presents two translucent onyxes as luxury materials — Honey Onyx in amber and gold, Multi Green Onyx in layered green and ivory. Each is hand-finished. The photography is real. Choose the material that belongs in the room, then inquire privately.",
     },
   },
   {
     type: "trust",
     data: {
-      items: [
-        "Honey Onyx and Multi Green Onyx",
-        "Hand-finished slabs",
-        "Real installation photography",
-        "Private Direct Connect",
-      ],
+      items: ["Honey Onyx", "Multi Green Onyx", "Hand-finished", "Private inquiry"],
     },
   },
   {
@@ -114,126 +112,73 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       presentation: "horizontal-luxury-showcase",
       featuredProductSlug: "honey-onyx",
       offerings: {
-        eyebrow: "Two distinct offerings",
-        title: "Choose the onyx by character, not a blended label.",
-        body: "Honey Onyx and Multi Green Onyx are separate ISSA Build materials. Open either collection to share its photos or carry that exact material into Direct Connect.",
+        eyebrow: "The collection",
+        title: "Two materials. Absolute clarity.",
+        body: "Select Honey Onyx or Multi Green Onyx to enter its lookbook.",
         items: [
           {
             slug: "honey-onyx",
-            eyebrow: "Warm translucent onyx",
+            eyebrow: "Honey Onyx",
             title: "Honey Onyx",
-            body: "Golden, amber, and cream movement with a warm glow when backlit.",
-            highlights: ["Book-matched", "Hand-finished", "Naturally translucent"],
+            body: "Amber, gold, and cream — luminous when light moves through.",
+            highlights: ["Translucent", "Hand-finished"],
           },
           {
             slug: "multi-green-onyx",
-            eyebrow: "Layered green onyx",
+            eyebrow: "Multi Green Onyx",
             title: "Multi Green Onyx",
-            body: "Green, ivory, and mineral movement with its own distinct translucent character.",
-            highlights: ["Book-matched", "Hand-finished", "Naturally translucent"],
+            body: "Green, ivory, and mineral depth — its own translucent presence.",
+            highlights: ["Translucent", "Hand-finished"],
           },
         ],
       },
       contrast: {
-        eyebrow: "Honey Onyx. Day and night.",
-        title: "Warm movement in daylight. A deeper glow when lit.",
-        body: "Honey Onyx changes as light moves through its amber, gold, and cream pattern. Compare real ISSA Build rooms and material before deciding where the glow belongs.",
-        daylightLabel: "Installed daylight",
-        backlitLabel: "Translucent glow",
+        eyebrow: "Honey Onyx",
+        title: "By day. By light.",
+        body: "The same slab shifts from quiet warmth to glowing depth. See it installed. See it close.",
+        daylightLabel: "Daylight",
+        backlitLabel: "Illuminated",
         daylightImageIndex: 0,
         backlitImageIndex: 6,
       },
       gallery: {
-        eyebrow: "Honey Onyx in the room",
-        title: "See the warm material in real spaces.",
-        body: "Bathrooms, kitchens, living rooms, and close material views — these are real ISSA Build Honey Onyx photos. Open any view you want to discuss.",
+        eyebrow: "Lookbook",
+        title: "The stone in situ.",
+        body: "Editorial views from ISSA Build projects. Expand any frame.",
         portraitPhotoIndexes: [7],
         photos: [
-          {
-            label: "Bathroom",
-            title: "Honey Onyx vanity and walls",
-            body: "Warm Honey Onyx movement wrapping a bathroom as the focal finish.",
-          },
-          {
-            label: "Kitchen",
-            title: "Honey Onyx surfaces",
-            body: "Warm translucent movement used as a kitchen statement surface.",
-          },
-          {
-            label: "Kitchen",
-            title: "Honey Onyx island",
-            body: "A large Honey Onyx plane showing book-matched movement at room scale.",
-          },
-          {
-            label: "Kitchen",
-            title: "Book-matched Honey Onyx",
-            body: "Natural movement carried across a high-impact kitchen application.",
-          },
-          {
-            label: "Living",
-            title: "Honey Onyx feature wall",
-            body: "A large wall plane where warm translucent movement becomes the focal finish.",
-          },
-          {
-            label: "Living",
-            title: "Honey Onyx modular field",
-            body: "Smaller square modules showing how the pattern repeats across a wall.",
-          },
-          {
-            label: "Material",
-            title: "Backlit Honey Onyx",
-            body: "A close view of Honey Onyx with light passing through the material.",
-          },
-          {
-            label: "Material",
-            title: "Honey Onyx movement",
-            body: "A second close material view for comparing color and natural variation.",
-          },
+          { label: "Bath", title: "Private suite", body: "Honey Onyx as the room’s quiet drama." },
+          { label: "Kitchen", title: "Statement plane", body: "Warm translucence at counter scale." },
+          { label: "Kitchen", title: "Island", body: "A continuous field of amber movement." },
+          { label: "Kitchen", title: "Matched face", body: "Natural rhythm across a single application." },
+          { label: "Living", title: "Feature wall", body: "One illuminated surface. Nothing competing." },
+          { label: "Living", title: "Modular field", body: "Pattern repeating as architecture." },
+          { label: "Atelier", title: "Backlit", body: "Light through Honey Onyx." },
+          { label: "Atelier", title: "Detail", body: "Color and variation, close." },
         ],
       },
       applications: {
-        eyebrow: "Where it earns attention",
-        title: "Use translucent onyx where the room can respond.",
-        body: "ISSA Build material is not background stone. It belongs where light, gathering, and first impressions matter.",
+        eyebrow: "Placement",
+        title: "Where presence matters.",
+        body: "Suites, kitchens, walls, arrival.",
         items: [
-          {
-            title: "Bathrooms and vanities",
-            body: "Turn wet areas into a warm, luminous focal finish.",
-            imageIndex: 0,
-          },
-          {
-            title: "Kitchens",
-            body: "Honey Onyx for counters, islands, and statement back walls.",
-            imageIndex: 1,
-          },
-          {
-            title: "Feature walls",
-            body: "One strong illuminated plane instead of competing finishes.",
-            imageIndex: 4,
-          },
-          {
-            title: "Living and hospitality",
-            body: "Arrival and gathering spaces people remember.",
-            imageIndex: 4,
-          },
+          { title: "Suites & vanities", body: "Intimate, luminous finishes.", imageIndex: 0 },
+          { title: "Kitchens", body: "Surfaces that hold the room.", imageIndex: 1 },
+          { title: "Feature walls", body: "A single illuminated plane.", imageIndex: 4 },
+          { title: "Living & hospitality", body: "Spaces people remember.", imageIndex: 4 },
         ],
       },
       brief: {
-        eyebrow: "From inspiration to a real answer",
-        title: "Send the idea, not a perfect specification.",
-        body: "Choose the photo you like, add rough dimensions, location, timing, and what you want the stone to do. Direct Connect gives you a call option or a private form.",
-        steps: [
-          "The photo you like",
-          "Rough dimensions",
-          "Project location and timing",
-          "How you want to use or light it",
-        ],
-        note: "Availability, exact dimensions, fabrication, support, lighting, and final suitability still need to be confirmed for the project.",
+        eyebrow: "Inquiry",
+        title: "Begin with the image.",
+        body: "Share the frame, scale, place, and timing. Direct Connect stays private until accepted.",
+        steps: ["The image", "Approximate scale", "Place and timing", "How it should live with light"],
+        note: "Availability, dimensions, fabrication, and lighting are confirmed for each project.",
       },
       closing: {
-        eyebrow: "Ready when the idea is",
-        title: "Put the right ISSA Build material in the conversation.",
-        body: "Choose Honey Onyx or Multi Green Onyx, then send the project through Direct Connect. Your contact details stay private unless the request is accepted.",
+        eyebrow: "ISSA Build",
+        title: "Request the material.",
+        body: "Honey Onyx or Multi Green Onyx — one private Direct Connect. Your details stay private until accepted.",
         imageIndex: 2,
         imageFit: "cover",
       },
@@ -244,20 +189,20 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     data: {
       items: [
         {
-          title: "Book-matched translucent onyx",
-          body: "Premium slabs chosen for mirrored movement and high-end interior work.",
+          title: "Honey Onyx",
+          body: "Warm amber and gold translucence for surfaces that deserve light.",
         },
         {
-          title: "Hand-finished character",
-          body: "A fully manual finish path that keeps the natural movement readable in the room.",
+          title: "Multi Green Onyx",
+          body: "Layered green and ivory — kept as its own collection.",
         },
         {
-          title: "Two distinct onyx offerings",
-          body: "Honey Onyx and Multi Green Onyx stay separate so every shared photo and request carries the right material context.",
+          title: "Hand-finished",
+          body: "Movement left readable. Craft over commodity.",
         },
         {
-          title: "One private path to answers",
-          body: "Use Direct Connect for availability, dimensions, viewing, fabrication questions, or project matching.",
+          title: "Private Direct Connect",
+          body: "Availability, scale, viewing, fabrication — one quiet path.",
         },
       ],
     },
@@ -265,33 +210,20 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "audience",
     data: {
-      title: "Start with how you plan to use it",
+      title: "For those who specify with care",
       items: [
-        {
-          title: "Designers",
-          body: "Compare installation photos and material views before specifying translucent onyx.",
-        },
-        {
-          title: "Fabricators",
-          body: "Send project dimensions and ask for the slab details needed to plan fabrication.",
-        },
-        {
-          title: "Builders",
-          body: "Check availability and timing early enough to coordinate with the rest of the project.",
-        },
-        {
-          title: "Homeowners",
-          body: "Share the room, idea, and photos. Direct Connect turns inspiration into a practical next step.",
-        },
+        { title: "Designers", body: "See the material before the specification." },
+        { title: "Fabricators", body: "Ask with dimensions in hand." },
+        { title: "Builders", body: "Confirm timing early." },
+        { title: "Principals", body: "Share the room. Inquire privately." },
       ],
     },
   },
   {
     type: "inventoryCatalog",
     data: {
-      title: "ISSA Build translucent onyx",
-      description:
-        "Open Honey Onyx or Multi Green Onyx to compare its real project and material photos. Share any individual view and its photo will become the link preview.",
+      title: "ISSA Build",
+      description: "Honey Onyx and Multi Green Onyx. Share any frame as the preview.",
       categories: [
         {
           category: "Onyx",
@@ -327,29 +259,24 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     data: {
       faqs: [
         {
-          question: "What does ISSA Build supply?",
+          question: "What does ISSA Build offer?",
           answer:
-            "ISSA Build supplies premium book-matched translucent onyx slabs for luxury interiors. Honey Onyx and Multi Green Onyx are two separate offerings suited to counters, walls, floors, and stairs.",
+            "Honey Onyx and Multi Green Onyx — translucent luxury stone for interiors: walls, counters, floors, stairs.",
         },
         {
-          question: "Are Honey Onyx and Multi Green Onyx the same material?",
+          question: "Are Honey Onyx and Multi Green Onyx the same?",
           answer:
-            "No. They are separate ISSA Build offerings with distinct color and movement. Choose the material and photo you mean before starting Direct Connect so the request keeps that context.",
+            "No. Separate materials, separate lookbooks. Choose before you inquire so the request keeps that context.",
         },
         {
-          question: "What changes when the stone is backlit?",
+          question: "How does lighting change the stone?",
           answer:
-            "Honey and gold tones become brighter while darker movement creates contrast. The gallery includes room installations and material views so you can compare the effect before you ask about availability.",
+            "Warm tones lift; darker movement deepens. The lookbook shows rooms and close views first.",
         },
         {
-          question: "Can I ask about a specific photo or room idea?",
+          question: "How do I inquire?",
           answer:
-            "Yes. Open that photo, tap Direct Connect, and include the view you are interested in along with your dimensions, timing, and project location.",
-        },
-        {
-          question: "How do I check availability?",
-          answer:
-            "Open Direct Connect and send the photo you like along with your dimensions, timing, and project location. You can also choose the call option for a faster answer.",
+            "Direct Connect with the image, scale, timing, and place — or the call option when you need speed.",
         },
       ],
     },
@@ -357,9 +284,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
   {
     type: "cta",
     data: {
-      heading: "See ISSA Build stone in your project.",
-      description:
-        "Call or send the product, project, dimensions, timing, and location through one private Direct Connect.",
+      heading: "Request ISSA Build.",
+      description: "One private Direct Connect for material, scale, timing, and place.",
       requestExamples: [
         "Request material",
         "Match stone to a project",
