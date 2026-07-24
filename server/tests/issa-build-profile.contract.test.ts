@@ -251,6 +251,7 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("premiumProductData.featuredProductSlug");
     expect(theme).toContain("premiumProduct?.images[0]");
+    expect(theme).toContain("products={luxuryHouseProducts}");
     expect(theme).toContain("products={premiumInventoryStones}");
     expect(theme).toContain("initialProductSlug={premiumSharedItem?.slug}");
     expect(theme).toContain("initialPhotoIndex={premiumSharedItem?.imageIndex}");
@@ -258,6 +259,8 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("<TradeScoutProfileHandoff");
     expect(theme).toContain('data-testid="wholesaler-brand-footer"');
     expect(theme).toContain('data-testid="profile-trust-section"');
+    expect(theme).toContain('data-testid="luxury-material-house-unavailable"');
+    expect(theme).toContain('rawPremiumPresentation === "luxury-material-house"');
     expect(theme.indexOf("<PremiumProductProfileSections")).toBeLessThan(
       theme.indexOf('data-testid="wholesaler-brand-footer"')
     );
@@ -308,6 +311,10 @@ describe("ISSA Build public profile contract", () => {
     expect(luxuryHouse).toContain("showcase");
     expect(luxuryHouse).toContain("consult");
     expect(luxuryHouse).toContain("onDirectConnect");
+    expect(luxuryHouse).toContain("itemId:");
+    expect(luxuryHouse).toContain("initialPhotoIndex");
+    expect(luxuryHouse).toContain("luxury-house-deep-link-lightbox");
+    expect(luxuryHouse).toContain("SafeProfileImg");
     expect(luxuryHouse).toContain("Direct Connect");
     expect(luxuryHouse).toContain("font-editorial");
     expect(luxuryHouse).toContain("border-ts-orange");
@@ -346,13 +353,17 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain('profileSlug === "jw-stone"');
     expect(theme).toContain("openFullInventory");
     // Inventory chrome stays gated behind non-premium / JW Stone paths.
-    expect(theme).toContain("if (premiumProductData)");
+    expect(theme).toContain("premiumProductData && premiumProduct");
+    expect(theme).toContain("isLuxuryMaterialHouse");
   });
 
   it("canonicalizes every legacy public route without losing source context", () => {
     const entry = read("server/index.ts");
     const api = read("server/routes/profiles.ts");
     const client = read("client/src/pages/ProfileSiteView.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+    const route = read("server/routes/tradepartner-express.ts");
 
     expect(entry).toContain("slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(entry).toContain("`${origin}/u/${ISSA_BUILD_PROFILE_SLUG}${requestSearchSuffix(req)}`");
@@ -363,9 +374,12 @@ describe("ISSA Build public profile contract", () => {
     expect(client).toContain("slug.toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(client).toContain("window.location.search");
     expect(client).toContain("window.location.hash");
-    expect(read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx")).toContain(
-      'startDirectConnect(productName ?? null, productName ? "request_material" : null)'
-    );
+    expect(theme).toContain("startDirectConnectFromTarget");
+    expect(theme).toContain("resolveDirectConnectMaterial");
+    expect(theme).toContain("initialItemId={expressItemId}");
+    expect(panel).toContain("itemId: stableItemId || undefined");
+    expect(panel).toContain('params.set("itemId", stableItemId)');
+    expect(route).toContain("itemId: body.itemId || null");
   });
 
   it("keeps public copy on ISSA Build product and Direct Connect only", () => {

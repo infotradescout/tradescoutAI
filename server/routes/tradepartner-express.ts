@@ -61,6 +61,13 @@ const requestSchema = z
     requestType: z.enum(EXPRESS_REQUEST_TYPES),
     message: z.string().trim().min(10).max(3000),
     stoneName: z.string().trim().max(180).optional(),
+    /** Stable material slug (e.g. multi-green-onyx). Preferred over display name for source context. */
+    itemId: z
+      .string()
+      .trim()
+      .max(120)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .optional(),
     // Quiet bot trap. Real browsers never populate this hidden field.
     website: z.string().max(0).optional(),
   })
@@ -371,6 +378,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 businessId: target.businessId,
                 requestType: body.requestType,
                 stoneName: body.stoneName || null,
+                itemId: body.itemId || null,
                 contactCheck: "phone_required",
                 membershipOnboarding: requesterWasCreated
                   ? "provisional_account_created"
@@ -476,7 +484,12 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           profile: target.profileSlug,
           profileName: target.businessName,
         });
-        if (body.stoneName) requestWorkspaceParams.set("item", body.stoneName);
+        if (body.itemId) {
+          requestWorkspaceParams.set("item", body.itemId);
+          requestWorkspaceParams.set("itemId", body.itemId);
+        } else if (body.stoneName) {
+          requestWorkspaceParams.set("item", body.stoneName);
+        }
         const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
         const activation = requesterWasCreated
           ? passwordResetService.createToken(String(requester.id))

@@ -41,6 +41,8 @@ type ExpressDirectConnectPanelProps = {
   stayInProfile?: boolean;
   requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
+  /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
+  initialItemId?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
   contactOperatorName?: string | null;
   contactOperatorRole?: string | null;
@@ -108,14 +110,18 @@ export default function ExpressDirectConnectPanel({
   stayInProfile = false,
   requestMode = "service",
   initialStoneName,
+  initialItemId,
   initialRequestType,
   contactOperatorName,
   contactOperatorRole,
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const config = REQUEST_MODE_CONFIG[requestMode];
+  const stableItemId = String(initialItemId || "").trim() || null;
+  const displayStoneName = String(initialStoneName || "").trim() || null;
+  const itemParam = stableItemId || displayStoneName;
   const defaultRequestType =
-    initialRequestType || (initialStoneName ? "request_material" : config.defaultType);
+    initialRequestType || (itemParam ? "request_material" : config.defaultType);
   const operatorName = String(contactOperatorName || "").trim() || businessName;
   const operatorRole = String(contactOperatorRole || "").trim();
   const hasSeparateOperator = operatorName.toLowerCase() !== businessName.toLowerCase();
@@ -136,7 +142,11 @@ export default function ExpressDirectConnectPanel({
     email: "",
     phone: "",
     requestType: defaultRequestType,
-    message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
+    message: displayStoneName
+      ? `I'm interested in ${displayStoneName}.`
+      : stableItemId
+        ? `I'm interested in ${stableItemId}.`
+        : "",
     website: "",
   });
 
@@ -170,9 +180,13 @@ export default function ExpressDirectConnectPanel({
     setForm((current) => ({
       ...current,
       requestType: defaultRequestType,
-      message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
+      message: displayStoneName
+        ? `I'm interested in ${displayStoneName}.`
+        : stableItemId
+          ? `I'm interested in ${stableItemId}.`
+          : "",
     }));
-  }, [defaultRequestType, initialRequestType, initialStoneName, open]);
+  }, [defaultRequestType, displayStoneName, initialRequestType, open, stableItemId]);
 
   const requestPath = useMemo(() => {
     if (requestWorkspacePath) return requestWorkspacePath;
@@ -183,9 +197,10 @@ export default function ExpressDirectConnectPanel({
     params.set("from", "public_profile");
     params.set("profile", profileSlug);
     params.set("profileName", businessName);
-    if (initialStoneName) params.set("item", initialStoneName);
+    if (itemParam) params.set("item", itemParam);
+    if (stableItemId) params.set("itemId", stableItemId);
     return `/direct-connect/engagements?${params.toString()}`;
-  }, [businessName, initialStoneName, profileSlug, requestId, requestWorkspacePath]);
+  }, [businessName, itemParam, profileSlug, requestId, requestWorkspacePath, stableItemId]);
   const requestHref = qualifyPublicProfileItemDestination(requestPath, platformBaseHref);
 
   if (!open) return null;
@@ -195,7 +210,8 @@ export default function ExpressDirectConnectPanel({
     profile: profileSlug,
     profileName: businessName,
   });
-  if (initialStoneName) postCallParams.set("item", initialStoneName);
+  if (itemParam) postCallParams.set("item", itemParam);
+  if (stableItemId) postCallParams.set("itemId", stableItemId);
   const postCallSignupHref = qualifyPublicProfileItemDestination(
     `/pre-scout-setup?mode=create&next=${encodeURIComponent(
       `/direct-connect?${postCallParams.toString()}`
@@ -263,7 +279,8 @@ export default function ExpressDirectConnectPanel({
           credentials: "include",
           body: JSON.stringify({
             ...form,
-            stoneName: initialStoneName || undefined,
+            stoneName: displayStoneName || undefined,
+            itemId: stableItemId || undefined,
           }),
         }
       );
@@ -414,7 +431,11 @@ export default function ExpressDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900">
-                  {initialStoneName ? `Ask about ${initialStoneName}` : config.heading}
+                  {displayStoneName
+                    ? `Ask about ${displayStoneName}`
+                    : stableItemId
+                      ? `Ask about ${stableItemId}`
+                      : config.heading}
                 </h3>
                 <p className="mt-1 text-sm text-stone-600">
                   Send the details now. You can save the request to a free account afterward.
