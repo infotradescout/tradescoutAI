@@ -4,7 +4,7 @@
 **Worktree:** `TradeScoutPro-search-index-recovery`
 **Branch:** `fix/search-index-sitemap-contract`
 **Base:** `eedf5d757c8c994ae8f55f47492411333e72e32f` (`origin/main`)
-**Implementation head:** `bd748a0d3062fc59dad4966049ad59d1490c0d39`
+**Implementation head:** `e82779c6c4443ee61cd8a1544d8895fad71b6069`
 **Authority:** the locked [Phase C indexability contract](./phase-c-indexability-contract.md), plus the portfolio stabilization direction received on 2026-07-25.
 
 ## Decision
@@ -18,7 +18,7 @@ The implementation has focused local proof and a production build. GitHub-hosted
 | Check | Result |
 |---|---|
 | Branch ancestry | Clean descendant of current `origin/main`; merge-base is `eedf5d75` |
-| Recovery history | `f2b49524` contract → `ade87d02` crawl evidence → `47ddd13c` implementation → `bd748a0d` hardening |
+| Recovery history | `f2b49524` contract → `ade87d02` crawl evidence → `47ddd13c` implementation → `bd748a0d` hardening → `e82779c6` primary-role guard |
 | PR #211 contamination | None; PR #211 is isolated on `fix/issa-lux-body-only` |
 | Root OneDrive worktree | Untouched; its unrelated untracked files and stashes were preserved |
 | Merge | Not performed |
@@ -35,6 +35,7 @@ The implementation has focused local proof and a production build. GitHub-hosted
 6. Restricted trade navigation and sitemap count queries to precomputed rows with `business_count > 0`; removed the static trade fallback.
 7. Made trade overview/state renderers query qualifying precomputed listing counts and fail closed to `noindex` when the count cannot be proved.
 8. Kept stale business aliases, inactive HomeScout listings, empty geo shells, malformed city slugs, and non-indexable profiles out of sitemap output.
+9. Added the profile owner's primary role to the direct SSR policy input, closing the case where `users.role` is administrative while `users.roles` is null.
 
 No contact flow, trust/CVS exposure rule, payment behavior, or county data-write path was changed.
 
