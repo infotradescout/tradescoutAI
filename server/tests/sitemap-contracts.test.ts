@@ -237,6 +237,9 @@ describe("Phase C indexability contract — sitemap eligibility", () => {
     expect(contract).toContain("Phase C — Indexability & Sitemap Eligibility Contract");
     expect(contract).toContain("isPublicAndCrawlableBusiness");
     expect(contract).toContain("SSR / CSR robots parity rule");
+    expect(contract).toContain("robots.txt vs meta conflict");
+    expect(contract).toContain("super-admin");
+    expect(contract).toContain("phase-b-lite-live-crawl-report.md");
     expect(contract).toContain("Human approval gate");
   });
 
@@ -340,5 +343,40 @@ describe("Phase C indexability contract — sitemap eligibility", () => {
       expect(staticSitemap).not.toContain(path);
       expect(profilesSource).not.toContain(`<loc>${path}</loc>`);
     }
+  });
+
+  it("documents crawl-2 stale-business minority that remains indexable (~12.5%)", async () => {
+    const fixtures = await import("./fixtures/phase-c-indexability-contract.fixtures");
+
+    expect(fixtures.PHASE_C_STALE_BUSINESS_NOINDEX_SAMPLE_RATE).toBeGreaterThan(0.8);
+    expect(fixtures.PHASE_C_INDEXABLE_BUSINESS_SAMPLES).toContain("a-b-septic-tank-services");
+    expect(fixtures.PHASE_C_STALE_BUSINESS_SITEMAP_SAMPLES.length).toBeGreaterThan(0);
+  });
+
+  it("excludes admin and test profiles from sitemap-u-profiles emitters", () => {
+    const source = read("server/routes/profiles.ts");
+    const routeStart = source.indexOf('router.get("/sitemap-u-profiles.xml"');
+    const route = source.slice(routeStart, routeStart + 1200);
+
+    expect(route).toMatch(
+      /excludeNonIndexableProfileSitemapTargets|isIndexablePublishedProfile|adminProfilesExcludedFromSitemap|admin_flag/
+    );
+  });
+
+  it("SSR emits deliberate noindex on robots-Disallow private app shells before CSR hydrates", () => {
+    const serverIndex = read("server/index.ts");
+
+    expect(serverIndex).toMatch(
+      /privateAppShellNoindex|noindexPrivateAppShell|renderPrivateAppShellHtml|applyPrivateShellNoindex/
+    );
+  });
+
+  it("documents crawl-2 robots.txt vs meta conflict fixtures", async () => {
+    const fixtures = await import("./fixtures/phase-c-indexability-contract.fixtures");
+
+    expect(fixtures.PHASE_C_ROBOTS_META_CONFLICT_PATHS).toEqual(
+      expect.arrayContaining(["/scout", "/auth", "/dashboard"])
+    );
+    expect(fixtures.PHASE_C_ADMIN_PROFILE_SITEMAP_LEAK).toBe("super-admin");
   });
 });

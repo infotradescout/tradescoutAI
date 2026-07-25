@@ -63,4 +63,14 @@ describe("Phase C indexability contract — terminal responses vs sitemap", () =
 
     expect(fixtures.PHASE_C_DEAD_HOMESCOUT_LISTING_ID).toBe("999d5c07-5779-4b74-86ed-bb2e47f7f5db");
   });
+
+  it("documents crawl-2 live observation: X-Robots-Tag absent on sampled public URLs", async () => {
+    const fixtures = await import("./fixtures/phase-c-indexability-contract.fixtures");
+    const contract = read(
+      "artifacts/evidence/2026-07-25-search-index-recovery/phase-c-indexability-contract.md"
+    );
+
+    expect(fixtures.PHASE_C_LIVE_X_ROBOTS_TAG_ABSENT_ON_PUBLIC).toBe(true);
+    expect(contract).toContain("X-Robots-Tag live observation");
+  });
 });
