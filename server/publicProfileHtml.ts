@@ -708,6 +708,7 @@ export async function buildPublicProfileHtml({
   if (!profileRecord) return null;
   const shouldIndexProfile = isIndexablePublishedProfile({
     profileSlug: profileRecord.slug,
+    role: profileRecord.ownerRole,
     roles: profileRecord.ownerRoles,
   });
 

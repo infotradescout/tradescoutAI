@@ -1576,6 +1576,7 @@ app.use(landingContractHeaders);
                     profileRecord != null &&
                     isIndexablePublishedProfile({
                       profileSlug: profileRecord.slug,
+                      role: profileRecord.ownerRole,
                       roles: profileRecord.ownerRoles,
                     });
                   if (!shouldIndexProfile) {

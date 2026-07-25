@@ -80,7 +80,14 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain("max-snippet:-1");
     expect(source).toContain('<meta name="keywords"');
     expect(source).toContain("isIndexablePublishedProfile");
+    expect(source).toContain("role: profileRecord.ownerRole");
     expect(source).toContain('content="noindex,nofollow"');
+
+    const entrySource = read("server/index.ts");
+    expect(entrySource).toContain("role: profileRecord.ownerRole");
+
+    const repositorySource = read("server/repositories/profileRepository.ts");
+    expect(repositorySource).toContain("ownerRole: users.role");
   });
 
   it("profile site view uses seoMeta and structured data defaults", () => {

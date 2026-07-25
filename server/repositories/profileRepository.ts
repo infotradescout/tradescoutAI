@@ -22,6 +22,7 @@ export type PublicProfileRecord = {
   ownerProfileImageUrl: string | null;
   ownerCity: string | null;
   ownerState: string | null;
+  ownerRole?: string | null;
   ownerRoles: string[] | null;
   servicesDescription: string | null;
 };
@@ -97,6 +98,7 @@ export class ProfileRepository {
         ownerProfileImageUrl: users.profileImageUrl,
         ownerCity: users.city,
         ownerState: users.state,
+        ownerRole: users.role,
         ownerRoles: users.roles,
         servicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
       })
