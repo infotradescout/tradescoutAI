@@ -44,4 +44,13 @@ describe("public trade SEO fallback contracts", () => {
     expect(citySource).toContain("Visibility does not grant contact access");
     expect(citySource).toContain("protected Direct Connect paths");
   });
+
+  it("trade city empty shells use the shared fail-closed indexability policy", () => {
+    const citySource = read("server/publicTradeCityHtml.ts");
+
+    expect(citySource).toContain("shouldNoIndexDirectoryPage");
+    expect(citySource).toContain("const qualifyingListings = rows.reduce");
+    expect(citySource).toContain("shouldNoIndexDirectoryPage({ qualifyingListings })");
+    expect(citySource).toContain('content="noindex,follow"');
+  });
 });

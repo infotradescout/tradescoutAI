@@ -5,6 +5,7 @@ import { getTradeSeoMatch, normalizeTradeSlug } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { sqlDirectoryBusinessCitySlug } from "./utils/directoryCitySlug";
+import { shouldNoIndexDirectoryPage } from "./utils/sitemapIndexability";
 
 type PublicTradeCityHtmlOptions = {
   origin: string;
@@ -88,7 +89,11 @@ function buildTradeCityDiscoveryNote(args: { tradeName: string; city: string; st
   ].join(" ");
 }
 
-function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
+function applyMeta(
+  templateHtml: string,
+  meta: ReturnType<typeof buildMeta>,
+  shouldNoIndex: boolean
+) {
   let html = templateHtml;
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
   html = upsertTag(
@@ -104,7 +109,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    shouldNoIndex
+      ? `<meta name="robots" content="noindex,follow" />`
+      : `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
   );
   html = upsertTag(
     html,
@@ -265,7 +272,11 @@ export async function buildPublicTradeCityHtml(
     },
   };
 
-  let html = applyMeta(opts.templateHtml, meta);
+  const qualifyingListings = rows.reduce(
+    (total, row) => total + Math.max(0, Number(row.businessCount || 0)),
+    0
+  );
+  let html = applyMeta(opts.templateHtml, meta, shouldNoIndexDirectoryPage({ qualifyingListings }));
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
