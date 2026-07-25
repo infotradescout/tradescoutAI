@@ -9,7 +9,7 @@
 
 ## Decision
 
-The SEO recovery lane is ready to ship as a reviewable draft PR. It is not approved for merge or production deployment yet.
+The SEO recovery lane is ready as a reviewable PR. It is not approved for merge or production deployment yet.
 
 The implementation has focused local proof and a production build. GitHub-hosted proof cannot currently start because the repository owner account is locked for a billing issue; on 2026-07-25 the owner explicitly authorized this stabilization cycle to proceed without Actions. Production sitemap cardinality, live response headers, Search Console recovery, and a deployed build marker remain explicitly unproved.
 
@@ -21,7 +21,7 @@ The implementation has focused local proof and a production build. GitHub-hosted
 | Recovery history | `f2b49524` contract → `ade87d02` crawl evidence → `47ddd13c` implementation → `bd748a0d` hardening → `e82779c6` primary-role guard → `e2040f7b` trade-city guard → `ca5ca386` recent-scope guard |
 | PR #211 contamination | None; PR #211 is isolated on `fix/issa-lux-body-only` |
 | Root OneDrive worktree | Untouched; its unrelated untracked files and stashes were preserved |
-| Review surface | Published as draft PR [#213](https://github.com/infotradescout/tradescoutAI/pull/213) |
+| Review surface | Published as PR [#213](https://github.com/infotradescout/tradescoutAI/pull/213) |
 | Merge | Not performed |
 | Deploy | Not performed |
 | GSC Validate Fix | Not performed |
