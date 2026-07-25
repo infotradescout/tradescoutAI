@@ -11,6 +11,7 @@ import {
   deriveTradeSlugFromProfileData,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { shouldNoIndexDirectoryPage } from "./utils/sitemapIndexability";
 
 type PublicCountyHtmlOptions = {
   origin: string;
@@ -135,21 +136,6 @@ function applyMeta(
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
   return html;
-}
-
-function resolveDirectoryIndexability(args: {
-  qualifyingListings: number;
-  isError?: boolean;
-}): boolean {
-  return Boolean(args.isError) || args.qualifyingListings === 0;
-}
-
-function applyNoIndex(html: string) {
-  return upsertTag(
-    html,
-    /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="noindex,follow" />`
-  );
 }
 
 function isMissingColumnError(error: unknown, columnName: string): boolean {
@@ -408,7 +394,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
   };
 
   const qualifyingListings = sampleBusinesses.length + topTrades.length;
-  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings });
+  const shouldNoIndex = shouldNoIndexDirectoryPage({ qualifyingListings });
 
   let html = applyMeta(opts.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);

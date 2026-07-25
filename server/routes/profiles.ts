@@ -5,7 +5,7 @@ import { storage } from "../storage";
 import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryScopeSnapshotJob";
 import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
-import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
+import { slugifyCountyName } from "../../shared/tradeSeo";
 import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 import {
   businessVerifications,
@@ -73,7 +73,6 @@ import {
   excludeTerminalPublicPageUrls,
   hasQualifyingDirectoryListings,
 } from "../utils/sitemapIndexability";
-import { sendPublicPageNotFound } from "../utils/publicPageResponse";
 
 const router = Router();
 
@@ -304,10 +303,6 @@ async function listPublishedProfileSitemapTargets(
        LEFT JOIN businesses b ON b.id = p.business_id
       WHERE p.status = 'published'
         ${businessScope}
-        AND NOT (
-          u.role IN ('admin', 'super_admin', 'ops_admin', 'head_admin')
-          OR COALESCE(u.roles, ARRAY[]::text[]) && ARRAY['admin', 'super_admin', 'ops_admin', 'head_admin']::text[]
-        )
       ORDER BY p.updated_at DESC NULLS LAST,
                p.created_at DESC NULLS LAST,
                p.slug ASC`,
@@ -2684,17 +2679,24 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const navigationRows = (await db.execute(sql`
-      with trade_state_pairs as (
-        select distinct trade_slug, state_code
+      with active_scope as (
+        select trade_slug, state_code, business_count
         from ts_seo_trade_county_pages
-        where coalesce(trade_slug, '') <> '' and coalesce(state_code, '') <> ''
-        union
-        select distinct trade_slug, state_code
+        where business_count > 0
+        union all
+        select trade_slug, state_code, business_count
         from ts_seo_trade_city_pages
+        where business_count > 0
+      ),
+      trade_state_pairs as (
+        select trade_slug, state_code, sum(business_count)::int as business_count
+        from active_scope
         where coalesce(trade_slug, '') <> '' and coalesce(state_code, '') <> ''
+        group by trade_slug, state_code
       )
-      select trade_slug, state_code
+      select trade_slug, state_code, business_count
       from trade_state_pairs
+      where business_count > 0
       order by trade_slug asc, state_code asc;
     `)) as any;
 
@@ -2708,13 +2710,11 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
     );
 
     const urls = [
-      { loc: `${baseUrl}/trade`, lastmod: today },
-      ...(activeTradeSlugs.length > 0 ? activeTradeSlugs : PRIMARY_TRADE_SLUGS).map(
-        (tradeSlug) => ({
-          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
-          lastmod: today,
-        })
-      ),
+      ...(tradeStates.length > 0 ? [{ loc: `${baseUrl}/trade`, lastmod: today }] : []),
+      ...activeTradeSlugs.map((tradeSlug) => ({
+        loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
+        lastmod: today,
+      })),
       ...tradeStates.map((row: any) => ({
         loc: `${baseUrl}/trade/${encodeURIComponent(String(row.trade_slug || "").trim())}/${encodeURIComponent(
           String(row.state_code || "")
@@ -2741,7 +2741,9 @@ router.get("/sitemap-directory-trades.xml", async (req, res) => {
 
     // Only include trade+county pages that have at least one recent, public business (snapshot job writes these).
     const countResult = (await db.execute(sql`
-      select count(*)::int as count from ts_seo_trade_county_pages;
+      select count(*)::int as count
+      from ts_seo_trade_county_pages
+      where business_count > 0;
     `)) as any;
     const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
     const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
@@ -2904,7 +2906,9 @@ router.get("/sitemap-directory-trade-cities.xml", async (req, res) => {
 
     // Only include trade+city pages that have at least one recent, public business (snapshot job writes these).
     const countResult = (await db.execute(sql`
-      select count(*)::int as count from ts_seo_trade_city_pages;
+      select count(*)::int as count
+      from ts_seo_trade_city_pages
+      where business_count > 0;
     `)) as any;
     const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
     const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
@@ -3009,7 +3013,9 @@ router.get("/sitemap-best-trade-counties.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const countResult = (await db.execute(sql`
-      select count(*)::int as count from ts_seo_trade_county_pages;
+      select count(*)::int as count
+      from ts_seo_trade_county_pages
+      where business_count > 0;
     `)) as any;
     const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
     const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));
@@ -3088,7 +3094,9 @@ router.get("/sitemap-best-trade-cities.xml", async (req, res) => {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
     const countResult = (await db.execute(sql`
-      select count(*)::int as count from ts_seo_trade_city_pages;
+      select count(*)::int as count
+      from ts_seo_trade_city_pages
+      where business_count > 0;
     `)) as any;
     const total = Number(countResult?.rows?.[0]?.count ?? 0) || 0;
     const pages = Math.max(1, Math.ceil(Math.max(0, total) / DIRECTORY_TRADE_SITEMAP_PAGE_SIZE));

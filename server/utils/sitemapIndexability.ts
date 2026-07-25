@@ -24,6 +24,14 @@ export function hasQualifyingDirectoryListings(listingCount: number): boolean {
   return Number.isFinite(listingCount) && listingCount > 0;
 }
 
+/** Keep SSR and sitemap behavior aligned for directory pages. */
+export function shouldNoIndexDirectoryPage(args: {
+  qualifyingListings: number;
+  isError?: boolean;
+}): boolean {
+  return Boolean(args.isError) || !hasQualifyingDirectoryListings(args.qualifyingListings);
+}
+
 export function assertSitemapUrlIsIndexEligible(
   entry: SitemapUrlEntry | null | undefined
 ): entry is SitemapUrlEntry {

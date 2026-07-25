@@ -48,6 +48,7 @@ import {
   buildPublicProfileLlmsText,
   buildPublicProfileSitemapXml,
 } from "./publicProfileHtml";
+import { isIndexablePublishedProfile } from "./utils/sitemapIndexability";
 import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
@@ -1571,6 +1572,15 @@ app.use(landingContractHeaders);
                   // own domain instead of dual-hosting the same profile under
                   // /u/:slug too.
                   const profileRecord = await storage.getProfileBySlugPublic(slug);
+                  const shouldIndexProfile =
+                    profileRecord != null &&
+                    isIndexablePublishedProfile({
+                      profileSlug: profileRecord.slug,
+                      roles: profileRecord.ownerRoles,
+                    });
+                  if (!shouldIndexProfile) {
+                    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+                  }
                   const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
                   if (customDomain && String(req.query.book || "") !== "1") {
                     return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);
@@ -2389,7 +2399,7 @@ app.use(landingContractHeaders);
                 if (fs.existsSync(indexPath)) {
                   res.setHeader("Cache-Control", "no-store");
                   if (isPrivateAppShellPath(reqPath)) {
-                    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+                    res.setHeader("X-Robots-Tag", "noindex, follow");
                     const html = renderPrivateAppShellHtml(indexPath);
                     if (html) return res.type("text/html").send(html);
                   }

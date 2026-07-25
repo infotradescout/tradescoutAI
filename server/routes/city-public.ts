@@ -4,6 +4,7 @@ import { db } from "../db";
 import { businessCounties, businesses, counties } from "../../shared/schema";
 import { slugifyCountyName } from "../../shared/tradeSeo";
 import { getTradeSeoMatch } from "../../shared/tradeSeo";
+import { sqlDirectoryBusinessCitySlug } from "../utils/directoryCitySlug";
 
 const router = Router();
 
@@ -27,10 +28,6 @@ function titleizeCitySlug(slug: string): string {
     .replace(/-+/g, " ")
     .trim();
   return cleaned.replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
 function buildTradeWhereClause(tradeRaw: unknown) {
@@ -68,7 +65,7 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
         and(
           eq(businesses.status, "active" as any),
           eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`
+          sql`${sqlDirectoryBusinessCitySlug()} = ${citySlug}`
         )
       )
       .groupBy(counties.fips, counties.name, counties.stateCode)
@@ -131,7 +128,7 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
         and(
           eq(businesses.status, "active" as any),
           eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`,
+          sql`${sqlDirectoryBusinessCitySlug()} = ${citySlug}`,
           tradeClause
         )
       )

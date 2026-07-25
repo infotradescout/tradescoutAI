@@ -18,6 +18,7 @@ import {
   deriveTradeSlugFromProfileData,
 } from "../publicationBusiness";
 import { isValidDirectoryCitySlug } from "../utils/sitemapIndexability";
+import { sqlDirectoryBusinessCitySlug } from "../utils/directoryCitySlug";
 
 export { isValidDirectoryCitySlug };
 
@@ -171,7 +172,7 @@ export class SitemapRepository {
   }
 
   async countDirectoryCitiesForSitemap(): Promise<number> {
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+    const citySlugExpr = sqlDirectoryBusinessCitySlug();
 
     const rows = await db
       .select({
@@ -205,7 +206,7 @@ export class SitemapRepository {
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
 
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+    const citySlugExpr = sqlDirectoryBusinessCitySlug();
 
     const rows = await db
       .select({

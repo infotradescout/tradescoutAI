@@ -218,10 +218,12 @@ describe("sitemap contracts", () => {
     const source = read("server/routes/profiles.ts");
 
     expect(source).toContain("ensureSeoDirectoryScopeSnapshotTables()");
-    expect(source).toContain("with trade_state_pairs as (");
+    expect(source).toContain("with active_scope as (");
+    expect(source).toContain("trade_state_pairs as (");
     expect(source).toContain("from ts_seo_trade_county_pages");
     expect(source).toContain("from ts_seo_trade_city_pages");
-    expect(source).toContain(
+    expect(source).toContain("where business_count > 0");
+    expect(source).not.toContain(
       "activeTradeSlugs.length > 0 ? activeTradeSlugs : PRIMARY_TRADE_SLUGS"
     );
     expect(source).not.toContain("PRIMARY_TRADE_SLUGS.flatMap");
@@ -299,6 +301,24 @@ describe("Phase C indexability contract — sitemap eligibility", () => {
   it("excludes corrupted city slugs from directory city sitemaps", () => {
     const profilesSource = read("server/routes/profiles.ts");
     const repoSource = read("server/repositories/sitemapRepository.ts");
+    const slugSource = read("server/utils/directoryCitySlug.ts");
+
+    expect(repoSource).toContain("sqlDirectoryBusinessCitySlug");
+    expect(slugSource).toContain("regexp_replace(lower(coalesce");
+    expect(slugSource).toContain("trim(both '-'");
+    for (const file of [
+      "server/publicCityHtml.ts",
+      "server/publicBestHtml.ts",
+      "server/publicTradeCityHtml.ts",
+      "server/routes/city-public.ts",
+      "server/routes/business-directory-public.ts",
+    ]) {
+      const source = read(file);
+      expect(source).toContain("sqlDirectoryBusinessCitySlug");
+      expect(source).not.toContain(
+        "lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city'"
+      );
+    }
 
     expect(profilesSource).toMatch(
       /isValidDirectoryCitySlug|citySlug\.startsWith\("-\"\)|rejectCorruptedCitySlug/
@@ -361,14 +381,55 @@ describe("Phase C indexability contract — sitemap eligibility", () => {
     expect(route).toMatch(
       /excludeNonIndexableProfileSitemapTargets|isIndexablePublishedProfile|adminProfilesExcludedFromSitemap|admin_flag/
     );
+    expect(source).not.toContain("u.role IN ('admin', 'super_admin', 'ops_admin', 'head_admin')");
   });
 
-  it("SSR emits deliberate noindex on robots-Disallow private app shells before CSR hydrates", () => {
+  it("SSR emits matching deliberate noindex on robots-Disallow private app shells before CSR hydrates", () => {
     const serverIndex = read("server/index.ts");
 
     expect(serverIndex).toMatch(
       /privateAppShellNoindex|noindexPrivateAppShell|renderPrivateAppShellHtml|applyPrivateShellNoindex/
     );
+    expect(serverIndex).toContain('res.setHeader("X-Robots-Tag", "noindex, follow")');
+    expect(serverIndex).toContain('content="noindex,follow"');
+  });
+
+  it("keeps admin profile pages public but noindexes their direct SSR surface", async () => {
+    const { isIndexablePublishedProfile } = await import("../utils/sitemapIndexability");
+    const profileHtml = read("server/publicProfileHtml.ts");
+    const serverIndex = read("server/index.ts");
+
+    expect(isIndexablePublishedProfile({ profileSlug: "super-admin" })).toBe(false);
+    expect(
+      isIndexablePublishedProfile({
+        profileSlug: "ordinary-business",
+        roles: ["super_admin"],
+      })
+    ).toBe(false);
+    expect(
+      isIndexablePublishedProfile({
+        profileSlug: "issa-build",
+        roles: ["business_owner"],
+      })
+    ).toBe(true);
+    expect(profileHtml).toContain("isIndexablePublishedProfile");
+    expect(profileHtml).toContain('content="noindex,nofollow"');
+    expect(serverIndex).toContain('res.setHeader("X-Robots-Tag", "noindex, nofollow")');
+  });
+
+  it("uses one shared directory indexability rule across SSR route families", () => {
+    const helper = read("server/utils/sitemapIndexability.ts");
+    expect(helper).toContain("shouldNoIndexDirectoryPage");
+    for (const file of [
+      "server/publicTradeHtml.ts",
+      "server/publicCountyHtml.ts",
+      "server/publicCityHtml.ts",
+      "server/publicBestHtml.ts",
+    ]) {
+      const source = read(file);
+      expect(source).toContain("shouldNoIndexDirectoryPage");
+      expect(source).not.toContain("function resolveDirectoryIndexability");
+    }
   });
 
   it("documents crawl-2 robots.txt vs meta conflict fixtures", async () => {

@@ -3,6 +3,8 @@ import { db } from "./db";
 import { businessCounties, businesses, counties } from "@shared/schema";
 import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { sqlDirectoryBusinessCitySlug } from "./utils/directoryCitySlug";
+import { shouldNoIndexDirectoryPage } from "./utils/sitemapIndexability";
 
 type PublicCityHtmlOptions = {
   origin: string;
@@ -137,25 +139,6 @@ function applyMeta(
   return html;
 }
 
-function resolveDirectoryIndexability(args: {
-  qualifyingListings: number;
-  isError?: boolean;
-}): boolean {
-  return Boolean(args.isError) || args.qualifyingListings === 0;
-}
-
-function applyNoIndex(html: string) {
-  return upsertTag(
-    html,
-    /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="noindex,follow" />`
-  );
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
 export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<string | null> {
   const stateCode = String(opts.stateCode || "").toUpperCase();
   const citySlug = String(opts.citySlug || "")
@@ -185,7 +168,7 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
         eq(businesses.status, "active" as any),
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
+        sql`${sqlDirectoryBusinessCitySlug()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`
       )
     )
@@ -252,7 +235,7 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
   };
 
   const qualifyingListings = rows.filter((row) => Number(row.businessCount || 0) > 0).length;
-  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings });
+  const shouldNoIndex = shouldNoIndexDirectoryPage({ qualifyingListings });
 
   let html = applyMeta(opts.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);

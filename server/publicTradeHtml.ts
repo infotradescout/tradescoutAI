@@ -13,6 +13,7 @@ import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import { buildPublicBusinessSignals, derivePublicationTier } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { shouldNoIndexDirectoryPage } from "./utils/sitemapIndexability";
 
 type PublicTradeHtmlOptions = {
   origin: string;
@@ -200,19 +201,42 @@ function applyMeta(
   return html;
 }
 
-function resolveDirectoryIndexability(args: {
-  qualifyingListings: number;
-  isError?: boolean;
-}): boolean {
-  return Boolean(args.isError) || args.qualifyingListings === 0;
-}
+let loggedTradeScopeCountFailure = false;
 
-function applyNoIndex(html: string) {
-  return upsertTag(
-    html,
-    /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="noindex,follow" />`
-  );
+async function countQualifyingTradeListings(args?: {
+  tradeSlug?: string;
+  stateCode?: string;
+}): Promise<number> {
+  const conditions = ["business_count > 0"];
+  const values: string[] = [];
+  if (args?.tradeSlug) {
+    values.push(normalizeTradeSlug(args.tradeSlug));
+    conditions.push(`trade_slug = $${values.length}`);
+  }
+  if (args?.stateCode) {
+    values.push(String(args.stateCode).trim().toUpperCase());
+    conditions.push(`upper(state_code) = $${values.length}`);
+  }
+
+  try {
+    const result = await pool.query<{ count: number | string }>(
+      `select coalesce(sum(business_count), 0)::int as count
+         from ts_seo_trade_county_pages
+        where ${conditions.join(" and ")}`,
+      values
+    );
+    const count = Number(result.rows?.[0]?.count ?? 0);
+    return Number.isFinite(count) && count > 0 ? count : 0;
+  } catch (error) {
+    if (!loggedTradeScopeCountFailure) {
+      loggedTradeScopeCountFailure = true;
+      console.warn(
+        "[SEO] Trade scope snapshot unavailable; serving navigation shells as noindex",
+        error
+      );
+    }
+    return 0;
+  }
 }
 
 export async function buildPublicTradeOverviewHtml(
@@ -282,7 +306,8 @@ export async function buildPublicTradeOverviewHtml(
     },
   };
 
-  let html = applyMeta(args.templateHtml, meta, true);
+  const qualifyingListings = await countQualifyingTradeListings({ tradeSlug: canonicalSlug });
+  let html = applyMeta(args.templateHtml, meta, shouldNoIndexDirectoryPage({ qualifyingListings }));
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -337,7 +362,8 @@ export async function buildPublicTradeDirectoryHtml(
     },
   };
 
-  let html = applyMeta(args.templateHtml, meta);
+  const qualifyingListings = await countQualifyingTradeListings();
+  let html = applyMeta(args.templateHtml, meta, shouldNoIndexDirectoryPage({ qualifyingListings }));
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -410,7 +436,11 @@ export async function buildPublicTradeStateHtml(
     },
   };
 
-  let html = applyMeta(args.templateHtml, meta);
+  const qualifyingListings = await countQualifyingTradeListings({
+    tradeSlug: canonicalSlug,
+    stateCode,
+  });
+  let html = applyMeta(args.templateHtml, meta, shouldNoIndexDirectoryPage({ qualifyingListings }));
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -636,7 +666,7 @@ export async function buildPublicTradeCountyHtml(
     })),
   };
 
-  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings: items.length });
+  const shouldNoIndex = shouldNoIndexDirectoryPage({ qualifyingListings: items.length });
 
   let html = applyMeta(args.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);

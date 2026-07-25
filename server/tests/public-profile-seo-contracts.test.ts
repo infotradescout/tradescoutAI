@@ -79,6 +79,8 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain('data-seo-profile="true"');
     expect(source).toContain("max-snippet:-1");
     expect(source).toContain('<meta name="keywords"');
+    expect(source).toContain("isIndexablePublishedProfile");
+    expect(source).toContain('content="noindex,nofollow"');
   });
 
   it("profile site view uses seoMeta and structured data defaults", () => {

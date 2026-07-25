@@ -110,14 +110,6 @@ function resolveLandingIndexability(opts: PublicLandingHtmlOptions): {
   return { shouldIndexLandingPage, canonicalPath };
 }
 
-function applyNoIndex(html: string) {
-  return upsertTag(
-    html,
-    /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="noindex,follow" />`
-  );
-}
-
 function titleCaseSlug(value: string) {
   return value
     .split(/[-_]+/g)

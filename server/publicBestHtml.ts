@@ -7,6 +7,8 @@ import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import { buildPublicBusinessSignals, derivePublicationTier } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { sqlDirectoryBusinessCitySlug } from "./utils/directoryCitySlug";
+import { shouldNoIndexDirectoryPage } from "./utils/sitemapIndexability";
 
 type PublicBestTradeCountyHtmlOptions = {
   origin: string;
@@ -140,25 +142,6 @@ function applyMeta(
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
   return html;
-}
-
-function resolveDirectoryIndexability(args: {
-  qualifyingListings: number;
-  isError?: boolean;
-}): boolean {
-  return Boolean(args.isError) || args.qualifyingListings === 0;
-}
-
-function applyNoIndex(html: string) {
-  return upsertTag(
-    html,
-    /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="noindex,follow" />`
-  );
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
 function isMissingColumnError(error: unknown, columnName: string): boolean {
@@ -358,7 +341,7 @@ export async function buildPublicBestTradeCountyHtml(
     })),
   };
 
-  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings: items.length });
+  const shouldNoIndex = shouldNoIndexDirectoryPage({ qualifyingListings: items.length });
 
   let html = applyMeta(opts.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);
@@ -413,7 +396,7 @@ export async function buildPublicBestTradeCityHtml(
         eq(businesses.status, "active" as any),
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
+        sql`${sqlDirectoryBusinessCitySlug()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
         keywordPatterns.length
           ? or(
@@ -524,7 +507,7 @@ export async function buildPublicBestTradeCityHtml(
     })),
   };
 
-  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings: items.length });
+  const shouldNoIndex = shouldNoIndexDirectoryPage({ qualifyingListings: items.length });
 
   let html = applyMeta(opts.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);

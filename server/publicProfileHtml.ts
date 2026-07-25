@@ -16,6 +16,7 @@ import {
 } from "@shared/profileItemShare";
 import type { ProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { isIndexablePublishedProfile } from "./utils/sitemapIndexability";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -705,6 +706,10 @@ export async function buildPublicProfileHtml({
 }: PublicProfileHtmlOptions): Promise<string | null> {
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
+  const shouldIndexProfile = isIndexablePublishedProfile({
+    profileSlug: profileRecord.slug,
+    roles: profileRecord.ownerRoles,
+  });
 
   const businessRecord = profileRecord.businessId
     ? await storage.getBusinessPublicById(profileRecord.businessId)
@@ -780,7 +785,9 @@ export async function buildPublicProfileHtml({
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    shouldIndexProfile
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex,nofollow" />`
   );
   html = upsertTag(
     html,

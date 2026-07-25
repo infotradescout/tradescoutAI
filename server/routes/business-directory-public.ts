@@ -24,6 +24,7 @@ import {
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
 } from "../publicationBusiness";
+import { sqlDirectoryBusinessCitySlug } from "../utils/directoryCitySlug";
 
 const router = Router();
 
@@ -807,10 +808,6 @@ function resolveCountyFipsBySlug(
   return { fips, countyName: String((county as any).name || ""), stateCode, countySlug };
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
 // Public safe: supports SPA rendering for /best/* pages (crawlers see SSR).
 router.get("/api/public/seo/best/trade-county", async (req, res) => {
   // Only cache safe, public GETs (no user context)
@@ -943,7 +940,7 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
       eq(businesses.status, "active" as any),
       eq(businesses.publicDiscoveryEnabled, true as any),
       eq(counties.stateCode, stateCode),
-      sql`${sqlCitySlugExpr()} = ${citySlug}`,
+      sql`${sqlDirectoryBusinessCitySlug()} = ${citySlug}`,
       sql`${businesses.updatedAt} >= ${recencyCutoff}`,
     ];
     if (tradeClause) whereClauses.push(tradeClause);
