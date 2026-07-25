@@ -4,7 +4,7 @@
 **Worktree:** `TradeScoutPro-search-index-recovery`
 **Branch:** `fix/search-index-sitemap-contract`
 **Base:** `eedf5d757c8c994ae8f55f47492411333e72e32f` (`origin/main`)
-**Implementation head:** `e2040f7b3ee0cc7f2f363ec025c1ea1561756dc9`
+**Implementation head:** `ca5ca3867e082e40277039b43edce66b5124cefa`
 **Authority:** the locked [Phase C indexability contract](./phase-c-indexability-contract.md), plus the portfolio stabilization direction received on 2026-07-25.
 
 ## Decision
@@ -18,9 +18,10 @@ The implementation has focused local proof and a production build. GitHub-hosted
 | Check | Result |
 |---|---|
 | Branch ancestry | Clean descendant of current `origin/main`; merge-base is `eedf5d75` |
-| Recovery history | `f2b49524` contract → `ade87d02` crawl evidence → `47ddd13c` implementation → `bd748a0d` hardening → `e82779c6` primary-role guard → `e2040f7b` trade-city empty-shell guard |
+| Recovery history | `f2b49524` contract → `ade87d02` crawl evidence → `47ddd13c` implementation → `bd748a0d` hardening → `e82779c6` primary-role guard → `e2040f7b` trade-city guard → `ca5ca386` recent-scope guard |
 | PR #211 contamination | None; PR #211 is isolated on `fix/issa-lux-body-only` |
 | Root OneDrive worktree | Untouched; its unrelated untracked files and stashes were preserved |
+| Review surface | Published as draft PR [#213](https://github.com/infotradescout/tradescoutAI/pull/213) |
 | Merge | Not performed |
 | Deploy | Not performed |
 | GSC Validate Fix | Not performed |
@@ -37,6 +38,7 @@ The implementation has focused local proof and a production build. GitHub-hosted
 8. Kept stale business aliases, inactive HomeScout listings, empty geo shells, malformed city slugs, and non-indexable profiles out of sitemap output.
 9. Added the profile owner's primary role to the direct SSR policy input, closing the case where `users.role` is administrative while `users.roles` is null.
 10. Applied the shared fail-closed indexability policy to trade-city SSR so a zero-listing city shell emits `noindex,follow`.
+11. Applied the same policy to county, city, trade-county, and trade-city recent-activity pages when no crawlable activity remains or the activity query fails.
 
 No contact flow, trust/CVS exposure rule, payment behavior, or county data-write path was changed.
 
@@ -44,7 +46,7 @@ No contact flow, trust/CVS exposure rule, payment behavior, or county data-write
 
 | Gate | Result |
 |---|---|
-| Focused SEO/SSR contracts | **76/76 passed** across 8 files |
+| Focused SEO/SSR contracts | **77/77 passed** across 8 files |
 | Sitemap integrity guard | **Passed**; 15 sitemap-index targets validated |
 | Production build | **Passed**; client and server bundles built |
 | Generated static sitemap | Build completed with 73 static URLs; generated timestamp-only drift was not treated as product proof |
@@ -76,7 +78,7 @@ Both files are byte-for-byte unchanged by this branch relative to `origin/main`.
 - Search Console recovery necessarily lags deployment and recrawl; no recovery claim is made here.
 - GitHub Actions did not run. Local proof is the accepted substitute for this review cycle, not evidence that hosted CI passed.
 
-The branch may be pushed and opened as a reviewable PR without waiting for Actions. Merge and production deployment remain separate decisions and must not be inferred from local SEO proof alone.
+The branch is pushed and open as reviewable PR #213 without waiting for Actions. Merge and production deployment remain separate decisions and must not be inferred from local SEO proof alone.
 
 ## Rollback
 
