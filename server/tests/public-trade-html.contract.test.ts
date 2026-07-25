@@ -53,4 +53,14 @@ describe("public trade SEO fallback contracts", () => {
     expect(citySource).toContain("shouldNoIndexDirectoryPage({ qualifyingListings })");
     expect(citySource).toContain('content="noindex,follow"');
   });
+
+  it("expired or unavailable recent activity scopes fail closed across directory families", () => {
+    const recentSource = read("server/publicRecentHtml.ts");
+
+    expect(recentSource).toContain("shouldNoIndexDirectoryPage");
+    expect(recentSource).toContain('content="noindex,follow"');
+    expect(
+      recentSource.match(/applyRecentMeta\(opts\.templateHtml, meta, items\.length\)/g)
+    ).toHaveLength(4);
+  });
 });
