@@ -104,10 +104,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     },
   },
   {
-    // Sparse trust line only — no catalog / stoneyard fact spam.
+    // Lux consultation owns materials + privacy copy — no duplicate trust strip.
     type: "trust",
     data: {
-      items: ["Honey Onyx · Multi Green Onyx", "Private Direct Connect"] as string[],
+      items: [] as string[],
     },
   },
   {
@@ -217,9 +217,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           ],
         },
         consultation: {
-          eyebrow: "PRIVATE DIRECT CONNECT",
+          eyebrow: "CONSULTATION",
           title: "Start with the room.",
-          body: "Share the space, approximate dimensions, location, schedule, and whether you are considering backlighting. ISSA Build can respond privately with the appropriate next step.",
+          body: "Share the space, dimensions, location, schedule, and backlighting intent.",
           prompt: "",
           fields: [
             "Selected material",
@@ -229,7 +229,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             "Timing",
             "Backlighting intent",
           ],
-          note: "Contact details stay private until accepted. Direct Connect carries material and source context.",
+          note: "Contact stays private until accepted.",
         },
       },
       contrast: {
@@ -270,7 +270,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       brief: {
         eyebrow: "Consultation",
         title: "Discuss your project",
-        body: "Share the space, dimensions, location, schedule, and backlighting intent — one private Direct Connect.",
+        body: "Share the space, dimensions, location, schedule, and backlighting intent.",
         steps: [
           "Selected material",
           "Room / application",
@@ -279,13 +279,13 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           "Timing",
           "Backlighting intent",
         ],
-        note: "Contact details stay private until accepted.",
+        note: "Contact stays private until accepted.",
       },
       // Schema-retained; Lux collapses closing into consultation.
       closing: {
-        eyebrow: "PRIVATE DIRECT CONNECT",
+        eyebrow: "CONSULTATION",
         title: "Start with the room.",
-        body: "Share the space, approximate dimensions, location, schedule, and whether you are considering backlighting.",
+        body: "Share the space, dimensions, location, schedule, and backlighting intent.",
         imageIndex: 2,
         imageFit: "cover",
       },
@@ -337,10 +337,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "cta",
     data: {
       heading: "Start with the room.",
-      description:
-        "Share the space, approximate dimensions, location, schedule, and whether you are considering backlighting.",
+      description: "Share the space, dimensions, location, schedule, and backlighting intent.",
       requestExamples: ["Discuss your project", "Ask about backlighting", "Something else"],
-      footerText: "Contact details stay private until accepted.",
+      footerText: "Contact stays private until accepted.",
     },
   },
 ] as const;

@@ -417,17 +417,21 @@ export default function LuxuryMaterialHouseShowcase({
         </section>
       ) : null}
 
-      {/* 6. Private Direct Connect — single final action (no duplicate closing) */}
+      {/* 6. Consultation — single final action (no duplicate closing / trust strip) */}
       <section
         id="consult"
         data-testid="luxury-house-consultation"
         className="scroll-mt-24 bg-[#f7f0e4] px-4 py-10 text-[#17100b] sm:px-8 sm:py-14"
       >
         <div className="mx-auto max-w-3xl">
-          <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
-            {house.consultation.eyebrow}
-          </p>
-          <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl">
+          {house.consultation.eyebrow ? (
+            <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
+              {house.consultation.eyebrow}
+            </p>
+          ) : null}
+          <h2
+            className={`${house.consultation.eyebrow ? "mt-3" : ""} font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl`}
+          >
             {house.consultation.title}
           </h2>
           <p className="mt-3 max-w-xl text-sm font-light leading-7 text-[#5c5348] sm:text-base sm:leading-8">

@@ -272,8 +272,12 @@ describe("ISSA Build public profile contract", () => {
     expect(house.showcase.eyebrow).toBe("INSTALLED WORK");
     expect(house.showcase.title).toBe("Onyx in the room.");
     expect(house.showcase.body).toBe("");
-    expect(house.consultation.eyebrow).toBe("PRIVATE DIRECT CONNECT");
+    expect(house.consultation.eyebrow).toBe("CONSULTATION");
     expect(house.consultation.title).toBe("Start with the room.");
+    expect(house.consultation.body).toBe(
+      "Share the space, dimensions, location, schedule, and backlighting intent."
+    );
+    expect(house.consultation.note).toBe("Contact stays private until accepted.");
     expect(house.consultation.fields).toEqual([
       "Selected material",
       "Room / application",
@@ -282,6 +286,9 @@ describe("ISSA Build public profile contract", () => {
       "Timing",
       "Backlighting intent",
     ]);
+    // No stacked privacy / material / Direct Connect labels next to the consult card.
+    expect(JSON.stringify(house.consultation)).not.toMatch(/PRIVATE DIRECT CONNECT/i);
+    expect(JSON.stringify(house.consultation)).not.toMatch(/Private Direct Connect/i);
 
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("premiumProductData.featuredProductSlug");
@@ -355,7 +362,12 @@ describe("ISSA Build public profile contract", () => {
         (ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((b) => b.type === "trust")?.data as any)?.items ||
         []
       ).length
-    ).toBeGreaterThan(0);
+    ).toBe(0);
+    // Lux path: platform engagement keeps trust actions only — no duplicate trust facts strip.
+    expect(theme).toContain('data-testid="profile-trust-section"');
+    expect(theme).not.toMatch(
+      /platformEngagement=\{[\s\S]*?data-testid="issa-trust-facts"[\s\S]*?\}/
+    );
 
     expect(sections).toContain("<LuxuryMaterialHouseShowcase");
     expect(sections).toContain("isLuxPresentation(props.data.presentation)");
@@ -463,7 +475,11 @@ describe("ISSA Build public profile contract", () => {
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
     const profileCopy = JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
 
-    expect(profileCopy).toContain("Direct Connect");
+    // Direct Connect stays in the action path (theme/panel), not stacked into lux consult copy.
+    expect(theme).toContain("Direct Connect");
+    expect(panel).toContain("Direct Connect");
+    expect(profileCopy).not.toMatch(/PRIVATE DIRECT CONNECT/i);
+    expect(profileCopy).not.toMatch(/Private Direct Connect/i);
     expect(profileCopy).toContain("ISSA Build");
     expect(profileCopy).toContain("Honey Onyx");
     expect(profileCopy).toContain("Multi Green Onyx");
