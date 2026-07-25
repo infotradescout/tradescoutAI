@@ -62,8 +62,27 @@ import {
   ISSA_BUILD_LEGACY_PROFILE_SLUG,
   ISSA_BUILD_PROFILE_SLUG,
 } from "../../shared/issaBuildProfile";
+import {
+  filterCrawlableBusinessSitemapRows,
+  isValidDirectoryCitySlug,
+} from "../repositories/sitemapRepository";
+import {
+  assertSitemapUrlIsIndexEligible as assertSitemapUrlEntryIsIndexEligible,
+  excludeNonIndexableProfileSitemapTargets,
+  excludeNonRenderableHomeScoutListings,
+  excludeTerminalPublicPageUrls,
+  hasQualifyingDirectoryListings,
+} from "../utils/sitemapIndexability";
+import { sendPublicPageNotFound } from "../utils/publicPageResponse";
 
 const router = Router();
+
+/** Phase C/E: central sitemap URL invariants (200, self-canonical, indexable). */
+export function assertSitemapUrlIsIndexEligible(
+  entry: { loc: string; lastmod: string; changefreq?: string; priority?: string } | null | undefined
+): entry is { loc: string; lastmod: string; changefreq?: string; priority?: string } {
+  return assertSitemapUrlEntryIsIndexEligible(entry);
+}
 
 // Canonicalize every public-profile API surface, including views and
 // trust-action mutations. A 308 keeps non-GET methods and bodies intact.
@@ -178,6 +197,8 @@ type PublishedProfileSitemapTarget = {
   customDomain: string | null;
   isPublic: boolean;
   updatedAt: unknown;
+  role: string | null;
+  roles: string[];
 };
 
 type PublicBusinessPresenceSitemapRow = {
@@ -275,31 +296,45 @@ async function listPublishedProfileSitemapTargets(
             b.slug AS business_slug,
             NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
             COALESCE((u.preferences->>'profileVisibility'), 'private') = 'public' AS is_public,
-            p.updated_at
+            p.updated_at,
+            u.role AS user_role,
+            u.roles AS user_roles
        FROM profiles p
        INNER JOIN users u ON u.id = p.owner_user_id
        LEFT JOIN businesses b ON b.id = p.business_id
       WHERE p.status = 'published'
         ${businessScope}
+        AND NOT (
+          u.role IN ('admin', 'super_admin', 'ops_admin', 'head_admin')
+          OR COALESCE(u.roles, ARRAY[]::text[]) && ARRAY['admin', 'super_admin', 'ops_admin', 'head_admin']::text[]
+        )
       ORDER BY p.updated_at DESC NULLS LAST,
                p.created_at DESC NULLS LAST,
                p.slug ASC`,
     businessSlugs ? [businessSlugs] : []
   );
 
-  return result.rows
+  const targets: PublishedProfileSitemapTarget[] = result.rows
     .map((row) => {
       const profileSlug = String(row.profile_slug || "").trim();
       if (!profileSlug) return null;
+      const roleList = Array.isArray(row.user_roles)
+        ? row.user_roles.map((role: unknown) => String(role || ""))
+        : [];
       return {
         profileSlug,
         businessSlug: String(row.business_slug || "").trim() || null,
         customDomain: normalizeSitemapCustomDomain(row.custom_domain),
         isPublic: row.is_public === true || row.is_public === "true" || row.is_public === "t",
         updatedAt: row.updated_at ?? null,
+        role: row.user_role ? String(row.user_role) : null,
+        roles: roleList,
       };
     })
     .filter((row): row is PublishedProfileSitemapTarget => Boolean(row));
+
+  // admin_flag: exclude staff/test profiles from platform profile sitemaps.
+  return excludeNonIndexableProfileSitemapTargets(targets);
 }
 
 async function listPublicBusinessPresenceSitemapRows(): Promise<
@@ -2390,24 +2425,26 @@ router.get("/sitemap-u-profiles.xml", async (req, res) => {
     const today = getTodayYmd();
     let profileTargets: PublishedProfileSitemapTarget[] = [];
     try {
-      profileTargets = (await listPublishedProfileSitemapTargets()).filter(
-        (target) => target.isPublic
+      profileTargets = excludeNonIndexableProfileSitemapTargets(
+        (await listPublishedProfileSitemapTargets()).filter((target) => target.isPublic)
       );
     } catch (error) {
       console.warn("Profiles sitemap fallback: failed to load profiles", error);
       profileTargets = [];
     }
 
-    const urls = profileTargets
-      .map((target) => {
-        const loc = canonicalPublishedProfileSitemapLoc(baseUrl, target);
-        if (!loc) return null;
-        return {
-          loc,
-          lastmod: toYmd(target.updatedAt, today),
-        };
-      })
-      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+    const urls = excludeTerminalPublicPageUrls(
+      profileTargets
+        .map((target) => {
+          const loc = canonicalPublishedProfileSitemapLoc(baseUrl, target);
+          if (!loc) return null;
+          return {
+            loc,
+            lastmod: toYmd(target.updatedAt, today),
+          };
+        })
+        .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry))
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -2526,24 +2563,34 @@ router.get("/sitemap-directory-businesses-:page(\\d+).xml", async (req, res) => 
     }
 
     const linkedProfileByBusinessSlug = indexPublicLinkedProfilesByBusinessSlug(linkedProfiles);
-    const urls = businesses
-      .filter((row) => row && typeof row === "object")
-      .map((row) => {
-        const slug = String((row as any).slug || "").trim();
-        if (!slug) return null;
-        const linkedProfile = linkedProfileByBusinessSlug.get(slug);
-        const loc = canonicalBusinessPresenceSitemapLoc({
-          baseUrl,
-          businessSlug: slug,
-          linkedProfile,
-        });
-        if (!loc) return null;
-        return {
-          loc,
-          lastmod: toYmd(linkedProfile?.updatedAt ?? (row as any).updatedAt, today),
-        };
-      })
-      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+    const businessSlugsForFilter = businesses
+      .map((row) => String((row as any)?.slug || "").trim())
+      .filter(Boolean);
+    const crawlableBusinessSlugs = await filterCrawlableBusinessSitemapRows(businessSlugsForFilter);
+
+    const urls = excludeTerminalPublicPageUrls(
+      businesses
+        .filter((row) => row && typeof row === "object")
+        .map((row) => {
+          const slug = String((row as any).slug || "").trim();
+          if (!slug) return null;
+          const linkedProfile = linkedProfileByBusinessSlug.get(slug);
+          const loc = canonicalBusinessPresenceSitemapLoc({
+            baseUrl,
+            businessSlug: slug,
+            linkedProfile,
+          });
+          if (!loc) return null;
+          if (loc.includes("/business/") && !crawlableBusinessSlugs.has(slug)) return null;
+          return {
+            loc,
+            lastmod: toYmd(linkedProfile?.updatedAt ?? (row as any).updatedAt, today),
+          };
+        })
+        .filter((entry): entry is { loc: string; lastmod: string } =>
+          assertSitemapUrlIsIndexEligible(entry)
+        )
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -2729,30 +2776,35 @@ router.get("/sitemap-directory-trades-:page(\\d+).xml", async (req, res) => {
 
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
     const result = (await db.execute(sql`
-      select trade_slug, state_code, county_slug, lastmod
+      select trade_slug, state_code, county_slug, lastmod, business_count
       from ts_seo_trade_county_pages
+      where business_count > 0
       order by trade_slug asc, state_code asc, county_slug asc
       limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
     `)) as any;
 
-    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
-      .map((row: any) => {
-        const tradeSlug = String(row.trade_slug || "").trim();
-        const stateCode = String(row.state_code || "")
-          .trim()
-          .toLowerCase();
-        const countySlug = String(row.county_slug || "")
-          .trim()
-          .toLowerCase();
-        if (!tradeSlug || !stateCode || !countySlug) return null;
-        return {
-          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
-            stateCode
-          )}/${encodeURIComponent(countySlug)}`,
-          lastmod: toYmd(row.lastmod, today),
-        };
-      })
-      .filter((entry: any) => Boolean(entry));
+    const urls: Array<{ loc: string; lastmod: string }> = excludeTerminalPublicPageUrls(
+      (result?.rows || [])
+        .map((row: any) => {
+          const tradeSlug = String(row.trade_slug || "").trim();
+          const stateCode = String(row.state_code || "")
+            .trim()
+            .toLowerCase();
+          const countySlug = String(row.county_slug || "")
+            .trim()
+            .toLowerCase();
+          const listingCount = Number(row.business_count || 0);
+          if (!tradeSlug || !stateCode || !countySlug) return null;
+          if (!hasQualifyingDirectoryListings(listingCount)) return null;
+          return {
+            loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+              stateCode
+            )}/${encodeURIComponent(countySlug)}`,
+            lastmod: toYmd(row.lastmod, today),
+          };
+        })
+        .filter((entry: any) => assertSitemapUrlIsIndexEligible(entry))
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -2815,22 +2867,26 @@ router.get("/sitemap-directory-cities-:page(\\d+).xml", async (req, res) => {
       cities = [];
     }
 
-    const urls = cities
-      .filter((row) => row && typeof row === "object")
-      .map((row) => {
-        const stateCode = String((row as any).stateCode || "").toUpperCase();
-        const citySlug = String((row as any).citySlug || "")
-          .trim()
-          .toLowerCase();
-        if (!stateCode || !citySlug) return null;
-        return {
-          loc: `${baseUrl}/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
-            citySlug
-          )}`,
-          lastmod: toYmd((row as any).updatedAt, today),
-        };
-      })
-      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+    const urls = excludeTerminalPublicPageUrls(
+      cities
+        .filter((row) => row && typeof row === "object")
+        .map((row) => {
+          const stateCode = String((row as any).stateCode || "").toUpperCase();
+          const citySlug = String((row as any).citySlug || "")
+            .trim()
+            .toLowerCase();
+          if (!stateCode || !citySlug || !isValidDirectoryCitySlug(citySlug)) return null;
+          return {
+            loc: `${baseUrl}/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
+              citySlug
+            )}`,
+            lastmod: toYmd((row as any).updatedAt, today),
+          };
+        })
+        .filter((entry): entry is { loc: string; lastmod: string } =>
+          assertSitemapUrlIsIndexEligible(entry)
+        )
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -2883,30 +2939,36 @@ router.get("/sitemap-directory-trade-cities-:page(\\d+).xml", async (req, res) =
 
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
     const result = (await db.execute(sql`
-      select trade_slug, state_code, city_slug, lastmod
+      select trade_slug, state_code, city_slug, lastmod, business_count
       from ts_seo_trade_city_pages
+      where business_count > 0
       order by trade_slug asc, state_code asc, city_slug asc
       limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
     `)) as any;
 
-    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
-      .map((row: any) => {
-        const tradeSlug = String(row.trade_slug || "").trim();
-        const stateCode = String(row.state_code || "")
-          .trim()
-          .toLowerCase();
-        const citySlug = String(row.city_slug || "")
-          .trim()
-          .toLowerCase();
-        if (!tradeSlug || !stateCode || !citySlug) return null;
-        return {
-          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
-            stateCode
-          )}/city/${encodeURIComponent(citySlug)}`,
-          lastmod: toYmd(row.lastmod, today),
-        };
-      })
-      .filter((entry: any) => Boolean(entry));
+    const urls: Array<{ loc: string; lastmod: string }> = excludeTerminalPublicPageUrls(
+      (result?.rows || [])
+        .map((row: any) => {
+          const tradeSlug = String(row.trade_slug || "").trim();
+          const stateCode = String(row.state_code || "")
+            .trim()
+            .toLowerCase();
+          const citySlug = String(row.city_slug || "")
+            .trim()
+            .toLowerCase();
+          const listingCount = Number(row.business_count || 0);
+          if (!tradeSlug || !stateCode || !citySlug) return null;
+          if (!isValidDirectoryCitySlug(citySlug)) return null;
+          if (!hasQualifyingDirectoryListings(listingCount)) return null;
+          return {
+            loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+              stateCode
+            )}/city/${encodeURIComponent(citySlug)}`,
+            lastmod: toYmd(row.lastmod, today),
+          };
+        })
+        .filter((entry: any) => assertSitemapUrlIsIndexEligible(entry))
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -2982,30 +3044,35 @@ router.get("/sitemap-best-trade-counties-:page(\\d+).xml", async (req, res) => {
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
 
     const result = (await db.execute(sql`
-      select trade_slug, state_code, county_slug, lastmod
+      select trade_slug, state_code, county_slug, lastmod, business_count
       from ts_seo_trade_county_pages
+      where business_count > 0
       order by trade_slug asc, state_code asc, county_slug asc
       limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
     `)) as any;
 
-    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
-      .map((row: any) => {
-        const tradeSlug = String(row.trade_slug || "").trim();
-        const stateCode = String(row.state_code || "")
-          .trim()
-          .toLowerCase();
-        const countySlug = String(row.county_slug || "")
-          .trim()
-          .toLowerCase();
-        if (!tradeSlug || !stateCode || !countySlug) return null;
-        return {
-          loc: `${baseUrl}/best/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
-            stateCode
-          )}/${encodeURIComponent(countySlug)}`,
-          lastmod: toYmd(row.lastmod, today),
-        };
-      })
-      .filter((entry: any) => Boolean(entry));
+    const urls: Array<{ loc: string; lastmod: string }> = excludeTerminalPublicPageUrls(
+      (result?.rows || [])
+        .map((row: any) => {
+          const tradeSlug = String(row.trade_slug || "").trim();
+          const stateCode = String(row.state_code || "")
+            .trim()
+            .toLowerCase();
+          const countySlug = String(row.county_slug || "")
+            .trim()
+            .toLowerCase();
+          const listingCount = Number(row.business_count || 0);
+          if (!tradeSlug || !stateCode || !countySlug) return null;
+          if (!hasQualifyingDirectoryListings(listingCount)) return null;
+          return {
+            loc: `${baseUrl}/best/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+              stateCode
+            )}/${encodeURIComponent(countySlug)}`,
+            lastmod: toYmd(row.lastmod, today),
+          };
+        })
+        .filter((entry: any) => assertSitemapUrlIsIndexEligible(entry))
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -3056,30 +3123,36 @@ router.get("/sitemap-best-trade-cities-:page(\\d+).xml", async (req, res) => {
     const offset = safePage * DIRECTORY_TRADE_SITEMAP_PAGE_SIZE;
 
     const result = (await db.execute(sql`
-      select trade_slug, state_code, city_slug, lastmod
+      select trade_slug, state_code, city_slug, lastmod, business_count
       from ts_seo_trade_city_pages
+      where business_count > 0
       order by trade_slug asc, state_code asc, city_slug asc
       limit ${DIRECTORY_TRADE_SITEMAP_PAGE_SIZE} offset ${offset};
     `)) as any;
 
-    const urls: Array<{ loc: string; lastmod: string }> = (result?.rows || [])
-      .map((row: any) => {
-        const tradeSlug = String(row.trade_slug || "").trim();
-        const stateCode = String(row.state_code || "")
-          .trim()
-          .toLowerCase();
-        const citySlug = String(row.city_slug || "")
-          .trim()
-          .toLowerCase();
-        if (!tradeSlug || !stateCode || !citySlug) return null;
-        return {
-          loc: `${baseUrl}/best/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
-            stateCode
-          )}/city/${encodeURIComponent(citySlug)}`,
-          lastmod: toYmd(row.lastmod, today),
-        };
-      })
-      .filter((entry: any) => Boolean(entry));
+    const urls: Array<{ loc: string; lastmod: string }> = excludeTerminalPublicPageUrls(
+      (result?.rows || [])
+        .map((row: any) => {
+          const tradeSlug = String(row.trade_slug || "").trim();
+          const stateCode = String(row.state_code || "")
+            .trim()
+            .toLowerCase();
+          const citySlug = String(row.city_slug || "")
+            .trim()
+            .toLowerCase();
+          const listingCount = Number(row.business_count || 0);
+          if (!tradeSlug || !stateCode || !citySlug) return null;
+          if (!isValidDirectoryCitySlug(citySlug)) return null;
+          if (!hasQualifyingDirectoryListings(listingCount)) return null;
+          return {
+            loc: `${baseUrl}/best/${encodeURIComponent(tradeSlug)}/${encodeURIComponent(
+              stateCode
+            )}/city/${encodeURIComponent(citySlug)}`,
+            lastmod: toYmd(row.lastmod, today),
+          };
+        })
+        .filter((entry: any) => assertSitemapUrlIsIndexEligible(entry))
+    );
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));
@@ -3213,21 +3286,26 @@ router.get("/sitemap-homescout-listings.xml", async (req, res) => {
       listings = [];
     }
 
-    const urls = listings
-      .filter((listing) => listing && typeof listing === "object")
-      .map((listing) => {
-        const id = String(listing.id || "").trim();
-        if (!id) return null;
-        return {
-          loc: `${baseUrl}/homescout/listings/${encodeURIComponent(id)}`,
-          lastmod: toYmd(listing.updatedAt, today),
-        };
-      });
+    const renderableListings = excludeNonRenderableHomeScoutListings(listings);
+
+    const urls = excludeTerminalPublicPageUrls(
+      renderableListings
+        .filter((listing) => listing && typeof listing === "object")
+        .map((listing) => {
+          const id = String(listing.id || "").trim();
+          if (!id) return null;
+          return {
+            loc: `${baseUrl}/homescout/listings/${encodeURIComponent(id)}`,
+            lastmod: toYmd(listing.updatedAt, today),
+          };
+        })
+        .filter((entry): entry is { loc: string; lastmod: string } =>
+          assertSitemapUrlIsIndexEligible(entry)
+        )
+    );
 
     res.type("application/xml");
-    res.send(
-      buildUrlSet(urls.filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry)))
-    );
+    res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating HomeScout listings sitemap:", error);
     sendSitemapFallback(res);

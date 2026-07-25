@@ -5,6 +5,8 @@ import {
   type ExplainerChapter,
   type ExplainerTopic,
 } from "../client/src/pages/tradescoutExplainerData";
+import { resolveLandingVariant } from "../client/src/pages/landingVariants";
+import { COMPREHENSIVE_TRADES } from "@shared/trades-data";
 
 type PublicLandingHtmlOptions = {
   origin: string;
@@ -40,6 +42,80 @@ function injectJsonLd(html: string, jsonLd: object) {
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   const script = `<script type="application/ld+json">${json}</script>`;
   return html.replace("</head>", `${script}\n</head>`);
+}
+
+const SUPPORTED_LANDING_SLUGS = new Set([
+  "contractor",
+  "homeowner",
+  "realtor",
+  "hoa",
+  "lender",
+  "supplier",
+  "affiliate",
+  ...COMPREHENSIVE_TRADES.map((trade) =>
+    String(trade.slug || "")
+      .trim()
+      .toLowerCase()
+  ).filter(Boolean),
+]);
+
+function isSupportedLandingVariant(variant: string | null | undefined): boolean {
+  const key = String(variant || "")
+    .trim()
+    .toLowerCase();
+  if (!key || key === "default") return true;
+  if (SUPPORTED_LANDING_SLUGS.has(key)) return true;
+  const resolved = resolveLandingVariant({ pathVariant: key });
+  if (resolved.key !== "default" && SUPPORTED_LANDING_SLUGS.has(resolved.key)) return true;
+  return false;
+}
+
+/** Near-duplicate phrase-substitution variants canonicalize to /landing until unique content exists. */
+function canonicalizeNearDuplicateLanding(variant: string | null | undefined): string {
+  const key = String(variant || "")
+    .trim()
+    .toLowerCase();
+  if (!key || isSupportedLandingVariant(key)) {
+    return normalizeCanonicalPath(key ? `/landing/${key}` : "/landing");
+  }
+  return "/landing";
+}
+
+function resolveLandingIndexability(opts: PublicLandingHtmlOptions): {
+  shouldIndexLandingPage: boolean;
+  canonicalPath: string;
+} {
+  const requestPath = String(opts.requestPath || "/");
+  const pathOnly = requestPath.split("?")[0];
+  const hasQueryParams = requestPath.includes("?");
+  const isAliasLandingPath = pathOnly === "/lp" || pathOnly.startsWith("/lp/");
+  const pathVariant = pathOnly.startsWith("/landing/")
+    ? pathOnly
+        .replace(/^\/landing\//, "")
+        .trim()
+        .toLowerCase()
+    : String(opts.variant || "")
+        .trim()
+        .toLowerCase();
+
+  const shouldIndexLandingPage =
+    !isAliasLandingPath &&
+    !hasQueryParams &&
+    (!pathVariant || isSupportedLandingVariant(pathVariant));
+
+  const canonicalPath = shouldIndexLandingPage
+    ? normalizeCanonicalPath(requestPath)
+    : canonicalizeNearDuplicateLanding(pathVariant);
+
+  return { shouldIndexLandingPage, canonicalPath };
+}
+
+function applyNoIndex(html: string) {
+  return upsertTag(
+    html,
+    /<meta name="robots"[^>]*>/i,
+    `<meta name="robots" content="noindex,follow" />`
+  );
 }
 
 function titleCaseSlug(value: string) {
@@ -171,7 +247,8 @@ function renderFullExplainer() {
 }
 
 export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Promise<string> {
-  const meta = buildMeta(opts);
+  const { shouldIndexLandingPage, canonicalPath } = resolveLandingIndexability(opts);
+  const meta = buildMeta({ ...opts, requestPath: canonicalPath });
 
   const summary = `
 <main data-seo-landing="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
@@ -246,7 +323,9 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    '<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />'
+    shouldIndexLandingPage
+      ? '<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />'
+      : '<meta name="robots" content="noindex,follow" />'
   );
   html = upsertTag(
     html,

@@ -122,6 +122,32 @@ function getCachedTemplate(indexPath: string) {
   return html;
 }
 
+const PRIVATE_APP_SHELL_PREFIXES = ["/scout", "/auth", "/dashboard", "/account"] as const;
+
+function isPrivateAppShellPath(requestPath: string): boolean {
+  const pathOnly =
+    String(requestPath || "/")
+      .split("?")[0]
+      .replace(/\/+$/, "") || "/";
+  return PRIVATE_APP_SHELL_PREFIXES.some(
+    (prefix) => pathOnly === prefix || pathOnly.startsWith(`${prefix}/`)
+  );
+}
+
+function applyPrivateShellNoindex(templateHtml: string): string {
+  const robotsTag = `<meta name="robots" content="noindex,follow" />`;
+  if (/<meta name="robots"[^>]*>/i.test(templateHtml)) {
+    return templateHtml.replace(/<meta name="robots"[^>]*>/i, robotsTag);
+  }
+  return templateHtml.replace("</head>", `${robotsTag}\n</head>`);
+}
+
+function renderPrivateAppShellHtml(indexPath: string): string | null {
+  const templateHtml = getCachedTemplate(indexPath);
+  if (!templateHtml) return null;
+  return applyPrivateShellNoindex(templateHtml);
+}
+
 // Lightweight log helper (mirrors server/vite.ts without importing Vite in prod)
 function log(message: string, source = "express") {
   logger.info(`[${source}] ${message}`);
@@ -2362,6 +2388,11 @@ app.use(landingContractHeaders);
                 // Check if file exists before trying to serve
                 if (fs.existsSync(indexPath)) {
                   res.setHeader("Cache-Control", "no-store");
+                  if (isPrivateAppShellPath(reqPath)) {
+                    res.setHeader("X-Robots-Tag", "noindex, nofollow");
+                    const html = renderPrivateAppShellHtml(indexPath);
+                    if (html) return res.type("text/html").send(html);
+                  }
                   res.sendFile(indexPath, (err) => {
                     if (err) {
                       console.error("Error serving index.html:", err);

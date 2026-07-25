@@ -8,8 +8,18 @@ import {
   profiles,
   users,
 } from "@shared/schema";
+import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import { db, pool as neonPool } from "../db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { getPublicationRules } from "../publicationRules";
+import {
+  buildPublicBusinessSignals,
+  derivePublicationTier,
+  deriveTradeSlugFromProfileData,
+} from "../publicationBusiness";
+import { isValidDirectoryCitySlug } from "../utils/sitemapIndexability";
+
+export { isValidDirectoryCitySlug };
 
 export class SitemapRepository {
   async listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
@@ -350,4 +360,76 @@ export class SitemapRepository {
       updatedAt: row.updatedAt ?? null,
     }));
   }
+}
+
+/** Align directory business sitemap rows with publicBusinessHtml stale noindex policy. */
+export async function filterCrawlableBusinessSitemapRows(slugs: string[]): Promise<Set<string>> {
+  const normalized = Array.from(
+    new Set(slugs.map((slug) => String(slug || "").trim()).filter(Boolean))
+  );
+  if (!normalized.length) return new Set();
+
+  const rules = await getPublicationRules();
+  const now = new Date();
+  const rows = await db
+    .select({
+      slug: businesses.slug,
+      name: businesses.name,
+      updatedAt: businesses.updatedAt,
+      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+      claimStatus: businesses.claimStatus,
+      ownerUserId: businesses.ownerUserId,
+      profileData: businesses.profileData,
+      stateCode: counties.stateCode,
+      countyName: counties.name,
+      ownerVerificationStatus: users.verificationStatus,
+      ownerAddressVerified: users.addressVerified,
+    })
+    .from(businesses)
+    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+    .leftJoin(users, eq(users.id, businesses.ownerUserId))
+    .where(
+      and(eq(businesses.status, "active" as any), inArray(businesses.slug, normalized as any))
+    );
+
+  const crawlable = new Set<string>();
+  for (const row of rows) {
+    const slug = String(row.slug || "").trim();
+    if (!slug) continue;
+    const profileData: any = row.profileData || {};
+    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+    const updatedAt = row.updatedAt instanceof Date ? row.updatedAt : null;
+    if (!updatedAt) continue;
+
+    const tier = derivePublicationTier({
+      ownerUserId: row.ownerUserId ? String(row.ownerUserId) : null,
+      claimStatus: String(row.claimStatus || ""),
+      ownerVerificationStatus: row.ownerVerificationStatus
+        ? String(row.ownerVerificationStatus)
+        : null,
+      ownerAddressVerified:
+        typeof row.ownerAddressVerified === "boolean" ? row.ownerAddressVerified : null,
+    });
+
+    const pub = isPublicAndCrawlableBusiness(
+      buildPublicBusinessSignals({
+        id: slug,
+        name: String(row.name || ""),
+        slug,
+        updatedAt,
+        publicDiscoveryEnabled: Boolean(row.publicDiscoveryEnabled),
+        stateCode: row.stateCode ? String(row.stateCode) : null,
+        countyName: row.countyName ? String(row.countyName) : null,
+        city: typeof profileData.city === "string" ? profileData.city : null,
+        tradeSlug,
+        tier,
+      }),
+      rules,
+      now
+    );
+    if (pub.ok) crawlable.add(slug);
+  }
+
+  return crawlable;
 }

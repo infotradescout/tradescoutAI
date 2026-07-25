@@ -128,7 +128,11 @@ function buildTradeDiscoveryNote(args: {
   ].join(" ");
 }
 
-function applyMeta(templateHtml: string, meta: ReturnType<typeof buildTradeMeta>) {
+function applyMeta(
+  templateHtml: string,
+  meta: ReturnType<typeof buildTradeMeta>,
+  shouldNoIndex = false
+) {
   let html = templateHtml;
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
   html = upsertTag(
@@ -144,7 +148,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildTradeMeta>
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    shouldNoIndex
+      ? `<meta name="robots" content="noindex,follow" />`
+      : `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
   );
   html = upsertTag(
     html,
@@ -192,6 +198,21 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildTradeMeta>
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
   return html;
+}
+
+function resolveDirectoryIndexability(args: {
+  qualifyingListings: number;
+  isError?: boolean;
+}): boolean {
+  return Boolean(args.isError) || args.qualifyingListings === 0;
+}
+
+function applyNoIndex(html: string) {
+  return upsertTag(
+    html,
+    /<meta name="robots"[^>]*>/i,
+    `<meta name="robots" content="noindex,follow" />`
+  );
 }
 
 export async function buildPublicTradeOverviewHtml(
@@ -261,7 +282,7 @@ export async function buildPublicTradeOverviewHtml(
     },
   };
 
-  let html = applyMeta(args.templateHtml, meta);
+  let html = applyMeta(args.templateHtml, meta, true);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
@@ -615,7 +636,9 @@ export async function buildPublicTradeCountyHtml(
     })),
   };
 
-  let html = applyMeta(args.templateHtml, meta);
+  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings: items.length });
+
+  let html = applyMeta(args.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;

@@ -65,7 +65,11 @@ function buildMeta(args: {
   };
 }
 
-function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
+function applyMeta(
+  templateHtml: string,
+  meta: ReturnType<typeof buildMeta>,
+  shouldNoIndex = false
+) {
   let html = templateHtml;
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
   html = upsertTag(
@@ -81,7 +85,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    shouldNoIndex
+      ? `<meta name="robots" content="noindex,follow" />`
+      : `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
   );
   html = upsertTag(
     html,
@@ -129,6 +135,21 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
   return html;
+}
+
+function resolveDirectoryIndexability(args: {
+  qualifyingListings: number;
+  isError?: boolean;
+}): boolean {
+  return Boolean(args.isError) || args.qualifyingListings === 0;
+}
+
+function applyNoIndex(html: string) {
+  return upsertTag(
+    html,
+    /<meta name="robots"[^>]*>/i,
+    `<meta name="robots" content="noindex,follow" />`
+  );
 }
 
 function sqlCitySlugExpr() {
@@ -230,7 +251,10 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
     },
   };
 
-  let html = applyMeta(opts.templateHtml, meta);
+  const qualifyingListings = rows.filter((row) => Number(row.businessCount || 0) > 0).length;
+  const shouldNoIndex = resolveDirectoryIndexability({ qualifyingListings });
+
+  let html = applyMeta(opts.templateHtml, meta, shouldNoIndex);
   html = injectSummary(html, summary);
   html = injectJsonLd(html, jsonLd);
   return html;
