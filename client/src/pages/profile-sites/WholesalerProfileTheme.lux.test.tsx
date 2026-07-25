@@ -67,7 +67,7 @@ const baseProps = {
   trustActions: <div data-testid="profile-trust-section">Trust</div>,
 };
 
-describe("WholesalerProfileTheme luxury-material-house fail-closed", () => {
+describe("WholesalerProfileTheme lux fail-closed", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -141,7 +141,7 @@ describe("WholesalerProfileTheme luxury-material-house fail-closed", () => {
         type: "premiumProduct",
         data: {
           variant: "editorial-product",
-          presentation: "luxury-material-house",
+          presentation: "lux",
           // Intentionally incomplete — must not fall through to inventory chrome.
         },
       },
