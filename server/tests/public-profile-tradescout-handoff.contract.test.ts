@@ -18,10 +18,15 @@ describe("public profile TradeScout handoff", () => {
     expect(handoffSource).not.toContain("/direct-connect");
     expect(handoffSource).toContain("appendPublicProfileContinuation");
     expect(handoffSource).toContain("business_profile_call");
-    expect(handoffSource).toContain("Connection Without Compromise");
+    expect(handoffSource).toContain("Site hosted by TradeScout");
+    expect(handoffSource).toContain("itemId");
+    expect(handoffSource).toContain('scoutParams.set("itemId", itemId)');
+    expect(handoffSource).toContain("seedFromProfileMaterial");
+    expect(handoffSource).toContain("seedForHandoff");
     expect(handoffSource).toContain("destinations.map");
     expect(handoffSource).not.toContain('contextualHref("/home")');
     expect(handoffSource).not.toContain("ts-orange");
+    expect(handoffSource).not.toContain("Connection Without Compromise");
   });
 
   it("appears on every paid public-profile theme and the generic profile", () => {

@@ -79,6 +79,15 @@ describe("Scout classic-to-conversation launch context", () => {
     ).toBe(
       "need a roofer|12095|fl|roofing|context:homescout_listing:home_listing:listing_123:roofing:12095:fl|standard"
     );
+    expect(
+      buildScoutLaunchContextCacheKey({
+        source: "business_profile_call",
+        contextType: "business_profile",
+        contextId: "issa-build",
+        businessSlug: "issa-build",
+        itemId: "honey-onyx",
+      })
+    ).toBe("business_profile_call:business_profile:issa-build:honey-onyx:none:none:none");
   });
 
   it("keeps a prompt-only launch as a user-reviewed draft", () => {
@@ -119,5 +128,20 @@ describe("Scout classic-to-conversation launch context", () => {
 
     expect(launch.context?.contextType).toBe("business_profile");
     expect(launch.returnPath).toBe("/u/la-plumbing-solutions");
+  });
+
+  it("preserves lux material itemId on profile Scout launches and return paths", () => {
+    const launch = parseScoutLaunchLocation(
+      "/scout?source=business_profile_call&businessSlug=issa-build&itemId=multi-green-onyx&item=Multi%20Green%20Onyx&prompt=Ask%20about%20this%20stone"
+    );
+
+    expect(launch.context).toMatchObject({
+      source: "business_profile_call",
+      contextType: "business_profile",
+      businessSlug: "issa-build",
+      itemId: "multi-green-onyx",
+      itemName: "Multi Green Onyx",
+    });
+    expect(launch.returnPath).toBe("/u/issa-build?stone=multi-green-onyx");
   });
 });

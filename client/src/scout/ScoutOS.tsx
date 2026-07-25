@@ -118,7 +118,16 @@ import {
   SCOUT_QUICK_START_PROMPTS,
 } from "./scoutQuickStartPrompts";
 import { ScoutLaunchContextCard } from "./ScoutLaunchContextCard";
-import { parseScoutLaunchLocation } from "@shared/scoutLaunchContext";
+import { normalizeScoutLaunchContext, parseScoutLaunchLocation } from "@shared/scoutLaunchContext";
+import {
+  buildExplorerLaunchContextOverlay,
+  getScoutContextCache,
+  seedFromProfileMaterial,
+} from "@/lib/scoutContextCache";
+import {
+  explorerLocalityForScoutRequest,
+  resolveExplorerContextTurn,
+} from "./scoutExplorerContext";
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
@@ -2651,6 +2660,31 @@ export default function ScoutOS() {
     setPrefillKey((key) => key + 1);
   }, [scoutLaunch.prompt, scoutLaunch.signature]);
 
+  // Seed shared Scout context cache from launch / ISSA stone handoff (30-minute TTL).
+  // Profile lux toggles also call seedFromProfileMaterial; this covers /scout?itemId= URLs.
+  useEffect(() => {
+    const ctx = scoutLaunch.context;
+    if (!ctx?.businessSlug && !ctx?.itemId && !ctx?.itemName) return;
+    try {
+      const params = new URLSearchParams(
+        typeof window === "undefined" ? "" : window.location.search
+      );
+      const profileSlug = ctx.businessSlug || params.get("profile") || "";
+      const itemId = ctx.itemId || params.get("stone") || params.get("itemId") || "";
+      if (!profileSlug && !itemId) return;
+      seedFromProfileMaterial({
+        profileSlug: profileSlug || "explore",
+        profileName: params.get("profileName") || undefined,
+        itemId: itemId || ctx.itemId,
+        itemName: ctx.itemName || params.get("item") || undefined,
+        source: ctx.source || "business_profile_call",
+        prompt: scoutLaunch.prompt,
+      });
+    } catch {
+      // fail-soft: Scout still works without cache
+    }
+  }, [scoutLaunch.context, scoutLaunch.prompt, scoutLaunch.signature]);
+
   // Remove only the one-time prompt after it becomes a real user message.
   // The structured launch context stays in the URL for the rest of the conversation.
   useEffect(() => {
@@ -2947,6 +2981,31 @@ export default function ScoutOS() {
           return;
         }
 
+        // ------------------------------------------------------------------
+        // EXPLORER CONTEXT: ask missing context (never force signup to browse)
+        // ------------------------------------------------------------------
+        let scoutMessage = value;
+        const explorerDecision = resolveExplorerContextTurn({
+          message: value,
+          locality,
+        });
+        if (explorerDecision.kind === "ask") {
+          const askMessage: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: explorerDecision.prompt,
+            timestamp: new Date().toISOString(),
+            suggestedActions: ["Continue exploring", "Browse community", "Create account now"],
+          };
+          setStatus("ready");
+          applyServerResponse(askMessage, []);
+          setStatus("idle");
+          return;
+        }
+        if (explorerDecision.kind === "answered") {
+          scoutMessage = explorerDecision.continueMessage;
+        }
+
         if (!hasLoggedConfusionRef.current) {
           const looksConfused =
             /why[^\n]*\b(see|locked|show)\b/.test(normalized) ||
@@ -3063,21 +3122,42 @@ export default function ScoutOS() {
         setStatus("checking_documents");
         const recentActivity = getRecentActivity();
         const shownAdIds = getSeenAdIds();
-        const intentDetails = inferScoutIntentDetails(value, locality);
+        const explorerCache = getScoutContextCache();
+        const explorerLocality = explorerLocalityForScoutRequest(explorerCache, locality);
+        const intentDetails = inferScoutIntentDetails(scoutMessage, explorerLocality);
         const scoutLearning = readScoutLearningSnapshot(user);
+        const launchOverlay = buildExplorerLaunchContextOverlay(explorerCache);
+        const mergedLaunchContext =
+          normalizeScoutLaunchContext({
+            ...(launchOverlay || {}),
+            ...(scoutLaunch.context || {}),
+          }) ||
+          scoutLaunch.context ||
+          undefined;
 
         const res = await sendToScout({
           history: state.messages.map((m) => ({ role: m.role, content: m.content })),
-          message: value,
-          locality,
+          message: scoutMessage,
+          locality: explorerLocality,
           mode,
-          intent: urlIntent,
-          launchContext: scoutLaunch.context || undefined,
+          intent: urlIntent || explorerCache?.intent,
+          launchContext: mergedLaunchContext,
           knowledgeMode: "local-first",
           filters: {
             intentDetails,
             scoutLearning,
             collectionSurface: "scout-summary-thread",
+            explorerContext: explorerCache
+              ? {
+                  profileSlug: explorerCache.profileSlug,
+                  itemId: explorerCache.itemId,
+                  itemName: explorerCache.itemName,
+                  city: explorerCache.city,
+                  stateCode: explorerCache.stateCode,
+                  countyName: explorerCache.countyName,
+                  projectSummary: explorerCache.projectSummary,
+                }
+              : null,
           },
           roles: rolesForRequest,
           recentActivity,

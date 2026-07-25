@@ -4,6 +4,7 @@ import {
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
+import { seedFromProfileMaterial } from "@/lib/scoutContextCache";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -40,6 +41,8 @@ type ExpressDirectConnectPanelProps = {
   /** Profile sites: success/call follow-ups stay on the profile; only the site footer may exit to TradeScout. */
   stayInProfile?: boolean;
   requestMode?: ExpressDirectConnectMode;
+  /** Lux ISSA profiles: charcoal + brass panel instead of light TradeScout chrome. */
+  appearance?: "default" | "lux";
   initialStoneName?: string | null;
   /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
   initialItemId?: string | null;
@@ -109,6 +112,7 @@ export default function ExpressDirectConnectPanel({
   allowCall,
   stayInProfile = false,
   requestMode = "service",
+  appearance = "default",
   initialStoneName,
   initialItemId,
   initialRequestType,
@@ -117,6 +121,44 @@ export default function ExpressDirectConnectPanel({
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const config = REQUEST_MODE_CONFIG[requestMode];
+  const isLux = appearance === "lux";
+  const panelShell = isLux
+    ? "max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-[#0c0a08] text-[#f4efe6] shadow-2xl outline-none sm:max-w-xl sm:rounded-3xl"
+    : "max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-stone-50 text-neutral-900 shadow-2xl outline-none sm:max-w-xl sm:rounded-3xl";
+  const panelHeader = isLux
+    ? "sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0c0a08] px-5 py-4"
+    : "sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-stone-50 px-5 py-4";
+  const mutedText = isLux ? "text-white/70" : "text-stone-700";
+  const softCard = isLux
+    ? "rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-relaxed text-white/75"
+    : "rounded-xl border border-black/10 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700";
+  const fieldClass = isLux
+    ? "w-full rounded-xl border border-white/15 !bg-[#17100b] px-4 py-3 !text-[#f4efe6] outline-none placeholder:!text-white/40 focus:border-[var(--brand-accent,#d9a441)]"
+    : "w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange";
+  const labelClass = isLux
+    ? "mb-1.5 block text-sm font-semibold text-[#f4efe6]"
+    : "mb-1.5 block text-sm font-semibold text-neutral-900";
+  const headingClass = isLux
+    ? "text-2xl font-bold text-[#f4efe6]"
+    : "text-2xl font-bold text-neutral-900";
+  const titleClass = isLux
+    ? "text-xl font-bold text-[#f4efe6]"
+    : "text-xl font-bold text-neutral-900";
+  const eyebrowClass = isLux
+    ? "text-xs font-bold uppercase tracking-[0.18em] text-[var(--brand-accent,#d9a441)]"
+    : "text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark";
+  const iconBtn = isLux
+    ? "rounded-full p-2 text-[#f4efe6] hover:bg-white/10"
+    : "rounded-full p-2 text-neutral-900 hover:bg-black/5";
+  const primaryCta = isLux
+    ? "flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-7 py-3.5 font-bold text-[#17100b] transition-colors hover:bg-[var(--brand-accent,#d9a441)]/90 disabled:opacity-60"
+    : "flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60";
+  const formCard = isLux
+    ? "flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-[var(--brand-accent,#d9a441)]/40 bg-black/35 p-5 text-left text-[#f4efe6] transition-transform hover:-translate-y-0.5 hover:border-[var(--brand-accent,#d9a441)]/70"
+    : "flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-ts-orange/25 bg-white p-5 text-left text-neutral-900 transition-transform hover:-translate-y-0.5 hover:border-ts-orange/60";
+  const callCta = isLux
+    ? "flex min-h-32 flex-col items-start justify-between rounded-2xl border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] p-5 text-left text-[#17100b] transition-transform hover:-translate-y-0.5 hover:bg-[var(--brand-accent,#d9a441)]/90 disabled:opacity-60"
+    : "flex min-h-32 flex-col items-start justify-between rounded-2xl bg-ts-orange p-5 text-left text-white transition-transform hover:-translate-y-0.5 hover:bg-ts-orange-dark disabled:opacity-60";
   const stableItemId = String(initialItemId || "").trim() || null;
   const displayStoneName = String(initialStoneName || "").trim() || null;
   const itemParam = stableItemId || displayStoneName;
@@ -186,7 +228,24 @@ export default function ExpressDirectConnectPanel({
           ? `I'm interested in ${stableItemId}.`
           : "",
     }));
-  }, [defaultRequestType, displayStoneName, initialRequestType, open, stableItemId]);
+    if (stableItemId || displayStoneName) {
+      seedFromProfileMaterial({
+        profileSlug,
+        profileName: businessName,
+        itemId: stableItemId,
+        itemName: displayStoneName,
+        source: "direct_connect",
+      });
+    }
+  }, [
+    businessName,
+    defaultRequestType,
+    displayStoneName,
+    initialRequestType,
+    open,
+    profileSlug,
+    stableItemId,
+  ]);
 
   const requestPath = useMemo(() => {
     if (requestWorkspacePath) return requestWorkspacePath;
@@ -325,12 +384,8 @@ export default function ExpressDirectConnectPanel({
         if (event.target === event.currentTarget) close();
       }}
     >
-      <div
-        ref={panelRef}
-        tabIndex={-1}
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-stone-50 text-neutral-900 shadow-2xl outline-none sm:max-w-xl sm:rounded-3xl"
-      >
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-stone-50 px-5 py-4">
+      <div ref={panelRef} tabIndex={-1} data-appearance={appearance} className={panelShell}>
+        <div className={panelHeader}>
           <div className="flex items-center gap-3">
             {view === "request" ? (
               <button
@@ -339,17 +394,15 @@ export default function ExpressDirectConnectPanel({
                   setError("");
                   setView("choice");
                 }}
-                className="rounded-full p-2 text-neutral-900 hover:bg-black/5"
+                className={iconBtn}
                 aria-label="Back to contact options"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
             ) : null}
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark">
-                Direct Connect
-              </p>
-              <h2 id="express-direct-connect-title" className="text-xl font-bold text-neutral-900">
+              <p className={eyebrowClass}>Direct Connect</p>
+              <h2 id="express-direct-connect-title" className={titleClass}>
                 {businessName}
               </h2>
             </div>
@@ -357,7 +410,7 @@ export default function ExpressDirectConnectPanel({
           <button
             type="button"
             onClick={close}
-            className="rounded-full p-2 text-neutral-900/60 hover:bg-black/5"
+            className={iconBtn}
             aria-label="Close Direct Connect"
           >
             <X className="h-5 w-5" />
@@ -367,14 +420,16 @@ export default function ExpressDirectConnectPanel({
         <div className="p-5 sm:p-7">
           {view === "choice" ? (
             <div>
-              <p className="mb-6 text-stone-700">
+              <p className={`mb-6 ${mutedText}`}>
                 {hasSeparateOperator
                   ? `Call ${operatorName}${operatorRole ? `, the ${operatorRole} for ${businessName},` : ""} or send the product details.`
                   : `Call now or send ${businessName} the details.`}
               </p>
               {businessAddress ? (
-                <address className="mb-5 flex items-start gap-2 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm not-italic leading-relaxed text-stone-700">
-                  <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
+                <address className={`mb-5 flex items-start gap-2 not-italic ${softCard}`}>
+                  <MapPin
+                    className={`mt-0.5 h-4 w-4 flex-shrink-0 ${isLux ? "text-[var(--brand-accent,#d9a441)]" : "text-ts-orange"}`}
+                  />
                   <span>{businessAddress}</span>
                 </address>
               ) : null}
@@ -383,7 +438,7 @@ export default function ExpressDirectConnectPanel({
                   type="button"
                   onClick={startCall}
                   disabled={busy || !allowCall}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-ts-orange p-5 text-left text-white transition-transform hover:-translate-y-0.5 hover:bg-ts-orange-dark disabled:opacity-60"
+                  className={callCta}
                 >
                   {busy ? (
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -395,9 +450,13 @@ export default function ExpressDirectConnectPanel({
                       {hasSeparateOperator && operatorRole ? `Call ${operatorRole}` : "Call"}
                     </strong>
                     {!allowCall ? (
-                      <span className="text-sm text-white/80">Calling is coming soon</span>
+                      <span className={`text-sm ${isLux ? "text-[#17100b]/75" : "text-white/80"}`}>
+                        Calling is coming soon
+                      </span>
                     ) : hasSeparateOperator ? (
-                      <span className="text-sm text-white/80">Connect with {operatorName}</span>
+                      <span className={`text-sm ${isLux ? "text-[#17100b]/75" : "text-white/80"}`}>
+                        Connect with {operatorName}
+                      </span>
                     ) : null}
                   </span>
                 </button>
@@ -407,66 +466,79 @@ export default function ExpressDirectConnectPanel({
                     setError("");
                     setView("request");
                   }}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-ts-orange/25 bg-white p-5 text-left text-neutral-900 transition-transform hover:-translate-y-0.5 hover:border-ts-orange/60"
+                  className={formCard}
                 >
-                  <MessageCircle className="h-6 w-6 text-ts-orange" />
+                  <MessageCircle
+                    className={`h-6 w-6 ${isLux ? "text-[var(--brand-accent,#d9a441)]" : "text-ts-orange"}`}
+                  />
                   <span>
                     <strong className="block text-lg">Fill out the form</strong>
-                    <span className="text-sm font-medium text-stone-600">
-                      Send the job details privately
+                    <span
+                      className={`text-sm font-medium ${isLux ? "text-white/65" : "text-stone-600"}`}
+                    >
+                      Send the job details
                     </span>
                   </span>
                 </button>
               </div>
-              <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
-                {hasSeparateOperator
-                  ? `Your details stay private unless ${operatorName} accepts what you send.`
-                  : `Your details stay private unless ${businessName} accepts what you send.`}
-              </div>
+              {!isLux ? (
+                <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
+                  {hasSeparateOperator
+                    ? `Your details stay private unless ${operatorName} accepts what you send.`
+                    : `Your details stay private unless ${businessName} accepts what you send.`}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           {view === "request" ? (
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
-                <h3 className="text-2xl font-bold text-neutral-900">
+                <h3 className={headingClass}>
                   {displayStoneName
                     ? `Ask about ${displayStoneName}`
                     : stableItemId
                       ? `Ask about ${stableItemId}`
                       : config.heading}
                 </h3>
-                <p className="mt-1 text-sm text-stone-600">
+                <p className={`mt-1 text-sm ${isLux ? "text-white/65" : "text-stone-600"}`}>
                   Send the details now. You can save the request to a free account afterward.
                 </p>
               </div>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Name</span>
+                <span className={labelClass}>Name</span>
                 <input
                   required
                   autoComplete="name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
+                  className={fieldClass}
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Email</span>
+                  <span className={labelClass}>Email</span>
                   <input
                     required
                     type="email"
                     autoComplete="email"
                     value={form.email}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
+                    className={fieldClass}
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-neutral-900">
-                    Phone <span className="text-xs font-normal text-stone-600">Required</span>
+                  <span
+                    className={`mb-1.5 flex items-center gap-2 text-sm font-semibold ${isLux ? "text-[#f4efe6]" : "text-neutral-900"}`}
+                  >
+                    Phone{" "}
+                    <span
+                      className={`text-xs font-normal ${isLux ? "text-white/55" : "text-stone-600"}`}
+                    >
+                      Required
+                    </span>
                   </span>
                   <input
                     required
@@ -476,14 +548,12 @@ export default function ExpressDirectConnectPanel({
                     placeholder="(555) 555-5555"
                     value={form.phone}
                     onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
+                    className={fieldClass}
                   />
                 </label>
               </div>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
-                  What do you need?
-                </span>
+                <span className={labelClass}>What do you need?</span>
                 <select
                   value={form.requestType}
                   onChange={(event) =>
@@ -492,7 +562,7 @@ export default function ExpressDirectConnectPanel({
                       requestType: event.target.value as ExpressDirectConnectRequestType,
                     })
                   }
-                  className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none focus:border-ts-orange"
+                  className={fieldClass}
                 >
                   {config.requestTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -502,7 +572,7 @@ export default function ExpressDirectConnectPanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Details</span>
+                <span className={labelClass}>Details</span>
                 <textarea
                   required
                   rows={5}
@@ -510,7 +580,7 @@ export default function ExpressDirectConnectPanel({
                   value={form.message}
                   onChange={(event) => setForm({ ...form, message: event.target.value })}
                   placeholder={config.placeholder}
-                  className="w-full resize-y rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
+                  className={`${fieldClass} resize-y`}
                 />
               </label>
               <input
@@ -521,11 +591,7 @@ export default function ExpressDirectConnectPanel({
                 onChange={(event) => setForm({ ...form, website: event.target.value })}
                 className="absolute -left-[10000px] h-px w-px opacity-0"
               />
-              <button
-                type="submit"
-                disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60"
-              >
+              <button type="submit" disabled={busy} className={primaryCta}>
                 {busy ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (

@@ -113,40 +113,68 @@ describe("PremiumProductProfileSections lux behavior", () => {
     expect(container.querySelector('[data-testid="premium-product-profile-sections"]')).toBeNull();
   });
 
-  it("leads with installed-interior sections and keeps materials separate", () => {
+  it("leads with installed-interior sections and toggles material datasets", () => {
     renderProfile();
     const designed = container.querySelector('[data-testid="luxury-house-designed-with-light"]');
     const chapters = container.querySelector('[data-testid="luxury-house-material-chapters"]');
+    const toggle = container.querySelector('[data-testid="luxury-house-material-toggle"]');
     const honey = container.querySelector('[data-testid="luxury-house-chapter-honey-onyx"]');
     const multiGreen = container.querySelector(
       '[data-testid="luxury-house-chapter-multi-green-onyx"]'
     );
+    const luxRoot = container.querySelector('[data-testid="luxury-material-house-showcase"]');
 
     expect(designed).not.toBeNull();
     expect(chapters).not.toBeNull();
+    expect(toggle).not.toBeNull();
     expect(honey?.textContent).toContain("Honey Onyx");
     expect(honey?.textContent).toContain("Warm, luminous, unmistakable.");
-    expect(multiGreen?.textContent).toContain("Multi Green Onyx");
-    expect(multiGreen?.textContent).toContain("A deeper architectural tone.");
+    // Only the selected material chapter is mounted.
+    expect(multiGreen).toBeNull();
+    expect(luxRoot?.getAttribute("data-selected-material")).toBe("honey-onyx");
     expect(container.textContent).not.toContain("Honey Green");
+    // Body-only backlighting panel (no eyebrow/title chrome).
+    expect(designed?.textContent || "").not.toMatch(/BACKLIGHTING/i);
+    expect(designed?.textContent || "").not.toContain("The finish belongs to the room.");
 
     const designedImage = designed?.querySelector("img")?.getAttribute("src") || "";
     const honeyApplication = honey?.querySelector("img")?.getAttribute("src") || "";
     expect(designedImage).toMatch(/\/applications\//);
     expect(honeyApplication).toMatch(/\/applications\//);
 
+    const multiTab = container.querySelector(
+      '[data-testid="luxury-house-material-tab-multi-green-onyx"]'
+    ) as HTMLButtonElement | null;
+    expect(multiTab).not.toBeNull();
+    act(() => {
+      multiTab?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(
+      container.querySelector('[data-testid="luxury-house-chapter-multi-green-onyx"]')?.textContent
+    ).toContain("A deeper architectural tone.");
+    expect(container.querySelector('[data-testid="luxury-house-chapter-honey-onyx"]')).toBeNull();
+    expect(luxRoot?.getAttribute("data-selected-material")).toBe("multi-green-onyx");
+
     const samples = container.querySelector('[data-testid="luxury-house-material-samples"]');
     expect(samples).not.toBeNull();
     expect(samples?.textContent).toContain("MATERIAL SAMPLES");
-    expect(samples?.textContent).toContain("Honey Onyx");
+    // Sample rail always shows both materials — toggle does not filter it.
     expect(samples?.textContent).toContain("Multi Green Onyx");
+    expect(samples?.textContent).toContain("Honey Onyx");
+    expect(
+      samples?.querySelector('[data-testid="luxury-house-sample-group-honey-onyx"]')
+    ).not.toBeNull();
+    expect(
+      samples?.querySelector('[data-testid="luxury-house-sample-group-multi-green-onyx"]')
+    ).not.toBeNull();
     const sampleImgs = Array.from(samples?.querySelectorAll("img") || []).map((img) =>
       img.getAttribute("src")
     );
-    expect(sampleImgs.length).toBeGreaterThan(0);
+    expect(sampleImgs.length).toBe(6);
     for (const src of sampleImgs) {
       expect(String(src)).toMatch(/\/slabs\//);
     }
+    expect(container.textContent || "").not.toMatch(/stays private until/i);
 
     const sectionOrder = [
       "designed-with-light",
@@ -195,7 +223,8 @@ describe("PremiumProductProfileSections lux behavior", () => {
     expect(capabilities?.textContent).toContain("Backlighting");
     expect(capabilities?.textContent).toContain("Custom installation");
     expect(capabilities?.textContent).toContain("Residential and commercial projects");
-    expect(capabilities?.textContent).toContain("Private project consultation");
+    expect(capabilities?.textContent).toContain("Project consultation");
+    expect(capabilities?.textContent).not.toContain("Private project consultation");
     expect(
       container.querySelector('[data-testid="luxury-house-consultation"]')?.textContent
     ).toContain("Start with the room.");
@@ -208,13 +237,11 @@ describe("PremiumProductProfileSections lux behavior", () => {
 
   it("wires Direct Connect with stable itemId slug, not only display name", () => {
     const onDirectConnect = renderProfile();
-    const multiGreenToggle = Array.from(container.querySelectorAll("button")).find(
-      (button) =>
-        button.getAttribute("aria-pressed") !== null &&
-        button.textContent?.includes("Multi Green Onyx")
-    );
-    expect(multiGreenToggle).toBeTruthy();
-    act(() => multiGreenToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const multiGreenTab = container.querySelector(
+      '[data-testid="luxury-house-material-tab-multi-green-onyx"]'
+    ) as HTMLButtonElement | null;
+    expect(multiGreenTab).toBeTruthy();
+    act(() => multiGreenTab?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
 
     const consultCta = Array.from(
       container.querySelectorAll('[data-testid="luxury-house-consultation"] button')
@@ -232,13 +259,20 @@ describe("PremiumProductProfileSections lux behavior", () => {
     const honeyCta = Array.from(container.querySelectorAll("button")).find((button) =>
       /Discuss Honey Onyx/i.test(button.textContent || "")
     );
+    expect(honeyCta).toBeTruthy();
+    act(() => honeyCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+
+    const multiTab = container.querySelector(
+      '[data-testid="luxury-house-material-tab-multi-green-onyx"]'
+    ) as HTMLButtonElement | null;
+    expect(multiTab).toBeTruthy();
+    act(() => multiTab?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     const multiCta = Array.from(container.querySelectorAll("button")).find((button) =>
       /Discuss Multi Green Onyx/i.test(button.textContent || "")
     );
-    expect(honeyCta).toBeTruthy();
     expect(multiCta).toBeTruthy();
-    act(() => honeyCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     act(() => multiCta?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+
     expect(onDirectConnect).toHaveBeenCalledWith({
       itemId: "honey-onyx",
       itemName: "Honey Onyx",

@@ -1,5 +1,6 @@
 import { Compass, House, ShoppingBag, Users, type LucideIcon } from "lucide-react";
 import { appendPublicProfileContinuation } from "@/lib/publicProfileContinuation";
+import { seedFromProfileMaterial } from "@/lib/scoutContextCache";
 
 type TradeScoutDestination = {
   href: string;
@@ -11,6 +12,8 @@ type Props = {
   profileSlug: string;
   profileName: string;
   itemName?: string;
+  /** Stable material slug (e.g. honey-onyx) carried into Scout + TradeScout surfaces. */
+  itemId?: string;
   platformBaseHref?: string;
   className?: string;
 };
@@ -19,10 +22,16 @@ export default function TradeScoutProfileHandoff({
   profileSlug,
   profileName,
   itemName,
+  itemId,
   platformBaseHref = "",
   className = "",
 }: Props) {
-  const context = { profileSlug, profileName, ...(itemName ? { itemName } : {}) };
+  const context = {
+    profileSlug,
+    profileName,
+    ...(itemName ? { itemName } : {}),
+    ...(itemId ? { itemId } : {}),
+  };
   const contextLabel = itemName || profileName;
   const addPlatformBase = (href: string) =>
     platformBaseHref && href.startsWith("/")
@@ -39,6 +48,19 @@ export default function TradeScoutProfileHandoff({
     businessSlug: profileSlug,
     prompt: scoutPrompt,
   });
+  if (itemId) scoutParams.set("itemId", itemId);
+  if (itemName) scoutParams.set("item", itemName);
+  const seedForHandoff = (destination: "scout" | "surface") => {
+    seedFromProfileMaterial({
+      profileSlug,
+      profileName,
+      itemId,
+      itemName,
+      source: destination === "scout" ? "business_profile_call" : "public_profile",
+      prompt: scoutPrompt,
+    });
+  };
+
   const destinations: TradeScoutDestination[] = [
     {
       href: contextualHref(`/scout?${scoutParams.toString()}`),
@@ -65,12 +87,14 @@ export default function TradeScoutProfileHandoff({
   return (
     <footer
       aria-label={`TradeScout site footer from ${contextLabel}`}
-      className={`mt-auto border-t border-white/10 bg-stone-950 px-4 py-5 text-white sm:px-6 ${className}`}
+      className={`mt-auto border-t border-white/10 bg-stone-950 px-4 py-3 text-white sm:px-6 ${className}`}
       data-testid="profile-tradescout-handoff"
+      data-item-id={itemId || undefined}
+      data-item-name={itemName || undefined}
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300">
-          TradeScout · Connection Without Compromise
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-300/90">
+          Site hosted by TradeScout
         </p>
         <nav
           aria-label="TradeScout profile quick access"
@@ -80,6 +104,7 @@ export default function TradeScoutProfileHandoff({
             <a
               key={label}
               href={href}
+              onClick={() => seedForHandoff(label === "Scout" ? "scout" : "surface")}
               className="inline-flex min-h-8 flex-none items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-stone-200 transition hover:bg-white/10 hover:text-sky-200"
             >
               <Icon className="h-3.5 w-3.5 flex-none" />

@@ -24,6 +24,24 @@ describe("public profile continuation", () => {
     });
   });
 
+  it("carries stable itemId alongside display item name", () => {
+    const href = appendPublicProfileContinuation("/scout?source=business_profile_call", {
+      profileSlug: "issa-build",
+      profileName: "ISSA Build",
+      itemName: "Multi Green Onyx",
+      itemId: "multi-green-onyx",
+    });
+
+    expect(href).toContain("itemId=multi-green-onyx");
+    expect(href).toContain("item=Multi+Green+Onyx");
+    expect(parsePublicProfileContinuation(href)).toEqual({
+      profileSlug: "issa-build",
+      profileName: "ISSA Build",
+      itemName: "Multi Green Onyx",
+      itemId: "multi-green-onyx",
+    });
+  });
+
   it("rejects malformed profile context", () => {
     expect(
       appendPublicProfileContinuation("/home", {

@@ -182,7 +182,7 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
 
   return (
     <div className="mt-3 space-y-3">
-      {!readOnly ? (
+      {!readOnly && isAuthenticated ? (
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="flex items-start gap-2">
             <Avatar className="w-8 h-8">
@@ -222,6 +222,10 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
             </div>
           </div>
         </form>
+      ) : !readOnly && !isAuthenticated ? (
+        <p className="text-[11px] text-white/55">
+          Browse freely. Sign in when you want to join the conversation.
+        </p>
       ) : null}
 
       <div className="space-y-2">
@@ -413,10 +417,13 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (postPath) navigate(postPath, { replace: true });
   }, [legacySharedPostId, navigate]);
 
-  // Phase 1: Global community toggle (default: local/county)
-  const effectiveGeoScope = geoScopeFromRoute || "local";
+  // Guests without a committed county land on read-only Explore so browse works
+  // without account/settings. Local remains the default once area is known.
+  const effectiveGeoScope =
+    geoScopeFromRoute ||
+    (!authLoading && !isAuthenticated && !countyCommitted ? "global" : "local");
   const isGlobalView = effectiveGeoScope === "global";
-  const previousScopeRef = useRef<string>("local");
+  const previousScopeRef = useRef<string>(effectiveGeoScope);
 
   useEffect(() => {
     if (!feedFromRoute) return;
@@ -1066,18 +1073,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   const handleTogglePostComments = (postId: string) => {
-    if (isGlobalView) {
-      setOpenCommentsForPostId((current) => (current === postId ? null : postId));
-      return;
-    }
-    if (!isAuthenticated) {
-      toast({
-        title: "Sign In Required",
-        description: "Please sign in to discuss community posts.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Reading comments is explore/browse; writing stays gated in CommunityComments.
     setOpenCommentsForPostId((current) => (current === postId ? null : postId));
   };
 

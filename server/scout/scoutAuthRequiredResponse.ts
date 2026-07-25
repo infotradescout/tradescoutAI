@@ -1,4 +1,5 @@
 import type { ScoutDecision, ScoutResponseContract } from "../../shared/types/scout";
+import { GUEST_COMMUNITY_EXPLORE_ROUTE } from "./scoutDecisionPipeline";
 
 export const AUTH_REQUIRED_REDIRECT = "/pre-scout-setup?mode=create";
 
@@ -13,8 +14,13 @@ export function buildAuthRequiredScoutResponse(decision: ScoutDecision): ScoutRe
 
   return {
     message:
-      "To continue with this request, you'll need a TradeScout account. Create an account and Scout will resume from this step.",
-    suggestedActions: ["Create account now", "Learn how TradeScout works", "Continue as guest"],
+      "That step needs a TradeScout account. You can keep exploring Scout and community read-only without signing up; create an account when you want to post or take a gated action.",
+    suggestedActions: [
+      "Continue exploring",
+      "Browse community",
+      "Create account now",
+      "Learn how TradeScout works",
+    ],
     actions: [
       {
         type: "NAVIGATE",
@@ -22,6 +28,20 @@ export function buildAuthRequiredScoutResponse(decision: ScoutDecision): ScoutRe
         to: redirect,
         path: redirect,
         primary: true,
+      },
+      {
+        type: "NAVIGATE",
+        label: "Continue exploring",
+        to: "/scout",
+        path: "/scout",
+        primary: false,
+      },
+      {
+        type: "NAVIGATE",
+        label: "Browse community",
+        to: GUEST_COMMUNITY_EXPLORE_ROUTE,
+        path: GUEST_COMMUNITY_EXPLORE_ROUTE,
+        primary: false,
       },
     ],
     sponsored: null,
@@ -33,6 +53,7 @@ export function buildAuthRequiredScoutResponse(decision: ScoutDecision): ScoutRe
       sourceUsed: "decision_pipeline_auth",
       fallbackUsed: false,
       confidenceBand: "high",
+      exploreWithoutAccount: true,
     },
   };
 }

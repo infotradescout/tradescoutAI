@@ -8,6 +8,7 @@ import {
   hasPendingCountyResolution,
   type LocationContext,
 } from "@/hooks/useLocationContext";
+import { useAuth } from "@/hooks/useAuth";
 import { recordActivity } from "../agent/activity";
 
 interface CountyRequiredGateProps {
@@ -21,6 +22,7 @@ interface CountyRequiredGateProps {
  * Standard gate for county-committed experiences.
  * If there is no committed county, shows neutral copy and a single
  * CTA that routes to Settings → Location. Otherwise renders children.
+ * Guests on community are pointed at read-only Explore instead of auth-walled settings.
  */
 export function CountyRequiredGate({
   locationOverride,
@@ -29,6 +31,7 @@ export function CountyRequiredGate({
   allowBypass,
 }: CountyRequiredGateProps) {
   const ctx = locationOverride ?? useLocationContext();
+  const { isAuthenticated } = useAuth();
   const hasCanonicalLocation = hasCountyContext(ctx);
   const pendingCountyResolution = hasPendingCountyResolution(ctx);
 
@@ -102,6 +105,8 @@ export function CountyRequiredGate({
   }
 
   if (isCommunitySurface) {
+    const communityCtaHref = isAuthenticated ? "/settings" : "/community-feed?geo=global";
+    const communityCtaLabel = isAuthenticated ? "Set location" : "Browse Explore";
     return (
       <>
         <div className="mx-auto mb-3 w-full max-w-2xl px-1">
@@ -109,16 +114,22 @@ export function CountyRequiredGate({
             <CardContent className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Set your local area for local matching
+                  {isAuthenticated
+                    ? "Set your local area for local matching"
+                    : "Browse community without an account"}
                 </p>
-                <p className="text-xs text-white/65">Current context: {areaLabel}</p>
+                <p className="text-xs text-white/65">
+                  {isAuthenticated
+                    ? `Current context: ${areaLabel}`
+                    : "Explore is read-only. Sign in later to post or contact."}
+                </p>
               </div>
               <Button
                 type="button"
                 className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
                 asChild
               >
-                <Link href="/settings">Set location</Link>
+                <Link href={communityCtaHref}>{communityCtaLabel}</Link>
               </Button>
             </CardContent>
           </Card>

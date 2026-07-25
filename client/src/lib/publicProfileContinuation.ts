@@ -1,7 +1,10 @@
 export type PublicProfileContinuation = {
   profileSlug: string;
   profileName: string;
+  /** Human-readable material / item label. */
   itemName?: string;
+  /** Stable inventory/material slug (e.g. honey-onyx). Prefer over itemName in routing. */
+  itemId?: string;
 };
 
 const PROFILE_SOURCE = "public_profile";
@@ -27,6 +30,7 @@ export function appendPublicProfileContinuation(
   const slug = cleanSlug(context.profileSlug);
   const profileName = cleanText(context.profileName, 120);
   const itemName = cleanText(context.itemName, 120);
+  const itemId = cleanSlug(context.itemId);
   if (!slug || !profileName) return href;
 
   const isAbsolute = /^https?:\/\//i.test(href);
@@ -35,6 +39,7 @@ export function appendPublicProfileContinuation(
   url.searchParams.set("profile", slug);
   url.searchParams.set("profileName", profileName);
   if (itemName) url.searchParams.set("item", itemName);
+  if (itemId) url.searchParams.set("itemId", itemId);
 
   if (isAbsolute) return url.toString();
   return `${url.pathname}${url.search}${url.hash}`;
@@ -49,11 +54,13 @@ export function parsePublicProfileContinuation(location: string): PublicProfileC
   const profileSlug = cleanSlug(params.get("profile"));
   const profileName = cleanText(params.get("profileName"), 120);
   const itemName = cleanText(params.get("item"), 120);
+  const itemId = cleanSlug(params.get("itemId"));
   if (!profileSlug || !profileName) return null;
 
   return {
     profileSlug,
     profileName,
     ...(itemName ? { itemName } : {}),
+    ...(itemId ? { itemId } : {}),
   };
 }

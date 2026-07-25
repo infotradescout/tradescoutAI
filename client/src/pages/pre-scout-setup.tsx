@@ -28,6 +28,11 @@ import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
 import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
+import {
+  clearScoutContextCache,
+  getScoutContextCache,
+  readScoutContextPrefill,
+} from "@/lib/scoutContextCache";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
@@ -115,19 +120,33 @@ export default function PreScoutSetup() {
 
   const provisional = useMemo(() => (user as any)?.preferences?.provisional || {}, [user]);
   const existingDraft: ProfileDraft | undefined = provisional?.profileDraft;
+  const scoutExplorerPrefill = useMemo(() => readScoutContextPrefill(), []);
 
   const [presenceType, setPresenceType] = useState<PresenceType>(
-    existingDraft?.presenceType || "personal"
+    (existingDraft?.presenceType as PresenceType) ||
+      (scoutExplorerPrefill?.presenceType as PresenceType) ||
+      "personal"
   );
-  const [stateCode, setStateCode] = useState(existingDraft?.stateCode || "");
-  const [countyFips, setCountyFips] = useState(existingDraft?.countyFips || "");
-  const [countyName, setCountyName] = useState<string | undefined>(existingDraft?.countyName);
-  const [city, setCity] = useState(existingDraft?.city || "");
+  const [stateCode, setStateCode] = useState(
+    existingDraft?.stateCode || scoutExplorerPrefill?.stateCode || ""
+  );
+  const [countyFips, setCountyFips] = useState(
+    existingDraft?.countyFips || scoutExplorerPrefill?.countyFips || ""
+  );
+  const [countyName, setCountyName] = useState<string | undefined>(
+    existingDraft?.countyName || scoutExplorerPrefill?.countyName
+  );
+  const [city, setCity] = useState(existingDraft?.city || scoutExplorerPrefill?.city || "");
   const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
   const [countyInferenceNote, setCountyInferenceNote] = useState("");
   // Track whether location was resolved via Google Places (vs. manual typing)
   const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
-  const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
+  const [businessName, setBusinessName] = useState(
+    existingDraft?.businessName ||
+      scoutExplorerPrefill?.businessName ||
+      scoutExplorerPrefill?.profileName ||
+      ""
+  );
   const [businessType, setBusinessType] = useState<ProfileDraft["businessType"]>(
     existingDraft?.businessType || "contractor_trades"
   );
@@ -141,10 +160,12 @@ export default function PreScoutSetup() {
   const [signInError, setSignInError] = useState<string | null>(null);
   const [signInErrorCode, setSignInErrorCode] = useState<string | null>(null);
 
-  const [createFirstName, setCreateFirstName] = useState("");
-  const [createLastName, setCreateLastName] = useState("");
-  const [createEmail, setCreateEmail] = useState(prefilledEmail);
-  const [createPhone, setCreatePhone] = useState("");
+  const [createFirstName, setCreateFirstName] = useState(scoutExplorerPrefill?.firstName || "");
+  const [createLastName, setCreateLastName] = useState(scoutExplorerPrefill?.lastName || "");
+  const [createEmail, setCreateEmail] = useState(
+    prefilledEmail || scoutExplorerPrefill?.email || ""
+  );
+  const [createPhone, setCreatePhone] = useState(scoutExplorerPrefill?.phone || "");
   const [createPassword, setCreatePassword] = useState("");
   const [createConfirmPassword, setCreateConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
@@ -662,6 +683,12 @@ export default function PreScoutSetup() {
       }
 
       await ensureSessionEstablished();
+      // Prefill already applied into form state; clear explorer cache after successful signup.
+      try {
+        if (getScoutContextCache()) clearScoutContextCache();
+      } catch {
+        // fail-soft
+      }
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
       toast({ title: "Account created", description: "Opening onboarding." });
       navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);

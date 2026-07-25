@@ -97,6 +97,21 @@ describe("directConnectEntryContext", () => {
     });
   });
 
+  it("carries stable lux material itemId into Direct Connect", () => {
+    expect(
+      parseDirectConnectEntryContext(
+        "/direct-connect?from=public_profile&profile=issa-build&profileName=ISSA%20Build&item=Multi%20Green%20Onyx&itemId=multi-green-onyx"
+      )
+    ).toMatchObject({
+      contextType: "profile",
+      contextId: "issa-build",
+      targetName: "Multi Green Onyx",
+      source: "public_profile",
+      subjectType: "product",
+      itemId: "multi-green-onyx",
+    });
+  });
+
   it("creates a readable fallback label without inventing identity", () => {
     const context = parseDirectConnectEntryContext("/direct-connect?profile=jane-doe");
     expect(getDirectConnectContextLabel(context)).toBe("jane doe");

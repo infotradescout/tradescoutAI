@@ -63,9 +63,15 @@ function TradeScoutLogo({ backToTop = false }: { backToTop?: boolean }) {
       aria-label={backToTop ? "Back to top" : "TradeScout home"}
       onClick={backToTop ? (event) => navigateToExplainerAnchor(event, "top") : undefined}
     >
-      <span className="ts-logo-initials" aria-hidden="true">
-        TS
-      </span>
+      <img
+        className="ts-logo-mark"
+        src="/tradescout-logo-circle.png?v=13"
+        alt="TradeScout"
+        width={40}
+        height={40}
+        decoding="async"
+        fetchPriority="high"
+      />
       <span className="ts-logo-word">
         Trade<strong>Scout</strong>
       </span>
@@ -284,7 +290,6 @@ export default function TradeScoutLandingPage() {
     <main className="ts-landing-shell" id="top">
       <header className="ts-header" aria-label="TradeScout primary header">
         <TradeScoutLogo />
-        <span className="ts-header-context">Plain-language system explainer</span>
         <nav className="ts-primary-nav" aria-label="Landing page actions">
           <a href="/login">Log in</a>
           <a
@@ -299,7 +304,6 @@ export default function TradeScoutLandingPage() {
 
       <section className="ts-hero" aria-labelledby="ts-hero-title">
         <div className="ts-hero-copy">
-          <p className="ts-kicker">TradeScout for requesters and local businesses</p>
           <h1 id="ts-hero-title">Connection Without Compromise.</h1>
           <p className="ts-hero-declaration">Local recommendations should lead somewhere.</p>
           <p className="ts-hero-subheadline">
@@ -322,11 +326,6 @@ export default function TradeScoutLandingPage() {
             >
               Open Scout ↗
             </a>
-          </div>
-          <div className="ts-trust-row" aria-label="TradeScout product rules">
-            <span>✓ Payment cannot buy recommendations</span>
-            <span>✓ The requester chooses who receives a request</span>
-            <span>✓ Both sides choose before contact opens</span>
           </div>
         </div>
       </section>

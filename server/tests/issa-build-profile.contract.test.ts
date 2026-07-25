@@ -180,8 +180,14 @@ describe("ISSA Build public profile contract", () => {
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
     expect(theme).toContain("font-editorial");
-    expect(theme).toContain("Start a private consultation");
+    expect(theme).toContain("Start a consultation");
+    expect(theme).not.toContain("Start a private consultation");
     expect(theme).toContain("View installed work");
+    expect(theme).toContain("ISSA_BUILD_LOGO");
+    expect(theme).toContain('data-testid="issa-build-brand-logo"');
+    expect(theme).toContain(
+      'appearance={isLuxuryMaterialHouse || isIssaBuild ? "lux" : "default"}'
+    );
   });
 
   it("uses the reusable Lux archetype below the hero", () => {
@@ -261,12 +267,15 @@ describe("ISSA Build public profile contract", () => {
       "Backlighting",
       "Custom installation",
       "Residential and commercial projects",
-      "Private project consultation",
+      "Project consultation",
     ]);
-    expect(house.designedWithLight.eyebrow).toBe("BACKLIGHTING");
-    expect(house.designedWithLight.title).toBe("The finish belongs to the room.");
+    expect(house.designedWithLight.eyebrow).toBe("");
+    expect(house.designedWithLight.title).toBe("");
     expect(house.designedWithLight.body).toContain("We take projects from selection");
     expect(house.designedWithLight.body.toLowerCase()).not.toContain("designed with light");
+    expect(luxuryHouse).toContain("luxury-house-material-toggle");
+    expect(luxuryHouse).toContain("data-selected-material");
+    expect(luxuryHouse).toContain("tradescout:lux-material-change");
     expect(house.capabilities.eyebrow).toBe("WHAT WE DO");
     expect(house.capabilities.body).toContain("We begin with the space");
     expect(house.materialChapters[0].title).toBe("Warm, luminous, unmistakable.");
@@ -279,7 +288,15 @@ describe("ISSA Build public profile contract", () => {
     expect(house.consultation.body).toBe(
       "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting."
     );
-    expect(house.consultation.note).toBe("Your contact stays private until we accept.");
+    expect(house.consultation.note).toBe("");
+    expect(house.consultation.note).not.toMatch(/private/i);
+    expect(premiumData?.brief?.note).toBe("");
+    const ctaBlock = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "cta") as any;
+    expect(ctaBlock?.data?.footerText).toBe("");
+    expect(JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS)).not.toMatch(/stays private until/i);
+    expect(luxuryHouse).toContain("buildShowcaseCollageLayout");
+    expect(luxuryHouse).toContain("sampleGroups.map");
+    expect(luxuryHouse).not.toContain("selectedSampleGroup");
     expect(house.consultation.fields).toEqual([
       "Selected material",
       "Room / application",
@@ -301,6 +318,11 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("initialPhotoIndex={premiumSharedItem?.imageIndex}");
     expect(theme).toContain("<PremiumProductProfileSections");
     expect(theme).toContain("<TradeScoutProfileHandoff");
+    expect(theme).toContain("tradescout:lux-material-change");
+    expect(theme).toContain("activeMaterialContext");
+    expect(theme).toContain("itemId={activeMaterialContext?.itemId");
+    expect(theme).toContain("seedFromProfileMaterial");
+    expect(theme).toContain("!isIssaBuild ? (");
     expect(theme).toContain('data-testid="wholesaler-brand-footer"');
     expect(theme).toContain('data-testid="profile-trust-section"');
     expect(theme).toContain('data-testid="luxury-material-house-unavailable"');

@@ -36,6 +36,8 @@ export type DirectConnectEntryContext = {
   contextType?: DirectConnectEntryContextType;
   contextId?: string;
   subjectType?: "business" | "product" | "service" | "evidence";
+  /** Stable material slug from public-profile / lux selection (e.g. honey-onyx). */
+  itemId?: string;
 };
 
 function readFirst(params: URLSearchParams, ...keys: string[]): string | undefined {
@@ -91,6 +93,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
   const profileSlug = readFirst(params, "profile");
   const profileName = readFirst(params, "profileName");
   const itemName = readFirst(params, "item");
+  const itemId = readFirst(params, "itemId");
   const rawSubject = readFirst(params, "subject");
   const subjectType =
     rawSubject === "business" ||
@@ -98,7 +101,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     rawSubject === "service" ||
     rawSubject === "evidence"
       ? rawSubject
-      : itemName
+      : itemName || itemId
         ? "product"
         : undefined;
   const postId = readFirst(params, "postId");
@@ -166,6 +169,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     contextType,
     contextId,
     subjectType,
+    ...(itemId ? { itemId } : {}),
   };
 }
 

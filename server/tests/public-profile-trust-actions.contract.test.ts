@@ -94,7 +94,11 @@ describe("canonical public-profile trust actions", () => {
     expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
     expect(app).toContain("<Toaster />");
     expect(profileView).toContain('renderProfileTrustActions("light")');
+    expect(profileView).toContain('variant: "lux"');
+    expect(profileView).toContain("showSupportLabel: false");
     expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(4);
+    expect(actions).toContain('variant?: "default" | "lux"');
+    expect(actions).toContain("showSupportLabel");
     themes.forEach((theme) => {
       expect(theme).toContain("trustActions: ReactNode");
       expect(theme).toContain("{trustActions}");
@@ -112,8 +116,14 @@ describe("canonical public-profile trust actions", () => {
   it("keeps the Express Direct Connect form legible inside themed profile pages", () => {
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(panel.match(/!bg-white/g)?.length).toBeGreaterThanOrEqual(5);
-    expect(panel.match(/!text-neutral-900/g)?.length).toBeGreaterThanOrEqual(5);
-    expect(panel.match(/placeholder:!text-stone-400/g)?.length).toBeGreaterThanOrEqual(4);
+    // Default appearance keeps high-contrast light fields; lux uses charcoal/brass.
+    expect(panel).toContain('appearance?: "default" | "lux"');
+    expect(panel).toContain('appearance = "default"');
+    expect(panel).toContain("const fieldClass = isLux");
+    expect(panel).toContain("!bg-white");
+    expect(panel).toContain("!text-neutral-900");
+    expect(panel).toContain("placeholder:!text-stone-400");
+    expect(panel).toContain("!bg-[#17100b]");
+    expect(panel).toContain("data-appearance={appearance}");
   });
 });

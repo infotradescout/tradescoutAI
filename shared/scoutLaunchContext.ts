@@ -34,6 +34,10 @@ export interface ScoutLaunchContext {
   dealId?: string;
   businessId?: string;
   businessSlug?: string;
+  /** Stable material / inventory slug from a public profile (e.g. honey-onyx). */
+  itemId?: string;
+  /** Human-readable material label from a public profile. */
+  itemName?: string;
   entityId?: string;
   entityType?: string;
   trade?: string;
@@ -121,6 +125,9 @@ export function normalizeScoutLaunchContext(input: unknown): ScoutLaunchContext 
   const dealId = cleanIdentifier(raw.dealId);
   const businessId = cleanIdentifier(raw.businessId);
   const businessSlug = cleanSlug(raw.businessSlug);
+  // Public profile URLs use `stone=`; Scout handoffs use `itemId=`.
+  const itemId = cleanSlug(raw.itemId ?? raw.stone);
+  const itemName = cleanLabel(raw.itemName ?? raw.item);
   const entityId = cleanIdentifier(raw.entityId);
   const entityTypeCandidate = cleanSlug(raw.entityType);
   const entityType =
@@ -175,6 +182,8 @@ export function normalizeScoutLaunchContext(input: unknown): ScoutLaunchContext 
     ...(dealId ? { dealId } : {}),
     ...(businessId ? { businessId } : {}),
     ...(businessSlug ? { businessSlug } : {}),
+    ...(itemId ? { itemId } : {}),
+    ...(itemName ? { itemName } : {}),
     ...(entityId && entityType ? { entityId, entityType } : {}),
     ...(trade ? { trade } : {}),
     ...(county ? { county } : {}),
@@ -194,6 +203,10 @@ function paramsToRecord(params: URLSearchParams): Record<string, string> {
     "dealId",
     "businessId",
     "businessSlug",
+    "itemId",
+    "stone",
+    "item",
+    "itemName",
     "entityId",
     "entityType",
     "trade",
@@ -224,7 +237,8 @@ export function getScoutLaunchReturnPath(context: ScoutLaunchContext): string | 
   if (context.contextType === "trade_deal") return "/trade-deals";
   if (context.contextType === "business_profile" && context.businessSlug) {
     if (context.source === "business_profile_call") {
-      return `/u/${encodeURIComponent(context.businessSlug)}`;
+      const stone = context.itemId ? `?stone=${encodeURIComponent(context.itemId)}` : "";
+      return `/u/${encodeURIComponent(context.businessSlug)}${stone}`;
     }
     return `/business/${encodeURIComponent(context.businessSlug)}`;
   }
@@ -275,6 +289,7 @@ export function buildScoutLaunchContextCacheKey(
     context.source || "direct",
     context.contextType,
     context.contextId || "none",
+    context.itemId || "none",
     context.trade || "none",
     context.countyFips || context.county || "none",
     context.state || "none",

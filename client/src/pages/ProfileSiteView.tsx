@@ -951,7 +951,10 @@ export default function ProfileSiteView() {
     `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/u/${profile.slug}?book=1`)}`,
     platformBaseHref
   );
-  const renderProfileTrustActions = (tone: "light" | "dark") => (
+  const renderProfileTrustActions = (
+    tone: "light" | "dark",
+    options?: { variant?: "default" | "lux"; showSupportLabel?: boolean }
+  ) => (
     <PublicProfileTrustActions
       profileSlug={profile.slug}
       profileName={displayName}
@@ -960,6 +963,8 @@ export default function ProfileSiteView() {
       hasViewerSession={hasViewerSession}
       initialRecommendationCount={recommendationDirectorySummary.positive}
       tone={tone}
+      variant={options?.variant || "default"}
+      showSupportLabel={options?.showSupportLabel ?? true}
     />
   );
   const aboutText = contentBlocks
@@ -1292,7 +1297,14 @@ export default function ProfileSiteView() {
             preScoutSignInHref={preScoutSignInHref}
             recommendationsDirectory={recommendationsDirectory}
             recommendationDirectorySummary={recommendationDirectorySummary}
-            trustActions={renderProfileTrustActions("light")}
+            trustActions={
+              isIssaBuildProfileSlug(profile.slug)
+                ? renderProfileTrustActions("dark", {
+                    variant: "lux",
+                    showSupportLabel: false,
+                  })
+                : renderProfileTrustActions("light")
+            }
             featuredStoneSlugs={featuredStoneSlugs}
             profileItems={
               hasVisiblePublicProfileItems(profileItems, profileSections) ? (

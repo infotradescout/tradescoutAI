@@ -3,6 +3,7 @@ import { businesses, contractors, profiles, users } from "@shared/schema";
 import {
   ISSA_BUILD_BUSINESS_NAME,
   ISSA_BUILD_LEGACY_PROFILE_SLUG,
+  ISSA_BUILD_LOGO,
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_SLUG,
 } from "@shared/issaBuildProfile";
@@ -196,7 +197,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
         ...existingProfileData,
         tagline: "Honey Onyx and Multi Green Onyx for interiors designed to glow.",
         description:
-          "We craft translucent onyx for residential and commercial interiors — selection, customization, backlighting, installation, and private project consultation.",
+          "We craft translucent onyx for residential and commercial interiors — selection, customization, backlighting, installation, and project consultation.",
         category: "Natural Onyx",
         services: [
           "Custom onyx installation",
@@ -204,6 +205,8 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           "Onyx customization",
           "Project consultation",
         ],
+        logoUrl: ISSA_BUILD_LOGO,
+        avatarUrl: ISSA_BUILD_LOGO,
         contactPreference: "message",
         // Preserve any operator-only contact/location values already stored,
         // but keep them out of every generic public-business projection.
@@ -346,7 +349,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       seoMeta: {
         title: "ISSA Build | Luxury Translucent Onyx",
         description:
-          "Honey Onyx and Multi Green Onyx for residential and commercial interiors. Private project consultation with us on TradeScout.",
+          "Honey Onyx and Multi Green Onyx for residential and commercial interiors. Project consultation with us on TradeScout.",
         imageUrl: "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: 1600,
         imageHeight: 1200,

@@ -31,6 +31,10 @@ type PublicProfileTrustActionsProps = {
   hasViewerSession: boolean;
   initialRecommendationCount?: number;
   tone?: "light" | "dark";
+  /** Lux profiles: charcoal + brass chrome (no light TradeScout card). */
+  variant?: "default" | "lux";
+  /** Captain-obvious eyebrow (“Support this business”). Off for lux. */
+  showSupportLabel?: boolean;
   className?: string;
 };
 
@@ -61,6 +65,8 @@ export function PublicProfileTrustActions({
   hasViewerSession,
   initialRecommendationCount = 0,
   tone = "dark",
+  variant = "default",
+  showSupportLabel = true,
   className,
 }: PublicProfileTrustActionsProps) {
   const { toast } = useToast();
@@ -68,7 +74,8 @@ export function PublicProfileTrustActions({
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<ProfileTrustAction | null>(null);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
-  const isLight = tone === "light";
+  const isLux = variant === "lux";
+  const isLight = !isLux && tone === "light";
 
   useEffect(() => {
     let current = true;
@@ -184,44 +191,62 @@ export function PublicProfileTrustActions({
   const likeCount = state?.likeCount || 0;
   const favoriteCount = state?.favoriteCount || 0;
   const recommendationCount = state?.recommendationCount ?? initialRecommendationCount;
+  const focusRing = isLux
+    ? "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent,#d9a441)]"
+    : "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange";
   const buttonClass = cn(
-    "flex min-h-11 w-full min-w-0 flex-row items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-[11px] font-bold transition sm:text-xs",
+    "flex min-h-11 w-full min-w-0 flex-row items-center justify-center gap-1.5 px-1.5 py-2 text-[11px] font-bold transition sm:text-xs",
+    isLux ? "" : "rounded-xl",
     isLight
       ? "text-stone-700 hover:bg-stone-100 hover:text-stone-950"
-      : "text-white/75 hover:bg-white/10 hover:text-white",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
+      : isLux
+        ? "text-white/75 hover:bg-white/10 hover:text-white"
+        : "text-white/75 hover:bg-white/10 hover:text-white",
+    focusRing
   );
   const activeButtonClass = isLight
     ? "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-300"
-    : "bg-ts-orange/15 text-ts-orange-light ring-1 ring-inset ring-ts-orange/40";
+    : isLux
+      ? "bg-[var(--brand-accent,#d9a441)]/15 text-[var(--brand-accent,#d9a441)] ring-1 ring-inset ring-[var(--brand-accent,#d9a441)]/45"
+      : "bg-ts-orange/15 text-ts-orange-light ring-1 ring-inset ring-ts-orange/40";
   const countClass = cn("text-[10px] font-semibold", isLight ? "text-stone-500" : "text-white/50");
   const ownerBlocked = state?.viewerIsOwner === true;
   const recommendationButtonClass = cn(
-    "flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-black transition",
+    "flex min-h-14 w-full items-center justify-center gap-2.5 px-4 py-3 text-sm font-black transition",
+    isLux ? "" : "rounded-xl",
     isLight
       ? "bg-stone-900 text-white hover:bg-stone-800"
-      : "border border-ts-orange/40 bg-ts-orange/15 text-ts-orange-light hover:bg-ts-orange/25",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
+      : isLux
+        ? "border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] text-[#17100b] hover:bg-[var(--brand-accent,#d9a441)]/90"
+        : "border border-ts-orange/40 bg-ts-orange/15 text-ts-orange-light hover:bg-ts-orange/25",
+    focusRing
   );
 
   return (
     <>
       <div
         className={cn(
-          "rounded-2xl border p-2.5",
-          isLight ? "border-stone-200 bg-white/85 shadow-sm" : "border-white/10 bg-black/20",
+          "border p-2.5",
+          isLux
+            ? "rounded-none border-white/10 bg-[#0c0a08]"
+            : isLight
+              ? "rounded-2xl border-stone-200 bg-white/85 shadow-sm"
+              : "rounded-2xl border-white/10 bg-black/20",
           className
         )}
         aria-label={`Trust actions for ${profileName}`}
+        data-trust-variant={variant}
       >
-        <p
-          className={cn(
-            "px-2 pb-2 pt-0.5 text-[10px] font-black uppercase tracking-[0.18em]",
-            isLight ? "text-stone-500" : "text-white/55"
-          )}
-        >
-          Support this business
-        </p>
+        {showSupportLabel ? (
+          <p
+            className={cn(
+              "px-2 pb-2 pt-0.5 text-[10px] font-black uppercase tracking-[0.18em]",
+              isLight ? "text-stone-500" : "text-white/55"
+            )}
+          >
+            Support this business
+          </p>
+        ) : null}
 
         <button
           type="button"
@@ -240,7 +265,11 @@ export function PublicProfileTrustActions({
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-[10px] font-black",
-                isLight ? "bg-white/15 text-white" : "bg-ts-orange/20 text-ts-orange-light"
+                isLight
+                  ? "bg-white/15 text-white"
+                  : isLux
+                    ? "bg-[#17100b]/15 text-[#17100b]"
+                    : "bg-ts-orange/20 text-ts-orange-light"
               )}
             >
               {recommendationCount}

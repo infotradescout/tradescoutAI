@@ -1126,7 +1126,11 @@ export function AppShell({ children, footer }: AppShellProps) {
                   </p>
                 </div>
                 <Link
-                  href={`/u/${encodeURIComponent(publicProfileContinuation.profileSlug)}`}
+                  href={`/u/${encodeURIComponent(publicProfileContinuation.profileSlug)}${
+                    publicProfileContinuation.itemId
+                      ? `?stone=${encodeURIComponent(publicProfileContinuation.itemId)}`
+                      : ""
+                  }`}
                   className="inline-flex min-h-8 items-center rounded-full border border-[color:var(--border-subtle)] px-3 text-[11px] font-bold"
                 >
                   Back to profile

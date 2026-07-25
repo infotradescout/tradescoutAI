@@ -41,10 +41,12 @@ import { isLuxPresentation, isPremiumProductProfileData } from "@shared/premiumP
 import {
   ISSA_BUILD_HERO_POSTER,
   ISSA_BUILD_HERO_VIDEO,
+  ISSA_BUILD_LOGO,
   isIssaBuildProfileSlug,
 } from "@shared/issaBuildProfile";
 import { resolveDirectConnectMaterial, type DirectConnectTarget } from "./directConnectMaterial";
 import { createFallbackImageHandlers, isDecodedFrameBlack } from "./safeProfileImage";
+import { seedFromProfileMaterial } from "@/lib/scoutContextCache";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -516,6 +518,11 @@ export default function WholesalerProfileTheme({
   const [expressItemId, setExpressItemId] = useState<string | null>(null);
   const [expressRequestType, setExpressRequestType] =
     useState<ExpressDirectConnectRequestType | null>(null);
+  /** Selected lux/material context for Scout handoff + default Direct Connect. */
+  const [activeMaterialContext, setActiveMaterialContext] = useState<{
+    itemId: string;
+    itemName: string;
+  } | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
   const premiumInventoryStones = inventoryCatalogFromContent.flatMap((category) => category.stones);
@@ -559,6 +566,62 @@ export default function WholesalerProfileTheme({
     luxuryHouseProducts.find((entry) => entry.slug === premiumProductData?.featuredProductSlug) ||
     luxuryHouseProducts[0] ||
     null;
+
+  // Keep lux material selection in theme state so Scout handoff + default DC
+  // carry itemId/itemName even when the visitor uses the sticky Direct Connect.
+  useEffect(() => {
+    if (!isLuxuryMaterialHouse || !premiumProductData?.luxuryHouse) return;
+    const chapters = premiumProductData.luxuryHouse.materialChapters;
+    const fromUrl = normalizeProfileInventoryItemSlug(
+      new URLSearchParams(window.location.search).get("stone")
+    );
+    const matched =
+      chapters.find((chapter) => chapter.slug === fromUrl) ||
+      chapters.find((chapter) => chapter.slug === premiumProductData.featuredProductSlug) ||
+      chapters[0];
+    if (!matched) return;
+    setActiveMaterialContext({ itemId: matched.slug, itemName: matched.name });
+    setExpressItemId(matched.slug);
+    setExpressStoneName(matched.name);
+    seedFromProfileMaterial({
+      profileSlug,
+      profileName: displayName,
+      itemId: matched.slug,
+      itemName: matched.name,
+      source: "lux_material_toggle",
+    });
+  }, [displayName, isLuxuryMaterialHouse, premiumProductData, profileSlug]);
+
+  useEffect(() => {
+    if (!isLuxuryMaterialHouse) return;
+    const onLuxMaterialChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ itemId?: string; itemName?: string }>).detail || {};
+      const itemId = String(detail.itemId || "").trim();
+      const itemName = String(detail.itemName || "").trim();
+      if (!itemId && !itemName) return;
+      setActiveMaterialContext({
+        itemId: itemId || itemName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        itemName: itemName || itemId,
+      });
+      setExpressItemId(itemId || null);
+      setExpressStoneName(itemName || null);
+      seedFromProfileMaterial({
+        profileSlug,
+        profileName: displayName,
+        itemId,
+        itemName,
+        source: "lux_material_toggle",
+      });
+    };
+    window.addEventListener("tradescout:lux-material-change", onLuxMaterialChange as EventListener);
+    return () => {
+      window.removeEventListener(
+        "tradescout:lux-material-change",
+        onLuxMaterialChange as EventListener
+      );
+    };
+  }, [displayName, isLuxuryMaterialHouse, profileSlug]);
+
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
   useEffect(() => {
@@ -723,11 +786,12 @@ export default function WholesalerProfileTheme({
     "Ask about the material, match it to a project, or plan the next step.";
   const contactOperatorName = blockString(ctaBlock, "contactOperatorName");
   const contactOperatorRole = blockString(ctaBlock, "contactOperatorRole");
-  const footerText =
-    blockString(ctaBlock, "footerText") ||
-    (isJwStone
-      ? "Quarry-direct sourcing. Your contact details stay private until you choose to connect."
-      : "Explore the material, then use Direct Connect when you are ready. Your contact details stay private until the recipient accepts your request.");
+  const footerText = isIssaBuild
+    ? blockString(ctaBlock, "footerText") || ""
+    : blockString(ctaBlock, "footerText") ||
+      (isJwStone
+        ? "Quarry-direct sourcing. Your contact details stay private until you choose to connect."
+        : "Explore the material, then use Direct Connect when you are ready. Your contact details stay private until the recipient accepts your request.");
   const configuredRequestExamples = Array.isArray(ctaBlock?.data?.requestExamples)
     ? ctaBlock.data.requestExamples.filter(
         (value: unknown): value is string => typeof value === "string" && value.trim().length > 0
@@ -748,10 +812,35 @@ export default function WholesalerProfileTheme({
     requestType?: ExpressDirectConnectRequestType | null,
     itemId?: string | null
   ) => {
+    const resolvedItemId = itemId || activeMaterialContext?.itemId || null;
+    const resolvedStoneName = stoneName || activeMaterialContext?.itemName || null;
+    if (resolvedItemId || resolvedStoneName) {
+      setActiveMaterialContext({
+        itemId:
+          resolvedItemId ||
+          String(resolvedStoneName || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, ""),
+        itemName: resolvedStoneName || resolvedItemId || "",
+      });
+    }
+    if (resolvedItemId || resolvedStoneName) {
+      seedFromProfileMaterial({
+        profileSlug,
+        profileName: displayName,
+        itemId: resolvedItemId,
+        itemName: resolvedStoneName,
+        source: "direct_connect",
+      });
+    }
     if (useExpressDirectConnect) {
-      setExpressStoneName(stoneName || null);
-      setExpressItemId(itemId || null);
-      setExpressRequestType(requestType || (stoneName || itemId ? "request_material" : null));
+      setExpressStoneName(resolvedStoneName);
+      setExpressItemId(resolvedItemId);
+      setExpressRequestType(
+        requestType || (resolvedStoneName || resolvedItemId ? "request_material" : null)
+      );
       setExpressPanelOpen(true);
       return;
     }
@@ -764,6 +853,12 @@ export default function WholesalerProfileTheme({
 
   const startDirectConnectFromTarget = (target?: DirectConnectTarget) => {
     const material = resolveDirectConnectMaterial(target);
+    if (material.itemId || material.itemName) {
+      setActiveMaterialContext({
+        itemId: material.itemId || "",
+        itemName: material.itemName || material.itemId || "",
+      });
+    }
     startDirectConnect(
       material.itemName,
       material.itemId || material.itemName ? "request_material" : null,
@@ -1055,15 +1150,33 @@ export default function WholesalerProfileTheme({
             </>
           ) : (
             <>
-              <div className="min-w-0 flex-1">
-                <span
-                  className={`block text-lg font-bold leading-tight text-[var(--brand-primary)] md:text-xl ${DISPLAY_FONT}`}
-                >
-                  {displayName}
-                </span>
-                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
-                  {stickySubtitle}
-                </p>
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                {isIssaBuild ? (
+                  <img
+                    src={ISSA_BUILD_LOGO}
+                    alt={displayName}
+                    data-testid="issa-build-brand-logo"
+                    className="h-10 w-auto flex-none object-contain md:h-12"
+                  />
+                ) : null}
+                <div className="min-w-0">
+                  {isIssaBuild ? (
+                    <span className="sr-only">{displayName}</span>
+                  ) : (
+                    <span
+                      className={`block text-lg font-bold leading-tight text-[var(--brand-primary)] md:text-xl ${DISPLAY_FONT}`}
+                    >
+                      {displayName}
+                    </span>
+                  )}
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)] ${
+                      isIssaBuild ? "mt-0" : "mt-0.5"
+                    }`}
+                  >
+                    {stickySubtitle}
+                  </p>
+                </div>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">
                 <ShareButton
@@ -1077,7 +1190,11 @@ export default function WholesalerProfileTheme({
                 <button
                   type="button"
                   onClick={() => startDirectConnect()}
-                  className="flex-shrink-0 rounded-full border border-ts-orange/45 bg-transparent px-3.5 py-2 text-xs font-bold text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 md:px-5 md:text-sm"
+                  className={
+                    isIssaBuild
+                      ? "flex-shrink-0 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90 md:px-5"
+                      : "flex-shrink-0 rounded-full border border-ts-orange/45 bg-transparent px-3.5 py-2 text-xs font-bold text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 md:px-5 md:text-sm"
+                  }
                 >
                   Direct Connect
                 </button>
@@ -1307,7 +1424,7 @@ export default function WholesalerProfileTheme({
                     onClick={() => startDirectConnect()}
                     className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
                   >
-                    Start a private consultation
+                    Start a consultation
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <button
@@ -1404,7 +1521,7 @@ export default function WholesalerProfileTheme({
             platformBaseHref={platformBaseHref}
             onDirectConnect={startDirectConnectFromTarget}
             platformEngagement={
-              <div data-testid="profile-trust-section">
+              <div data-testid="profile-trust-section" data-lux-engagement="true">
                 <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
               </div>
             }
@@ -2469,17 +2586,21 @@ export default function WholesalerProfileTheme({
         </>
       )}
 
-      {/* Shared TradeScout theme chrome — always outside premium lookbook content. */}
-      <footer className="bg-[#241d0f] py-10 text-white/70" data-testid="wholesaler-brand-footer">
-        <div className="container mx-auto px-4 text-center text-sm md:px-6">
-          <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
-          <p>{footerText}</p>
-        </div>
-      </footer>
+      {/* Non-ISSA brand strip stays above the platform host footer. ISSA/lux uses TradeScout host only. */}
+      {!isIssaBuild ? (
+        <footer className="bg-[#241d0f] py-10 text-white/70" data-testid="wholesaler-brand-footer">
+          <div className="container mx-auto px-4 text-center text-sm md:px-6">
+            <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
+            {footerText ? <p>{footerText}</p> : null}
+          </div>
+        </footer>
+      ) : null}
 
       <TradeScoutProfileHandoff
         profileSlug={profileSlug}
         profileName={displayName}
+        itemId={activeMaterialContext?.itemId || expressItemId || undefined}
+        itemName={activeMaterialContext?.itemName || expressStoneName || undefined}
         platformBaseHref={platformBaseHref}
       />
       <ExpressDirectConnectPanel
@@ -2493,6 +2614,7 @@ export default function WholesalerProfileTheme({
         allowCall={allowExpressCall}
         stayInProfile
         requestMode="materials"
+        appearance={isLuxuryMaterialHouse || isIssaBuild ? "lux" : "default"}
         initialStoneName={expressStoneName}
         initialItemId={expressItemId}
         initialRequestType={expressRequestType}

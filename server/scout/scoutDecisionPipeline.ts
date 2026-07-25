@@ -1,5 +1,19 @@
 import type { NormalizedScoutRequest, ScoutDecision } from "../../shared/types/scout";
 
+/** Guest-safe community explore entry (read-only global browse). */
+export const GUEST_COMMUNITY_EXPLORE_ROUTE = "/community-feed?geo=global";
+
+/**
+ * Account/action intents that must not run anonymously.
+ * Intentionally excludes browse/explore phrasing (community feed, published listings, etc.).
+ */
+export const SCOUT_AUTH_REQUIRED_ACTION_PATTERN =
+  /\b(?:offer services|provider standing|run a promotion|community announcement|community builder donation|support ticket|my dashboard|my listings)\b|(?:\b(?:post|publish|create)\b(?:\s+\w+){0,6}\s+(?:to\s+)?(?:(?:the|my)\s+)?community\b)|\bpublish(?:\s+it|\s+this)?\b/i;
+
+/** Read/explore community phrasing that should stay open for guests. */
+export const SCOUT_GUEST_COMMUNITY_EXPLORE_PATTERN =
+  /\b(?:browse|open|show|see|view|read|check(?:\s+out)?)\b.{0,48}\bcommunity(?:\s+feed)?\b|\bcommunity feed\b|\bwhat(?:'s| is) happening\b.{0,32}\b(?:community|nearby|neighbors?)\b/i;
+
 export function runScoutDecisionPipeline(request: NormalizedScoutRequest): ScoutDecision {
   const raw = typeof request.message === "string" ? request.message.trim() : "";
   const lower = raw.toLowerCase();
@@ -14,11 +28,14 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
   }
 
   const explicitNavVerbs = /(open|go to|take me to|navigate|show me|bring me to)/i;
+  const guestCommunityRoute = request.isAuthenticated
+    ? "/community-feed"
+    : GUEST_COMMUNITY_EXPLORE_ROUTE;
   const explicitNavTargets: Array<{ route: string; label: string; pattern: RegExp }> = [
     { route: "/help", label: "Open Help Center", pattern: /support tickets?/i },
     { route: "/help", label: "Open Help", pattern: /help( center)?/i },
     { route: "/exchange", label: "Open Exchange", pattern: /exchange|marketplace/i },
-    { route: "/community", label: "Open Community", pattern: /community/i },
+    { route: guestCommunityRoute, label: "Open Community", pattern: /community/i },
     {
       route: "/direct-connect",
       label: "Open Direct Connect",
@@ -46,9 +63,20 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
     }
   }
 
-  const authRequiredPattern =
-    /(offer services|provider standing|run a promotion|post(?: this)?(?:\s+\w+){0,4}\s+community|community feed|community announcement|community builder donation|support ticket|my dashboard|my listings|publish(?: it| this)?)/i;
-  if (!request.isAuthenticated && authRequiredPattern.test(raw)) {
+  // Guest community browse/explore stays open (visibility ≠ posting/contact).
+  if (!request.isAuthenticated && SCOUT_GUEST_COMMUNITY_EXPLORE_PATTERN.test(raw)) {
+    return {
+      type: "deterministic_route",
+      behaviorKey: "guest_community_explore",
+      metadata: {
+        stage: "decision_pipeline",
+        route: GUEST_COMMUNITY_EXPLORE_ROUTE,
+        label: "Browse Community",
+      },
+    };
+  }
+
+  if (!request.isAuthenticated && SCOUT_AUTH_REQUIRED_ACTION_PATTERN.test(raw)) {
     return {
       type: "blocked",
       reason: "auth_required",
