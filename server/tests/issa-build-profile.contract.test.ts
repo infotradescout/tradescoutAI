@@ -84,7 +84,7 @@ describe("ISSA Build public profile contract", () => {
     expect(provisioner).toContain("publicContactEnabled: false");
     expect(provisioner).toContain("publicLocationEnabled: false");
     expect(provisioner).toContain("publicWebsiteEnabled: false");
-    expect(provisioner).toContain('presentation_archetype: "luxury-material-house"');
+    expect(provisioner).toContain('presentation_archetype: "lux"');
     expect(provisioner).toContain("Custom onyx installation");
     expect(provisioner).toContain("Backlighting solutions");
     expect(provisioner).toContain("Onyx customization");
@@ -163,7 +163,8 @@ describe("ISSA Build public profile contract", () => {
       ISSA_BUILD_HERO_VIDEO.replace(/^\//, "")
     );
     expect(fs.existsSync(heroVideoPath)).toBe(true);
-    expect(fs.statSync(heroVideoPath).size).toBe(808_666);
+    // Cropped hero (150px right trim) — size pinned to catch accidental asset swaps.
+    expect(fs.statSync(heroVideoPath).size).toBe(1_402_114);
     expect(
       fs.existsSync(
         path.resolve(process.cwd(), "client/public", ISSA_BUILD_HERO_POSTER.replace(/^\//, ""))
@@ -183,7 +184,7 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("View installed work");
   });
 
-  it("uses the reusable luxury-material-house archetype below the hero", () => {
+  it("uses the reusable Lux archetype below the hero", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const sections = read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx");
     const luxuryHouse = read("client/src/pages/profile-sites/LuxuryMaterialHouseShowcase.tsx");
@@ -195,7 +196,7 @@ describe("ISSA Build public profile contract", () => {
     const house = premiumData?.luxuryHouse;
 
     expect(premiumData?.variant).toBe("editorial-product");
-    expect(premiumData?.presentation).toBe("luxury-material-house");
+    expect(premiumData?.presentation).toBe("lux");
     expect(isPremiumProductProfileData(premiumData)).toBe(true);
     expect(
       isPremiumProductProfileData({
@@ -206,10 +207,17 @@ describe("ISSA Build public profile contract", () => {
     expect(
       isPremiumProductProfileData({
         ...premiumData,
-        presentation: "luxury-material-house",
+        presentation: "lux",
         luxuryHouse: undefined,
       })
     ).toBe(false);
+    // Legacy presentation id still validates when luxuryHouse is present.
+    expect(
+      isPremiumProductProfileData({
+        ...premiumData,
+        presentation: "luxury-material-house",
+      })
+    ).toBe(true);
     expect(premiumData?.featuredProductSlug).toBe("honey-onyx");
     expect(premiumData?.offerings?.items?.map((item: any) => item.slug)).toEqual([
       "honey-onyx",
@@ -233,6 +241,20 @@ describe("ISSA Build public profile contract", () => {
     // First two content section heroes are installed interiors, not slab yard.
     expect(house.designedWithLight.image).toMatch(/\/applications\//);
     expect(house.materialChapters[0].applicationImage).toMatch(/\/applications\//);
+    // Slab / material close-ups live in the bottom sample rail only.
+    expect(house.materialSamples?.eyebrow).toBe("MATERIAL SAMPLES");
+    expect(house.materialSamples?.title).toBe("Stone detail.");
+    expect(
+      house.materialSamples?.groups?.map((g: any) => [g.slug, g.name, g.images.length])
+    ).toEqual([
+      ["honey-onyx", "Honey Onyx", 2],
+      ["multi-green-onyx", "Multi Green Onyx", 4],
+    ]);
+    const railImages = (house.materialSamples?.groups || []).flatMap((g: any) => g.images);
+    expect(railImages).toEqual([...ISSA_BUILD_SLAB_IMAGES]);
+    for (const image of railImages) {
+      expect(String(image)).toMatch(/\/slabs\//);
+    }
     expect(house.capabilities.items.map((item: any) => item.title)).toEqual([
       "Material selection",
       "Custom cutting and shaping",
@@ -273,14 +295,16 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain('data-testid="wholesaler-brand-footer"');
     expect(theme).toContain('data-testid="profile-trust-section"');
     expect(theme).toContain('data-testid="luxury-material-house-unavailable"');
-    expect(theme).toContain('rawPremiumPresentation === "luxury-material-house"');
+    expect(theme).toContain("isLuxPresentation(rawPremiumPresentation)");
+    expect(theme).toContain('"lux"');
+    expect(theme).toContain("luxury-material-house");
     expect(theme.indexOf("<PremiumProductProfileSections")).toBeLessThan(
       theme.indexOf('data-testid="wholesaler-brand-footer"')
     );
     expect(theme.indexOf('data-testid="wholesaler-brand-footer"')).toBeLessThan(
       theme.indexOf("<TradeScoutProfileHandoff")
     );
-    expect(theme).toContain('premiumProductData?.presentation === "luxury-material-house"');
+    expect(theme).toContain("isLuxPresentation(premiumProductData?.presentation)");
     expect(theme).toContain('["Showcase", "showcase"]');
     expect(theme).toContain('["Consult", "consult"]');
     expect(theme).toContain('["Connect", "connect"]');
@@ -305,6 +329,12 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).not.toMatch(
       /isIssaBuild[\s\S]{0,220}h-\[calc\(100svh-var\(--ts-profile-top-offset/
     );
+    // ISSA hero: translucent copy panel instead of full-bleed video scrim.
+    expect(theme).toContain("md:bg-black/45");
+    expect(theme).toContain("md:backdrop-blur-sm");
+    expect(theme).not.toContain(
+      "bg-[linear-gradient(180deg,rgba(8,6,4,0.12)_0%,rgba(8,6,4,0.28)_55%,rgba(8,6,4,0.72)_100%)]"
+    );
     expect(theme).toContain("border-ts-orange");
     expect(theme).toContain("Direct Connect");
     expect(theme).not.toContain('["Inquire", "connect"]');
@@ -328,7 +358,7 @@ describe("ISSA Build public profile contract", () => {
     ).toBeGreaterThan(0);
 
     expect(sections).toContain("<LuxuryMaterialHouseShowcase");
-    expect(sections).toContain('presentation === "luxury-material-house"');
+    expect(sections).toContain("isLuxPresentation(props.data.presentation)");
     expect(sections).toContain("<OnyxStoneShowcase");
     expect(sections).toContain('presentation === "horizontal-luxury-showcase"');
     expect(sections).not.toMatch(/profileSlug\s*===\s*["']issa-build["']/);
@@ -339,6 +369,8 @@ describe("ISSA Build public profile contract", () => {
     expect(luxuryHouse).toContain("material-chapters");
     expect(luxuryHouse).toContain("capabilities");
     expect(luxuryHouse).toContain("showcase");
+    expect(luxuryHouse).toContain("material-samples");
+    expect(luxuryHouse).toContain("luxury-house-material-samples");
     expect(luxuryHouse).toContain("consult");
     expect(luxuryHouse).toContain("platformEngagement");
     expect(luxuryHouse).toContain("luxury-house-platform-engagement");
@@ -350,6 +382,13 @@ describe("ISSA Build public profile contract", () => {
     expect(luxuryHouse).toContain("Discuss your project");
     expect(luxuryHouse).toContain("font-editorial");
     expect(luxuryHouse).toContain("var(--brand-accent");
+    expect(luxuryHouse).toContain("bg-black/45");
+    expect(luxuryHouse).toContain("backdrop-blur-sm");
+    expect(luxuryHouse).not.toContain("bg-[linear-gradient");
+    expect(luxuryHouse).not.toContain("bg-gradient-to-t");
+    expect(luxuryHouse).not.toContain("from-black/");
+    expect(luxuryHouse).not.toContain("aspect-[16/7]");
+    expect(luxuryHouse).not.toContain("Open ${chapter.name} detail image");
     expect(luxuryHouse).not.toContain('id="connect"');
     expect(luxuryHouse).not.toContain("A useful first message includes");
     expect(luxuryHouse).not.toContain("From stone to space");
@@ -357,6 +396,8 @@ describe("ISSA Build public profile contract", () => {
     expect(luxuryHouse).not.toContain("snap-x snap-mandatory");
     expect(luxuryHouse).not.toContain("Lookbook");
     expect(luxuryHouse).not.toContain("Choose onyx collection");
+    expect(luxuryHouse).not.toContain("Search by stone name");
+    expect(luxuryHouse).not.toContain("View details");
     expect(luxuryHouse).not.toMatch(/profileSlug\s*===\s*["']issa-build["']/);
     for (const forbidden of FORBIDDEN_ISSA_PRESENTATION_STRINGS) {
       expect(luxuryHouse.toLowerCase()).not.toContain(forbidden.toLowerCase());

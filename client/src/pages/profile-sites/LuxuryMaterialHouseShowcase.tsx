@@ -33,8 +33,9 @@ type Props = {
 };
 
 /**
- * Vertical editorial luxury-material-house presentation.
- * Application imagery leads; no inventory/catalog chrome.
+ * Lux presentation (canonical id: `lux`).
+ * Application imagery leads; slab close-ups sit in a bottom sample rail.
+ * Photography stays ungraded — copy uses translucent panels, not full-image scrims.
  */
 export default function LuxuryMaterialHouseShowcase({
   profileName,
@@ -52,9 +53,7 @@ export default function LuxuryMaterialHouseShowcase({
 }: Props) {
   const house = data.luxuryHouse;
   if (!house) {
-    throw new Error(
-      'PremiumProductProfileData.presentation "luxury-material-house" requires luxuryHouse data'
-    );
+    throw new Error('PremiumProductProfileData.presentation "lux" requires luxuryHouse data');
   }
 
   const initialChapter =
@@ -88,6 +87,7 @@ export default function LuxuryMaterialHouseShowcase({
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
   const deepLinkAppliedRef = useRef(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const sampleGroups = house.materialSamples?.groups || [];
 
   useEffect(() => {
     if (!initialProductSlug) return;
@@ -115,9 +115,8 @@ export default function LuxuryMaterialHouseShowcase({
       document
         .getElementById(`chapter-${linked.slug}`)
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      const anchorIndex = Math.min(clamped, 1);
       document
-        .getElementById(`luxury-house-photo-${linked.slug}-${anchorIndex}`)
+        .getElementById(`luxury-house-photo-${linked.slug}-0`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [house.materialChapters, initialPhotoIndex, initialProductSlug, products]);
@@ -162,11 +161,11 @@ export default function LuxuryMaterialHouseShowcase({
       data-testid="luxury-material-house-showcase"
       className="overflow-hidden bg-[#070605] text-[#f4efe6]"
     >
-      {/* 1. Designed with light — immersive installed interior */}
+      {/* 1. Designed with light — clean photo + translucent copy panel */}
       <section
         id="designed-with-light"
         data-testid="luxury-house-designed-with-light"
-        className="relative isolate min-h-[78svh] scroll-mt-24 overflow-hidden"
+        className="relative isolate min-h-[70svh] scroll-mt-24 overflow-hidden"
       >
         <SafeProfileImg
           src={house.designedWithLight.image}
@@ -174,29 +173,28 @@ export default function LuxuryMaterialHouseShowcase({
           aria-hidden="true"
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <span className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(7,6,5,0.25)_0%,rgba(7,6,5,0.55)_48%,rgba(7,6,5,0.92)_100%)]" />
-        <div className="relative z-10 mx-auto flex min-h-[78svh] max-w-7xl items-end px-4 py-16 sm:px-8 sm:py-24">
-          <div className="max-w-2xl">
+        <div className="relative z-10 mx-auto flex min-h-[70svh] max-w-7xl items-end px-4 py-10 sm:px-8 sm:py-14">
+          <div className="max-w-2xl bg-black/45 p-5 backdrop-blur-sm sm:p-7">
             <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
               {house.designedWithLight.eyebrow}
             </p>
-            <h2 className="mt-4 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl">
+            <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl">
               {house.designedWithLight.title}
             </h2>
-            <p className="mt-5 max-w-xl text-sm font-light leading-7 text-white/80 sm:text-base sm:leading-8">
+            <p className="mt-4 max-w-xl text-sm font-light leading-7 text-white/90 sm:text-base sm:leading-8">
               {house.designedWithLight.body}
             </p>
           </div>
         </div>
       </section>
 
-      {/* 2. Editorial material chapters — application first, detail second */}
+      {/* 2. Editorial material chapters — installed application only */}
       <section
         id="material-chapters"
         data-testid="luxury-house-material-chapters"
-        className="scroll-mt-24 bg-[#0c0a08] px-4 py-16 sm:px-8 sm:py-24"
+        className="scroll-mt-24 bg-[#0c0a08] px-4 py-10 sm:px-8 sm:py-14"
       >
-        <div className="mx-auto max-w-7xl space-y-20 sm:space-y-28">
+        <div className="mx-auto max-w-7xl space-y-12 sm:space-y-16">
           {house.materialChapters.map((chapter, chapterIndex) => {
             const chapterProduct = products.find((entry) => entry.slug === chapter.slug) || {
               name: chapter.name,
@@ -213,7 +211,7 @@ export default function LuxuryMaterialHouseShowcase({
                 key={chapter.slug}
                 id={`chapter-${chapter.slug}`}
                 data-testid={`luxury-house-chapter-${chapter.slug}`}
-                className="grid gap-8 lg:grid-cols-12 lg:gap-10"
+                className="grid gap-6 lg:grid-cols-12 lg:gap-8"
               >
                 <div className={`lg:col-span-7 ${chapterIndex % 2 === 1 ? "lg:order-2" : ""}`}>
                   <div className="overflow-hidden">
@@ -235,29 +233,6 @@ export default function LuxuryMaterialHouseShowcase({
                         alt={`${chapter.name} installed interior`}
                         loading={chapterIndex === 0 ? "eager" : "lazy"}
                         className="aspect-[4/3] h-full w-full object-cover transition duration-[1200ms] ease-out hover:scale-[1.015] motion-reduce:transition-none"
-                      />
-                    </button>
-                  </div>
-                  <div className="mt-3 overflow-hidden">
-                    <button
-                      type="button"
-                      id={`luxury-house-photo-${chapter.slug}-1`}
-                      data-testid={`luxury-house-photo-${chapter.slug}-1`}
-                      data-photo-index="1"
-                      onClick={() => {
-                        setSelectedMaterialSlug(chapter.slug);
-                        const detailIndex = Math.min(1, Math.max(0, chapterImages.length - 1));
-                        setActivePhoto(detailIndex);
-                      }}
-                      className="block w-full text-left"
-                      aria-label={`Open ${chapter.name} detail image`}
-                    >
-                      <SafeProfileImg
-                        src={chapter.detailImage}
-                        fallbackSrcs={chapterImages}
-                        alt={`${chapter.name} material detail`}
-                        loading="lazy"
-                        className="aspect-[16/7] w-full object-cover"
                       />
                     </button>
                   </div>
@@ -283,7 +258,7 @@ export default function LuxuryMaterialHouseShowcase({
                       connectMaterial(chapter.slug, chapter.name);
                     }}
                     aria-label={`Direct Connect about ${chapter.name}`}
-                    className="mt-8 inline-flex min-h-12 w-fit items-center justify-center gap-2 border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent,#d9a441)]/90"
+                    className="mt-6 inline-flex min-h-12 w-fit items-center justify-center gap-2 border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent,#d9a441)]/90"
                   >
                     Discuss {chapter.name}
                     <ChevronRight className="h-4 w-4" />
@@ -299,10 +274,10 @@ export default function LuxuryMaterialHouseShowcase({
       <section
         id="capabilities"
         data-testid="luxury-house-capabilities"
-        className="scroll-mt-24 bg-[#0c0a08] px-4 py-16 sm:px-8 sm:py-24"
+        className="scroll-mt-24 bg-[#0c0a08] px-4 py-10 sm:px-8 sm:py-14"
       >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-10 max-w-3xl sm:mb-12">
+          <div className="mb-7 max-w-3xl sm:mb-8">
             <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
               {house.capabilities.eyebrow}
             </p>
@@ -310,16 +285,16 @@ export default function LuxuryMaterialHouseShowcase({
               {house.capabilities.title}
             </h2>
             {house.capabilities.body ? (
-              <p className="mt-4 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base sm:leading-8">
+              <p className="mt-3 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base sm:leading-8">
                 {house.capabilities.body}
               </p>
             ) : null}
           </div>
-          <ul className="max-w-xl space-y-3 border-t border-white/10 pt-6">
+          <ul className="max-w-xl space-y-2 border-t border-white/10 pt-4">
             {house.capabilities.items.map((item) => (
               <li
                 key={item.title}
-                className="border-b border-white/10 py-3 text-sm font-light tracking-wide text-[#f4efe6]/90 sm:text-base"
+                className="border-b border-white/10 py-2.5 text-sm font-light tracking-wide text-[#f4efe6]/90 sm:text-base"
               >
                 {item.title}
               </li>
@@ -328,14 +303,14 @@ export default function LuxuryMaterialHouseShowcase({
         </div>
       </section>
 
-      {/* 4. Installed work — photographs lead */}
+      {/* 4. Installed work — photographs lead, no overlays */}
       <section
         id="showcase"
         data-testid="luxury-house-showcase"
-        className="scroll-mt-24 bg-[#070605] px-4 py-16 sm:px-8 sm:py-24"
+        className="scroll-mt-24 bg-[#070605] px-4 py-10 sm:px-8 sm:py-14"
       >
         <div className="mx-auto max-w-7xl">
-          <div className="mb-10 max-w-3xl sm:mb-14">
+          <div className="mb-7 max-w-3xl sm:mb-9">
             <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
               {house.showcase.eyebrow}
             </p>
@@ -343,7 +318,7 @@ export default function LuxuryMaterialHouseShowcase({
               {house.showcase.title}
             </h2>
             {house.showcase.body ? (
-              <p className="mt-4 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
+              <p className="mt-3 max-w-2xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
                 {house.showcase.body}
               </p>
             ) : null}
@@ -356,7 +331,7 @@ export default function LuxuryMaterialHouseShowcase({
                   key={image}
                   className={`overflow-hidden bg-[#120f0c] ${
                     wide ? "col-span-2 lg:col-span-8" : "col-span-1 lg:col-span-4"
-                  } ${index % 3 === 1 ? "lg:mt-10" : ""}`}
+                  } ${index % 3 === 1 ? "lg:mt-8" : ""}`}
                 >
                   <SafeProfileImg
                     src={image}
@@ -375,7 +350,7 @@ export default function LuxuryMaterialHouseShowcase({
 
       {platformEngagement ? (
         <section
-          className="border-y border-white/10 bg-[#0c0a08] py-5"
+          className="border-y border-white/10 bg-[#0c0a08] py-4"
           aria-label="Trust and profile actions"
           data-testid="luxury-house-platform-engagement"
         >
@@ -383,11 +358,70 @@ export default function LuxuryMaterialHouseShowcase({
         </section>
       ) : null}
 
-      {/* 5. Private Direct Connect — single final action (no duplicate closing) */}
+      {/* 5. Material samples — slab / close-up rail only */}
+      {house.materialSamples && sampleGroups.length > 0 ? (
+        <section
+          id="material-samples"
+          data-testid="luxury-house-material-samples"
+          className="scroll-mt-24 bg-[#0c0a08] px-4 py-10 sm:px-8 sm:py-14"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div className="mb-6 max-w-3xl sm:mb-7">
+              <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
+                {house.materialSamples.eyebrow}
+              </p>
+              <h2 className="mt-3 font-editorial text-3xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-4xl">
+                {house.materialSamples.title}
+              </h2>
+            </div>
+            <div className="space-y-7">
+              {sampleGroups.map((group) => (
+                <div key={group.slug} data-testid={`luxury-house-sample-group-${group.slug}`}>
+                  <p className="mb-3 text-[10px] font-medium uppercase tracking-[0.28em] text-white/55">
+                    {group.name}
+                  </p>
+                  <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:-mx-0 sm:px-0">
+                    {group.images.map((image, index) => (
+                      <button
+                        key={image}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMaterialSlug(group.slug);
+                          const linked = materialProductFor(
+                            group.slug,
+                            group.name,
+                            house.materialChapters.find((c) => c.slug === group.slug)
+                              ?.applicationImage || image,
+                            house.materialChapters.find((c) => c.slug === group.slug)
+                              ?.detailImage || image
+                          );
+                          const photoIdx = Math.max(0, linked.images.indexOf(image));
+                          setActivePhoto(photoIdx >= 0 ? photoIdx : 0);
+                        }}
+                        className="relative w-[9.5rem] flex-none overflow-hidden bg-[#120f0c] text-left sm:w-44"
+                        aria-label={`Open ${group.name} sample ${index + 1}`}
+                      >
+                        <SafeProfileImg
+                          src={image}
+                          alt={`${group.name} material sample ${index + 1}`}
+                          loading="lazy"
+                          className="aspect-[4/5] w-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* 6. Private Direct Connect — single final action (no duplicate closing) */}
       <section
         id="consult"
         data-testid="luxury-house-consultation"
-        className="scroll-mt-24 bg-[#f7f0e4] px-4 py-16 text-[#17100b] sm:px-8 sm:py-24"
+        className="scroll-mt-24 bg-[#f7f0e4] px-4 py-10 text-[#17100b] sm:px-8 sm:py-14"
       >
         <div className="mx-auto max-w-3xl">
           <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
@@ -396,13 +430,13 @@ export default function LuxuryMaterialHouseShowcase({
           <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl">
             {house.consultation.title}
           </h2>
-          <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#5c5348] sm:text-base sm:leading-8">
+          <p className="mt-3 max-w-xl text-sm font-light leading-7 text-[#5c5348] sm:text-base sm:leading-8">
             {house.consultation.body}
           </p>
 
           {house.materialChapters.length > 1 ? (
             <div
-              className="mt-8 flex w-fit flex-wrap gap-1 border border-[#342316]/20 p-1"
+              className="mt-6 flex w-fit flex-wrap gap-1 border border-[#342316]/20 p-1"
               role="group"
               aria-label="Select material for consultation"
             >
@@ -428,14 +462,14 @@ export default function LuxuryMaterialHouseShowcase({
             type="button"
             onClick={startConsultation}
             aria-label={`Direct Connect about ${selectedChapter.name}`}
-            className="mt-8 inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent,#d9a441)]/90"
+            className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent,#d9a441)]/70 bg-[var(--brand-accent,#d9a441)] px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent,#d9a441)]/90"
           >
             <MessageCircle className="h-4 w-4" />
             Discuss your project
             <ChevronRight className="h-4 w-4" />
           </button>
           {house.consultation.note ? (
-            <p className="mt-5 max-w-xl text-xs leading-5 text-[#5c5348]">
+            <p className="mt-4 max-w-xl text-xs leading-5 text-[#5c5348]">
               {house.consultation.note}
             </p>
           ) : null}
@@ -443,12 +477,12 @@ export default function LuxuryMaterialHouseShowcase({
       </section>
 
       {faqItems.length > 0 ? (
-        <section className="bg-[#0c0a08] px-4 py-16 sm:px-8 sm:py-24">
+        <section className="bg-[#0c0a08] px-4 py-10 sm:px-8 sm:py-14">
           <div className="mx-auto max-w-5xl">
             <h2 className="font-editorial text-3xl font-medium tracking-[-0.02em] sm:text-4xl">
               Before the conversation
             </h2>
-            <div className="mt-8 grid gap-3 md:grid-cols-2">
+            <div className="mt-6 grid gap-3 md:grid-cols-2">
               {faqItems.map((faq, index) => (
                 <details
                   key={`${faq.question || "Question"}-${index}`}

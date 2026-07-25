@@ -37,7 +37,7 @@ import {
   buildProfileGalleryShareSearch,
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
-import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
+import { isLuxPresentation, isPremiumProductProfileData } from "@shared/premiumProductProfile";
 import {
   ISSA_BUILD_HERO_POSTER,
   ISSA_BUILD_HERO_VIDEO,
@@ -526,9 +526,9 @@ export default function WholesalerProfileTheme({
       ? (premiumProductBlock.data as Record<string, unknown>).presentation
       : undefined;
   // Presentation flag is checked before full validation so a broken/edited
-  // luxury-material-house payload fails closed instead of falling through to
-  // wholesaler inventory chrome.
-  const isLuxuryMaterialHouse = rawPremiumPresentation === "luxury-material-house";
+  // Lux payload fails closed instead of falling through to wholesaler inventory chrome.
+  // Accepts canonical "lux" and legacy "luxury-material-house".
+  const isLuxuryMaterialHouse = isLuxPresentation(rawPremiumPresentation);
   const premiumProductData = isPremiumProductProfileData(premiumProductBlock?.data)
     ? premiumProductBlock.data
     : null;
@@ -566,7 +566,7 @@ export default function WholesalerProfileTheme({
     const stoneParam = params.get("stone");
     const photoParam = params.get("photo");
 
-    // Presentation-first: luxury-material-house deep links resolve from chapters
+    // Presentation-first: Lux deep links resolve from chapters
     // even when inventoryCatalog is missing/edited.
     if (isLuxuryMaterialHouse && premiumProductData?.luxuryHouse) {
       const fromInventory = resolveProfileInventoryItem(inventoryCatalog, stoneParam, photoParam);
@@ -1102,7 +1102,7 @@ export default function WholesalerProfileTheme({
               Browse full inventory
             </button>
           ) : null}
-          {(premiumProductData?.presentation === "luxury-material-house"
+          {(isLuxPresentation(premiumProductData?.presentation)
             ? [
                 ["Light", "designed-with-light"],
                 ["Materials", "material-chapters"],
@@ -1197,7 +1197,7 @@ export default function WholesalerProfileTheme({
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
             ) : null}
-            <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,6,4,0.12)_0%,rgba(8,6,4,0.28)_55%,rgba(8,6,4,0.72)_100%)] md:bg-[linear-gradient(105deg,rgba(8,6,4,0.72)_0%,rgba(8,6,4,0.28)_42%,rgba(8,6,4,0.12)_100%)]" />
+            {/* No full-bleed scrim on ISSA hero film — copy uses a translucent panel. */}
           </div>
         ) : null}
         {heroVideo && !isIssaBuild ? (
@@ -1226,130 +1226,138 @@ export default function WholesalerProfileTheme({
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
             isIssaBuild
-              ? "w-full bg-[#0c0a08] py-8 md:absolute md:inset-0 md:flex md:flex-col md:justify-end md:bg-transparent md:px-10 md:pb-14 md:pt-0"
+              ? "w-full bg-[#0c0a08] py-6 md:absolute md:inset-0 md:flex md:flex-col md:justify-end md:bg-transparent md:px-10 md:pb-10 md:pt-0"
               : isJwStone
                 ? "md:px-8"
                 : "md:px-6 md:text-center"
           }`}
         >
-          {heroEyebrow ? (
-            isIssaBuild ? (
-              <p
-                className={`mb-4 text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent)] md:mb-5 ${heroReveal(1)}`}
-              >
-                {heroEyebrow}
-              </p>
-            ) : (
-              <span
-                className={`mb-3 inline-block rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white md:mb-6 md:px-4 md:text-xs ${
-                  isJwStone
-                    ? "border-white/40 bg-black/35"
-                    : "border-white/25 bg-black/25 backdrop-blur-sm"
-                } ${heroReveal(1)}`}
-              >
-                {heroEyebrow}
-              </span>
-            )
-          ) : null}
-          <h1
-            className={`mb-3 max-w-[18ch] text-white md:mb-6 md:max-w-3xl md:leading-tight ${
-              isIssaBuild
-                ? "font-editorial text-[2.75rem] font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl"
-                : isJwStone
-                  ? `text-[2.2rem] font-bold leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96] ${DISPLAY_FONT}`
-                  : `text-[2.55rem] font-bold leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto ${DISPLAY_FONT}`
-            } ${heroReveal(2)}`}
-          >
-            {heroHeadline}
-          </h1>
-          {heroTeaser ? (
-            <p
-              className={`mb-5 max-w-[34rem] text-white md:mb-10 ${
-                isIssaBuild
-                  ? "max-w-xl text-sm font-light leading-7 text-white/80 sm:text-base sm:leading-8"
-                  : isJwStone
-                    ? "text-sm font-medium leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
-                    : "text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:text-lg"
-              } ${heroReveal(3)}`}
-            >
-              {heroTeaser}
-            </p>
-          ) : null}
           <div
-            className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
+            className={
               isIssaBuild
-                ? "max-w-[36rem] items-start gap-4 sm:items-center"
-                : isJwStone
-                  ? "max-w-[38rem]"
-                  : "md:justify-center"
-            } ${heroReveal(4)}`}
+                ? "md:max-w-2xl md:bg-black/45 md:p-6 md:backdrop-blur-sm lg:p-7"
+                : undefined
+            }
           >
-            {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
-              <button
-                type="button"
-                onClick={openFullInventory}
-                className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
+            {heroEyebrow ? (
+              isIssaBuild ? (
+                <p
+                  className={`mb-3 text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent)] md:mb-4 ${heroReveal(1)}`}
+                >
+                  {heroEyebrow}
+                </p>
+              ) : (
+                <span
+                  className={`mb-3 inline-block rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white md:mb-6 md:px-4 md:text-xs ${
+                    isJwStone
+                      ? "border-white/40 bg-black/35"
+                      : "border-white/25 bg-black/25 backdrop-blur-sm"
+                  } ${heroReveal(1)}`}
+                >
+                  {heroEyebrow}
+                </span>
+              )
+            ) : null}
+            <h1
+              className={`mb-3 max-w-[18ch] text-white md:mb-5 md:max-w-3xl md:leading-tight ${
+                isIssaBuild
+                  ? "font-editorial text-[2.75rem] font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl"
+                  : isJwStone
+                    ? `text-[2.2rem] font-bold leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96] ${DISPLAY_FONT}`
+                    : `text-[2.55rem] font-bold leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto ${DISPLAY_FONT}`
+              } ${heroReveal(2)}`}
+            >
+              {heroHeadline}
+            </h1>
+            {heroTeaser ? (
+              <p
+                className={`mb-5 max-w-[34rem] text-white md:mb-7 ${
+                  isIssaBuild
+                    ? "max-w-xl text-sm font-light leading-7 text-white/85 sm:text-base sm:leading-8"
+                    : isJwStone
+                      ? "text-sm font-medium leading-relaxed [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
+                      : "text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:text-lg"
+                } ${heroReveal(3)}`}
               >
-                Browse full inventory
-                <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            ) : premiumProductData?.presentation === "luxury-material-house" ? (
-              <>
+                {heroTeaser}
+              </p>
+            ) : null}
+            <div
+              className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
+                isIssaBuild
+                  ? "max-w-[36rem] items-start gap-4 sm:items-center"
+                  : isJwStone
+                    ? "max-w-[38rem]"
+                    : "md:justify-center"
+              } ${heroReveal(4)}`}
+            >
+              {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
                 <button
                   type="button"
-                  onClick={() => startDirectConnect()}
-                  className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
+                  onClick={openFullInventory}
+                  className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
                 >
-                  Start a private consultation
-                  <ChevronRight className="h-4 w-4" />
+                  Browse full inventory
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("showcase")?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  className="inline-flex min-h-11 items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80 transition hover:text-white"
-                >
-                  View installed work
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" })
-                  }
-                  className={
-                    isIssaBuild
-                      ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
-                      : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                  }
-                >
-                  {isIssaBuild
-                    ? "Lookbook"
-                    : premiumProductData
-                      ? "See the material"
-                      : "Explore Inventory"}
-                  {isIssaBuild ? (
-                    <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
-                  ) : null}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => startDirectConnect()}
-                  className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                    isJwStone || isIssaBuild
-                      ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
-                      : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
-                  }`}
-                >
-                  Direct Connect
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </>
-            )}
+              ) : isLuxPresentation(premiumProductData?.presentation) ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => startDirectConnect()}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
+                  >
+                    Start a private consultation
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById("showcase")?.scrollIntoView({ behavior: "smooth" })
+                    }
+                    className="inline-flex min-h-11 items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/80 transition hover:text-white"
+                  >
+                    View installed work
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" })
+                    }
+                    className={
+                      isIssaBuild
+                        ? "group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
+                        : "flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                    }
+                  >
+                    {isIssaBuild
+                      ? "Lookbook"
+                      : premiumProductData
+                        ? "See the material"
+                        : "Explore Inventory"}
+                    {isIssaBuild ? (
+                      <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startDirectConnect()}
+                    className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
+                      isJwStone || isIssaBuild
+                        ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
+                        : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
+                    }`}
+                  >
+                    Direct Connect
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -1431,8 +1439,8 @@ export default function WholesalerProfileTheme({
                 This material house cannot be shown right now.
               </h2>
               <p className="mt-3 text-sm font-medium leading-relaxed text-[var(--brand-primary)]/70">
-                The luxury presentation is locked for this profile. Inventory browsing is not shown
-                as a fallback.
+                The Lux presentation is locked for this profile. Inventory browsing is not shown as
+                a fallback.
               </p>
               <button
                 type="button"

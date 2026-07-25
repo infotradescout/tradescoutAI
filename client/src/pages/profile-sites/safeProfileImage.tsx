@@ -3,7 +3,7 @@ import type { ImgHTMLAttributes, SyntheticEvent } from "react";
 /**
  * Detects truncated/corrupt assets that decode as solid black while still
  * firing onLoad (so onError never runs). Shared by inventory cards and
- * luxury-material-house imagery.
+ * Lux presentation imagery.
  */
 export function isDecodedFrameBlack(img: HTMLImageElement): boolean {
   try {

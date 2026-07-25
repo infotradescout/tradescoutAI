@@ -61,7 +61,7 @@ const FORBIDDEN_RENDER_STRINGS = [
   "Honey Green",
 ];
 
-describe("PremiumProductProfileSections luxury-material-house behavior", () => {
+describe("PremiumProductProfileSections lux behavior", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -103,8 +103,8 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     return onDirectConnect;
   }
 
-  it("dispatches luxury-material-house to the editorial house showcase", () => {
-    expect(data.presentation).toBe("luxury-material-house");
+  it("dispatches lux to the editorial house showcase", () => {
+    expect(data.presentation).toBe("lux");
     renderProfile();
     expect(
       container.querySelector('[data-testid="luxury-material-house-showcase"]')
@@ -135,11 +135,25 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     expect(designedImage).toMatch(/\/applications\//);
     expect(honeyApplication).toMatch(/\/applications\//);
 
+    const samples = container.querySelector('[data-testid="luxury-house-material-samples"]');
+    expect(samples).not.toBeNull();
+    expect(samples?.textContent).toContain("MATERIAL SAMPLES");
+    expect(samples?.textContent).toContain("Honey Onyx");
+    expect(samples?.textContent).toContain("Multi Green Onyx");
+    const sampleImgs = Array.from(samples?.querySelectorAll("img") || []).map((img) =>
+      img.getAttribute("src")
+    );
+    expect(sampleImgs.length).toBeGreaterThan(0);
+    for (const src of sampleImgs) {
+      expect(String(src)).toMatch(/\/slabs\//);
+    }
+
     const sectionOrder = [
       "designed-with-light",
       "material-chapters",
       "capabilities",
       "showcase",
+      "material-samples",
       "consult",
     ];
     const positions = sectionOrder.map((id) => container.innerHTML.indexOf(`id="${id}"`));
@@ -264,7 +278,7 @@ describe("PremiumProductProfileSections luxury-material-house behavior", () => {
     }
   });
 
-  it("renders luxury-material-house from chapter identity without inventoryCatalog products", () => {
+  it("renders lux from chapter identity without inventoryCatalog products", () => {
     const chapterOnlyProducts =
       data.luxuryHouse?.materialChapters.map((chapter) => ({
         name: chapter.name,

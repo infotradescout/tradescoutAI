@@ -81,7 +81,7 @@ export function isIssaBuildProfileSlug(slug: string | null | undefined): boolean
 }
 
 /**
- * ISSA Build public copy — luxury-material-house voice.
+ * ISSA Build public copy — Lux presentation voice.
  * Honey Onyx and Multi Green Onyx stay distinct. No catalog spam.
  * inventoryCatalog remains for Direct Connect / material identity only.
  */
@@ -114,7 +114,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "premiumProduct",
     data: {
       variant: PREMIUM_PRODUCT_PROFILE_VARIANT,
-      presentation: "luxury-material-house",
+      presentation: "lux",
       featuredProductSlug: "honey-onyx",
       // Legacy fields retained for schema compatibility; public path uses luxuryHouse.
       offerings: {
@@ -153,6 +153,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             title: "Warm, luminous, unmistakable.",
             body: "Golden movement and soft translucency for baths, bars, kitchens, feature walls, and statement interiors.",
             applicationImage: ISSA_BUILD_APPLICATION_IMAGES[4],
+            // Schema-retained for Direct Connect / deep-link identity; slabs render in materialSamples rail.
             detailImage: ISSA_BUILD_SLAB_IMAGES[0],
           },
           {
@@ -192,6 +193,27 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             ISSA_BUILD_APPLICATION_IMAGES[6],
             ISSA_BUILD_APPLICATION_IMAGES[7],
             ISSA_BUILD_APPLICATION_IMAGES[8],
+          ],
+        },
+        materialSamples: {
+          eyebrow: "MATERIAL SAMPLES",
+          title: "Stone detail.",
+          groups: [
+            {
+              slug: "honey-onyx",
+              name: "Honey Onyx",
+              images: [ISSA_BUILD_SLAB_IMAGES[0], ISSA_BUILD_SLAB_IMAGES[1]],
+            },
+            {
+              slug: "multi-green-onyx",
+              name: "Multi Green Onyx",
+              images: [
+                ISSA_BUILD_SLAB_IMAGES[2],
+                ISSA_BUILD_SLAB_IMAGES[3],
+                ISSA_BUILD_SLAB_IMAGES[4],
+                ISSA_BUILD_SLAB_IMAGES[5],
+              ],
+            },
           ],
         },
         consultation: {
@@ -259,7 +281,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         ],
         note: "Contact details stay private until accepted.",
       },
-      // Schema-retained; luxury-material-house collapses closing into consultation.
+      // Schema-retained; Lux collapses closing into consultation.
       closing: {
         eyebrow: "PRIVATE DIRECT CONNECT",
         title: "Start with the room.",
