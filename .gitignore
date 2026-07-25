@@ -56,3 +56,29 @@ test-db-connection.js
 
 # Local recovery secrets
 render-recovery.env
+
+# QA process scratch (raw trial frames/videos from local visual-fix iteration;
+# curated before/after proof lives in artifacts/evidence/ instead)
+artifacts/issa-hero-frames/
+artifacts/screenshots/issa-hero-trial-br-*.png
+artifacts/screenshots/trial-ff*.png
+artifacts/screenshots/issa-hero-gemini-*.png
+artifacts/screenshots/issa-hero-mean.png
+artifacts/screenshots/issa-hero-diff-br.png
+artifacts/screenshots/issa-hero-br-contrast.png
+artifacts/screenshots/issa-hero-anomalies-zoom.png
+artifacts/screenshots/issa-hero-watermark-candidates.png
+artifacts/screenshots/issa-hero-logo-pixelzoom.png
+artifacts/screenshots/issa-hero-poster-*.png
+artifacts/screenshots/issa-hero-prev-crop-full.png
+artifacts/screenshots/issa-hero-before-br-tight.png
+artifacts/screenshots/issa-hero-before-br-zoom-contrast.png
+artifacts/screenshots/issa-hero-after-current-*.png
+artifacts/screenshots/ref-*-br.png
+artifacts/screenshots/issa-hero-before-full.png
+artifacts/screenshots/issa-hero-before-br.png
+artifacts/screenshots/issa-hero-before-br-zoom.png
+artifacts/screenshots/issa-hero-after-full.png
+artifacts/screenshots/issa-hero-after-br.png
+# Raw playwright verification dump (curated copies live in artifacts/evidence/)
+artifacts/screenshots/verify-*/
