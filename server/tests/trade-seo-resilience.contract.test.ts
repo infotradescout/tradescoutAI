@@ -46,3 +46,46 @@ describe("trade seo resilience contracts", () => {
     expect(profilesRoutes).not.toContain('status(500).send("Failed to generate sitemap")');
   });
 });
+
+describe("Phase C indexability contract — trade/geo SSR/CSR parity", () => {
+  it("CSR noindexes empty trade county shells (baseline — must stay passing)", () => {
+    const countyPage = read("client/src/pages/trade/TradeCountyPage.tsx");
+
+    expect(countyPage).toContain(
+      "const shouldNoIndex = !isLoading && (isError || items.length === 0)"
+    );
+    expect(countyPage).toContain("noIndex={shouldNoIndex}");
+  });
+
+  it("SSR trade HTML robots match CSR empty-state noindex policy", () => {
+    const tradeSsr = read("server/publicTradeHtml.ts");
+    const countySsr = read("server/publicCountyHtml.ts");
+    const citySsr = read("server/publicCityHtml.ts");
+    const bestSsr = read("server/publicBestHtml.ts");
+
+    for (const source of [tradeSsr, countySsr, citySsr, bestSsr]) {
+      expect(source).toMatch(
+        /shouldNoIndex|resolveDirectoryIndexability|noindex.*items\.length === 0|noindex.*qualifyingListings/
+      );
+    }
+  });
+
+  it("empty directory shells must not be sitemap-listed without qualifying listings", () => {
+    const profilesSource = read("server/routes/profiles.ts");
+
+    expect(profilesSource).toMatch(
+      /listing_count\s*>\s*0|qualifyingListings|hasQualifyingDirectoryListings|substantiveListings/
+    );
+    expect(profilesSource).toContain("assertSitemapUrlIsIndexEligible");
+  });
+
+  it("documents Phase B empty-shell samples in contract fixtures", async () => {
+    const fixtures = await import("./fixtures/phase-c-indexability-contract.fixtures");
+
+    expect(fixtures.PHASE_C_EMPTY_DIRECTORY_SHELL_SAMPLES).toContain("/trade/electrical/fl/bay");
+    expect(fixtures.PHASE_C_EMPTY_DIRECTORY_SHELL_SAMPLES).toContain("/county/al/baldwin");
+    expect(fixtures.PHASE_C_STALE_BUSINESS_SITEMAP_SAMPLES).toContain(
+      "2h-v-construction-services-llc-2"
+    );
+  });
+});

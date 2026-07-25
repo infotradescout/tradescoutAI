@@ -136,3 +136,56 @@ describe("landing SEO contracts", () => {
     expect(avatarComponent).toContain("return undefined");
   });
 });
+
+describe("Phase C indexability contract — landing SSR/CSR parity", () => {
+  it("CSR noindexes /lp aliases and query variants (baseline — must stay passing)", () => {
+    const landingPage = read("client/src/pages/landing.tsx");
+
+    expect(landingPage).toContain('pathOnly.startsWith("/lp/")');
+    expect(landingPage).toContain('const hasQueryParams = rawLocation.includes("?")');
+    expect(landingPage).toContain(
+      "const shouldIndexLandingPage = !isAliasLandingPath && !hasQueryParams"
+    );
+    expect(landingPage).toContain("noIndex={!shouldIndexLandingPage}");
+  });
+
+  it("SSR landing robots match CSR for /lp paths and query variants", () => {
+    const landingSsr = read("server/publicLandingHtml.ts");
+
+    expect(landingSsr).toMatch(
+      /shouldIndexLandingPage|resolveLandingIndexability|noindex.*\/lp\/|noindex.*hasQueryParams/
+    );
+  });
+
+  it("SSR landing noindexes unsupported slug variants not in the supported registry", async () => {
+    const landingSsr = read("server/publicLandingHtml.ts");
+    const landingVariants = read("client/src/pages/landingVariants.ts");
+    const templateHtml = `<!doctype html>
+<html>
+  <head><title>TradeScout</title></head>
+  <body><div id="root"></div></body>
+</html>`;
+
+    expect(landingVariants).toContain("resolveLandingVariant");
+    expect(landingSsr).toMatch(
+      /resolveLandingVariant|isSupportedLandingVariant|shouldIndexLandingPage/
+    );
+
+    const html = await buildPublicLandingHtml({
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      requestPath: "/landing/phase-c-unsupported-slug-contract-audit",
+      variant: "phase-c-unsupported-slug-contract-audit",
+    });
+
+    expect(html).toMatch(/noindex/i);
+  });
+
+  it("near-duplicate landing variants must not be independently indexable without unique content gate", () => {
+    const landingSsr = read("server/publicLandingHtml.ts");
+
+    expect(landingSsr).toMatch(
+      /landingDuplicatePolicy|nearDuplicateLanding|canonicalizeNearDuplicateLanding|shouldIndexLandingPage/
+    );
+  });
+});

@@ -227,3 +227,118 @@ describe("sitemap contracts", () => {
     expect(source).not.toContain("PRIMARY_TRADE_SLUGS.flatMap");
   });
 });
+
+describe("Phase C indexability contract — sitemap eligibility", () => {
+  it("documents the locked contract artifact for Phase E gating", () => {
+    const contract = read(
+      "artifacts/evidence/2026-07-25-search-index-recovery/phase-c-indexability-contract.md"
+    );
+
+    expect(contract).toContain("Phase C — Indexability & Sitemap Eligibility Contract");
+    expect(contract).toContain("isPublicAndCrawlableBusiness");
+    expect(contract).toContain("SSR / CSR robots parity rule");
+    expect(contract).toContain("Human approval gate");
+  });
+
+  it("keeps published /u profiles on the platform profile sitemap contract", () => {
+    const source = read("server/routes/profiles.ts");
+
+    expect(source).toContain("canonicalPublishedProfileSitemapLoc");
+    expect(source).toContain("p.status = 'published'");
+    expect(source).toContain("profileVisibility'), 'private') = 'public'");
+    expect(source).toContain("return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`");
+  });
+
+  it("omits stale noindex /business/* URLs from directory business sitemaps", () => {
+    const profilesSource = read("server/routes/profiles.ts");
+    const repoSource = read("server/repositories/sitemapRepository.ts");
+    const businessRouteStart = profilesSource.indexOf(
+      'router.get("/sitemap-directory-businesses-:page(\\\\d+).xml"'
+    );
+    const businessRoute = profilesSource.slice(
+      businessRouteStart,
+      profilesSource.indexOf("const DIRECTORY_TRADE_SITEMAP_PAGE_SIZE", businessRouteStart)
+    );
+
+    // Phase C: sitemap emitters must align with publicBusinessHtml stale noindex policy.
+    expect(businessRoute).toMatch(
+      /isPublicAndCrawlableBusiness|filterCrawlableBusinessSitemapRows/
+    );
+    expect(repoSource).toMatch(/isPublicAndCrawlableBusiness|filterCrawlableBusinessSitemapRows/);
+  });
+
+  it("never sitemap-lists /business/ loc when page would render noindex,nofollow", () => {
+    const businessHtml = read("server/publicBusinessHtml.ts");
+    const profilesSource = read("server/routes/profiles.ts");
+    const businessRouteStart = profilesSource.indexOf(
+      'router.get("/sitemap-directory-businesses-:page(\\\\d+).xml"'
+    );
+    const businessRoute = profilesSource.slice(
+      businessRouteStart,
+      profilesSource.indexOf("const DIRECTORY_TRADE_SITEMAP_PAGE_SIZE", businessRouteStart)
+    );
+
+    expect(businessHtml).toContain("const isStale = !pub.ok");
+    expect(businessHtml).toContain("applyNoIndex(html)");
+    expect(businessRoute).toContain("assertSitemapUrlIsIndexEligible");
+  });
+
+  it("excludes dead homescout listings from sitemap-homescout-listings.xml", () => {
+    const profilesSource = read("server/routes/profiles.ts");
+    const marker = 'router.get("/sitemap-homescout-listings.xml"';
+    const route = profilesSource.slice(profilesSource.indexOf(marker));
+
+    expect(route).toMatch(
+      /assertSitemapUrlIsIndexEligible|verifyHomeScoutListingRenderable|excludeNonRenderableHomeScoutListings/
+    );
+  });
+
+  it("excludes corrupted city slugs from directory city sitemaps", () => {
+    const profilesSource = read("server/routes/profiles.ts");
+    const repoSource = read("server/repositories/sitemapRepository.ts");
+
+    expect(profilesSource).toMatch(
+      /isValidDirectoryCitySlug|citySlug\.startsWith\("-\"\)|rejectCorruptedCitySlug/
+    );
+    expect(repoSource).toMatch(
+      /isValidDirectoryCitySlug|citySlug\.startsWith\("-\"\)|rejectCorruptedCitySlug/
+    );
+  });
+
+  it("gates trade, county, city, and best sitemap rows on qualifying listings or approved shell policy", () => {
+    const profilesSource = read("server/routes/profiles.ts");
+
+    expect(profilesSource).toMatch(
+      /listing_count\s*>\s*0|qualifyingListings|hasQualifyingDirectoryListings|substantiveListings/
+    );
+    expect(profilesSource).toContain("assertSitemapUrlIsIndexEligible");
+  });
+
+  it("centralizes sitemap URL invariants (200, self-canonical, indexable, no redirect, no soft-404 shell)", () => {
+    const profilesSource = read("server/routes/profiles.ts");
+
+    expect(profilesSource).toContain("assertSitemapUrlIsIndexEligible");
+    expect(profilesSource).toMatch(
+      /function assertSitemapUrlIsIndexEligible|export function assertSitemapUrlIsIndexEligible/
+    );
+  });
+
+  it("keeps arbitrary /landing/* variants out of sitemap-core", () => {
+    const staticSitemap = read("client/public/sitemap.xml");
+    const coreDynamic = read("server/routes/profiles.ts");
+
+    expect(staticSitemap).not.toContain("/landing/homeowner-hvac");
+    expect(staticSitemap).not.toContain("/landing/supplier-addition-contractor");
+    expect(coreDynamic).not.toContain("/landing/homeowner-hvac");
+  });
+
+  it("keeps private app shells out of submitted sitemaps", () => {
+    const staticSitemap = read("client/public/sitemap.xml");
+    const profilesSource = read("server/routes/profiles.ts");
+
+    for (const path of ["/dashboard", "/auth/login", "/scout", "/account"]) {
+      expect(staticSitemap).not.toContain(path);
+      expect(profilesSource).not.toContain(`<loc>${path}</loc>`);
+    }
+  });
+});
