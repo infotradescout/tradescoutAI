@@ -1406,23 +1406,6 @@ export default function WholesalerProfileTheme({
             platformEngagement={
               <div data-testid="profile-trust-section">
                 <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
-                {trustFacts.length > 0 ? (
-                  <div
-                    className="container mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#b7aa98] md:px-6"
-                    data-testid="issa-trust-facts"
-                  >
-                    {trustFacts.map((fact, i) => (
-                      <span key={fact} className="inline-flex items-center">
-                        {i > 0 ? (
-                          <span className="mr-3 text-white/25" aria-hidden="true">
-                            ·
-                          </span>
-                        ) : null}
-                        {fact}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
               </div>
             }
           />
