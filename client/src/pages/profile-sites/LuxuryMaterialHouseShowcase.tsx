@@ -161,7 +161,7 @@ export default function LuxuryMaterialHouseShowcase({
       data-testid="luxury-material-house-showcase"
       className="overflow-hidden bg-[#070605] text-[#f4efe6]"
     >
-      {/* 1. Designed with light — clean photo + translucent copy panel */}
+      {/* 1. Backlighting story — clean photo + translucent copy panel */}
       <section
         id="designed-with-light"
         data-testid="luxury-house-designed-with-light"

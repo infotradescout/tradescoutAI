@@ -120,7 +120,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       offerings: {
         eyebrow: "Materials",
         title: "Two translucent onyxes.",
-        body: "Honey Onyx and Multi Green Onyx — separate materials for interiors designed with light.",
+        body: "Honey Onyx and Multi Green Onyx — separate materials for residential and commercial interiors.",
         items: [
           {
             slug: "honey-onyx",
@@ -133,7 +133,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             slug: "multi-green-onyx",
             eyebrow: "Multi Green Onyx",
             title: "Multi Green Onyx",
-            body: "Layered green depth that comes alive with light.",
+            body: "Layered green depth for feature walls and custom interiors.",
             highlights: ["Translucent"],
           },
         ],
@@ -141,8 +141,8 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       luxuryHouse: {
         designedWithLight: {
           eyebrow: "BACKLIGHTING",
-          title: "Designed with light.",
-          body: "Translucent onyx reveals its depth when the material and lighting are considered together. ISSA Build works across selection, customization, backlighting, and installation so the finished surface belongs to the room.",
+          title: "The finish belongs to the room.",
+          body: "Translucent onyx shows its depth when the material and how it is illuminated are planned together. We take projects from selection and customization through installation so the finished surface fits the space.",
           image: ISSA_BUILD_APPLICATION_IMAGES[2],
         },
         materialChapters: [
@@ -167,9 +167,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           },
         ],
         capabilities: {
-          eyebrow: "WHAT ISSA BUILD DOES",
+          eyebrow: "WHAT WE DO",
           title: "From material to installation.",
-          body: "Each project begins with the space, dimensions, intended use, and the way the stone will be illuminated.",
+          body: "We begin with the space, dimensions, intended use, and how the stone will be illuminated.",
           items: [
             { title: "Material selection", body: "" },
             { title: "Custom cutting and shaping", body: "" },
@@ -219,7 +219,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
         consultation: {
           eyebrow: "CONSULTATION",
           title: "Start with the room.",
-          body: "Share the space, dimensions, location, schedule, and backlighting intent.",
+          body: "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting.",
           prompt: "",
           fields: [
             "Selected material",
@@ -229,7 +229,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             "Timing",
             "Backlighting intent",
           ],
-          note: "Contact stays private until accepted.",
+          note: "Your contact stays private until we accept.",
         },
       },
       contrast: {
@@ -270,7 +270,7 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       brief: {
         eyebrow: "Consultation",
         title: "Discuss your project",
-        body: "Share the space, dimensions, location, schedule, and backlighting intent.",
+        body: "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting.",
         steps: [
           "Selected material",
           "Room / application",
@@ -279,13 +279,13 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           "Timing",
           "Backlighting intent",
         ],
-        note: "Contact stays private until accepted.",
+        note: "Your contact stays private until we accept.",
       },
       // Schema-retained; Lux collapses closing into consultation.
       closing: {
         eyebrow: "CONSULTATION",
         title: "Start with the room.",
-        body: "Share the space, dimensions, location, schedule, and backlighting intent.",
+        body: "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting.",
         imageIndex: 2,
         imageFit: "cover",
       },
@@ -337,9 +337,10 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     type: "cta",
     data: {
       heading: "Start with the room.",
-      description: "Share the space, dimensions, location, schedule, and backlighting intent.",
+      description:
+        "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting.",
       requestExamples: ["Discuss your project", "Ask about backlighting", "Something else"],
-      footerText: "Contact stays private until accepted.",
+      footerText: "Your contact stays private until we accept.",
     },
   },
 ] as const;

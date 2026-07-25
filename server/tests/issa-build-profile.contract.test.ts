@@ -264,9 +264,11 @@ describe("ISSA Build public profile contract", () => {
       "Private project consultation",
     ]);
     expect(house.designedWithLight.eyebrow).toBe("BACKLIGHTING");
-    expect(house.designedWithLight.body).toContain(
-      "Translucent onyx reveals its depth when the material and lighting are considered together"
-    );
+    expect(house.designedWithLight.title).toBe("The finish belongs to the room.");
+    expect(house.designedWithLight.body).toContain("We take projects from selection");
+    expect(house.designedWithLight.body.toLowerCase()).not.toContain("designed with light");
+    expect(house.capabilities.eyebrow).toBe("WHAT WE DO");
+    expect(house.capabilities.body).toContain("We begin with the space");
     expect(house.materialChapters[0].title).toBe("Warm, luminous, unmistakable.");
     expect(house.materialChapters[1].title).toBe("A deeper architectural tone.");
     expect(house.showcase.eyebrow).toBe("INSTALLED WORK");
@@ -275,9 +277,9 @@ describe("ISSA Build public profile contract", () => {
     expect(house.consultation.eyebrow).toBe("CONSULTATION");
     expect(house.consultation.title).toBe("Start with the room.");
     expect(house.consultation.body).toBe(
-      "Share the space, dimensions, location, schedule, and backlighting intent."
+      "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting."
     );
-    expect(house.consultation.note).toBe("Contact stays private until accepted.");
+    expect(house.consultation.note).toBe("Your contact stays private until we accept.");
     expect(house.consultation.fields).toEqual([
       "Selected material",
       "Room / application",
