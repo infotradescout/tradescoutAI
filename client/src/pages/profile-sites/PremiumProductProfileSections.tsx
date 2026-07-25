@@ -13,7 +13,7 @@ import {
   buildProfileInventoryShareSearch,
   profileInventoryShareIndexForDisplay,
 } from "@shared/profileItemShare";
-import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
+import { isLuxPresentation, type PremiumProductProfileData } from "@shared/premiumProductProfile";
 import type { DirectConnectTarget } from "./directConnectMaterial";
 import LuxuryMaterialHouseShowcase from "./LuxuryMaterialHouseShowcase";
 import OnyxStoneShowcase from "./OnyxStoneShowcase";
@@ -42,7 +42,7 @@ type Props = {
   profileShareDestination: string;
   platformBaseHref?: string;
   onDirectConnect: (target?: DirectConnectTarget) => void;
-  /** Luxury-material-house: platform engagement rendered after showcase. */
+  /** Lux: platform engagement rendered after showcase. */
   platformEngagement?: ReactNode;
 };
 
@@ -51,7 +51,7 @@ function safeImage(images: string[], index: number): string {
 }
 
 export default function PremiumProductProfileSections(props: Props) {
-  if (props.data.presentation === "luxury-material-house") {
+  if (isLuxPresentation(props.data.presentation)) {
     return <LuxuryMaterialHouseShowcase {...props} />;
   }
   if (props.data.presentation === "horizontal-luxury-showcase") {

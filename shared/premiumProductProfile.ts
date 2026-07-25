@@ -1,6 +1,19 @@
 export const PREMIUM_PRODUCT_PROFILE_VARIANT = "editorial-product" as const;
 
-export type PremiumProductPresentation = "horizontal-luxury-showcase" | "luxury-material-house";
+/** Canonical Lux presentation id (editorial material house). */
+export const LUX_PRESENTATION = "lux" as const;
+/** Legacy presentation id retained for one-release DB read compatibility. */
+export const LEGACY_LUX_PRESENTATION = "luxury-material-house" as const;
+
+export type PremiumProductPresentation =
+  | "horizontal-luxury-showcase"
+  | typeof LUX_PRESENTATION
+  | typeof LEGACY_LUX_PRESENTATION;
+
+/** True when presentation is Lux (canonical or legacy alias). */
+export function isLuxPresentation(value: unknown): boolean {
+  return value === LUX_PRESENTATION || value === LEGACY_LUX_PRESENTATION;
+}
 
 export type PremiumProductApplication = {
   title: string;
@@ -22,7 +35,7 @@ export type PremiumProductOffering = {
   highlights?: string[];
 };
 
-/** Reusable luxury-material-house editorial model (not a catalog/browser). */
+/** Reusable Lux editorial model (not a catalog/browser). */
 export type LuxuryMaterialHouseChapter = {
   slug: string;
   name: string;
@@ -39,6 +52,13 @@ export type LuxuryMaterialHouseChapter = {
 export type LuxuryMaterialHouseCapability = {
   title: string;
   body: string;
+};
+
+/** Bottom material-sample rail group (slab / close-up only — not installed work). */
+export type LuxuryMaterialHouseSampleGroup = {
+  slug: string;
+  name: string;
+  images: string[];
 };
 
 export type LuxuryMaterialHouseData = {
@@ -60,6 +80,15 @@ export type LuxuryMaterialHouseData = {
     title: string;
     body: string;
     images: string[];
+  };
+  /**
+   * Optional bottom rail of raw slab / material close-ups.
+   * Kept out of editorial chapters and installed-work showcase.
+   */
+  materialSamples?: {
+    eyebrow: string;
+    title: string;
+    groups: LuxuryMaterialHouseSampleGroup[];
   };
   consultation: {
     eyebrow: string;
@@ -83,7 +112,7 @@ export type PremiumProductProfileData = {
     body: string;
     items: PremiumProductOffering[];
   };
-  /** Present when presentation === "luxury-material-house". */
+  /** Present when presentation is Lux (`lux` or legacy `luxury-material-house`). */
   luxuryHouse?: LuxuryMaterialHouseData;
   contrast: {
     eyebrow: string;
@@ -141,7 +170,22 @@ function isLuxuryMaterialHouseData(value: unknown): value is LuxuryMaterialHouse
   const chapters = value.materialChapters;
   const capabilities = value.capabilities;
   const showcase = value.showcase;
+  const materialSamples = value.materialSamples;
   const consultation = value.consultation;
+  const validSamples =
+    materialSamples === undefined ||
+    (isRecord(materialSamples) &&
+      isString(materialSamples.eyebrow) &&
+      isString(materialSamples.title) &&
+      Array.isArray(materialSamples.groups) &&
+      materialSamples.groups.every(
+        (group) =>
+          isRecord(group) &&
+          isString(group.slug) &&
+          isString(group.name) &&
+          Array.isArray(group.images) &&
+          group.images.every(isString)
+      ));
   return (
     isRecord(designed) &&
     isString(designed.eyebrow) &&
@@ -175,6 +219,7 @@ function isLuxuryMaterialHouseData(value: unknown): value is LuxuryMaterialHouse
     isString(showcase.body) &&
     Array.isArray(showcase.images) &&
     showcase.images.every(isString) &&
+    validSamples &&
     isRecord(consultation) &&
     isString(consultation.eyebrow) &&
     isString(consultation.title) &&
@@ -200,10 +245,10 @@ export function isPremiumProductProfileData(value: unknown): value is PremiumPro
   const validPresentation =
     presentation === undefined ||
     presentation === "horizontal-luxury-showcase" ||
-    presentation === "luxury-material-house";
+    isLuxPresentation(presentation);
 
   const validLuxuryHouse =
-    presentation !== "luxury-material-house" || isLuxuryMaterialHouseData(candidate.luxuryHouse);
+    !isLuxPresentation(presentation) || isLuxuryMaterialHouseData(candidate.luxuryHouse);
 
   const validOfferings =
     offerings === undefined ||

@@ -224,7 +224,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           owner_confirmation: "confirmed_by_tradescout_operator",
           owner_identity_visibility: "not_publicly_disclosed",
           stewardship_status: ISSA_BUILD_STEWARDSHIP_STATUS,
-          presentation_archetype: "luxury-material-house",
+          presentation_archetype: "lux",
           capability_source: "owner_business_story",
           inherited_platform_capabilities: [
             "direct_connect",
