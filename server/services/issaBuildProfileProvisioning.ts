@@ -196,7 +196,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
         ...existingProfileData,
         tagline: "Honey Onyx and Multi Green Onyx for interiors designed to glow.",
         description:
-          "ISSA Build — translucent onyx crafted for light. Custom installation, backlighting, customization, and private project consultation.",
+          "We craft translucent onyx for residential and commercial interiors — selection, customization, backlighting, installation, and private project consultation.",
         category: "Natural Onyx",
         services: [
           "Custom onyx installation",
@@ -346,7 +346,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
       seoMeta: {
         title: "ISSA Build | Luxury Translucent Onyx",
         description:
-          "ISSA Build — Honey Onyx and Multi Green Onyx for interiors designed to glow. Private project consultation on TradeScout.",
+          "Honey Onyx and Multi Green Onyx for residential and commercial interiors. Private project consultation with us on TradeScout.",
         imageUrl: "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: 1600,
         imageHeight: 1200,
