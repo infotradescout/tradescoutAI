@@ -263,10 +263,13 @@ describe("ISSA Build public profile contract", () => {
       "Residential and commercial projects",
       "Private project consultation",
     ]);
-    expect(house.designedWithLight.eyebrow).toBe("BACKLIGHTING");
-    expect(house.designedWithLight.title).toBe("The finish belongs to the room.");
+    expect(house.designedWithLight.eyebrow).toBe("");
+    expect(house.designedWithLight.title).toBe("");
     expect(house.designedWithLight.body).toContain("We take projects from selection");
     expect(house.designedWithLight.body.toLowerCase()).not.toContain("designed with light");
+    expect(luxuryHouse).toContain("house.designedWithLight.body");
+    expect(luxuryHouse).not.toContain("house.designedWithLight.eyebrow");
+    expect(luxuryHouse).not.toContain("house.designedWithLight.title");
     expect(house.capabilities.eyebrow).toBe("WHAT WE DO");
     expect(house.capabilities.body).toContain("We begin with the space");
     expect(house.materialChapters[0].title).toBe("Warm, luminous, unmistakable.");

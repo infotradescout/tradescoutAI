@@ -175,13 +175,7 @@ export default function LuxuryMaterialHouseShowcase({
         />
         <div className="relative z-10 mx-auto flex min-h-[70svh] max-w-7xl items-end px-4 py-10 sm:px-8 sm:py-14">
           <div className="max-w-2xl bg-black/45 p-5 backdrop-blur-sm sm:p-7">
-            <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
-              {house.designedWithLight.eyebrow}
-            </p>
-            <h2 className="mt-3 font-editorial text-4xl font-medium leading-[0.98] tracking-[-0.02em] sm:text-5xl md:text-6xl">
-              {house.designedWithLight.title}
-            </h2>
-            <p className="mt-4 max-w-xl text-sm font-light leading-7 text-white/90 sm:text-base sm:leading-8">
+            <p className="max-w-xl text-sm font-light leading-7 text-white/90 sm:text-base sm:leading-8">
               {house.designedWithLight.body}
             </p>
           </div>

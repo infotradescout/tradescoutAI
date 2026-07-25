@@ -140,8 +140,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       },
       luxuryHouse: {
         designedWithLight: {
-          eyebrow: "BACKLIGHTING",
-          title: "The finish belongs to the room.",
+          // Schema-retained; lux UI shows body only (no eyebrow/title).
+          eyebrow: "",
+          title: "",
           body: "Translucent onyx shows its depth when the material and how it is illuminated are planned together. We take projects from selection and customization through installation so the finished surface fits the space.",
           image: ISSA_BUILD_APPLICATION_IMAGES[2],
         },
