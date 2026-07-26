@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts",
-    "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node build-server.mjs",
+    "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node scripts/verify-built-asset-urls.mjs && node build-server.mjs",
     "mobile:web": "npm run build",
     "mobile:sync": "npm run mobile:web && npx cap sync",
     "mobile:open:android": "npx cap open android",

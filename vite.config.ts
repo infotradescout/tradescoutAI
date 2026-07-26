@@ -63,6 +63,15 @@ function getPackageChunkName(id: string): string | undefined {
 }
 
 export default defineConfig({
+  base: "/",
+  experimental: {
+    // Vite otherwise stores preload dependencies as "assets/<file>" and
+    // prepends the base only at runtime. Static JavaScript crawlers can resolve
+    // those raw strings relative to the entry chunk as "/assets/assets/<file>".
+    renderBuiltUrl(filename) {
+      return `/${filename.replace(/^\/+/, "")}`;
+    },
+  },
   define: {
     __APP_BUILD_ID__: JSON.stringify(buildId),
   },
