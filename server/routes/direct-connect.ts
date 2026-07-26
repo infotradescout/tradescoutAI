@@ -6990,7 +6990,7 @@ export function registerDirectConnectRoutes(app: Express) {
                       actionText: "View in Direct Connect",
                       iconName: "briefcase",
                       iconColor: "orange",
-                      deliveryMethods: ["in_app", "push"],
+                      deliveryMethods: ["in_app", "email", "push"],
                     });
                   })
                 );
@@ -7297,7 +7297,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 ]
                   .filter(Boolean)
                   .join("\n"),
-                purpose: "account_verification",
+                purpose: "email_verification",
               });
               setupEmailSent = emailResult.skipped !== true;
               setupEmailMessageId = emailResult.messageId;
@@ -7314,7 +7314,7 @@ export function registerDirectConnectRoutes(app: Express) {
                   "<p>If you did not expect this, you can ignore this email.</p>",
                 ].join("\n"),
                 text: `Open Direct Connect: ${publicBase}/direct-connect`,
-                purpose: "notification",
+                purpose: "direct_connect_request",
               });
               requestEmailSent = emailResult.skipped !== true;
               requestEmailMessageId = emailResult.messageId;
@@ -7579,7 +7579,7 @@ export function registerDirectConnectRoutes(app: Express) {
                       actionText: "View in Direct Connect",
                       iconName: "briefcase",
                       iconColor: "orange",
-                      deliveryMethods: ["in_app", "push"],
+                      deliveryMethods: ["in_app", "email", "push"],
                     });
                   })
                 );
@@ -7652,6 +7652,76 @@ export function registerDirectConnectRoutes(app: Express) {
           message: "Failed to create request",
           requestId: (req as any).requestId || null,
         });
+      }
+    }
+  );
+
+  // Staff operations queue: all Direct Connect requests, newest first.
+  app.get(
+    "/api/admin/direct-connect/requests",
+    isAuthenticated,
+    isStaff,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const status = String(req.query.status || "all").trim().toLowerCase();
+        const search = String(req.query.search || "").trim();
+        const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 250);
+        const params: unknown[] = [];
+        const filters: string[] = [];
+
+        if (status && status !== "all") {
+          params.push(status);
+          filters.push(`wr.status::text = $${params.length}`);
+        }
+        if (search) {
+          params.push(`%${search}%`);
+          filters.push(`(
+            wr.title ILIKE $${params.length}
+            OR wr.description ILIKE $${params.length}
+            OR requester.email ILIKE $${params.length}
+            OR COALESCE(requester.first_name, '') ILIKE $${params.length}
+            OR COALESCE(requester.last_name, '') ILIKE $${params.length}
+            OR COALESCE(b.name, '') ILIKE $${params.length}
+          )`);
+        }
+        params.push(limit);
+
+        const result = await pool.query(
+          `SELECT
+             wr.id,
+             wr.title,
+             wr.status::text AS status,
+             wr.category,
+             wr.source,
+             wr.created_at AS "createdAt",
+             wr.updated_at AS "updatedAt",
+             requester.id AS "requesterId",
+             requester.email AS "requesterEmail",
+             NULLIF(TRIM(CONCAT_WS(' ', requester.first_name, requester.last_name)), '') AS "requesterName",
+             p.id AS "profileId",
+             p.slug AS "profileSlug",
+             b.name AS "businessName",
+             COUNT(DISTINCT wra.id)::int AS "assignmentCount",
+             COUNT(DISTINCT wre.id) FILTER (
+               WHERE wre.type::text IN ('provider_responded', 'contractor_responded', 'message_sent')
+             )::int AS "responseCount"
+           FROM work_requests wr
+           LEFT JOIN users requester ON requester.id = wr.created_by_user_id
+           LEFT JOIN profiles p ON p.id = wr.source_ref_id
+           LEFT JOIN businesses b ON b.id = p.business_id
+           LEFT JOIN work_request_assignments wra ON wra.work_request_id = wr.id
+           LEFT JOIN work_request_events wre ON wre.work_request_id = wr.id
+           ${filters.length ? `WHERE ${filters.join(" AND ")}` : ""}
+           GROUP BY wr.id, requester.id, p.id, b.id
+           ORDER BY wr.created_at DESC
+           LIMIT $${params.length}`,
+          params
+        );
+
+        return res.status(200).json({ requests: result.rows });
+      } catch (error) {
+        console.error("Error loading admin direct connect queue:", error);
+        return res.status(500).json({ message: "Failed to load Direct Connect queue" });
       }
     }
   );

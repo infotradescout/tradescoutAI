@@ -12,8 +12,8 @@ const ADMIN_NOTIFICATION_CONCURRENCY = 8;
 /**
  * Beta-only operational visibility for Direct Connect.
  *
- * This creates an in-app notification for every super admin. It deliberately
- * does not send email/push and does not create a work-request assignment.
+ * This creates an in-app and email notification for every super admin. It does
+ * not create a work-request assignment.
  * Failures are swallowed by callers so a notification outage never turns a
  * committed customer request into an apparent submission failure.
  */
@@ -51,14 +51,14 @@ export async function notifySuperAdminsOfDirectConnectRequest({
       batch.map(({ id }) =>
         notificationService.createNotification({
           userId: String(id),
-          type: "new_project_request",
+          type: "direct_connect_beta_request",
           title,
           message,
           actionUrl: `/admin/direct-connect-requests?requestId=${encodeURIComponent(requestId)}`,
           actionText: "Review request",
           iconName: "briefcase",
           iconColor: "orange",
-          deliveryMethods: ["in_app"],
+          deliveryMethods: ["in_app", "email"],
         })
       )
     );

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 
 type AdminDirectConnectRequestDetailResponse = {
@@ -95,7 +96,12 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
             <div className="text-xs uppercase tracking-wide text-white/50">Requester</div>
             {requester ? (
               <div className="mt-1 space-y-0.5">
-                <div>{requester.name || "Unnamed"}</div>
+                <a
+                  href={`/admin/users?userId=${encodeURIComponent(requester.id)}`}
+                  className="block text-ts-orange hover:underline"
+                >
+                  {requester.name || "Unnamed requester"}
+                </a>
                 <div className="text-white/60">{requester.email || "no email on file"}</div>
                 <div className="text-white/60">{requester.phone || "no phone on file"}</div>
               </div>
@@ -109,7 +115,12 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
             </div>
             {originatingProfile ? (
               <div className="mt-1 space-y-0.5">
-                <div>{originatingProfile.businessName}</div>
+                <a
+                  href={`/u/${encodeURIComponent(originatingProfile.slug)}`}
+                  className="block text-ts-orange hover:underline"
+                >
+                  {originatingProfile.businessName}
+                </a>
                 <div className="text-white/60">/u/{originatingProfile.slug}</div>
               </div>
             ) : (
@@ -159,12 +170,11 @@ export function AdminDirectConnectRequestDetail({ requestId }: { requestId: stri
         </div>
 
         {conversationId ? (
-          <a
-            href={`/messages?thread=${encodeURIComponent(conversationId)}`}
-            className="inline-block text-ts-orange hover:underline text-xs"
-          >
-            Open conversation thread
-          </a>
+          <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark">
+            <a href={`/messages?thread=${encodeURIComponent(conversationId)}`}>
+              Open conversation thread
+            </a>
+          </Button>
         ) : (
           <div className="text-xs text-white/50">No conversation thread yet.</div>
         )}

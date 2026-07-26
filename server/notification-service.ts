@@ -20,21 +20,14 @@ import {
   type MarketplaceListing,
 } from "@shared/schema";
 import { eq, and, or, sql, desc, asc, isNull } from "drizzle-orm";
-import { MailService } from "@sendgrid/mail";
 import webPush from "web-push";
+import { emailService } from "./services/emailService";
 
 // Notification Service Class
 export class NotificationService {
-  private mailService?: MailService;
   private webPushConfigured = false;
 
   constructor() {
-    // Initialize SendGrid if API key is available
-    if (process.env.SENDGRID_API_KEY) {
-      this.mailService = new MailService();
-      this.mailService.setApiKey(process.env.SENDGRID_API_KEY);
-    }
-
     if (
       process.env.VAPID_PUBLIC_KEY &&
       process.env.VAPID_PRIVATE_KEY &&
@@ -573,22 +566,37 @@ export class NotificationService {
   }
 
   private async sendEmailNotification(notification: Notification, user: User): Promise<void> {
-    if (!this.mailService || !user.email) {
+    if (!emailService.isConfigured() || !user.email) {
       throw new Error("Email service not configured or user email missing");
     }
 
     const emailSubject = notification.title;
     const emailBody = this.generateEmailHTML(notification, user);
 
-    await this.mailService.send({
+    const result = await emailService.sendEmail({
       to: user.email,
-      from: "notifications@tradescout.app",
       subject: emailSubject,
       html: emailBody,
       text: notification.message,
+      purpose:
+        notification.type === "new_project_request" ||
+        notification.type === "direct_connect_beta_request"
+          ? "direct_connect_request"
+          : "notification",
     });
 
-    await this.logDelivery(notification.id, user.id, "email", "sent", user.email);
+    if (result.skipped) {
+      throw new Error(`Email skipped: ${result.skippedReason || "unknown_reason"}`);
+    }
+
+    await this.logDelivery(
+      notification.id,
+      user.id,
+      "email",
+      "sent",
+      user.email,
+      result.messageId
+    );
   }
 
   private async sendSMSNotification(notification: Notification, user: User): Promise<void> {
@@ -697,7 +705,8 @@ export class NotificationService {
     userId: string,
     method: "in_app" | "email" | "sms" | "push" | "webhook",
     status: string,
-    contactInfo?: string
+    contactInfo?: string,
+    externalId?: string
   ): Promise<void> {
     await db.insert(notificationDeliveryLog).values({
       notificationId,
@@ -705,6 +714,7 @@ export class NotificationService {
       deliveryMethod: method,
       status,
       contactInfo,
+      externalId,
       sentAt: status === "sent" || status === "delivered" ? new Date() : undefined,
       deliveredAt: status === "delivered" ? new Date() : undefined,
       failedAt: status === "failed" ? new Date() : undefined,

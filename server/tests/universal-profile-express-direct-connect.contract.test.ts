@@ -80,13 +80,12 @@ describe("beta Direct Connect super-admin oversight contract", () => {
   const expressSource = read("server/routes/tradepartner-express.ts");
   const directConnectSource = read("server/routes/direct-connect.ts");
 
-  it("creates admin-panel notifications without email, push, or assignment", () => {
-    expect(oversightSource).toContain('deliveryMethods: ["in_app"]');
+  it("creates actionable admin notifications by in-app and email without assignment", () => {
+    expect(oversightSource).toContain('deliveryMethods: ["in_app", "email"]');
     expect(oversightSource).toContain("/admin/direct-connect-requests?requestId=");
     expect(oversightSource).toContain("NOT LIKE '%@tradescout.test'");
     expect(oversightSource).not.toContain("is_active");
     expect(oversightSource).toContain("ADMIN_NOTIFICATION_CONCURRENCY");
-    expect(oversightSource).not.toContain("emailService");
     expect(oversightSource).not.toContain("workRequestAssignments");
     expect(oversightSource).not.toContain('"push"');
   });

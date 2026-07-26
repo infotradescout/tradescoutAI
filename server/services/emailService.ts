@@ -20,6 +20,13 @@ export type SendEmailParams = {
   purpose?: string;
 };
 
+export type SendEmailResult = {
+  skipped: boolean;
+  messageId?: string;
+  provider: "sendgrid" | "brevo" | "none";
+  skippedReason?: "provider_not_configured" | "email_mode_suppressed";
+};
+
 class EmailService {
   private configured: boolean;
   private provider: "sendgrid" | "brevo" | "none";
@@ -81,10 +88,14 @@ class EmailService {
     };
   }
 
-  async sendEmail(params: SendEmailParams): Promise<{ skipped: boolean; messageId?: string }> {
+  async sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
     if (!this.configured) {
       console.warn("[email] Email provider not configured; skipping send");
-      return { skipped: true };
+      return {
+        skipped: true,
+        provider: this.provider,
+        skippedReason: "provider_not_configured",
+      };
     }
 
     if (this.mode === "account_creation_only") {
@@ -96,6 +107,8 @@ class EmailService {
         purpose === "email_verification" ||
         purpose === "activation" ||
         purpose === "claim_business" ||
+        purpose === "direct_connect_request" ||
+        purpose === "direct_connect_admin_oversight" ||
         purpose === "tradepartner_interest_admin" ||
         purpose === "tradepartner_rsvp_admin" ||
         purpose === "tradepartner_rsvp_confirmation" ||
@@ -106,7 +119,11 @@ class EmailService {
           purpose: params.purpose,
           subject: params.subject,
         });
-        return { skipped: true };
+        return {
+          skipped: true,
+          provider: this.provider,
+          skippedReason: "email_mode_suppressed",
+        };
       }
     }
 
@@ -138,13 +155,21 @@ class EmailService {
       const [response] = await sgMail.send(payload);
       const messageId = (response?.headers as any)?.["x-message-id"];
 
-      return { skipped: false, messageId: Array.isArray(messageId) ? messageId[0] : messageId };
+      return {
+        skipped: false,
+        provider: this.provider,
+        messageId: Array.isArray(messageId) ? messageId[0] : messageId,
+      };
     }
 
     if (this.provider === "brevo") {
       if (!this.brevoApiKey) {
         console.warn("[email] Brevo selected but BREVO_API_KEY missing; skipping send");
-        return { skipped: true };
+        return {
+          skipped: true,
+          provider: this.provider,
+          skippedReason: "provider_not_configured",
+        };
       }
       const fetchFn = (globalThis as any).fetch as undefined | typeof fetch;
       if (!fetchFn) {
@@ -181,12 +206,20 @@ class EmailService {
 
       const json: any = await resp.json().catch(() => null);
       const messageId = json?.messageId || json?.["messageId"];
-      return { skipped: false, messageId: typeof messageId === "string" ? messageId : undefined };
+      return {
+        skipped: false,
+        provider: this.provider,
+        messageId: typeof messageId === "string" ? messageId : undefined,
+      };
     }
 
     // Should never happen, but fail-soft.
     console.warn("[email] Unknown provider; skipping send");
-    return { skipped: true };
+    return {
+      skipped: true,
+      provider: this.provider,
+      skippedReason: "provider_not_configured",
+    };
   }
 }
 
