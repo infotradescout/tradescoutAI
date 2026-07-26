@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts",
-    "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node build-server.mjs",
+    "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node scripts/verify-built-asset-urls.mjs && node build-server.mjs",
     "mobile:web": "npm run build",
     "mobile:sync": "npm run mobile:web && npx cap sync",
     "mobile:open:android": "npx cap open android",
@@ -52,6 +52,7 @@
     "db:push:test": "node scripts/bootstrap-test-db.mjs",
     "db:bootstrap:test": "node scripts/bootstrap-test-db.mjs",
     "db:migrate": "node scripts/db-migrate-safe.mjs",
+    "db:verify:required": "node scripts/check-required-production-schema.mjs",
     "db:apply:sql": "node scripts/apply-sql-migration.mjs",
     "db:apply:tool-discovery": "node scripts/apply-sql-migration.mjs migrations/0046_tool_discovery_tables.sql",
     "check:scale-readiness": "node scripts/check-scale-readiness.mjs",

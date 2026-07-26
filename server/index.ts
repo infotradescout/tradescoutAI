@@ -3,6 +3,7 @@ import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import { isCorsNeutralPublicAssetRequest } from "./http/corsPolicy";
 import helmet from "helmet";
 import compression from "compression";
 import * as Sentry from "@sentry/node";
@@ -97,7 +98,10 @@ import { preparePublicSeoHtmlForUserAgent } from "./publicSeoHtml";
 import { isSameRequestHttpOrigin, normalizeHttpOrigin } from "./utils/requestCors";
 import { CANONICAL_WEB_HOST, resolvePublicOrigin } from "./utils/publicOrigin";
 import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
-import { resolveCurrentEntryStylesheet } from "./staticAssetRecovery";
+import {
+  resolveCanonicalDuplicatedAssetPath,
+  resolveCurrentEntryStylesheet,
+} from "./staticAssetRecovery";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
@@ -380,6 +384,7 @@ function isCustomDomainMechanicsPath(requestPath: string): boolean {
       "/about-explainer.css",
       "/firebase-messaging-sw.js",
       "/manifest.json",
+      "/offline.html",
       "/service-worker.js",
       "/site.webmanifest",
       "/sw.js",
@@ -783,6 +788,13 @@ function corsOptionsForRequest(req: Request): cors.CorsOptions {
 
       if (ALLOWED_ORIGINS.includes(normalized)) {
         return callback(null, true);
+      }
+
+      // Static/PWA resources are public bytes, not cross-origin authority.
+      // Let them respond without CORS headers instead of converting an otherwise
+      // valid GET/HEAD into HTTP 500. API and auth requests still fail closed.
+      if (isCorsNeutralPublicAssetRequest(req.method, req.path)) {
+        return callback(null, false);
       }
       return callback(new Error(`CORS: Origin not allowed: ${origin}`));
     },
@@ -1300,6 +1312,28 @@ app.use(landingContractHeaders);
               // 1) Serve hashed asset chunks with long cache first
               const assetsPath = path.join(publicDistPath, "assets");
               if (fs.existsSync(assetsPath)) {
+                // Vite's preload dependency map contains "assets/<file>" values.
+                // Browsers run Vite's helper and request "/assets/<file>", while
+                // static JS crawlers can resolve the raw value relative to the
+                // entry chunk and request "/assets/assets/<file>". Permanently
+                // canonicalize only an existing hashed build artifact.
+                app.get("/assets/assets/:assetName", (req, res, next) => {
+                  const canonicalAssetPath = resolveCanonicalDuplicatedAssetPath(
+                    publicDistPath,
+                    req.path || ""
+                  );
+                  if (!canonicalAssetPath) return next();
+
+                  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+                  res.setHeader("CDN-Cache-Control", "public, max-age=31536000, immutable");
+                  res.setHeader("Surrogate-Control", "public, max-age=31536000, immutable");
+                  res.setHeader(
+                    "X-TradeScout-Asset-Recovery",
+                    "duplicate-prefix-canonical"
+                  );
+                  return res.redirect(308, canonicalAssetPath);
+                });
+
                 app.use(
                   "/assets",
                   express.static(assetsPath, {

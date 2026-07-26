@@ -1,4 +1,5 @@
 import { pool } from "../db";
+import { withPoolTransaction } from "../utils/poolTransaction";
 
 export type PartnerObservationWindow = "1h" | "24h" | "7d" | "30d";
 
@@ -278,9 +279,8 @@ export async function refreshPartnerCountyObservationSnapshots(params?: {
   for (const partnerSlug of partnerSlugs) {
     for (const window of windows) {
       const rows = await computePartnerWindowRows(partnerSlug, window);
-      await pool.query("BEGIN");
-      try {
-        await pool.query(
+      await withPoolTransaction(pool, async (client) => {
+        await client.query(
           `
             delete from tradepartner_county_observation_snapshots
             where partner_slug = $1 and "window" = $2
@@ -289,7 +289,7 @@ export async function refreshPartnerCountyObservationSnapshots(params?: {
         );
 
         for (const row of rows) {
-          await pool.query(
+          await client.query(
             `
               insert into tradepartner_county_observation_snapshots (
                 partner_slug,
@@ -322,13 +322,8 @@ export async function refreshPartnerCountyObservationSnapshots(params?: {
             ]
           );
         }
-
-        await pool.query("COMMIT");
-        rowsWritten += rows.length;
-      } catch (error) {
-        await pool.query("ROLLBACK");
-        throw error;
-      }
+      });
+      rowsWritten += rows.length;
     }
   }
 

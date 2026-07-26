@@ -1,4 +1,5 @@
 import { pool } from "../db";
+import { withPoolTransaction } from "../utils/poolTransaction";
 import { getActiveAlerts } from "../observability/alerts";
 import { getBotCrawlAggregateSignals, getCrawlerTelemetrySummary } from "./crawlerTelemetryService";
 import { getLisaFeed } from "./lisaRuntime";
@@ -2022,9 +2023,8 @@ export async function refreshLiveStreamSnapshot(params?: {
   const filters = normalizeFilters(params || {});
   const snapshot = await buildLiveStreamSnapshot(filters);
 
-  await pool.query("BEGIN");
-  try {
-    await pool.query(
+  await withPoolTransaction(pool, async (client) => {
+    await client.query(
       `
       delete from admin_live_stream_snapshots
       where coalesce(source_filter, '') = $1
@@ -2035,7 +2035,7 @@ export async function refreshLiveStreamSnapshot(params?: {
       [filters.source, filters.stateCode, filters.county, filters.limit]
     );
 
-    await pool.query(
+    await client.query(
       `
       insert into admin_live_stream_snapshots (
         source_filter,
@@ -2058,7 +2058,7 @@ export async function refreshLiveStreamSnapshot(params?: {
       ]
     );
 
-    await pool.query(
+    await client.query(
       `
       insert into admin_live_stream_snapshot_history (
         source_filter,
@@ -2080,12 +2080,7 @@ export async function refreshLiveStreamSnapshot(params?: {
         JSON.stringify(snapshot.stream),
       ]
     );
-
-    await pool.query("COMMIT");
-  } catch (error) {
-    await pool.query("ROLLBACK");
-    throw error;
-  }
+  });
 
   return snapshot;
 }

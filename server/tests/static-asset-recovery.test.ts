@@ -2,7 +2,10 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, describe, expect, it } from "vitest";
-import { resolveCurrentEntryStylesheet } from "../staticAssetRecovery";
+import {
+  resolveCanonicalDuplicatedAssetPath,
+  resolveCurrentEntryStylesheet,
+} from "../staticAssetRecovery";
 
 const temporaryDirectories: string[] = [];
 
@@ -39,5 +42,57 @@ describe("stale entry stylesheet recovery", () => {
     expect(resolveCurrentEntryStylesheet(fixture.root, "/assets/index-old.js")).toBeNull();
     expect(resolveCurrentEntryStylesheet(fixture.root, "/assets/vendor-old.css")).toBeNull();
     expect(resolveCurrentEntryStylesheet(fixture.root, "/favicon.css")).toBeNull();
+  });
+});
+
+describe("duplicated Vite asset prefix recovery", () => {
+  it("canonicalizes an existing hashed build artifact", () => {
+    const fixture = buildFixture();
+    const scriptName = "insurance-verification-sbGIn5yd.js";
+    fs.writeFileSync(path.join(fixture.root, "assets", scriptName), "export {}");
+
+    expect(
+      resolveCanonicalDuplicatedAssetPath(
+        fixture.root,
+        `/assets/assets/${scriptName}`
+      )
+    ).toBe(`/assets/${scriptName}`);
+  });
+
+  it("fails closed for missing, unhashed, nested, and traversal paths", () => {
+    const fixture = buildFixture();
+    fs.writeFileSync(path.join(fixture.root, "assets", "plain.js"), "export {}");
+
+    expect(
+      resolveCanonicalDuplicatedAssetPath(
+        fixture.root,
+        "/assets/assets/missing-AbCd1234.js"
+      )
+    ).toBeNull();
+    expect(
+      resolveCanonicalDuplicatedAssetPath(fixture.root, "/assets/assets/plain.js")
+    ).toBeNull();
+    expect(
+      resolveCanonicalDuplicatedAssetPath(
+        fixture.root,
+        "/assets/assets/nested/chunk-AbCd1234.js"
+      )
+    ).toBeNull();
+    expect(
+      resolveCanonicalDuplicatedAssetPath(
+        fixture.root,
+        "/assets/assets/../chunk-AbCd1234.js"
+      )
+    ).toBeNull();
+    fs.writeFileSync(
+      path.join(fixture.root, "assets", "document-AbCd1234.html"),
+      "<html></html>"
+    );
+    expect(
+      resolveCanonicalDuplicatedAssetPath(
+        fixture.root,
+        "/assets/assets/document-AbCd1234.html"
+      )
+    ).toBeNull();
   });
 });
