@@ -48,6 +48,8 @@ const CATEGORY_DESCRIPTIONS: Partial<Record<ExchangeCategorySlug, string>> = {
   vehicles: "Browse cars, trucks, motorcycles, boats, and more on TradeScout Exchange.",
   construction:
     "Find heavy machinery, excavators, lifts, and construction equipment on TradeScout Exchange.",
+  "building-materials":
+    "Browse profile-linked stone, onyx, and building-material catalogs. Confirm project fit, availability, and pricing through a managed TradeScout request.",
   tools: "Shop professional tools, hand tools, and hardware on TradeScout Exchange.",
   furniture: "Discover quality furniture, home décor, and household goods on TradeScout Exchange.",
   farm: "Buy and sell tractors, farm equipment, and livestock on TradeScout Exchange.",
@@ -70,6 +72,7 @@ const CATEGORY_KEYWORDS: Partial<Record<ExchangeCategorySlug, string>> = {
   business: "buy a business, sell a business, franchise for sale, business acquisition",
   vehicles: "cars for sale, trucks, motorcycles, boats, used vehicles",
   construction: "construction equipment, excavators, heavy machinery, lifts for sale",
+  "building-materials": "building materials, natural stone, onyx, surfaces, material catalogs",
   tools: "tools for sale, professional tools, hardware, power tools",
   furniture: "furniture for sale, used furniture, home goods, décor",
   farm: "farm equipment, tractors, agricultural machinery, livestock",

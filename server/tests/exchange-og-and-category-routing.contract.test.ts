@@ -4,7 +4,7 @@
  * Contract tests for:
  * 1. publicExchangeHtml.ts — correct OG/meta injection per route variant
  * 2. server/index.ts — /exchange and /exchange/:category routes registered
- * 3. client/AppRoutes.tsx — 13 per-category routes registered
+ * 3. client/AppRoutes.tsx — per-category routes registered
  * 4. client/exchange.tsx — getCategoryHref routes categories to dedicated pages
  */
 
@@ -73,11 +73,12 @@ describe("publicExchangeHtml.ts", () => {
     expect(src).toContain("WebPage");
   });
 
-  it("has per-category descriptions for all 13 categories", () => {
+  it("has per-category descriptions for all dedicated categories", () => {
     const slugs = [
       "business",
       "vehicles",
       "construction",
+      "building-materials",
       "tools",
       "furniture",
       "farm",
@@ -130,7 +131,7 @@ describe("server/index.ts exchange routes", () => {
   });
 });
 
-// ─── 3. client/AppRoutes.tsx — 13 per-category routes ────────────────────────
+// ─── 3. client/AppRoutes.tsx — per-category routes ───────────────────────────
 
 describe("client/AppRoutes.tsx per-category routes", () => {
   const src = readClientFile("AppRoutes.tsx");
@@ -139,6 +140,7 @@ describe("client/AppRoutes.tsx per-category routes", () => {
     "/exchange/business",
     "/exchange/vehicles",
     "/exchange/construction",
+    "/exchange/building-materials",
     "/exchange/tools",
     "/exchange/furniture",
     "/exchange/farm",
@@ -157,11 +159,12 @@ describe("client/AppRoutes.tsx per-category routes", () => {
     });
   }
 
-  it("lazy-imports all 13 category page components", () => {
+  it("lazy-imports every category page component", () => {
     const components = [
       "ExchangeCategoryBusiness",
       "ExchangeCategoryVehicles",
       "ExchangeCategoryConstruction",
+      "ExchangeCategoryBuildingMaterials",
       "ExchangeCategoryTools",
       "ExchangeCategoryFurniture",
       "ExchangeCategoryFarm",

@@ -14,6 +14,7 @@ describe("profile offer item sharing", () => {
       "/exchange/other/profile-offer-offer_456"
     );
     expect(normalizeProfileOfferExchangeCategory("FURNITURE")).toBe("furniture");
+    expect(normalizeProfileOfferExchangeCategory("building-materials")).toBe("other");
   });
 
   it("rejects unsafe or malformed offer identifiers", () => {

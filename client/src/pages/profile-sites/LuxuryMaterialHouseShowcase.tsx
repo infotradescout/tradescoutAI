@@ -122,6 +122,28 @@ export default function LuxuryMaterialHouseShowcase({
   }, [house.materialChapters, initialPhotoIndex, initialProductSlug, products]);
 
   useEffect(() => {
+    const scrollToMaterialChapters = () => {
+      if (window.location.hash !== "#material-chapters") return;
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("material-chapters")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    };
+    const navigationEvents = ["pushState", "replaceState", "popstate", "hashchange"] as const;
+
+    scrollToMaterialChapters();
+    for (const eventName of navigationEvents) {
+      window.addEventListener(eventName, scrollToMaterialChapters);
+    }
+    return () => {
+      for (const eventName of navigationEvents) {
+        window.removeEventListener(eventName, scrollToMaterialChapters);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (activePhoto === null) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";

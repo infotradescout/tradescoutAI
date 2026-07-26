@@ -5,8 +5,14 @@ const productUrl = "https://www.thetradescout.com";
 const routes = {
   scout: `${productUrl}/scout`,
   community: `${productUrl}/community-feed`,
+  maps: `${productUrl}/maps`,
+  leaderboard: `${productUrl}/leaderboard`,
   exchange: `${productUrl}/exchange`,
   directConnect: `${productUrl}/direct-connect`,
+  messages: `${productUrl}/messages`,
+  connections: `${productUrl}/connections`,
+  notes: `${productUrl}/notes`,
+  crm: `${productUrl}/crm`,
   businesses: `${productUrl}/for-businesses`,
   claimBusiness: `${productUrl}/claim-my-business`,
   createBusiness: `${productUrl}/businesses/apply`,
@@ -87,13 +93,13 @@ const featureGroups = [
         action: "See activity and service coverage",
         name: "Maps",
         copy: "Explore businesses, listings, offers, and local activity by place instead of searching disconnected sources.",
-        href: routes.community,
+        href: routes.maps,
       },
       {
         action: "See who is contributing locally",
         name: "Leaderboard",
         copy: "Compare participation and trust momentum without letting payment buy the position.",
-        href: routes.community,
+        href: routes.leaderboard,
       },
       {
         action: "Browse organized local results",
@@ -171,13 +177,13 @@ const featureGroups = [
         action: "Keep the conversation with the request",
         name: "Messages and quotes",
         copy: "Carry questions, replies, quotes, and follow-ups beside the work they concern.",
-        href: routes.directConnect,
+        href: routes.messages,
       },
       {
         action: "Search prior conversations",
         name: "Conversation search",
         copy: "Find the person, business, request, or message thread without opening every conversation one at a time.",
-        href: routes.directConnect,
+        href: routes.messages,
       },
       {
         action: "See what changed without checking every tool",
@@ -189,7 +195,7 @@ const featureGroups = [
         action: "Return to people who approved contact",
         name: "Connections",
         copy: "Keep agreed direct contacts separate from followers and strangers.",
-        href: routes.directConnect,
+        href: routes.connections,
       },
       {
         action: "Check identity and business proof",
@@ -309,7 +315,7 @@ const featureGroups = [
         action: "Write down what matters",
         name: "Notes",
         copy: "Keep working notes close to the people, jobs, purchases, and decisions they support.",
-        href: routes.directConnect,
+        href: routes.notes,
       },
       {
         action: "Request access to or deletion of account data",
@@ -381,7 +387,7 @@ const featureGroups = [
         action: "Manage relationships and follow-ups",
         name: "CRM",
         copy: "Keep contacts, opportunities, conversations, and next steps attached to the business relationship.",
-        href: routes.directConnect,
+        href: routes.crm,
       },
       {
         action: "Review work that fits before accepting it",
@@ -2398,20 +2404,26 @@ export function AboutExplainerContent() {
                     <strong>{group.title}</strong>
                   </div>
                   <div className="public-tool-grid">
-                    {group.features.map((feature, index) => (
-                      <article key={feature.action}>
-                        <details>
-                          <summary>
-                            <span className="tool-number">
-                              {group.number}.{String(index + 1).padStart(2, "0")}
-                            </span>
-                            <span className="tool-action">{feature.action}</span>
-                            <strong>{feature.name}</strong>
-                          </summary>
-                          <p>{feature.copy}</p>
-                        </details>
-                      </article>
-                    ))}
+                    {group.features.map((feature, index) => {
+                      const promiseId = `${group.number}.${String(index + 1).padStart(2, "0")}`;
+                      return (
+                        <article key={promiseId} data-about-promise-id={promiseId}>
+                          <details>
+                            <summary>
+                              <span className="tool-number">
+                                {group.number}.{String(index + 1).padStart(2, "0")}
+                              </span>
+                              <span className="tool-action">{feature.action}</span>
+                              <strong>{feature.name}</strong>
+                            </summary>
+                            <p>{feature.copy}</p>
+                            <a href={feature.href} data-about-action-link={promiseId}>
+                              Open {feature.name}
+                            </a>
+                          </details>
+                        </article>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

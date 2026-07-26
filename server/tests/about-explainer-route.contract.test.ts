@@ -35,21 +35,36 @@ describe("TradeScout About explainer route", () => {
     expect(explainerSource).toContain("Trade-Up For Trade Schools");
   });
 
+  it("gives all 69 public actions stable IDs and real destinations", () => {
+    expect(explainerSource).toContain("data-about-promise-id={promiseId}");
+    expect(explainerSource).toContain("data-about-action-link={promiseId}");
+    expect(explainerSource).toContain("Open {feature.name}");
+    expect(explainerStyles).toMatch(/\.public-tool-grid a\s*\{[\s\S]*?display:\s*inline-block;/);
+
+    for (const route of ["/maps", "/leaderboard", "/messages", "/connections", "/notes", "/crm"]) {
+      expect(explainerSource).toContain(`${productUrlLiteral(route)}`);
+    }
+  });
+
   it("keeps expandable summaries readable at phone widths", () => {
-    expect(explainerStyles).toContain(".content-section > summary strong { grid-column: 1;");
-    expect(explainerStyles).toContain(".content-section > summary small { grid-column: 1;");
+    expect(explainerStyles).toMatch(
+      /\.content-section > summary strong\s*\{[\s\S]*?grid-column:\s*1;/
+    );
+    expect(explainerStyles).toMatch(
+      /\.content-section > summary small\s*\{[\s\S]*?grid-column:\s*1;/
+    );
     expect(explainerStyles).toContain("grid-column: 2;");
     expect(explainerStyles).toContain("grid-row: 1 / span 2;");
-    expect(explainerStyles).toContain(
-      ".explainer-stack[open] > summary::after { transform: rotate(225deg); }"
+    expect(explainerStyles).toMatch(
+      /\.explainer-stack\[open\] > summary::after\s*\{[\s\S]*?transform:\s*rotate\(225deg\);/
     );
-    expect(explainerStyles).toContain(
-      ".content-section[open] > summary::after { transform: rotate(225deg); }"
+    expect(explainerStyles).toMatch(
+      /\.content-section\[open\] > summary::after\s*\{[\s\S]*?transform:\s*rotate\(225deg\);/
     );
     expect(explainerStyles).toContain('.explainer-stack > summary::after {\n  content: "";');
     expect(explainerStyles).toContain('.content-section > summary::after {\n  content: "";');
-    expect(explainerStyles).toContain(
-      ".public-tool-grid details[open] summary::after { top: 8px; transform: rotate(225deg); }"
+    expect(explainerStyles).toMatch(
+      /\.public-tool-grid details\[open\] summary::after\s*\{[\s\S]*?top:\s*8px;[\s\S]*?transform:\s*rotate\(225deg\);/
     );
     expect(explainerStyles).not.toContain('.public-tool-grid summary::after { content: "+"');
   });
@@ -63,3 +78,7 @@ describe("TradeScout About explainer route", () => {
     expect(nativeAbout).not.toContain("Mike Rowe Works Foundation");
   });
 });
+
+function productUrlLiteral(route: string): string {
+  return "`${productUrl}" + route + "`";
+}

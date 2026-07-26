@@ -66,6 +66,10 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain("{allInventoryStones.length} stones · one collection");
     expect(source).not.toContain("{allInventoryStones.length} current stones");
     expect(source).toContain('id="inventory-browser"');
+    expect(source).toContain('window.location.hash !== "#inventory-browser"');
+    expect(source).toContain(
+      '["pushState", "replaceState", "popstate", "hashchange"]'
+    );
   });
 
   it("presents a premium featured row of random picks refreshed every visit, without fashion-copy language or pricing", () => {

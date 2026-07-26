@@ -1,0 +1,1332 @@
+{
+  "schemaVersion": 1,
+  "contractId": "tradescout-about-operating-contract",
+  "canonicalCopy": {
+    "path": "client/src/pages/about-explainer-content.tsx",
+    "route": "/about",
+    "authority": "The About JSX remains the canonical public copy. This registry maps its displayed chapters and actions to operating truth; it does not replace or rewrite the copy."
+  },
+  "allowedStatuses": [
+    "PROVEN",
+    "PARTIAL",
+    "PLANNED",
+    "BLOCKED"
+  ],
+  "chapters": [
+    {
+      "displayId": "01",
+      "name": "Scout",
+      "summary": "Understand a need, compare options, and prepare the next action."
+    },
+    {
+      "displayId": "02",
+      "name": "Direct Connect",
+      "summary": "Control the request, preview, acceptance, contact, and outcome."
+    },
+    {
+      "displayId": "03",
+      "name": "Business home",
+      "summary": "Replace the website stack and use tools built for the business type."
+    },
+    {
+      "displayId": "04",
+      "name": "Home & property",
+      "summary": "Keep HomeID, HomeScout, work, inspections, and selling connected."
+    },
+    {
+      "displayId": "05",
+      "name": "Exchange",
+      "summary": "Browse, list, request, buy, sell, rent, promote, and track the outcome."
+    },
+    {
+      "displayId": "06",
+      "name": "Money",
+      "summary": "See what stays free, how revenue works, and what businesses may choose to buy."
+    },
+    {
+      "displayId": "07",
+      "name": "Community",
+      "summary": "Follow vaults, scholarships, jobs, helpers, veterans, and local reinvestment."
+    },
+    {
+      "displayId": "08",
+      "name": "CVS",
+      "summary": "Understand what affects Community Verification Score and eligibility."
+    },
+    {
+      "displayId": "09",
+      "name": "Every feature",
+      "summary": "Open the complete action-based feature inventory."
+    }
+  ],
+  "owners": {
+    "scout": {
+      "system": "Scout",
+      "accountableRole": "TradeScout product and Scout engineering",
+      "dataAuthority": [
+        "intent",
+        "decision context",
+        "action preparation"
+      ]
+    },
+    "direct-connect": {
+      "system": "Direct Connect",
+      "accountableRole": "TradeScout operations and Direct Connect engineering",
+      "dataAuthority": [
+        "requests",
+        "assignments",
+        "case conversations",
+        "delivery outcomes"
+      ]
+    },
+    "community": {
+      "system": "Community",
+      "accountableRole": "TradeScout community operations and engineering",
+      "dataAuthority": [
+        "posts",
+        "threads",
+        "tags",
+        "groups",
+        "events",
+        "moderation"
+      ]
+    },
+    "trust-identity": {
+      "system": "Trust, CVS, and Identity",
+      "accountableRole": "TradeScout trust and identity engineering",
+      "dataAuthority": [
+        "claims",
+        "verification evidence",
+        "CVS eligibility",
+        "connections"
+      ]
+    },
+    "local-discovery": {
+      "system": "Local Discovery",
+      "accountableRole": "TradeScout discovery and location engineering",
+      "dataAuthority": [
+        "directories",
+        "maps",
+        "search filters",
+        "local coverage"
+      ]
+    },
+    "exchange": {
+      "system": "Exchange",
+      "accountableRole": "TradeScout Exchange engineering and operations",
+      "dataAuthority": [
+        "listings",
+        "saved items",
+        "buyer and seller lifecycle",
+        "partner offers"
+      ]
+    },
+    "home-property": {
+      "system": "HomeID and HomeScout",
+      "accountableRole": "TradeScout property engineering",
+      "dataAuthority": [
+        "property records",
+        "inspections",
+        "property listings",
+        "completed-work history"
+      ]
+    },
+    "business-operations": {
+      "system": "Business Home",
+      "accountableRole": "TradeScout business operations engineering",
+      "dataAuthority": [
+        "business profiles",
+        "customers",
+        "jobs",
+        "bookings",
+        "CRM",
+        "analytics"
+      ]
+    },
+    "finance-payments": {
+      "system": "Money and Finance",
+      "accountableRole": "TradeScout finance and payment engineering",
+      "dataAuthority": [
+        "ledger",
+        "estimates",
+        "invoices",
+        "wallet",
+        "payment outcomes"
+      ]
+    },
+    "platform-operations": {
+      "system": "Platform Operations",
+      "accountableRole": "TradeScout platform engineering and operations",
+      "dataAuthority": [
+        "routes",
+        "installability",
+        "notes",
+        "training",
+        "operator controls"
+      ]
+    },
+    "legal-compliance": {
+      "system": "Legal and Compliance",
+      "accountableRole": "TradeScout compliance operations",
+      "dataAuthority": [
+        "privacy requests",
+        "policies",
+        "notary request boundaries"
+      ]
+    },
+    "growth-marketing": {
+      "system": "Growth and Marketing",
+      "accountableRole": "TradeScout growth operations and engineering",
+      "dataAuthority": [
+        "promotions",
+        "affiliate attribution",
+        "business stories",
+        "external publishing",
+        "support programs",
+        "ScoutFitters"
+      ]
+    },
+    "employment": {
+      "system": "Employment and Helpers",
+      "accountableRole": "TradeScout employment workflow engineering",
+      "dataAuthority": [
+        "job posts",
+        "resumes",
+        "applications",
+        "helper opportunities"
+      ]
+    },
+    "procurement": {
+      "system": "Supply Run",
+      "accountableRole": "TradeScout procurement engineering",
+      "dataAuthority": [
+        "material orders",
+        "fulfillment status",
+        "delivery proof"
+      ]
+    }
+  },
+  "evidenceCatalog": {
+    "about-copy": {
+      "kind": "public_contract",
+      "path": "client/src/pages/about-explainer-content.tsx",
+      "note": "Canonical public wording only; it is not implementation or production proof."
+    },
+    "app-routes": {
+      "kind": "implementation_anchor",
+      "path": "client/src/AppRoutes.tsx",
+      "note": "A routed surface is evidence of reachability only."
+    },
+    "scout-command-registry": {
+      "kind": "implementation_anchor",
+      "path": "client/src/scout/scoutCommandRegistry.ts"
+    },
+    "scout-behavior-registry": {
+      "kind": "contract_registry",
+      "path": "scout-behavior-registry.json"
+    },
+    "direct-connect-route": {
+      "kind": "implementation_anchor",
+      "path": "server/routes/direct-connect.ts"
+    },
+    "direct-connect-lifecycle-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-end-to-end-local-lifecycle-smoke.contract.test.ts",
+      "note": "Test presence is not a claim that it currently passes in production."
+    },
+    "messages-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/messages.tsx"
+    },
+    "notifications-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/notifications.tsx"
+    },
+    "notification-safety-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-notification-delivery-safety.contract.test.ts"
+    },
+    "community-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/community-feed.tsx"
+    },
+    "community-contract-test": {
+      "kind": "contract_test",
+      "path": "server/tests/community-app-surface-ux.contract.test.ts"
+    },
+    "exchange-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/exchange.tsx"
+    },
+    "exchange-contract-test": {
+      "kind": "contract_test",
+      "path": "server/tests/exchange-og-and-category-routing.contract.test.ts"
+    },
+    "profile-catalog-exchange-source": {
+      "kind": "implementation_anchor",
+      "path": "shared/profileCatalogExchange.ts",
+      "note": "Exactly one request-only Exchange spotlight for JW Stone LLC and one for ISSA Build; profile catalogs remain authoritative."
+    },
+    "profile-catalog-exchange-test": {
+      "kind": "contract_test",
+      "path": "server/tests/profile-catalog-exchange.test.ts"
+    },
+    "homeid-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/homeowner-dashboard.tsx"
+    },
+    "homeid-outcome-test": {
+      "kind": "contract_test",
+      "path": "server/tests/assetid-phase-1i-homeid-completed-work-enrichment.contract.test.ts"
+    },
+    "business-dashboard": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/business-owner-dashboard.tsx"
+    },
+    "business-operations-test": {
+      "kind": "contract_test",
+      "path": "server/tests/business-operations-dashboard.contract.test.ts"
+    },
+    "accounting-flow-test": {
+      "kind": "contract_test",
+      "path": "server/tests/accounting-job-flows.contract.test.ts"
+    },
+    "trust-contract-test": {
+      "kind": "contract_test",
+      "path": "server/tests/auth-user-cvs.contract.test.ts"
+    },
+    "business-profile-test": {
+      "kind": "contract_test",
+      "path": "server/tests/business-profile-public.contract.test.ts"
+    },
+    "employment-route": {
+      "kind": "implementation_anchor",
+      "path": "server/routes/employment.ts"
+    },
+    "groups-route": {
+      "kind": "implementation_anchor",
+      "path": "server/routes/groups.ts"
+    },
+    "moderation-service": {
+      "kind": "implementation_anchor",
+      "path": "server/moderation.ts"
+    },
+    "notary-route": {
+      "kind": "implementation_anchor",
+      "path": "server/routes/legal-notary-routes.ts"
+    },
+    "payment-webhook": {
+      "kind": "implementation_anchor",
+      "path": "server/paymentWebhookRoutes.ts"
+    },
+    "commercial-route": {
+      "kind": "implementation_anchor",
+      "path": "server/routes/commercial-directory.ts"
+    },
+    "affiliate-route": {
+      "kind": "implementation_anchor",
+      "path": "server/routes/affiliate.ts"
+    },
+    "social-integration-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/social-integration.tsx"
+    },
+    "advanced-search-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/advanced-search.tsx"
+    },
+    "maps-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/maps.tsx"
+    },
+    "leaderboard-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/leaderboard.tsx"
+    },
+    "background-check-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/background-check.tsx"
+    },
+    "privacy-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/privacy-request.tsx"
+    },
+    "story-generator-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/StoryGeneratorPage.tsx"
+    },
+    "supply-run-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/supply-run.tsx"
+    },
+    "jw-inventory-source": {
+      "kind": "implementation_anchor",
+      "path": "client/src/data/jwStoneInventory.ts"
+    },
+    "jw-inventory-test": {
+      "kind": "contract_test",
+      "path": "client/src/data/jwStoneInventory.test.ts"
+    },
+    "jw-inventory-audit": {
+      "kind": "audit",
+      "path": "docs/audits/JW_STONE_PROFILE_INVENTORY_RECONCILIATION_2026-07-13.md"
+    },
+    "jw-old-site-sheet-contract": {
+      "kind": "source_contract",
+      "path": "docs/runbooks/JW_STONE_OLD_SITE_INVENTORY_SHEET_CONTRACT.md",
+      "note": "Applies only to old-site additions. Existing current inventory is a read-only baseline and remains unchanged."
+    },
+    "jw-direct-connect-test": {
+      "kind": "contract_test",
+      "path": "server/tests/universal-profile-express-direct-connect.contract.test.ts"
+    },
+    "jw-direct-connect-audit": {
+      "kind": "audit",
+      "path": "docs/audits/JW_STONE_EXPRESS_DIRECT_CONNECT_2026-07-13.md"
+    },
+    "admin-direct-connect-surface": {
+      "kind": "implementation_anchor",
+      "path": "client/src/pages/admin-direct-connect-requests.tsx"
+    },
+    "staff-oversight-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-staff-oversight.contract.test.ts"
+    },
+    "messages-job-bridge-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-messages-job-bridge.contract.test.ts"
+    },
+    "lifecycle-notifications-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-lifecycle-notifications.contract.test.ts"
+    },
+    "job-lifecycle-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-job-lifecycle.contract.test.ts"
+    },
+    "job-timeline-test": {
+      "kind": "contract_test",
+      "path": "server/tests/direct-connect-job-timeline.contract.test.ts"
+    }
+  },
+  "actions": [
+    {
+      "displayId": "01.01",
+      "action": "Ask what to do next",
+      "featureName": "Scout",
+      "status": "PARTIAL",
+      "ownerId": "scout",
+      "evidenceRefs": ["about-copy", "scout-command-registry", "scout-behavior-registry"],
+      "productionProof": [],
+      "statusReason": "Scout has governed command and behavior registries, but this contract has no timestamped production proof for the complete public promise.",
+      "gap": "Prove ordinary-language intent through a correct, actionable next step in production."
+    },
+    {
+      "displayId": "01.02",
+      "action": "Check safety, codes, permits, and inspection steps",
+      "featureName": "Scout safety and code guidance",
+      "status": "PARTIAL",
+      "ownerId": "scout",
+      "evidenceRefs": ["about-copy", "scout-command-registry"],
+      "productionProof": [],
+      "statusReason": "The public boundary and Scout action surface exist without current production proof of sourced, correctly bounded local guidance.",
+      "gap": "Prove source attribution, uncertainty handling, and safe handoff for a real county path."
+    },
+    {
+      "displayId": "01.03",
+      "action": "See who people support or warn against",
+      "featureName": "Recommendations",
+      "status": "PARTIAL",
+      "ownerId": "community",
+      "evidenceRefs": ["about-copy", "community-surface", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "Recommendation and Community surfaces exist, but no timestamped production evidence is attached here.",
+      "gap": "Prove positive and negative recommendation context, comments, and moderation end to end."
+    },
+    {
+      "displayId": "01.04",
+      "action": "Follow what is happening nearby",
+      "featureName": "Community",
+      "status": "BLOCKED",
+      "ownerId": "community",
+      "evidenceRefs": ["about-copy", "community-surface", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "The current recovery audit found Community threads, tags, identity links, notifications, and moderation do not flow coherently.",
+      "gap": "Establish one canonical Community record and route spine before claiming the nearby activity loop works."
+    },
+    {
+      "displayId": "01.05",
+      "action": "Turn information into a next step",
+      "featureName": "Decision Cards",
+      "status": "PARTIAL",
+      "ownerId": "scout",
+      "evidenceRefs": ["about-copy", "scout-command-registry", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Decision/action structures exist, but this registry has no current production proof of the promised information-to-action handoff.",
+      "gap": "Prove the recommended action, explanation, review, and correct destination as one journey."
+    },
+    {
+      "displayId": "01.06",
+      "action": "Compare the business behind the offer",
+      "featureName": "Business profiles",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-profile-test", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Public business profiles and contract tests exist without contract-linked production proof for every displayed claim.",
+      "gap": "Prove offer, service area, controller, and evidence visibility on a live profile."
+    },
+    {
+      "displayId": "01.07",
+      "action": "Understand why an account appears",
+      "featureName": "Community Verification Score (CVS)",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "trust-contract-test"],
+      "productionProof": [],
+      "statusReason": "CVS contract coverage exists, but the public explanation-to-runtime eligibility mapping is not proven here.",
+      "gap": "Prove a live account's displayed explanation matches the signals and eligibility actually used."
+    },
+    {
+      "displayId": "01.08",
+      "action": "See activity and service coverage",
+      "featureName": "Maps",
+      "status": "PARTIAL",
+      "ownerId": "local-discovery",
+      "evidenceRefs": ["about-copy", "maps-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "A map surface exists, but no timestamped production coverage proof is recorded.",
+      "gap": "Prove current businesses, listings, offers, and local activity render for a real county."
+    },
+    {
+      "displayId": "01.09",
+      "action": "See who is contributing locally",
+      "featureName": "Leaderboard",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "leaderboard-surface", "trust-contract-test"],
+      "productionProof": [],
+      "statusReason": "The leaderboard surface exists without current proof that ordering is complete, current, and independent of payment.",
+      "gap": "Prove contribution ordering and the no-pay-to-play invariant with live evidence."
+    },
+    {
+      "displayId": "01.10",
+      "action": "Browse organized local results",
+      "featureName": "Local directories",
+      "status": "PARTIAL",
+      "ownerId": "local-discovery",
+      "evidenceRefs": ["about-copy", "app-routes", "business-profile-test"],
+      "productionProof": [],
+      "statusReason": "Directory routes and profile contracts exist without a current production journey attached to this action.",
+      "gap": "Prove location retention, category navigation, and correct profile destinations."
+    },
+    {
+      "displayId": "01.11",
+      "action": "Search local help with more filters",
+      "featureName": "Advanced search",
+      "status": "PARTIAL",
+      "ownerId": "local-discovery",
+      "evidenceRefs": ["about-copy", "advanced-search-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The advanced-search surface is routed, but filter accuracy and live-result continuity are not proven here.",
+      "gap": "Prove place, service, and evidence filters against current production data."
+    },
+    {
+      "displayId": "01.12",
+      "action": "Find verified people nearby",
+      "featureName": "People discovery",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "app-routes", "trust-contract-test"],
+      "productionProof": [],
+      "statusReason": "People-discovery and trust surfaces exist without production proof of the complete profile-to-controlled-connection path.",
+      "gap": "Prove nearby discovery, profile navigation, and gated request or connection behavior."
+    },
+    {
+      "displayId": "01.13",
+      "action": "Follow people and keep local relationships",
+      "featureName": "Social connections",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "app-routes", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "Connection and follow surfaces exist, but their identity and notification continuity is not production-proven here.",
+      "gap": "Prove follow state, clickable identity, and separation from Direct Connect authority."
+    },
+    {
+      "displayId": "01.14",
+      "action": "Compare common cost factors",
+      "featureName": "Decision calculators",
+      "status": "PARTIAL",
+      "ownerId": "finance-payments",
+      "evidenceRefs": ["about-copy", "app-routes", "accounting-flow-test"],
+      "productionProof": [],
+      "statusReason": "Calculator and finance surfaces exist without current evidence that all advertised calculators are accurate and bounded.",
+      "gap": "Validate calculations, disclosures, and destination continuity for each supported calculator."
+    },
+    {
+      "displayId": "01.15",
+      "action": "Find urgent local help",
+      "featureName": "Emergency directory",
+      "status": "PARTIAL",
+      "ownerId": "local-discovery",
+      "evidenceRefs": ["about-copy", "app-routes", "business-profile-test"],
+      "productionProof": [],
+      "statusReason": "The business directory can be reached, but the urgent-help narrowing and safety boundary are not production-proven here.",
+      "gap": "Prove time-sensitive filtering without implying emergency-service guarantees."
+    },
+    {
+      "displayId": "01.16",
+      "action": "Find partner offers for active needs",
+      "featureName": "TradeDeals",
+      "status": "PARTIAL",
+      "ownerId": "exchange",
+      "evidenceRefs": ["about-copy", "exchange-surface", "exchange-contract-test"],
+      "productionProof": [],
+      "statusReason": "Exchange and offer surfaces exist without proof that active needs receive relevant, correctly labeled partner offers.",
+      "gap": "Prove relevance, disclosure, and no-trust-purchase boundaries in production."
+    },
+    {
+      "displayId": "01.17",
+      "action": "Buy, sell, or rent locally",
+      "featureName": "Exchange",
+      "status": "PARTIAL",
+      "ownerId": "exchange",
+      "evidenceRefs": [
+        "about-copy",
+        "exchange-surface",
+        "exchange-contract-test",
+        "profile-catalog-exchange-source",
+        "profile-catalog-exchange-test"
+      ],
+      "productionProof": [],
+      "statusReason": "Exchange discovery and category routing exist, including two request-only business catalog spotlights, but the full listing-to-outcome lifecycle is not proven here.",
+      "gap": "Prove a JW Stone or ISSA Build catalog spotlight through the managed request path and an explicit terminal outcome."
+    },
+    {
+      "displayId": "01.18",
+      "action": "Install TradeScout on the device",
+      "featureName": "Installable app",
+      "status": "PARTIAL",
+      "ownerId": "platform-operations",
+      "evidenceRefs": ["about-copy", "app-routes"],
+      "productionProof": [],
+      "statusReason": "An install route exists without timestamped cross-device production proof.",
+      "gap": "Prove supported installation and account continuity on current mobile and desktop targets."
+    },
+    {
+      "displayId": "02.01",
+      "action": "Turn a need into a trackable request",
+      "featureName": "Requests",
+      "status": "PARTIAL",
+      "ownerId": "direct-connect",
+      "evidenceRefs": ["about-copy", "direct-connect-route", "direct-connect-lifecycle-test"],
+      "productionProof": [],
+      "statusReason": "Request creation machinery exists, but the current audit found lifecycle visibility and downstream continuity gaps.",
+      "gap": "Prove one request retains recipients, decisions, progress, and operator visibility."
+    },
+    {
+      "displayId": "02.02",
+      "action": "Send it only to businesses you choose",
+      "featureName": "Direct Connect",
+      "status": "BLOCKED",
+      "ownerId": "direct-connect",
+      "evidenceRefs": ["about-copy", "direct-connect-route", "direct-connect-lifecycle-test"],
+      "productionProof": [],
+      "statusReason": "The advertised Direct Connect lifecycle is not reliable across recipient selection, admin access, conversation, and delivery.",
+      "gap": "Complete the queued Connection recovery and prove requester, business, admin, and superadmin continuity."
+    },
+    {
+      "displayId": "02.03",
+      "action": "Keep the conversation with the request",
+      "featureName": "Messages and quotes",
+      "status": "BLOCKED",
+      "ownerId": "direct-connect",
+      "evidenceRefs": ["about-copy", "messages-surface", "messages-job-bridge-test"],
+      "productionProof": [],
+      "statusReason": "Current message routing can resolve outside the exact Direct Connect request and assignment.",
+      "gap": "Bind one canonical conversation to the case, request, assignment, and acting business identity."
+    },
+    {
+      "displayId": "02.04",
+      "action": "Search prior conversations",
+      "featureName": "Conversation search",
+      "status": "BLOCKED",
+      "ownerId": "direct-connect",
+      "evidenceRefs": ["about-copy", "messages-surface", "messages-job-bridge-test"],
+      "productionProof": [],
+      "statusReason": "Conversation identity is not yet reliably request-specific, so search cannot truthfully guarantee the correct thread.",
+      "gap": "Canonicalize conversation identity before proving search by person, business, request, and message."
+    },
+    {
+      "displayId": "02.05",
+      "action": "See what changed without checking every tool",
+      "featureName": "Notifications",
+      "status": "BLOCKED",
+      "ownerId": "direct-connect",
+      "evidenceRefs": ["about-copy", "notifications-surface", "notification-safety-test", "lifecycle-notifications-test"],
+      "productionProof": [],
+      "statusReason": "In-app, push, and email delivery use disconnected paths, and the JW Stone request produced no durable email outcome.",
+      "gap": "Create one durable delivery ledger with exact destinations and queued, sent, delivered, failed, or suppressed truth."
+    },
+    {
+      "displayId": "02.06",
+      "action": "Return to people who approved contact",
+      "featureName": "Connections",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "app-routes", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "A connections route exists, but relationship and request identity continuity are not proven here.",
+      "gap": "Prove approved direct contacts remain distinct from followers, strangers, and business request authority."
+    },
+    {
+      "displayId": "02.07",
+      "action": "Check identity and business proof",
+      "featureName": "Verification",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "trust-contract-test", "business-profile-test"],
+      "productionProof": [],
+      "statusReason": "Verification and profile contracts exist without a current end-to-end production proof packet.",
+      "gap": "Prove action-specific identity and business evidence rather than a generic badge."
+    },
+    {
+      "displayId": "02.08",
+      "action": "Complete extra screening when the role requires it",
+      "featureName": "Background screening and Screen Pass",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "background-check-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The About copy says background-check intake exists while the portable Screen Pass and partner completion are unfinished.",
+      "gap": "Finish and prove the portable result without exposing the private report."
+    },
+    {
+      "displayId": "02.09",
+      "action": "Establish who controls something",
+      "featureName": "Claims",
+      "status": "PARTIAL",
+      "ownerId": "trust-identity",
+      "evidenceRefs": ["about-copy", "business-profile-test", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Business claim paths exist, but business, profile, property, and asset authority are not all production-proven here.",
+      "gap": "Prove each supported claim type and its privileged-action enforcement."
+    },
+    {
+      "displayId": "02.10",
+      "action": "Sell a defined service or item",
+      "featureName": "Fixed-price offers",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "business-profile-test"],
+      "productionProof": [],
+      "statusReason": "Business offer surfaces exist without a current production proof from published scope to guided request or purchase.",
+      "gap": "Prove scope, price, availability, and the correct inquiry or purchase handoff."
+    },
+    {
+      "displayId": "02.11",
+      "action": "Let customers request a time",
+      "featureName": "Bookings",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "business-operations-test"],
+      "productionProof": [],
+      "statusReason": "Booking implementation exists, but free-request and disclosed-deposit paths lack contract-linked production proof.",
+      "gap": "Prove availability, request state, business response, and payment boundary."
+    },
+    {
+      "displayId": "02.12",
+      "action": "Complete a disclosed payment",
+      "featureName": "Checkout and payment history",
+      "status": "PARTIAL",
+      "ownerId": "finance-payments",
+      "evidenceRefs": ["about-copy", "payment-webhook", "accounting-flow-test"],
+      "productionProof": [],
+      "statusReason": "Payment and accounting implementation anchors exist without timestamped production proof for an eligible purchase or work step.",
+      "gap": "Prove signature-safe payment completion, idempotency, history, and case linkage."
+    },
+    {
+      "displayId": "02.13",
+      "action": "Post a job or a resume",
+      "featureName": "Employment Board",
+      "status": "PARTIAL",
+      "ownerId": "employment",
+      "evidenceRefs": ["about-copy", "employment-route", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The About copy explicitly says complete applicant tracking is still being built.",
+      "gap": "Prove job posting, resume posting, application, review, and terminal applicant state."
+    },
+    {
+      "displayId": "02.14",
+      "action": "Find help for ordinary work",
+      "featureName": "Helpers",
+      "status": "PARTIAL",
+      "ownerId": "employment",
+      "evidenceRefs": ["about-copy", "direct-connect-route", "employment-route"],
+      "productionProof": [],
+      "statusReason": "Helper and Direct Connect implementation paths exist without a production-proven ordinary-work journey.",
+      "gap": "Prove skills, location, availability, request, acceptance, and safe contact."
+    },
+    {
+      "displayId": "02.15",
+      "action": "Coordinate a shared place",
+      "featureName": "Groups and HOA tools",
+      "status": "BLOCKED",
+      "ownerId": "community",
+      "evidenceRefs": ["about-copy", "groups-route", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "The current Community audit found group payload and membership or private-group authorization gaps.",
+      "gap": "Repair canonical group data, membership authority, and shared-place workflow continuity."
+    },
+    {
+      "displayId": "02.16",
+      "action": "Publish and follow a local event",
+      "featureName": "Events",
+      "status": "BLOCKED",
+      "ownerId": "community",
+      "evidenceRefs": ["about-copy", "community-surface", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "Community identity, tags, routes, and notifications are not coherent enough to prove event follow-through.",
+      "gap": "Prove event creation, discovery, author identity, following, and exact notification destinations."
+    },
+    {
+      "displayId": "02.17",
+      "action": "Report harmful or misleading activity",
+      "featureName": "Community moderation",
+      "status": "BLOCKED",
+      "ownerId": "community",
+      "evidenceRefs": ["about-copy", "moderation-service", "community-contract-test"],
+      "productionProof": [],
+      "statusReason": "The current audit found the superadmin moderation view does not provide a truthful actionable queue.",
+      "gap": "Unify reports, moderation state, exact content destinations, decisions, and audit history."
+    },
+    {
+      "displayId": "02.18",
+      "action": "Request a mobile or remote notarization",
+      "featureName": "Notary services",
+      "status": "PARTIAL",
+      "ownerId": "legal-compliance",
+      "evidenceRefs": ["about-copy", "notary-route", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Notary routes exist without current production proof of request completion and legal-boundary presentation.",
+      "gap": "Prove request intake, service distinction, availability, and required disclosures."
+    },
+    {
+      "displayId": "03.01",
+      "action": "Track the assets you care for",
+      "featureName": "Asset Management",
+      "status": "PARTIAL",
+      "ownerId": "home-property",
+      "evidenceRefs": ["about-copy", "homeid-surface", "homeid-outcome-test"],
+      "productionProof": [],
+      "statusReason": "Asset and HomeID surfaces exist without current production proof for complete inspection, maintenance, upgrade, and document history.",
+      "gap": "Prove a real asset history survives navigation and later action."
+    },
+    {
+      "displayId": "03.02",
+      "action": "Preserve a property history",
+      "featureName": "HomeID",
+      "status": "PARTIAL",
+      "ownerId": "home-property",
+      "evidenceRefs": ["about-copy", "homeid-surface", "homeid-outcome-test"],
+      "productionProof": [],
+      "statusReason": "HomeID and completed-work enrichment contracts exist without a current production golden case.",
+      "gap": "Prove components, service, ownership context, documents, and verified outcomes persist."
+    },
+    {
+      "displayId": "03.03",
+      "action": "Publish or follow a property listing",
+      "featureName": "HomeScout and Exchange property listings",
+      "status": "PARTIAL",
+      "ownerId": "home-property",
+      "evidenceRefs": ["about-copy", "homeid-surface", "exchange-contract-test"],
+      "productionProof": [],
+      "statusReason": "HomeScout and Exchange property surfaces exist without a proven listing-to-later-record lifecycle.",
+      "gap": "Prove discovery, listing, decisions, inspections, and later HomeID continuity."
+    },
+    {
+      "displayId": "03.04",
+      "action": "Capture a guided property inspection",
+      "featureName": "Zero Base Fee inspection tools",
+      "status": "PARTIAL",
+      "ownerId": "home-property",
+      "evidenceRefs": ["about-copy", "homeid-surface", "homeid-outcome-test"],
+      "productionProof": [],
+      "statusReason": "Inspection and property record anchors exist without current role-eligible production proof.",
+      "gap": "Prove guided capture, report access, repair handoff, and ownership decisions."
+    },
+    {
+      "displayId": "03.05",
+      "action": "Order and track materials",
+      "featureName": "Supply Run",
+      "status": "PARTIAL",
+      "ownerId": "procurement",
+      "evidenceRefs": ["about-copy", "supply-run-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Supply Run surfaces exist without a timestamped production order-to-proof journey.",
+      "gap": "Prove order creation, fulfillment handoff, status, and delivery proof."
+    },
+    {
+      "displayId": "03.06",
+      "action": "Save something for later",
+      "featureName": "Saved items",
+      "status": "PARTIAL",
+      "ownerId": "exchange",
+      "evidenceRefs": ["about-copy", "exchange-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Saved-item routes and Exchange surfaces exist without current cross-surface persistence proof.",
+      "gap": "Prove listings, offers, projects, and ideas can be saved and reopened accurately."
+    },
+    {
+      "displayId": "03.07",
+      "action": "Write down what matters",
+      "featureName": "Notes",
+      "status": "PARTIAL",
+      "ownerId": "platform-operations",
+      "evidenceRefs": ["about-copy", "app-routes", "direct-connect-route"],
+      "productionProof": [],
+      "statusReason": "A notes route exists without proof that notes remain attached to the promised people, jobs, purchases, and decisions.",
+      "gap": "Prove contextual attachment and retrieval rather than an isolated note page."
+    },
+    {
+      "displayId": "03.08",
+      "action": "Request access to or deletion of account data",
+      "featureName": "Privacy requests",
+      "status": "PARTIAL",
+      "ownerId": "legal-compliance",
+      "evidenceRefs": ["about-copy", "privacy-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "A privacy-request surface exists without timestamped production handling proof.",
+      "gap": "Prove intake, identity verification, retained-record boundaries, and terminal response."
+    },
+    {
+      "displayId": "03.09",
+      "action": "Review the rules that govern an action",
+      "featureName": "Policies and compliance",
+      "status": "PARTIAL",
+      "ownerId": "legal-compliance",
+      "evidenceRefs": ["about-copy", "app-routes", "privacy-surface"],
+      "productionProof": [],
+      "statusReason": "Policy and compliance routes exist without proof that each governed action presents the correct current rules contextually.",
+      "gap": "Map action-specific policies and verify they are reachable beside the work they govern."
+    },
+    {
+      "displayId": "04.01",
+      "action": "Publish one business home",
+      "featureName": "Business profile",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-profile-test", "business-dashboard"],
+      "productionProof": [],
+      "statusReason": "Business profiles are implemented, but no general production proof packet covers offer, service area, proof, requests, and next actions together.",
+      "gap": "Prove one representative live business home end to end."
+    },
+    {
+      "displayId": "04.02",
+      "action": "Point your existing domain to it",
+      "featureName": "Custom domain",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-profile-test", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Custom-domain implementation exists, but current incident work shows production behavior still requires controlled verification.",
+      "gap": "Prove DNS, TLS, routing, offline fallback, owner access, editing, and sharing on a live custom domain."
+    },
+    {
+      "displayId": "04.03",
+      "action": "Carry over useful outside evidence",
+      "featureName": "Selective Inheritance",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-profile-test", "jw-inventory-audit"],
+      "productionProof": [],
+      "statusReason": "Selective Inheritance is defined and used in profile work without a complete cross-source production proof standard in this contract.",
+      "gap": "Prove sourced facts, media, records, observation dates, unsupported-claim rejection, and owner review."
+    },
+    {
+      "displayId": "04.04",
+      "action": "Use tools built for the business category",
+      "featureName": "Category-specific tools",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The About copy says category workflows are rolling out, so availability is not universal.",
+      "gap": "Publish an explicit category support matrix and prove each advertised workflow."
+    },
+    {
+      "displayId": "04.05",
+      "action": "Work from a role-specific workspace",
+      "featureName": "Professional tools",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "business-operations-test"],
+      "productionProof": [],
+      "statusReason": "Role-specific routes exist, but supported roles and complete workflows are not production-proven here.",
+      "gap": "Prove role authority, navigation, data ownership, and terminal work outcomes per supported role."
+    },
+    {
+      "displayId": "04.06",
+      "action": "Manage clients, jobs, and financial records",
+      "featureName": "Business finances",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "business-operations-test", "accounting-flow-test"],
+      "productionProof": [],
+      "statusReason": "Business dashboard and accounting flows exist, but current system review identifies separate lifecycle islands.",
+      "gap": "Link accepted cases deterministically to customers, jobs, expenses, materials, vendors, payroll, and records."
+    },
+    {
+      "displayId": "04.07",
+      "action": "Keep an accounting trail",
+      "featureName": "Ledger and reporting",
+      "status": "PARTIAL",
+      "ownerId": "finance-payments",
+      "evidenceRefs": ["about-copy", "accounting-flow-test", "business-dashboard"],
+      "productionProof": [],
+      "statusReason": "Ledger and accounting contract coverage exists without a timestamped production reconciliation.",
+      "gap": "Prove revenue, expenses, transaction history, categories, and case linkage reconcile."
+    },
+    {
+      "displayId": "04.08",
+      "action": "Create estimates and invoices",
+      "featureName": "Invoicing",
+      "status": "PARTIAL",
+      "ownerId": "finance-payments",
+      "evidenceRefs": ["about-copy", "accounting-flow-test", "business-operations-test"],
+      "productionProof": [],
+      "statusReason": "Estimate and invoice machinery exists without a current production golden case tied to the originating request.",
+      "gap": "Prove customer document creation, delivery, payment progress, and request or job continuity."
+    },
+    {
+      "displayId": "04.09",
+      "action": "Manage relationships and follow-ups",
+      "featureName": "CRM",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "direct-connect-route"],
+      "productionProof": [],
+      "statusReason": "CRM, Direct Connect, and business operations exist as partially separate data islands.",
+      "gap": "Unify contact, opportunity, conversation, assignment, job, and next-step identity."
+    },
+    {
+      "displayId": "04.10",
+      "action": "Review work that fits before accepting it",
+      "featureName": "Business request board",
+      "status": "BLOCKED",
+      "ownerId": "direct-connect",
+      "evidenceRefs": ["about-copy", "admin-direct-connect-surface", "staff-oversight-test", "direct-connect-route"],
+      "productionProof": [],
+      "statusReason": "Admins and superadmins do not yet have the required global delegated-operator queue and reply authority.",
+      "gap": "Provide business, admin, and superadmin visibility plus assign, route, assist, and audited business-branded reply."
+    },
+    {
+      "displayId": "04.11",
+      "action": "Find and bid on commercial work",
+      "featureName": "Commercial directory",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "commercial-route", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Commercial directory implementation exists without current production proof of document access, eligibility, bid submission, and status.",
+      "gap": "Prove one verified-business commercial bid journey."
+    },
+    {
+      "displayId": "04.12",
+      "action": "Understand business performance",
+      "featureName": "Analytics",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-dashboard", "business-operations-test"],
+      "productionProof": [],
+      "statusReason": "Analytics surfaces exist without reconciled production proof across requests, attention, value, outcomes, and revenue.",
+      "gap": "Define authoritative metrics and reconcile them to operating records."
+    },
+    {
+      "displayId": "04.13",
+      "action": "Operate a vehicle-sales workflow",
+      "featureName": "Vehicle sales tools",
+      "status": "PARTIAL",
+      "ownerId": "exchange",
+      "evidenceRefs": ["about-copy", "exchange-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The About copy qualifies these tools by availability, and no complete production vehicle-sales journey is recorded here.",
+      "gap": "Prove listings, VIN data, follow-up, finance factors, estimates, trade-in, appointments, and conversations."
+    },
+    {
+      "displayId": "04.14",
+      "action": "Operate a property-sales workflow",
+      "featureName": "Real-estate professional tools",
+      "status": "PARTIAL",
+      "ownerId": "home-property",
+      "evidenceRefs": ["about-copy", "homeid-surface", "exchange-contract-test"],
+      "productionProof": [],
+      "statusReason": "The About copy limits these tools to approved roles, and no complete production property-sales journey is attached.",
+      "gap": "Prove role approval, listing, clients, analysis, appointments, inspection follow-up, and HomeID continuity."
+    },
+    {
+      "displayId": "04.15",
+      "action": "Build local discovery from maintained information",
+      "featureName": "Local reach and shareable profiles",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-profile-test", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Maintained profile and discovery surfaces exist without a current proof that all channels consume one authoritative business identity.",
+      "gap": "Prove profile updates flow to public discovery and sharing without duplicate manual truth."
+    },
+    {
+      "displayId": "04.16",
+      "action": "Learn a tool before depending on it",
+      "featureName": "Resource and training areas",
+      "status": "PARTIAL",
+      "ownerId": "platform-operations",
+      "evidenceRefs": ["about-copy", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The About copy explicitly says guidance coverage varies by tool.",
+      "gap": "Publish a coverage registry linking each operational tool to current guidance and ownership."
+    },
+    {
+      "displayId": "04.17",
+      "action": "Apply for business support when a program is open",
+      "featureName": "Accelerator and support programs",
+      "status": "PLANNED",
+      "ownerId": "growth-marketing",
+      "evidenceRefs": ["about-copy", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The public copy makes this action conditional on a named program being open, with published terms and selection rules.",
+      "gap": "Record an actual open program, terms, availability, selection process, and application outcome before upgrading status."
+    },
+    {
+      "displayId": "04.18",
+      "action": "Write and save the business story",
+      "featureName": "Story Generator",
+      "status": "PARTIAL",
+      "ownerId": "growth-marketing",
+      "evidenceRefs": ["about-copy", "story-generator-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "A Story Generator surface exists without timestamped production proof for create, save, copy, publish, and remove.",
+      "gap": "Prove all advertised story lifecycle actions on one business."
+    },
+    {
+      "displayId": "04.19",
+      "action": "Publish an offer without buying trust",
+      "featureName": "Promotions",
+      "status": "PARTIAL",
+      "ownerId": "growth-marketing",
+      "evidenceRefs": ["about-copy", "business-dashboard", "trust-contract-test"],
+      "productionProof": [],
+      "statusReason": "Promotion and trust implementation anchors exist without a production proof that paid visibility remains separate from CVS and organic order.",
+      "gap": "Prove promotion creation, labeling, eligibility, and no-trust-purchase invariants."
+    },
+    {
+      "displayId": "04.20",
+      "action": "Publish once and extend it outside TradeScout",
+      "featureName": "Social publishing and external auto-sharing",
+      "status": "PARTIAL",
+      "ownerId": "growth-marketing",
+      "evidenceRefs": ["about-copy", "social-integration-surface", "app-routes"],
+      "productionProof": [],
+      "statusReason": "The About copy states the management area exists while dependable end-to-end automatic publishing is still expanding by platform.",
+      "gap": "Prove explicit account authorization, content choice, destination choice, delivery result, and failure visibility per platform."
+    },
+    {
+      "displayId": "04.21",
+      "action": "Track money moving through the account",
+      "featureName": "Wallet",
+      "status": "PARTIAL",
+      "ownerId": "finance-payments",
+      "evidenceRefs": ["about-copy", "payment-webhook", "accounting-flow-test"],
+      "productionProof": [],
+      "statusReason": "Wallet and payment implementation anchors exist without a reconciled production balance-and-history proof.",
+      "gap": "Prove balance, transaction history, source activity, reversals, and terminal payment state."
+    },
+    {
+      "displayId": "04.22",
+      "action": "Share without losing referral credit",
+      "featureName": "Share Hub and affiliate system",
+      "status": "PARTIAL",
+      "ownerId": "growth-marketing",
+      "evidenceRefs": ["about-copy", "affiliate-route", "app-routes"],
+      "productionProof": [],
+      "statusReason": "Affiliate and sharing routes exist without timestamped production proof from signed-in share through qualifying revenue.",
+      "gap": "Prove attribution persistence, qualification, payout rules, and non-qualifying outcomes."
+    },
+    {
+      "displayId": "04.23",
+      "action": "Have TradeScout build the branded profile",
+      "featureName": "Express Profile",
+      "status": "PARTIAL",
+      "ownerId": "business-operations",
+      "evidenceRefs": ["about-copy", "business-profile-test", "jw-inventory-audit"],
+      "productionProof": [],
+      "statusReason": "Hands-on profile delivery exists as an operating service without a general production service-level and acceptance proof in this registry.",
+      "gap": "Prove intake, source review, owner review, publication, and separation from trust, rank, request, or contact access."
+    },
+    {
+      "displayId": "04.24",
+      "action": "Order branded products or marketing help",
+      "featureName": "ScoutFitters",
+      "status": "PARTIAL",
+      "ownerId": "growth-marketing",
+      "evidenceRefs": ["about-copy", "app-routes"],
+      "productionProof": [],
+      "statusReason": "A ScoutFitters route is advertised without a timestamped production order or service-delivery proof in this contract.",
+      "gap": "Prove product or service selection, request or order, payment where applicable, fulfillment, and terminal outcome."
+    }
+  ],
+  "goldenJourneys": [
+    {
+      "journeyId": "jw-stone-catalog-inquiry",
+      "name": "JW Stone catalog inquiry",
+      "purpose": "Prove a current, evidence-safe catalog item can become a TradeScout-managed sale without exposing direct contact or losing operator, conversation, delivery, quote, and outcome continuity.",
+      "stages": [
+        {
+          "stageId": "catalog-discovery",
+          "name": "Discover the maintained business catalog",
+          "status": "PARTIAL",
+          "actionIds": ["01.06", "01.17", "04.01"],
+          "evidenceRefs": [
+            "jw-inventory-source",
+            "jw-inventory-test",
+            "jw-inventory-audit",
+            "jw-old-site-sheet-contract",
+            "profile-catalog-exchange-source",
+            "profile-catalog-exchange-test"
+          ],
+          "productionProof": [],
+          "statusReason": "A single request-only JW Stone Exchange spotlight now leads to the maintained current-inventory profile catalog, but it has no production journey proof and old-site-only additions do not yet have product-numbered sheet evidence.",
+          "gap": "Prove the spotlight reaches the maintained catalog, then admit each old-site-only slab or bundle only after it has a stable product number, confirmed sheet row, and matched image filenames."
+        },
+        {
+          "stageId": "catalog-inquiry",
+          "name": "Prepare and submit an item-specific inquiry",
+          "status": "PARTIAL",
+          "actionIds": ["02.01", "02.02"],
+          "evidenceRefs": ["jw-direct-connect-test", "jw-direct-connect-audit", "direct-connect-route"],
+          "productionProof": [],
+          "statusReason": "The item-specific Express Direct Connect path has implementation and historical audit evidence, but no current timestamped golden-case proof.",
+          "gap": "Prove the selected catalog item and approved context survive draft, authentication, submission, and queue entry."
+        },
+        {
+          "stageId": "operator-queue",
+          "name": "Enter the global TradeScout operator queue",
+          "status": "BLOCKED",
+          "actionIds": ["04.10"],
+          "evidenceRefs": ["admin-direct-connect-surface", "staff-oversight-test", "direct-connect-route"],
+          "productionProof": [],
+          "statusReason": "Admins and superadmins do not yet have global delegated-business visibility and complete route, assign, assist, or reply authority.",
+          "gap": "Implement the global queue with immutable acted-by and acting-as audit fields."
+        },
+        {
+          "stageId": "business-branded-conversation",
+          "name": "Reply in the correct business-branded case conversation",
+          "status": "BLOCKED",
+          "actionIds": ["02.03", "02.04"],
+          "evidenceRefs": ["messages-surface", "messages-job-bridge-test", "staff-oversight-test"],
+          "productionProof": [],
+          "statusReason": "Conversation identity and delegated business reply are not yet reliably tied to the exact request and assignment.",
+          "gap": "Require one conversation per case and assignment while retaining the internal acting administrator."
+        },
+        {
+          "stageId": "delivery-truth",
+          "name": "Record in-app and operational email delivery truth",
+          "status": "BLOCKED",
+          "actionIds": ["02.05"],
+          "evidenceRefs": ["notifications-surface", "notification-safety-test", "lifecycle-notifications-test"],
+          "productionProof": [],
+          "statusReason": "No durable email attempt or result was recorded for the observed JW Stone request.",
+          "gap": "Persist recipient resolution and queued, sent, delivered, failed, or suppressed outcomes."
+        },
+        {
+          "stageId": "quote-order-outcome",
+          "name": "Carry the inquiry into quote, order, and terminal outcome",
+          "status": "BLOCKED",
+          "actionIds": ["02.12", "04.08", "04.21"],
+          "evidenceRefs": ["accounting-flow-test", "job-lifecycle-test", "job-timeline-test"],
+          "productionProof": [],
+          "statusReason": "Direct Connect, quoting, ordering, finance, and outcome records remain insufficiently unified for this sale journey.",
+          "gap": "Retain one case identity from inquiry through quote or explicit no-sale outcome."
+        }
+      ]
+    },
+    {
+      "journeyId": "service-business-lifecycle",
+      "name": "Service business lifecycle",
+      "purpose": "Prove a local service need moves from discovery through selected-business acceptance, conversation, customer and job records, estimate, schedule, invoice or receipt, outcome, and future HomeID or CVS context.",
+      "stages": [
+        {
+          "stageId": "discover-and-prepare",
+          "name": "Discover a business and prepare the need",
+          "status": "PARTIAL",
+          "actionIds": ["01.01", "01.05", "01.06"],
+          "evidenceRefs": ["scout-command-registry", "business-profile-test", "app-routes"],
+          "productionProof": [],
+          "statusReason": "Scout, Decision Card, and profile surfaces exist without a current full-journey production artifact.",
+          "gap": "Prove context survives discovery, comparison, and preparation."
+        },
+        {
+          "stageId": "request-and-acceptance",
+          "name": "Submit to a selected business and record acceptance",
+          "status": "PARTIAL",
+          "actionIds": ["02.01", "02.02", "04.10"],
+          "evidenceRefs": ["direct-connect-route", "direct-connect-lifecycle-test", "staff-oversight-test"],
+          "productionProof": [],
+          "statusReason": "Request and assignment machinery exists, but selected-recipient, business, and operator visibility are not proven together.",
+          "gap": "Prove requester choice, business preview, acceptance or decline, and delegated-operator access."
+        },
+        {
+          "stageId": "case-conversation",
+          "name": "Open one case-specific conversation",
+          "status": "BLOCKED",
+          "actionIds": ["02.03", "02.04", "02.05"],
+          "evidenceRefs": ["messages-surface", "messages-job-bridge-test", "lifecycle-notifications-test"],
+          "productionProof": [],
+          "statusReason": "Message, notification, and request identifiers do not yet form one dependable case-specific communication spine.",
+          "gap": "Canonicalize conversation, notification destination, and delivery truth around the case and assignment."
+        },
+        {
+          "stageId": "customer-and-job",
+          "name": "Create or link the customer and job",
+          "status": "PARTIAL",
+          "actionIds": ["04.06", "04.09"],
+          "evidenceRefs": ["business-dashboard", "business-operations-test", "job-lifecycle-test"],
+          "productionProof": [],
+          "statusReason": "Business and job records exist, but deterministic accepted-case linkage is not production-proven.",
+          "gap": "Require every converted case to link to one customer and one job or explicit non-job outcome."
+        },
+        {
+          "stageId": "estimate-schedule-invoice",
+          "name": "Estimate, schedule, invoice, and record payment state",
+          "status": "PARTIAL",
+          "actionIds": ["02.11", "02.12", "04.07", "04.08", "04.21"],
+          "evidenceRefs": ["accounting-flow-test", "business-operations-test", "payment-webhook"],
+          "productionProof": [],
+          "statusReason": "The component capabilities exist, but their shared case continuity and production reconciliation are not proven.",
+          "gap": "Carry the same case through estimate, schedule, invoice or receipt, payment state, and ledger."
+        },
+        {
+          "stageId": "outcome-and-memory",
+          "name": "Close the outcome and improve future context",
+          "status": "BLOCKED",
+          "actionIds": ["01.07", "03.02"],
+          "evidenceRefs": ["homeid-outcome-test", "trust-contract-test", "job-timeline-test"],
+          "productionProof": [],
+          "statusReason": "No current golden case proves a terminal service outcome returns to HomeID and CVS without unsupported claims.",
+          "gap": "Record terminal outcome or reason, attach verified property history where applicable, and recompute only supported trust signals."
+        },
+        {
+          "stageId": "operator-oversight",
+          "name": "Allow TradeScout operators to recover any stalled stage",
+          "status": "BLOCKED",
+          "actionIds": ["02.05", "04.10"],
+          "evidenceRefs": ["admin-direct-connect-surface", "staff-oversight-test", "notifications-surface"],
+          "productionProof": [],
+          "statusReason": "Global delegated operation, business-branded assistance, and exact delivery visibility are not complete.",
+          "gap": "Give admin and superadmin a truthful global queue, controlled actions, and immutable operator audit history."
+        }
+      ]
+    }
+  ]
+}

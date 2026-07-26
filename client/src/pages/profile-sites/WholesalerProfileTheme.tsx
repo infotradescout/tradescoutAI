@@ -801,6 +801,28 @@ export default function WholesalerProfileTheme({
   };
 
   useEffect(() => {
+    if (profileSlug !== "jw-stone") return;
+    const openCatalogFromHash = () => {
+      if (window.location.hash !== "#inventory-browser") return;
+      setActiveCategorySlug("all");
+      setInventorySearch("");
+      pendingInventoryScrollRef.current = true;
+      setInventoryExpanded(true);
+    };
+    const navigationEvents = ["pushState", "replaceState", "popstate", "hashchange"] as const;
+
+    openCatalogFromHash();
+    for (const eventName of navigationEvents) {
+      window.addEventListener(eventName, openCatalogFromHash);
+    }
+    return () => {
+      for (const eventName of navigationEvents) {
+        window.removeEventListener(eventName, openCatalogFromHash);
+      }
+    };
+  }, [profileSlug]);
+
+  useEffect(() => {
     if (!inventoryExpanded || !pendingInventoryScrollRef.current) return;
     pendingInventoryScrollRef.current = false;
     scrollToInventoryBrowser();

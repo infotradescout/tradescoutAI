@@ -381,6 +381,10 @@ describe("ISSA Build public profile contract", () => {
     expect(luxuryHouse).toContain('data-testid="luxury-material-house-showcase"');
     expect(luxuryHouse).toContain("designed-with-light");
     expect(luxuryHouse).toContain("material-chapters");
+    expect(luxuryHouse).toContain('window.location.hash !== "#material-chapters"');
+    expect(luxuryHouse).toContain(
+      '["pushState", "replaceState", "popstate", "hashchange"]'
+    );
     expect(luxuryHouse).toContain("capabilities");
     expect(luxuryHouse).toContain("showcase");
     expect(luxuryHouse).toContain("material-samples");

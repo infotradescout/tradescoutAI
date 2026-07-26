@@ -78,6 +78,7 @@ import {
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
+import { PROFILE_CATALOG_EXCHANGE_CATEGORY } from "../shared/profileCatalogExchange";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import {
   buildHomeScoutInspectionRequestDecisionScope,
@@ -86,6 +87,10 @@ import {
   normalizeHomeScoutListingId,
 } from "../shared/homeScoutListingShare";
 import { toPublicExchangeListing } from "./publicExchangeListing";
+import {
+  getPublicProfileCatalogExchangeItem,
+  listPublicProfileCatalogExchangeItems,
+} from "./profileCatalogExchange";
 import {
   toPublicHandmadeProduct,
   toPublicHandmadeProductReview,
@@ -13351,6 +13356,7 @@ export async function registerRoutes(app: any) {
         "real-estate": "Real Estate",
         vehicles: "Vehicles",
         construction: "Construction Equipment",
+        "building-materials": "Building Materials & Surfaces",
         tools: "Tools & Hardware",
         furniture: "Furniture & Home Goods",
         farm: "Farm Equipment",
@@ -13371,6 +13377,10 @@ export async function registerRoutes(app: any) {
       if (rawCategoryId) {
         if (looksLikeUuid(rawCategoryId)) {
           resolvedCategoryId = rawCategoryId;
+        } else if (rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY) {
+          // This category is code-curated, not backed by marketplace rows. A
+          // nil UUID keeps the existing storage query bounded to zero results.
+          resolvedCategoryId = "00000000-0000-0000-0000-000000000000";
         } else {
           const desiredName = categorySlugToName[rawCategoryId] || rawCategoryId;
           const categories = await storage.getMarketplaceCategories();
@@ -13584,12 +13594,30 @@ export async function registerRoutes(app: any) {
         .map((listing: any) => toPublicExchangeListing(listing))
         .filter(Boolean) as any[];
 
-      const profileOfferItems = await listProfileOfferExchangeItems(req, rawCategoryId);
-      const merged = [...mapped, ...profileOfferItems];
+      const profileOfferItems =
+        rawCategoryId === PROFILE_CATALOG_EXCHANGE_CATEGORY
+          ? []
+          : await listProfileOfferExchangeItems(req, rawCategoryId);
+      const profileCatalogItems = await listPublicProfileCatalogExchangeItems({
+        category: rawCategoryId,
+        search: req.query.search as string | undefined,
+        hasPriceFilter: Boolean(req.query.priceMin || req.query.priceMax),
+        condition: req.query.condition as string | undefined,
+      });
+      const merged = [...mapped, ...profileOfferItems, ...profileCatalogItems];
       const sort = String(req.query.sort || "date_desc");
-      if (sort === "price_asc") merged.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      if (sort === "price_asc")
+        merged.sort((a, b) => {
+          const aPrice = a.price == null ? Number.POSITIVE_INFINITY : Number(a.price);
+          const bPrice = b.price == null ? Number.POSITIVE_INFINITY : Number(b.price);
+          return aPrice - bPrice;
+        });
       else if (sort === "price_desc")
-        merged.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+        merged.sort((a, b) => {
+          const aPrice = a.price == null ? Number.NEGATIVE_INFINITY : Number(a.price);
+          const bPrice = b.price == null ? Number.NEGATIVE_INFINITY : Number(b.price);
+          return bPrice - aPrice;
+        });
       else if (sort === "date_asc")
         merged.sort(
           (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
@@ -17686,6 +17714,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/marketplace/listings/:id", async (req: any, res: any) => {
     try {
       const { id } = req.params;
+      const profileCatalogItem = await getPublicProfileCatalogExchangeItem(id);
+      if (profileCatalogItem) {
+        return res.json(profileCatalogItem);
+      }
       const profileOfferId = fromProfileOfferExchangeId(id);
       if (profileOfferId) {
         try {

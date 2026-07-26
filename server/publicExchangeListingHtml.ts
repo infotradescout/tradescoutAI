@@ -28,6 +28,7 @@ import { storage } from "./storage";
 import { hasExposureAuthority } from "./services/exposureAuthority";
 import { toPublicProfileOffer } from "./publicProfileOffer";
 import { toPublicExchangeListing } from "./publicExchangeListing";
+import { getPublicProfileCatalogExchangeItem } from "./profileCatalogExchange";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -174,7 +175,11 @@ export function resolvePersistedExchangeCategorySlug(
 async function resolveListingCategorySlug(listing: any): Promise<ExchangeCategorySlug> {
   let persistedCategoryName: unknown;
   const categoryId = String(listing?.categoryId || "").trim();
-  if (categoryId && listing?.sourceType !== "profile_offer") {
+  if (
+    categoryId &&
+    listing?.sourceType !== "profile_offer" &&
+    listing?.sourceType !== "profile_catalog"
+  ) {
     try {
       const result = await pool.query(
         "SELECT name FROM marketplace_categories WHERE id = $1 LIMIT 1",
@@ -610,6 +615,7 @@ export async function buildPublicExchangeListingHtml(
   let listing: any;
   try {
     listing =
+      (await getPublicProfileCatalogExchangeItem(listingId)) ||
       (await getProfileOfferExchangeListing(listingId)) ||
       (await storage.getMarketplaceListing(listingId));
   } catch {
@@ -618,12 +624,14 @@ export async function buildPublicExchangeListingHtml(
 
   if (!listing) return null;
 
-  if (listing.sourceType !== "profile_offer") {
+  if (listing.sourceType !== "profile_offer" && listing.sourceType !== "profile_catalog") {
     listing = toPublicExchangeListing(listing);
     if (!listing) return null;
   }
-  const authorityUserId = String(listing.sellerId || listing.seller?.id || "").trim();
-  if (!authorityUserId || !(await hasExposureAuthority(authorityUserId))) return null;
+  if (listing.sourceType !== "profile_catalog") {
+    const authorityUserId = String(listing.sellerId || listing.seller?.id || "").trim();
+    if (!authorityUserId || !(await hasExposureAuthority(authorityUserId))) return null;
+  }
 
   // Resolve category slug
   const categorySlug = await resolveListingCategorySlug(listing);
@@ -670,13 +678,16 @@ export async function buildPublicExchangeListingHtml(
     listingUrl
   );
 
-  const itemJsonLd = productImageUrl
-    ? categorySlug === "vehicles"
-      ? buildVehicleJsonLd(listing, origin, listingUrl, productImageUrl)
-      : categorySlug === "real-estate"
-        ? buildRealEstateJsonLd(listing, origin, listingUrl, productImageUrl)
-        : buildProductJsonLd(listing, origin, listingUrl, productImageUrl)
-    : null;
+  const itemJsonLd =
+    listing.sourceType === "profile_catalog"
+      ? null
+      : productImageUrl
+        ? categorySlug === "vehicles"
+          ? buildVehicleJsonLd(listing, origin, listingUrl, productImageUrl)
+          : categorySlug === "real-estate"
+            ? buildRealEstateJsonLd(listing, origin, listingUrl, productImageUrl)
+            : buildProductJsonLd(listing, origin, listingUrl, productImageUrl)
+        : null;
 
   // ── Inject into HTML ──────────────────────────────────────────────────────
 
@@ -717,7 +728,7 @@ export async function buildPublicExchangeListingHtml(
   html = upsertTag(
     html,
     /<meta property="og:type"[^>]*>/i,
-    `<meta property="og:type" content="product" />`
+    `<meta property="og:type" content="${listing.sourceType === "profile_catalog" ? "website" : "product"}" />`
   );
   html = upsertTag(
     html,
@@ -751,7 +762,11 @@ export async function buildPublicExchangeListingHtml(
         <p>${escapeHtml(description)}</p>
         ${priceStr ? `<p>${escapeHtml(priceStr.replace(/^\s*—\s*/, ""))}</p>` : ""}
         ${productImageUrl ? `<img src="${escapeHtml(productImageUrl)}" alt="${escapeHtml(itemTitle)}" loading="eager" />` : ""}
-        <p>Continue through TradeScout to review the listing and contact options.</p>
+        <p>${
+          listing.sourceType === "profile_catalog"
+            ? "Open the maintained business profile and submit a managed TradeScout request."
+            : "Continue through TradeScout to review the listing and contact options."
+        }</p>
       </article>
     </main></div>`
   );

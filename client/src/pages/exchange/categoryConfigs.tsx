@@ -17,6 +17,7 @@ import {
   ShoppingBag,
   Package,
   Cpu,
+  Layers3,
 } from "lucide-react";
 import type { CategoryConfig } from "./ExchangeCategoryPage";
 
@@ -198,6 +199,16 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
         trueLabel: "Inspection Ready",
       },
     ],
+  },
+
+  "building-materials": {
+    slug: "building-materials",
+    name: "Building Materials & Surfaces",
+    description:
+      "Profile-linked material catalogs with availability, project fit, and pricing confirmed through a managed TradeScout request.",
+    icon: Layers3,
+    showCondition: false,
+    catalogOnly: true,
   },
 
   tools: {

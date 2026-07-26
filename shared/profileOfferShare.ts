@@ -50,6 +50,7 @@ function normalizePublicImageReference(value: unknown): string | null {
 
 export function normalizeProfileOfferExchangeCategory(value: unknown): ExchangeCategorySlug {
   const candidate = cleanString(value).toLowerCase() as ExchangeCategorySlug;
+  if (candidate === "building-materials") return "other";
   return candidate in EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME ? candidate : "other";
 }
 
