@@ -8210,9 +8210,16 @@ export function registerDirectConnectRoutes(app: Express) {
           }>;
         } | null = null;
         if (exactConversation) {
-          const messageRows = await storage.getMessagesByConversation(
+          const conversationMessageRows = await storage.getMessagesByConversation(
             String(exactConversation.conversation.id)
           );
+          const messageRows = conversationMessageRows.filter((message) => {
+            const metadata =
+              message.metadata && typeof message.metadata === "object"
+                ? (message.metadata as Record<string, unknown>)
+                : {};
+            return String(metadata.workRequestId || "") === requestId;
+          });
           const senderIds = Array.from(
             new Set(messageRows.map((message) => String(message.senderId)).filter(Boolean))
           );
@@ -8756,7 +8763,6 @@ export function registerDirectConnectRoutes(app: Express) {
             };
           }
 
-          const representedProviderUserId = authority.providerUserId;
           const representedProviderName = "the accepted provider";
           const visibleContent = `TradeScout staff, assisting ${representedProviderName}: ${parsed.data.content}`;
           const now = new Date();
@@ -8764,15 +8770,15 @@ export function registerDirectConnectRoutes(app: Express) {
             .insert(messages)
             .values({
               conversationId,
-              senderId: representedProviderUserId,
-              senderType: "contractor",
+              senderId: actorUserId,
+              senderType: "staff",
               content: visibleContent,
               messageType: "text",
               metadata: {
                 staffAssisted: true,
                 staffActorUserId: actorUserId,
                 staffReason: parsed.data.reason,
-                representedProviderUserId,
+                representedProviderUserId: authority.providerUserId,
                 workRequestId: requestId,
                 operationId,
               },
@@ -8793,7 +8799,7 @@ export function registerDirectConnectRoutes(app: Express) {
               assignmentId: authority.assignmentId,
               conversationId,
               messageId: message.id,
-              representedProviderUserId,
+              representedProviderUserId: authority.providerUserId,
               reason: parsed.data.reason,
             },
           });
@@ -8803,7 +8809,7 @@ export function registerDirectConnectRoutes(app: Express) {
             idempotentReplay: false,
             requestTitle: String(request.title || "Direct Connect request"),
             requesterUserId,
-            representedProviderUserId,
+            representedProviderUserId: authority.providerUserId,
             representedProviderName,
             conversationId,
           };

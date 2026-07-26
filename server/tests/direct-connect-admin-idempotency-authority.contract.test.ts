@@ -125,6 +125,9 @@ describe("Direct Connect admin idempotency and assisted authority contracts", ()
     expect(messageInsertIndex).toBeGreaterThan(conversationLockIndex);
     expect(eventInsertIndex).toBeGreaterThan(messageInsertIndex);
     expect(notifyIndex).toBeGreaterThan(eventInsertIndex);
+    expect(assistedReplyRoute).toContain("senderId: actorUserId");
+    expect(assistedReplyRoute).toContain('senderType: "staff"');
+    expect(assistedReplyRoute).not.toContain("senderId: representedProviderUserId");
     expect(assistedReplyRoute).not.toContain("storage.createMessage");
     expect(assistedReplyRoute).not.toContain('assignment.status === "accepted"');
   });
@@ -135,5 +138,17 @@ describe("Direct Connect admin idempotency and assisted authority contracts", ()
       "TradeScout staff sent an assisted update for the accepted provider"
     );
     expect(assistedReplyRoute).not.toContain("${representedProviderName} sent an update");
+  });
+
+  it("scopes admin conversation history to the selected request", () => {
+    const adminDetail = sectionBetween(
+      source,
+      '"/api/admin/direct-connect/requests/:id"',
+      '"/api/admin/direct-connect/requests/:id/route"'
+    );
+    expect(adminDetail).toContain("conversationMessageRows.filter");
+    expect(adminDetail).toContain(
+      'String(metadata.workRequestId || "") === requestId'
+    );
   });
 });

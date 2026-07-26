@@ -4757,7 +4757,9 @@ export const messages = pgTable("messages", {
   senderId: varchar("sender_id")
     .notNull()
     .references(() => users.id),
-  senderType: varchar("sender_type", { enum: ["homeowner", "contractor"] }).notNull(),
+  senderType: varchar("sender_type", {
+    enum: ["homeowner", "contractor", "staff"],
+  }).notNull(),
   content: text("content").notNull(),
   messageType: varchar("message_type", {
     enum: ["text", "quote", "schedule", "materials", "image"],
