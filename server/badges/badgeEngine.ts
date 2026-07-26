@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 import type { LoggedEvent } from "../xp/eventTypes";
 import { EventTypes } from "../xp/eventTypes";
 import { Badges } from "./badgeRegistry";
+import { withPoolTransaction } from "../utils/poolTransaction";
 
 type Deps = {
   pool: Pool;
@@ -48,9 +49,8 @@ async function grantBadgeXp(
   badgeId: string,
   delta: number
 ): Promise<void> {
-  await pool.query("BEGIN");
-  try {
-    await pool.query(
+  await withPoolTransaction(pool, async (client) => {
+    await client.query(
       `
       INSERT INTO xp_ledger (user_id, delta, reason, source_event_id, day_key_utc)
       VALUES ($1, $2, $3, NULL, to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD'));
@@ -58,7 +58,7 @@ async function grantBadgeXp(
       [userId, delta, `badge:${badgeId}`]
     );
 
-    await pool.query(
+    await client.query(
       `
       INSERT INTO user_xp (user_id, xp_total)
       VALUES ($1, $2)
@@ -67,12 +67,7 @@ async function grantBadgeXp(
       `,
       [userId, delta]
     );
-
-    await pool.query("COMMIT");
-  } catch (e) {
-    await pool.query("ROLLBACK");
-    throw e;
-  }
+  });
 }
 
 export async function evaluateBadgesForEvent(deps: Deps, event: LoggedEvent): Promise<string[]> {

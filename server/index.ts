@@ -3,6 +3,7 @@ import "dotenv/config";
 
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import { isCorsNeutralPublicAssetRequest } from "./http/corsPolicy";
 import helmet from "helmet";
 import compression from "compression";
 import * as Sentry from "@sentry/node";
@@ -380,6 +381,7 @@ function isCustomDomainMechanicsPath(requestPath: string): boolean {
       "/about-explainer.css",
       "/firebase-messaging-sw.js",
       "/manifest.json",
+      "/offline.html",
       "/service-worker.js",
       "/site.webmanifest",
       "/sw.js",
@@ -783,6 +785,13 @@ function corsOptionsForRequest(req: Request): cors.CorsOptions {
 
       if (ALLOWED_ORIGINS.includes(normalized)) {
         return callback(null, true);
+      }
+
+      // Static/PWA resources are public bytes, not cross-origin authority.
+      // Let them respond without CORS headers instead of converting an otherwise
+      // valid GET/HEAD into HTTP 500. API and auth requests still fail closed.
+      if (isCorsNeutralPublicAssetRequest(req.method, req.path)) {
+        return callback(null, false);
       }
       return callback(new Error(`CORS: Origin not allowed: ${origin}`));
     },

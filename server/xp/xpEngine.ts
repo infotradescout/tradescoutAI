@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import type { LoggedEvent } from "./eventTypes";
 import { xpRules, getDayKeyUtc } from "./xpRules";
+import { withPoolTransaction } from "../utils/poolTransaction";
 
 export type XpEngineDeps = {
   pool: Pool;
@@ -118,9 +119,8 @@ async function applyXp(
   sourceEventId: string,
   dayKeyUtc: string
 ): Promise<void> {
-  await pool.query("BEGIN");
-  try {
-    await pool.query(
+  await withPoolTransaction(pool, async (client) => {
+    await client.query(
       `
       INSERT INTO xp_ledger (user_id, delta, reason, source_event_id, day_key_utc)
       VALUES ($1, $2, $3, $4, $5);
@@ -128,7 +128,7 @@ async function applyXp(
       [userId, delta, reason, sourceEventId, dayKeyUtc]
     );
 
-    await pool.query(
+    await client.query(
       `
       INSERT INTO user_xp (user_id, xp_total)
       VALUES ($1, $2)
@@ -137,12 +137,7 @@ async function applyXp(
       `,
       [userId, delta]
     );
-
-    await pool.query("COMMIT");
-  } catch (e) {
-    await pool.query("ROLLBACK");
-    throw e;
-  }
+  });
 }
 
 async function tryInsertUnique(

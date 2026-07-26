@@ -52,6 +52,11 @@ import { runCompletedJobPriceSnapshotJob } from "../services/completedJobPriceSn
 import { runHomeScoutMarketMetricsJob } from "../services/homeScoutMarketMetricsJob";
 import { runTradeDealsAggregationJob } from "../services/tradeDealsAggregationJob";
 import { withAdvisoryLock } from "../utils/advisoryLocks";
+import {
+  evaluateIntentParityStatus,
+  type IntentAutomationStatus,
+  type IntentParitySample,
+} from "../services/intentParityStatus";
 
 type RecommendedActionEnum =
   | "INCREASE_BUDGET"
@@ -118,29 +123,9 @@ type DigitalDnaIntentRecord = {
 
 const digitalDnaCooldownByGeoCategory = new Map<string, number>();
 
-type IntentParitySample = {
-  timestamp_utc: string;
-  scope: {
-    source: string;
-    stateCode: string;
-    county: string;
-    window_minutes: number;
-  };
-  event_native_count: number;
-  snapshot_derived_count: number;
-  overlap_count: number;
-  overlap_ratio: number;
-};
-
 const intentParitySamples: IntentParitySample[] = [];
 const INTENT_PARITY_MAX_SAMPLES = 5000;
 let intentAutomationReadyStreak = 0;
-
-type IntentAutomationStatus =
-  | "disabled"
-  | "collecting_samples"
-  | "parity_below_target"
-  | "ready_for_event_native_cutover";
 
 type IntentAutomationState = {
   enabled: boolean;
@@ -786,71 +771,7 @@ function computeIntentParityStatus(args: {
   stateCode?: string;
   county?: string;
 }) {
-  const source = String(args.source || "").toLowerCase();
-  const stateCode = String(args.stateCode || "").toUpperCase();
-  const county = String(args.county || "").toLowerCase();
-  const cutoffMs = Date.now() - args.lookbackHours * 60 * 60 * 1000;
-
-  const scoped = intentParitySamples.filter((sample) => {
-    const ts = new Date(sample.timestamp_utc).getTime();
-    if (!Number.isFinite(ts) || ts < cutoffMs) return false;
-    if (source && sample.scope.source.toLowerCase() !== source) return false;
-    if (stateCode && sample.scope.stateCode.toUpperCase() !== stateCode) return false;
-    if (county && sample.scope.county.toLowerCase() !== county) return false;
-    return true;
-  });
-
-  const sampleCount = scoped.length;
-  const overlapAvg =
-    sampleCount > 0
-      ? Number(
-          (scoped.reduce((sum, sample) => sum + sample.overlap_ratio, 0) / sampleCount).toFixed(3)
-        )
-      : 0;
-
-  const eventNativeAvg =
-    sampleCount > 0
-      ? Number(
-          (
-            scoped.reduce((sum, sample) => sum + sample.event_native_count, 0) / sampleCount
-          ).toFixed(2)
-        )
-      : 0;
-  const snapshotDerivedAvg =
-    sampleCount > 0
-      ? Number(
-          (
-            scoped.reduce((sum, sample) => sum + sample.snapshot_derived_count, 0) / sampleCount
-          ).toFixed(2)
-        )
-      : 0;
-
-  const status: IntentAutomationStatus =
-    sampleCount >= args.minSamples && overlapAvg >= args.targetOverlap
-      ? "ready_for_event_native_cutover"
-      : sampleCount < args.minSamples
-        ? "collecting_samples"
-        : "parity_below_target";
-
-  return {
-    status,
-    filters: {
-      lookback_hours: args.lookbackHours,
-      min_samples: args.minSamples,
-      target_overlap: args.targetOverlap,
-      source: source || null,
-      stateCode: stateCode || null,
-      county: county || null,
-    },
-    summary: {
-      sample_count: sampleCount,
-      overlap_avg: overlapAvg,
-      event_native_avg: eventNativeAvg,
-      snapshot_derived_avg: snapshotDerivedAvg,
-    },
-    latest_sample: scoped[scoped.length - 1] || null,
-    samples: scoped,
-  };
+  return evaluateIntentParityStatus(intentParitySamples, args);
 }
 
 function cloneIntentAutomationState() {
@@ -1016,7 +937,10 @@ export async function runIntentAutomationTick(triggeredBy = "manual") {
 
   const wasCutover = intentAutomationState.cutover_active;
   let cutoverNow = wasCutover;
-  let reason = "event_native_parallel_validation";
+  let reason =
+    paritySnapshot.status === "no_comparable_evidence"
+      ? "no_comparable_intent_evidence"
+      : "event_native_parallel_validation";
 
   if (
     !wasCutover &&

@@ -8,6 +8,18 @@ import {
 } from "../utils/requestActor";
 import type { Request } from "express";
 import { slugifyCountyName } from "../../shared/tradeSeo";
+import { BoundedTaskQueue } from "../utils/boundedTaskQueue";
+
+function readBoundedIntegerEnv(
+  name: string,
+  fallback: number,
+  min: number,
+  max: number
+): number {
+  const parsed = Number.parseInt(String(process.env[name] || ""), 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
 
 let ensurePromise: Promise<void> | null = null;
 let prunePromise: Promise<void> | null = null;
@@ -22,10 +34,12 @@ const CRAWLER_TELEMETRY_RETENTION_DAYS = Math.max(
 const PRUNE_INTERVAL_MS = 60 * 60 * 1000;
 const BACKFILL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const countyFipsCache = new Map<string, string | null>();
+const countyFipsInFlight = new Map<string, Promise<string | null>>();
 const crawlerPersistenceStats = {
   attempted: 0,
   succeeded: 0,
   failed: 0,
+  dropped: 0,
   errorCodes: {} as Record<string, number>,
   lastSuccessAt: null as string | null,
   lastFailureAt: null as string | null,
@@ -36,12 +50,105 @@ const BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS = Math.max(
   1000,
   Number(process.env.BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS || 30000)
 );
-const botDailyAggRefreshQueue = new Map<
-  string,
-  {
-    timer: ReturnType<typeof setTimeout>;
-  }
->();
+const BOT_DAILY_AGG_MAX_PENDING = readBoundedIntegerEnv(
+  "BOT_DAILY_AGG_MAX_PENDING",
+  200,
+  10,
+  1000
+);
+
+type BotDailyAggregateRefreshArgs = {
+  observedAt: Date;
+  routeFamily: string;
+  county: string | null;
+  state: string | null;
+  trade: string | null;
+  botFamily: string;
+};
+
+const botDailyAggRefreshPending = new Map<string, BotDailyAggregateRefreshArgs>();
+let botDailyAggRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let botDailyAggPendingDropped = 0;
+
+function isTransientDatabaseError(error: unknown): boolean {
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code || "")
+      : "";
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message || "").toLowerCase()
+      : String(error || "").toLowerCase();
+
+  return (
+    ["53300", "57P01", "57P02", "57P03", "08000", "08003", "08006", "ECONNRESET", "ETIMEDOUT"].includes(
+      code
+    ) ||
+    message.includes("connection timeout") ||
+    message.includes("connection terminated") ||
+    message.includes("timeout exceeded when trying to connect")
+  );
+}
+
+function markCrawlerTelemetryRetrySafe(error: unknown): Error {
+  const normalized = error instanceof Error ? error : new Error(String(error));
+  (normalized as Error & { crawlerTelemetryRetrySafe?: boolean }).crawlerTelemetryRetrySafe = true;
+  return normalized;
+}
+
+function isRetrySafeCrawlerTelemetryError(error: unknown): boolean {
+  return (
+    Boolean(
+      (error as (Error & { crawlerTelemetryRetrySafe?: boolean }) | null)
+        ?.crawlerTelemetryRetrySafe
+    ) && isTransientDatabaseError(error)
+  );
+}
+
+function recordCrawlerPersistenceFailure(error: unknown): void {
+  const errCodeRaw =
+    error && typeof error === "object" && "code" in (error as Record<string, unknown>)
+      ? String((error as { code?: unknown }).code || "")
+      : "";
+  const errCode = errCodeRaw || "unknown";
+  crawlerPersistenceStats.failed += 1;
+  crawlerPersistenceStats.errorCodes[errCode] =
+    Number(crawlerPersistenceStats.errorCodes[errCode] || 0) + 1;
+  crawlerPersistenceStats.lastFailureAt = new Date().toISOString();
+  crawlerPersistenceStats.lastFailureCode = errCode;
+  crawlerPersistenceStats.lastFailureMessage =
+    error && typeof error === "object" && "message" in (error as Record<string, unknown>)
+      ? String((error as { message?: unknown }).message || "").slice(0, 300)
+      : String(error || "unknown error").slice(0, 300);
+  console.error("[crawler-telemetry] failed to persist crawler request event:", error);
+}
+
+const crawlerTelemetryWriteQueue = new BoundedTaskQueue({
+  maxConcurrent: readBoundedIntegerEnv("CRAWLER_TELEMETRY_DB_CONCURRENCY", 1, 1, 4),
+  maxOutstanding: readBoundedIntegerEnv("CRAWLER_TELEMETRY_MAX_OUTSTANDING", 100, 10, 1000),
+  maxRetries: readBoundedIntegerEnv("CRAWLER_TELEMETRY_MAX_RETRIES", 2, 0, 5),
+  baseBackoffMs: readBoundedIntegerEnv("CRAWLER_TELEMETRY_RETRY_BACKOFF_MS", 100, 25, 5000),
+  maxBackoffMs: readBoundedIntegerEnv(
+    "CRAWLER_TELEMETRY_RETRY_MAX_BACKOFF_MS",
+    1000,
+    100,
+    30000
+  ),
+  shouldRetry: isRetrySafeCrawlerTelemetryError,
+  onFinalError: recordCrawlerPersistenceFailure,
+});
+
+const botDailyAggregateWriteQueue = new BoundedTaskQueue({
+  maxConcurrent: 1,
+  maxOutstanding: BOT_DAILY_AGG_MAX_PENDING,
+  maxRetries: 2,
+  baseBackoffMs: 250,
+  maxBackoffMs: 2000,
+  shouldRetry: isTransientDatabaseError,
+  onFinalError: (error) => {
+    console.error("[crawler-telemetry] failed queued daily aggregate refresh:", error);
+  },
+});
 
 type CrawlerAttribution = {
   sourceSurface: string | null;
@@ -576,21 +683,33 @@ async function resolveCountyFips(
     return countyFipsCache.get(cacheKey) ?? null;
   }
 
-  const result = await pool.query(
-    `
-      select name, fips
-      from counties
-      where state_code = $1
-    `,
-    [normalizedStateCode]
-  );
+  const existingLookup = countyFipsInFlight.get(cacheKey);
+  if (existingLookup) return existingLookup;
 
-  const matchedRow = (result.rows || []).find(
-    (row) => slugifyCountyName(String(row?.name || "")) === normalizedCountySlug
-  );
-  const fips = matchedRow?.fips ? String(matchedRow.fips) : null;
-  countyFipsCache.set(cacheKey, fips);
-  return fips;
+  const lookup = (async () => {
+    const result = await pool.query(
+      `
+        select name, fips
+        from counties
+        where state_code = $1
+      `,
+      [normalizedStateCode]
+    );
+
+    const matchedRow = (result.rows || []).find(
+      (row) => slugifyCountyName(String(row?.name || "")) === normalizedCountySlug
+    );
+    const fips = matchedRow?.fips ? String(matchedRow.fips) : null;
+    countyFipsCache.set(cacheKey, fips);
+    return fips;
+  })();
+  countyFipsInFlight.set(cacheKey, lookup);
+
+  try {
+    return await lookup;
+  } finally {
+    countyFipsInFlight.delete(cacheKey);
+  }
 }
 
 async function pruneCrawlerRequestEventsIfNeeded(): Promise<void> {
@@ -680,6 +799,12 @@ async function backfillCountyFipsIfNeeded(): Promise<void> {
   })();
 
   await backfillPromise;
+}
+
+export async function runCrawlerTelemetryMaintenance(): Promise<void> {
+  await ensureCrawlerRequestEventsTable();
+  await pruneCrawlerRequestEventsIfNeeded();
+  await backfillCountyFipsIfNeeded();
 }
 
 export async function ensureCrawlerRequestEventsTable(): Promise<void> {
@@ -927,17 +1052,18 @@ export async function ensureCrawlerRequestEventsTable(): Promise<void> {
       );
     })();
   }
-  await ensurePromise;
+  try {
+    await ensurePromise;
+  } catch (error) {
+    // A transient first-run failure must not poison telemetry until process restart.
+    ensurePromise = null;
+    throw error;
+  }
 }
 
-async function refreshBotObservationDailyAggregate(args: {
-  observedAt: Date;
-  routeFamily: string;
-  county: string | null;
-  state: string | null;
-  trade: string | null;
-  botFamily: string;
-}): Promise<void> {
+async function refreshBotObservationDailyAggregate(
+  args: BotDailyAggregateRefreshArgs
+): Promise<void> {
   const observedDate = args.observedAt.toISOString().slice(0, 10);
   const routeFamily = String(args.routeFamily || "").trim();
   const county = String(args.county || "").trim();
@@ -1193,14 +1319,7 @@ async function refreshBotObservationDailyAggregate(args: {
   }
 }
 
-function buildBotDailyAggQueueKey(args: {
-  observedAt: Date;
-  routeFamily: string;
-  county: string | null;
-  state: string | null;
-  trade: string | null;
-  botFamily: string;
-}): string {
+function buildBotDailyAggQueueKey(args: BotDailyAggregateRefreshArgs): string {
   const observedDate = args.observedAt.toISOString().slice(0, 10);
   return [
     observedDate,
@@ -1212,36 +1331,36 @@ function buildBotDailyAggQueueKey(args: {
   ].join("|");
 }
 
-function scheduleBotDailyAggregateRefresh(args: {
-  observedAt: Date;
-  routeFamily: string;
-  county: string | null;
-  state: string | null;
-  trade: string | null;
-  botFamily: string;
-}): void {
-  const key = buildBotDailyAggQueueKey(args);
-  const existing = botDailyAggRefreshQueue.get(key);
-  if (existing) {
-    clearTimeout(existing.timer);
+function flushBotDailyAggregateRefreshes(): void {
+  botDailyAggRefreshTimer = null;
+  const refreshes = Array.from(botDailyAggRefreshPending.values());
+  botDailyAggRefreshPending.clear();
+
+  for (const args of refreshes) {
+    botDailyAggregateWriteQueue.enqueue(() => refreshBotObservationDailyAggregate(args));
   }
-
-  const timer = setTimeout(async () => {
-    botDailyAggRefreshQueue.delete(key);
-    try {
-      await refreshBotObservationDailyAggregate(args);
-    } catch (error) {
-      console.error("[crawler-telemetry] failed queued daily aggregate refresh:", error);
-    }
-  }, BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS);
-
-  botDailyAggRefreshQueue.set(key, { timer });
 }
 
-export async function recordCrawlerRequestEvent(
+function scheduleBotDailyAggregateRefresh(args: BotDailyAggregateRefreshArgs): void {
+  const key = buildBotDailyAggQueueKey(args);
+  if (!botDailyAggRefreshPending.has(key) && botDailyAggRefreshPending.size >= BOT_DAILY_AGG_MAX_PENDING) {
+    botDailyAggPendingDropped += 1;
+    return;
+  }
+  botDailyAggRefreshPending.set(key, args);
+
+  if (!botDailyAggRefreshTimer) {
+    botDailyAggRefreshTimer = setTimeout(
+      flushBotDailyAggregateRefreshes,
+      BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS
+    );
+  }
+}
+
+async function persistCrawlerRequestEvent(
   req: Request,
   statusCode: number,
-  metrics?: {
+  metrics: {
     responseTimeMs?: number | null;
     responseBytes?: number | null;
     /**
@@ -1250,20 +1369,16 @@ export async function recordCrawlerRequestEvent(
      * the route family that supplied the response.
      */
     pathOverride?: string | null;
-  }
+  } | undefined,
+  userAgent: string | undefined,
+  botNameRaw: string | null | undefined,
+  statusClass: "2xx" | "4xx" | "5xx"
 ): Promise<void> {
-  crawlerPersistenceStats.attempted += 1;
-  const userAgent = req.get("User-Agent");
-  const actor = detectActorFromUserAgent(userAgent);
-  if (actor.actorType !== "bot") return;
-
-  const statusClass = deriveStatusClass(statusCode);
-  if (!statusClass) return;
+  let transactionStarted = false;
+  let commitAttempted = false;
 
   try {
     await ensureCrawlerRequestEventsTable();
-    void pruneCrawlerRequestEventsIfNeeded();
-    void backfillCountyFipsIfNeeded();
     const originalUrl = String(metrics?.pathOverride || req.originalUrl || req.path || "/");
     const parsedUrl = new URL(originalUrl, "https://www.thetradescout.com");
     const requestPath = cleanPath(parsedUrl.pathname);
@@ -1276,10 +1391,16 @@ export async function recordCrawlerRequestEvent(
     };
     const routeContext = inferBotObservationRouteContext(requestPath, baseAttribution);
     const intentContract = inferLandingIntentContract(routeContext);
-    const botName = cleanBotName(actor.botName);
+    const botName = cleanBotName(botNameRaw);
     const observedAt = new Date();
     const canonicalUrl = buildCanonicalUrl(req, requestPath);
-    const previousObservation = await pool.query(
+    const client = await pool.connect();
+    let releaseError: Error | undefined;
+
+    try {
+      await client.query("BEGIN");
+      transactionStarted = true;
+      const previousObservation = await client.query(
       `
         select 1
         from bot_observation_events
@@ -1289,10 +1410,10 @@ export async function recordCrawlerRequestEvent(
       `,
       [botName, canonicalUrl]
     );
-    const isRecrawl = (previousObservation.rowCount || 0) > 0;
-    const isFirstSeenUrl = !isRecrawl;
+      const isRecrawl = (previousObservation.rowCount || 0) > 0;
+      const isFirstSeenUrl = !isRecrawl;
 
-    await pool.query(
+      await client.query(
       `
         INSERT INTO crawler_request_events (
           bot_name,
@@ -1330,7 +1451,7 @@ export async function recordCrawlerRequestEvent(
       ]
     );
 
-    await pool.query(
+      await client.query(
       `
         insert into bot_observation_events (
           observed_at,
@@ -1404,7 +1525,7 @@ export async function recordCrawlerRequestEvent(
       ]
     );
 
-    await pool.query(
+      await client.query(
       `
         insert into crawler_request_hourly_rollups (
           bucket_start,
@@ -1456,8 +1577,27 @@ export async function recordCrawlerRequestEvent(
         attribution.countyFips,
         attribution.categorySlug,
         statusClass,
-      ]
-    );
+        ]
+      );
+      commitAttempted = true;
+      await client.query("COMMIT");
+      transactionStarted = false;
+    } catch (error) {
+      if (transactionStarted) {
+        try {
+          await client.query("ROLLBACK");
+          transactionStarted = false;
+        } catch (rollbackError) {
+          releaseError =
+            rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError));
+        }
+      } else {
+        releaseError = error instanceof Error ? error : new Error(String(error));
+      }
+      throw error;
+    } finally {
+      client.release(releaseError);
+    }
 
     scheduleBotDailyAggregateRefresh({
       observedAt,
@@ -1470,21 +1610,35 @@ export async function recordCrawlerRequestEvent(
     crawlerPersistenceStats.succeeded += 1;
     crawlerPersistenceStats.lastSuccessAt = new Date().toISOString();
   } catch (error) {
-    const errCodeRaw =
-      error && typeof error === "object" && "code" in (error as Record<string, unknown>)
-        ? String((error as any).code || "")
-        : "";
-    const errCode = errCodeRaw || "unknown";
-    crawlerPersistenceStats.failed += 1;
-    crawlerPersistenceStats.errorCodes[errCode] =
-      Number(crawlerPersistenceStats.errorCodes[errCode] || 0) + 1;
-    crawlerPersistenceStats.lastFailureAt = new Date().toISOString();
-    crawlerPersistenceStats.lastFailureCode = errCode;
-    crawlerPersistenceStats.lastFailureMessage =
-      error && typeof error === "object" && "message" in (error as Record<string, unknown>)
-        ? String((error as any).message || "").slice(0, 300)
-        : String(error || "unknown error").slice(0, 300);
-    console.error("[crawler-telemetry] failed to persist crawler request event:", error);
+    if (!transactionStarted && !commitAttempted) {
+      throw markCrawlerTelemetryRetrySafe(error);
+    }
+    throw error;
+  }
+}
+
+export async function recordCrawlerRequestEvent(
+  req: Request,
+  statusCode: number,
+  metrics?: {
+    responseTimeMs?: number | null;
+    responseBytes?: number | null;
+    pathOverride?: string | null;
+  }
+): Promise<void> {
+  const userAgent = req.get("User-Agent");
+  const actor = detectActorFromUserAgent(userAgent);
+  if (actor.actorType !== "bot") return;
+
+  const statusClass = deriveStatusClass(statusCode);
+  if (!statusClass) return;
+
+  crawlerPersistenceStats.attempted += 1;
+  const accepted = crawlerTelemetryWriteQueue.enqueue(() =>
+    persistCrawlerRequestEvent(req, statusCode, metrics, userAgent, actor.botName, statusClass)
+  );
+  if (!accepted) {
+    crawlerPersistenceStats.dropped += 1;
   }
 }
 
@@ -1530,7 +1684,21 @@ export interface CrawlerTelemetrySummary {
     attempted: number;
     succeeded: number;
     failed: number;
+    dropped: number;
     successRatePct: number;
+    queue: {
+      active: number;
+      queued: number;
+      maxConcurrent: number;
+      maxOutstanding: number;
+      retried: number;
+      aggregatePending: number;
+      aggregateMaxOutstanding: number;
+      aggregateQueueActive: number;
+      aggregateQueueQueued: number;
+      aggregateDropped: number;
+      aggregateRetried: number;
+    };
     errorCodes: Record<string, number>;
     lastSuccessAt: string | null;
     lastFailureAt: string | null;
@@ -1540,16 +1708,32 @@ export interface CrawlerTelemetrySummary {
 }
 
 function getCrawlerPersistenceSnapshot() {
+  const writeQueue = crawlerTelemetryWriteQueue.snapshot();
+  const aggregateQueue = botDailyAggregateWriteQueue.snapshot();
   return {
     attempted: crawlerPersistenceStats.attempted,
     succeeded: crawlerPersistenceStats.succeeded,
     failed: crawlerPersistenceStats.failed,
+    dropped: crawlerPersistenceStats.dropped,
     successRatePct:
       crawlerPersistenceStats.attempted > 0
         ? Math.round(
             (crawlerPersistenceStats.succeeded / crawlerPersistenceStats.attempted) * 10000
           ) / 100
         : 100,
+    queue: {
+      active: writeQueue.active,
+      queued: writeQueue.queued,
+      maxConcurrent: writeQueue.maxConcurrent,
+      maxOutstanding: writeQueue.maxOutstanding,
+      retried: writeQueue.retried,
+      aggregatePending: botDailyAggRefreshPending.size,
+      aggregateMaxOutstanding: aggregateQueue.maxOutstanding,
+      aggregateQueueActive: aggregateQueue.active,
+      aggregateQueueQueued: aggregateQueue.queued,
+      aggregateDropped: botDailyAggPendingDropped + aggregateQueue.dropped,
+      aggregateRetried: aggregateQueue.retried,
+    },
     errorCodes: { ...crawlerPersistenceStats.errorCodes },
     lastSuccessAt: crawlerPersistenceStats.lastSuccessAt,
     lastFailureAt: crawlerPersistenceStats.lastFailureAt,
@@ -1561,7 +1745,6 @@ function getCrawlerPersistenceSnapshot() {
 export async function getCrawlerTelemetrySummary(): Promise<CrawlerTelemetrySummary> {
   try {
     await ensureCrawlerRequestEventsTable();
-    await backfillCountyFipsIfNeeded();
 
     const [
       totalsResult,
