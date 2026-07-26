@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { pool } from "../db/pg";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
+import { withPoolTransaction } from "../utils/poolTransaction";
 
 type CampaignCounty = {
   countySlug: string;
@@ -444,9 +445,9 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
 
   try {
     await ensureTradePartnerTables();
-    await pool.query("BEGIN");
+    await withPoolTransaction(pool, async (client) => {
 
-    await pool.query(
+    await client.query(
       `
       INSERT INTO tradepartner_campaigns (
         partner_slug,
@@ -504,11 +505,11 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
       ]
     );
 
-    await pool.query(`DELETE FROM tradepartner_campaign_focus_counties WHERE partner_slug = $1`, [
+    await client.query(`DELETE FROM tradepartner_campaign_focus_counties WHERE partner_slug = $1`, [
       partnerSlug,
     ]);
     for (const county of counties) {
-      await pool.query(
+      await client.query(
         `
           INSERT INTO tradepartner_campaign_focus_counties (
             partner_slug,
@@ -535,11 +536,11 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
       );
     }
 
-    await pool.query(`DELETE FROM tradepartner_campaign_meetings WHERE partner_slug = $1`, [
+    await client.query(`DELETE FROM tradepartner_campaign_meetings WHERE partner_slug = $1`, [
       partnerSlug,
     ]);
     for (const meeting of meetings) {
-      await pool.query(
+      await client.query(
         `
           INSERT INTO tradepartner_campaign_meetings (
             partner_slug,
@@ -580,11 +581,10 @@ export async function upsertTradePartnerCampaignAdminHandler(req: Request, res: 
       );
     }
 
-    await pool.query("COMMIT");
+    });
     const campaign = await fetchCampaignBySlug(partnerSlug);
     return res.json(campaign);
   } catch (error) {
-    await pool.query("ROLLBACK").catch(() => undefined);
     console.error("UPSERT admin tradepartner campaign error:", error);
     return res.status(500).json({ error: "Server error" });
   }
