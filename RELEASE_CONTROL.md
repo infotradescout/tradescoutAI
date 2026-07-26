@@ -8,39 +8,51 @@
 | --- | --- |
 | Render auto-deploy | **On Commit** for production web service (`tradescout-pro`) |
 | Production path | Merge/push to `main` → Render builds and deploys |
-| GitHub Actions deploy workflow | Optional backup only (`workflow_dispatch`). **Not required** for production |
-| CI | Advisory until billing/minutes work. Do **not** block Render on Actions |
+| GitHub Actions | **Not used**; `.github/workflows/` is intentionally empty |
+| Release evidence | Local commands against the exact commit, recorded on the pull request |
 
 Repo file `render.yaml` sets `autoDeployTrigger: commit`. **Dashboard Auto-Deploy must stay On** (or Blueprint sync must keep commit) so merges to `main` reach production.
 
 ## Operating rule
 
-**Push/merge to `main` deploys production via Render. GitHub Actions is not required for that path.**
+**Push/merge to `main` deploys production via Render. GitHub Actions is not part of validation or deployment.**
+
+## Local release verification
+
+Run verification from a clean checkout of the exact commit under review.
+
+1. Use the repository-supported Node version and install the lockfile exactly with `npm ci`.
+2. Run the affected tests for the changed behavior.
+3. Run `npm run verify:local` for the standard PR guard, build, and source/contract test lane.
+4. For broad or law-sensitive changes, also run `npm run verify`.
+5. For database-backed changes, set a disposable `TEST_DATABASE_URL` and run the applicable strict lane, up to `npm run verify:release`.
+6. For user-interface changes, complete authenticated desktop and mobile walkthroughs.
+7. Record every command and result on the pull request. Separate passed, failed, skipped, and not-run checks.
+
+Known baseline failures do not become invisible. Record them with file/test names and prove whether the branch changed them.
+
+## Pull request requirements
+
+- Exact head commit SHA.
+- Changed-behavior test results.
+- Production build result.
+- Relevant law, authority, trust, and security guard results.
+- Database/browser checks when applicable.
+- Explicit list of anything not run and why.
+- Independent review for production-risk changes.
+
+Repository rules must not require GitHub Actions status checks. If an old required check remains in GitHub settings, remove that requirement rather than bypassing it per pull request.
 
 ## Human checklist (Render)
 
 1. Open production web service `tradescout-pro` (tradescoutai.onrender.com).
 2. **Settings → Build & Deploy → Auto-Deploy → On** (On Commit).
-3. Do not switch Auto-Deploy Off to “wait for Actions.”
-4. Optional: use Dashboard Manual Deploy or the `workflow_dispatch` deploy workflow only as a backup.
-5. Verify production with the live build/commit marker.
-
-## GitHub Actions / billing
-
-When billing is locked, jobs may finish in seconds with empty steps. That does not stop Render auto-deploy. Prefer admin merge bypass for merge gates while Actions cannot go green, rather than turning Auto-Deploy Off.
-
-Do not require Actions-green before Render can deploy.
-
-## Branch protection
-
-| Check name (job) | Workflow | Role |
-| --- | --- | --- |
-| `build-and-guard` | `CI` (`.github/workflows/ci.yml`) | Preferred merge signal when Actions works |
-
-While Actions billing is locked, admins may merge with bypass so `main` can move. Render will still deploy that push.
+3. Use Render Dashboard Manual Deploy only when a manual redeploy is needed.
+4. Verify production with the live build/commit marker and the relevant production smoke path.
 
 ## Agent rules
 
 - Treat merge to `main` as a production release.
-- Do not claim production is updated from a green local command or Actions hook alone; confirm the live build marker.
+- Do not claim production is updated from a green local command alone; confirm the live build marker.
+- Do not create or require GitHub Actions workflows without explicit owner approval.
 - See `AGENTS.md` release-control section.
