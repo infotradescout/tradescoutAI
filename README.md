@@ -64,7 +64,7 @@ For production deployment instructions, see [PRODUCTION.md](PRODUCTION.md).
 
 Database-backed and E2E suites expect a dedicated test database.
 
-- Set `TEST_DATABASE_URL` in CI (and locally in a `.env.test` or shell env) to point at a disposable Postgres database/schema.
+- Set `TEST_DATABASE_URL` locally in a `.env.test` or shell environment to point at a disposable Postgres database/schema.
 - When `TEST_DATABASE_URL` is not set, Playwright webServer and global auth setup are disabled and E2E specs such as
 	[tests/direct-connect.e2e.spec.ts](tests/direct-connect.e2e.spec.ts) will be marked as skipped instead of failing.
 
@@ -82,6 +82,7 @@ If TEST_DATABASE_URL is not set:
 - DB-backed strict lanes will skip/fail (by design)
 
 Strict confidence lanes:
+- `npm run verify:local` (local PR guards, Direct Connect gates, production build, sitemap integrity, and the source/contract test suite)
 - `npm run test:run:no-skips` (DB-backed; fails on skip increase)
 - `npm run verify:db` (runs `verify` with DB enabled)
 - `npm run test:release-gates:local` (starts a local test server + runs release gates)
