@@ -24,44 +24,117 @@ export type SendEmailResult = {
   skipped: boolean;
   messageId?: string;
   provider: "sendgrid" | "brevo" | "none";
-  skippedReason?: "provider_not_configured" | "email_mode_suppressed";
+  skippedReason?:
+    | "provider_not_configured"
+    | "sender_not_configured"
+    | "email_mode_suppressed";
 };
+
+export type EmailMode = "all" | "account_creation_only";
+export type EmailProvider = "sendgrid" | "brevo" | "none";
+
+export function resolveEmailProviderConfiguration(environment: NodeJS.ProcessEnv = process.env): {
+  provider: EmailProvider;
+  configured: boolean;
+  defaultFrom: string;
+  configurationError: string | null;
+} {
+  const providerOverride = String(environment.EMAIL_PROVIDER || "")
+    .toLowerCase()
+    .trim();
+  const sendgridApiKey = String(environment.SENDGRID_API_KEY || "").trim();
+  const brevoApiKey = String(environment.BREVO_API_KEY || "").trim();
+
+  let provider: EmailProvider;
+  if (providerOverride === "sendgrid") {
+    provider = sendgridApiKey ? "sendgrid" : "none";
+  } else if (providerOverride === "brevo") {
+    provider = brevoApiKey ? "brevo" : "none";
+  } else {
+    provider = sendgridApiKey ? "sendgrid" : brevoApiKey ? "brevo" : "none";
+  }
+
+  const sharedFrom = String(environment.DEFAULT_FROM_EMAIL || "").trim();
+  const defaultFrom =
+    provider === "sendgrid"
+      ? String(environment.SENDGRID_FROM_EMAIL || sharedFrom).trim()
+      : provider === "brevo"
+        ? String(environment.BREVO_FROM_EMAIL || sharedFrom).trim()
+        : sharedFrom;
+
+  let configurationError: string | null = null;
+  if (provider === "none") {
+    if (providerOverride === "sendgrid" && !sendgridApiKey) {
+      configurationError = "SENDGRID_API_KEY_MISSING";
+    } else if (providerOverride === "brevo" && !brevoApiKey) {
+      configurationError = "BREVO_API_KEY_MISSING";
+    } else {
+      configurationError = "EMAIL_PROVIDER_NOT_CONFIGURED";
+    }
+  } else if (!defaultFrom) {
+    configurationError =
+      provider === "sendgrid" ? "SENDGRID_FROM_EMAIL_MISSING" : "BREVO_FROM_EMAIL_MISSING";
+  }
+
+  return {
+    provider,
+    configured: provider !== "none" && !configurationError,
+    defaultFrom,
+    configurationError,
+  };
+}
+
+export function isEmailPurposeAllowedForMode(mode: EmailMode, rawPurpose: unknown): boolean {
+  if (mode === "all") return true;
+
+  const purpose = String(rawPurpose || "")
+    .toLowerCase()
+    .trim();
+
+  return (
+    purpose === "account_creation" ||
+    purpose === "email_verification" ||
+    purpose === "activation" ||
+    purpose === "claim_business" ||
+    purpose === "direct_connect_account_setup" ||
+    purpose === "direct_connect_request" ||
+    purpose === "direct_connect_admin_oversight" ||
+    purpose === "tradepartner_interest_admin" ||
+    purpose === "tradepartner_rsvp_admin" ||
+    purpose === "tradepartner_rsvp_confirmation" ||
+    purpose === "tradepartner_request_notification" ||
+    purpose === "property_participant_invite"
+  );
+}
 
 class EmailService {
   private configured: boolean;
-  private provider: "sendgrid" | "brevo" | "none";
+  private provider: EmailProvider;
   private defaultFrom: string;
+  private configurationError: string | null;
   private brevoApiKey: string | undefined;
-  private mode: "all" | "account_creation_only";
+  private mode: EmailMode;
 
   constructor() {
-    const providerOverride = String(process.env.EMAIL_PROVIDER || "")
-      .toLowerCase()
-      .trim();
     const apiKey = process.env.SENDGRID_API_KEY;
     const brevoApiKey = process.env.BREVO_API_KEY;
-
-    if (providerOverride === "sendgrid") {
-      this.provider = apiKey ? "sendgrid" : "none";
-    } else if (providerOverride === "brevo") {
-      this.provider = brevoApiKey ? "brevo" : "none";
-    } else {
-      // Default provider preference: SendGrid if present, otherwise Brevo, otherwise none.
-      this.provider = apiKey ? "sendgrid" : brevoApiKey ? "brevo" : "none";
-    }
-    this.configured = this.provider !== "none";
-
-    // Shared "from" default across providers.
-    this.defaultFrom =
-      process.env.SENDGRID_FROM_EMAIL ||
-      process.env.BREVO_FROM_EMAIL ||
-      process.env.DEFAULT_FROM_EMAIL ||
-      "noreply@tradescout.app";
+    const providerConfiguration = resolveEmailProviderConfiguration();
+    this.provider = providerConfiguration.provider;
+    this.configured = providerConfiguration.configured;
+    this.defaultFrom = providerConfiguration.defaultFrom;
+    this.configurationError = providerConfiguration.configurationError;
 
     this.brevoApiKey = brevoApiKey;
 
-    if (apiKey) {
+    if (this.provider === "sendgrid" && apiKey) {
       sgMail.setApiKey(apiKey);
+    }
+
+    if (this.configurationError && this.provider !== "none") {
+      console.error("[email] Provider configuration is incomplete", {
+        provider: this.provider,
+        configurationError: this.configurationError,
+      });
     }
 
     const modeRaw = String(process.env.EMAIL_MODE || "all")
@@ -79,12 +152,14 @@ class EmailService {
     provider: "sendgrid" | "brevo" | "none";
     mode: "all" | "account_creation_only";
     defaultFrom: string;
+    configurationError: string | null;
   } {
     return {
       configured: this.configured,
       provider: this.provider,
       mode: this.mode,
       defaultFrom: this.defaultFrom,
+      configurationError: this.configurationError,
     };
   }
 
@@ -94,37 +169,22 @@ class EmailService {
       return {
         skipped: true,
         provider: this.provider,
-        skippedReason: "provider_not_configured",
+        skippedReason: this.configurationError?.endsWith("_FROM_EMAIL_MISSING")
+          ? "sender_not_configured"
+          : "provider_not_configured",
       };
     }
 
-    if (this.mode === "account_creation_only") {
-      const purpose = String(params.purpose || "")
-        .toLowerCase()
-        .trim();
-      const allowed =
-        purpose === "account_creation" ||
-        purpose === "email_verification" ||
-        purpose === "activation" ||
-        purpose === "claim_business" ||
-        purpose === "direct_connect_request" ||
-        purpose === "direct_connect_admin_oversight" ||
-        purpose === "tradepartner_interest_admin" ||
-        purpose === "tradepartner_rsvp_admin" ||
-        purpose === "tradepartner_rsvp_confirmation" ||
-        purpose === "tradepartner_request_notification" ||
-        purpose === "property_participant_invite";
-      if (!allowed) {
-        console.warn("[email] Suppressed by EMAIL_MODE=account_creation_only", {
-          purpose: params.purpose,
-          subject: params.subject,
-        });
-        return {
-          skipped: true,
-          provider: this.provider,
-          skippedReason: "email_mode_suppressed",
-        };
-      }
+    if (!isEmailPurposeAllowedForMode(this.mode, params.purpose)) {
+      console.warn("[email] Suppressed by EMAIL_MODE=account_creation_only", {
+        purpose: params.purpose,
+        subject: params.subject,
+      });
+      return {
+        skipped: true,
+        provider: this.provider,
+        skippedReason: "email_mode_suppressed",
+      };
     }
 
     if (!params.html && !params.text) {

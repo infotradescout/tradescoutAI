@@ -32,6 +32,7 @@ type EmailDiagnostics = {
   provider: "sendgrid" | "brevo" | "none";
   mode: "all" | "account_creation_only";
   defaultFrom: string;
+  configurationError: string | null;
 };
 
 type ProgressiveExposureSummary = {
@@ -286,6 +287,11 @@ export default function AdminControl() {
               from:{" "}
               {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.defaultFrom || "unknown"}
             </div>
+            {!emailDiagnosticsFailed && emailDiagnostics?.configurationError ? (
+              <div className="rounded-md border border-red-400/30 bg-red-400/5 px-2 py-1.5 text-xs text-red-200">
+                {emailDiagnostics.configurationError.replaceAll("_", " ").toLowerCase()}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

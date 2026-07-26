@@ -152,6 +152,11 @@ import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessSer
 import { recordTrustLedgerEvent } from "./services/trustLedgerService";
 import { buildExposureAuthorityMap } from "./services/exposureAuthority";
 import { hasExposureAuthority } from "./services/exposureAuthority";
+import {
+  getDirectConnectConversationSenderType,
+  isAuthorizedDirectConnectConversationParticipant,
+  resolveDirectConnectConversationAuthority,
+} from "./services/directConnectConversationAuthority";
 import { scoutcoinService } from "./services/scoutcoinService";
 import {
   buildPublicSolarPriceInsight,
@@ -13772,10 +13777,37 @@ export async function registerRoutes(app: any) {
     async (req: any, res: any) => {
       try {
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        const userType = req.query.userType || "homeowner";
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+        const requestedUserType = String(req.query.userType || "");
+        const userTypes: Array<"homeowner" | "contractor"> =
+          requestedUserType === "homeowner" || requestedUserType === "contractor"
+            ? [requestedUserType]
+            : ["homeowner", "contractor"];
+        const participantMatches = (
+          await Promise.all(
+            userTypes.map((userType) => storage.getConversationsByUser(userId, userType))
+          )
+        ).flat();
+        const uniqueParticipantMatches = Array.from(
+          new Map(
+            participantMatches.map((conversation) => [conversation.id, conversation])
+          ).values()
+        );
+        const authorizedConversations = (
+          await Promise.all(
+            uniqueParticipantMatches.map(async (conversation) => {
+              const authority = await resolveDirectConnectConversationAuthority(conversation.id);
+              return authority.ok &&
+                isAuthorizedDirectConnectConversationParticipant(authority, userId)
+                ? authority.conversation
+                : null;
+            })
+          )
+        ).filter(Boolean);
 
-        const conversations = await storage.getConversationsByUser(userId, userType);
-        res.json(conversations);
+        res.json(authorizedConversations);
       } catch (error: any) {
         console.error("Error fetching conversations:", error);
         res.status(500).json({ message: "Failed to fetch conversations" });
@@ -13827,15 +13859,28 @@ export async function registerRoutes(app: any) {
           limit: Math.max(limit * 3, 100),
           offset: 0,
         });
-        const contextualLegacyThreads = legacyThreads.map((thread: any) => ({
-          ...thread,
-          kind: "general" as const,
-          context: {
-            kind: "general" as const,
-            label: "Community",
-            title: thread.subject || "Conversation",
-          },
-        }));
+        const contextualLegacyThreads = (
+          await Promise.all(
+            legacyThreads.map(async (thread: any) => {
+              const authority = await resolveDirectConnectConversationAuthority(thread.id);
+              if (
+                !authority.ok ||
+                !isAuthorizedDirectConnectConversationParticipant(authority, userId)
+              ) {
+                return null;
+              }
+              return {
+                ...thread,
+                kind: "general" as const,
+                context: {
+                  kind: "general" as const,
+                  label: "Community",
+                  title: thread.subject || "Conversation",
+                },
+              };
+            })
+          )
+        ).filter(Boolean);
         const merged = [...marketplaceThreads, ...contextualLegacyThreads].sort(
           (a: any, b: any) => {
             const left = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
@@ -13909,16 +13954,22 @@ export async function registerRoutes(app: any) {
           return res.json({ thread, messages });
         }
 
-        const legacyConversation = await storage.getConversation(req.params.threadId);
-        if (!legacyConversation) {
+        const legacyAuthority = await resolveDirectConnectConversationAuthority(
+          req.params.threadId
+        );
+        if (!legacyAuthority.ok && legacyAuthority.reason === "THREAD_NOT_FOUND") {
           return res.status(404).json({ message: "Thread not found" });
         }
-        if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
-        ) {
+        if (!legacyAuthority.ok) {
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Thread access requires an accepted Direct Connect connection.",
+          });
+        }
+        if (!isAuthorizedDirectConnectConversationParticipant(legacyAuthority, userId)) {
           return res.status(403).json({ message: "Access denied" });
         }
+        const legacyConversation = legacyAuthority.conversation;
         const legacyMessages = await storage.getMessagesByConversation(req.params.threadId);
         const legacyThread = {
           id: legacyConversation.id,
@@ -13966,12 +14017,17 @@ export async function registerRoutes(app: any) {
           return res.json({ success: true, threadId });
         }
 
-        const legacyConversation = await storage.getConversation(threadId);
-        if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
-        if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
-        ) {
+        const legacyAuthority = await resolveDirectConnectConversationAuthority(threadId);
+        if (!legacyAuthority.ok && legacyAuthority.reason === "THREAD_NOT_FOUND") {
+          return res.status(404).json({ message: "Thread not found" });
+        }
+        if (!legacyAuthority.ok) {
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Thread access requires an accepted Direct Connect connection.",
+          });
+        }
+        if (!isAuthorizedDirectConnectConversationParticipant(legacyAuthority, userId)) {
           return res.status(403).json({ message: "Access denied" });
         }
         const legacyMessages = await storage.getMessagesByConversation(threadId);
@@ -14012,13 +14068,18 @@ export async function registerRoutes(app: any) {
             return res.status(403).json({ message: "Access denied" });
           }
         } else {
-          const legacyConversation = await storage.getConversation(threadId);
-          if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
+          const legacyAuthority = await resolveDirectConnectConversationAuthority(threadId);
+          if (!legacyAuthority.ok && legacyAuthority.reason === "THREAD_NOT_FOUND") {
+            return res.status(404).json({ message: "Thread not found" });
+          }
+          if (!legacyAuthority.ok) {
+            return res.status(403).json({
+              reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+              message: "Thread access requires an accepted Direct Connect connection.",
+            });
+          }
           threadType = "legacy";
-          if (
-            legacyConversation.homeownerId !== userId &&
-            legacyConversation.contractorId !== userId
-          ) {
+          if (!isAuthorizedDirectConnectConversationParticipant(legacyAuthority, userId)) {
             return res.status(403).json({ message: "Access denied" });
           }
         }
@@ -14237,46 +14298,6 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
-          const conversation = await storage.getConversation(conversationId);
-          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
-
-          const boundConnections = await db
-            .select({
-              connectionId: workRequestAssignments.id,
-              workRequestId: workRequests.id,
-              assignmentStatus: workRequestAssignments.status,
-              requestStatus: workRequests.status,
-            })
-            .from(workRequestAssignments)
-            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
-            .where(
-              and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
-                eq(workRequests.createdByUserId, conversation.homeownerId),
-                eq(workRequests.source, "direct_connect" as any),
-                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
-                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
-              )
-            )
-            .orderBy(desc(workRequestAssignments.updatedAt))
-            .limit(1);
-
-          const connection = boundConnections[0];
-          if (!connection) {
-            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
-          }
-
-          return {
-            ok: true as const,
-            conversation,
-            connectionId: String(connection.connectionId),
-            workRequestId: String(connection.workRequestId),
-            assignmentStatus: String(connection.assignmentStatus || ""),
-            requestStatus: String(connection.requestStatus || ""),
-          };
-        };
-
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
@@ -14298,7 +14319,7 @@ export async function registerRoutes(app: any) {
             return res.status(403).json({ message: "Access denied" });
           }
         } else {
-          const authority = await resolveLegacyConversationConnectionAuthority(threadId);
+          const authority = await resolveDirectConnectConversationAuthority(threadId);
           if (!authority.ok) {
             if (authority.reason === "THREAD_NOT_FOUND") {
               return res.status(404).json({ message: "Thread not found" });
@@ -14308,13 +14329,15 @@ export async function registerRoutes(app: any) {
               message: "Thread access requires an active Direct Connect connection.",
             });
           }
-          const legacyConversation = authority.conversation;
           threadType = "legacy";
-          if (
-            legacyConversation.homeownerId !== userId &&
-            legacyConversation.contractorId !== userId
-          ) {
+          if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
             return res.status(403).json({ message: "Access denied" });
+          }
+          if (authority.conversationStatus !== "active") {
+            return res.status(409).json({
+              reasonCode: "CONVERSATION_CLOSED",
+              message: "This conversation is closed and cannot accept new shares.",
+            });
           }
         }
 
@@ -14391,44 +14414,6 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
-          const conversation = await storage.getConversation(conversationId);
-          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
-
-          const boundConnections = await db
-            .select({
-              connectionId: workRequestAssignments.id,
-              workRequestId: workRequests.id,
-              assignmentStatus: workRequestAssignments.status,
-              requestStatus: workRequests.status,
-            })
-            .from(workRequestAssignments)
-            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
-            .where(
-              and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
-                eq(workRequests.createdByUserId, conversation.homeownerId),
-                eq(workRequests.source, "direct_connect" as any),
-                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
-                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
-              )
-            )
-            .orderBy(desc(workRequestAssignments.updatedAt))
-            .limit(1);
-
-          const connection = boundConnections[0];
-          if (!connection) {
-            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
-          }
-
-          return {
-            ok: true as const,
-            conversation,
-            connectionId: String(connection.connectionId),
-            workRequestId: String(connection.workRequestId),
-          };
-        };
-
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) {
           return res.status(401).json({ message: "Authentication required" });
@@ -14454,7 +14439,7 @@ export async function registerRoutes(app: any) {
           return res.json({ message });
         }
 
-        const authority = await resolveLegacyConversationConnectionAuthority(req.params.threadId);
+        const authority = await resolveDirectConnectConversationAuthority(req.params.threadId);
         if (!authority.ok) {
           if (authority.reason === "THREAD_NOT_FOUND") {
             return res.status(404).json({ message: "Thread not found" });
@@ -14464,24 +14449,30 @@ export async function registerRoutes(app: any) {
             message: "Thread access requires an active Direct Connect connection.",
           });
         }
-        const legacyConversation = authority.conversation;
-        if (
-          legacyConversation.homeownerId !== userId &&
-          legacyConversation.contractorId !== userId
-        ) {
+        if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
           return res.status(403).json({ message: "Access denied" });
         }
+        if (authority.conversationStatus !== "active") {
+          return res.status(409).json({
+            reasonCode: "CONVERSATION_CLOSED",
+            message: "This conversation is closed and cannot accept new messages.",
+          });
+        }
 
-        const senderType = legacyConversation.homeownerId === userId ? "homeowner" : "contractor";
+        const senderType = getDirectConnectConversationSenderType(authority, userId);
+        if (!senderType) {
+          return res.status(403).json({ message: "Access denied" });
+        }
         const message = await storage.createMessage({
           conversationId: req.params.threadId,
           senderId: userId,
-          senderType: senderType as any,
+          senderType,
           content,
           messageType: messageType || "text",
           metadata: {
             ...(metadata && typeof metadata === "object" ? metadata : {}),
-            connectionId: authority.connectionId,
+            connectionId: authority.assignmentId,
+            assignmentId: authority.assignmentId,
             workRequestId: authority.workRequestId,
           },
         });
@@ -14499,43 +14490,7 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
-          const conversation = await storage.getConversation(conversationId);
-          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
-
-          const boundConnections = await db
-            .select({
-              connectionId: workRequestAssignments.id,
-              workRequestId: workRequests.id,
-            })
-            .from(workRequestAssignments)
-            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
-            .where(
-              and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
-                eq(workRequests.createdByUserId, conversation.homeownerId),
-                eq(workRequests.source, "direct_connect" as any),
-                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
-                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
-              )
-            )
-            .orderBy(desc(workRequestAssignments.updatedAt))
-            .limit(1);
-
-          const connection = boundConnections[0];
-          if (!connection) {
-            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
-          }
-
-          return {
-            ok: true as const,
-            conversation,
-            connectionId: String(connection.connectionId),
-            workRequestId: String(connection.workRequestId),
-          };
-        };
-
-        const authority = await resolveLegacyConversationConnectionAuthority(req.params.id);
+        const authority = await resolveDirectConnectConversationAuthority(req.params.id);
         if (!authority.ok) {
           if (authority.reason === "THREAD_NOT_FOUND") {
             return res.status(404).json({ message: "Conversation not found" });
@@ -14548,7 +14503,7 @@ export async function registerRoutes(app: any) {
         const conversation = authority.conversation;
 
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
           return res.status(403).json({ message: "Access denied" });
         }
 
@@ -14616,45 +14571,9 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const resolveLegacyConversationConnectionAuthority = async (conversationId: string) => {
-          const conversation = await storage.getConversation(conversationId);
-          if (!conversation) return { ok: false as const, reason: "THREAD_NOT_FOUND" };
-
-          const boundConnections = await db
-            .select({
-              connectionId: workRequestAssignments.id,
-              workRequestId: workRequests.id,
-            })
-            .from(workRequestAssignments)
-            .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
-            .where(
-              and(
-                eq(workRequestAssignments.contractorId, conversation.contractorId),
-                eq(workRequests.createdByUserId, conversation.homeownerId),
-                eq(workRequests.source, "direct_connect" as any),
-                inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
-                inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
-              )
-            )
-            .orderBy(desc(workRequestAssignments.updatedAt))
-            .limit(1);
-
-          const connection = boundConnections[0];
-          if (!connection) {
-            return { ok: false as const, reason: "CONNECTION_AUTHORITY_MISSING" };
-          }
-
-          return {
-            ok: true as const,
-            conversation,
-            connectionId: String(connection.connectionId),
-            workRequestId: String(connection.workRequestId),
-          };
-        };
-
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
 
-        const authority = await resolveLegacyConversationConnectionAuthority(req.params.id);
+        const authority = await resolveDirectConnectConversationAuthority(req.params.id);
         if (!authority.ok) {
           if (authority.reason === "THREAD_NOT_FOUND") {
             return res.status(404).json({ message: "Conversation not found" });
@@ -14664,9 +14583,7 @@ export async function registerRoutes(app: any) {
             message: "Conversation access requires an active Direct Connect connection.",
           });
         }
-        const conversation = authority.conversation;
-
-        if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
+        if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
           return res.status(403).json({ message: "Access denied" });
         }
 

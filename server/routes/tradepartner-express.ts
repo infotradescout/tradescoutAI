@@ -16,7 +16,7 @@ import { storage } from "../storage";
 import { emailService } from "../services/emailService";
 import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
-import { notificationService } from "../notification-service";
+import { notificationService, resolveCanonicalTradeScoutBaseUrl } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
 import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
@@ -79,6 +79,7 @@ type TradePartnerTarget = {
   businessId: string;
   businessName: string;
   ownerUserId: string;
+  ownerEmail: string;
   phone: string;
   // Where new-request emails go. Separate from the owner's login email --
   // a business may want requests routed to a shared inbox instead of
@@ -148,6 +149,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
       ownerPhone: users.phone,
+      ownerEmail: users.email,
     })
     .from(profiles)
     .innerJoin(businesses, eq(profiles.businessId, businesses.id))
@@ -184,6 +186,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     businessId: String(row.businessId),
     businessName: String(row.businessName),
     ownerUserId: String(row.ownerUserId),
+    ownerEmail: String(row.ownerEmail || "").trim(),
     phone,
     notificationEmail,
   };
@@ -334,6 +337,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         }
 
         const sanitizedMessage = redactContactDetails(body.message).trim();
+        const providerVisibleName =
+          redactContactDetails(body.name).trim() || "A TradeScout requester";
+        const providerVisibleStoneName = body.stoneName
+          ? redactContactDetails(body.stoneName).trim()
+          : null;
         const title = requestTitle(body.requestType, target.businessName);
         const now = new Date();
         const [created] = await db.transaction(async (tx: any) => {
@@ -377,7 +385,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 profileId: target.profileId,
                 businessId: target.businessId,
                 requestType: body.requestType,
-                stoneName: body.stoneName || null,
+                stoneName: providerVisibleStoneName,
                 itemId: body.itemId || null,
                 contactCheck: "phone_required",
                 membershipOnboarding: requesterWasCreated
@@ -402,17 +410,26 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           return [request];
         });
 
+        const ownerDeliveryMethods =
+          target.notificationEmail || !target.ownerEmail
+            ? ["in_app", "push"]
+            : ["in_app", "email", "push"];
+
         try {
           await notificationService.createNotification({
             userId: target.ownerUserId,
             type: "new_project_request",
             title: `New request for ${target.businessName}`,
-            message: `${body.name} sent a request from the public profile.`,
+            message: `${providerVisibleName} sent a request from the public profile.`,
             actionUrl: "/direct-connect/inbox",
             actionText: "Open request",
             iconName: "briefcase",
             iconColor: "orange",
-            deliveryMethods: ["in_app", "push"],
+            deliveryMethods: ownerDeliveryMethods,
+            metadata: {
+              emailPurpose: "direct_connect_request",
+              workRequestId: String(created.id),
+            },
           });
         } catch (error) {
           // The request is already committed. A notification outage must not
@@ -437,43 +454,141 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           });
         }
 
-        if (target.notificationEmail && emailService.isConfigured()) {
-          const publicBase = String(
-            process.env.APP_BASE_URL || "https://www.thetradescout.com"
-          ).replace(/\/$/, "");
+        let providerNotificationEmailStatus:
+          | "not_requested"
+          | "pending"
+          | "provider_accepted"
+          | "skipped"
+          | "failed"
+          | "evidence_unavailable" = target.notificationEmail ? "pending" : "not_requested";
+        let providerNotificationEmailProvider: string | null = null;
+        let providerNotificationEmailMessageId: string | null = null;
+        let providerNotificationEmailErrorCode: string | null = null;
+
+        if (target.notificationEmail) {
+          const publicBase = resolveCanonicalTradeScoutBaseUrl();
           const inboxUrl = `${publicBase}/direct-connect/inbox`;
-          void emailService
-            .sendEmail({
-              to: target.notificationEmail,
-              subject: `New request for ${target.businessName}`,
-              html: [
-                `<p>${escapeHtml(body.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
-                body.stoneName
-                  ? `<p><strong>Stone:</strong> ${escapeHtml(body.stoneName)}</p>`
-                  : "",
-                `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
-                `<p>Contact details stay inside TradeScout until you respond -- open Direct Connect to view the full message and reply.</p>`,
-                `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
-              ]
-                .filter(Boolean)
-                .join("\n"),
-              text: [
-                `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
-                body.stoneName ? `Stone: ${body.stoneName}` : null,
-                `Request type: ${requestTitle(body.requestType, target.businessName)}`,
-                `Open Direct Connect inbox: ${inboxUrl}`,
-              ]
-                .filter(Boolean)
-                .join("\n"),
-              purpose: "tradepartner_request_notification",
-            })
-            .catch((error) =>
+          let dispatchEventId: string | null = null;
+          try {
+            const [dispatchEvent] = await db
+              .insert(workRequestEvents)
+              .values({
+                workRequestId: created.id,
+                type: "updated",
+                actorUserId: String(requester.id),
+                metadata: {
+                  operation: "tradepartner_notification_email_dispatch",
+                  emailPurpose: "tradepartner_request_notification",
+                  deliveryStatus: "pending",
+                  externalId: null,
+                  errorCode: null,
+                  errorMessage: null,
+                  provider: null,
+                  recipientUserId: target.ownerUserId,
+                },
+              })
+              .returning({ id: workRequestEvents.id });
+            dispatchEventId = String(dispatchEvent?.id || "").trim() || null;
+          } catch (evidenceError) {
+            providerNotificationEmailStatus = "evidence_unavailable";
+            providerNotificationEmailErrorCode = "pending_evidence_persistence_failed";
+            console.error(
+              "[tradepartner-express] business notification email blocked because pending evidence could not be persisted",
+              {
+                requestId: created.id,
+                error: evidenceError,
+              }
+            );
+          }
+
+          if (dispatchEventId) {
+            let providerNotificationEmailErrorMessage: string | null = null;
+            try {
+              const businessEmailResult = await emailService.sendEmail({
+                to: target.notificationEmail,
+                subject: `New request for ${target.businessName}`,
+                html: [
+                  `<p>${escapeHtml(providerVisibleName)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
+                  providerVisibleStoneName
+                    ? `<p><strong>Stone:</strong> ${escapeHtml(providerVisibleStoneName)}</p>`
+                    : "",
+                  `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
+                  `<p>Contact details stay inside TradeScout until you respond -- open Direct Connect to view the full message and reply.</p>`,
+                  `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                text: [
+                  `${providerVisibleName} sent a request through your ${target.businessName} profile on TradeScout.`,
+                  providerVisibleStoneName ? `Stone: ${providerVisibleStoneName}` : null,
+                  `Request type: ${requestTitle(body.requestType, target.businessName)}`,
+                  `Open Direct Connect inbox: ${inboxUrl}`,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                purpose: "tradepartner_request_notification",
+              });
+              providerNotificationEmailProvider = businessEmailResult.provider;
+              providerNotificationEmailMessageId = businessEmailResult.messageId || null;
+              providerNotificationEmailErrorCode = businessEmailResult.skipped
+                ? businessEmailResult.skippedReason || "suppressed_or_unconfigured"
+                : null;
+              providerNotificationEmailStatus = businessEmailResult.skipped
+                ? "skipped"
+                : "provider_accepted";
+              if (businessEmailResult.skipped) {
+                console.warn("[tradepartner-express] business notification email skipped", {
+                  requestId: created.id,
+                  reason: businessEmailResult.skippedReason,
+                  provider: businessEmailResult.provider,
+                });
+              }
+            } catch (error) {
+              // The request is already committed. Provider failures are visible
+              // to operators but never turn a successful request into a 500.
+              providerNotificationEmailStatus = "failed";
+              providerNotificationEmailErrorCode = "provider_send_failed";
+              providerNotificationEmailErrorMessage = redactContactDetails(
+                error instanceof Error ? error.message : String(error || "Email provider failed")
+              ).slice(0, 500);
               console.warn("[tradepartner-express] business notification email failed", {
                 requestId: created.id,
-                notificationEmail: target.notificationEmail,
                 error,
-              })
-            );
+              });
+            }
+
+            try {
+              await db
+                .update(workRequestEvents)
+                .set({
+                  metadata: {
+                    operation: "tradepartner_notification_email_dispatch",
+                    emailPurpose: "tradepartner_request_notification",
+                    deliveryStatus:
+                      providerNotificationEmailStatus === "provider_accepted"
+                        ? "provider_accepted"
+                        : "skipped_or_failed",
+                    externalId: providerNotificationEmailMessageId,
+                    errorCode: providerNotificationEmailErrorCode,
+                    errorMessage: providerNotificationEmailErrorMessage,
+                    provider: providerNotificationEmailProvider,
+                    recipientUserId: target.ownerUserId,
+                  },
+                })
+                .where(eq(workRequestEvents.id, dispatchEventId));
+            } catch (evidenceError) {
+              // The durable pending row remains visible to operators if this
+              // final update fails after the provider call.
+              console.error(
+                "[tradepartner-express] business notification email evidence remained pending",
+                {
+                  requestId: created.id,
+                  dispatchEventId,
+                  error: evidenceError,
+                }
+              );
+            }
+          }
         }
 
         const requestWorkspaceParams = new URLSearchParams({
@@ -487,8 +602,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (body.itemId) {
           requestWorkspaceParams.set("item", body.itemId);
           requestWorkspaceParams.set("itemId", body.itemId);
-        } else if (body.stoneName) {
-          requestWorkspaceParams.set("item", body.stoneName);
+        } else if (providerVisibleStoneName) {
+          requestWorkspaceParams.set("item", providerVisibleStoneName);
         }
         const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
         const activation = requesterWasCreated
@@ -503,9 +618,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         let onboardingEmailStatus: "sent" | "skipped" | "failed" = "skipped";
 
         if (emailService.isConfigured()) {
-          const publicBase = String(
-            process.env.APP_BASE_URL || "https://www.thetradescout.com"
-          ).replace(/\/$/, "");
+          const publicBase = resolveCanonicalTradeScoutBaseUrl();
           const activationUrl = onboardingPath
             ? `${publicBase}${onboardingPath}`
             : `${publicBase}${requestWorkspacePath}`;
@@ -539,7 +652,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               ]
                 .filter(Boolean)
                 .join("\n"),
-              purpose: requesterWasCreated ? "account_creation" : "notification",
+              purpose: requesterWasCreated ? "account_creation" : "direct_connect_request",
             });
             onboardingEmailStatus = emailResult.skipped ? "skipped" : "sent";
           } catch (error) {
@@ -565,7 +678,13 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           requestId: created.id,
           status: created.status,
           businessName: target.businessName,
-          delivered: true,
+          submitted: true,
+          requestPersisted: true,
+          providerNotificationEmail: {
+            requested: Boolean(target.notificationEmail),
+            status: providerNotificationEmailStatus,
+            errorCode: providerNotificationEmailErrorCode,
+          },
           accountCreated: requesterWasCreated,
           onboardingPath,
           onboardingEmailStatus,

@@ -59,6 +59,11 @@ export async function notifySuperAdminsOfDirectConnectRequest({
           iconName: "briefcase",
           iconColor: "orange",
           deliveryMethods: ["in_app", "email"],
+          metadata: {
+            emailPurpose: "direct_connect_admin_oversight",
+            requestId,
+            workRequestId: requestId,
+          },
         })
       )
     );

@@ -53,7 +53,7 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("profileId: target.profileId");
     expect(route).toContain("businessId: target.businessId");
     expect(route).toContain("requestType: body.requestType");
-    expect(route).toContain("stoneName: body.stoneName || null");
+    expect(route).toContain("stoneName: providerVisibleStoneName");
     expect(route).toContain("itemId: body.itemId || null");
     expect(route).toContain("requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(route).toContain("? ISSA_BUILD_PROFILE_SLUG");

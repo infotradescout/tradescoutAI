@@ -114,6 +114,27 @@ describeDb("messages API helpers", () => {
     expect(thread!.lastMessageSnippet).toContain("Yes, I do");
   });
 
+  it("getThreadsForUser resolves a traditional contractor profile id to its owner user", async () => {
+    const threads = await storage.getThreadsForUser(contractorUserId, {
+      limit: 10,
+      offset: 0,
+    });
+
+    const thread = threads.find((candidate) => candidate.id === conversationId);
+    expect(thread).toBeDefined();
+    expect(thread!.unreadCount).toBe(1);
+    expect(thread!.lastMessageSnippet).toContain("Yes, I do");
+  });
+
+  it("getConversationsByUser resolves a traditional contractor profile id to its owner user", async () => {
+    const contractorConversations = await storage.getConversationsByUser(
+      contractorUserId,
+      "contractor"
+    );
+
+    expect(contractorConversations.some((candidate) => candidate.id === conversationId)).toBe(true);
+  });
+
   it("getMessagesByConversation returns ordered messages", async () => {
     const convoMessages = await storage.getMessagesByConversation(conversationId);
     expect(convoMessages.length).toBe(3);

@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -53,8 +52,12 @@ const adminDirectConnectRequestTypes = [
   },
 ] as const;
 
+const createAdminOperationId = (operation: string) =>
+  `${operation}:${globalThis.crypto.randomUUID()}`;
+
 export function AdminDirectConnectRequestCard() {
   const { toast } = useToast();
+  const pendingCreateOperationId = useRef<string | null>(null);
 
   const [targetUserEmail, setTargetUserEmail] = useState("");
   const [targetUserId, setTargetUserId] = useState("");
@@ -68,13 +71,15 @@ export function AdminDirectConnectRequestCard() {
   const [requestBudgetMin, setRequestBudgetMin] = useState("");
   const [requestBudgetMax, setRequestBudgetMax] = useState("");
   const [targetContractorIds, setTargetContractorIds] = useState("");
-  const [forceSetupEmail, setForceSetupEmail] = useState(false);
   const [directConnectResult, setDirectConnectResult] = useState<DirectConnectAdminResult | null>(
     null
   );
 
   const createDirectConnectRequest = useMutation({
     mutationFn: async (options: { autoRoute: boolean }) => {
+      const operationId =
+        pendingCreateOperationId.current || createAdminOperationId("direct-connect-create");
+      pendingCreateOperationId.current = operationId;
       const contractorIds = targetContractorIds
         .split(",")
         .map((v) => v.trim())
@@ -83,6 +88,7 @@ export function AdminDirectConnectRequestCard() {
       const payload: Record<string, unknown> = {
         title: requestTitle.trim(),
         description: requestDescription.trim(),
+        operationId,
       };
 
       if (targetUserId.trim()) payload.targetUserId = targetUserId.trim();
@@ -95,11 +101,11 @@ export function AdminDirectConnectRequestCard() {
       if (requestBudgetMax.trim()) payload.budgetMax = Number(requestBudgetMax);
       if (contractorIds.length > 0) payload.targetProviderIds = contractorIds;
       payload.autoRoute = options.autoRoute;
-      if (forceSetupEmail) payload.forceSetupEmail = true;
 
       return apiRequest("POST", "/api/admin/direct-connect/requests", payload);
     },
     onSuccess: (data: any, variables) => {
+      pendingCreateOperationId.current = null;
       setDirectConnectResult(data as DirectConnectAdminResult);
       const emailSummary = data?.setupEmailSent
         ? "Setup email sent"
@@ -123,7 +129,6 @@ export function AdminDirectConnectRequestCard() {
       setRequestBudgetMin("");
       setRequestBudgetMax("");
       setTargetContractorIds("");
-      setForceSetupEmail(false);
     },
     onError: (e: any) => {
       toast({
@@ -281,14 +286,6 @@ export function AdminDirectConnectRequestCard() {
             Leave empty to keep this request open for manual staff routing. Use skip to auto-route.
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs text-white/70">
-          <Checkbox
-            checked={forceSetupEmail}
-            onCheckedChange={(value) => setForceSetupEmail(value === true)}
-          />
-          Force setup email (send password/verification links when needed)
-        </label>
-
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"

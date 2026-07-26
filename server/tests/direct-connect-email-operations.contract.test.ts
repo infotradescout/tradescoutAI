@@ -21,7 +21,8 @@ describe("Direct Connect email operations contract", () => {
   it("allows Direct Connect purposes in restricted email mode", () => {
     expect(email).toContain('purpose === "direct_connect_request"');
     expect(email).toContain('purpose === "direct_connect_admin_oversight"');
-    expect(route).toContain('purpose: "email_verification"');
+    expect(email).toContain('purpose === "direct_connect_account_setup"');
+    expect(route).toMatch(/purpose: "(?:email_verification|direct_connect_account_setup)"/);
     expect(route).toContain('purpose: "direct_connect_request"');
     expect(route).not.toContain('purpose: "account_verification"');
   });

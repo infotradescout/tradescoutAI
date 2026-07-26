@@ -3379,12 +3379,27 @@ export class DatabaseStorage implements IStorage {
     userId: string,
     userType: "homeowner" | "contractor"
   ): Promise<Conversation[]> {
-    const userField =
-      userType === "homeowner" ? conversations.homeownerId : conversations.contractorId;
+    const participantCondition =
+      userType === "homeowner"
+        ? eq(conversations.homeownerId, userId)
+        : or(
+            eq(conversations.contractorId, userId),
+            exists(
+              db
+                .select({ id: contractors.id })
+                .from(contractors)
+                .where(
+                  and(
+                    eq(contractors.id, conversations.contractorId),
+                    eq(contractors.userId, userId)
+                  )
+                )
+            )
+          );
     return await db
       .select()
       .from(conversations)
-      .where(eq(userField, userId))
+      .where(participantCondition)
       .orderBy(desc(conversations.lastMessageAt));
   }
 
@@ -3456,7 +3471,20 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(conversations)
       .where(
-        sql`${conversations.homeownerId} = ${userId} OR ${conversations.contractorId} = ${userId}`
+        or(
+          eq(conversations.homeownerId, userId),
+          // Business and worker conversations store the provider user id directly.
+          eq(conversations.contractorId, userId),
+          // Traditional contractor conversations retain contractors.id as the participant key.
+          exists(
+            db
+              .select({ id: contractors.id })
+              .from(contractors)
+              .where(
+                and(eq(contractors.id, conversations.contractorId), eq(contractors.userId, userId))
+              )
+          )
+        )
       )
       .orderBy(desc(conversations.lastMessageAt))
       .limit(limit)

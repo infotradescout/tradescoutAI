@@ -15,11 +15,14 @@ const sectionBetween = (source: string, start: string, end: string) => {
 };
 
 describe("direct connect admin/staff oversight contracts", () => {
-  it("keeps admin direct-connect creation role-gated for staff users", () => {
+  it("keeps admin direct-connect creation role-gated for Direct Connect operators", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain('"/api/admin/direct-connect/requests"');
     expect(source).toContain("isAuthenticated,");
-    expect(source).toContain("isStaff,");
+    expect(source).toContain("isDirectConnectOperator,");
+    expect(source).toContain(
+      'const isDirectConnectOperator = requireRole(["ops_admin", "super_admin"]);'
+    );
   });
 
   it("keeps staff/admin mutation paths explicit and audited", () => {

@@ -23,6 +23,332 @@ import { eq, and, or, sql, desc, asc, isNull } from "drizzle-orm";
 import webPush from "web-push";
 import { emailService } from "./services/emailService";
 
+export type NotificationEmailPurpose =
+  | "notification"
+  | "direct_connect_account_setup"
+  | "direct_connect_request"
+  | "direct_connect_admin_oversight";
+
+export type NotificationDeliveryMethod = "in_app" | "email" | "sms" | "push" | "webhook";
+export type NotificationDeliveryStatus =
+  | "pending"
+  | "sent"
+  | "delivered"
+  | "failed"
+  | "bounced"
+  | "suppressed";
+
+export type NotificationDeliveryLogInput = {
+  notificationId: string;
+  userId: string;
+  deliveryMethod: NotificationDeliveryMethod;
+  status: NotificationDeliveryStatus;
+  contactInfo?: string;
+  externalId?: string;
+  externalResponse?: Record<string, unknown>;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
+export type EmailSuppression = {
+  errorCode:
+    | "GLOBAL_NOTIFICATIONS_DISABLED"
+    | "NOTIFICATION_TYPE_DISABLED"
+    | "NOTIFICATION_TYPE_EMAIL_DISABLED"
+    | "EMAIL_NOTIFICATIONS_DISABLED"
+    | "RECIPIENT_EMAIL_MISSING";
+  errorMessage: string;
+};
+
+export function resolveRequestedEmailSuppression(input: {
+  requestedDeliveryMethods: readonly string[];
+  typeDeliveryMethods?: readonly string[] | null;
+  globalNotificationsEnabled: boolean;
+  typeNotificationsEnabled: boolean;
+  emailNotificationsEnabled: boolean;
+  recipientEmail?: string | null;
+  notificationType: string;
+}): EmailSuppression | null {
+  const requestedEmail = input.requestedDeliveryMethods.includes("email");
+  const hasTypeOverride = Array.isArray(input.typeDeliveryMethods);
+  const typeRequestsEmail = input.typeDeliveryMethods?.includes("email") === true;
+  const emailWasRequested = requestedEmail || typeRequestsEmail;
+
+  if (!emailWasRequested) return null;
+
+  if (!input.globalNotificationsEnabled) {
+    return {
+      errorCode: "GLOBAL_NOTIFICATIONS_DISABLED",
+      errorMessage: "Email suppressed because the recipient disabled all notifications.",
+    };
+  }
+
+  if (!input.typeNotificationsEnabled) {
+    return {
+      errorCode: "NOTIFICATION_TYPE_DISABLED",
+      errorMessage: `Email suppressed because the recipient disabled ${input.notificationType} notifications.`,
+    };
+  }
+
+  if (requestedEmail && hasTypeOverride && !typeRequestsEmail) {
+    return {
+      errorCode: "NOTIFICATION_TYPE_EMAIL_DISABLED",
+      errorMessage:
+        "Email suppressed because the recipient's notification-type preference excludes email delivery.",
+    };
+  }
+
+  if (!input.emailNotificationsEnabled) {
+    return {
+      errorCode: "EMAIL_NOTIFICATIONS_DISABLED",
+      errorMessage: "Email suppressed because the recipient disabled email notifications.",
+    };
+  }
+
+  if (!String(input.recipientEmail || "").trim()) {
+    return {
+      errorCode: "RECIPIENT_EMAIL_MISSING",
+      errorMessage: "Email suppressed because the recipient has no email address.",
+    };
+  }
+
+  return null;
+}
+
+export function resolveNotificationDeliveryFailure(
+  error: unknown,
+  deliveryMethod: NotificationDeliveryMethod
+): {
+  status: "failed" | "suppressed";
+  errorCode: string;
+  errorMessage: string;
+} {
+  const details =
+    error && typeof error === "object"
+      ? (error as {
+          code?: unknown;
+          statusCode?: unknown;
+          deliveryStatus?: unknown;
+          deliveryErrorCode?: unknown;
+          message?: unknown;
+        })
+      : null;
+  const status = details?.deliveryStatus === "suppressed" ? "suppressed" : "failed";
+  const explicitCode = String(details?.deliveryErrorCode || "").trim();
+  const providerCode = String(details?.code || details?.statusCode || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+  const prefix = deliveryMethod.toUpperCase();
+  const errorCode =
+    explicitCode || (providerCode ? `${prefix}_${providerCode}` : `${prefix}_DELIVERY_FAILED`);
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : String(details?.message || error || `${deliveryMethod} delivery failed`);
+
+  return {
+    status,
+    errorCode,
+    errorMessage,
+  };
+}
+
+export function buildNotificationDeliveryLogValues(
+  input: NotificationDeliveryLogInput,
+  now: Date = new Date()
+) {
+  return {
+    notificationId: input.notificationId,
+    userId: input.userId,
+    deliveryMethod: input.deliveryMethod,
+    status: input.status,
+    contactInfo: input.contactInfo,
+    externalId: input.externalId,
+    externalResponse: input.externalResponse,
+    errorCode: input.errorCode,
+    errorMessage: input.errorMessage,
+    // "sent" means the provider accepted the message. A provider callback
+    // must establish "delivered"; acceptance alone never sets deliveredAt.
+    sentAt: input.status === "sent" || input.status === "delivered" ? now : undefined,
+    deliveredAt: input.status === "delivered" ? now : undefined,
+    failedAt: input.status === "failed" ? now : undefined,
+  };
+}
+
+class NotificationDeliveryAttemptError extends Error {
+  constructor(
+    readonly deliveryStatus: "failed" | "suppressed",
+    readonly deliveryErrorCode: string,
+    message: string
+  ) {
+    super(message);
+    this.name = "NotificationDeliveryAttemptError";
+  }
+}
+
+const CANONICAL_TRADESCOUT_BASE_URL = "https://www.thetradescout.com";
+
+export function resolveNotificationEmailPurpose(metadata: unknown): NotificationEmailPurpose {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return "notification";
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(metadata, "emailPurpose")) {
+    return "notification";
+  }
+
+  const purpose = String((metadata as Record<string, unknown>).emailPurpose || "")
+    .toLowerCase()
+    .trim();
+
+  if (
+    purpose === "direct_connect_account_setup" ||
+    purpose === "direct_connect_request" ||
+    purpose === "direct_connect_admin_oversight"
+  ) {
+    return purpose;
+  }
+
+  return "notification";
+}
+
+export function resolveCanonicalTradeScoutBaseUrl(
+  candidate: unknown = process.env.APP_BASE_URL
+): string {
+  if (typeof candidate !== "string" || !candidate.trim()) {
+    return CANONICAL_TRADESCOUT_BASE_URL;
+  }
+
+  try {
+    const url = new URL(candidate.trim());
+    if (
+      url.protocol === "https:" &&
+      url.hostname.toLowerCase() === "www.thetradescout.com" &&
+      !url.username &&
+      !url.password
+    ) {
+      return CANONICAL_TRADESCOUT_BASE_URL;
+    }
+  } catch {
+    // Fall through to the canonical production origin.
+  }
+
+  return CANONICAL_TRADESCOUT_BASE_URL;
+}
+
+export function resolveNotificationEmailActionUrl(
+  actionUrl: unknown,
+  candidateBaseUrl?: unknown
+): string | null {
+  const rawActionUrl = String(actionUrl || "").trim();
+  if (!rawActionUrl) return null;
+
+  const canonicalBaseUrl = resolveCanonicalTradeScoutBaseUrl(candidateBaseUrl);
+  try {
+    const resolved = new URL(rawActionUrl, `${canonicalBaseUrl}/`);
+    const canonical = new URL(canonicalBaseUrl);
+    if (resolved.origin !== canonical.origin) return null;
+
+    return `${canonicalBaseUrl}${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+export function escapeNotificationEmailHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+type NotificationEmailContent = {
+  title?: unknown;
+  message?: unknown;
+  actionUrl?: unknown;
+  actionText?: unknown;
+};
+
+type NotificationEmailRecipient = {
+  firstName?: unknown;
+};
+
+export function renderNotificationEmailHtml(
+  notification: NotificationEmailContent,
+  user: NotificationEmailRecipient,
+  candidateBaseUrl?: unknown
+): string {
+  const title = escapeNotificationEmailHtml(notification.title);
+  const message = escapeNotificationEmailHtml(notification.message);
+  const userName = escapeNotificationEmailHtml(user.firstName || "there");
+  const actionText = escapeNotificationEmailHtml(notification.actionText || "View Details");
+  const actionUrl = resolveNotificationEmailActionUrl(notification.actionUrl, candidateBaseUrl);
+  const safeActionUrl = actionUrl ? escapeNotificationEmailHtml(actionUrl) : null;
+
+  return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>${title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #f97316; color: white; padding: 20px; text-align: center; }
+          .content { padding: 20px; background-color: #f9f9f9; }
+          .footer { padding: 20px; text-align: center; color: #666; font-size: 14px; }
+          .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #f97316;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 10px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>TradeScout</h1>
+          </div>
+          <div class="content">
+            <h2>${title}</h2>
+            <p>Hi ${userName},</p>
+            <p>${message}</p>
+            ${
+              safeActionUrl
+                ? `<p><a href="${safeActionUrl}" class="button">${actionText}</a></p>`
+                : ""
+            }
+          </div>
+          <div class="footer">
+            <p>This notification was sent from TradeScout. If you no longer wish to receive these emails, you can update your notification preferences in your account settings.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+}
+
+export function renderNotificationEmailText(
+  notification: NotificationEmailContent,
+  candidateBaseUrl?: unknown
+): string {
+  const actionUrl = resolveNotificationEmailActionUrl(notification.actionUrl, candidateBaseUrl);
+  return [
+    String(notification.message ?? ""),
+    actionUrl ? `${String(notification.actionText || "View Details")}: ${actionUrl}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 // Notification Service Class
 export class NotificationService {
   private webPushConfigured = false;
@@ -386,37 +712,50 @@ export class NotificationService {
       notification_preferences: preferences,
     } = notificationData;
 
-    // Check if user has notifications enabled
-    if (preferences && !preferences.enableNotifications) {
+    const requestedDeliveryMethods = notification.deliveryMethods || ["in_app"];
+    const typePrefs = (preferences?.typePreferences || {}) as Record<
+      string,
+      { enabled?: boolean; delivery_methods?: string[] }
+    >;
+    const currentTypePrefs = typePrefs[notification.type as string];
+    const typeDeliveryMethods = Array.isArray(currentTypePrefs?.delivery_methods)
+      ? currentTypePrefs.delivery_methods
+      : null;
+    const emailSuppression = resolveRequestedEmailSuppression({
+      requestedDeliveryMethods,
+      typeDeliveryMethods,
+      globalNotificationsEnabled: preferences?.enableNotifications !== false,
+      typeNotificationsEnabled: currentTypePrefs?.enabled !== false,
+      emailNotificationsEnabled: preferences?.enableEmailNotifications !== false,
+      recipientEmail: user.email,
+      notificationType: String(notification.type),
+    });
+
+    if (emailSuppression) {
+      await this.logDelivery({
+        notificationId,
+        userId: user.id,
+        deliveryMethod: "email",
+        status: "suppressed",
+        contactInfo: user.email || undefined,
+        errorCode: emailSuppression.errorCode,
+        errorMessage: emailSuppression.errorMessage,
+      });
+    }
+
+    // Preserve global and per-type suppression for every delivery method after
+    // recording why a requested email was not attempted.
+    if (preferences?.enableNotifications === false || currentTypePrefs?.enabled === false) {
       return;
     }
 
-    // Respect per-type notification preferences when available
-    if (preferences?.typePreferences) {
-      const typePrefs: any = preferences.typePreferences as any;
-      const currentTypePrefs = typePrefs[notification.type as string];
-      if (currentTypePrefs && currentTypePrefs.enabled === false) {
-        return;
-      }
-    }
-
-    // Send via enabled delivery methods
-    let deliveryMethods = notification.deliveryMethods || ["in_app"];
-
-    // Override delivery methods from type-specific preferences if provided
-    if (preferences?.typePreferences) {
-      const typePrefs: any = preferences.typePreferences as any;
-      const currentTypePrefs = typePrefs[notification.type as string];
-      if (currentTypePrefs && Array.isArray(currentTypePrefs.delivery_methods)) {
-        deliveryMethods = currentTypePrefs.delivery_methods;
-      }
-    }
+    const deliveryMethods = typeDeliveryMethods || requestedDeliveryMethods;
 
     for (const method of deliveryMethods) {
       try {
         switch (method) {
           case "email":
-            if (preferences?.enableEmailNotifications !== false && user.email) {
+            if (!emailSuppression) {
               await this.sendEmailNotification(notification, user);
             }
             break;
@@ -427,7 +766,12 @@ export class NotificationService {
             break;
           case "in_app":
             // In-app notifications are already stored in the database
-            await this.logDelivery(notificationId, user.id, "in_app", "delivered");
+            await this.logDelivery({
+              notificationId,
+              userId: user.id,
+              deliveryMethod: "in_app",
+              status: "delivered",
+            });
             break;
           case "push":
             if (preferences?.enablePushNotifications && this.webPushConfigured) {
@@ -437,15 +781,39 @@ export class NotificationService {
         }
       } catch (error) {
         console.error(`Failed to send ${method} notification:`, error);
-        await this.logDelivery(notificationId, user.id, method as any, "failed", String(error));
+        const deliveryMethod = method as NotificationDeliveryMethod;
+        const failure = resolveNotificationDeliveryFailure(error, deliveryMethod);
+        await this.logDelivery({
+          notificationId,
+          userId: user.id,
+          deliveryMethod,
+          status: failure.status,
+          contactInfo:
+            deliveryMethod === "email"
+              ? user.email || undefined
+              : deliveryMethod === "sms"
+                ? user.phone || undefined
+                : undefined,
+          errorCode: failure.errorCode,
+          errorMessage: failure.errorMessage,
+        });
       }
     }
 
-    // Update notification as sent
-    await db
-      .update(notifications)
-      .set({ sentAt: new Date() })
-      .where(eq(notifications.id, notificationId));
+    // Marking the aggregate notification is evidence, not delivery itself.
+    // A write failure here must not report an already-attempted email as an
+    // overall send failure and invite duplicate retries.
+    try {
+      await db
+        .update(notifications)
+        .set({ sentAt: new Date() })
+        .where(eq(notifications.id, notificationId));
+    } catch (error) {
+      console.error("[notifications] Failed to mark notification sent", {
+        notificationId,
+        error,
+      });
+    }
   }
 
   // =====================================
@@ -566,44 +934,71 @@ export class NotificationService {
   }
 
   private async sendEmailNotification(notification: Notification, user: User): Promise<void> {
-    if (!emailService.isConfigured() || !user.email) {
-      throw new Error("Email service not configured or user email missing");
+    if (!user.email) {
+      throw new NotificationDeliveryAttemptError(
+        "suppressed",
+        "RECIPIENT_EMAIL_MISSING",
+        "Email suppressed because the recipient has no email address."
+      );
+    }
+    if (!emailService.isConfigured()) {
+      throw new NotificationDeliveryAttemptError(
+        "failed",
+        "EMAIL_PROVIDER_NOT_CONFIGURED",
+        "Email delivery failed because no email provider is configured."
+      );
     }
 
     const emailSubject = notification.title;
-    const emailBody = this.generateEmailHTML(notification, user);
 
     const result = await emailService.sendEmail({
       to: user.email,
       subject: emailSubject,
-      html: emailBody,
-      text: notification.message,
-      purpose:
-        notification.type === "new_project_request" ||
-        notification.type === "direct_connect_beta_request"
-          ? "direct_connect_request"
-          : "notification",
+      html: renderNotificationEmailHtml(notification, user),
+      text: renderNotificationEmailText(notification),
+      purpose: resolveNotificationEmailPurpose(notification.metadata),
     });
 
     if (result.skipped) {
-      throw new Error(`Email skipped: ${result.skippedReason || "unknown_reason"}`);
+      if (result.skippedReason === "email_mode_suppressed") {
+        throw new NotificationDeliveryAttemptError(
+          "suppressed",
+          "EMAIL_MODE_SUPPRESSED",
+          `Email suppressed by EMAIL_MODE for purpose ${resolveNotificationEmailPurpose(notification.metadata)}.`
+        );
+      }
+      throw new NotificationDeliveryAttemptError(
+        "failed",
+        "EMAIL_PROVIDER_NOT_CONFIGURED",
+        "Email delivery failed because no email provider is configured."
+      );
     }
 
-    await this.logDelivery(
-      notification.id,
-      user.id,
-      "email",
-      "sent",
-      user.email,
-      result.messageId
-    );
+    await this.logDelivery({
+      notificationId: notification.id,
+      userId: user.id,
+      deliveryMethod: "email",
+      status: "sent",
+      contactInfo: user.email,
+      externalId: result.messageId,
+      externalResponse: {
+        provider: result.provider,
+        providerStatus: "accepted",
+      },
+    });
   }
 
   private async sendSMSNotification(notification: Notification, user: User): Promise<void> {
     // SMS implementation would go here (Twilio, etc.)
     // For now, just log that SMS would be sent
     console.log(`SMS notification would be sent to ${user.phone}: ${notification.message}`);
-    await this.logDelivery(notification.id, user.id, "sms", "sent", user.phone || undefined);
+    await this.logDelivery({
+      notificationId: notification.id,
+      userId: user.id,
+      deliveryMethod: "sms",
+      status: "sent",
+      contactInfo: user.phone || undefined,
+    });
   }
 
   private async sendPushNotification(notification: Notification, userId: string): Promise<void> {
@@ -632,10 +1027,25 @@ export class NotificationService {
             },
             payload
           );
-          await this.logDelivery(notification.id, userId, "push", "sent", sub.endpoint);
+          await this.logDelivery({
+            notificationId: notification.id,
+            userId,
+            deliveryMethod: "push",
+            status: "sent",
+            contactInfo: sub.endpoint,
+          });
         } catch (err: any) {
           console.error("Failed to send web push notification", err);
-          await this.logDelivery(notification.id, userId, "push", "failed", sub.endpoint);
+          const failure = resolveNotificationDeliveryFailure(err, "push");
+          await this.logDelivery({
+            notificationId: notification.id,
+            userId,
+            deliveryMethod: "push",
+            status: failure.status,
+            contactInfo: sub.endpoint,
+            errorCode: failure.errorCode,
+            errorMessage: failure.errorMessage,
+          });
 
           const statusCode = err?.statusCode ?? err?.statusCode?.value;
           if (statusCode === 404 || statusCode === 410) {
@@ -650,75 +1060,21 @@ export class NotificationService {
     );
   }
 
-  private generateEmailHTML(notification: Notification, user: User): string {
-    const userName = user.firstName || "there";
-
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${notification.title}</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background-color: #f97316; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background-color: #f9f9f9; }
-          .footer { padding: 20px; text-align: center; color: #666; font-size: 14px; }
-          .button { 
-            display: inline-block; 
-            padding: 12px 24px; 
-            background-color: #f97316; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 6px; 
-            margin: 10px 0; 
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>TradeScout</h1>
-          </div>
-          <div class="content">
-            <h2>${notification.title}</h2>
-            <p>Hi ${userName},</p>
-            <p>${notification.message}</p>
-            ${
-              notification.actionUrl
-                ? `<p><a href="${notification.actionUrl}" class="button">${notification.actionText || "View Details"}</a></p>`
-                : ""
-            }
-          </div>
-          <div class="footer">
-            <p>This notification was sent from TradeScout. If you no longer wish to receive these emails, you can update your notification preferences in your account settings.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  private async logDelivery(
-    notificationId: string,
-    userId: string,
-    method: "in_app" | "email" | "sms" | "push" | "webhook",
-    status: string,
-    contactInfo?: string,
-    externalId?: string
-  ): Promise<void> {
-    await db.insert(notificationDeliveryLog).values({
-      notificationId,
-      userId,
-      deliveryMethod: method,
-      status,
-      contactInfo,
-      externalId,
-      sentAt: status === "sent" || status === "delivered" ? new Date() : undefined,
-      deliveredAt: status === "delivered" ? new Date() : undefined,
-      failedAt: status === "failed" ? new Date() : undefined,
-    });
+  private async logDelivery(input: NotificationDeliveryLogInput): Promise<void> {
+    try {
+      await db.insert(notificationDeliveryLog).values(buildNotificationDeliveryLogValues(input));
+    } catch (error) {
+      // Delivery evidence must never become a second delivery gate. In
+      // particular, a missing/lagging delivery-log migration must not prevent
+      // later methods (email/push) from being attempted.
+      console.error("[notifications] Failed to persist delivery evidence", {
+        notificationId: input.notificationId,
+        userId: input.userId,
+        deliveryMethod: input.deliveryMethod,
+        status: input.status,
+        error,
+      });
+    }
   }
 
   // =====================================

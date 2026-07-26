@@ -150,9 +150,11 @@ describe("DC universal provider — respond endpoint", () => {
     expect(dc).toContain("isContractorAssignment ? contractor!.id : String(userId)");
   });
 
-  it("provider_accepted event records both contractorId and responderUserId", () => {
+  it("provider_accepted event records exact assignment and provider identities", () => {
     const dc = readRepoFile("server/routes/direct-connect.ts");
-    expect(dc).toContain("responderUserId: isBusinessAssignment ? String(userId) : null");
+    expect(dc).toContain("assignmentId: String(updatedAssignment.id)");
+    expect(dc).toContain("isBusinessAssignment || isWorkerAssignment");
+    expect(dc).toContain("workerId: isWorkerAssignment ? assignmentWorkerId : null");
   });
 });
 

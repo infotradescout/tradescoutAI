@@ -28,8 +28,8 @@ describe("direct connect notification/email delivery safety contracts", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain("const notifyUserIds = new Set<string>();");
     expect(source).toContain("if (candidate?.userId) notifyUserIds.add(candidate.userId);");
-    expect(source).toContain("if (a.responderUserId) {");
-    expect(source).toContain("notifyUserIds.add(String(a.responderUserId));");
+    expect(source).toContain("if (assignment.responderUserId) {");
+    expect(source).toContain("notifyUserIds.add(String(assignment.responderUserId));");
   });
 
   it("keeps contractor-action requester notifications contact-gated and platform-contained", () => {
@@ -100,11 +100,18 @@ describe("direct connect notification/email delivery safety contracts", () => {
     );
 
     expect(blocks.length).toBeGreaterThan(0);
+    expect(blocks.some((block) => /deliveryMethods:\s*\[[^\]]*"email"/.test(block))).toBe(true);
     for (const block of blocks) {
-      expect(block).not.toMatch(
+      const payloadWithoutApprovedEmailControls = block
+        .replace(/deliveryMethods:\s*\[[\s\S]*?\]\s*,?/g, "")
+        .replace(/emailPurpose:\s*["'][^"']+["']\s*,?/g, "");
+
+      expect(payloadWithoutApprovedEmailControls).not.toMatch(
         /phone|email|address|contactInfo|homeownerContact|providerPhone|providerEmail/i
       );
-      expect(block).not.toMatch(/\$\{[^}]*\.(phone|email|address|contactInfo)[^}]*\}/i);
+      expect(payloadWithoutApprovedEmailControls).not.toMatch(
+        /\$\{[^}]*\.(phone|email|address|contactInfo)[^}]*\}/i
+      );
     }
   });
 });
