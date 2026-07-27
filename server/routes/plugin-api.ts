@@ -185,7 +185,7 @@ router.post("/api/plugin/v1/change-sets/publish", async (req: any, res) => {
       appliedActionIds: applied,
       failedActions: failed,
       previousProfileVersion: previousVersion,
-      resultingProfileVersion,
+      resultingProfileVersion: resultingVersion,
       artifactUrls: [],
       liveUrls: [`/r/${business.slug}`],
       createdAt: new Date().toISOString(),
