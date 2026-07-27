@@ -12,8 +12,12 @@ import {
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
 } from "../publicationBusiness";
+import { pluginApiRouter } from "./plugin-api";
+import { pluginOAuthRouter } from "./plugin-oauth";
 
 const router = Router();
+router.use(pluginOAuthRouter);
+router.use(pluginApiRouter);
 
 function getAuthedUserId(req: any): string {
   return (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
