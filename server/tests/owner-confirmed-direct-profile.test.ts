@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
+  MOULDING_MILLWORK_PROFILE_SLUG,
+} from "@shared/mouldingMillworkProfile";
+import {
   ADMIN_MANAGED_PROFILE_SOURCE,
   JRS_PROFILE_SLUG,
   OWNER_CONFIRMED_PROFILE_SOURCE,
@@ -54,6 +58,17 @@ describe("owner-confirmed direct profile authority", () => {
       isOwnerConfirmedDirectProfile({
         ...approvedCandidate,
         businessSources: [ADMIN_MANAGED_PROFILE_SOURCE],
+      })
+    ).toBe(false);
+  });
+
+  it("does not misclassify an operator-confirmed TradePartner as owner-confirmed", () => {
+    expect(
+      isOwnerConfirmedDirectProfile({
+        ...approvedCandidate,
+        profileSlug: MOULDING_MILLWORK_PROFILE_SLUG,
+        publicDiscoveryEnabled: true,
+        businessSources: [MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE],
       })
     ).toBe(false);
   });

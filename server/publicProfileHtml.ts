@@ -16,6 +16,7 @@ import {
 } from "@shared/profileItemShare";
 import type { ProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { resolveAuthorizedPublicProfileBySlug } from "./services/publicProfileAuthority";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -173,7 +174,8 @@ export async function buildPublicProfileLlmsText({
   slug,
   origin,
 }: PublicProfileLlmsTextOptions): Promise<string | null> {
-  const profileRecord = await storage.getProfileBySlugPublic(slug);
+  const authority = await resolveAuthorizedPublicProfileBySlug(slug);
+  const profileRecord = authority?.profile;
   if (!profileRecord) return null;
 
   const publicOrigin = normalizePublicOrigin(origin);
@@ -251,7 +253,8 @@ export async function buildPublicProfileSitemapXml({
 }: PublicProfileSitemapOptions): Promise<string | null> {
   const publicOrigin = normalizePublicOrigin(origin);
   if (!publicOrigin) return null;
-  const profileRecord = await storage.getProfileBySlugPublic(slug);
+  const authority = await resolveAuthorizedPublicProfileBySlug(slug);
+  const profileRecord = authority?.profile;
   if (!profileRecord) return null;
 
   const inventory = listProfileInventoryItems(
@@ -703,7 +706,8 @@ export async function buildPublicProfileHtml({
   itemPhoto,
   gallerySlug,
 }: PublicProfileHtmlOptions): Promise<string | null> {
-  const profileRecord = await storage.getProfileBySlugPublic(slug);
+  const authority = await resolveAuthorizedPublicProfileBySlug(slug);
+  const profileRecord = authority?.profile;
   if (!profileRecord) return null;
 
   const businessRecord = profileRecord.businessId

@@ -49,6 +49,7 @@ import {
   buildPublicProfileLlmsText,
   buildPublicProfileSitemapXml,
 } from "./publicProfileHtml";
+import { resolveAuthorizedPublicProfileBySlug } from "./services/publicProfileAuthority";
 import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
@@ -1327,10 +1328,7 @@ app.use(landingContractHeaders);
                   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
                   res.setHeader("CDN-Cache-Control", "public, max-age=31536000, immutable");
                   res.setHeader("Surrogate-Control", "public, max-age=31536000, immutable");
-                  res.setHeader(
-                    "X-TradeScout-Asset-Recovery",
-                    "duplicate-prefix-canonical"
-                  );
+                  res.setHeader("X-TradeScout-Asset-Recovery", "duplicate-prefix-canonical");
                   return res.redirect(308, canonicalAssetPath);
                 });
 
@@ -1578,7 +1576,8 @@ app.use(landingContractHeaders);
                   // served there -- send visitors straight to the business's
                   // own domain instead of dual-hosting the same profile under
                   // /u/:slug too.
-                  const profileRecord = await storage.getProfileBySlugPublic(slug);
+                  const profileAuthority = await resolveAuthorizedPublicProfileBySlug(slug);
+                  const profileRecord = profileAuthority?.profile;
                   const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
                   if (customDomain && String(req.query.book || "") !== "1") {
                     return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);

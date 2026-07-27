@@ -172,15 +172,14 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileView).toContain("Insurance claim or self-pay");
     expect(composer).toContain("payload.targetProfileSlug = prefillContextId.trim()");
     expect(route).toContain("targetProfileSlug:");
-    expect(route).toContain("await storage.getProfileBySlugPublic(body.targetProfileSlug)");
+    expect(route).toContain("await resolveAuthorizedPublicProfileBySlug(body.targetProfileSlug)");
     expect(route).toContain('scope: isExplicitTarget ? "personal" : "community"');
     expect(route).toContain('visibility: isExplicitTarget ? "private" : "community"');
     expect(route).toContain("responderUserId: targetProfileOwnerUserId");
     expect(route).toContain('routingMode: "profile_direct_connect"');
     expect(route).toContain('source: "profile_direct_connect"');
-    expect(publicRoute).toContain("isOwnerConfirmedDirectProfile({");
-    expect(expressRoute).toContain("isOwnerConfirmedDirectProfile({");
-    expect(expressRoute).toContain("(!ownerDiscoverable && !ownerConfirmedDirectProfile)");
+    expect(publicRoute).toContain("resolveAuthorizedPublicProfileBySlug(slug)");
+    expect(expressRoute).toContain("resolveAuthorizedPublicProfileBySlug(normalizedSlug)");
     expect(publicRoute).toContain("expressContactCapabilities");
     expect(profileView).toContain("allowCall={canExpressCall}");
   });

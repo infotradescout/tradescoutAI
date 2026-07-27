@@ -12,13 +12,15 @@ describe("universal public-profile Express Direct Connect contract", () => {
   const jrSource = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
   const resetSource = read("client/src/pages/reset-password.tsx");
 
-  it("supports published active discoverable businesses and the narrow owner-confirmed profile", () => {
+  it("supports verified businesses and the two narrow provisioned-profile authorities", () => {
     expect(routeSource).not.toContain("profileData.tradePartner !== true");
-    expect(routeSource).toContain('String(row.profileStatus) !== "published"');
-    expect(routeSource).toContain('String(row.businessStatus) !== "active"');
-    expect(routeSource).toContain("!ownerDiscoverable");
-    expect(routeSource).toContain("!ownerConfirmedDirectProfile");
-    expect(routeSource).toContain("isOwnerConfirmedDirectProfile({");
+    expect(routeSource).toContain(
+      "const authority = await resolveAuthorizedPublicProfileBySlug(normalizedSlug)"
+    );
+    expect(routeSource).toContain(
+      "if (!authority?.linkedBusiness || !authority.profile.businessId) return null"
+    );
+    expect(routeSource).not.toContain("getProfileBySlugPublic");
   });
 
   it("tailors the form for materials, auto glass, and general services", () => {

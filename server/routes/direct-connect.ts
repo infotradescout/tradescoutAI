@@ -31,6 +31,7 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
+import { resolveAuthorizedPublicProfileBySlug } from "../services/publicProfileAuthority";
 import { emailService } from "../services/emailService";
 import { passwordResetService } from "../services/passwordResetService";
 import { emailVerificationService } from "../services/emailVerificationService";
@@ -6356,18 +6357,17 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
-        const targetProfile = body.targetProfileSlug
-          ? await storage.getProfileBySlugPublic(body.targetProfileSlug)
-          : undefined;
-        if (body.targetProfileSlug && !targetProfile) {
+        const targetProfileAuthority = body.targetProfileSlug
+          ? await resolveAuthorizedPublicProfileBySlug(body.targetProfileSlug)
+          : null;
+        const targetProfile = targetProfileAuthority?.profile;
+        if (body.targetProfileSlug && !targetProfileAuthority) {
           return res.status(404).json({
             code: "TARGET_PROFILE_NOT_FOUND",
             message: "This profile is no longer available for Direct Connect requests.",
           });
         }
-        const targetProfileOwnerUserId = targetProfile
-          ? await storage.getProfileOwnerUserId(targetProfile.id)
-          : null;
+        const targetProfileOwnerUserId = targetProfileAuthority?.ownerUserId || null;
         if (targetProfile && !targetProfileOwnerUserId) {
           return res.status(404).json({
             code: "TARGET_PROFILE_NOT_FOUND",

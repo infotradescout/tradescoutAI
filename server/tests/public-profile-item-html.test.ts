@@ -39,6 +39,10 @@ vi.mock("../storage", () => ({
   },
 }));
 
+vi.mock("../services/publicProfileAuthority", () => ({
+  resolveAuthorizedPublicProfileBySlug: vi.fn(async () => ({ profile: profileRecord })),
+}));
+
 import {
   buildPublicProfileEarlyHtml,
   buildPublicProfileHtml,

@@ -1,11 +1,14 @@
 import { and, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import {
+  MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE,
   MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS,
+  MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE,
   MOULDING_MILLWORK_PROFILE_SLUG,
   MOULDING_MILLWORK_PUBLIC_SOURCES,
 } from "@shared/mouldingMillworkProfile";
 import { db } from "../db";
+import { isProvisionedProfileAccountControlConfirmed } from "./provisionedProfileAccountControl";
 
 const MOULDING_MILLWORK_OWNER_EMAIL = Buffer.from(
   "bW91bGRpbmdtaWxsd29ya3N1cHBseUB5YWhvby5jb20=",
@@ -38,6 +41,18 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       .from(users)
       .where(sql`lower(${users.email}) = ${normalizedEmail}`)
       .limit(1);
+    const existingOwnerControlConfirmed = existingOwner
+      ? isProvisionedProfileAccountControlConfirmed({
+          emailVerified: existingOwner.emailVerified,
+          provider: existingOwner.provider,
+          verificationStatus: existingOwner.verificationStatus,
+        })
+      : false;
+    if (existingOwner && !existingOwnerControlConfirmed) {
+      throw new Error(
+        "Moulding & Millwork owner provisioning refused an unconfirmed pre-existing account"
+      );
+    }
 
     const existingPreferences: Record<string, any> =
       existingOwner?.preferences && typeof existingOwner.preferences === "object"
@@ -59,10 +74,10 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       phone: existingOwner?.phone || MOULDING_MILLWORK_ROUTING_PHONE,
       provider: existingOwner?.provider || "admin_provisioned",
       onboardingCompleted: true,
-      profileVisibility: "discoverable" as const,
+      profileVisibility: existingOwner?.profileVisibility || ("discoverable" as const),
       preferences: {
         ...existingPreferences,
-        profileVisibility: "public",
+        profileVisibility: existingPreferences.profileVisibility || "public",
       },
       updatedAt: now,
     };
@@ -95,6 +110,22 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       existingBusiness?.profileData && typeof existingBusiness.profileData === "object"
         ? (existingBusiness.profileData as Record<string, any>)
         : {};
+    const existingBusinessSources = Array.isArray(existingBusiness?.sources)
+      ? existingBusiness.sources
+      : [];
+    const operatorProfileAuthorityRevoked = existingBusinessSources.includes(
+      MOULDING_MILLWORK_PROFILE_REVOKED_SOURCE
+    );
+    const businessSources = new Set([
+      ...existingBusinessSources,
+      ...MOULDING_MILLWORK_PUBLIC_SOURCES,
+      PROFILE_SOURCE,
+    ]);
+    if (operatorProfileAuthorityRevoked) {
+      businessSources.delete(MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE);
+    } else {
+      businessSources.add(MOULDING_MILLWORK_PROFILE_AUTHORITY_SOURCE);
+    }
 
     const businessValues = {
       name: "Moulding & Millwork Supply",
@@ -142,10 +173,10 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           surface: "#f7f2e8",
         },
       },
-      claimStatus: "claimed",
-      publicDiscoveryEnabled: true,
-      sources: Array.from(new Set([...MOULDING_MILLWORK_PUBLIC_SOURCES, PROFILE_SOURCE])),
-      status: "active" as const,
+      claimStatus: existingBusiness?.claimStatus || "claimed",
+      publicDiscoveryEnabled: existingBusiness ? existingBusiness.publicDiscoveryEnabled : true,
+      sources: Array.from(businessSources),
+      status: existingBusiness?.status || ("active" as const),
       updatedAt: now,
     };
 
@@ -237,7 +268,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
         description:
           "See moulding, doors, windows, and millwork from Moulding & Millwork Supply, then make a private request through TradeScout Direct Connect.",
       },
-      status: "published" as const,
+      status: existingProfile?.status || ("published" as const),
       updatedAt: now,
     };
 

@@ -27,15 +27,38 @@ function report(status, label, detail) {
   console.log(`${icon} ${label}${detail ? ` — ${detail}` : ""}`);
 }
 
-async function checkUrl(url, timeoutMs = 8000) {
+async function checkUrl(url, timeoutMs = 8000, headers = undefined) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
-    const res = await fetch(url, { method: "GET", redirect: "manual", signal: controller.signal });
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+      headers,
+    });
     clearTimeout(timer);
     return { ok: res.status >= 200 && res.status < 400, status: res.status };
   } catch (err) {
     return { ok: false, status: null, error: err.message };
+  }
+}
+
+async function checkJsonUrl(url, timeoutMs = 8000, headers = undefined) {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(url, {
+      method: "GET",
+      redirect: "manual",
+      signal: controller.signal,
+      headers,
+    });
+    clearTimeout(timer);
+    const payload = await res.json().catch(() => null);
+    return { status: res.status, payload };
+  } catch (err) {
+    return { status: 0, payload: null, error: err?.message || String(err) };
   }
 }
 
@@ -163,6 +186,24 @@ try {
       `${canonicalUrl} -> ${canonicalCheck.status ?? canonicalCheck.error}`
     );
   }
+
+  const profileApiUrl = `https://www.thetradescout.com/api/u/${encodeURIComponent(slug)}`;
+  const profileApiCheck = await checkJsonUrl(profileApiUrl, 8000, {
+    Accept: "application/json",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+  });
+  const hydratedProfileSlug = String(profileApiCheck.payload?.profile?.slug || "")
+    .trim()
+    .toLowerCase();
+  const expectedProfileSlug = slug.trim().toLowerCase();
+  const profileApiIdentityMatches =
+    profileApiCheck.status === 200 && hydratedProfileSlug === expectedProfileSlug;
+  report(
+    profileApiIdentityMatches ? "ok" : "fail",
+    "Canonical profile API returns the expected hydrated profile",
+    `${profileApiUrl} -> ${profileApiCheck.status || profileApiCheck.error}; slug=${hydratedProfileSlug || "missing"}`
+  );
 
   if (profile.business_id) {
     const { rows: bizRows } = await client.query(

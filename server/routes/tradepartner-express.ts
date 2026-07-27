@@ -1,24 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, pool } from "../db";
 import { isAuthenticated, isSuperAdmin } from "../auth";
-import {
-  businesses,
-  profiles,
-  users,
-  workRequestAssignments,
-  workRequestEvents,
-  workRequests,
-} from "@shared/schema";
+import { workRequestAssignments, workRequestEvents, workRequests } from "@shared/schema";
 import { storage } from "../storage";
 import { emailService } from "../services/emailService";
 import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
-import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
+import { resolveAuthorizedPublicProfileBySlug } from "../services/publicProfileAuthority";
 import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
@@ -132,58 +124,19 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG ? ISSA_BUILD_PROFILE_SLUG : requestedSlug;
   if (!normalizedSlug) return null;
 
-  const [row] = await db
-    .select({
-      profileId: profiles.id,
-      profileSlug: profiles.slug,
-      profileStatus: profiles.status,
-      ownerUserId: profiles.ownerUserId,
-      businessId: businesses.id,
-      businessName: businesses.name,
-      businessOwnerUserId: businesses.ownerUserId,
-      businessStatus: businesses.status,
-      businessSources: businesses.sources,
-      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-      profileData: businesses.profileData,
-      ownerVerifiedBadge: users.verifiedBadge,
-      ownerVerificationStatus: users.verificationStatus,
-      ownerPhone: users.phone,
-    })
-    .from(profiles)
-    .innerJoin(businesses, eq(profiles.businessId, businesses.id))
-    .innerJoin(users, eq(profiles.ownerUserId, users.id))
-    .where(eq(profiles.slug, normalizedSlug))
-    .limit(1);
+  const authority = await resolveAuthorizedPublicProfileBySlug(normalizedSlug);
+  if (!authority?.linkedBusiness || !authority.profile.businessId) return null;
 
-  const verificationStatus = String(row?.ownerVerificationStatus || "").toLowerCase();
-  const ownerDiscoverable = row?.ownerVerifiedBadge === true || verificationStatus === "approved";
-  const ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
-    profileSlug: row?.profileSlug,
-    profileStatus: row?.profileStatus,
-    profileOwnerUserId: row?.ownerUserId,
-    businessStatus: row?.businessStatus,
-    businessOwnerUserId: row?.businessOwnerUserId,
-    publicDiscoveryEnabled: row?.publicDiscoveryEnabled,
-    businessSources: row?.businessSources,
-  });
-  const profileData = (row?.profileData || {}) as Record<string, any>;
-  const phone = String(profileData.phone || row?.ownerPhone || "").trim();
+  const profileData = (authority.linkedBusiness.profileData || {}) as Record<string, any>;
+  const phone = String(profileData.phone || authority.ownerUser.phone || "").trim();
   const notificationEmail = String(profileData.notificationEmail || "").trim();
-  if (
-    !row ||
-    String(row.profileStatus) !== "published" ||
-    String(row.businessStatus) !== "active" ||
-    (!ownerDiscoverable && !ownerConfirmedDirectProfile)
-  ) {
-    return null;
-  }
 
   return {
-    profileId: String(row.profileId),
-    profileSlug: String(row.profileSlug),
-    businessId: String(row.businessId),
-    businessName: String(row.businessName),
-    ownerUserId: String(row.ownerUserId),
+    profileId: String(authority.profile.id),
+    profileSlug: String(authority.profile.slug),
+    businessId: String(authority.linkedBusiness.id),
+    businessName: String(authority.linkedBusiness.name),
+    ownerUserId: String(authority.ownerUserId),
     phone,
     notificationEmail,
   };

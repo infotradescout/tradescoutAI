@@ -27,7 +27,10 @@ import {
   signManageBridgeToken,
   verifyManageBridgeToken,
 } from "../utils/profileManageBridge";
-import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
+import {
+  resolveAuthorizedPublicProfileBySlug,
+  resolveAuthorizedPublicProfileSlugs,
+} from "../services/publicProfileAuthority";
 import {
   buildHandmadeProductPath,
   listHandmadeProductImageUrls,
@@ -609,6 +612,7 @@ function isBusinessDiscoverable(user: any): boolean {
   const verificationStatus = String(user.verificationStatus || "")
     .trim()
     .toLowerCase();
+  if (["rejected", "expired", "suspended"].includes(verificationStatus)) return false;
   return user.verifiedBadge === true || verificationStatus === "approved";
 }
 
@@ -673,6 +677,18 @@ const updateProfileSchema = z.object({
   seoMeta: profileSeoSchema.optional(),
 });
 
+async function isBusinessOwnedByProfileOwner(
+  businessId: string,
+  profileOwnerUserId: string
+): Promise<boolean> {
+  const [ownedBusiness] = await db
+    .select({ id: businesses.id })
+    .from(businesses)
+    .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, profileOwnerUserId)))
+    .limit(1);
+  return Boolean(ownedBusiness);
+}
+
 router.get("/api/profiles", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -692,6 +708,9 @@ router.post("/api/profiles", isAuthenticated, async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     const data = createProfileSchema.parse(req.body);
+    if (data.businessId && !(await isBusinessOwnedByProfileOwner(data.businessId, userId))) {
+      return res.status(403).json({ message: "Not authorized to link this business" });
+    }
 
     const created = await storage.createProfileForOwner(userId, {
       ownerUserId: userId as any,
@@ -734,29 +753,12 @@ router.get("/api/profiles/public-search", async (req, res) => {
       return res.json(results);
     }
 
-    const filtered: any[] = [];
-    for (const row of results as any[]) {
-      const businessId = String(row?.businessId || "").trim();
-      if (!businessId) {
-        filtered.push(row);
-        continue;
-      }
-
-      const profileOwnerId = String(row?.ownerUserId || row?.userId || "").trim();
-      if (!profileOwnerId) {
-        continue;
-      }
-
-      const [ownerUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, profileOwnerId))
-        .limit(1);
-      if (!isBusinessDiscoverable(ownerUser)) {
-        continue;
-      }
-      filtered.push(row);
-    }
+    const authorizedSlugs = await resolveAuthorizedPublicProfileSlugs(
+      (results as any[]).map((row) => String(row?.slug || ""))
+    );
+    const filtered = (results as any[]).filter((row) =>
+      authorizedSlugs.has(String(row?.slug || ""))
+    );
 
     res.json(filtered);
   } catch (error: any) {
@@ -901,6 +903,12 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
       ? await storage.getProfileById(profileId)
       : await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    if (
+      updates.businessId &&
+      !(await isBusinessOwnedByProfileOwner(updates.businessId, existing.ownerUserId))
+    ) {
+      return res.status(403).json({ message: "Not authorized to link this business" });
+    }
 
     // A custom domain is an ownership-bearing routing value, not ordinary SEO
     // copy. It can only be changed by the TXT verification lifecycle in
@@ -959,6 +967,12 @@ router.put("/api/profiles/:id/publish", isAuthenticated, async (req, res) => {
     const profileId = String(req.params.id);
     const existing = await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    if (
+      existing.businessId &&
+      !(await isBusinessOwnedByProfileOwner(existing.businessId, existing.ownerUserId))
+    ) {
+      return res.status(403).json({ message: "Not authorized to publish this business profile" });
+    }
 
     const updated = await storage.updateProfileForOwner(userId, profileId, {
       status: "published" as any,
@@ -1076,27 +1090,14 @@ function recordProfileView(profileId: string, req: any): void {
 }
 
 const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
-  const profile = await storage.getProfileBySlugPublic(slug);
-
-  if (!profile) {
+  const authority = await resolveAuthorizedPublicProfileBySlug(slug);
+  if (!authority) {
     return res.status(404).json({ message: "Profile not found" });
   }
+  const { profile, ownerUser, ownerUserId, linkedBusiness, ownerConfirmedDirectProfile } =
+    authority;
 
   if (req) recordProfileView(profile.id, req);
-
-  const [profileOwner] = await db
-    .select({ ownerUserId: profiles.ownerUserId })
-    .from(profiles)
-    .where(eq(profiles.id, profile.id))
-    .limit(1);
-  const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
-  if (!ownerUserId) {
-    return res.status(404).json({ message: "Profile not found" });
-  }
-  const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
-  if (!ownerUser) {
-    return res.status(404).json({ message: "Profile not found" });
-  }
 
   const now = new Date();
   const ownerRoles = Array.isArray(ownerUser.roles) ? ownerUser.roles : [];
@@ -1375,33 +1376,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     currentCredentialsMatchSnapshot &&
     ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
-  let ownerConfirmedDirectProfile = false;
   let hasGatedDirectConnectPhone = false;
-  if (business) {
-    const [linkedBusiness] = await db
-      .select({
-        ownerUserId: businesses.ownerUserId,
-        sources: businesses.sources,
-        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-        status: businesses.status,
-        profileData: businesses.profileData,
-      })
-      .from(businesses)
-      .where(eq(businesses.id, profile.businessId!))
-      .limit(1);
-    ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
-      profileSlug: profile.slug,
-      // getProfileBySlugPublic only returns published profiles.
-      profileStatus: "published",
-      profileOwnerUserId: ownerUserId,
-      businessStatus: linkedBusiness?.status,
-      businessOwnerUserId: linkedBusiness?.ownerUserId,
-      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
-      businessSources: linkedBusiness?.sources,
-    });
-    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
+  if (profile.businessId && linkedBusiness) {
     directConnectOwnerUserId = ownerUserId;
     const linkedProfileData = (linkedBusiness?.profileData || {}) as Record<string, unknown>;
     const gatedPhone = linkedProfileData.phone || ownerUser.phone;
@@ -1854,42 +1830,9 @@ async function getPublicProfileTrustContext(
   const slug = rawSlug.trim();
   if (!slug) return null;
 
-  const profile = await storage.getProfileBySlugPublic(slug);
-  if (!profile) return null;
-
-  const [profileOwner] = await db
-    .select({ ownerUserId: profiles.ownerUserId })
-    .from(profiles)
-    .where(eq(profiles.id, profile.id))
-    .limit(1);
-  const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
-  if (!ownerUserId) return null;
-
-  const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
-  if (!ownerUser) return null;
-
-  if (profile.businessId) {
-    const [linkedBusiness] = await db
-      .select({
-        ownerUserId: businesses.ownerUserId,
-        sources: businesses.sources,
-        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-        status: businesses.status,
-      })
-      .from(businesses)
-      .where(eq(businesses.id, profile.businessId))
-      .limit(1);
-    const ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
-      profileSlug: profile.slug,
-      profileStatus: "published",
-      profileOwnerUserId: ownerUserId,
-      businessStatus: linkedBusiness?.status,
-      businessOwnerUserId: linkedBusiness?.ownerUserId,
-      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
-      businessSources: linkedBusiness?.sources,
-    });
-    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
-  }
+  const authority = await resolveAuthorizedPublicProfileBySlug(slug);
+  if (!authority) return null;
+  const { profile, ownerUserId } = authority;
 
   const contractor = await getPublicProfileContractorBinding(ownerUserId, profile.businessId);
   return {
