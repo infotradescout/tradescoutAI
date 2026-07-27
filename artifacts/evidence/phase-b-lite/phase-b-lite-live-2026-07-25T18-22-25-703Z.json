@@ -1,0 +1,3267 @@
+{
+  "phase": "B-lite LIVE production crawl",
+  "site": "https://www.thetradescout.com",
+  "crawledAt": "2026-07-25T18:22:25.717Z",
+  "disclaimer": "Live HTTP sample only. Does not claim Search Console indexed/excluded counts (e.g. July 9) are current. No Validate Fix requested.",
+  "userAgents": {
+    "browser": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "googlebotSmartphone": "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.84 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+  },
+  "sitemap": {
+    "indexUrl": "https://www.thetradescout.com/sitemap.xml",
+    "childSitemaps": [
+      "https://www.thetradescout.com/sitemap-core.xml",
+      "https://www.thetradescout.com/sitemap-profiles.xml",
+      "https://www.thetradescout.com/sitemap-homescout-counties.xml",
+      "https://www.thetradescout.com/sitemap-homescout-listings.xml",
+      "https://www.thetradescout.com/sitemap-tradepartners.xml",
+      "https://www.thetradescout.com/sitemap-directory-counties.xml",
+      "https://www.thetradescout.com/sitemap-directory-trade-navigation.xml",
+      "https://www.thetradescout.com/sitemap-directory-trades.xml",
+      "https://www.thetradescout.com/sitemap-directory-cities.xml",
+      "https://www.thetradescout.com/sitemap-directory-trade-cities.xml",
+      "https://www.thetradescout.com/sitemap-best-pages.xml",
+      "https://www.thetradescout.com/sitemap-recent-activity.xml",
+      "https://www.thetradescout.com/sitemap-exchange-listings.xml",
+      "https://www.thetradescout.com/sitemap-handmade-products.xml",
+      "https://www.thetradescout.com/sitemap-profile-service-offers.xml"
+    ],
+    "totalUrlCount": 395,
+    "byChild": {
+      "https://www.thetradescout.com/sitemap-profiles.xml": 3,
+      "https://www.thetradescout.com/sitemap-profile-service-offers.xml": 0,
+      "https://www.thetradescout.com/sitemap-core.xml": 62,
+      "https://www.thetradescout.com/sitemap-homescout-counties.xml": 2,
+      "https://www.thetradescout.com/sitemap-homescout-listings.xml": 10,
+      "https://www.thetradescout.com/sitemap-tradepartners.xml": 1,
+      "https://www.thetradescout.com/sitemap-directory-counties.xml": 305,
+      "https://www.thetradescout.com/sitemap-directory-trade-navigation.xml": 7,
+      "https://www.thetradescout.com/sitemap-directory-trades.xml": 1,
+      "https://www.thetradescout.com/sitemap-directory-cities.xml": 1,
+      "https://www.thetradescout.com/sitemap-directory-trade-cities.xml": 1,
+      "https://www.thetradescout.com/sitemap-best-pages.xml": 2,
+      "https://www.thetradescout.com/sitemap-recent-activity.xml": 0,
+      "https://www.thetradescout.com/sitemap-exchange-listings.xml": 1,
+      "https://www.thetradescout.com/sitemap-handmade-products.xml": 0
+    },
+    "patterns": [
+      {
+        "pattern": "/trade/{state}/{countyOrCat}",
+        "count": 4
+      },
+      {
+        "pattern": "/trade/{state}",
+        "count": 2
+      },
+      {
+        "pattern": "/sitemap-u-profiles.xml",
+        "count": 1
+      },
+      {
+        "pattern": "/sitemap-business-profiles.xml",
+        "count": 1
+      },
+      {
+        "pattern": "/sitemap-directory-businesses.xml",
+        "count": 1
+      },
+      {
+        "pattern": "/",
+        "count": 1
+      },
+      {
+        "pattern": "/about",
+        "count": 1
+      },
+      {
+        "pattern": "/affiliate",
+        "count": 1
+      },
+      {
+        "pattern": "/community",
+        "count": 1
+      },
+      {
+        "pattern": "/community-feed",
+        "count": 1
+      },
+      {
+        "pattern": "/compare",
+        "count": 1
+      },
+      {
+        "pattern": "/compare/angi",
+        "count": 1
+      }
+    ],
+    "sampleUrls": {
+      "sitemap-profiles.xml": [
+        "https://www.thetradescout.com/sitemap-u-profiles.xml",
+        "https://www.thetradescout.com/sitemap-business-profiles.xml",
+        "https://www.thetradescout.com/sitemap-directory-businesses.xml"
+      ],
+      "sitemap-profile-service-offers.xml": [],
+      "sitemap-core.xml": [
+        "https://www.thetradescout.com/",
+        "https://www.thetradescout.com/about",
+        "https://www.thetradescout.com/affiliate",
+        "https://www.thetradescout.com/community",
+        "https://www.thetradescout.com/community-feed",
+        "https://www.thetradescout.com/compare",
+        "https://www.thetradescout.com/compare/angi",
+        "https://www.thetradescout.com/compare/community"
+      ],
+      "sitemap-homescout-counties.xml": [
+        "https://www.thetradescout.com/homescout/AL/01001",
+        "https://www.thetradescout.com/homescout/LA/22105"
+      ],
+      "sitemap-homescout-listings.xml": [
+        "https://www.thetradescout.com/homescout/listings/4923b779-64c8-4729-91c0-9e278307eae6",
+        "https://www.thetradescout.com/homescout/listings/999d5c07-5779-4b74-86ed-bb2e47f7f5db",
+        "https://www.thetradescout.com/homescout/listings/1c0f72f8-beed-451a-bf71-28aca28ed2e1",
+        "https://www.thetradescout.com/homescout/listings/1e53e73c-3413-49f5-be3f-4f38929f0251",
+        "https://www.thetradescout.com/homescout/listings/1ec92f6c-f1e1-43b9-ace3-2b292489fe5c",
+        "https://www.thetradescout.com/homescout/listings/400f55e6-0d2f-49b7-8209-e8b7a8aae585",
+        "https://www.thetradescout.com/homescout/listings/4d48ae19-81a4-41ad-9dbd-d54b0a6c6310",
+        "https://www.thetradescout.com/homescout/listings/5197c3d5-7135-4c29-9d3f-c395970391ec"
+      ],
+      "sitemap-tradepartners.xml": [
+        "https://www.thetradescout.com/tradepartners/escambia-fl"
+      ],
+      "sitemap-directory-counties.xml": [
+        "https://www.thetradescout.com/county/al/baldwin",
+        "https://www.thetradescout.com/county/al/coffee",
+        "https://www.thetradescout.com/county/al/dekalb",
+        "https://www.thetradescout.com/county/al/houston",
+        "https://www.thetradescout.com/county/al/mobile",
+        "https://www.thetradescout.com/county/al/monroe",
+        "https://www.thetradescout.com/county/al/shelby",
+        "https://www.thetradescout.com/county/co/conejos"
+      ],
+      "sitemap-directory-trade-navigation.xml": [
+        "https://www.thetradescout.com/trade",
+        "https://www.thetradescout.com/trade/electrical",
+        "https://www.thetradescout.com/trade/electrical/fl",
+        "https://www.thetradescout.com/trade/electrical/ma",
+        "https://www.thetradescout.com/trade/plumbing",
+        "https://www.thetradescout.com/trade/plumbing/al",
+        "https://www.thetradescout.com/trade/plumbing/fl"
+      ],
+      "sitemap-directory-trades.xml": [
+        "https://www.thetradescout.com/sitemap-directory-trades-0.xml"
+      ],
+      "sitemap-directory-cities.xml": [
+        "https://www.thetradescout.com/sitemap-directory-cities-0.xml"
+      ],
+      "sitemap-directory-trade-cities.xml": [
+        "https://www.thetradescout.com/sitemap-directory-trade-cities-0.xml"
+      ],
+      "sitemap-best-pages.xml": [
+        "https://www.thetradescout.com/sitemap-best-trade-counties.xml",
+        "https://www.thetradescout.com/sitemap-best-trade-cities.xml"
+      ],
+      "sitemap-recent-activity.xml": [],
+      "sitemap-exchange-listings.xml": [
+        "https://www.thetradescout.com/exchange/smokecategory-1773022418828/a93737e6-23fc-4a70-937b-827ef7f98daf"
+      ],
+      "sitemap-handmade-products.xml": []
+    },
+    "fetchedChildCount": 15,
+    "listedChildCount": 15
+  },
+  "robots": {
+    "status": 200,
+    "finalUrl": "https://www.thetradescout.com/robots.txt",
+    "body": "User-agent: *\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: facebookexternalhit\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: Facebot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: meta-externalagent\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: meta-externalfetcher\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: bingbot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: msnbot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: DuckDuckBot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: DuckAssistBot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: Applebot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: Applebot-Extended\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: YandexBot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: Slurp\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: OAI-SearchBot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: GPTBot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: ChatGPT-User\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nUser-agent: PerplexityBot\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow: /scout/\nDisallow: /auth/\n\nSitemap: https://www.thetradescout.com/sitemap.xml\nSitemap: https://www.thetradescout.com/sitemap-index.xml\n",
+    "sitemapDirectives": [
+      "https://www.thetradescout.com/sitemap.xml",
+      "https://www.thetradescout.com/sitemap-index.xml"
+    ]
+  },
+  "discovery": {
+    "navLinks": [
+      "/favicon.svg?v=12",
+      "/tradescout-logo-circle.png?v=12",
+      "/favicon-48x48.png?v=12",
+      "/favicon-32x32.png?v=12",
+      "/favicon-16x16.png?v=12",
+      "/apple-touch-icon.png?v=12",
+      "/manifest.json?v=11",
+      "/assets/vendor-d3-DxlWc7tN.js",
+      "/assets/vendor-recharts-D2evXHUx.js",
+      "/assets/vendor-jspdf-DAEbft3q.js",
+      "/assets/index-DTuO5XRG.css",
+      "/landing"
+    ],
+    "homepageLinksOfInterest": [
+      "/tradescout-logo-circle.png?v=12",
+      "/landing"
+    ]
+  },
+  "samples": [
+    {
+      "url": "https://www.thetradescout.com/",
+      "routeFamily": "homepage",
+      "browser": {
+        "url": "https://www.thetradescout.com/",
+        "routeFamily": "homepage",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/landing",
+        "title": "TradeScout | Connection Without Compromise",
+        "metaDescription": "Find what you need. Show what you offer. TradeScout connects people and local businesses without sold leads, paid ranking, or contact before acceptance.",
+        "h1": null,
+        "approxUniqueBodyWords": 25,
+        "approxBodyChars": 188,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout | Connection Without Compromise TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/",
+        "routeFamily": "homepage",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/landing",
+        "title": "TradeScout | Connection Without Compromise",
+        "metaDescription": "Find what you need. Show what you offer. TradeScout connects people and local businesses without sold leads, paid ranking, or contact before acceptance.",
+        "h1": "Connection Without Compromise",
+        "approxUniqueBodyWords": 1852,
+        "approxBodyChars": 46133,
+        "substantiveListings": true,
+        "listingSignalScore": 2,
+        "inSitemap": true,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "TradeScout | Connection Without Compromise TradeScout Connection Without Compromise Find what you need. Show what you offer. Find what you need. Show what you offer. TradeScout connects people and local businesses without sold leads, paid ranking, or contact before acceptance. Use normal TradeScout pages or open Scout for guidance. Both paths keep the same businesses, requests, jobs, properties, a"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+        "approxUniqueBodyWords: browser=25 | googlebot=1852",
+        "substantiveListings: browser=false | googlebot=true"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/robots.txt",
+      "routeFamily": "robots",
+      "browser": {
+        "url": "https://www.thetradescout.com/robots.txt",
+        "routeFamily": "robots",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/robots.txt",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/robots.txt",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/plain; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 39,
+        "approxBodyChars": 5000,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "User-agent: *\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow:"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/robots.txt",
+        "routeFamily": "robots",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/robots.txt",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/robots.txt",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/plain; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 39,
+        "approxBodyChars": 5000,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "User-agent: *\nAllow: /p/\nAllow: /u/\nAllow: /contractors/\nAllow: /profile/\nAllow: /business/\nAllow: /community/\nAllow: /county/\nAllow: /trade/\nAllow: /city/\nAllow: /datasets/\nAllow: /best/\nAllow: /tradepartners/\nAllow: /homescout/\nAllow: /homescout/listings/\nAllow: /exchange/\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /settings/\nDisallow: /messages/\nDisallow:"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/sitemap-index.xml",
+      "routeFamily": "sitemap",
+      "browser": {
+        "url": "https://www.thetradescout.com/sitemap-index.xml",
+        "routeFamily": "sitemap",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/sitemap-index.xml",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/sitemap-index.xml",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "application/xml",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 24,
+        "approxBodyChars": 2116,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-core.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-profiles.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.c"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/sitemap-index.xml",
+        "routeFamily": "sitemap",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/sitemap-index.xml",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/sitemap-index.xml",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "application/xml",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 24,
+        "approxBodyChars": 2116,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-core.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-profiles.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.c"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/sitemap.xml",
+      "routeFamily": "sitemap",
+      "browser": {
+        "url": "https://www.thetradescout.com/sitemap.xml",
+        "routeFamily": "sitemap",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/sitemap.xml",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/sitemap.xml",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "application/xml; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 24,
+        "approxBodyChars": 2116,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-core.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-profiles.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.c"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/sitemap.xml",
+        "routeFamily": "sitemap",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/sitemap.xml",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/sitemap.xml",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "application/xml; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 24,
+        "approxBodyChars": 2116,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-core.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.com/sitemap-profiles.xml</loc>\n    <lastmod>2026-07-25</lastmod>\n  </sitemap>\n  <sitemap>\n    <loc>https://www.thetradescout.c"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/scout",
+      "routeFamily": "scout",
+      "browser": {
+        "url": "https://www.thetradescout.com/scout",
+        "routeFamily": "scout",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/scout",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/scout",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/scout",
+        "routeFamily": "scout",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/scout",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/scout",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+      "routeFamily": "landing",
+      "browser": {
+        "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "routeFamily": "landing",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "title": "Homeowner Hvac | TradeScout",
+        "metaDescription": "TradeScout for Homeowner Hvac. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.",
+        "h1": null,
+        "approxUniqueBodyWords": 24,
+        "approxBodyChars": 173,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "Homeowner Hvac | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "routeFamily": "landing",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "title": "Homeowner Hvac | TradeScout",
+        "metaDescription": "TradeScout for Homeowner Hvac. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.",
+        "h1": "Connection Without Compromise",
+        "approxUniqueBodyWords": 1855,
+        "approxBodyChars": 46102,
+        "substantiveListings": true,
+        "listingSignalScore": 2,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "Homeowner Hvac | TradeScout TradeScout Connection Without Compromise Find what you need. Show what you offer. TradeScout for Homeowner Hvac. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance. Use normal TradeScout pages or open Scout for guidance. Both paths keep the same businesses, requests, jobs, properties, and outcomes connected. Recommen"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+        "approxUniqueBodyWords: browser=24 | googlebot=1855",
+        "substantiveListings: browser=false | googlebot=true"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+      "routeFamily": "landing",
+      "browser": {
+        "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "routeFamily": "landing",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "title": "Supplier Addition Contractor | TradeScout",
+        "metaDescription": "TradeScout for Supplier Addition Contractor. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.",
+        "h1": null,
+        "approxUniqueBodyWords": 25,
+        "approxBodyChars": 187,
+        "substantiveListings": true,
+        "listingSignalScore": 2,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "Supplier Addition Contractor | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "routeFamily": "landing",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "title": "Supplier Addition Contractor | TradeScout",
+        "metaDescription": "TradeScout for Supplier Addition Contractor. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.",
+        "h1": "Connection Without Compromise",
+        "approxUniqueBodyWords": 1855,
+        "approxBodyChars": 46130,
+        "substantiveListings": true,
+        "listingSignalScore": 2,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "Supplier Addition Contractor | TradeScout TradeScout Connection Without Compromise Find what you need. Show what you offer. TradeScout for Supplier Addition Contractor. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance. Use normal TradeScout pages or open Scout for guidance. Both paths keep the same businesses, requests, jobs, properties, and "
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+        "approxUniqueBodyWords: browser=25 | googlebot=1855"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+      "routeFamily": "profile_u",
+      "browser": {
+        "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "routeFamily": "profile_u",
+        "status": 404,
+        "finalUrl": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+            "status": 404,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "noindex,follow",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "title": "Public profile unavailable | TradeScout",
+        "metaDescription": "This public TradeScout profile is not available. Private account details remain protected.",
+        "h1": "This public profile is not available.",
+        "approxUniqueBodyWords": 68,
+        "approxBodyChars": 744,
+        "substantiveListings": true,
+        "listingSignalScore": 2,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "Public profile unavailable | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout &times; &#10022; Profile unavailable TradeScout public profile This public profile is not available. The profile may be unpublished, private, moved, or no longer available. No private account details are exposed he"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "routeFamily": "profile_u",
+        "status": 404,
+        "finalUrl": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+            "status": 404,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "noindex,follow",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "title": "Public profile unavailable | TradeScout",
+        "metaDescription": "This public TradeScout profile is not available. Private account details remain protected.",
+        "h1": "This public profile is not available.",
+        "approxUniqueBodyWords": 68,
+        "approxBodyChars": 744,
+        "substantiveListings": true,
+        "listingSignalScore": 2,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "Public profile unavailable | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout &times; &#10022; Profile unavailable TradeScout public profile This public profile is not available. The profile may be unpublished, private, moved, or no longer available. No private account details are exposed he"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/login",
+      "routeFamily": "auth",
+      "browser": {
+        "url": "https://www.thetradescout.com/login",
+        "routeFamily": "auth",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/login",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/login",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/login",
+        "routeFamily": "auth",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/login",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/login",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/signup",
+      "routeFamily": "auth",
+      "browser": {
+        "url": "https://www.thetradescout.com/signup",
+        "routeFamily": "auth",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/signup",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/signup",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/signup",
+        "routeFamily": "auth",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/signup",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/signup",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/dashboard",
+      "routeFamily": "account_dashboard",
+      "browser": {
+        "url": "https://www.thetradescout.com/dashboard",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/dashboard",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/dashboard",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/dashboard",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/dashboard",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/dashboard",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/account",
+      "routeFamily": "account_dashboard",
+      "browser": {
+        "url": "https://www.thetradescout.com/account",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/account",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/account",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/account",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/account",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/account",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/business-dashboard",
+      "routeFamily": "account_dashboard",
+      "browser": {
+        "url": "https://www.thetradescout.com/business-dashboard",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/business-dashboard",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/business-dashboard",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/business-dashboard",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/business-dashboard",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/business-dashboard",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/my-tradescout",
+      "routeFamily": "account_dashboard",
+      "browser": {
+        "url": "https://www.thetradescout.com/my-tradescout",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/my-tradescout",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/my-tradescout",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/my-tradescout",
+        "routeFamily": "account_dashboard",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/my-tradescout",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/my-tradescout",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/community",
+      "routeFamily": "community",
+      "browser": {
+        "url": "https://www.thetradescout.com/community",
+        "routeFamily": "community",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/community",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/community",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/community",
+        "routeFamily": "community",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/community",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/community",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/community-feed",
+      "routeFamily": "community",
+      "browser": {
+        "url": "https://www.thetradescout.com/community-feed",
+        "routeFamily": "community",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/community-feed",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/community-feed",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/community-feed",
+        "routeFamily": "community",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/community-feed",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/community-feed",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/exchange",
+      "routeFamily": "exchange",
+      "browser": {
+        "url": "https://www.thetradescout.com/exchange",
+        "routeFamily": "exchange",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/exchange",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/exchange",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/exchange",
+        "title": "TradeScout Exchange | Buy, Sell & Discover Local Listings",
+        "metaDescription": "Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse items, post what you want to sell, and explore hyperlocal marketplace activity.",
+        "h1": null,
+        "approxUniqueBodyWords": 29,
+        "approxBodyChars": 203,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout Exchange | Buy, Sell & Discover Local Listings TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/exchange",
+        "routeFamily": "exchange",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/exchange",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/exchange",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/exchange",
+        "title": "TradeScout Exchange | Buy, Sell & Discover Local Listings",
+        "metaDescription": "Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse items, post what you want to sell, and explore hyperlocal marketplace activity.",
+        "h1": null,
+        "approxUniqueBodyWords": 29,
+        "approxBodyChars": 203,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout Exchange | Buy, Sell & Discover Local Listings TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/exchange/list",
+      "routeFamily": "exchange",
+      "browser": {
+        "url": "https://www.thetradescout.com/exchange/list",
+        "routeFamily": "exchange",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/exchange/list",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/exchange/list",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/exchange",
+        "title": "TradeScout Exchange | Buy, Sell & Discover Local Listings",
+        "metaDescription": "Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse items, post what you want to sell, and explore hyperlocal marketplace activity.",
+        "h1": null,
+        "approxUniqueBodyWords": 29,
+        "approxBodyChars": 203,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout Exchange | Buy, Sell & Discover Local Listings TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/exchange/list",
+        "routeFamily": "exchange",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/exchange/list",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/exchange/list",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/exchange",
+        "title": "TradeScout Exchange | Buy, Sell & Discover Local Listings",
+        "metaDescription": "Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse items, post what you want to sell, and explore hyperlocal marketplace activity.",
+        "h1": null,
+        "approxUniqueBodyWords": 29,
+        "approxBodyChars": 203,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout Exchange | Buy, Sell & Discover Local Listings TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/tradedeals",
+      "routeFamily": "exchange",
+      "browser": {
+        "url": "https://www.thetradescout.com/tradedeals",
+        "routeFamily": "exchange",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/tradedeals",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/tradedeals",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/tradedeals",
+        "routeFamily": "exchange",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/tradedeals",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/tradedeals",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=UTF-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow",
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": "TradeScout",
+        "metaDescription": "TradeScout opens local opportunity through verified intent, trusted context, and gated connection.",
+        "h1": null,
+        "approxUniqueBodyWords": 21,
+        "approxBodyChars": 156,
+        "substantiveListings": false,
+        "listingSignalScore": 0,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "error": null,
+        "sampleText": "TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+      "routeFamily": "legacy_business",
+      "browser": {
+        "url": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+        "routeFamily": "legacy_business",
+        "status": 404,
+        "finalUrl": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+            "status": 404,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 3,
+        "approxBodyChars": 18,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "Business not found"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+        "routeFamily": "legacy_business",
+        "status": 404,
+        "finalUrl": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+            "status": 404,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": null,
+        "googlebotMeta": null,
+        "canonical": null,
+        "title": null,
+        "metaDescription": null,
+        "h1": null,
+        "approxUniqueBodyWords": 3,
+        "approxBodyChars": 18,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "error": null,
+        "sampleText": "Business not found"
+      },
+      "uaDiffers": false,
+      "uaDiffNotes": []
+    },
+    {
+      "url": "https://www.thetradescout.com/trade/electrical",
+      "routeFamily": "trade_geo",
+      "browser": {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/electrical",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/electrical",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/electrical",
+        "title": "Find Electrical Contractor Contractors by State | TradeScout",
+        "metaDescription": "Find Electrical Contractor contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue thr",
+        "h1": null,
+        "approxUniqueBodyWords": 28,
+        "approxBodyChars": 206,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Find Electrical Contractor Contractors by State | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/electrical",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/electrical",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/electrical",
+        "title": "Find Electrical Contractor Contractors by State | TradeScout",
+        "metaDescription": "Find Electrical Contractor contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue thr",
+        "h1": "Electrical Contractor",
+        "approxUniqueBodyWords": 114,
+        "approxBodyChars": 1281,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Find Electrical Contractor Contractors by State | TradeScout Electrical Contractor Find Electrical Contractor contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue through Direct Connect when contact is appropriate. TradeScout organizes Electrical Contractor discovery around local operating areas, publication status, and c"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Electrical Contractor\"",
+        "approxUniqueBodyWords: browser=28 | googlebot=114"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/trade/plumbing",
+      "routeFamily": "trade_geo",
+      "browser": {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/plumbing",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/plumbing",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/plumbing",
+        "title": "Find Plumbing Contractor Contractors by State | TradeScout",
+        "metaDescription": "Find Plumbing Contractor contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue throu",
+        "h1": null,
+        "approxUniqueBodyWords": 28,
+        "approxBodyChars": 204,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Find Plumbing Contractor Contractors by State | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/plumbing",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/plumbing",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/plumbing",
+        "title": "Find Plumbing Contractor Contractors by State | TradeScout",
+        "metaDescription": "Find Plumbing Contractor contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue throu",
+        "h1": "Plumbing Contractor",
+        "approxUniqueBodyWords": 114,
+        "approxBodyChars": 1271,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Find Plumbing Contractor Contractors by State | TradeScout Plumbing Contractor Find Plumbing Contractor contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue through Direct Connect when contact is appropriate. TradeScout organizes Plumbing Contractor discovery around local operating areas, publication status, and crawlable"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Plumbing Contractor\"",
+        "approxUniqueBodyWords: browser=28 | googlebot=114"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/trade/electrical/fl",
+      "routeFamily": "trade_geo",
+      "browser": {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/electrical/fl",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/electrical/fl",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/electrical/fl",
+        "title": "Electrical Contractor Contractors in Florida | TradeScout",
+        "metaDescription": "Find Electrical Contractor contractors in Florida on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Conne",
+        "h1": null,
+        "approxUniqueBodyWords": 27,
+        "approxBodyChars": 203,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Electrical Contractor Contractors in Florida | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/electrical/fl",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/electrical/fl",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/electrical/fl",
+        "title": "Electrical Contractor Contractors in Florida | TradeScout",
+        "metaDescription": "Find Electrical Contractor contractors in Florida on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Conne",
+        "h1": "Electrical Contractor in Florida",
+        "approxUniqueBodyWords": 132,
+        "approxBodyChars": 1743,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Electrical Contractor Contractors in Florida | TradeScout Electrical Contractor in Florida Find Electrical Contractor contractors in Florida on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths. TradeScout organizes Electrical Contractor discovery around local operating areas, publication status, and crawlable public business inform"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Electrical Contractor in Florida\"",
+        "approxUniqueBodyWords: browser=27 | googlebot=132"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/trade/electrical/ma",
+      "routeFamily": "trade_geo",
+      "browser": {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/electrical/ma",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/electrical/ma",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/electrical/ma",
+        "title": "Electrical Contractor Contractors in Massachus… | TradeScout",
+        "metaDescription": "Find Electrical Contractor contractors in Massachusetts on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct",
+        "h1": null,
+        "approxUniqueBodyWords": 27,
+        "approxBodyChars": 206,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Electrical Contractor Contractors in Massachus… | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/electrical/ma",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/electrical/ma",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/electrical/ma",
+        "title": "Electrical Contractor Contractors in Massachus… | TradeScout",
+        "metaDescription": "Find Electrical Contractor contractors in Massachusetts on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct",
+        "h1": "Electrical Contractor in Massachusetts",
+        "approxUniqueBodyWords": 76,
+        "approxBodyChars": 981,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Electrical Contractor Contractors in Massachus… | TradeScout Electrical Contractor in Massachusetts Find Electrical Contractor contractors in Massachusetts on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths. TradeScout organizes Electrical Contractor discovery around local operating areas, publication status, and crawlable public "
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Electrical Contractor in Massachusetts\"",
+        "approxUniqueBodyWords: browser=27 | googlebot=76"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/trade/plumbing/al",
+      "routeFamily": "trade_geo",
+      "browser": {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/plumbing/al",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/plumbing/al",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/plumbing/al",
+        "title": "Plumbing Contractor Contractors in Alabama | TradeScout",
+        "metaDescription": "Find Plumbing Contractor contractors in Alabama on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect",
+        "h1": null,
+        "approxUniqueBodyWords": 27,
+        "approxBodyChars": 201,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Plumbing Contractor Contractors in Alabama | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/plumbing/al",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/plumbing/al",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/plumbing/al",
+        "title": "Plumbing Contractor Contractors in Alabama | TradeScout",
+        "metaDescription": "Find Plumbing Contractor contractors in Alabama on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect",
+        "h1": "Plumbing Contractor in Alabama",
+        "approxUniqueBodyWords": 129,
+        "approxBodyChars": 1721,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Plumbing Contractor Contractors in Alabama | TradeScout Plumbing Contractor in Alabama Find Plumbing Contractor contractors in Alabama on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths. TradeScout organizes Plumbing Contractor discovery around local operating areas, publication status, and crawlable public business information. U"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Plumbing Contractor in Alabama\"",
+        "approxUniqueBodyWords: browser=27 | googlebot=129"
+      ]
+    },
+    {
+      "url": "https://www.thetradescout.com/trade/plumbing/fl",
+      "routeFamily": "trade_geo",
+      "browser": {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/plumbing/fl",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/plumbing/fl",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/plumbing/fl",
+        "title": "Plumbing Contractor Contractors in Florida | TradeScout",
+        "metaDescription": "Find Plumbing Contractor contractors in Florida on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect",
+        "h1": null,
+        "approxUniqueBodyWords": 27,
+        "approxBodyChars": 201,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Plumbing Contractor Contractors in Florida | TradeScout TradeScout encountered a startup issue. We could not render the app yet. Reload to recover. If this keeps happening, report it. Reload TradeScout"
+      },
+      "googlebot": {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "routeFamily": "trade_geo",
+        "status": 200,
+        "finalUrl": "https://www.thetradescout.com/trade/plumbing/fl",
+        "redirectChain": [
+          {
+            "url": "https://www.thetradescout.com/trade/plumbing/fl",
+            "status": 200,
+            "location": null
+          }
+        ],
+        "contentType": "text/html; charset=utf-8",
+        "xRobotsTag": null,
+        "metaRobots": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonical": "https://www.thetradescout.com/trade/plumbing/fl",
+        "title": "Plumbing Contractor Contractors in Florida | TradeScout",
+        "metaDescription": "Find Plumbing Contractor contractors in Florida on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect",
+        "h1": "Plumbing Contractor in Florida",
+        "approxUniqueBodyWords": 132,
+        "approxBodyChars": 1733,
+        "substantiveListings": false,
+        "listingSignalScore": 1,
+        "inSitemap": true,
+        "soft404Hints": [
+          "trade_shell_no_listings"
+        ],
+        "error": null,
+        "sampleText": "Plumbing Contractor Contractors in Florida | TradeScout Plumbing Contractor in Florida Find Plumbing Contractor contractors in Florida on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths. TradeScout organizes Plumbing Contractor discovery around local operating areas, publication status, and crawlable public business information. U"
+      },
+      "uaDiffers": true,
+      "uaDiffNotes": [
+        "h1: browser=null | googlebot=\"Plumbing Contractor in Florida\"",
+        "approxUniqueBodyWords: browser=27 | googlebot=132"
+      ]
+    }
+  ],
+  "landingVsHomepage": [
+    {
+      "landingUrl": "https://www.thetradescout.com/landing/homeowner-hvac",
+      "jaccard5gram": 0.6818,
+      "shared5grams": 15,
+      "homeUniqueWords": 25,
+      "landingUniqueWords": 24,
+      "homeTitle": "TradeScout | Connection Without Compromise",
+      "landingTitle": "Homeowner Hvac | TradeScout",
+      "homeH1": null,
+      "landingH1": null,
+      "nearDuplicateSuspect": true,
+      "note": "High 5-gram overlap with homepage — possible template/phrase-substitution landing"
+    },
+    {
+      "landingUrl": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+      "jaccard5gram": 0.6522,
+      "shared5grams": 15,
+      "homeUniqueWords": 25,
+      "landingUniqueWords": 25,
+      "homeTitle": "TradeScout | Connection Without Compromise",
+      "landingTitle": "Supplier Addition Contractor | TradeScout",
+      "homeH1": null,
+      "landingH1": null,
+      "nearDuplicateSuspect": true,
+      "note": "High 5-gram overlap with homepage — possible template/phrase-substitution landing"
+    }
+  ],
+  "hypotheses": {
+    "noindexEvidence": [
+      {
+        "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "ua": "browser",
+        "xRobotsTag": null,
+        "metaRobots": "noindex,follow",
+        "googlebotMeta": null,
+        "status": 404
+      },
+      {
+        "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "ua": "googlebot",
+        "xRobotsTag": null,
+        "metaRobots": "noindex,follow",
+        "googlebotMeta": null,
+        "status": 404
+      }
+    ],
+    "thinPageEvidence": [
+      {
+        "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "ua": "browser",
+        "uniqueWords": 24,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words"
+        ],
+        "title": "Homeowner Hvac | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "ua": "browser",
+        "uniqueWords": 25,
+        "listings": true,
+        "hints": [
+          "very_thin_unique_words"
+        ],
+        "title": "Supplier Addition Contractor | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "ua": "browser",
+        "uniqueWords": 28,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Find Electrical Contractor Contractors by State | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "ua": "googlebot",
+        "uniqueWords": 114,
+        "listings": false,
+        "hints": [
+          "trade_shell_no_listings"
+        ],
+        "title": "Find Electrical Contractor Contractors by State | TradeScout",
+        "h1": "Electrical Contractor"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "ua": "browser",
+        "uniqueWords": 28,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Find Plumbing Contractor Contractors by State | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "ua": "googlebot",
+        "uniqueWords": 114,
+        "listings": false,
+        "hints": [
+          "trade_shell_no_listings"
+        ],
+        "title": "Find Plumbing Contractor Contractors by State | TradeScout",
+        "h1": "Plumbing Contractor"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "ua": "browser",
+        "uniqueWords": 27,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Electrical Contractor Contractors in Florida | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "ua": "googlebot",
+        "uniqueWords": 132,
+        "listings": false,
+        "hints": [
+          "trade_shell_no_listings"
+        ],
+        "title": "Electrical Contractor Contractors in Florida | TradeScout",
+        "h1": "Electrical Contractor in Florida"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "ua": "browser",
+        "uniqueWords": 27,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Electrical Contractor Contractors in Massachus… | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "ua": "googlebot",
+        "uniqueWords": 76,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Electrical Contractor Contractors in Massachus… | TradeScout",
+        "h1": "Electrical Contractor in Massachusetts"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "ua": "browser",
+        "uniqueWords": 27,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Plumbing Contractor Contractors in Alabama | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "ua": "googlebot",
+        "uniqueWords": 129,
+        "listings": false,
+        "hints": [
+          "trade_shell_no_listings"
+        ],
+        "title": "Plumbing Contractor Contractors in Alabama | TradeScout",
+        "h1": "Plumbing Contractor in Alabama"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "ua": "browser",
+        "uniqueWords": 27,
+        "listings": false,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "title": "Plumbing Contractor Contractors in Florida | TradeScout",
+        "h1": null
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "ua": "googlebot",
+        "uniqueWords": 132,
+        "listings": false,
+        "hints": [
+          "trade_shell_no_listings"
+        ],
+        "title": "Plumbing Contractor Contractors in Florida | TradeScout",
+        "h1": "Plumbing Contractor in Florida"
+      }
+    ],
+    "soft404Evidence": [
+      {
+        "url": "https://www.thetradescout.com/",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/scout",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/scout",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/login",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/login",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/signup",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/signup",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/dashboard",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/dashboard",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/account",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/account",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/business-dashboard",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/business-dashboard",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/my-tradescout",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/my-tradescout",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/community",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/community",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/community-feed",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/community-feed",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/exchange",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/exchange",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/exchange/list",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/exchange/list",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/tradedeals",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/tradedeals",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "ua": "browser",
+        "status": 200,
+        "hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "ua": "googlebot",
+        "status": 200,
+        "hints": [
+          "trade_shell_no_listings"
+        ]
+      }
+    ],
+    "uaCloakingOrDiff": [
+      {
+        "url": "https://www.thetradescout.com/",
+        "notes": [
+          "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+          "approxUniqueBodyWords: browser=25 | googlebot=1852",
+          "substantiveListings: browser=false | googlebot=true"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "notes": [
+          "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+          "approxUniqueBodyWords: browser=24 | googlebot=1855",
+          "substantiveListings: browser=false | googlebot=true"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "notes": [
+          "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+          "approxUniqueBodyWords: browser=25 | googlebot=1855"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "notes": [
+          "h1: browser=null | googlebot=\"Electrical Contractor\"",
+          "approxUniqueBodyWords: browser=28 | googlebot=114"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "notes": [
+          "h1: browser=null | googlebot=\"Plumbing Contractor\"",
+          "approxUniqueBodyWords: browser=28 | googlebot=114"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "notes": [
+          "h1: browser=null | googlebot=\"Electrical Contractor in Florida\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=132"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "notes": [
+          "h1: browser=null | googlebot=\"Electrical Contractor in Massachusetts\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=76"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "notes": [
+          "h1: browser=null | googlebot=\"Plumbing Contractor in Alabama\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=129"
+        ]
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "notes": [
+          "h1: browser=null | googlebot=\"Plumbing Contractor in Florida\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=132"
+        ]
+      }
+    ]
+  },
+  "nextSearchConsoleUrlSamplesNeeded": [
+    {
+      "need": "Excluded by 'noindex' tag — sample of affected URLs by template",
+      "why": "Confirm whether noindex is concentrated on /trade/*, /landing/*, /u/*, or auth shells",
+      "exportHint": "Coverage/Page indexing > Excluded > Excluded by ‘noindex’ tag > Export examples"
+    },
+    {
+      "need": "Crawled – currently not indexed — /trade/* long-tail samples",
+      "why": "Strongest soft-404/thin hypothesis for geo shells; need GSC-selected URLs not inventable from sitemap alone",
+      "exportHint": "Page indexing > Crawled - currently not indexed > filter path /trade/"
+    },
+    {
+      "need": "Duplicate without user-selected canonical — landing vs home",
+      "why": "Validate phrase-substitution landings GSC treats as duplicates of /",
+      "exportHint": "Page indexing > Duplicate without user-selected canonical (or Google chose different canonical)"
+    },
+    {
+      "need": "Soft 404 examples (if reason present)",
+      "why": "Correlate empty trade/location shells with GSC soft-404 classification",
+      "exportHint": "Page indexing > Soft 404"
+    },
+    {
+      "need": "Alternate page with proper canonical set — /business/* vs /u/*",
+      "why": "Legacy business URL fate vs published profiles",
+      "exportHint": "Page indexing > Alternate page with proper canonical tag"
+    },
+    {
+      "need": "Blocked by robots.txt (if any) — account/auth paths",
+      "why": "Separate intentional deindex of private app chrome from public directory loss",
+      "exportHint": "Page indexing > Blocked by robots.txt"
+    },
+    {
+      "need": "Discovered – currently not indexed — sitemap-submitted /u/* not yet crawled",
+      "why": "Distinguish crawl-budget/discovery lag from noindex/thin",
+      "exportHint": "Page indexing > Discovered - currently not indexed; filter /u/"
+    }
+  ],
+  "errors": [],
+  "byRouteFamily": {
+    "homepage": [
+      {
+        "url": "https://www.thetradescout.com/",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/landing",
+        "title": "TradeScout | Connection Without Compromise",
+        "h1": null,
+        "uniqueWords": 25,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+          "approxUniqueBodyWords: browser=25 | googlebot=1852",
+          "substantiveListings: browser=false | googlebot=true"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "robots": [
+      {
+        "url": "https://www.thetradescout.com/robots.txt",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": null,
+        "metaRobotsBot": null,
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": null,
+        "h1": null,
+        "uniqueWords": 39,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "sitemap": [
+      {
+        "url": "https://www.thetradescout.com/sitemap-index.xml",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": null,
+        "metaRobotsBot": null,
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": null,
+        "h1": null,
+        "uniqueWords": 24,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/sitemap.xml",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": null,
+        "metaRobotsBot": null,
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": null,
+        "h1": null,
+        "uniqueWords": 24,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "scout": [
+      {
+        "url": "https://www.thetradescout.com/scout",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "landing": [
+      {
+        "url": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/landing/homeowner-hvac",
+        "title": "Homeowner Hvac | TradeScout",
+        "h1": null,
+        "uniqueWords": 24,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+          "approxUniqueBodyWords: browser=24 | googlebot=1855",
+          "substantiveListings: browser=false | googlebot=true"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/landing/supplier-addition-contractor",
+        "title": "Supplier Addition Contractor | TradeScout",
+        "h1": null,
+        "uniqueWords": 25,
+        "listings": true,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Connection Without Compromise\"",
+          "approxUniqueBodyWords: browser=25 | googlebot=1855"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "profile_u": [
+      {
+        "url": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "statusBrowser": 404,
+        "statusBot": 404,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "noindex,follow",
+        "metaRobotsBot": "noindex,follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/u/does-not-exist-phase-b-lite-audit-404",
+        "title": "Public profile unavailable | TradeScout",
+        "h1": "This public profile is not available.",
+        "uniqueWords": 68,
+        "listings": true,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "404",
+        "redirectBot": "404"
+      }
+    ],
+    "auth": [
+      {
+        "url": "https://www.thetradescout.com/login",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/signup",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "account_dashboard": [
+      {
+        "url": "https://www.thetradescout.com/dashboard",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/account",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/business-dashboard",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/my-tradescout",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "community": [
+      {
+        "url": "https://www.thetradescout.com/community",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/community-feed",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "exchange": [
+      {
+        "url": "https://www.thetradescout.com/exchange",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/exchange",
+        "title": "TradeScout Exchange | Buy, Sell & Discover Local Listings",
+        "h1": null,
+        "uniqueWords": 29,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/exchange/list",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/exchange",
+        "title": "TradeScout Exchange | Buy, Sell & Discover Local Listings",
+        "h1": null,
+        "uniqueWords": 29,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/tradedeals",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow",
+        "metaRobotsBot": "index, follow",
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": "TradeScout",
+        "h1": null,
+        "uniqueWords": 21,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [
+          "very_thin_unique_words"
+        ],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ],
+    "legacy_business": [
+      {
+        "url": "https://www.thetradescout.com/business/does-not-exist-phase-b-lite",
+        "statusBrowser": 404,
+        "statusBot": 404,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": null,
+        "metaRobotsBot": null,
+        "googlebotMeta": null,
+        "canonicalBrowser": null,
+        "title": null,
+        "h1": null,
+        "uniqueWords": 3,
+        "listings": false,
+        "inSitemap": false,
+        "soft404Hints": [],
+        "uaDiffers": false,
+        "uaDiffNotes": [],
+        "redirectBrowser": "404",
+        "redirectBot": "404"
+      }
+    ],
+    "trade_geo": [
+      {
+        "url": "https://www.thetradescout.com/trade/electrical",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/trade/electrical",
+        "title": "Find Electrical Contractor Contractors by State | TradeScout",
+        "h1": null,
+        "uniqueWords": 28,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Electrical Contractor\"",
+          "approxUniqueBodyWords: browser=28 | googlebot=114"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/trade/plumbing",
+        "title": "Find Plumbing Contractor Contractors by State | TradeScout",
+        "h1": null,
+        "uniqueWords": 28,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Plumbing Contractor\"",
+          "approxUniqueBodyWords: browser=28 | googlebot=114"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/fl",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/trade/electrical/fl",
+        "title": "Electrical Contractor Contractors in Florida | TradeScout",
+        "h1": null,
+        "uniqueWords": 27,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Electrical Contractor in Florida\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=132"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/electrical/ma",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/trade/electrical/ma",
+        "title": "Electrical Contractor Contractors in Massachus… | TradeScout",
+        "h1": null,
+        "uniqueWords": 27,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Electrical Contractor in Massachusetts\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=76"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/al",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/trade/plumbing/al",
+        "title": "Plumbing Contractor Contractors in Alabama | TradeScout",
+        "h1": null,
+        "uniqueWords": 27,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Plumbing Contractor in Alabama\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=129"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      },
+      {
+        "url": "https://www.thetradescout.com/trade/plumbing/fl",
+        "statusBrowser": 200,
+        "statusBot": 200,
+        "xRobotsBrowser": null,
+        "xRobotsBot": null,
+        "metaRobotsBrowser": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "metaRobotsBot": "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+        "googlebotMeta": null,
+        "canonicalBrowser": "https://www.thetradescout.com/trade/plumbing/fl",
+        "title": "Plumbing Contractor Contractors in Florida | TradeScout",
+        "h1": null,
+        "uniqueWords": 27,
+        "listings": false,
+        "inSitemap": true,
+        "soft404Hints": [
+          "very_thin_unique_words",
+          "trade_shell_no_listings"
+        ],
+        "uaDiffers": true,
+        "uaDiffNotes": [
+          "h1: browser=null | googlebot=\"Plumbing Contractor in Florida\"",
+          "approxUniqueBodyWords: browser=27 | googlebot=132"
+        ],
+        "redirectBrowser": "200",
+        "redirectBot": "200"
+      }
+    ]
+  }
+}
