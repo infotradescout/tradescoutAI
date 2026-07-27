@@ -429,9 +429,9 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         render: () => <RedirectTool to="/admin/control" />,
       }),
       tool({
-        id: "legacy-dashboard",
-        label: "Dashboard (Legacy)",
-        path: "/admin/dashboard",
+        id: "admin-dashboard",
+        label: "Dashboard",
+        path: "/admin",
         icon: ShieldCheck,
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,

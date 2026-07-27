@@ -37,7 +37,7 @@ const SAFE_NEXT_PREFIXES = [
   "/admin/contractor-settings",
   "/contractor-verification",
   "/content-moderation",
-  "/admin/dashboard",
+  "/admin",
   "/admin-panel",
   "/admin-dashboard",
   "/admin-users",
