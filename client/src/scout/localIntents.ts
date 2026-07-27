@@ -53,7 +53,7 @@ export function resolveExplicitNavigationIntent(message: string): LocalNavIntent
     lower.includes("profile colors") ||
     lower.includes("palette")
   ) {
-    return { to: "/profile-settings", label: "Profile Settings", confidence: 0.92 };
+    return { to: "/settings?tab=profile", label: "Profile Settings", confidence: 0.92 };
   }
   if (
     lower.includes("contractor") ||
@@ -97,8 +97,8 @@ const QUICK_ACTION_NAV: Record<string, string> = {
   "open support tickets": ROUTES.HELP ?? "/help",
   "open help center": ROUTES.HELP ?? "/help",
   "show recent finance invoicing ledger activity": "/admin/panel?tab=finance",
-  "open my jobs workspace": "/finances/jobs",
-  "open my jobs": "/finances/jobs",
+  "open my jobs workspace": "/finances",
+  "open my jobs": "/finances",
   "view invoices and payments": "/finances",
   "post a new job": "/lead-management?new=1",
   "help me send a targeted broadcast announcement from notification ops":

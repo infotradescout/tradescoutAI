@@ -767,555 +767,548 @@ export default function Settings() {
         }
         subtitle="Manage your account preferences and privacy"
       >
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => {
+            const normalized = normalizeSettingsTab(value);
+            setActiveTab(normalized);
+            navigate(`/settings?tab=${encodeURIComponent(normalized)}`);
+          }}
+          className="space-y-6"
+        >
+          <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-8">
+            <TabsTrigger
+              value="profile"
+              data-testid="settings-tab-profile"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Profile
+            </TabsTrigger>
+            <TabsTrigger
+              value="roles"
+              data-testid="settings-tab-roles"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Roles
+            </TabsTrigger>
+            <TabsTrigger
+              value="navigation"
+              data-testid="settings-tab-navigation"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Navigation
+            </TabsTrigger>
+            <TabsTrigger
+              value="appearance"
+              data-testid="settings-tab-appearance"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Appearance
+            </TabsTrigger>
+            <TabsTrigger
+              value="notifications"
+              data-testid="settings-tab-notifications"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Notifications
+            </TabsTrigger>
+            <TabsTrigger
+              value="privacy"
+              data-testid="settings-tab-privacy"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Privacy
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              data-testid="settings-tab-security"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Security
+            </TabsTrigger>
+            <TabsTrigger
+              value="tools"
+              data-testid="settings-tab-tools"
+              className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
+            >
+              Financial Tools
+            </TabsTrigger>
+          </TabsList>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(value) => {
-              const normalized = normalizeSettingsTab(value);
-              setActiveTab(normalized);
-              navigate(`/settings?tab=${encodeURIComponent(normalized)}`);
-            }}
-            className="space-y-6"
-          >
-            <TabsList className="w-full bg-tsCard border border-white/10 p-1.5 rounded-xl shadow-lg overflow-x-auto flex lg:grid lg:grid-cols-8">
-              <TabsTrigger
-                value="profile"
-                data-testid="settings-tab-profile"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Profile
-              </TabsTrigger>
-              <TabsTrigger
-                value="roles"
-                data-testid="settings-tab-roles"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Roles
-              </TabsTrigger>
-              <TabsTrigger
-                value="navigation"
-                data-testid="settings-tab-navigation"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Navigation
-              </TabsTrigger>
-              <TabsTrigger
-                value="appearance"
-                data-testid="settings-tab-appearance"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Appearance
-              </TabsTrigger>
-              <TabsTrigger
-                value="notifications"
-                data-testid="settings-tab-notifications"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger
-                value="privacy"
-                data-testid="settings-tab-privacy"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Privacy
-              </TabsTrigger>
-              <TabsTrigger
-                value="security"
-                data-testid="settings-tab-security"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Security
-              </TabsTrigger>
-              <TabsTrigger
-                value="tools"
-                data-testid="settings-tab-tools"
-                className="data-[state=active]:bg-ts-orange data-[state=active]:text-white transition-all rounded-lg"
-              >
-                Financial Tools
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Profile Settings */}
-            <TabsContent value="profile">
-              <div className="space-y-6">
-                {activeHoaId && (
-                  <Card className="bg-tsCard border-white/10 shadow-xl">
-                    <CardHeader className="border-b border-white/10 pb-6">
+          {/* Profile Settings */}
+          <TabsContent value="profile">
+            <div className="space-y-6">
+              {activeHoaId && (
+                <Card className="bg-tsCard border-white/10 shadow-xl">
+                  <CardHeader className="border-b border-white/10 pb-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <CardTitle className="text-xl text-white">HOA Membership</CardTitle>
+                        <p className="text-sm text-white/60 mt-1">
+                          Leave through the official channel (reason required).
+                        </p>
+                      </div>
+                      <Button
+                        variant="destructive"
+                        data-testid="settings-profile-leave-hoa"
+                        disabled={leaveHoAMutation.isPending}
+                        onClick={() => {
+                          const reason = window.prompt(
+                            `Why are you leaving ${activeHoaName || "this HOA"}? (min 5 characters)`
+                          );
+                          if (!reason) return;
+                          if (reason.trim().length < 5) {
+                            toast({
+                              title: "Reason required",
+                              description: "Please provide at least 5 characters.",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          leaveHoAMutation.mutate({ reason: reason.trim() });
+                        }}
+                      >
+                        Leave HOA
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="text-sm text-white/70">
                       <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <CardTitle className="text-xl text-white">HOA Membership</CardTitle>
-                          <p className="text-sm text-white/60 mt-1">
-                            Leave through the official channel (reason required).
-                          </p>
-                        </div>
-                        <Button
-                          variant="destructive"
-                          data-testid="settings-profile-leave-hoa"
-                          disabled={leaveHoAMutation.isPending}
-                          onClick={() => {
-                            const reason = window.prompt(
-                              `Why are you leaving ${activeHoaName || "this HOA"}? (min 5 characters)`
-                            );
-                            if (!reason) return;
-                            if (reason.trim().length < 5) {
-                              toast({
-                                title: "Reason required",
-                                description: "Please provide at least 5 characters.",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            leaveHoAMutation.mutate({ reason: reason.trim() });
-                          }}
-                        >
-                          Leave HOA
-                        </Button>
+                        <span className="text-white/60">Current HOA</span>
+                        <span className="text-white font-medium">
+                          {activeHoaName || "Your HOA"}
+                        </span>
                       </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                      <div className="text-sm text-white/70">
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-white/60">Current HOA</span>
-                          <span className="text-white font-medium">
-                            {activeHoaName || "Your HOA"}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <User className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Profile Information</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Update your personal details and profile
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-8 pt-6">
-                    {/* Profile Photo Section */}
-                    <div className="flex items-center gap-6 pb-6 border-b border-white/10">
-                      <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
-                        {profileForm.profileImageUrl ? (
-                          <img
-                            src={profileForm.profileImageUrl}
-                            alt="Profile"
-                            className="h-20 w-20 rounded-full object-cover"
-                          />
-                        ) : (
-                          <>
-                            {user?.firstName?.[0]}
-                            {user?.lastName?.[0]}
-                          </>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-white font-medium mb-1">Profile Photo</h3>
-                        <p className="text-sm text-white/60 mb-3">Update your profile picture</p>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          data-testid="settings-profile-upload-photo"
-                          className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
-                          onClick={handleUploadClick}
-                        >
-                          Upload Photo
-                        </Button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          data-testid="settings-profile-photo-input"
-                          className="hidden"
-                          onChange={handlePhotoSelected}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Name Fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName" className="text-white font-medium">
-                          First Name
-                        </Label>
-                        <Input
-                          id="firstName"
-                          data-testid="settings-profile-first-name"
-                          value={profileForm.firstName}
-                          onChange={(e) =>
-                            setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))
-                          }
-                          className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
-                          placeholder="Enter first name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName" className="text-white font-medium">
-                          Last Name
-                        </Label>
-                        <Input
-                          id="lastName"
-                          data-testid="settings-profile-last-name"
-                          value={profileForm.lastName}
-                          onChange={(e) =>
-                            setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))
-                          }
-                          className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
-                          placeholder="Enter last name"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Email Field */}
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="email"
-                        className="text-white font-medium flex items-center gap-2"
-                      >
-                        <Mail className="h-4 w-4 text-ts-orange" />
-                        Email Address
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        defaultValue={user?.email || ""}
-                        disabled
-                        className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
-                        placeholder="email@example.com"
-                      />
-                      <p className="text-xs text-white/60">
-                        We'll never share your email with anyone
-                      </p>
-                    </div>
-
-                    {/* Bio Field */}
-                    <div className="space-y-2">
-                      <Label htmlFor="bio" className="text-white font-medium">
-                        Bio
-                      </Label>
-                      <Textarea
-                        id="bio"
-                        data-testid="settings-profile-bio"
-                        placeholder="Tell us about yourself..."
-                        value={profileForm.bio}
-                        onChange={(e) =>
-                          setProfileForm((prev) => ({ ...prev, bio: e.target.value }))
-                        }
-                        className="bg-tsBg border-white/10 text-white min-h-[120px] focus:border-ts-orange/30 transition-colors resize-none"
-                        rows={5}
-                      />
-                      <p className="text-xs text-white/60">
-                        Brief description for your profile. Maximum 500 characters.
-                      </p>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3 pt-4 border-t border-white/10">
-                      <Button
-                        type="button"
-                        data-testid="settings-profile-save"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
-                        onClick={() => updateProfileMutation.mutate()}
-                        disabled={updateProfileMutation.isPending}
-                      >
-                        {updateProfileMutation.isPending ? "Saving…" : "Save Changes"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
-                        asChild
-                      >
-                        <Link href="/profile-settings">Open Full Profile Settings</Link>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        data-testid="settings-profile-cancel"
-                        className="border-white/10 text-white/70 hover:bg-tsBg"
-                        onClick={() =>
-                          setProfileForm({
-                            firstName: user?.firstName || "",
-                            lastName: user?.lastName || "",
-                            profileImageUrl: user?.profileImageUrl || "",
-                            bio:
-                              (userPreferences as any)?.bio ||
-                              (user as any)?.preferences?.bio ||
-                              "",
-                          })
-                        }
-                      >
-                        Cancel
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
+              )}
 
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Globe className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Home Location</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Set your home location once. This powers all your local experiences:
-                          community, marketplace, HOA tools, and leaderboards.
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6 pt-6">
-                    <div className="space-y-2">
-                      <Label className="text-white font-medium">Home region</Label>
-                      <p className="text-xs text-white/60">
-                        Scout uses your saved location to match you with local activity and
-                        experiences. Changing it here updates everything.
-                      </p>
-                    </div>
-                    <StateCountySelector
-                      selectedState={locationStateCode}
-                      selectedCounty={locationCountyFips}
-                      stateTestId="settings-profile-location-state"
-                      countyTestId="settings-profile-location-county"
-                      onStateChange={(code) => {
-                        setLocationStateCode(code);
-                        setLocationCountyFips("");
-                        setLocationCountyName("");
-                      }}
-                      onCountyChange={(fips) => setLocationCountyFips(fips)}
-                      onCountySelected={(county) => setLocationCountyName(county?.name || "")}
-                      disabled={updateLocationMutation.isPending}
-                    />
-                    <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10 flex-col sm:flex-row">
-                      <p className="text-xs text-white/60 max-w-xl">
-                        Device location (when shared) helps Scout understand what&apos;s nearby, but
-                        your saved location here is what unlocks local experiences.
-                      </p>
-                      <Button
-                        type="button"
-                        data-testid="settings-profile-save-location"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
-                        disabled={
-                          updateLocationMutation.isPending ||
-                          !locationStateCode ||
-                          !locationCountyFips
-                        }
-                        onClick={() =>
-                          updateLocationMutation.mutate({
-                            stateCode: locationStateCode,
-                            countyFips: locationCountyFips,
-                            countyName: locationCountyName,
-                          })
-                        }
-                      >
-                        {updateLocationMutation.isPending ? "Saving…" : "Save Location"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Home className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Home Vault</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Keep private records for your properties: inspections, upgrades,
-                          appliances, and documents.
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
-                      <p className="text-xs text-white/60 max-w-xl">
-                        This is account-only. Nothing you add here is public.
-                      </p>
-                      <Button
-                        asChild
-                        data-testid="settings-profile-open-home-vault"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
-                      >
-                        <Link href="/homes">Open Home Vault</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Car className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Vehicle Vault</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Keep private records for your vehicles: service history, repairs, and
-                          documents.
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
-                      <p className="text-xs text-white/60 max-w-xl">
-                        Account-only. Use this to build trust when you decide to sell.
-                      </p>
-                      <Button
-                        asChild
-                        data-testid="settings-profile-open-vehicle-vault"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
-                      >
-                        <Link href="/vehicles">Open Vehicle Vault</Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Navigation Settings */}
-            <TabsContent value="navigation">
-              <div className="space-y-6">
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Smartphone className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Navigation Preferences</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Customize the order and visibility of your mobile navigation.
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    <DragDropNavigationPreferences
-                      preferences={{
-                        customOrder: navigationPrefs?.customOrder || [],
-                        hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || [],
-                        enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation ?? true,
-                      }}
-                      userRole={(user as any)?.role || ""}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Roles Management */}
-            <TabsContent value="roles">
-              <Card
-                className="border border-white/10 shadow-xl"
-                style={{ backgroundColor: "var(--surface-card)" }}
-              >
+              <Card className="bg-tsCard border-white/10 shadow-xl">
                 <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-ts-orange" />
+                      <User className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl text-white">Manage Your Roles</CardTitle>
+                      <CardTitle className="text-xl text-white">Profile Information</CardTitle>
                       <p className="text-sm text-white/60 mt-1">
-                        Select all the roles that apply to you. Your dashboard and experience will
-                        automatically adapt.
+                        Update your personal details and profile
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-8 pt-6">
-                  {/* Current Roles Summary */}
-                  <div className="bg-gradient-to-br from-tsBg to-tsCard border border-white/10 rounded-xl p-6 shadow-lg">
-                    <div className="flex items-center gap-2 mb-4">
-                      <CheckCircle2 className="h-5 w-5 text-ts-orange" />
-                      <h3 className="text-white font-semibold text-lg">Currently Active Roles</h3>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedRoles.length > 0 ? (
-                        selectedRoles.map((roleKey) => {
-                          const config = getRoleUiConfig(roleKey);
-                          if (!config.icon) return null;
-                          const Icon = config.icon;
-                          return (
-                            <Badge
-                              key={roleKey}
-                              className="bg-ts-orange text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
-                            >
-                              <Icon className="h-3.5 w-3.5" />
-                              {config.label}
-                            </Badge>
-                          );
-                        })
+                  {/* Profile Photo Section */}
+                  <div className="flex items-center gap-6 pb-6 border-b border-white/10">
+                    <div className="h-20 w-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                      {profileForm.profileImageUrl ? (
+                        <img
+                          src={profileForm.profileImageUrl}
+                          alt="Profile"
+                          className="h-20 w-20 rounded-full object-cover"
+                        />
                       ) : (
-                        <p className="text-white/60 text-sm">No roles selected</p>
+                        <>
+                          {user?.firstName?.[0]}
+                          {user?.lastName?.[0]}
+                        </>
                       )}
                     </div>
-                  </div>
-
-                  {/* Account Types & Business Personas */}
-                  <div className="bg-tsBg border border-white/10 rounded-xl p-6 shadow-lg space-y-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Briefcase className="h-5 w-5 text-ts-orange" />
-                      <h3 className="text-white font-semibold text-lg">
-                        Account Types &amp; Business Personas
-                      </h3>
-                    </div>
-                    <p className="text-sm text-white/60 mb-2">
-                      Select all the ways you use TradeScout — homeowner, landlord, restaurant
-                      owner, contractor, and more. Scout will use these types to personalize your
-                      dashboards and recommendations.
-                    </p>
-                    <UserTypeSelect
-                      selectedTypes={selectedUserTypes}
-                      onChange={setSelectedUserTypes}
-                      className="mt-2"
-                    />
-                    <div className="flex justify-end pt-4 border-t border-white/10 mt-2">
+                    <div className="flex-1">
+                      <h3 className="text-white font-medium mb-1">Profile Photo</h3>
+                      <p className="text-sm text-white/60 mb-3">Update your profile picture</p>
                       <Button
                         type="button"
-                        data-testid="settings-roles-save-account-types"
-                        onClick={saveUserTypes}
-                        disabled={
-                          updateUserTypesMutation.isPending || selectedUserTypes.length === 0
-                        }
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
+                        size="sm"
+                        variant="outline"
+                        data-testid="settings-profile-upload-photo"
+                        className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
+                        onClick={handleUploadClick}
                       >
-                        {updateUserTypesMutation.isPending ? "Saving…" : "Save Account Types"}
+                        Upload Photo
                       </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        data-testid="settings-profile-photo-input"
+                        className="hidden"
+                        onChange={handlePhotoSelected}
+                      />
                     </div>
                   </div>
 
-                  {/* Available Roles */}
+                  {/* Name Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName" className="text-white font-medium">
+                        First Name
+                      </Label>
+                      <Input
+                        id="firstName"
+                        data-testid="settings-profile-first-name"
+                        value={profileForm.firstName}
+                        onChange={(e) =>
+                          setProfileForm((prev) => ({ ...prev, firstName: e.target.value }))
+                        }
+                        className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName" className="text-white font-medium">
+                        Last Name
+                      </Label>
+                      <Input
+                        id="lastName"
+                        data-testid="settings-profile-last-name"
+                        value={profileForm.lastName}
+                        onChange={(e) =>
+                          setProfileForm((prev) => ({ ...prev, lastName: e.target.value }))
+                        }
+                        className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
+                        placeholder="Enter last name"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email Field */}
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="email"
+                      className="text-white font-medium flex items-center gap-2"
+                    >
+                      <Mail className="h-4 w-4 text-ts-orange" />
+                      Email Address
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      defaultValue={user?.email || ""}
+                      disabled
+                      className="bg-tsBg border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
+                      placeholder="email@example.com"
+                    />
+                    <p className="text-xs text-white/60">
+                      We'll never share your email with anyone
+                    </p>
+                  </div>
+
+                  {/* Bio Field */}
+                  <div className="space-y-2">
+                    <Label htmlFor="bio" className="text-white font-medium">
+                      Bio
+                    </Label>
+                    <Textarea
+                      id="bio"
+                      data-testid="settings-profile-bio"
+                      placeholder="Tell us about yourself..."
+                      value={profileForm.bio}
+                      onChange={(e) => setProfileForm((prev) => ({ ...prev, bio: e.target.value }))}
+                      className="bg-tsBg border-white/10 text-white min-h-[120px] focus:border-ts-orange/30 transition-colors resize-none"
+                      rows={5}
+                    />
+                    <p className="text-xs text-white/60">
+                      Brief description for your profile. Maximum 500 characters.
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                    <Button
+                      type="button"
+                      data-testid="settings-profile-save"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
+                      onClick={() => updateProfileMutation.mutate()}
+                      disabled={updateProfileMutation.isPending}
+                    >
+                      {updateProfileMutation.isPending ? "Saving…" : "Save Changes"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
+                      asChild
+                    >
+                      <Link href="/settings?tab=profile">Open Full Profile Settings</Link>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      data-testid="settings-profile-cancel"
+                      className="border-white/10 text-white/70 hover:bg-tsBg"
+                      onClick={() =>
+                        setProfileForm({
+                          firstName: user?.firstName || "",
+                          lastName: user?.lastName || "",
+                          profileImageUrl: user?.profileImageUrl || "",
+                          bio:
+                            (userPreferences as any)?.bio || (user as any)?.preferences?.bio || "",
+                        })
+                      }
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Globe className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Home Location</CardTitle>
+                      <p className="text-sm text-white/60 mt-1">
+                        Set your home location once. This powers all your local experiences:
+                        community, marketplace, HOA tools, and leaderboards.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6 pt-6">
+                  <div className="space-y-2">
+                    <Label className="text-white font-medium">Home region</Label>
+                    <p className="text-xs text-white/60">
+                      Scout uses your saved location to match you with local activity and
+                      experiences. Changing it here updates everything.
+                    </p>
+                  </div>
+                  <StateCountySelector
+                    selectedState={locationStateCode}
+                    selectedCounty={locationCountyFips}
+                    stateTestId="settings-profile-location-state"
+                    countyTestId="settings-profile-location-county"
+                    onStateChange={(code) => {
+                      setLocationStateCode(code);
+                      setLocationCountyFips("");
+                      setLocationCountyName("");
+                    }}
+                    onCountyChange={(fips) => setLocationCountyFips(fips)}
+                    onCountySelected={(county) => setLocationCountyName(county?.name || "")}
+                    disabled={updateLocationMutation.isPending}
+                  />
+                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-white/10 flex-col sm:flex-row">
+                    <p className="text-xs text-white/60 max-w-xl">
+                      Device location (when shared) helps Scout understand what&apos;s nearby, but
+                      your saved location here is what unlocks local experiences.
+                    </p>
+                    <Button
+                      type="button"
+                      data-testid="settings-profile-save-location"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
+                      disabled={
+                        updateLocationMutation.isPending ||
+                        !locationStateCode ||
+                        !locationCountyFips
+                      }
+                      onClick={() =>
+                        updateLocationMutation.mutate({
+                          stateCode: locationStateCode,
+                          countyFips: locationCountyFips,
+                          countyName: locationCountyName,
+                        })
+                      }
+                    >
+                      {updateLocationMutation.isPending ? "Saving…" : "Save Location"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Home className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Home Vault</CardTitle>
+                      <p className="text-sm text-white/60 mt-1">
+                        Keep private records for your properties: inspections, upgrades, appliances,
+                        and documents.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
+                    <p className="text-xs text-white/60 max-w-xl">
+                      This is account-only. Nothing you add here is public.
+                    </p>
+                    <Button
+                      asChild
+                      data-testid="settings-profile-open-home-vault"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
+                    >
+                      <Link href="/homes">Open Home Vault</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Car className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Vehicle Vault</CardTitle>
+                      <p className="text-sm text-white/60 mt-1">
+                        Keep private records for your vehicles: service history, repairs, and
+                        documents.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between gap-3 flex-col sm:flex-row">
+                    <p className="text-xs text-white/60 max-w-xl">
+                      Account-only. Use this to build trust when you decide to sell.
+                    </p>
+                    <Button
+                      asChild
+                      data-testid="settings-profile-open-vehicle-vault"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg w-full sm:w-auto"
+                    >
+                      <Link href="/vehicles">Open Vehicle Vault</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Navigation Settings */}
+          <TabsContent value="navigation">
+            <div className="space-y-6">
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Smartphone className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">Navigation Preferences</CardTitle>
+                      <p className="text-sm text-white/60 mt-1">
+                        Customize the order and visibility of your mobile navigation.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <DragDropNavigationPreferences
+                    preferences={{
+                      customOrder: navigationPrefs?.customOrder || [],
+                      hiddenFromSwipe: navigationPrefs?.hiddenFromSwipe || [],
+                      enableSwipeNavigation: navigationPrefs?.enableSwipeNavigation ?? true,
+                    }}
+                    userRole={(user as any)?.role || ""}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Roles Management */}
+          <TabsContent value="roles">
+            <Card
+              className="border border-white/10 shadow-xl"
+              style={{ backgroundColor: "var(--surface-card)" }}
+            >
+              <CardHeader className="border-b border-white/10 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                    <Briefcase className="w-5 h-5 text-ts-orange" />
+                  </div>
                   <div>
-                    <h3 className="text-white font-semibold text-lg mb-5">Available Roles</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {SELF_SERVICE_ROLE_KEYS.map((roleKey) => {
+                    <CardTitle className="text-xl text-white">Manage Your Roles</CardTitle>
+                    <p className="text-sm text-white/60 mt-1">
+                      Select all the roles that apply to you. Your dashboard and experience will
+                      automatically adapt.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-8 pt-6">
+                {/* Current Roles Summary */}
+                <div className="bg-gradient-to-br from-tsBg to-tsCard border border-white/10 rounded-xl p-6 shadow-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle2 className="h-5 w-5 text-ts-orange" />
+                    <h3 className="text-white font-semibold text-lg">Currently Active Roles</h3>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRoles.length > 0 ? (
+                      selectedRoles.map((roleKey) => {
                         const config = getRoleUiConfig(roleKey);
                         if (!config.icon) return null;
                         const Icon = config.icon;
-                        const isSelected = selectedRoles.includes(roleKey);
                         return (
-                          <div
+                          <Badge
                             key={roleKey}
-                            onClick={() => toggleRole(roleKey)}
-                            className={`
+                            className="bg-ts-orange text-white px-3 py-1.5 text-sm font-medium flex items-center gap-1.5"
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {config.label}
+                          </Badge>
+                        );
+                      })
+                    ) : (
+                      <p className="text-white/60 text-sm">No roles selected</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Account Types & Business Personas */}
+                <div className="bg-tsBg border border-white/10 rounded-xl p-6 shadow-lg space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Briefcase className="h-5 w-5 text-ts-orange" />
+                    <h3 className="text-white font-semibold text-lg">
+                      Account Types &amp; Business Personas
+                    </h3>
+                  </div>
+                  <p className="text-sm text-white/60 mb-2">
+                    Select all the ways you use TradeScout — homeowner, landlord, restaurant owner,
+                    contractor, and more. Scout will use these types to personalize your dashboards
+                    and recommendations.
+                  </p>
+                  <UserTypeSelect
+                    selectedTypes={selectedUserTypes}
+                    onChange={setSelectedUserTypes}
+                    className="mt-2"
+                  />
+                  <div className="flex justify-end pt-4 border-t border-white/10 mt-2">
+                    <Button
+                      type="button"
+                      data-testid="settings-roles-save-account-types"
+                      onClick={saveUserTypes}
+                      disabled={updateUserTypesMutation.isPending || selectedUserTypes.length === 0}
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
+                    >
+                      {updateUserTypesMutation.isPending ? "Saving…" : "Save Account Types"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Available Roles */}
+                <div>
+                  <h3 className="text-white font-semibold text-lg mb-5">Available Roles</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {SELF_SERVICE_ROLE_KEYS.map((roleKey) => {
+                      const config = getRoleUiConfig(roleKey);
+                      if (!config.icon) return null;
+                      const Icon = config.icon;
+                      const isSelected = selectedRoles.includes(roleKey);
+                      return (
+                        <div
+                          key={roleKey}
+                          onClick={() => toggleRole(roleKey)}
+                          className={`
                               relative p-5 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-lg
                               ${
                                 isSelected
@@ -1323,815 +1316,794 @@ export default function Settings() {
                                   : "bg-tsBg border-white/10 hover:border-ts-orange/30 hover:bg-tsCard/50"
                               }
                             `}
-                            data-testid={`role-option-${roleKey}`}
-                          >
-                            <div className="flex items-start gap-4">
-                              <div
-                                className={`p-3 rounded-xl transition-all ${isSelected ? "bg-ts-orange shadow-lg" : "bg-tsCard"}`}
-                              >
-                                <Icon
-                                  className={`h-6 w-6 ${isSelected ? "text-white" : "text-ts-orange"}`}
-                                />
+                          data-testid={`role-option-${roleKey}`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div
+                              className={`p-3 rounded-xl transition-all ${isSelected ? "bg-ts-orange shadow-lg" : "bg-tsCard"}`}
+                            >
+                              <Icon
+                                className={`h-6 w-6 ${isSelected ? "text-white" : "text-ts-orange"}`}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <h4 className="font-semibold text-white text-base">
+                                  {config.label}
+                                </h4>
+                                {isSelected && <CheckCircle2 className="h-5 w-5 text-ts-orange" />}
                               </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1.5">
-                                  <h4 className="font-semibold text-white text-base">
-                                    {config.label}
-                                  </h4>
-                                  {isSelected && (
-                                    <CheckCircle2 className="h-5 w-5 text-ts-orange" />
-                                  )}
-                                </div>
-                                {config.desc && (
-                                  <p className="text-sm text-white/60 leading-relaxed">
-                                    {config.desc}
-                                  </p>
-                                )}
-                              </div>
+                              {config.desc && (
+                                <p className="text-sm text-white/60 leading-relaxed">
+                                  {config.desc}
+                                </p>
+                              )}
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                </div>
 
-                  {/* Save Button */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-white/10">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <span className="text-ts-orange font-bold text-sm">
-                          {selectedRoles.length}
-                        </span>
-                      </div>
-                      <p className="text-sm text-white/70">
-                        role{selectedRoles.length !== 1 ? "s" : ""} selected
-                      </p>
+                {/* Save Button */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-6 border-t border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <span className="text-ts-orange font-bold text-sm">
+                        {selectedRoles.length}
+                      </span>
                     </div>
-                    <Button
-                      type="button"
-                      onClick={saveRoles}
-                      disabled={updateRolesMutation.isPending || selectedRoles.length === 0}
-                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
-                      data-testid="button-save-roles"
-                    >
-                      {updateRolesMutation.isPending ? "Saving..." : "Save Roles"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Appearance & Layout Settings */}
-            <TabsContent value="appearance">
-              <div className="space-y-6">
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Palette className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Profile Colors & Theme</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Profile colors are managed from your Profile Settings so your in-app theme
-                          and public profile stay in sync.
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-6">
-                    <p className="text-white/70 text-sm">
-                      Your color scheme is now driven by your profile color settings. Updating your
-                      profile colors will update how TradeScout looks to you and how your public
-                      profile appears to others.
-                    </p>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Button
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
-                        asChild
-                      >
-                        <Link href="/profile-settings">Open Profile Settings</Link>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        data-testid="settings-appearance-reset-default"
-                        className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
-                        onClick={async () => {
-                          try {
-                            await fetch("/api/users/color-scheme", {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              credentials: "include",
-                              body: JSON.stringify({ preset: "default" }),
-                            });
-                            await refetch();
-                            window.location.reload();
-                          } catch {}
-                        }}
-                      >
-                        Reset to Default
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Smartphone className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">
-                          Handedness & One-Handed Layout
-                        </CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Choose how top controls and key buttons are aligned so they are easier to
-                          reach with one hand.
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm text-white/70">Handedness</Label>
-                      <p className="text-xs text-white/60">
-                        Right-handed keeps primary controls on the right. Left-handed moves them to
-                        the left side of the screen.
-                      </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        type="button"
-                        variant={handedness === "right" ? "default" : "outline"}
-                        data-testid="settings-appearance-handedness-right"
-                        className={
-                          handedness === "right"
-                            ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
-                            : "border-white/10 text-white/70 hover:border-ts-orange/30 flex-1"
-                        }
-                        onClick={() => setHandedness("right")}
-                      >
-                        Right-handed layout
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={handedness === "left" ? "default" : "outline"}
-                        data-testid="settings-appearance-handedness-left"
-                        className={
-                          handedness === "left"
-                            ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
-                            : "border-white/10 text-white/70 hover:border-ts-orange/30 flex-1"
-                        }
-                        onClick={() => setHandedness("left")}
-                      >
-                        Left-handed layout
-                      </Button>
-                    </div>
-                    <div className="flex justify-end pt-2 border-t border-white/10 mt-2">
-                      <Button
-                        type="button"
-                        data-testid="settings-appearance-save-handedness"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
-                        disabled={updateHandednessMutation.isPending}
-                        onClick={() => updateHandednessMutation.mutate(handedness)}
-                      >
-                        {updateHandednessMutation.isPending ? "Saving…" : "Save Handedness"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-tsCard border-white/10 shadow-xl">
-                  <CardHeader className="border-b border-white/10 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Wrench className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-white">Troubleshooting</CardTitle>
-                        <p className="text-sm text-white/60 mt-1">
-                          Fix "old version" issues after deploys
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3 pt-4">
                     <p className="text-sm text-white/70">
-                      If the app looks wrong after an update (or you see the new version for a split
-                      second and it reverts), use this to clear cached assets and refresh.
+                      role{selectedRoles.length !== 1 ? "s" : ""} selected
                     </p>
-                    <p className="text-xs text-white/60">
-                      Build{" "}
-                      <span className="font-mono text-white/70">
-                        {typeof __APP_BUILD_ID__ === "string"
-                          ? __APP_BUILD_ID__.slice(0, 12)
-                          : String(__APP_BUILD_ID__)}
-                      </span>{" "}
-                      - Host <span className="font-mono text-white/70">{window.location.host}</span>
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        type="button"
-                        data-testid="settings-appearance-repair-reload"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
-                        onClick={() => {
-                          try {
-                            const url = new URL(window.location.href);
-                            url.searchParams.set("__reset", "1");
-                            window.location.assign(url.toString());
-                          } catch {
-                            window.location.assign(`${window.location.pathname}?__reset=1`);
-                          }
-                        }}
-                      >
-                        Repair &amp; Reload
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        data-testid="settings-appearance-normal-reload"
-                        className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
-                        onClick={() => window.location.reload()}
-                      >
-                        Normal reload
-                      </Button>
-                    </div>
-                    <p className="text-xs text-white/60">
-                      This does not change your account. It only clears local caches and reloads the
-                      app.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={saveRoles}
+                    disabled={updateRolesMutation.isPending || selectedRoles.length === 0}
+                    className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg disabled:opacity-50"
+                    data-testid="button-save-roles"
+                  >
+                    {updateRolesMutation.isPending ? "Saving..." : "Save Roles"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            {/* Notification Settings */}
-            <TabsContent value="notifications">
+          {/* Appearance & Layout Settings */}
+          <TabsContent value="appearance">
+            <div className="space-y-6">
               <Card className="bg-tsCard border-white/10 shadow-xl">
                 <CardHeader className="border-b border-white/10 pb-6">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                      <Bell className="w-5 h-5 text-ts-orange" />
+                      <Palette className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl text-white">Notification Preferences</CardTitle>
+                      <CardTitle className="text-xl text-white">Profile Colors & Theme</CardTitle>
                       <p className="text-sm text-white/60 mt-1">
-                        Choose how you want to receive updates and alerts
+                        Profile colors are managed from your Profile Settings so your in-app theme
+                        and public profile stay in sync.
                       </p>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 pt-6">
-                  {Object.entries({
-                    email: {
-                      icon: Mail,
-                      label: "Email Notifications",
-                      desc: "Receive updates via email",
-                    },
-                    sms: {
-                      icon: Smartphone,
-                      label: "SMS Notifications",
-                      desc: "Get text message alerts",
-                    },
-                    push: {
-                      icon: Bell,
-                      label: "Push Notifications",
-                      desc: "Browser and app notifications",
-                    },
-                    marketing: {
-                      icon: Globe,
-                      label: "Marketing Communications",
-                      desc: "Updates about new features and offers",
-                    },
-                  }).map(([key, config]) => {
-                    const Icon = config.icon;
-                    const isPush = key === "push";
-                    const pushDisabled =
-                      isPush && (!pushStatus.supported || pushStatus.permission === "denied");
-                    const settingKey = key as keyof typeof notifications;
-                    const isChecked = notifications[settingKey];
-                    const applyNotificationToggle = async (checked: boolean) => {
-                      if (isPush && pushDisabled) return;
-                      setNotifications((prev) => ({ ...prev, [key]: checked }));
-                      if (isPush) {
-                        if (checked) {
-                          const sub = await registerPushNotifications();
-                          const permission =
-                            typeof Notification !== "undefined"
-                              ? Notification.permission
-                              : pushStatus.permission;
-                          setPushStatus((prev) => ({
-                            ...prev,
-                            registered: !!sub,
-                            permission,
-                          }));
-                        } else {
-                          await unregisterPushSubscription();
-                          const permission =
-                            typeof Notification !== "undefined"
-                              ? Notification.permission
-                              : pushStatus.permission;
-                          setPushStatus((prev) => ({
-                            ...prev,
-                            registered: false,
-                            permission,
-                          }));
-                        }
-                      }
-                    };
-                    return (
-                      <div
-                        key={key}
-                        data-testid={`settings-notification-row-${key}`}
-                        className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 hover:border-ts-orange/30 transition-all sm:flex-row sm:items-center sm:justify-between"
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          void applyNotificationToggle(!isChecked);
-                        }}
-                        onKeyDown={(event) => {
-                          if (event.key !== "Enter" && event.key !== " ") return;
-                          event.preventDefault();
-                          void applyNotificationToggle(!isChecked);
-                        }}
-                      >
-                        <div className="flex min-w-0 items-center space-x-4">
-                          <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Icon className="w-5 h-5 text-ts-orange" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-white font-medium">{config.label}</p>
-                            <p className="text-white/60 text-sm">{config.desc}</p>
-                            {isPush && (
-                              <p className="text-xs text-white/60 mt-1">
-                                {pushStatus.permission === "denied"
-                                  ? "Browser notifications are blocked for this site. Enable them in your browser settings to turn push on."
-                                  : pushStatus.registered
-                                    ? "Registered on this device. Delivered to this device only."
-                                    : "Delivered to this device only on supported browsers."}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div
-                          className="self-end sm:self-auto shrink-0"
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <Switch
-                            data-testid={`settings-notification-switch-${key}`}
-                            checked={isChecked}
-                            disabled={pushDisabled}
-                            onCheckedChange={(checked) => {
-                              void applyNotificationToggle(checked);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  <div className="mt-6 p-4 bg-tsBg rounded-xl border border-dashed border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <p className="text-white font-medium">Advanced per-area controls</p>
-                      <p className="text-white/60 text-sm">
-                        Fine-tune notifications for Marketplace, Community, HOA, wallet events, and
-                        more by channel.
-                      </p>
-                    </div>
+                  <p className="text-white/70 text-sm">
+                    Your color scheme is now driven by your profile color settings. Updating your
+                    profile colors will update how TradeScout looks to you and how your public
+                    profile appears to others.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
+                      asChild
+                    >
+                      <Link href="/settings?tab=profile">Open Profile Settings</Link>
+                    </Button>
                     <Button
                       type="button"
                       variant="outline"
-                      data-testid="settings-notifications-open-advanced"
-                      className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-4"
-                      onClick={() => setAdvancedNotificationPrefsOpen(true)}
-                    >
-                      Open advanced preferences
-                    </Button>
-                  </div>
-
-                  <div className="flex justify-end pt-4 border-t border-white/10">
-                    <Button
-                      data-testid="settings-notifications-save"
-                      onClick={() => updateNotificationsMutation.mutate()}
-                      disabled={updateNotificationsMutation.isPending}
-                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
-                    >
-                      {updateNotificationsMutation.isPending ? "Saving…" : "Save Notifications"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Privacy Settings */}
-            <TabsContent value="privacy">
-              <Card className="bg-tsCard border-white/10 shadow-xl">
-                <CardHeader className="border-b border-white/10 pb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                      <Eye className="w-5 h-5 text-ts-orange" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl text-white">Privacy Settings</CardTitle>
-                      <p className="text-sm text-white/60 mt-1">
-                        Control who can see your information and contact you
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-6">
-                  <div
-                    data-testid="settings-privacy-row-profile-visibility"
-                    className="rounded-xl border border-white/10 bg-tsBg p-4 space-y-3"
-                  >
-                    <div className="flex min-w-0 items-start gap-4">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div className="min-w-0 space-y-1">
-                        <p className="text-white font-medium">Public profile management</p>
-                        <p className="text-white/60 text-sm">
-                          Visibility, publication status, sections, and SEO now live in the
-                          dedicated profile settings flow.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        data-testid="settings-privacy-open-profile-settings"
-                        className="border-white/15 text-white hover:bg-white/5"
-                        onClick={() => navigate("/profile-settings")}
-                      >
-                        Open profile settings
-                      </Button>
-                      {activeProfile?.slug ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          data-testid="settings-privacy-open-profile-editor"
-                          className="border-white/15 text-white hover:bg-white/5"
-                          onClick={() =>
-                            navigate(`/u/${encodeURIComponent(activeProfile.slug)}/edit`)
-                          }
-                        >
-                          Edit public profile site
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-tsBg p-4 space-y-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-white font-medium">Public profile site</p>
-                        <p className="text-white/60 text-sm">
-                          Publication requires both a public visibility setting and a published
-                          profile site.
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="w-fit">
-                        {publicProfileStatus === "published" ? "Published" : "Draft"}
-                      </Badge>
-                    </div>
-
-                    <div className="text-sm text-white/70 space-y-1">
-                      <p>
-                        Visibility:{" "}
-                        <span className="text-white">
-                          {privacy.profileVisibility === "public" ? "Public" : "Private"}
-                        </span>
-                      </p>
-                      <p>
-                        URL:{" "}
-                        {publicProfileUrl ? (
-                          <a
-                            href={publicProfileUrl}
-                            className="text-ts-orange underline-offset-4 hover:underline"
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {publicProfileUrl}
-                          </a>
-                        ) : (
-                          <span className="text-white/50">No public slug yet</span>
-                        )}
-                      </p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      {activeProfile?.slug ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-white/15 text-white hover:bg-white/5"
-                          onClick={() =>
-                            navigate(`/u/${encodeURIComponent(activeProfile.slug)}/edit`)
-                          }
-                        >
-                          Edit public profile site
-                        </Button>
-                      ) : null}
-                      {activeProfile?.slug &&
-                      privacy.profileVisibility === "public" &&
-                      publicProfileStatus === "published" ? (
-                        <Button
-                          type="button"
-                          className="bg-ts-orange hover:bg-ts-orange-dark text-white"
-                          onClick={() =>
-                            window.open(publicProfileUrl, "_blank", "noopener,noreferrer")
-                          }
-                        >
-                          View public profile
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div
-                    data-testid="settings-privacy-row-show-in-search"
-                    className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Globe className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-white font-medium">Show in Search Results</p>
-                        <p className="text-white/60 text-sm">
-                          Allow others to find you through search
-                        </p>
-                      </div>
-                    </div>
-                    <div
-                      className="self-end sm:self-auto shrink-0"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <Switch
-                        data-testid="settings-privacy-switch-show-in-search"
-                        checked={privacy.showInSearch}
-                        onCheckedChange={(checked) =>
-                          setPrivacy((prev) => ({ ...prev, showInSearch: checked }))
-                        }
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 p-4 bg-tsBg rounded-xl border border-white/10">
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Mail className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <Label className="text-white font-medium">Who can contact you?</Label>
-                        <p className="text-white/60 text-sm">Choose who can send you messages</p>
-                      </div>
-                    </div>
-                    <Select
-                      value={privacy.contactPolicy}
-                      onValueChange={(value) =>
-                        setPrivacy((prev) => ({ ...prev, contactPolicy: value }))
-                      }
-                    >
-                      <SelectTrigger
-                        data-testid="settings-privacy-contact-policy"
-                        className="relative z-10 bg-tsCard border-white/10 text-white h-11"
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-tsCard border-white/10">
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="verified">Verified users only</SelectItem>
-                        <SelectItem value="contractors">Contractors only</SelectItem>
-                        <SelectItem value="none">No one</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <Button
-                      data-testid="settings-privacy-save"
-                      onClick={() => updatePrivacyMutation.mutate(privacy)}
-                      disabled={updatePrivacyMutation.isPending}
-                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
-                    >
-                      {updatePrivacyMutation.isPending ? "Saving…" : "Save Privacy"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Security Settings */}
-            <TabsContent value="security">
-              <Card className="bg-tsCard border-white/10 shadow-xl">
-                <CardHeader className="border-b border-white/10 pb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-ts-orange" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl text-white">Security Settings</CardTitle>
-                      <p className="text-sm text-white/60 mt-1">
-                        Manage your password and account security
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-6 pt-6">
-                  <div className="p-6 bg-tsBg rounded-xl border border-white/10">
-                    <div className="flex items-center gap-3 mb-5">
-                      <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
-                        <Lock className="w-5 h-5 text-ts-orange" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-semibold">Change Password</h3>
-                        <p className="text-sm text-white/60">Update your account password</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-white font-medium">Current Password</Label>
-                        <Input
-                          type="password"
-                          data-testid="settings-security-current-password"
-                          placeholder="Enter current password"
-                          value={passwordForm.currentPassword}
-                          onChange={(e) =>
-                            setPasswordForm((prev) => ({
-                              ...prev,
-                              currentPassword: e.target.value,
-                            }))
-                          }
-                          className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-white font-medium">New Password</Label>
-                        <Input
-                          type="password"
-                          data-testid="settings-security-new-password"
-                          placeholder="Enter new password"
-                          value={passwordForm.newPassword}
-                          onChange={(e) =>
-                            setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                          }
-                          className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-white font-medium">Confirm New Password</Label>
-                        <Input
-                          type="password"
-                          data-testid="settings-security-confirm-password"
-                          placeholder="Confirm new password"
-                          value={passwordForm.confirmNewPassword}
-                          onChange={(e) =>
-                            setPasswordForm((prev) => ({
-                              ...prev,
-                              confirmNewPassword: e.target.value,
-                            }))
-                          }
-                          className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
-                        />
-                      </div>
-                      <Button
-                        data-testid="settings-security-update-password"
-                        className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full mt-2 shadow-lg"
-                        disabled={
-                          changePasswordMutation.isPending ||
-                          !passwordForm.currentPassword ||
-                          !passwordForm.newPassword ||
-                          passwordForm.newPassword !== passwordForm.confirmNewPassword
-                        }
-                        onClick={() => {
-                          if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
-                            toast({
-                              title: "Error",
-                              description: "New passwords do not match.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          changePasswordMutation.mutate();
-                        }}
-                      >
-                        {changePasswordMutation.isPending ? "Updating…" : "Update Password"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-tsBg rounded-xl border border-white/10">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Shield className="w-6 h-6 text-ts-orange" />
-                      </div>
-                      <div>
-                        <p className="text-white font-semibold">Two-Factor Authentication</p>
-                        <p className="text-white/60 text-sm">
-                          Add an extra layer of security to your account
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      data-testid="settings-security-toggle-2fa"
-                      className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-6"
-                      onClick={() => {
-                        const nextPrivacy = {
-                          ...privacy,
-                          twoFactorEnabled: !privacy.twoFactorEnabled,
-                        };
-                        setPrivacy(nextPrivacy);
-                        updatePrivacyMutation.mutate(nextPrivacy);
+                      data-testid="settings-appearance-reset-default"
+                      className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
+                      onClick={async () => {
+                        try {
+                          await fetch("/api/users/color-scheme", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ preset: "default" }),
+                          });
+                          await refetch();
+                          window.location.reload();
+                        } catch {}
                       }}
                     >
-                      {privacy.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+                      Reset to Default
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
 
-            {/* Financial Tools List */}
-            <TabsContent value="tools">
               <Card className="bg-tsCard border-white/10 shadow-xl">
-                <CardHeader className="border-b border-white/10 pb-6">
+                <CardHeader className="border-b border-white/10 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Smartphone className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-white">
+                        Handedness & One-Handed Layout
+                      </CardTitle>
+                      <p className="text-sm text-white/60 mt-1">
+                        Choose how top controls and key buttons are aligned so they are easier to
+                        reach with one hand.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm text-white/70">Handedness</Label>
+                    <p className="text-xs text-white/60">
+                      Right-handed keeps primary controls on the right. Left-handed moves them to
+                      the left side of the screen.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      type="button"
+                      variant={handedness === "right" ? "default" : "outline"}
+                      data-testid="settings-appearance-handedness-right"
+                      className={
+                        handedness === "right"
+                          ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
+                          : "border-white/10 text-white/70 hover:border-ts-orange/30 flex-1"
+                      }
+                      onClick={() => setHandedness("right")}
+                    >
+                      Right-handed layout
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={handedness === "left" ? "default" : "outline"}
+                      data-testid="settings-appearance-handedness-left"
+                      className={
+                        handedness === "left"
+                          ? "bg-ts-orange hover:bg-ts-orange-dark text-white flex-1"
+                          : "border-white/10 text-white/70 hover:border-ts-orange/30 flex-1"
+                      }
+                      onClick={() => setHandedness("left")}
+                    >
+                      Left-handed layout
+                    </Button>
+                  </div>
+                  <div className="flex justify-end pt-2 border-t border-white/10 mt-2">
+                    <Button
+                      type="button"
+                      data-testid="settings-appearance-save-handedness"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
+                      disabled={updateHandednessMutation.isPending}
+                      onClick={() => updateHandednessMutation.mutate(handedness)}
+                    >
+                      {updateHandednessMutation.isPending ? "Saving…" : "Save Handedness"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-tsCard border-white/10 shadow-xl">
+                <CardHeader className="border-b border-white/10 pb-4">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
                       <Wrench className="w-5 h-5 text-ts-orange" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
+                      <CardTitle className="text-xl text-white">Troubleshooting</CardTitle>
                       <p className="text-sm text-white/60 mt-1">
-                        Quick access to calculators and helpers for your finances.
+                        Fix "old version" issues after deploys
                       </p>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-6 pt-6">
-                  <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center md:gap-6">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1">
-                          Invoice Calculator
-                        </h3>
-                        <p className="text-sm text-white/60 mb-2">
-                          Check payment math and totals for your invoices.
-                        </p>
-                        <a
-                          href="/finances/invoices"
-                          data-testid="settings-tools-open-invoices"
-                          className="text-ts-orange underline hover:text-ts-orange text-sm"
-                        >
-                          Open Invoices
-                        </a>
-                      </div>
-                    </div>
-                    <div className="flex flex-col md:flex-row md:items-center md:gap-6">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1">
-                          Estimate Calculator
-                        </h3>
-                        <p className="text-sm text-white/60 mb-2">
-                          Double-check your job estimates before sending.
-                        </p>
-                        <a
-                          href="/quote-calculator"
-                          data-testid="settings-tools-open-quote-calculator"
-                          className="text-ts-orange underline hover:text-ts-orange text-sm"
-                        >
-                          Open Quote Calculator
-                        </a>
-                      </div>
-                    </div>
-                    <div className="flex flex-col md:flex-row md:items-center md:gap-6">
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg mb-1">Expense Helper</h3>
-                        <p className="text-sm text-white/60 mb-2">
-                          Split, categorize, or review your expenses for better tracking.
-                        </p>
-                        <a
-                          href="/finances/expenses"
-                          data-testid="settings-tools-open-expenses"
-                          className="text-ts-orange underline hover:text-ts-orange text-sm"
-                        >
-                          Open Expenses
-                        </a>
-                      </div>
-                    </div>
+                <CardContent className="space-y-3 pt-4">
+                  <p className="text-sm text-white/70">
+                    If the app looks wrong after an update (or you see the new version for a split
+                    second and it reverts), use this to clear cached assets and refresh.
+                  </p>
+                  <p className="text-xs text-white/60">
+                    Build{" "}
+                    <span className="font-mono text-white/70">
+                      {typeof __APP_BUILD_ID__ === "string"
+                        ? __APP_BUILD_ID__.slice(0, 12)
+                        : String(__APP_BUILD_ID__)}
+                    </span>{" "}
+                    - Host <span className="font-mono text-white/70">{window.location.host}</span>
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      type="button"
+                      data-testid="settings-appearance-repair-reload"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 shadow-lg"
+                      onClick={() => {
+                        try {
+                          const url = new URL(window.location.href);
+                          url.searchParams.set("__reset", "1");
+                          window.location.assign(url.toString());
+                        } catch {
+                          window.location.assign(`${window.location.pathname}?__reset=1`);
+                        }
+                      }}
+                    >
+                      Repair &amp; Reload
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      data-testid="settings-appearance-normal-reload"
+                      className="border-white/10 text-white/70 hover:border-ts-orange/30 hover:text-ts-orange px-6"
+                      onClick={() => window.location.reload()}
+                    >
+                      Normal reload
+                    </Button>
                   </div>
+                  <p className="text-xs text-white/60">
+                    This does not change your account. It only clears local caches and reloads the
+                    app.
+                  </p>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-          <NotificationPreferencesDialog
-            open={advancedNotificationPrefsOpen}
-            onOpenChange={setAdvancedNotificationPrefsOpen}
-          />
+            </div>
+          </TabsContent>
+
+          {/* Notification Settings */}
+          <TabsContent value="notifications">
+            <Card className="bg-tsCard border-white/10 shadow-xl">
+              <CardHeader className="border-b border-white/10 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-ts-orange" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-white">Notification Preferences</CardTitle>
+                    <p className="text-sm text-white/60 mt-1">
+                      Choose how you want to receive updates and alerts
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-6">
+                {Object.entries({
+                  email: {
+                    icon: Mail,
+                    label: "Email Notifications",
+                    desc: "Receive updates via email",
+                  },
+                  sms: {
+                    icon: Smartphone,
+                    label: "SMS Notifications",
+                    desc: "Get text message alerts",
+                  },
+                  push: {
+                    icon: Bell,
+                    label: "Push Notifications",
+                    desc: "Browser and app notifications",
+                  },
+                  marketing: {
+                    icon: Globe,
+                    label: "Marketing Communications",
+                    desc: "Updates about new features and offers",
+                  },
+                }).map(([key, config]) => {
+                  const Icon = config.icon;
+                  const isPush = key === "push";
+                  const pushDisabled =
+                    isPush && (!pushStatus.supported || pushStatus.permission === "denied");
+                  const settingKey = key as keyof typeof notifications;
+                  const isChecked = notifications[settingKey];
+                  const applyNotificationToggle = async (checked: boolean) => {
+                    if (isPush && pushDisabled) return;
+                    setNotifications((prev) => ({ ...prev, [key]: checked }));
+                    if (isPush) {
+                      if (checked) {
+                        const sub = await registerPushNotifications();
+                        const permission =
+                          typeof Notification !== "undefined"
+                            ? Notification.permission
+                            : pushStatus.permission;
+                        setPushStatus((prev) => ({
+                          ...prev,
+                          registered: !!sub,
+                          permission,
+                        }));
+                      } else {
+                        await unregisterPushSubscription();
+                        const permission =
+                          typeof Notification !== "undefined"
+                            ? Notification.permission
+                            : pushStatus.permission;
+                        setPushStatus((prev) => ({
+                          ...prev,
+                          registered: false,
+                          permission,
+                        }));
+                      }
+                    }
+                  };
+                  return (
+                    <div
+                      key={key}
+                      data-testid={`settings-notification-row-${key}`}
+                      className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 hover:border-ts-orange/30 transition-all sm:flex-row sm:items-center sm:justify-between"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        void applyNotificationToggle(!isChecked);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        void applyNotificationToggle(!isChecked);
+                      }}
+                    >
+                      <div className="flex min-w-0 items-center space-x-4">
+                        <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-5 h-5 text-ts-orange" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-white font-medium">{config.label}</p>
+                          <p className="text-white/60 text-sm">{config.desc}</p>
+                          {isPush && (
+                            <p className="text-xs text-white/60 mt-1">
+                              {pushStatus.permission === "denied"
+                                ? "Browser notifications are blocked for this site. Enable them in your browser settings to turn push on."
+                                : pushStatus.registered
+                                  ? "Registered on this device. Delivered to this device only."
+                                  : "Delivered to this device only on supported browsers."}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div
+                        className="self-end sm:self-auto shrink-0"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <Switch
+                          data-testid={`settings-notification-switch-${key}`}
+                          checked={isChecked}
+                          disabled={pushDisabled}
+                          onCheckedChange={(checked) => {
+                            void applyNotificationToggle(checked);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="mt-6 p-4 bg-tsBg rounded-xl border border-dashed border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <p className="text-white font-medium">Advanced per-area controls</p>
+                    <p className="text-white/60 text-sm">
+                      Fine-tune notifications for Marketplace, Community, HOA, wallet events, and
+                      more by channel.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    data-testid="settings-notifications-open-advanced"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-4"
+                    onClick={() => setAdvancedNotificationPrefsOpen(true)}
+                  >
+                    Open advanced preferences
+                  </Button>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-white/10">
+                  <Button
+                    data-testid="settings-notifications-save"
+                    onClick={() => updateNotificationsMutation.mutate()}
+                    disabled={updateNotificationsMutation.isPending}
+                    className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
+                  >
+                    {updateNotificationsMutation.isPending ? "Saving…" : "Save Notifications"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Privacy Settings */}
+          <TabsContent value="privacy">
+            <Card className="bg-tsCard border-white/10 shadow-xl">
+              <CardHeader className="border-b border-white/10 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                    <Eye className="w-5 h-5 text-ts-orange" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-white">Privacy Settings</CardTitle>
+                    <p className="text-sm text-white/60 mt-1">
+                      Control who can see your information and contact you
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div
+                  data-testid="settings-privacy-row-profile-visibility"
+                  className="rounded-xl border border-white/10 bg-tsBg p-4 space-y-3"
+                >
+                  <div className="flex min-w-0 items-start gap-4">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-white font-medium">Public profile management</p>
+                      <p className="text-white/60 text-sm">
+                        Visibility, publication status, sections, and SEO now live in the dedicated
+                        profile settings flow.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      data-testid="settings-privacy-open-profile-settings"
+                      className="border-white/15 text-white hover:bg-white/5"
+                      onClick={() => navigate("/settings?tab=profile")}
+                    >
+                      Open profile settings
+                    </Button>
+                    {activeProfile?.slug ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        data-testid="settings-privacy-open-profile-editor"
+                        className="border-white/15 text-white hover:bg-white/5"
+                        onClick={() =>
+                          navigate(`/u/${encodeURIComponent(activeProfile.slug)}/edit`)
+                        }
+                      >
+                        Edit public profile site
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-tsBg p-4 space-y-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-white font-medium">Public profile site</p>
+                      <p className="text-white/60 text-sm">
+                        Publication requires both a public visibility setting and a published
+                        profile site.
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="w-fit">
+                      {publicProfileStatus === "published" ? "Published" : "Draft"}
+                    </Badge>
+                  </div>
+
+                  <div className="text-sm text-white/70 space-y-1">
+                    <p>
+                      Visibility:{" "}
+                      <span className="text-white">
+                        {privacy.profileVisibility === "public" ? "Public" : "Private"}
+                      </span>
+                    </p>
+                    <p>
+                      URL:{" "}
+                      {publicProfileUrl ? (
+                        <a
+                          href={publicProfileUrl}
+                          className="text-ts-orange underline-offset-4 hover:underline"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {publicProfileUrl}
+                        </a>
+                      ) : (
+                        <span className="text-white/50">No public slug yet</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {activeProfile?.slug ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-white/15 text-white hover:bg-white/5"
+                        onClick={() =>
+                          navigate(`/u/${encodeURIComponent(activeProfile.slug)}/edit`)
+                        }
+                      >
+                        Edit public profile site
+                      </Button>
+                    ) : null}
+                    {activeProfile?.slug &&
+                    privacy.profileVisibility === "public" &&
+                    publicProfileStatus === "published" ? (
+                      <Button
+                        type="button"
+                        className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                        onClick={() =>
+                          window.open(publicProfileUrl, "_blank", "noopener,noreferrer")
+                        }
+                      >
+                        View public profile
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div
+                  data-testid="settings-privacy-row-show-in-search"
+                  className="flex flex-col gap-3 p-4 bg-tsBg rounded-xl border border-white/10 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-4">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Globe className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-white font-medium">Show in Search Results</p>
+                      <p className="text-white/60 text-sm">
+                        Allow others to find you through search
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="self-end sm:self-auto shrink-0"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <Switch
+                      data-testid="settings-privacy-switch-show-in-search"
+                      checked={privacy.showInSearch}
+                      onCheckedChange={(checked) =>
+                        setPrivacy((prev) => ({ ...prev, showInSearch: checked }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3 p-4 bg-tsBg rounded-xl border border-white/10">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Mail className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <Label className="text-white font-medium">Who can contact you?</Label>
+                      <p className="text-white/60 text-sm">Choose who can send you messages</p>
+                    </div>
+                  </div>
+                  <Select
+                    value={privacy.contactPolicy}
+                    onValueChange={(value) =>
+                      setPrivacy((prev) => ({ ...prev, contactPolicy: value }))
+                    }
+                  >
+                    <SelectTrigger
+                      data-testid="settings-privacy-contact-policy"
+                      className="relative z-10 bg-tsCard border-white/10 text-white h-11"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-tsCard border-white/10">
+                      <SelectItem value="everyone">Everyone</SelectItem>
+                      <SelectItem value="verified">Verified users only</SelectItem>
+                      <SelectItem value="contractors">Contractors only</SelectItem>
+                      <SelectItem value="none">No one</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    data-testid="settings-privacy-save"
+                    onClick={() => updatePrivacyMutation.mutate(privacy)}
+                    disabled={updatePrivacyMutation.isPending}
+                    className="bg-ts-orange hover:bg-ts-orange-dark text-white px-8 shadow-lg"
+                  >
+                    {updatePrivacyMutation.isPending ? "Saving…" : "Save Privacy"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Security Settings */}
+          <TabsContent value="security">
+            <Card className="bg-tsCard border-white/10 shadow-xl">
+              <CardHeader className="border-b border-white/10 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-ts-orange" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-white">Security Settings</CardTitle>
+                    <p className="text-sm text-white/60 mt-1">
+                      Manage your password and account security
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div className="p-6 bg-tsBg rounded-xl border border-white/10">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                      <Lock className="w-5 h-5 text-ts-orange" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-semibold">Change Password</h3>
+                      <p className="text-sm text-white/60">Update your account password</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-white font-medium">Current Password</Label>
+                      <Input
+                        type="password"
+                        data-testid="settings-security-current-password"
+                        placeholder="Enter current password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) =>
+                          setPasswordForm((prev) => ({
+                            ...prev,
+                            currentPassword: e.target.value,
+                          }))
+                        }
+                        className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white font-medium">New Password</Label>
+                      <Input
+                        type="password"
+                        data-testid="settings-security-new-password"
+                        placeholder="Enter new password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) =>
+                          setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                        }
+                        className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-white font-medium">Confirm New Password</Label>
+                      <Input
+                        type="password"
+                        data-testid="settings-security-confirm-password"
+                        placeholder="Confirm new password"
+                        value={passwordForm.confirmNewPassword}
+                        onChange={(e) =>
+                          setPasswordForm((prev) => ({
+                            ...prev,
+                            confirmNewPassword: e.target.value,
+                          }))
+                        }
+                        className="bg-tsCard border-white/10 text-white h-11 focus:border-ts-orange/30 transition-colors"
+                      />
+                    </div>
+                    <Button
+                      data-testid="settings-security-update-password"
+                      className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full mt-2 shadow-lg"
+                      disabled={
+                        changePasswordMutation.isPending ||
+                        !passwordForm.currentPassword ||
+                        !passwordForm.newPassword ||
+                        passwordForm.newPassword !== passwordForm.confirmNewPassword
+                      }
+                      onClick={() => {
+                        if (passwordForm.newPassword !== passwordForm.confirmNewPassword) {
+                          toast({
+                            title: "Error",
+                            description: "New passwords do not match.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        changePasswordMutation.mutate();
+                      }}
+                    >
+                      {changePasswordMutation.isPending ? "Updating…" : "Update Password"}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-6 bg-tsBg rounded-xl border border-white/10">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-ts-orange/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Shield className="w-6 h-6 text-ts-orange" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold">Two-Factor Authentication</p>
+                      <p className="text-white/60 text-sm">
+                        Add an extra layer of security to your account
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    data-testid="settings-security-toggle-2fa"
+                    className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white px-6"
+                    onClick={() => {
+                      const nextPrivacy = {
+                        ...privacy,
+                        twoFactorEnabled: !privacy.twoFactorEnabled,
+                      };
+                      setPrivacy(nextPrivacy);
+                      updatePrivacyMutation.mutate(nextPrivacy);
+                    }}
+                  >
+                    {privacy.twoFactorEnabled ? "Disable 2FA" : "Enable 2FA"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Financial Tools List */}
+          <TabsContent value="tools">
+            <Card className="bg-tsCard border-white/10 shadow-xl">
+              <CardHeader className="border-b border-white/10 pb-6">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-ts-orange/20 rounded-lg flex items-center justify-center">
+                    <Wrench className="w-5 h-5 text-ts-orange" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-white">Financial Tools</CardTitle>
+                    <p className="text-sm text-white/60 mt-1">
+                      Quick access to calculators and helpers for your finances.
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6 pt-6">
+                <div className="space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-lg mb-1">Finance Workspace</h3>
+                      <p className="text-sm text-white/60 mb-2">
+                        Access invoices, expenses, jobs, records, and reports from one place.
+                      </p>
+                      <a
+                        href="/finances"
+                        data-testid="settings-tools-open-finances"
+                        className="text-ts-orange underline hover:text-ts-orange text-sm"
+                      >
+                        Open Finance Workspace
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center md:gap-6">
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-lg mb-1">Estimate Calculator</h3>
+                      <p className="text-sm text-white/60 mb-2">
+                        Double-check your job estimates before sending.
+                      </p>
+                      <a
+                        href="/quote-calculator"
+                        data-testid="settings-tools-open-quote-calculator"
+                        className="text-ts-orange underline hover:text-ts-orange text-sm"
+                      >
+                        Open Quote Calculator
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        <NotificationPreferencesDialog
+          open={advancedNotificationPrefsOpen}
+          onOpenChange={setAdvancedNotificationPrefsOpen}
+        />
       </Section>
     </Page>
   );

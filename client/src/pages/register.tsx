@@ -162,7 +162,7 @@ export default function Register() {
         description: "Welcome to TradeScout! Next, set up your profile and colors.",
       });
       // New accounts should land on profile setup, same as first-time social logins
-      navigate("/profile-settings?onboarding=1");
+      navigate("/settings?tab=profile&onboarding=1");
     },
     onError: (error: any) => {
       toast({

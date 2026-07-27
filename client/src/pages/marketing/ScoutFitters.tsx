@@ -829,7 +829,7 @@ export default function ScoutFitters() {
             <Share2 className="h-4 w-4 mr-2" />
             {sharing ? "Sharing..." : "Share"}
           </Button>
-          <Button variant="outline" onClick={() => navigate("/profile-settings")}>
+          <Button variant="outline" onClick={() => navigate("/settings?tab=profile")}>
             Profile settings
           </Button>
           <Button

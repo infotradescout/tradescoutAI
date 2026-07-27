@@ -234,7 +234,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
                   </p>
                 )}
                 <div className="pt-3 flex flex-wrap gap-2 thumb-action-row">
-                  <Link href="/profile-settings">
+                  <Link href="/settings?tab=profile">
                     <Button variant="outline" size="sm" className="h-8 text-xs">
                       Update profile & roles
                     </Button>

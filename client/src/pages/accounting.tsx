@@ -463,31 +463,31 @@ export default function AccountingWorkspace() {
       label: "Unpaid invoices",
       count: openInvoices.length,
       detail: "Collect or record payment after review",
-      to: "/finances/invoices",
+      to: "/finances#finances-invoices",
     },
     {
       label: "Draft invoices",
       count: draftInvoices.length,
       detail: "Review before sending",
-      to: "/finances/invoices",
+      to: "/finances#finances-invoices",
     },
     {
       label: "Expenses missing details",
       count: expensesMissingDetails.length,
       detail: "Add vendor, category, or job link",
-      to: "/finances/expenses",
+      to: "/finances#finances-expenses",
     },
     {
       label: "Expense-only jobs",
       count: expenseOnlyJobIds.length,
       detail: "Costs exist without a linked invoice",
-      to: "/finances/jobs",
+      to: "/finances#finances-jobs",
     },
     {
       label: "Automation proposals",
       count: booksFoundation?.counts.proposedAutomation ?? 0,
       detail: "Hiring and Scout events waiting for accounting review",
-      to: "/finances/records",
+      to: "/finances#finances-records",
     },
   ];
 
@@ -751,59 +751,11 @@ export default function AccountingWorkspace() {
   const handleNavClick = (key: string, targetId: string) => {
     setActiveNav(key);
 
-    // All key flows now get their own dedicated routes
     if (key === "dashboard") {
       navigate("/finances");
       return;
     }
-    if (key === "clients") {
-      navigate("/finances/clients");
-      return;
-    }
-    if (key === "materials") {
-      navigate("/finances/materials");
-      return;
-    }
-    if (key === "estimates") {
-      navigate("/finances/estimates");
-      return;
-    }
-    if (key === "jobs") {
-      navigate("/finances/jobs");
-      return;
-    }
-    if (key === "invoices") {
-      navigate("/finances/invoices");
-      return;
-    }
-    if (key === "employees") {
-      navigate("/finances/employees");
-      return;
-    }
-    if (key === "payroll") {
-      navigate("/finances/payroll");
-      return;
-    }
-    if (key === "expenses") {
-      navigate("/finances/expenses");
-      return;
-    }
-    if (key === "vendors") {
-      navigate("/finances/vendors");
-      return;
-    }
-    if (key === "bank-accounts") {
-      navigate("/finances/bank-accounts");
-      return;
-    }
-    if (key === "reports") {
-      navigate("/finances/reports");
-      return;
-    }
-    if (key === "settings") {
-      navigate("/finances/settings");
-      return;
-    }
+    navigate(`/finances#${targetId}`);
   };
 
   // Support deep-linking into a specific job via ?jobId= or ?projectId=
@@ -894,7 +846,7 @@ export default function AccountingWorkspace() {
                 variant="default"
                 size="sm"
                 className="h-8 px-3 text-[11px]"
-                onClick={() => navigate("/finances/invoices")}
+                onClick={() => navigate("/finances#finances-invoices")}
               >
                 New invoice
               </Button>
@@ -922,7 +874,7 @@ export default function AccountingWorkspace() {
                     <Button
                       size="sm"
                       className="h-8 px-3 text-[11px]"
-                      onClick={() => navigate("/finances/records")}
+                      onClick={() => navigate("/finances#finances-records")}
                     >
                       Open records
                     </Button>
@@ -930,7 +882,7 @@ export default function AccountingWorkspace() {
                       size="sm"
                       variant="outline"
                       className="h-8 px-3 border-white/15 text-[11px] text-white/75"
-                      onClick={() => navigate("/finances/reports")}
+                      onClick={() => navigate("/finances#finances-reports")}
                     >
                       Open reports
                     </Button>
@@ -938,7 +890,7 @@ export default function AccountingWorkspace() {
                       size="sm"
                       variant="outline"
                       className="h-8 px-3 border-white/15 text-[11px] text-white/75"
-                      onClick={() => navigate("/finances/jobs")}
+                      onClick={() => navigate("/finances#finances-jobs")}
                     >
                       Review jobs
                     </Button>

@@ -91,7 +91,9 @@ export default function ScoutToolsDrawer({
           </p>
           <button
             type="button"
-            onClick={() => openOrNavigate({ title: "Profile settings", url: "/profile-settings" })}
+            onClick={() =>
+              openOrNavigate({ title: "Profile settings", url: "/settings?tab=profile" })
+            }
             className="w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left"
             style={{
               border: "1px solid var(--theme-border-secondary)",

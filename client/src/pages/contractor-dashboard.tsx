@@ -80,7 +80,7 @@ export default function ContractorDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
-              <Button className="w-full" onClick={() => setLocation("/finances/invoices")}>
+              <Button className="w-full" onClick={() => setLocation("/finances")}>
                 Open invoices
               </Button>
             </CardContent>

@@ -279,7 +279,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
             destination === "/project-tracker" ||
             destination === "/finances")
         ) {
-          destination = `/finances/jobs?jobId=${encodeURIComponent(jobId)}`;
+          destination = `/finances?jobId=${encodeURIComponent(jobId)}`;
         }
         helpers.navigate(destination);
       }

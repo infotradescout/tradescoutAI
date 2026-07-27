@@ -353,13 +353,13 @@ export default function ProfilePage() {
                 </div>
 
                 <Button
-                  onClick={() => setLocation("/profile-settings")}
+                  onClick={() => setLocation("/settings?tab=profile")}
                   variant="outline"
                   className="border hover:text-white"
                   style={{ borderColor: "var(--user-primary)", color: "var(--user-primary)" }}
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  Edit Profile
+                  Edit profile settings
                 </Button>
               </div>
 
@@ -551,7 +551,7 @@ export default function ProfilePage() {
                   </div>
                   <Button
                     className="w-full mt-4 bg-ts-orange text-white hover:bg-ts-orange/90"
-                    onClick={() => setLocation("/profile-settings")}
+                    onClick={() => setLocation("/settings?tab=profile")}
                   >
                     Customize Settings
                   </Button>

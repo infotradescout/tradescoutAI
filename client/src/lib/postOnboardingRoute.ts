@@ -86,7 +86,7 @@ const BUSINESS_MODULE_ROUTE: Record<BusinessOnboardingModuleId, string> = {
   service_catalog: "/offer-services#fixed-price-offers",
   coverage_availability: "/settings?tab=profile",
   trust_verification: "/identity-verification",
-  operations_payout: "/finances/records",
+  operations_payout: "/finances",
 };
 const BUSINESS_MODULE_ALLOWED_PREFIXES: Record<BusinessOnboardingModuleId, string[]> = {
   identity_profile: ["/profile", "/settings"],

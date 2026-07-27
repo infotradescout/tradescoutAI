@@ -41,7 +41,7 @@ export function resolvePostOnboardingActions(
     actions.push({
       id: "review_finance_records",
       label: "Review finance records",
-      destination: "/finances/records",
+      destination: "/finances",
     });
     if (profileSlug) {
       actions.push({

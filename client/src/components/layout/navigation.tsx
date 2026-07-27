@@ -631,7 +631,7 @@ export default function Navigation() {
                           </Button>
                         </Link>
 
-                        <Link href="/profile-settings" onClick={closeMobileMenu}>
+                        <Link href="/settings?tab=profile" onClick={closeMobileMenu}>
                           <Button
                             variant="outline"
                             className="w-full justify-start border text-white/70 hover:bg-tsBg/60 hover:text-white"

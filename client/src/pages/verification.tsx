@@ -211,7 +211,7 @@ const Verification = memo(function Verification() {
           </CardHeader>
           <CardContent className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/profile-settings">Update profile details</Link>
+              <Link href="/settings?tab=profile">Update profile details</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href="/address-verification">Complete address verification</Link>

@@ -2,22 +2,17 @@ import { useMemo } from "react";
 import { Link } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  BarChart3,
   BriefcaseBusiness,
   CalendarCheck,
   CheckCircle2,
   CircleDollarSign,
-  ClipboardList,
   Eye,
-  FileText,
   Globe2,
   Inbox,
   MessageSquare,
   PackageCheck,
   Pencil,
-  ReceiptText,
   Store,
-  Users,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -250,7 +245,7 @@ export default function BusinessOwnerDashboard() {
           ? "Unavailable"
           : String(activeJobs.length),
       icon: BriefcaseBusiness,
-      href: "/finances/jobs",
+      href: "/finances",
     },
     {
       label: "Outstanding invoices",
@@ -260,20 +255,15 @@ export default function BusinessOwnerDashboard() {
           ? "Unavailable"
           : formatCurrency(accountingQuery.data?.lifetime?.unpaidAmount ?? 0),
       icon: CircleDollarSign,
-      href: "/finances/invoices",
+      href: "/finances",
     },
   ];
 
   const tools = [
     { label: "Direct Connect inbox", href: "/direct-connect/inbox", icon: Inbox },
     { label: "Messages", href: "/messages", icon: MessageSquare },
-    { label: "Clients", href: "/finances/clients", icon: Users },
-    { label: "Jobs", href: "/finances/jobs", icon: BriefcaseBusiness },
-    { label: "Estimates", href: "/finances/estimates", icon: ClipboardList },
-    { label: "Invoices", href: "/finances/invoices", icon: ReceiptText },
-    { label: "Books & records", href: "/finances/records", icon: FileText },
+    { label: "Finance workspace", href: "/finances", icon: CircleDollarSign },
     { label: "Services & items", href: "/offer-services", icon: PackageCheck },
-    { label: "Reports", href: "/finances/reports", icon: BarChart3 },
   ];
 
   return (
@@ -466,7 +456,7 @@ export default function BusinessOwnerDashboard() {
                 </p>
               </div>
               <Button asChild size="sm" variant="outline" className="border-white/15 text-white">
-                <Link href="/finances/jobs">Open jobs</Link>
+                <Link href="/finances">Open finance workspace</Link>
               </Button>
             </CardHeader>
             <CardContent className="space-y-2">
@@ -481,14 +471,14 @@ export default function BusinessOwnerDashboard() {
                   <BriefcaseBusiness className="mx-auto h-7 w-7 text-white/35" />
                   <p className="mt-2 text-sm font-medium text-white">No jobs recorded yet</p>
                   <Button asChild className="mt-4 bg-ts-orange text-white hover:bg-ts-orange-dark">
-                    <Link href="/finances/estimates">Create an estimate</Link>
+                    <Link href="/finances">Create an estimate</Link>
                   </Button>
                 </div>
               ) : (
                 recentJobs.map((job) => (
                   <Link
                     key={job.jobId}
-                    href="/finances/jobs"
+                    href="/finances"
                     className="flex items-center justify-between gap-4 rounded-lg border border-white/10 bg-black/15 p-3 hover:border-ts-orange/30"
                   >
                     <div className="min-w-0">

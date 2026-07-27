@@ -133,7 +133,7 @@ export const COMPATIBILITY_REDIRECTS = [
   { from: "/admin-users", to: "/admin/users", access: "admin", slot: "standard" },
   { from: "/admin-panel", to: "/admin/panel", access: "admin", slot: "standard" },
 
-  { from: "/settings/profile", to: "/profile-settings", access: "public", slot: "standard" },
+  { from: "/settings/profile", to: "/settings?tab=profile", access: "public", slot: "standard" },
   {
     from: "/settings/location",
     to: "/settings?tab=profile",
@@ -141,6 +141,7 @@ export const COMPATIBILITY_REDIRECTS = [
     slot: "standard",
   },
   { from: "/contractor-profile", to: "/contractors", access: "public", slot: "standard" },
+  { from: "/profile-settings", to: "/settings?tab=profile", access: "public", slot: "standard" },
   { from: "/payments/history", to: "/payment-history", access: "public", slot: "standard" },
   { from: "/saved", to: "/saved-ads", access: "protected", slot: "standard" },
   {

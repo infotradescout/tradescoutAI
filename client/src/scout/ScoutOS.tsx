@@ -4040,7 +4040,7 @@ export default function ScoutOS() {
                       }}
                       onEdit={() => {
                         onboarding.resetFlow();
-                        navigate("/profile-settings");
+                        navigate("/settings?tab=profile");
                       }}
                     />
                   </div>

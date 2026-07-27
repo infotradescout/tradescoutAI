@@ -35,7 +35,6 @@ export function resolveProfileCompletionBannerMode(params: {
     path.startsWith("/onboarding/profile") ||
     path.startsWith("/onboarding/intent") ||
     path.startsWith("/offer-services") ||
-    path.startsWith("/profile-settings") ||
     path.startsWith("/settings") ||
     path.startsWith("/profile") ||
     path.startsWith("/profile-setup") ||
@@ -141,7 +140,7 @@ export default function ProfileCompletionBanner() {
       description:
         "Verification keeps live profile readiness separate from simply filling out fields.",
       cta: "Review verification",
-      onClick: () => setLocation("/profile-settings"),
+      onClick: () => setLocation("/settings?tab=profile"),
     },
     business_setup: {
       icon: Building2,

@@ -1,7 +1,6 @@
 import type { ScoutAction } from "./state";
 
 export const SCOUT_WORK_AREA_PREFIXES = [
-  "/profile-settings",
   "/settings",
   "/notifications",
   "/utilities/supply-run",
@@ -29,7 +28,6 @@ export function canOpenScoutWorkArea(to: string | null | undefined): boolean {
 export function titleFromScoutWorkAreaUrl(url: string): string {
   if (!url) return "Page";
   const path = url.split("?")[0] || url;
-  if (path.startsWith("/profile-settings")) return "Profile & settings";
   if (path.startsWith("/settings")) return "Settings";
   if (path.startsWith("/notifications")) return "Notifications";
   if (path.startsWith("/utilities/supply-run")) return "Supply Run";

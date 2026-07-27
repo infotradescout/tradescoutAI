@@ -148,7 +148,7 @@ const AppLayout = memo(function AppLayout() {
     ) {
       entryRoute = "register";
     } else if (
-      currentPath.startsWith("/profile-settings") &&
+      currentPath.startsWith("/settings") &&
       window.location.search.includes("onboarding=1")
     ) {
       entryRoute = "oauth";

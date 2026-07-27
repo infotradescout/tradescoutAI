@@ -687,10 +687,7 @@ export function buildScoutExperienceClusters(args: {
       actions: takeActions(
         [
           { type: "NAVIGATE", label: "Open finance tools", to: "/finances", primary: true },
-          { type: "NAVIGATE", label: "Invoices", to: "/finances/invoices" },
-          { type: "NAVIGATE", label: "Expenses", to: "/finances/expenses" },
-          { type: "NAVIGATE", label: "Records", to: "/finances/records" },
-          { type: "NAVIGATE", label: "Reports", to: "/finances/reports" },
+          { type: "NAVIGATE", label: "Open finance workspace", to: "/finances" },
         ],
         actionBudget
       ),
@@ -786,7 +783,7 @@ export function buildScoutExperienceClusters(args: {
       ],
       actions: takeActions(
         [
-          { type: "NAVIGATE", label: "Open materials view", to: "/finances/materials" },
+          { type: "NAVIGATE", label: "Open materials view", to: "/finances" },
           { type: "NAVIGATE", label: "See nearby activity", to: "/community" },
           askScout(
             "Check price factors",

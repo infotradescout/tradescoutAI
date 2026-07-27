@@ -377,7 +377,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isScoutSurface = location === "/" || location.startsWith("/scout");
   const isSettingsSurface =
     location.startsWith("/settings") ||
-    location.startsWith("/profile-settings") ||
     location.startsWith("/dashboard-settings") ||
     location.startsWith("/notifications") ||
     location.startsWith("/privacy") ||
@@ -1394,7 +1393,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     label: "Profile",
                   })}
                   {renderMobileDrawerAction({
-                    href: "/profile-settings",
+                    href: "/settings?tab=profile",
                     icon: <UserCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
                     label: "Profile settings",
                   })}

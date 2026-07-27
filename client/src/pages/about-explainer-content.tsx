@@ -19,7 +19,6 @@ const routes = {
   recommendations: `${productUrl}/recommendations`,
   homeId: `${productUrl}/homeowner-dashboard`,
   finances: `${productUrl}/finances`,
-  invoices: `${productUrl}/finances/invoices`,
   wallet: `${productUrl}/wallet`,
   supplyRun: `${productUrl}/utilities/supply-run`,
   scoutFitters: `${productUrl}/marketing/scoutfitters`,
@@ -375,7 +374,7 @@ const featureGroups = [
         action: "Create estimates and invoices",
         name: "Invoicing",
         copy: "Prepare customer documents and keep payment progress connected to the work.",
-        href: routes.invoices,
+        href: routes.finances,
       },
       {
         action: "Manage relationships and follow-ups",

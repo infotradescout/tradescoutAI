@@ -1384,7 +1384,7 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/profile-settings">
                 <ProtectedRoute>
-                  <LazyPage Component={ProfileSettings} />
+                  <RedirectTo to="/settings?tab=profile" />
                 </ProtectedRoute>
               </Route>
               <Route path="/help">
@@ -1435,7 +1435,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/crm">
-                <RedirectTo to="/finances/clients" />
+                <RedirectTo to="/finances" />
               </Route>
               <Route path="/marketing/scoutfitters">
                 <ProtectedRoute>
@@ -1514,9 +1514,7 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/accounting">
-                <ProtectedRoute>
-                  <LazyPage Component={Accounting} />
-                </ProtectedRoute>
+                <RedirectTo to="/finances" />
               </Route>
               <Route path="/project-tracker">
                 <LazyPage Component={ProjectTracker} />

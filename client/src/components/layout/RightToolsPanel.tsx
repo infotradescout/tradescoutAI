@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import {
   User,
   Users,
-  Settings,
   MessageCircle,
   Bookmark,
   ClipboardList,
@@ -14,7 +13,6 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
-  FileText,
   Wallet,
   ArrowUpRight,
 } from "lucide-react";
@@ -242,7 +240,7 @@ export function RightToolsPanel({
             onNavigate={handleNavigate}
           />
           <NavLink
-            href="/profile-settings"
+            href="/settings?tab=profile"
             icon={<Shield className="h-3.5 w-3.5" />}
             label="Profile settings"
             description="Theme, sections, booking, and visibility"
@@ -252,40 +250,12 @@ export function RightToolsPanel({
 
         <Divider />
 
-        <PanelSection label="Finance Controls">
+        <PanelSection label="Finance">
           <NavLink
-            href="/finances/invoices"
-            icon={<FileText className="h-3.5 w-3.5" />}
-            label="Invoices"
-            description="Create, send, and track invoice status"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/finances/expenses"
+            href="/finances"
             icon={<Wallet className="h-3.5 w-3.5" />}
-            label="Expenses"
-            description="Track operating costs and receipts"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/finances/reports"
-            icon={<BarChart3 className="h-3.5 w-3.5" />}
-            label="Reports"
-            description="Review trends and financial performance"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/finances/records"
-            icon={<ClipboardList className="h-3.5 w-3.5" />}
-            label="Records"
-            description="Audit-ready timeline of financial activity"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
-            href="/finances/settings"
-            icon={<Settings className="h-3.5 w-3.5" />}
-            label="Finance settings"
-            description="Controls for finance behavior and defaults"
+            label="Finances"
+            description="Overview, invoices, expenses, jobs, and reports"
             onNavigate={handleNavigate}
           />
         </PanelSection>
@@ -301,13 +271,6 @@ export function RightToolsPanel({
             onNavigate={handleNavigate}
           />
           <NavLink
-            href="/crm"
-            icon={<Users className="h-3.5 w-3.5" />}
-            label="CRM"
-            description="Manage contacts, deals, and follow-ups"
-            onNavigate={handleNavigate}
-          />
-          <NavLink
             href="/analytics"
             icon={<BarChart3 className="h-3.5 w-3.5" />}
             label="Analytics"
@@ -320,13 +283,6 @@ export function RightToolsPanel({
 
         {/* Shortcuts */}
         <PanelSection label="Shortcuts">
-          <NavLink
-            href="/finances"
-            icon={<ClipboardList className="h-3.5 w-3.5" />}
-            label="Finances"
-            description="Invoices, job records, and deal workflow"
-            onNavigate={handleNavigate}
-          />
           <NavLink
             href="/hoa-dashboard"
             icon={<Building className="h-3.5 w-3.5" />}

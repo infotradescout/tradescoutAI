@@ -671,7 +671,7 @@ export default function OfferServicesPage() {
       label: "Books foundation",
       description: "Profile purchases flow into finance review before posting or payment actions.",
       done: hasFinanceFoundation,
-      href: "/finances/records",
+      href: "/finances",
       icon: WalletCards,
     },
   ];
@@ -1298,7 +1298,7 @@ export default function OfferServicesPage() {
                             size="sm"
                             variant="ghost"
                             className="mt-1 h-7 px-2 text-xs text-white/60 hover:text-white"
-                            onClick={() => navigate("/finances/records")}
+                            onClick={() => navigate("/finances")}
                           >
                             Review books
                           </Button>

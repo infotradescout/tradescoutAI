@@ -114,8 +114,8 @@ const ALTERNATE_PATHS: Record<
   },
   PUBLISH_PUBLIC_PROFILE: {
     label: "Keep profile private",
-    why: "Still accessible via direct link; you can share with clients directly",
-    path: "/settings/profile",
+    why: "Keep profile private while finishing setup",
+    path: "/settings?tab=profile",
   },
 };
 

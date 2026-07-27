@@ -190,7 +190,7 @@ export default function ClaimMyBusinessPage() {
       if (result?.profileSlug) {
         navigate(`/u/${encodeURIComponent(String(result.profileSlug))}/edit`);
       } else {
-        navigate("/profile-settings");
+        navigate("/settings?tab=profile");
       }
     } catch (e: any) {
       const code = String(e?.code || "");

@@ -81,12 +81,12 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Finance tools and bookkeeping");
     expect(experienceSource).toContain("/homescout-listings");
     expect(experienceSource).toContain("/foundation");
-    expect(experienceSource).toContain("/finances/records");
+    expect(experienceSource).toContain("/finances");
     expect(experienceSource).toContain("bookkeeping system still needs rebuild work");
     expect(experienceSource).toContain("supplierUrl=");
     expect(experienceSource).toContain("Supplier page read");
     expect(experienceSource).toContain("Supplier page needs review");
-    expect(experienceSource).toContain("/finances/materials");
+    expect(experienceSource).toContain("/finances");
     expect(experienceSource).toContain("Review before anything is sent");
     expect(experienceSource).toContain("Right details only");
     expect(experienceSource).toContain("Exchange activity");
