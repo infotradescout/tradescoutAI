@@ -29,7 +29,9 @@ if (!testDatabaseUrl) {
 // pass of network round-trips against Neon for no behavior change -- so
 // callers that know they're redundant (see release-gates.yml) can opt out.
 if (process.env.SKIP_TEST_DB_BOOTSTRAP === "true") {
-  console.log("[bootstrap-test-db] SKIP_TEST_DB_BOOTSTRAP=true; a prior step already bootstrapped this DB. Skipping.");
+  console.log(
+    "[bootstrap-test-db] SKIP_TEST_DB_BOOTSTRAP=true; a prior step already bootstrapped this DB. Skipping."
+  );
   process.exit(0);
 }
 
@@ -181,6 +183,56 @@ async function ensureCriticalSchema() {
       "contractor_promos",
       "ALTER TABLE contractor_promos ADD COLUMN IF NOT EXISTS project_request_count integer DEFAULT 0"
     );
+
+    // Persistent auth action tokens are exercised by registration, account
+    // provisioning, password reset, and email verification release gates.
+    // Keep the lightweight test DB lane aligned with migration 0109.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS auth_action_tokens (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        purpose varchar(32) NOT NULL,
+        scope_key varchar(255),
+        token_hash varchar(64) NOT NULL,
+        code_hash varchar(64),
+        expires_at timestamptz NOT NULL,
+        consumed_at timestamptz,
+        revoked_at timestamptz,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT auth_action_tokens_purpose_check
+          CHECK (purpose IN ('password_reset', 'email_verification')),
+        CONSTRAINT auth_action_tokens_token_hash_check
+          CHECK (char_length(token_hash) = 64),
+        CONSTRAINT auth_action_tokens_code_hash_check
+          CHECK (code_hash IS NULL OR char_length(code_hash) = 64),
+        CONSTRAINT auth_action_tokens_expiry_check
+          CHECK (expires_at > created_at)
+      )
+    `);
+    await client.query(`
+      ALTER TABLE auth_action_tokens
+      ADD COLUMN IF NOT EXISTS scope_key varchar(255)
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS auth_action_tokens_token_hash_unique
+      ON auth_action_tokens(token_hash)
+    `);
+    await client.query(`
+      DROP INDEX IF EXISTS auth_action_tokens_one_active_per_user_purpose
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS auth_action_tokens_one_active_per_user_purpose
+      ON auth_action_tokens(user_id, purpose, COALESCE(scope_key, ''))
+      WHERE consumed_at IS NULL AND revoked_at IS NULL
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS auth_action_tokens_user_purpose_created_idx
+      ON auth_action_tokens(user_id, purpose, created_at DESC)
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS auth_action_tokens_expires_idx
+      ON auth_action_tokens(expires_at)
+    `);
 
     // HomeID base vault schema. This mirrors migration 0053 so browser/E2E
     // flows do not depend on optional full-sync pushes.
@@ -736,6 +788,17 @@ async function ensureCriticalSchema() {
     await client.query(`
       ALTER TABLE work_request_assignments
       ADD COLUMN IF NOT EXISTS response_summary jsonb
+    `);
+
+    await client.query(`
+      ALTER TABLE work_request_assignments
+      ADD COLUMN IF NOT EXISTS provider_key varchar(320)
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS work_request_assignments_request_provider_key_unique
+      ON work_request_assignments(work_request_id, provider_key)
+      WHERE provider_key IS NOT NULL
     `);
 
     await client.query(`

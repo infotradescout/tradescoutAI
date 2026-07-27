@@ -5,17 +5,26 @@ import { describe, expect, it } from "vitest";
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const read = (relativePath: string) => fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 
-function routeBlock(source: string, method: "get" | "put" | "post", route: string): string {
-  const marker = `app.${method}(\n    "${route}"`;
-  const start = source.indexOf(marker);
+function routeBlock(
+  source: string,
+  method: "get" | "put" | "post" | "patch",
+  route: string
+): string {
+  const markers = [`app.${method}(\n    "${route}"`, `app.${method}("${route}"`];
+  const start = markers.map((marker) => source.indexOf(marker)).find((index) => index >= 0) as
+    | number
+    | undefined;
   expect(start, `Missing ${method.toUpperCase()} route ${route}`).toBeGreaterThan(-1);
-  const end = source.indexOf("\n  app.", start + route.length);
-  return source.slice(start, end === -1 ? source.length : end);
+  const routeStart = start as number;
+  const end = source.indexOf("\n  app.", routeStart + route.length);
+  return source.slice(routeStart, end === -1 ? source.length : end);
 }
 
 describe("Direct Connect message continuity contract", () => {
   const routes = read("server/routes.ts");
   const authority = read("server/services/directConnectConversationAuthority.ts");
+  const messagingService = read("server/messaging-service.ts");
+  const messagingHook = read("client/src/hooks/useMessaging.ts");
   const storage = read("server/storage.ts");
 
   it("uses one exact accepted-event authority across every legacy message surface", () => {
@@ -27,6 +36,7 @@ describe("Direct Connect message continuity contract", () => {
       ["post", "/api/messages/threads/:threadId/messages"],
       ["get", "/api/conversations/:id"],
       ["get", "/api/conversations/:id/messages"],
+      ["post", "/api/conversations/:id/rate"],
     ] as const;
 
     for (const [method, route] of protectedRoutes) {
@@ -73,6 +83,11 @@ describe("Direct Connect message continuity contract", () => {
     expect(authority).toContain(
       "eq(workRequestAssignments.workRequestId, acceptedEvent.workRequestId)"
     );
+    expect(authority).toContain(
+      "const eventAssignmentId = normalizedId(acceptedEventMetadata.assignmentId)"
+    );
+    expect(authority).toContain("eq(workRequestAssignments.id, eventAssignmentId)");
+    expect(authority).not.toContain(".limit(50)");
     expect(authority).toContain("normalizedId(candidate.eventActorUserId) !== providerUserId");
   });
 
@@ -136,5 +151,106 @@ describe("Direct Connect message continuity contract", () => {
     expect(send).toContain("assignmentId: authority.assignmentId");
     expect(send).toContain("workRequestId: authority.workRequestId");
     expect(share).toContain('authority.conversationStatus !== "active"');
+  });
+
+  it("filters every participant message history surface to the authorized request", () => {
+    const threadList = routeBlock(routes, "get", "/api/messages/threads");
+    const threadRead = routeBlock(routes, "get", "/api/messages/threads/:threadId");
+    const markRead = routeBlock(routes, "put", "/api/messages/threads/:threadId/read");
+    const legacyMessages = routeBlock(routes, "get", "/api/conversations/:id/messages");
+
+    expect(authority).toContain("export function isDirectConnectMessageScopedToRequest");
+    for (const block of [threadList, threadRead, markRead, legacyMessages]) {
+      expect(block).toContain("isDirectConnectMessageScopedToRequest");
+    }
+  });
+
+  it("applies the same exact authority and request scope to websocket messaging", () => {
+    expect(messagingService).toContain("resolveDirectConnectConversationAuthority");
+    expect(messagingService).toContain("isAuthorizedDirectConnectConversationParticipant");
+    expect(messagingService).toContain("isDirectConnectMessageScopedToRequest");
+    expect(messagingService).toContain("workRequestId: authority.workRequestId");
+    expect(messagingService).toContain("assignmentId: authority.assignmentId");
+    expect(messagingService).not.toContain("metadata: JSON.stringify(interactionMetadata)");
+    expect(messagingService).toContain("sanitizeDirectConnectParticipantMessageMetadata");
+    expect(messagingService).toContain(
+      "sql`${messages.metadata} ->> 'workRequestId' = ${authority.workRequestId}`"
+    );
+    expect(messagingService).toContain(".orderBy(desc(messages.createdAt), desc(messages.id))");
+    expect(messagingService).toMatch(
+      /const newestMessageHistory = await db[\s\S]*?\.limit\(50\);[\s\S]*?const messageHistory = newestMessageHistory[\s\S]*?\.reverse\(\);/
+    );
+    expect(messagingService).not.toContain(".limit(100)");
+    expect(messagingService).not.toContain(".slice(-50)");
+  });
+
+  it("only lets the recipient atomically mark an unread scoped message as read", () => {
+    const markReadStart = messagingService.indexOf('socket.on("mark_read"');
+    const markReadEnd = messagingService.indexOf("// Typing indicator", markReadStart);
+    const markRead = messagingService.slice(markReadStart, markReadEnd);
+
+    expect(markReadStart).toBeGreaterThanOrEqual(0);
+    expect(markReadEnd).toBeGreaterThan(markReadStart);
+    expect(markRead).toContain("String(message.senderId) === userId");
+    expect(markRead).toContain("ne(messages.senderId, userId)");
+    expect(markRead).toContain("isNull(messages.readAt)");
+    expect(markRead).toContain(
+      "sql`${messages.metadata} ->> 'workRequestId' = ${authority.workRequestId}`"
+    );
+    expect(markRead).toContain(".returning({ id: messages.id })");
+    expect(markRead).toContain("alreadyRead: true");
+    expect(markRead).not.toContain(
+      "await db.update(messages).set({ readAt }).where(eq(messages.id, messageId))"
+    );
+  });
+
+  it("binds every quote and material-list read or mutation to exact conversation authority", () => {
+    const protectedArtifactRoutes = [
+      ["post", "/api/quotes"],
+      ["get", "/api/conversations/:id/quotes"],
+      ["put", "/api/quotes/:id"],
+      ["get", "/api/conversations/:id/material-lists"],
+      ["post", "/api/material-lists"],
+      ["post", "/api/material-lists/:id/suggestions"],
+      ["patch", "/api/material-lists/:id/items/:itemId/status"],
+    ] as const;
+
+    for (const [method, route] of protectedArtifactRoutes) {
+      const block = routeBlock(routes, method, route);
+      expect(block).toContain("resolveAuthorizedDirectConnectArtifactConversation");
+    }
+
+    const quoteCreate = routeBlock(routes, "post", "/api/quotes");
+    const quoteUpdate = routeBlock(routes, "put", "/api/quotes/:id");
+    const materialCreate = routeBlock(routes, "post", "/api/material-lists");
+    const suggestionCreate = routeBlock(routes, "post", "/api/material-lists/:id/suggestions");
+    const itemDecision = routeBlock(
+      routes,
+      "patch",
+      "/api/material-lists/:id/items/:itemId/status"
+    );
+
+    expect(quoteCreate).toContain("authority.providerUserId");
+    expect(quoteCreate).toContain("contractorId: authority.contractorId");
+    expect(quoteUpdate).toContain("storage.getQuote(req.params.id)");
+    expect(quoteUpdate).toContain("existingQuote.conversationId");
+    expect(quoteUpdate).not.toContain("storage.updateQuote(req.params.id, req.body)");
+    expect(materialCreate).toContain("conversationId: authority.conversation.id");
+    expect(materialCreate).toContain("contractorId: authority.contractorId");
+    expect(materialCreate).not.toContain("contractorId: req.body.contractorId");
+    expect(suggestionCreate).toContain("storage.getMaterialList(req.params.id)");
+    expect(suggestionCreate).toContain("id: randomUUID()");
+    expect(suggestionCreate).not.toContain("suggestedBy: req.body.suggestedBy");
+    expect(itemDecision).toContain("storage.getMaterialList(req.params.id)");
+    expect(itemDecision).toContain("COUNTERPART_DECISION_REQUIRED");
+  });
+
+  it("keeps background request rooms from contaminating the selected client thread", () => {
+    expect(messagingHook).toContain("currentConversationRef.current");
+    expect(messagingHook).toContain("message.conversationId === currentConversationRef.current");
+    expect(messagingHook).toContain("prev.some((existing) => existing.id === message.id)");
+    expect(messagingHook).toContain(
+      "if (currentConversationRef.current !== conversationId) return"
+    );
   });
 });

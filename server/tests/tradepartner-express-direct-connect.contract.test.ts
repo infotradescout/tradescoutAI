@@ -115,17 +115,38 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("creates a provisional member and invites logged-out callers to join", () => {
     const route = read("server/routes/tradepartner-express.ts");
+    const notifications = read("server/notification-service.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
     expect(route).toContain('provider: "express_profile"');
     expect(route).toContain("onboardingCompleted: false");
-    expect(route).toContain("passwordResetService.createToken");
-    expect(route).toContain("emailVerificationService.createToken");
+    expect(route).toContain("enqueueDirectConnectAccountSetupEmail");
+    expect(route).not.toContain("passwordResetService.createToken");
+    expect(route).not.toContain("emailVerificationService.createToken");
+    expect(route).not.toContain("emailService.sendEmail");
+    expect(notifications).toContain("renderNotificationEmailPayloadForAttempt");
+    expect(notifications).toContain("credentialIssuer.createPasswordResetToken(");
+    expect(notifications).toContain("credentialIssuer.createEmailVerificationToken(");
+    expect(notifications).toContain("normalizedDeliveryIntentId");
     expect(route).toContain("existing_account_match_unverified");
     expect(panel).toContain("Keep this connection organized.");
     expect(panel).toContain("Manage this in TradeScout");
     expect(panel).toContain("Finish setup and manage this request");
     expect(panel).toContain("Manage my request");
     expect(panel).toContain("job notes, replies");
+  });
+
+  it("retries setup for an existing provisional requester from durable account state", () => {
+    const route = read("server/routes/tradepartner-express.ts");
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+
+    expect(route).toContain("const requesterNeedsSetup =");
+    expect(route).toContain('typeof requester.password !== "string"');
+    expect(route).toContain("requester.emailVerified !== true");
+    expect(route).toContain("const requesterNotification = requesterNeedsSetup");
+    expect(route).toContain("emailPurpose: requesterNeedsSetup");
+    expect(route).toContain("const onboardingPath = requesterNeedsSetup");
+    expect(route).toContain("accountNeedsSetup: requesterNeedsSetup");
+    expect(panel).toContain("json?.accountNeedsSetup === true || json?.accountCreated === true");
   });
 });

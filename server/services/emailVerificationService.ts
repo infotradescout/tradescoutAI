@@ -1,42 +1,74 @@
-import { randomBytes, createHash } from "crypto";
+import {
+  authActionTokenService,
+  EMAIL_VERIFICATION_TTL_BOUNDS,
+  resolveBoundedTtlMs,
+  type AuthActionTokenService,
+} from "./authActionTokenService";
 
-interface TokenRecord {
-  userId: string;
-  expiresAt: number;
+export class EmailVerificationService {
+  constructor(private readonly tokenStore: AuthActionTokenService) {}
+
+  async createToken(userId: string): Promise<{ token: string; expiresAt: number }> {
+    const issued = await this.tokenStore.issue({
+      userId,
+      purpose: "email_verification",
+      ttlMs: resolveBoundedTtlMs(
+        process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES,
+        EMAIL_VERIFICATION_TTL_BOUNDS
+      ),
+    });
+    return {
+      token: issued.token,
+      expiresAt: issued.expiresAt.getTime(),
+    };
+  }
+
+  async createScopedToken(
+    userId: string,
+    scopeKey: string
+  ): Promise<{ token: string; expiresAt: number }> {
+    const issued = await this.tokenStore.issueStableScoped({
+      userId,
+      purpose: "email_verification",
+      scopeKey,
+      ttlMs: EMAIL_VERIFICATION_TTL_BOUNDS.maxMinutes * 60 * 1000,
+    });
+    return {
+      token: issued.token,
+      expiresAt: issued.expiresAt.getTime(),
+    };
+  }
+
+  async consumeToken(token: string): Promise<string | null> {
+    return await this.tokenStore.consumeToken("email_verification", token);
+  }
+
+  async verifyEmail(token: string): Promise<string | null> {
+    return await this.tokenStore.consumeTokenWithMutation(
+      "email_verification",
+      token,
+      async (client, userId, consumedAt) => {
+        const result = await client.query(
+          `
+            UPDATE users
+            SET email_verified = TRUE,
+                updated_at = $2
+            WHERE id = $1
+            RETURNING id
+          `,
+          [userId, consumedAt]
+        );
+        if (Number(result.rowCount || result.rows?.length || 0) !== 1) {
+          throw new Error("Email verification user update did not affect exactly one user.");
+        }
+        return userId;
+      }
+    );
+  }
+
+  async revokeActive(userId: string): Promise<number> {
+    return await this.tokenStore.revokeActive(userId, "email_verification");
+  }
 }
 
-class EmailVerificationService {
-  private tokens = new Map<string, TokenRecord>();
-  private ttlMs: number;
-
-  constructor() {
-    const minutes = Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES) || 60 * 24;
-    this.ttlMs = minutes * 60 * 1000;
-  }
-
-  private hashToken(token: string): string {
-    return createHash("sha256").update(token).digest("hex");
-  }
-
-  createToken(userId: string): { token: string; expiresAt: number } {
-    const token = randomBytes(32).toString("hex");
-    const hashed = this.hashToken(token);
-    const expiresAt = Date.now() + this.ttlMs;
-    this.tokens.set(hashed, { userId, expiresAt });
-    return { token, expiresAt };
-  }
-
-  consumeToken(token: string): string | null {
-    const hashed = this.hashToken(token);
-    const record = this.tokens.get(hashed);
-    if (!record) return null;
-    if (Date.now() > record.expiresAt) {
-      this.tokens.delete(hashed);
-      return null;
-    }
-    this.tokens.delete(hashed);
-    return record.userId;
-  }
-}
-
-export const emailVerificationService = new EmailVerificationService();
+export const emailVerificationService = new EmailVerificationService(authActionTokenService);

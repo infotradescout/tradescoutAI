@@ -82,7 +82,7 @@ describe("dispatch sheet — candidate name rendering", () => {
 describe("route endpoint — direct-pick resolves business IDs", () => {
   // Find the isDirectToProviders block in the route endpoint
   const routeEndpointIdx = DC_ROUTES.indexOf("/api/direct-connect/requests/:id/route");
-  const routeBlock = DC_ROUTES.slice(routeEndpointIdx, routeEndpointIdx + 12000);
+  const routeBlock = DC_ROUTES.slice(routeEndpointIdx, routeEndpointIdx + 16000);
 
   it("resolves potential business IDs not found in contractors table", () => {
     expect(routeBlock).toContain("potentialBusinessIds");
@@ -101,13 +101,20 @@ describe("route endpoint — direct-pick resolves business IDs", () => {
     expect(routeBlock).toContain("responderUserId: biz.ownerUserId!");
   });
 
-  it("deduplicates business assignments by responderUserId", () => {
-    expect(routeBlock).toContain("existingResponderUserIds");
+  it("deduplicates each business by canonical provider identity", () => {
+    expect(routeBlock).toContain("existingBusinessProviderKeys");
+    expect(routeBlock).toContain('buildWorkRequestAssignmentProviderKey("business", biz.id)');
+    expect(routeBlock).toContain("responderUserId: biz.ownerUserId!");
   });
 
   it("notifies both contractor and business owner users", () => {
-    expect(routeBlock).toContain("notifyUserIds");
-    expect(routeBlock).toContain("businessesToAssign.map((b) => b.ownerUserId)");
+    expect(routeBlock).toContain("const notifyUserIds = [");
+    expect(routeBlock).toContain("insertedProviderKeys.has");
+    expect(routeBlock).toContain("contractor.userId");
+    expect(routeBlock).toContain("responderUserId: biz.ownerUserId!");
+    expect(routeBlock).toContain("businessesToAssign");
+    expect(routeBlock).toContain("enqueueRoutedDirectConnectProviderNotifications");
+    expect(routeBlock).toContain("userIds: notifyUserIds");
   });
 
   it("returns routeMode owner_direct for direct-pick", () => {
@@ -115,14 +122,26 @@ describe("route endpoint — direct-pick resolves business IDs", () => {
   });
 });
 
+describe("direct-pick notification recipient identity", () => {
+  it("keeps provider assignments distinct while notifying each user only once", () => {
+    expect(DC_ROUTES).toContain('buildWorkRequestAssignmentProviderKey("business", business.id)');
+    expect(DC_ROUTES).toContain("const uniqueUserIds = Array.from(\n      new Set(userIds");
+    expect(DC_ROUTES).toContain(
+      "`direct-connect-provider-invitation:${requestId}:${notifyUserId}`"
+    );
+  });
+});
+
 // ─── Creation endpoint — direct-pick resolves business IDs ───────────────────
 describe("creation endpoint — direct-pick resolves business IDs", () => {
-  // Find the user-facing creation block
-  const creationIdx = DC_ROUTES.indexOf(
-    "// Resolve contractor IDs and business IDs from the universal provider search."
+  const creationRouteStart = DC_ROUTES.indexOf('"/api/direct-connect/requests/:id/route"');
+  const creationRouteEnd = DC_ROUTES.indexOf(
+    '"/api/direct-connect/requests/:id/cancel"',
+    creationRouteStart
   );
-  expect(creationIdx).toBeGreaterThan(-1);
-  const creationBlock = DC_ROUTES.slice(creationIdx, creationIdx + 4000);
+  expect(creationRouteStart).toBeGreaterThan(-1);
+  expect(creationRouteEnd).toBeGreaterThan(creationRouteStart);
+  const creationBlock = DC_ROUTES.slice(creationRouteStart, creationRouteEnd);
 
   it("resolves potential business IDs not found in contractors table", () => {
     expect(creationBlock).toContain("potentialBusinessIds");
@@ -137,8 +156,10 @@ describe("creation endpoint — direct-pick resolves business IDs", () => {
   });
 
   it("merges contractor and business assignments before insert", () => {
-    expect(creationBlock).toContain("allAssignments");
-    expect(creationBlock).toContain("...contractorAssignments, ...businessAssignments");
+    expect(creationBlock).toContain("allAssignmentsPayload");
+    expect(creationBlock).toContain(
+      "...contractorAssignmentsPayload,\n            ...businessAssignmentsPayload"
+    );
   });
 
   it("emits provider_invited events for both contractors and businesses", () => {
@@ -148,33 +169,39 @@ describe("creation endpoint — direct-pick resolves business IDs", () => {
 
   it("notifies both contractor and business owner users", () => {
     expect(creationBlock).toContain("notifyUserIds");
-    expect(creationBlock).toContain("invitedBusinesses.map((b) => b.ownerUserId)");
+    expect(creationBlock).toContain(".map((business) => business.ownerUserId)");
   });
 });
 
 // ─── Admin creation endpoint — direct-pick resolves business IDs ─────────────
 describe("admin creation endpoint — direct-pick resolves business IDs", () => {
-  // Find the second occurrence (admin-created request block)
-  const firstIdx = DC_ROUTES.indexOf(
-    "// Resolve contractor IDs and business IDs from the universal provider search."
+  const helperStart = DC_ROUTES.indexOf(
+    "const reconcileExplicitDirectConnectProviderRouting = async"
   );
-  const secondIdx = DC_ROUTES.indexOf(
-    "// Resolve contractor IDs and business IDs from the universal provider search.",
-    firstIdx + 1
+  const helperEnd = DC_ROUTES.indexOf("const routeRequestToTopContractors = async", helperStart);
+  expect(helperStart).toBeGreaterThan(-1);
+  expect(helperEnd).toBeGreaterThan(helperStart);
+  const helperBlock = DC_ROUTES.slice(helperStart, helperEnd);
+  const adminRouteStart = DC_ROUTES.indexOf('"/api/admin/direct-connect/requests"');
+  const adminRouteEnd = DC_ROUTES.indexOf(
+    '"/api/admin/direct-connect/requests/:id"',
+    adminRouteStart
   );
-  expect(secondIdx).toBeGreaterThan(-1);
-  const adminBlock = DC_ROUTES.slice(secondIdx, secondIdx + 4000);
+  const adminBlock = DC_ROUTES.slice(adminRouteStart, adminRouteEnd);
 
   it("admin block also resolves business IDs", () => {
-    expect(adminBlock).toContain("potentialBusinessIds");
-    expect(adminBlock).toContain("inArray(businesses.id, potentialBusinessIds)");
+    expect(helperBlock).toContain("potentialBusinessIds");
+    expect(helperBlock).toContain("inArray(businesses.id, potentialBusinessIds)");
+    expect(adminBlock).toContain("reconcileExplicitDirectConnectProviderRouting");
   });
 
   it("admin block uses actorUserId for event attribution", () => {
     expect(adminBlock).toContain("actorUserId: String(actorUserId)");
+    expect(helperBlock).toContain("actorUserId,");
   });
 
   it("admin block includes createdForUserId in metadata", () => {
     expect(adminBlock).toContain("createdForUserId: resolvedTargetUserId");
+    expect(helperBlock).toContain("createdForUserId: createdForUserId || null");
   });
 });

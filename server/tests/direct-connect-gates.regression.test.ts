@@ -174,7 +174,8 @@ describe("direct-connect gate regressions", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
 
     expect(routeFile).toContain('requestRow.status !== "open"');
-    expect(routeFile).toContain("Only open, routed, or in-progress requests can be cancelled");
+    expect(routeFile).toContain("Only open or routed requests can be cancelled");
+    expect(routeFile).toContain("Use the accepted job workspace to close active work.");
   });
 
   it("keeps Direct Connect organized around start and manage modes", () => {

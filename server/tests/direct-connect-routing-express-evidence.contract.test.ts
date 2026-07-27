@@ -50,7 +50,9 @@ describe("Direct Connect routing and Express delivery evidence contracts", () =>
     const lockIndex = adminRoute.indexOf("pg_advisory_xact_lock");
     const rereadIndex = adminRoute.indexOf("const [request] = await tx");
     const routeIndex = adminRoute.indexOf("await routeRequestToTopContractors({");
-    const notifyIndex = adminRoute.indexOf("await notifyRoutedDirectConnectProviders({");
+    const notifyIndex = adminRoute.indexOf(
+      "await dispatchDurableDirectConnectNotifications(deferredNotificationIds)"
+    );
 
     expect(adminRoute).toContain("const routingOutcome = await db.transaction(async (tx: any)");
     expect(adminRoute).toContain("hashtextextended(${routingLockKey}, 0)");
@@ -59,13 +61,14 @@ describe("Direct Connect routing and Express delivery evidence contracts", () =>
     expect(routeIndex).toBeGreaterThan(rereadIndex);
     expect(adminRoute).toContain("mutationTx: tx");
     expect(adminRoute).toContain("deferProviderNotifications: true");
+    expect(adminRoute).toContain("deferredNotificationIds = []");
     expect(notifyIndex).toBeGreaterThan(routeIndex);
 
     expect(routingHelper).toContain("const persistRoutingMutation = async (tx: any)");
+    expect(routingHelper).toContain("FOR UPDATE");
     expect(routingHelper).toContain(".insert(workRequestAssignments)");
-    expect(routingHelper).toContain(
-      "await tx.insert(workRequestEvents).values(providerSuggestedEvents)"
-    );
+    expect(routingHelper).toContain(".onConflictDoNothing()");
+    expect(routingHelper).toContain("await tx.insert(workRequestEvents).values(insertedEvents)");
     expect(routingHelper).toContain(".update(workRequests)");
     expect(routingHelper).toContain(
       "mutationTx\n      ? await persistRoutingMutation(mutationTx)\n      : await db.transaction(persistRoutingMutation)"
@@ -73,8 +76,8 @@ describe("Direct Connect routing and Express delivery evidence contracts", () =>
   });
 
   it("uses one metadata key from Express producer through the admin evidence consumer", () => {
-    expect(expressRequest).toContain("workRequestId: String(created.id)");
-    expect(expressRequest).not.toContain("requestId: String(created.id),\n            },");
+    expect(expressRequest).toContain("workRequestId: String(request.id)");
+    expect(expressRequest).not.toContain("requestId: String(request.id),\n            },");
     expect(adminDetail).toContain("n.metadata ->> 'workRequestId' = $1");
     expect(adminDetail).toContain(
       'metadata.operation === "tradepartner_notification_email_dispatch"'
@@ -82,24 +85,51 @@ describe("Direct Connect routing and Express delivery evidence contracts", () =>
     expect(adminDetail).toContain("errorMessage: metadata.errorMessage || null");
   });
 
-  it("persists pending Express email evidence before sending and final provider evidence after", () => {
-    const pendingIndex = expressRequest.indexOf(
+  it("persists both Express email intents and linked evidence in the request transaction", () => {
+    const transactionIndex = expressRequest.indexOf("const creationResult = await db.transaction");
+    const requestIndex = expressRequest.indexOf(".insert(workRequests)", transactionIndex);
+    const assignmentIndex = expressRequest.indexOf(
+      ".insert(workRequestAssignments)",
+      transactionIndex
+    );
+    const providerEnqueueIndex = expressRequest.indexOf(
+      "enqueueTradePartnerRequestNotification",
+      transactionIndex
+    );
+    const requesterSetupIndex = expressRequest.indexOf(
+      "enqueueDirectConnectAccountSetupEmail",
+      transactionIndex
+    );
+    const requesterConfirmationIndex = expressRequest.indexOf(
+      "enqueueDirectConnectRequestEmail",
+      transactionIndex
+    );
+    const pendingEvidenceIndex = expressRequest.indexOf(
       'operation: "tradepartner_notification_email_dispatch"'
     );
-    const sendIndex = expressRequest.indexOf(
-      "const businessEmailResult = await emailService.sendEmail"
+    const requesterEvidenceIndex = expressRequest.indexOf(
+      'operation: "tradepartner_requester_email_dispatch"'
     );
-    const updateIndex = expressRequest.indexOf(".update(workRequestEvents)", sendIndex);
+    const commitIndex = expressRequest.indexOf("const created = creationResult.request");
+    const dispatchIndex = expressRequest.indexOf(
+      "notificationService.dispatchDirectConnectEmail",
+      commitIndex
+    );
 
-    expect(pendingIndex).toBeGreaterThanOrEqual(0);
-    expect(expressRequest).toContain('deliveryStatus: "pending"');
-    expect(sendIndex).toBeGreaterThan(pendingIndex);
-    expect(updateIndex).toBeGreaterThan(sendIndex);
-    expect(expressRequest).toContain("externalId: providerNotificationEmailMessageId");
-    expect(expressRequest).toContain("errorCode: providerNotificationEmailErrorCode");
-    expect(expressRequest).toContain("errorMessage: providerNotificationEmailErrorMessage");
-    expect(expressRequest).toContain(': "provider_accepted"');
-    expect(expressRequest).toContain('providerNotificationEmailStatus = "failed"');
+    expect(transactionIndex).toBeGreaterThanOrEqual(0);
+    expect(requestIndex).toBeGreaterThan(transactionIndex);
+    expect(assignmentIndex).toBeGreaterThan(requestIndex);
+    expect(providerEnqueueIndex).toBeGreaterThan(assignmentIndex);
+    expect(requesterSetupIndex).toBeGreaterThan(providerEnqueueIndex);
+    expect(requesterConfirmationIndex).toBeGreaterThan(providerEnqueueIndex);
+    expect(pendingEvidenceIndex).toBeGreaterThan(providerEnqueueIndex);
+    expect(requesterEvidenceIndex).toBeGreaterThan(requesterSetupIndex);
+    expect(commitIndex).toBeGreaterThan(requesterEvidenceIndex);
+    expect(dispatchIndex).toBeGreaterThan(commitIndex);
+    expect(expressRequest).toContain("notificationId: providerNotification.notification.id");
+    expect(expressRequest).toContain("deliveryIntentId: providerNotification.delivery?.id || null");
+    expect(expressRequest).toContain("notificationId: requesterNotification.notification.id");
+    expect(expressRequest).not.toContain("emailService.sendEmail");
   });
 
   it("redacts every provider-visible free-text field and reports submission separately from email", () => {

@@ -3,10 +3,21 @@ import { Server as HTTPServer } from "http";
 import { createAdapter } from "@socket.io/redis-adapter";
 import { createClient } from "redis";
 import { db } from "./db";
-import { conversations, messages, users } from "@shared/schema";
-import { eq, and, or, desc } from "drizzle-orm";
+import { contractors, conversations, messages, users } from "@shared/schema";
+import { eq, and, or, desc, sql, ne, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { getSession } from "./auth";
+import {
+  getDirectConnectConversationSenderType,
+  isAuthorizedDirectConnectConversationParticipant,
+  isDirectConnectMessageScopedToRequest,
+  resolveDirectConnectConversationAuthority,
+  sanitizeDirectConnectParticipantMessageMetadata,
+} from "./services/directConnectConversationAuthority";
+import {
+  dispatchDirectConnectMessageNotification,
+  persistDirectConnectMessage,
+} from "./services/directConnectMessagePersistence";
 
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
@@ -219,13 +230,37 @@ export class MessagingService {
       // Load user's conversations
       socket.on("load_conversations", async (cb) => {
         try {
-          const userConversations = await db
-            .select()
+          const participantRows = await db
+            .select({ conversation: conversations })
             .from(conversations)
+            .leftJoin(contractors, eq(contractors.id, conversations.contractorId))
             .where(
-              or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
+              or(
+                eq(conversations.homeownerId, userId),
+                eq(conversations.contractorId, userId),
+                eq(contractors.userId, userId)
+              )
             )
             .orderBy(desc(conversations.lastMessageAt));
+          const uniqueConversations: Array<(typeof participantRows)[number]["conversation"]> =
+            Array.from(
+              new Map(
+                participantRows.map(({ conversation }) => [conversation.id, conversation] as const)
+              ).values()
+            );
+          const userConversations = (
+            await Promise.all(
+              uniqueConversations.map(async (conversation) => {
+                const authority = await resolveDirectConnectConversationAuthority(conversation.id);
+                return authority.ok &&
+                  isAuthorizedDirectConnectConversationParticipant(authority, userId)
+                  ? authority.conversation
+                  : null;
+              })
+            )
+          ).filter((conversation): conversation is NonNullable<typeof conversation> =>
+            Boolean(conversation)
+          );
 
           const connectedUser = this.connectedUsers.get(userId);
           if (connectedUser) {
@@ -245,19 +280,11 @@ export class MessagingService {
       // Join conversation
       socket.on("join_conversation", async (conversationId: string, cb) => {
         try {
-          // Verify user is part of conversation
-          const conv = await db
-            .select()
-            .from(conversations)
-            .where(
-              and(
-                eq(conversations.id, conversationId),
-                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
-              )
-            )
-            .limit(1);
-
-          if (!conv || conv.length === 0) {
+          const authority = await resolveDirectConnectConversationAuthority(conversationId);
+          if (
+            !authority.ok ||
+            !isAuthorizedDirectConnectConversationParticipant(authority, userId)
+          ) {
             return cb({ success: false, error: "Not authorized for this conversation" });
           }
 
@@ -269,12 +296,22 @@ export class MessagingService {
           socket.join(`conversation:${conversationId}`);
 
           // Load message history
-          const messageHistory = await db
+          const newestMessageHistory = await db
             .select()
             .from(messages)
-            .where(eq(messages.conversationId, conversationId))
-            .orderBy(messages.createdAt)
+            .where(
+              and(
+                eq(messages.conversationId, conversationId),
+                sql`${messages.metadata} ->> 'workRequestId' = ${authority.workRequestId}`
+              )
+            )
+            .orderBy(desc(messages.createdAt), desc(messages.id))
             .limit(50);
+          const messageHistory = newestMessageHistory
+            .filter((message) =>
+              isDirectConnectMessageScopedToRequest(message.metadata, authority.workRequestId)
+            )
+            .reverse();
 
           cb({ success: true, messages: messageHistory });
         } catch (error) {
@@ -286,73 +323,62 @@ export class MessagingService {
       // Send message
       socket.on("send_message", async (data, cb) => {
         try {
-          const { conversationId, content, messageType = "text", metadata } = data;
+          const { conversationId, content, messageType = "text", metadata, clientMessageId } = data;
 
-          // Verify user is part of conversation
-          const conv = await db
-            .select()
-            .from(conversations)
-            .where(
-              and(
-                eq(conversations.id, conversationId),
-                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
-              )
-            )
-            .limit(1);
-
-          if (!conv || conv.length === 0) {
+          const authority = await resolveDirectConnectConversationAuthority(conversationId);
+          if (
+            !authority.ok ||
+            !isAuthorizedDirectConnectConversationParticipant(authority, userId)
+          ) {
             return cb({ success: false, error: "Not authorized for this conversation" });
           }
+          if (authority.conversationStatus !== "active") {
+            return cb({ success: false, error: "This conversation is closed" });
+          }
 
-          // Determine sender type
-          const senderType = conv[0].homeownerId === userId ? "homeowner" : "contractor";
+          const senderType = getDirectConnectConversationSenderType(authority, userId);
+          if (!senderType) {
+            return cb({ success: false, error: "Not authorized for this conversation" });
+          }
 
           // [USER-CONTEXT] Track interaction type for language personalization
           // This metadata helps Scout understand user preferences and communication patterns
           const interactionMetadata = {
-            ...metadata,
+            ...sanitizeDirectConnectParticipantMessageMetadata(metadata),
             _interactionSignature: extractInteractionSignature(content),
             _messageType: messageType,
             _senderType: senderType,
+            connectionId: authority.assignmentId,
+            assignmentId: authority.assignmentId,
+            workRequestId: authority.workRequestId,
           };
 
-          // Create message
-          const messageId = uuidv4();
-          const newMessage = await db.insert(messages).values({
-            id: messageId,
-            conversationId,
-            senderId: userId,
+          const persisted = await persistDirectConnectMessage({
+            authority,
+            senderUserId: userId,
             senderType,
             content,
             messageType,
-            metadata: JSON.stringify(interactionMetadata),
-            createdAt: new Date(),
-          } as any);
-
-          // Update conversation's last message timestamp
-          await db
-            .update(conversations)
-            .set({ lastMessageAt: new Date() })
-            .where(eq(conversations.id, conversationId));
+            metadata: interactionMetadata,
+            clientMessageId,
+          });
+          await dispatchDirectConnectMessageNotification(persisted.notificationId);
+          const messageId = String(persisted.message.id);
 
           // Broadcast message to conversation participants
           const messageData = {
+            ...persisted.message,
             id: messageId,
-            conversationId,
-            senderId: userId,
-            senderType,
-            content,
-            messageType,
-            metadata,
-            createdAt: new Date(),
-            readAt: null,
+            idempotentReplay: persisted.idempotentReplay,
           };
 
           this.io.to(`conversation:${conversationId}`).emit("new_message", messageData);
 
           // Emit notification to other user
           const otherUserId =
-            conv[0].homeownerId === userId ? conv[0].contractorId : conv[0].homeownerId;
+            authority.requesterUserId === userId
+              ? authority.providerUserId
+              : authority.requesterUserId;
 
           const otherUserConnection = this.connectedUsers.get(otherUserId);
           if (otherUserConnection) {
@@ -365,7 +391,11 @@ export class MessagingService {
             });
           }
 
-          cb({ success: true, message: messageData });
+          cb({
+            success: true,
+            message: messageData,
+            idempotentReplay: persisted.idempotentReplay,
+          });
         } catch (error) {
           console.error("[Messaging] Error sending message:", error);
           cb({ success: false, error: (error as Error).message });
@@ -384,23 +414,35 @@ export class MessagingService {
             return cb({ success: false, error: "Message not found" });
           }
 
-          const conv = await db
-            .select()
-            .from(conversations)
-            .where(
-              and(
-                eq(conversations.id, message.conversationId),
-                or(eq(conversations.homeownerId, userId), eq(conversations.contractorId, userId))
-              )
-            )
-            .limit(1);
-
-          if (!conv || conv.length === 0) {
+          const authority = await resolveDirectConnectConversationAuthority(message.conversationId);
+          if (
+            !authority.ok ||
+            !isAuthorizedDirectConnectConversationParticipant(authority, userId) ||
+            !isDirectConnectMessageScopedToRequest(message.metadata, authority.workRequestId)
+          ) {
             return cb({ success: false, error: "Not authorized to update this message" });
+          }
+          if (String(message.senderId) === userId) {
+            return cb({ success: false, error: "A sender cannot mark their own message as read" });
           }
 
           const readAt = new Date();
-          await db.update(messages).set({ readAt }).where(eq(messages.id, messageId));
+          const [updatedMessage] = await db
+            .update(messages)
+            .set({ readAt })
+            .where(
+              and(
+                eq(messages.id, messageId),
+                eq(messages.conversationId, authority.conversation.id),
+                ne(messages.senderId, userId),
+                isNull(messages.readAt),
+                sql`${messages.metadata} ->> 'workRequestId' = ${authority.workRequestId}`
+              )
+            )
+            .returning({ id: messages.id });
+          if (!updatedMessage) {
+            return cb({ success: true, alreadyRead: true });
+          }
 
           // Broadcast read receipt
           this.io.to(`conversation:${message.conversationId}`).emit("message_read", {

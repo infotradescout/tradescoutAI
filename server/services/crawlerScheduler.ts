@@ -13,9 +13,13 @@ import { runCompletedJobPriceSnapshotJob } from "./completedJobPriceSnapshotJob"
 import { runPartnerCountyObservationSnapshotJob } from "./partnerCountyObservationSnapshotService";
 import { runPartnerIntelligenceBriefSnapshotJob } from "./partnerIntelligenceBriefSnapshotService";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
-import { withAdvisoryLock } from "../utils/advisoryLocks";
+import {
+  getSchedulerDbConcurrencySnapshot,
+  withAdvisoryLock,
+} from "../utils/advisoryLocks";
 import { runSeoPublicationPruneJob } from "./seoPublicationPruneJob";
 import { runSeoDirectoryScopeSnapshotJob } from "./seoDirectoryScopeSnapshotJob";
+import { runCrawlerTelemetryMaintenance } from "./crawlerTelemetryService";
 import { runBotArmyAutoPromotion } from "./missionControl";
 import { runIntentAutomationTick } from "../routes/observability";
 import { runMarketSignalsSnapshotJob } from "./marketSignalsSnapshotJob";
@@ -49,6 +53,7 @@ let intentAutomationTask: any = null;
 let marketSignalsSnapshotTask: any = null;
 let scoutLisaCleanupTask: any = null;
 let directConnectFunnelStallTask: any = null;
+let crawlerTelemetryMaintenanceTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -82,6 +87,7 @@ export function startCrawlerScheduler() {
   startIntentAutomationScheduler();
   startScoutLisaCleanupScheduler();
   startDirectConnectFunnelStallScheduler();
+  startCrawlerTelemetryMaintenanceScheduler();
 }
 
 function startScoutLisaCleanupScheduler() {
@@ -136,7 +142,7 @@ function startDirectConnectFunnelStallScheduler() {
     return;
   }
 
-  const schedule = process.env.DIRECT_CONNECT_FUNNEL_STALL_SCHEDULE || "*/15 * * * *"; // every 15 min
+  const schedule = process.env.DIRECT_CONNECT_FUNNEL_STALL_SCHEDULE || "2-59/15 * * * *";
   const jobName = "direct_connect_funnel_stall";
 
   console.log(`\n🔌 Starting Direct Connect funnel stall scheduler with schedule: "${schedule}"`);
@@ -343,6 +349,40 @@ function startCrawlerJobs() {
   console.log("✅ Crawler scheduler started\n");
 }
 
+function startCrawlerTelemetryMaintenanceScheduler() {
+  if (process.env.DISABLE_CRAWLER_TELEMETRY_MAINTENANCE === "true") {
+    console.log(
+      "Crawler telemetry maintenance disabled via DISABLE_CRAWLER_TELEMETRY_MAINTENANCE env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.CRAWLER_TELEMETRY_MAINTENANCE_SCHEDULE || "7 * * * *";
+  const jobName = "crawler_telemetry_maintenance";
+  console.log(`\nStarting crawler telemetry maintenance with schedule: "${schedule}"`);
+
+  crawlerTelemetryMaintenanceTask = cron.schedule(schedule, async () => {
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () => {
+        await runCrawlerTelemetryMaintenance();
+        return true;
+      });
+      if (result === null) {
+        console.log(`Skipping ${jobName} (already active or lock/capacity unavailable)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      emitJobEnd(jobName, 0, false);
+    } catch (error) {
+      console.error("Crawler telemetry maintenance failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("Crawler telemetry maintenance scheduler started\n");
+}
+
 /**
  * Start SEO publication prune job (New & True enforcement)
  * Runs hourly by default (configurable via env)
@@ -433,7 +473,7 @@ function startUsersAggregationScheduler() {
     return;
   }
 
-  const schedule = process.env.USERS_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
+  const schedule = process.env.USERS_AGGREGATION_SCHEDULE || "1 2 * * *";
 
   console.log(`\n📊 Starting users aggregation scheduler with schedule: "${schedule}"`);
 
@@ -468,7 +508,8 @@ function startPartnerIntelligenceBriefSnapshotsScheduler() {
     return;
   }
 
-  const schedule = process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "*/15 * * * *";
+  const schedule =
+    process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "8-59/15 * * * *";
   const jobName = "partner_intelligence_brief_snapshots";
 
   console.log(
@@ -503,7 +544,7 @@ function startPartnerIntelligenceBriefSnapshotsScheduler() {
 
 /**
  * Start nightly affiliates aggregation job
- * Runs daily at 2 AM UTC by default (same window as users job)
+ * Runs daily in the staggered 2 AM UTC maintenance window.
  */
 function startAffiliatesAggregationScheduler() {
   if (process.env.DISABLE_AFFILIATES_AGGREGATION === "true") {
@@ -511,7 +552,7 @@ function startAffiliatesAggregationScheduler() {
     return;
   }
 
-  const schedule = process.env.AFFILIATES_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
+  const schedule = process.env.AFFILIATES_AGGREGATION_SCHEDULE || "9 2 * * *";
 
   console.log(`\n📊 Starting affiliates aggregation scheduler with schedule: "${schedule}"`);
 
@@ -542,7 +583,7 @@ function startAffiliatesAggregationScheduler() {
 
 /**
  * Start nightly trade deals aggregation job
- * Runs daily at 2 AM UTC by default (same window as other jobs)
+ * Runs daily in the staggered 2 AM UTC maintenance window.
  */
 function startTradeDealsAggregationScheduler() {
   if (process.env.DISABLE_TRADEDEALS_AGGREGATION === "true") {
@@ -550,7 +591,7 @@ function startTradeDealsAggregationScheduler() {
     return;
   }
 
-  const schedule = process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *"; // 2 AM daily
+  const schedule = process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "13 2 * * *";
 
   console.log(`\n📊 Starting trade deals aggregation scheduler with schedule: "${schedule}"`);
 
@@ -583,7 +624,7 @@ function startTradeDealsAggregationScheduler() {
 
 /**
  * Start nightly HomeScout aggregation job
- * Runs daily at 2 AM UTC by default (same window as other jobs)
+ * Runs daily in the staggered 2 AM UTC maintenance window.
  */
 function startHomeScoutAggregationScheduler() {
   if (process.env.DISABLE_HOMESCOUT_AGGREGATION === "true") {
@@ -591,7 +632,7 @@ function startHomeScoutAggregationScheduler() {
     return;
   }
 
-  const schedule = process.env.HOMESCOUT_AGGREGATION_SCHEDULE || "0 2 * * *";
+  const schedule = process.env.HOMESCOUT_AGGREGATION_SCHEDULE || "17 2 * * *";
   console.log(`\n📊 Starting HomeScout aggregation scheduler with schedule: "${schedule}"`);
 
   homeScoutAggregationTask = cron.schedule(schedule, async () => {
@@ -630,7 +671,7 @@ function startCompletedJobPriceSnapshotScheduler() {
     return;
   }
 
-  const schedule = process.env.COMPLETED_JOB_PRICE_SNAPSHOT_SCHEDULE || "0 2 * * *";
+  const schedule = process.env.COMPLETED_JOB_PRICE_SNAPSHOT_SCHEDULE || "21 2 * * *";
   console.log(`\n📊 Starting completed-job price snapshot scheduler with schedule: "${schedule}"`);
 
   completedJobPriceSnapshotTask = cron.schedule(schedule, async () => {
@@ -659,7 +700,7 @@ function startCompletedJobPriceSnapshotScheduler() {
 
 /**
  * Start nightly HomeScout market metrics job
- * Runs daily at 2 AM UTC by default (same window as other jobs)
+ * Runs daily in the staggered 2 AM UTC maintenance window.
  */
 function startHomeScoutMarketMetricsScheduler() {
   if (process.env.DISABLE_HOMESCOUT_MARKET_METRICS === "true") {
@@ -669,7 +710,7 @@ function startHomeScoutMarketMetricsScheduler() {
     return;
   }
 
-  const schedule = process.env.HOMESCOUT_MARKET_METRICS_SCHEDULE || "0 2 * * *";
+  const schedule = process.env.HOMESCOUT_MARKET_METRICS_SCHEDULE || "23 2 * * *";
   console.log(`\n📈 Starting HomeScout market metrics scheduler with schedule: "${schedule}"`);
 
   homeScoutMarketMetricsTask = cron.schedule(schedule, async () => {
@@ -724,6 +765,16 @@ function startHomeScoutIngestionScheduler() {
         emitJobEnd(jobName, 0, false);
         return;
       }
+      if ((result as any).errors?.length > 0) {
+        const sourceErrors = (result as any).errors
+          .map((entry: { sourceKey?: string; error?: string }) => {
+            const sourceKey = entry.sourceKey || "unknown";
+            const message = String(entry.error || "unknown source error").slice(0, 300);
+            return `${sourceKey}: ${message}`;
+          })
+          .join("; ");
+        throw new Error(`HomeScout ingestion failed for configured source(s): ${sourceErrors}`);
+      }
       console.log("✅ HomeScout ingestion job completed", result);
       emitJobEnd(jobName, (result as any).listingsSeen || 0, false);
     } catch (error) {
@@ -737,7 +788,7 @@ function startHomeScoutIngestionScheduler() {
 
 /**
  * Start nightly HomeScout market bucket job
- * Runs daily at 2 AM UTC by default (same window as other jobs)
+ * Runs daily in the staggered 2 AM UTC maintenance window.
  */
 function startHomeScoutBucketMetricsScheduler() {
   if (process.env.DISABLE_HOMESCOUT_BUCKET_METRICS === "true") {
@@ -747,7 +798,7 @@ function startHomeScoutBucketMetricsScheduler() {
     return;
   }
 
-  const schedule = process.env.HOMESCOUT_BUCKET_METRICS_SCHEDULE || "0 2 * * *";
+  const schedule = process.env.HOMESCOUT_BUCKET_METRICS_SCHEDULE || "27 2 * * *";
   console.log(`\n📈 Starting HomeScout bucket metrics scheduler with schedule: "${schedule}"`);
 
   homeScoutBucketMetricsTask = cron.schedule(schedule, async () => {
@@ -786,7 +837,7 @@ function startHomeScoutAlertsScheduler() {
     return;
   }
 
-  const schedule = process.env.HOMESCOUT_ALERTS_SCHEDULE || "*/15 * * * *";
+  const schedule = process.env.HOMESCOUT_ALERTS_SCHEDULE || "4-59/15 * * * *";
   console.log(`\n🔔 Starting HomeScout alerts scheduler with schedule: "${schedule}"`);
 
   homeScoutAlertsTask = cron.schedule(schedule, async () => {
@@ -813,7 +864,7 @@ function startHomeScoutAlertsScheduler() {
 
 /**
  * Start nightly trust snapshot job
- * Runs daily at 2 AM UTC by default (same window as other jobs)
+ * Runs daily in the staggered 2 AM UTC maintenance window.
  */
 function startTrustSnapshotsScheduler() {
   if (process.env.DISABLE_TRUST_SNAPSHOTS === "true") {
@@ -821,7 +872,7 @@ function startTrustSnapshotsScheduler() {
     return;
   }
 
-  const schedule = process.env.TRUST_SNAPSHOTS_SCHEDULE || "0 2 * * *"; // 2 AM daily
+  const schedule = process.env.TRUST_SNAPSHOTS_SCHEDULE || "31 2 * * *";
 
   console.log(`\n📊 Starting trust snapshots scheduler with schedule: "${schedule}"`);
 
@@ -855,7 +906,8 @@ function startPartnerCountyObservationSnapshotsScheduler() {
     return;
   }
 
-  const schedule = process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "*/15 * * * *";
+  const schedule =
+    process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "6-59/15 * * * *";
   const jobName = "partner_county_observation_snapshots";
 
   console.log(
@@ -1023,6 +1075,20 @@ export function stopCrawlerScheduler() {
     scoutLisaCleanupTask = null;
     console.log("🛑 Scout LISA cleanup scheduler stopped");
   }
+
+  if (directConnectFunnelStallTask) {
+    directConnectFunnelStallTask.stop();
+    directConnectFunnelStallTask.destroy();
+    directConnectFunnelStallTask = null;
+    console.log("🛑 Direct Connect funnel-stall scheduler stopped");
+  }
+
+  if (crawlerTelemetryMaintenanceTask) {
+    crawlerTelemetryMaintenanceTask.stop();
+    crawlerTelemetryMaintenanceTask.destroy();
+    crawlerTelemetryMaintenanceTask = null;
+    console.log("🛑 Crawler telemetry maintenance scheduler stopped");
+  }
 }
 
 /**
@@ -1036,23 +1102,23 @@ export function getCrawlerSchedulerStatus() {
     },
     usersAggregation: {
       active: usersAggregationTask !== null,
-      schedule: process.env.USERS_AGGREGATION_SCHEDULE || "0 2 * * *",
+      schedule: process.env.USERS_AGGREGATION_SCHEDULE || "1 2 * * *",
     },
     affiliatesAggregation: {
       active: affiliatesAggregationTask !== null,
-      schedule: process.env.AFFILIATES_AGGREGATION_SCHEDULE || "0 2 * * *",
+      schedule: process.env.AFFILIATES_AGGREGATION_SCHEDULE || "9 2 * * *",
     },
     tradeDealsAggregation: {
       active: tradeDealsAggregationTask !== null,
-      schedule: process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "0 2 * * *",
+      schedule: process.env.TRADEDEALS_AGGREGATION_SCHEDULE || "13 2 * * *",
     },
     homeScoutAggregation: {
       active: homeScoutAggregationTask !== null,
-      schedule: process.env.HOMESCOUT_AGGREGATION_SCHEDULE || "0 2 * * *",
+      schedule: process.env.HOMESCOUT_AGGREGATION_SCHEDULE || "17 2 * * *",
     },
     homeScoutMarketMetrics: {
       active: homeScoutMarketMetricsTask !== null,
-      schedule: process.env.HOMESCOUT_MARKET_METRICS_SCHEDULE || "0 2 * * *",
+      schedule: process.env.HOMESCOUT_MARKET_METRICS_SCHEDULE || "23 2 * * *",
     },
     homeScoutIngestion: {
       active: homeScoutIngestionTask !== null,
@@ -1060,19 +1126,19 @@ export function getCrawlerSchedulerStatus() {
     },
     homeScoutBucketMetrics: {
       active: homeScoutBucketMetricsTask !== null,
-      schedule: process.env.HOMESCOUT_BUCKET_METRICS_SCHEDULE || "0 2 * * *",
+      schedule: process.env.HOMESCOUT_BUCKET_METRICS_SCHEDULE || "27 2 * * *",
     },
     homeScoutAlerts: {
       active: homeScoutAlertsTask !== null,
-      schedule: process.env.HOMESCOUT_ALERTS_SCHEDULE || "*/15 * * * *",
+      schedule: process.env.HOMESCOUT_ALERTS_SCHEDULE || "4-59/15 * * * *",
     },
     completedJobPriceSnapshots: {
       active: completedJobPriceSnapshotTask !== null,
-      schedule: process.env.COMPLETED_JOB_PRICE_SNAPSHOT_SCHEDULE || "0 2 * * *",
+      schedule: process.env.COMPLETED_JOB_PRICE_SNAPSHOT_SCHEDULE || "21 2 * * *",
     },
     trustSnapshots: {
       active: trustSnapshotsTask !== null,
-      schedule: process.env.TRUST_SNAPSHOTS_SCHEDULE || "0 2 * * *",
+      schedule: process.env.TRUST_SNAPSHOTS_SCHEDULE || "31 2 * * *",
     },
     seoPublicationPrune: {
       active: seoPublicationPruneTask !== null,
@@ -1092,16 +1158,31 @@ export function getCrawlerSchedulerStatus() {
     },
     partnerCountyObservationSnapshots: {
       active: partnerCountyObservationSnapshotsTask !== null,
-      schedule: process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "*/15 * * * *",
+      schedule:
+        process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "6-59/15 * * * *",
     },
     partnerIntelligenceBriefSnapshots: {
       active: partnerIntelligenceBriefSnapshotsTask !== null,
-      schedule: process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "*/15 * * * *",
+      schedule:
+        process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "8-59/15 * * * *",
     },
     botArmyAutoPromote: {
       active: botArmyAutoPromoteTask !== null,
       schedule: process.env.BOT_ARMY_AUTO_PROMOTE_SCHEDULE || "*/10 * * * *",
     },
+    intentAutomation: {
+      active: intentAutomationTask !== null,
+      schedule: process.env.INTENT_AUTOMATION_SCHEDULE || "*/2 * * * *",
+    },
+    directConnectFunnelStall: {
+      active: directConnectFunnelStallTask !== null,
+      schedule: process.env.DIRECT_CONNECT_FUNNEL_STALL_SCHEDULE || "2-59/15 * * * *",
+    },
+    crawlerTelemetryMaintenance: {
+      active: crawlerTelemetryMaintenanceTask !== null,
+      schedule: process.env.CRAWLER_TELEMETRY_MAINTENANCE_SCHEDULE || "7 * * * *",
+    },
+    dbConcurrency: getSchedulerDbConcurrencySnapshot(),
   };
 }
 

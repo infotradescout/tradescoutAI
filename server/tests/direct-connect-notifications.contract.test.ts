@@ -9,7 +9,7 @@ const read = (relativePath: string) => {
 
 describe("direct connect internal notifications contracts", () => {
   it("persists durable internal notification records", () => {
-    const source = read("server/services/directConnectDispatchLedgerService.ts");
+    const source = read("migrations/0115_direct_connect_ledger_foundation.sql");
     expect(source).toContain("CREATE TABLE IF NOT EXISTS direct_connect_notifications");
     expect(source).toContain("notification_type text NOT NULL");
     expect(source).toContain("recipient_role text NOT NULL");
@@ -19,10 +19,11 @@ describe("direct connect internal notifications contracts", () => {
   });
 
   it("enforces idempotency for duplicate event delivery", () => {
-    const source = read("server/services/directConnectDispatchLedgerService.ts");
-    expect(source).toContain("direct_connect_notifications_idempotency_idx");
-    expect(source).toContain("ON CONFLICT (");
-    expect(source).toContain("DO NOTHING");
+    const migration = read("migrations/0115_direct_connect_ledger_foundation.sql");
+    const service = read("server/services/directConnectDispatchLedgerService.ts");
+    expect(migration).toContain("direct_connect_notifications_idempotency_idx");
+    expect(service).toContain("ON CONFLICT (");
+    expect(service).toContain("DO NOTHING");
   });
 
   it("exposes internal notifications read APIs", () => {

@@ -622,6 +622,54 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const authActionTokens = pgTable(
+  "auth_action_tokens",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    purpose: varchar("purpose", {
+      length: 32,
+      enum: ["password_reset", "email_verification"],
+    }).notNull(),
+    scopeKey: varchar("scope_key", { length: 255 }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull(),
+    codeHash: varchar("code_hash", { length: 64 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("auth_action_tokens_token_hash_unique").on(table.tokenHash),
+    uniqueIndex("auth_action_tokens_one_active_per_user_purpose")
+      .on(table.userId, table.purpose, sql`COALESCE(${table.scopeKey}, '')`)
+      .where(sql`${table.consumedAt} IS NULL AND ${table.revokedAt} IS NULL`),
+    index("auth_action_tokens_user_purpose_created_idx").on(
+      table.userId,
+      table.purpose,
+      table.createdAt
+    ),
+    index("auth_action_tokens_expires_idx").on(table.expiresAt),
+    check(
+      "auth_action_tokens_purpose_check",
+      sql`${table.purpose} IN ('password_reset', 'email_verification')`
+    ),
+    check("auth_action_tokens_token_hash_check", sql`char_length(${table.tokenHash}) = 64`),
+    check(
+      "auth_action_tokens_code_hash_check",
+      sql`${table.codeHash} IS NULL OR char_length(${table.codeHash}) = 64`
+    ),
+    check("auth_action_tokens_expiry_check", sql`${table.expiresAt} > ${table.createdAt}`),
+  ]
+);
+
+export type AuthActionToken = typeof authActionTokens.$inferSelect;
+export type InsertAuthActionToken = typeof authActionTokens.$inferInsert;
+
 // User Profiles (multi-profile support: person, service provider, seller)
 // Each user can have multiple profiles with independent verification state
 export const userProfiles = pgTable(
@@ -3948,46 +3996,58 @@ export const workRequestEvents = pgTable("work_request_events", {
 });
 
 // Provider assignments per work request
-export const workRequestAssignments = pgTable("work_request_assignments", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  workRequestId: varchar("work_request_id").notNull(),
+export const workRequestAssignments = pgTable(
+  "work_request_assignments",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    workRequestId: varchar("work_request_id").notNull(),
+    // Canonical identity for all newly created assignments. The nullable column
+    // lets legacy rows remain readable while a partial unique index prevents new
+    // duplicate provider assignments under concurrent routing paths.
+    providerKey: varchar("provider_key", { length: 320 }),
 
-  // Linked provider: contractor profile ID (legacy, kept for backward compat)
-  contractorId: varchar("contractor_id"),
-  // Universal provider: any user can be a responder (business owner, helper, handyman, etc.)
-  responderUserId: varchar("responder_user_id").references(() => users.id, {
-    onDelete: "set null",
-  }),
-  // Helper/worker profile FK — set when a worker profile is the responder
-  workerId: varchar("worker_id").references(() => workers.id, {
-    onDelete: "set null",
-  }),
-  status: varchar("status", {
-    enum: ["suggested", "invited", "accepted", "declined", "completed", "withdrawn"],
-  }).default("suggested"),
+    // Linked provider: contractor profile ID (legacy, kept for backward compat)
+    contractorId: varchar("contractor_id"),
+    // Universal provider: any user can be a responder (business owner, helper, handyman, etc.)
+    responderUserId: varchar("responder_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    // Helper/worker profile FK — set when a worker profile is the responder
+    workerId: varchar("worker_id").references(() => workers.id, {
+      onDelete: "set null",
+    }),
+    status: varchar("status", {
+      enum: ["suggested", "invited", "accepted", "declined", "completed", "withdrawn"],
+    }).default("suggested"),
 
-  // Snapshot of why this match was suggested (score + reasons)
-  scoreSnapshot: jsonb("score_snapshot").$type<{
-    score?: number;
-    reasons?: string[];
-    distanceMiles?: number;
-    tradeMatch?: boolean;
-    recommendationCount?: number;
-    responseRate?: number;
-    routingMode?: string;
-  }>(),
+    // Snapshot of why this match was suggested (score + reasons)
+    scoreSnapshot: jsonb("score_snapshot").$type<{
+      score?: number;
+      reasons?: string[];
+      distanceMiles?: number;
+      tradeMatch?: boolean;
+      recommendationCount?: number;
+      responseRate?: number;
+      routingMode?: string;
+    }>(),
 
-  // Structured accept response stored at accept time for requester visibility
-  responseSummary: jsonb("response_summary").$type<{
-    availabilityWindow?: string;
-    priceBand?: "budget" | "standard" | "premium" | "custom_quote";
-    scopeNote?: string;
-  }>(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
+    // Structured accept response stored at accept time for requester visibility
+    responseSummary: jsonb("response_summary").$type<{
+      availabilityWindow?: string;
+      priceBand?: "budget" | "standard" | "premium" | "custom_quote";
+      scopeNote?: string;
+    }>(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("work_request_assignments_request_provider_key_unique")
+      .on(table.workRequestId, table.providerKey)
+      .where(sql`${table.providerKey} IS NOT NULL`),
+  ]
+);
 
 // Professional Partnerships (Dealer-Contractor connections)
 export const professionalPartnerships = pgTable("professional_partnerships", {
@@ -10890,6 +10950,9 @@ export const notificationDeliveryLog = pgTable(
     errorMessage: text("error_message"),
     retryCount: integer("retry_count").default(0),
     nextRetryAt: timestamp("next_retry_at"),
+    // Rotated for every processor claim. All attempt writes compare this
+    // token so an expired worker cannot act on a row reclaimed by another.
+    claimToken: varchar("claim_token"),
 
     // Timestamps
     sentAt: timestamp("sent_at"),

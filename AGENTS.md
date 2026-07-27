@@ -5,9 +5,10 @@ This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, c
 ## 0) Release control (read before merging to main)
 
 - Merge/push to `main` **is** the production release path. See `RELEASE_CONTROL.md`.
-- Render Auto-Deploy for production must stay **On** (On Commit). Do not turn it Off to wait for Actions.
-- GitHub Actions CI is advisory until billing works; it must not block Render auto-deploy.
-- Optional `workflow_dispatch` deploy workflow is backup only — not required for prod.
+- Render Auto-Deploy for production must stay **On** (On Commit).
+- GitHub Actions is not used. Local verification against the exact commit is the release evidence.
+- Every pull request must record the commands run, results, known baseline failures, and any unexecuted DB/browser/production proof.
+- Do not reintroduce `.github/workflows/` without explicit owner approval.
 
 ## 1) Platform law (must be preserved)
 - Visibility does not equal access: being seen never grants contact or power.
@@ -45,6 +46,5 @@ This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, c
 ## 3) Definition of done (TradeScout)
 - Feature works end-to-end for at least one county path.
 - No regressions in gating.
-- Tests/build succeed (or document why not and provide the fix path). Critical law-contract suites may not be silently skipped in release CI.
+- Tests/build succeed (or document why not and provide the fix path). Critical law-contract suites may not be silently skipped in local release verification.
 - Clear migration notes if data shape changes.
-

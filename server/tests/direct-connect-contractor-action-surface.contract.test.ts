@@ -25,15 +25,45 @@ describe("direct connect contractor action surface contracts", () => {
     expect(source).toContain(
       'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"'
     );
-    expect(source).toContain("recordContractorResponse({");
+    expect(source).toContain("await recordContractorResponse(");
+    expect(source).toContain("DIRECT_CONNECT_EXACT_ASSIGNMENT_REQUIRED");
   });
 
   it("preserves contact gate by requiring response before requesting contact", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain(
-      "Submit an interested or need_more_info response before requesting contact."
-    );
+    expect(source).toContain("Accept the exact assignment before requesting contact.");
+    expect(source).toContain("resolveDirectConnectAcceptedProviderBinding(requestId)");
+    expect(source).toContain("acceptedBinding.providerUserId !== userId");
     expect(source).toContain('nextState: "contractor_requested"');
+  });
+
+  it("reports the persisted request-contact state and never re-appends advanced gates", () => {
+    const source = read("server/routes/direct-connect.ts");
+    const routeStart = source.indexOf(
+      '"/api/direct-connect/contractor/requests/:id/request-contact"'
+    );
+    const routeEnd = source.indexOf(
+      '"/api/direct-connect/jobs/:jobWorkspaceId/estimates"',
+      routeStart
+    );
+    const requestContactRoute = source.slice(routeStart, routeEnd);
+
+    expect(routeStart).toBeGreaterThan(-1);
+    expect(routeEnd).toBeGreaterThan(routeStart);
+    expect(requestContactRoute).toContain(
+      "const contactGateResult = await db.transaction(async (tx: any)"
+    );
+    expect(requestContactRoute).toContain(
+      "SELECT contact_gate_state, contact_gate_assignment_id, contact_gate_provider_key"
+    );
+    expect(requestContactRoute).toContain("FOR UPDATE");
+    expect(requestContactRoute).toContain('new Set(["user_approved", "released"])');
+    expect(requestContactRoute).toContain("? { ok: true as const, state: persistedGate.state }");
+    expect(requestContactRoute).toContain("contactGateState: contactGateResult.state");
+    expect(requestContactRoute).not.toContain('contactGateState: "contractor_requested"');
+    expect(requestContactRoute.indexOf("await appendDispatchEvent(")).toBeGreaterThan(
+      requestContactRoute.indexOf("advancedContactGateStates.has(persistedGate.state)")
+    );
   });
 
   it("keeps requester contact redacted in contractor request detail payload", () => {

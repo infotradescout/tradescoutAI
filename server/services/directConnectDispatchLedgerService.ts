@@ -29,630 +29,6 @@ export type JobLifecycleStage =
   | "completed"
   | "closed";
 
-export async function ensureDirectConnectDispatchLedgerTables() {
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_dispatch_requests (
-      id text PRIMARY KEY,
-      user_id text NULL,
-      anonymous_session_id text NULL,
-      intent text NOT NULL,
-      request_type text NOT NULL,
-      category text NOT NULL,
-      county text NULL,
-      city_area text NULL,
-      urgency text NULL,
-      description text NOT NULL,
-      answers_json jsonb NOT NULL DEFAULT '{}'::jsonb,
-      completeness_state text NOT NULL,
-      routing_readiness_state text NOT NULL,
-      visibility_state text NOT NULL,
-      contact_gate_state text NOT NULL DEFAULT 'locked',
-      source_surface text NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_dispatch_candidates (
-      id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      business_id text NULL,
-      contractor_id text NULL,
-      responder_user_id text NULL,
-      worker_id text NULL,
-      eligibility_state text NOT NULL,
-      eligibility_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
-      ineligibility_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
-      territory_matched boolean NOT NULL DEFAULT false,
-      category_matched boolean NOT NULL DEFAULT false,
-      verification_state text NOT NULL DEFAULT 'unknown',
-      profile_readiness text NOT NULL DEFAULT 'unknown',
-      contact_eligibility boolean NOT NULL DEFAULT false,
-      trust_state text NOT NULL DEFAULT 'unknown',
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_dispatch_events (
-      event_id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      actor_type text NOT NULL,
-      actor_id text NULL,
-      event_type text NOT NULL,
-      metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_contractor_responses (
-      id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      contractor_id text NULL,
-      responder_user_id text NULL,
-      response_type text NOT NULL,
-      message text NULL,
-      availability text NULL,
-      estimated_timing text NULL,
-      contact_request_state text NOT NULL DEFAULT 'locked',
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_lifecycle_notifications (
-      id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      actor_type text NOT NULL,
-      actor_id text NULL,
-      recipient_type text NOT NULL,
-      recipient_id text NOT NULL,
-      event_type text NOT NULL,
-      lifecycle_status text NOT NULL,
-      message_key text NOT NULL,
-      message_text text NOT NULL,
-      is_read boolean NOT NULL DEFAULT false,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_job_workspaces (
-      id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      requester_user_id text NOT NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      contractor_response_id text NULL,
-      source text NOT NULL DEFAULT 'direct_connect',
-      category text NULL,
-      county text NULL,
-      city_area text NULL,
-      status text NOT NULL DEFAULT 'contact_started',
-      active_stage text NOT NULL DEFAULT 'contact',
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_notifications (
-      id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      job_workspace_id text NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE SET NULL,
-      event_id text NULL REFERENCES direct_connect_dispatch_events(event_id) ON DELETE SET NULL,
-      recipient_user_id text NULL,
-      recipient_business_id text NULL,
-      recipient_role text NOT NULL,
-      actor_type text NOT NULL,
-      actor_id text NULL,
-      notification_type text NOT NULL,
-      title text NOT NULL,
-      message text NOT NULL,
-      action_url text NULL,
-      action_key text NULL,
-      status text NOT NULL DEFAULT 'unread',
-      priority text NOT NULL DEFAULT 'normal',
-      metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      read_at timestamptz NULL,
-      archived_at timestamptz NULL
-    );
-  `);
-  await db.execute(sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS direct_connect_notifications_idempotency_idx
-    ON direct_connect_notifications (
-      COALESCE(event_id, ''),
-      recipient_role,
-      COALESCE(recipient_user_id, ''),
-      COALESCE(recipient_business_id, ''),
-      notification_type
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_estimates (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      title text NULL,
-      scope_summary text NULL,
-      status text NOT NULL DEFAULT 'draft',
-      subtotal_materials numeric NULL,
-      subtotal_labor numeric NULL,
-      subtotal_other numeric NULL,
-      total_estimate numeric NULL,
-      terms text NULL,
-      expiration_date timestamptz NULL,
-      created_by text NULL,
-      sent_at timestamptz NULL,
-      responded_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_estimate_line_items (
-      id text PRIMARY KEY,
-      estimate_id text NOT NULL REFERENCES job_estimates(id) ON DELETE CASCADE,
-      line_type text NOT NULL,
-      name text NOT NULL,
-      description text NULL,
-      quantity numeric NULL,
-      unit text NULL,
-      rate numeric NULL,
-      unit_price numeric NULL,
-      total_cost numeric NULL,
-      supplier text NULL,
-      sku text NULL,
-      notes text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS request_id text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS business_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS contractor_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS title text NULL`);
-  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS scope_summary text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS subtotal_materials numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS subtotal_labor numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS subtotal_other numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS total_estimate numeric NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS terms text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS expiration_date timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS responded_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS name text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS description text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS unit text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS rate numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS total_cost numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS supplier text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS sku text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS notes text NULL`
-  );
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_material_items (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      label text NOT NULL,
-      quantity numeric NULL,
-      unit_cost numeric NULL,
-      total_cost numeric NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_labor_items (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      label text NOT NULL,
-      hours numeric NULL,
-      hourly_rate numeric NULL,
-      total_cost numeric NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_acceptances (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
-      accepted_by text NOT NULL,
-      accepted_at timestamptz NOT NULL DEFAULT now(),
-      note text NULL
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_payment_requests (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      payment_type text NOT NULL DEFAULT 'other',
-      amount numeric NULL,
-      currency text NULL,
-      description text NULL,
-      due_date timestamptz NULL,
-      status text NOT NULL DEFAULT 'draft',
-      note text NULL,
-      created_by text NULL,
-      sent_at timestamptz NULL,
-      acknowledged_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_schedule_proposals (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      proposed_start timestamptz NOT NULL,
-      proposed_end timestamptz NULL,
-      time_window text NULL,
-      notes text NULL,
-      status text NOT NULL DEFAULT 'proposed',
-      created_by text NULL,
-      responded_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS request_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS estimate_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS business_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS contractor_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS payment_type text NOT NULL DEFAULT 'other'`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS description text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS created_by text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS acknowledged_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`
-  );
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_payment_records (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      amount numeric NULL,
-      currency text NULL,
-      status text NOT NULL DEFAULT 'requested',
-      note text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_checkpoints (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      title text NOT NULL,
-      description text NULL,
-      status text NOT NULL DEFAULT 'planned',
-      due_date timestamptz NULL,
-      completed_at timestamptz NULL,
-      requester_responded_at timestamptz NULL,
-      created_by text NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_change_orders (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      title text NOT NULL,
-      reason text NULL,
-      scope_change_summary text NULL,
-      material_delta numeric NULL,
-      labor_delta numeric NULL,
-      other_delta numeric NULL,
-      total_delta numeric NULL,
-      timeline_delta_days integer NULL,
-      status text NOT NULL DEFAULT 'draft',
-      created_by text NULL,
-      sent_at timestamptz NULL,
-      responded_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS request_id text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS business_id text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS contractor_id text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS description text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS completed_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS requester_responded_at timestamptz NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS created_by text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS request_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS business_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS contractor_id text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS reason text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS scope_change_summary text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS material_delta numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS labor_delta numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS other_delta numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS total_delta numeric NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS timeline_delta_days integer NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS created_by text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS responded_at timestamptz NULL`
-  );
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_punch_list_items (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      title text NOT NULL,
-      description text NULL,
-      status text NOT NULL DEFAULT 'open',
-      created_by text NULL,
-      assigned_to text NULL,
-      due_date timestamptz NULL,
-      resolved_at timestamptz NULL,
-      requester_responded_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS request_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS business_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS contractor_id text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS description text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS created_by text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS assigned_to text NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS resolved_at timestamptz NULL`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS requester_responded_at timestamptz NULL`
-  );
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_completion_requests (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      status text NOT NULL DEFAULT 'requested',
-      business_notes text NULL,
-      requester_notes text NULL,
-      requested_at timestamptz NOT NULL DEFAULT now(),
-      responded_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_invoices (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
-      title text NULL,
-      summary text NULL,
-      status text NOT NULL DEFAULT 'draft',
-      subtotal numeric NULL,
-      adjustments numeric NULL,
-      total_due numeric NULL,
-      due_date timestamptz NULL,
-      terms text NULL,
-      created_by text NULL,
-      sent_at timestamptz NULL,
-      responded_at timestamptz NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_invoice_line_items (
-      id text PRIMARY KEY,
-      invoice_id text NOT NULL REFERENCES job_invoices(id) ON DELETE CASCADE,
-      line_type text NOT NULL,
-      name text NOT NULL,
-      description text NULL,
-      quantity numeric NULL,
-      unit text NULL,
-      unit_amount numeric NULL,
-      total_amount numeric NULL,
-      source_estimate_line_item_id text NULL,
-      source_change_order_id text NULL,
-      notes text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS request_id text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS business_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS contractor_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS estimate_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS title text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS summary text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS subtotal numeric NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS adjustments numeric NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS total_due numeric NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS terms text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS created_by text NULL`);
-  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS responded_at timestamptz NULL`
-  );
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_receipts (
-      id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
-      invoice_id text NULL REFERENCES job_invoices(id) ON DELETE SET NULL,
-      requester_user_id text NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      receipt_type text NOT NULL DEFAULT 'receipt',
-      payment_method text NOT NULL DEFAULT 'outside_platform',
-      amount numeric NULL,
-      status text NOT NULL DEFAULT 'recorded',
-      paid_at timestamptz NULL,
-      notes text NULL,
-      created_by text NULL,
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS request_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS invoice_id text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
-  );
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS business_id text NULL`);
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS contractor_id text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS receipt_type text NOT NULL DEFAULT 'receipt'`
-  );
-  await db.execute(
-    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS payment_method text NOT NULL DEFAULT 'outside_platform'`
-  );
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS paid_at timestamptz NULL`);
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS notes text NULL`);
-  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS created_by text NULL`);
-  await db.execute(
-    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`
-  );
-}
-
 type LifecycleStatus =
   | "request_submitted"
   | "request_shared"
@@ -803,8 +179,12 @@ function messageForLifecycleStatus(
   }
 }
 
-async function resolveLifecycleRecipients(requestId: string, eventType: string) {
-  const dispatchRows = await db.execute(sql`
+async function resolveLifecycleRecipients(
+  requestId: string,
+  eventType: string,
+  executor: DirectConnectSqlExecutor = db as unknown as DirectConnectSqlExecutor
+) {
+  const dispatchRows = await executor.execute(sql`
     SELECT user_id
     FROM direct_connect_dispatch_requests
     WHERE id = ${requestId}
@@ -875,7 +255,7 @@ async function resolveLifecycleRecipients(requestId: string, eventType: string) 
       "job_completed",
     ].includes(eventType)
   ) {
-    const contractorRows = await db.execute(sql`
+    const contractorRows = await executor.execute(sql`
       SELECT DISTINCT responder_user_id
       FROM direct_connect_dispatch_candidates
       WHERE request_id = ${requestId}
@@ -952,50 +332,338 @@ export async function getJobWorkspaceByRequestId(requestId: string) {
       updated_at
     FROM direct_connect_job_workspaces
     WHERE request_id = ${requestId}
-    ORDER BY created_at DESC
-    LIMIT 1
+    ORDER BY created_at DESC, id DESC
+    LIMIT 2
   `);
-  return ((rows.rows || []) as any[])[0] || null;
+  const workspaces = (rows.rows || []) as any[];
+  if (workspaces.length > 1) {
+    throw new Error("DIRECT_CONNECT_JOB_WORKSPACE_AMBIGUOUS");
+  }
+  return workspaces[0] || null;
 }
 
-export async function createOrGetJobWorkspaceAtContactRelease(args: {
+type DirectConnectSqlExecutor = {
+  execute(query: unknown): Promise<any>;
+};
+
+type ExactContactReleaseArgs = {
   requestId: string;
   requesterUserId: string;
+  assignmentId: string;
+  providerKey: string;
+  conversationId: string;
+  providerUserId: string;
   businessId?: string | null;
   contractorId?: string | null;
-  contractorResponseId?: string | null;
+  contractorResponseId: string;
   category?: string | null;
   county?: string | null;
   cityArea?: string | null;
-}) {
-  const existing = await getJobWorkspaceByRequestId(args.requestId);
-  if (existing) return existing;
+};
+
+function normalizeExactContactReleaseArgs(args: ExactContactReleaseArgs) {
+  const normalized = {
+    requestId: String(args.requestId || "").trim(),
+    requesterUserId: String(args.requesterUserId || "").trim(),
+    assignmentId: String(args.assignmentId || "").trim(),
+    providerKey: String(args.providerKey || "").trim(),
+    conversationId: String(args.conversationId || "").trim(),
+    providerUserId: String(args.providerUserId || "").trim(),
+    businessId: String(args.businessId || "").trim() || null,
+    contractorId: String(args.contractorId || "").trim() || null,
+    contractorResponseId: String(args.contractorResponseId || "").trim(),
+  };
+  if (
+    !normalized.requestId ||
+    !normalized.requesterUserId ||
+    !normalized.assignmentId ||
+    !normalized.providerKey ||
+    !normalized.conversationId ||
+    !normalized.providerUserId ||
+    !normalized.contractorResponseId
+  ) {
+    throw new Error("DIRECT_CONNECT_JOB_WORKSPACE_AUTHORITY_REQUIRED");
+  }
+
+  const expectedBusinessId = normalized.providerKey.startsWith("business:")
+    ? normalized.providerKey.slice("business:".length).trim() || null
+    : null;
+  if (expectedBusinessId !== normalized.businessId) {
+    throw new Error("DIRECT_CONNECT_JOB_WORKSPACE_PROVIDER_MISMATCH");
+  }
+  return normalized;
+}
+
+async function createOrGetJobWorkspaceAtContactReleaseWithExecutor(
+  executor: DirectConnectSqlExecutor,
+  args: ExactContactReleaseArgs
+) {
+  const normalized = normalizeExactContactReleaseArgs(args);
+  const lockKey = `direct-connect-job-workspace:${normalized.requestId}`;
+  await executor.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
+  const existingRows = await executor.execute(sql`
+      SELECT
+        id,
+        request_id,
+        requester_user_id,
+        business_id,
+        contractor_id,
+        contractor_response_id,
+        source,
+        category,
+        county,
+        city_area,
+        status,
+        active_stage,
+        created_at,
+        updated_at
+      FROM direct_connect_job_workspaces
+      WHERE request_id = ${normalized.requestId}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 2
+    `);
+  const existing = (existingRows.rows || []) as any[];
+  if (existing.length > 1) {
+    throw new Error("DIRECT_CONNECT_JOB_WORKSPACE_AMBIGUOUS");
+  }
+  if (existing.length === 1) {
+    const workspace = existing[0];
+    const sameNullableId = (left: unknown, right: unknown) =>
+      (String(left || "").trim() || null) === (String(right || "").trim() || null);
+    if (
+      String(workspace.requester_user_id || "").trim() !== normalized.requesterUserId ||
+      !sameNullableId(workspace.business_id, normalized.businessId) ||
+      !sameNullableId(workspace.contractor_id, normalized.contractorId) ||
+      String(workspace.contractor_response_id || "").trim() !== normalized.contractorResponseId
+    ) {
+      throw new Error("DIRECT_CONNECT_JOB_WORKSPACE_AUTHORITY_MISMATCH");
+    }
+    return workspace;
+  }
 
   const id = randomUUID();
-  await db.execute(sql`
-    INSERT INTO direct_connect_job_workspaces (
-      id, request_id, requester_user_id, business_id, contractor_id, contractor_response_id,
-      source, category, county, city_area, status, active_stage, created_at, updated_at
-    )
-    VALUES (
-      ${id},
-      ${args.requestId},
-      ${args.requesterUserId},
-      ${args.businessId ?? null},
-      ${args.contractorId ?? null},
-      ${args.contractorResponseId ?? null},
-      'direct_connect',
-      ${args.category ?? null},
-      ${args.county ?? null},
-      ${args.cityArea ?? null},
-      'contact_started',
-      'contact',
-      now(),
-      now()
-    )
-  `);
+  const insertedRows = await executor.execute(sql`
+      INSERT INTO direct_connect_job_workspaces (
+        id, request_id, requester_user_id, business_id, contractor_id, contractor_response_id,
+        source, category, county, city_area, status, active_stage, created_at, updated_at
+      )
+      VALUES (
+        ${id},
+        ${normalized.requestId},
+        ${normalized.requesterUserId},
+        ${normalized.businessId},
+        ${normalized.contractorId},
+        ${normalized.contractorResponseId},
+        'direct_connect',
+        ${args.category ?? null},
+        ${args.county ?? null},
+        ${args.cityArea ?? null},
+        'contact_started',
+        'contact',
+        now(),
+        now()
+      )
+      RETURNING *
+    `);
+  return ((insertedRows.rows || []) as any[])[0] || null;
+}
 
-  return await getJobWorkspaceByRequestId(args.requestId);
+export async function createOrGetJobWorkspaceAtContactRelease(args: ExactContactReleaseArgs) {
+  return db.transaction(async (tx) => {
+    return createOrGetJobWorkspaceAtContactReleaseWithExecutor(
+      tx as unknown as DirectConnectSqlExecutor,
+      args
+    );
+  });
+}
+
+export async function releaseContactAndCreateOrGetJobWorkspace(args: ExactContactReleaseArgs) {
+  const normalized = normalizeExactContactReleaseArgs(args);
+  return db.transaction(async (tx) => {
+    const executor = tx as unknown as DirectConnectSqlExecutor;
+    const lockKey = `direct-connect-contact-release:${normalized.requestId}`;
+    await executor.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
+
+    const requestRows = await executor.execute(sql`
+      SELECT id, created_by_user_id, status
+      FROM work_requests
+      WHERE id = ${normalized.requestId}
+      FOR UPDATE
+    `);
+    const requestRow = ((requestRows.rows || []) as any[])[0] || null;
+    if (
+      !requestRow ||
+      String(requestRow.created_by_user_id || "").trim() !== normalized.requesterUserId ||
+      !["in_progress", "completed"].includes(String(requestRow.status || ""))
+    ) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_REQUEST_MISMATCH");
+    }
+
+    const gateRows = await executor.execute(sql`
+      SELECT contact_gate_state, contact_gate_assignment_id, contact_gate_provider_key
+      FROM direct_connect_dispatch_requests
+      WHERE id = ${normalized.requestId}
+      FOR UPDATE
+    `);
+    const gate = ((gateRows.rows || []) as any[])[0] || null;
+    if (
+      !gate ||
+      !["user_approved", "released"].includes(String(gate.contact_gate_state || "")) ||
+      String(gate.contact_gate_assignment_id || "").trim() !== normalized.assignmentId ||
+      String(gate.contact_gate_provider_key || "").trim() !== normalized.providerKey
+    ) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_APPROVAL_MISMATCH");
+    }
+
+    const assignmentRows = await executor.execute(sql`
+      SELECT id, work_request_id, status, provider_key, contractor_id, responder_user_id, worker_id
+      FROM work_request_assignments
+      WHERE id = ${normalized.assignmentId}
+        AND work_request_id = ${normalized.requestId}
+      FOR UPDATE
+    `);
+    const assignment = ((assignmentRows.rows || []) as any[])[0] || null;
+    const sameNullableId = (left: unknown, right: unknown) =>
+      (String(left || "").trim() || null) === (String(right || "").trim() || null);
+    if (
+      !assignment ||
+      !["accepted", "completed"].includes(String(assignment.status || "")) ||
+      String(assignment.provider_key || "").trim() !== normalized.providerKey ||
+      !sameNullableId(assignment.contractor_id, normalized.contractorId)
+    ) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_ASSIGNMENT_MISMATCH");
+    }
+
+    const conversationRows = await executor.execute(sql`
+      SELECT id, homeowner_id, contractor_id, status
+      FROM conversations
+      WHERE id = ${normalized.conversationId}
+      FOR UPDATE
+    `);
+    const conversation = ((conversationRows.rows || []) as any[])[0] || null;
+    const expectedConversationProviderKey = normalized.contractorId || normalized.providerUserId;
+    if (
+      !conversation ||
+      String(conversation.homeowner_id || "").trim() !== normalized.requesterUserId ||
+      String(conversation.contractor_id || "").trim() !== expectedConversationProviderKey ||
+      String(conversation.status || "") !== "active"
+    ) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_CONVERSATION_MISMATCH");
+    }
+
+    const responseRows = await executor.execute(sql`
+      SELECT id, contractor_id, responder_user_id, assignment_id, provider_key,
+        response_type, contact_request_state
+      FROM direct_connect_contractor_responses
+      WHERE id = ${normalized.contractorResponseId}
+        AND request_id = ${normalized.requestId}
+      FOR UPDATE
+    `);
+    const response = ((responseRows.rows || []) as any[])[0] || null;
+    if (
+      !response ||
+      String(response.assignment_id || "").trim() !== normalized.assignmentId ||
+      String(response.provider_key || "").trim() !== normalized.providerKey ||
+      !["interested", "need_more_info"].includes(String(response.response_type || "")) ||
+      !["contractor_requested", "user_approved", "released"].includes(
+        String(response.contact_request_state || "")
+      ) ||
+      String(response.responder_user_id || "").trim() !== normalized.providerUserId ||
+      !sameNullableId(response.contractor_id, normalized.contractorId)
+    ) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_RESPONSE_MISMATCH");
+    }
+
+    const acceptedEventRows = await executor.execute(sql`
+      SELECT id
+      FROM work_request_events
+      WHERE work_request_id = ${normalized.requestId}
+        AND type::text = 'provider_accepted'
+        AND actor_user_id = ${normalized.providerUserId}
+        AND metadata->>'conversationId' = ${normalized.conversationId}
+        AND (
+          (
+            metadata->>'assignmentId' = ${normalized.assignmentId}
+            AND metadata->>'providerKey' = ${normalized.providerKey}
+          )
+          OR (
+            NULLIF(BTRIM(metadata->>'assignmentId'), '') IS NULL
+            AND NULLIF(BTRIM(metadata->>'providerKey'), '') IS NULL
+            AND COALESCE(metadata->>'authorityBindingVersion', '') <> '2'
+          )
+        )
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+      FOR UPDATE
+    `);
+    if (!((acceptedEventRows.rows || []) as any[])[0]) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_EVENT_MISMATCH");
+    }
+
+    const workspace = await createOrGetJobWorkspaceAtContactReleaseWithExecutor(executor, args);
+    if (!workspace) {
+      throw new Error("DIRECT_CONNECT_JOB_WORKSPACE_CREATE_FAILED");
+    }
+
+    const releaseResult = await executor.execute(sql`
+      UPDATE direct_connect_dispatch_requests
+      SET
+        contact_gate_state = 'released',
+        updated_at = now()
+      WHERE id = ${normalized.requestId}
+        AND contact_gate_state IN ('user_approved', 'released')
+        AND contact_gate_assignment_id = ${normalized.assignmentId}
+        AND contact_gate_provider_key = ${normalized.providerKey}
+    `);
+    if (Number(releaseResult.rowCount || 0) < 1) {
+      throw new Error("DIRECT_CONNECT_CONTACT_RELEASE_APPROVAL_MISMATCH");
+    }
+
+    const workspaceId = String(workspace.id);
+    await executor.execute(sql`
+      INSERT INTO direct_connect_dispatch_events (
+        event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
+      )
+      VALUES (
+        ${`direct-connect-job-workspace-created:${workspaceId}`},
+        ${normalized.requestId},
+        'system',
+        null,
+        'job_workspace_created',
+        ${JSON.stringify({
+          workspaceId,
+          assignmentId: normalized.assignmentId,
+          providerKey: normalized.providerKey,
+          conversationId: normalized.conversationId,
+          source: "contact_released",
+        })}::jsonb,
+        now()
+      )
+      ON CONFLICT (event_id) DO NOTHING
+    `);
+    await executor.execute(sql`
+      INSERT INTO direct_connect_dispatch_events (
+        event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
+      )
+      VALUES (
+        ${`direct-connect-contact-gate:${normalized.requestId}:${normalized.assignmentId}:released`},
+        ${normalized.requestId},
+        'requester',
+        ${normalized.requesterUserId},
+        'contact_released',
+        ${JSON.stringify({
+          nextState: "released",
+          previousState: String(gate.contact_gate_state || "user_approved"),
+          actor: "requester",
+          assignmentId: normalized.assignmentId,
+          providerKey: normalized.providerKey,
+        })}::jsonb,
+        now()
+      )
+      ON CONFLICT (event_id) DO NOTHING
+    `);
+    return workspace;
+  });
 }
 
 export function getAllowedLifecycleActions(args: {
@@ -1108,13 +776,16 @@ export function getAllowedLifecycleActions(args: {
   }
 }
 
-export async function persistFinalizedDispatchRequest(args: {
-  canonical: CanonicalDirectConnectRequest;
-  userId?: string | null;
-  anonymousSessionId?: string | null;
-}) {
+export async function persistFinalizedDispatchRequest(
+  args: {
+    canonical: CanonicalDirectConnectRequest;
+    userId?: string | null;
+    anonymousSessionId?: string | null;
+  },
+  executor: DirectConnectSqlExecutor = db as unknown as DirectConnectSqlExecutor
+) {
   const now = new Date().toISOString();
-  await db.execute(sql`
+  await executor.execute(sql`
     INSERT INTO direct_connect_dispatch_requests (
       id, user_id, anonymous_session_id, intent, request_type, category, county, city_area, urgency, description,
       answers_json, completeness_state, routing_readiness_state, visibility_state, contact_gate_state, source_surface, created_at, updated_at
@@ -1154,7 +825,6 @@ export async function persistFinalizedDispatchRequest(args: {
       completeness_state = EXCLUDED.completeness_state,
       routing_readiness_state = EXCLUDED.routing_readiness_state,
       visibility_state = EXCLUDED.visibility_state,
-      contact_gate_state = EXCLUDED.contact_gate_state,
       source_surface = EXCLUDED.source_surface,
       updated_at = ${now}::timestamptz
   `);
@@ -1169,91 +839,95 @@ function isMissingDispatchRequestParent(error: unknown): boolean {
   );
 }
 
-export async function appendDispatchEvent(args: {
-  requestId: string;
-  actorType: "requester" | "contractor" | "system" | "staff";
-  actorId?: string | null;
-  eventType:
-    | "request_finalized"
-    | "request_route_ready"
-    | "request_route_blocked"
-    | "candidate_eligible"
-    | "candidate_ineligible"
-    | "request_shared"
-    | "contact_requested"
-    | "contact_released"
-    | "contractor_responded"
-    | "contractor_viewed_request"
-    | "homeowner_viewed_request"
-    | "homeowner_viewed_response"
-    | "requester_viewed_request"
-    | "requester_viewed_response"
-    | "requester_ownership_upgraded"
-    | "contact_approved"
-    | "contact_denied"
-    | "request_closed"
-    | "job_workspace_created"
-    | "estimate_started"
-    | "estimate_line_item_added"
-    | "estimate_sent"
-    | "estimate_accepted"
-    | "estimate_change_requested"
-    | "estimate_declined"
-    | "estimate_voided"
-    | "deposit_requested"
-    | "deposit_acknowledged"
-    | "deposit_paid_outside_platform"
-    | "deposit_waived"
-    | "payment_request_canceled"
-    | "schedule_accepted"
-    | "schedule_change_requested"
-    | "schedule_declined"
-    | "job_scheduled"
-    | "deposit_recorded"
-    | "schedule_proposed"
-    | "work_started"
-    | "checkpoint_created"
-    | "checkpoint_updated"
-    | "checkpoint_completed"
-    | "checkpoint_approved"
-    | "checkpoint_issue_reported"
-    | "change_order_created"
-    | "change_order_sent"
-    | "change_order_approved"
-    | "change_order_declined"
-    | "change_order_change_requested"
-    | "change_order_voided"
-    | "punch_list_started"
-    | "punch_item_created"
-    | "punch_item_acknowledged"
-    | "punch_item_started"
-    | "punch_item_resolved"
-    | "punch_item_approved"
-    | "punch_item_rejected"
-    | "punch_item_waived"
-    | "completion_requested"
-    | "completion_confirmed"
-    | "completion_rejected"
-    | "punch_item_completed"
-    | "invoice_started"
-    | "invoice_line_item_added"
-    | "invoice_sent"
-    | "invoice_acknowledged"
-    | "invoice_disputed"
-    | "invoice_marked_paid_outside_platform"
-    | "invoice_voided"
-    | "receipt_uploaded"
-    | "payment_recorded"
-    | "receipt_disputed"
-    | "receipt_voided"
-    | "job_completed"
-    | "job_closed";
-  metadata?: Record<string, unknown>;
-}) {
-  const eventId = randomUUID();
+export async function appendDispatchEvent(
+  args: {
+    eventId?: string;
+    requestId: string;
+    actorType: "requester" | "contractor" | "system" | "staff";
+    actorId?: string | null;
+    eventType:
+      | "request_finalized"
+      | "request_route_ready"
+      | "request_route_blocked"
+      | "candidate_eligible"
+      | "candidate_ineligible"
+      | "request_shared"
+      | "contact_requested"
+      | "contact_released"
+      | "contractor_responded"
+      | "contractor_viewed_request"
+      | "homeowner_viewed_request"
+      | "homeowner_viewed_response"
+      | "requester_viewed_request"
+      | "requester_viewed_response"
+      | "requester_ownership_upgraded"
+      | "contact_approved"
+      | "contact_denied"
+      | "request_closed"
+      | "job_workspace_created"
+      | "estimate_started"
+      | "estimate_line_item_added"
+      | "estimate_sent"
+      | "estimate_accepted"
+      | "estimate_change_requested"
+      | "estimate_declined"
+      | "estimate_voided"
+      | "deposit_requested"
+      | "deposit_acknowledged"
+      | "deposit_paid_outside_platform"
+      | "deposit_waived"
+      | "payment_request_canceled"
+      | "schedule_accepted"
+      | "schedule_change_requested"
+      | "schedule_declined"
+      | "job_scheduled"
+      | "deposit_recorded"
+      | "schedule_proposed"
+      | "work_started"
+      | "checkpoint_created"
+      | "checkpoint_updated"
+      | "checkpoint_completed"
+      | "checkpoint_approved"
+      | "checkpoint_issue_reported"
+      | "change_order_created"
+      | "change_order_sent"
+      | "change_order_approved"
+      | "change_order_declined"
+      | "change_order_change_requested"
+      | "change_order_voided"
+      | "punch_list_started"
+      | "punch_item_created"
+      | "punch_item_acknowledged"
+      | "punch_item_started"
+      | "punch_item_resolved"
+      | "punch_item_approved"
+      | "punch_item_rejected"
+      | "punch_item_waived"
+      | "completion_requested"
+      | "completion_confirmed"
+      | "completion_rejected"
+      | "punch_item_completed"
+      | "invoice_started"
+      | "invoice_line_item_added"
+      | "invoice_sent"
+      | "invoice_acknowledged"
+      | "invoice_disputed"
+      | "invoice_marked_paid_outside_platform"
+      | "invoice_voided"
+      | "receipt_uploaded"
+      | "payment_recorded"
+      | "receipt_disputed"
+      | "receipt_voided"
+      | "job_completed"
+      | "job_closed";
+    metadata?: Record<string, unknown>;
+  },
+  executor: DirectConnectSqlExecutor = db as unknown as DirectConnectSqlExecutor
+) {
+  const eventId = String(args.eventId || "").trim() || randomUUID();
   const lifecycle = normalizeLifecycleEvent(args.eventType);
   try {
-    await db.execute(sql`
+    await executor.execute(sql`
       INSERT INTO direct_connect_dispatch_events (
         event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
       )
@@ -1266,6 +940,7 @@ export async function appendDispatchEvent(args: {
         ${JSON.stringify(args.metadata || {})}::jsonb,
         now()
       )
+      ON CONFLICT (event_id) DO NOTHING
     `);
   } catch (error) {
     if (isMissingDispatchRequestParent(error)) return;
@@ -1273,16 +948,19 @@ export async function appendDispatchEvent(args: {
   }
   if (!lifecycle) return;
 
-  const recipients = await resolveLifecycleRecipients(args.requestId, args.eventType);
+  const recipients = await resolveLifecycleRecipients(args.requestId, args.eventType, executor);
   for (const recipient of recipients) {
     const messageText = messageForLifecycleStatus(lifecycle, recipient.recipientType);
-    await db.execute(sql`
+    const lifecycleNotificationId =
+      `direct-connect-lifecycle:${eventId}:` +
+      `${recipient.recipientType}:${recipient.recipientId}:${lifecycle}`;
+    await executor.execute(sql`
       INSERT INTO direct_connect_lifecycle_notifications (
         id, request_id, actor_type, actor_id, recipient_type, recipient_id, event_type,
         lifecycle_status, message_key, message_text, is_read, created_at
       )
       VALUES (
-        ${randomUUID()},
+        ${lifecycleNotificationId},
         ${args.requestId},
         ${args.actorType},
         ${args.actorId ?? null},
@@ -1295,6 +973,7 @@ export async function appendDispatchEvent(args: {
         false,
         now()
       )
+      ON CONFLICT (id) DO NOTHING
     `);
     const internalNotification = mapLifecycleToInternalNotification({
       requestId: args.requestId,
@@ -1308,7 +987,7 @@ export async function appendDispatchEvent(args: {
       lifecycleStatus: lifecycle,
     });
     if (internalNotification) {
-      await createInternalDirectConnectNotification(internalNotification);
+      await createInternalDirectConnectNotification(internalNotification, executor);
     }
   }
 }
@@ -1601,8 +1280,11 @@ function mapLifecycleToInternalNotification(args: {
   };
 }
 
-export async function createInternalDirectConnectNotification(args: InternalNotificationUpsert) {
-  await db.execute(sql`
+export async function createInternalDirectConnectNotification(
+  args: InternalNotificationUpsert,
+  executor: DirectConnectSqlExecutor = db as unknown as DirectConnectSqlExecutor
+) {
+  await executor.execute(sql`
     INSERT INTO direct_connect_notifications (
       id, request_id, job_workspace_id, event_id, recipient_user_id, recipient_business_id,
       recipient_role, actor_type, actor_id, notification_type, title, message,
@@ -1753,24 +1435,27 @@ export async function markAllInternalDirectConnectNotificationsRead(args: {
   return Number((result as any)?.rowCount || 0);
 }
 
-export async function snapshotDispatchCandidate(args: {
-  requestId: string;
-  businessId?: string | null;
-  contractorId?: string | null;
-  responderUserId?: string | null;
-  workerId?: string | null;
-  eligibility: ContractorEligibilityResult;
-  eligibilityReasons?: string[];
-  ineligibilityReasons?: string[];
-  territoryMatched: boolean;
-  categoryMatched: boolean;
-  verificationState: string;
-  profileReadiness: string;
-  contactEligibility: boolean;
-  trustState: string;
-}) {
+export async function snapshotDispatchCandidate(
+  args: {
+    requestId: string;
+    businessId?: string | null;
+    contractorId?: string | null;
+    responderUserId?: string | null;
+    workerId?: string | null;
+    eligibility: ContractorEligibilityResult;
+    eligibilityReasons?: string[];
+    ineligibilityReasons?: string[];
+    territoryMatched: boolean;
+    categoryMatched: boolean;
+    verificationState: string;
+    profileReadiness: string;
+    contactEligibility: boolean;
+    trustState: string;
+  },
+  executor: DirectConnectSqlExecutor = db as unknown as DirectConnectSqlExecutor
+) {
   try {
-    await db.execute(sql`
+    await executor.execute(sql`
       INSERT INTO direct_connect_dispatch_candidates (
         id, request_id, business_id, contractor_id, responder_user_id, worker_id,
         eligibility_state, eligibility_reasons, ineligibility_reasons,
@@ -1801,49 +1486,129 @@ export async function snapshotDispatchCandidate(args: {
   }
 }
 
-export async function setDispatchContactGateState(args: {
-  requestId: string;
-  nextState: ContactGateState;
-}) {
+export async function setDispatchContactGateState(
+  args: {
+    requestId: string;
+    nextState: ContactGateState;
+    assignmentId?: string | null;
+    providerKey?: string | null;
+  },
+  executor: DirectConnectSqlExecutor = db as unknown as DirectConnectSqlExecutor
+) {
+  const requestId = String(args.requestId || "").trim();
+  const assignmentId = String(args.assignmentId || "").trim();
+  const providerKey = String(args.providerKey || "").trim();
+  if (!requestId) {
+    throw new Error("CONTACT_GATE_REQUEST_REQUIRED");
+  }
+
+  if (["contractor_requested", "user_approved", "released", "denied"].includes(args.nextState)) {
+    if (!assignmentId || !providerKey) {
+      throw new Error("CONTACT_GATE_BINDING_REQUIRED");
+    }
+  }
+
+  if (args.nextState === "contractor_requested") {
+    const result = await executor.execute(sql`
+      UPDATE direct_connect_dispatch_requests
+      SET
+        contact_gate_state = CASE
+          WHEN contact_gate_state = 'locked' THEN 'contractor_requested'
+          ELSE contact_gate_state
+        END,
+        contact_gate_assignment_id = ${assignmentId},
+        contact_gate_provider_key = ${providerKey},
+        updated_at = now()
+      WHERE id = ${requestId}
+        AND contact_gate_state IN ('locked', 'contractor_requested', 'user_approved')
+        AND (
+          (contact_gate_assignment_id IS NULL AND contact_gate_provider_key IS NULL)
+          OR (
+            contact_gate_assignment_id = ${assignmentId}
+            AND contact_gate_provider_key = ${providerKey}
+          )
+        )
+    `);
+    if (Number(result.rowCount || 0) < 1) {
+      throw new Error("CONTACT_GATE_BINDING_CONFLICT");
+    }
+    return;
+  }
+
+  if (args.nextState === "user_approved" || args.nextState === "denied") {
+    const result = await executor.execute(sql`
+      UPDATE direct_connect_dispatch_requests
+      SET
+        contact_gate_state = ${args.nextState},
+        contact_gate_assignment_id = ${assignmentId},
+        contact_gate_provider_key = ${providerKey},
+        updated_at = now()
+      WHERE id = ${requestId}
+        AND contact_gate_state IN ('contractor_requested', ${args.nextState})
+        AND (
+          (contact_gate_assignment_id IS NULL AND contact_gate_provider_key IS NULL)
+          OR (
+            contact_gate_assignment_id = ${assignmentId}
+            AND contact_gate_provider_key = ${providerKey}
+          )
+        )
+    `);
+    if (Number(result.rowCount || 0) < 1) {
+      throw new Error("CONTACT_GATE_BINDING_CONFLICT");
+    }
+    return;
+  }
+
   if (args.nextState === "released") {
-    const result = await db.execute(sql`
+    const result = await executor.execute(sql`
       UPDATE direct_connect_dispatch_requests
       SET contact_gate_state = 'released', updated_at = now()
-      WHERE id = ${args.requestId}
-        AND contact_gate_state = 'user_approved'
+      WHERE id = ${requestId}
+        AND contact_gate_state IN ('user_approved', 'released')
+        AND contact_gate_assignment_id = ${assignmentId}
+        AND contact_gate_provider_key = ${providerKey}
     `);
-    const updated = Number((result as any)?.rowCount || 0);
-    if (updated < 1) {
+    if (Number(result.rowCount || 0) < 1) {
       throw new Error("CONTACT_RELEASE_REQUIRES_APPROVAL");
     }
     return;
   }
-  await db.execute(sql`
+
+  await executor.execute(sql`
     UPDATE direct_connect_dispatch_requests
     SET contact_gate_state = ${args.nextState}, updated_at = now()
-    WHERE id = ${args.requestId}
+    WHERE id = ${requestId}
   `);
 }
 
-export async function recordContractorResponse(args: {
-  requestId: string;
-  contractorId?: string | null;
-  responderUserId?: string | null;
-  responseType: "interested" | "need_more_info" | "not_a_fit" | "unavailable";
-  message?: string | null;
-  availability?: string | null;
-  estimatedTiming?: string | null;
-  contactRequestState: ContactGateState;
-}) {
-  await db.execute(sql`
+export async function recordContractorResponse(
+  args: {
+    requestId: string;
+    contractorId?: string | null;
+    responderUserId?: string | null;
+    assignmentId?: string | null;
+    providerKey?: string | null;
+    responseType: "interested" | "need_more_info" | "not_a_fit" | "unavailable";
+    message?: string | null;
+    availability?: string | null;
+    estimatedTiming?: string | null;
+    contactRequestState: ContactGateState;
+  },
+  executor: Pick<typeof db, "execute"> = db
+) {
+  const responseId = randomUUID();
+  await executor.execute(sql`
     INSERT INTO direct_connect_contractor_responses (
-      id, request_id, contractor_id, responder_user_id, response_type, message, availability, estimated_timing, contact_request_state, created_at
+      id, request_id, contractor_id, responder_user_id, assignment_id, provider_key,
+      response_type, message, availability, estimated_timing, contact_request_state, created_at
     )
     VALUES (
-      ${randomUUID()},
+      ${responseId},
       ${args.requestId},
       ${args.contractorId ?? null},
       ${args.responderUserId ?? null},
+      ${args.assignmentId ?? null},
+      ${args.providerKey ?? null},
       ${args.responseType},
       ${args.message ?? null},
       ${args.availability ?? null},
@@ -1852,4 +1617,5 @@ export async function recordContractorResponse(args: {
       now()
     )
   `);
+  return responseId;
 }

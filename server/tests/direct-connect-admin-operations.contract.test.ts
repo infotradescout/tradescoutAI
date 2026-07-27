@@ -28,6 +28,8 @@ const routeSection = (source: string, method: string, routePath: string) => {
 
 describe("Direct Connect admin operations contracts", () => {
   const source = read("server/routes/direct-connect.ts");
+  const notificationService = read("server/notification-service.ts");
+  const adminDetailUi = read("client/src/components/admin/AdminDirectConnectRequestDetail.tsx");
   const createRoute = routeSection(source, "post", "/api/admin/direct-connect/requests");
   const queueRoute = routeSection(source, "get", "/api/admin/direct-connect/requests");
   const detailRoute = routeSection(source, "get", "/api/admin/direct-connect/requests/:id");
@@ -35,6 +37,11 @@ describe("Direct Connect admin operations contracts", () => {
     source,
     "post",
     "/api/admin/direct-connect/requests/:id/route"
+  );
+  const manualAssignmentRoute = routeSection(
+    source,
+    "post",
+    "/api/admin/direct-connect/requests/:id/manual-assignment"
   );
   const resendRoute = routeSection(
     source,
@@ -63,6 +70,7 @@ describe("Direct Connect admin operations contracts", () => {
         "GET /api/admin/direct-connect/requests",
         "GET /api/admin/direct-connect/requests/:id",
         "POST /api/admin/direct-connect/requests/:id/route",
+        "POST /api/admin/direct-connect/requests/:id/manual-assignment",
         "POST /api/admin/direct-connect/requests/:id/resend-notifications",
         "POST /api/admin/direct-connect/requests/:id/assisted-reply",
       ].sort()
@@ -168,11 +176,91 @@ describe("Direct Connect admin operations contracts", () => {
     expect(detailRoute).toContain("deliveryEvidenceIssue,");
   });
 
+  it("loads typed account-setup delivery evidence with request and recipient scoping", () => {
+    const deliveryQuery = sectionBetween(
+      detailRoute,
+      "const deliveryResult = await pool.query(",
+      "deliveries = deliveryResult.rows;"
+    );
+    expect(deliveryQuery).toContain(
+      "n.metadata ->> 'emailPurpose' = 'direct_connect_account_setup'"
+    );
+    expect(deliveryQuery).toContain("n.metadata -> 'emailTemplate' ->> 'kind' =");
+    expect(deliveryQuery).toContain("'direct_connect_account_setup'");
+    expect(deliveryQuery).toContain("n.metadata -> 'emailTemplate' ->> 'workRequestId' = $1");
+    expect(deliveryQuery).toContain("n.user_id = $2");
+    expect(deliveryQuery).toContain("[requestId, String(request.createdByUserId)]");
+    expect(deliveryQuery).not.toMatch(/\btoken\b|reset-password|verify-email/i);
+  });
+
+  it("falls back to request-scoped audit evidence unless the exact durable intent loaded", () => {
+    expect(detailRoute).toContain("const loadedDurableEvidenceKeys = new Set(");
+    expect(detailRoute).toContain("`${String(delivery.notificationId)}:${String(delivery.id)}`");
+    expect(detailRoute).toContain(
+      "`${String(metadata.notificationId)}:${String(metadata.deliveryIntentId)}`"
+    );
+    expect(detailRoute).toContain("loadedDurableEvidenceKeys.has(durableEvidenceKey)");
+    expect(detailRoute).not.toContain(
+      "if (metadata.notificationId && metadata.deliveryIntentId) continue;"
+    );
+  });
+
   it("never enables verification bypass from the admin route operation", () => {
     expect(routeRequestRoute).toContain("await routeRequestToTopContractors({");
     expect(routeRequestRoute).toContain("bypassVerificationGate: false");
     expect(routeRequestRoute).not.toContain("resolveDirectConnectVerificationBypass");
     expect(routeRequestRoute).not.toContain("adminBypassVerification");
+  });
+
+  it("assigns one explicit provider without bypassing county, trade, or verification gates", () => {
+    expect(manualAssignmentRoute).toContain(
+      "directConnectAdminManualAssignmentSchema.safeParse(req.body ?? {})"
+    );
+    expect(manualAssignmentRoute.indexOf("const [replayEvent] = await db")).toBeLessThan(
+      manualAssignmentRoute.indexOf("await loadDirectConnectRequest(requestId)")
+    );
+    expect(manualAssignmentRoute).toContain("idempotentReplay: true");
+    expect(source).toContain('providerType: z.enum(["contractor", "business"])');
+    expect(manualAssignmentRoute).toContain(
+      "await filterContractorsEligibleForRequest([contractor], request)"
+    );
+    expect(manualAssignmentRoute).toContain(
+      "await filterBusinessesEligibleForRequest([business], request)"
+    );
+    expect(manualAssignmentRoute).toContain('code: "PROVIDER_NOT_ELIGIBLE"');
+    expect(manualAssignmentRoute).toContain("pg_advisory_xact_lock");
+    expect(manualAssignmentRoute).toContain("FOR UPDATE");
+    expect(manualAssignmentRoute).toContain(
+      "await filterContractorsEligibleForRequest([contractor], lockedRequest)"
+    );
+    expect(manualAssignmentRoute).toContain(
+      "await filterBusinessesEligibleForRequest([business], lockedRequest)"
+    );
+    expect(manualAssignmentRoute).toContain("direct-connect-manual-assignment-operation:");
+    expect(manualAssignmentRoute).toContain("direct-connect-manual-assignment-provider:");
+    expect(manualAssignmentRoute).toContain(
+      "This operationId was already used for a different manual provider assignment."
+    );
+    expect(manualAssignmentRoute).toContain(
+      "eq(workRequestAssignments.providerKey, assignmentProviderKey)"
+    );
+    expect(manualAssignmentRoute).toContain('["declined", "withdrawn"]');
+    expect(manualAssignmentRoute).toContain(".onConflictDoNothing()");
+    expect(manualAssignmentRoute).toContain('operation: "staff_manual_provider_assignment"');
+    expect(manualAssignmentRoute).toContain('routingMode: "staff_manual"');
+    expect(manualAssignmentRoute).toContain('status: "invited" as const');
+    expect(manualAssignmentRoute).toContain('emailPurpose: "direct_connect_request"');
+    expect(manualAssignmentRoute).toContain('notificationContext: "staff_manual_assignment"');
+    expect(manualAssignmentRoute).toContain('action: "admin_direct_connect_manual_assignment"');
+    expect(manualAssignmentRoute).not.toContain("bypassVerificationGate: true");
+    expect(manualAssignmentRoute).not.toContain("adminBypassVerification");
+    expect(adminDetailUi).toContain("Assign a specific provider");
+    expect(adminDetailUi).toContain('aria-label="Search provider for manual assignment"');
+    expect(adminDetailUi).toContain('aria-label="Reason for manual provider assignment"');
+    expect(adminDetailUi).toContain(
+      "`/api/admin/direct-connect/requests/${requestId}/manual-assignment`"
+    );
+    expect(adminDetailUi).toContain("County, trade, and verification gates remain enforced.");
   });
 
   it("resends provider notifications through email with explicit request metadata", () => {
@@ -208,30 +296,36 @@ describe("Direct Connect admin operations contracts", () => {
     expect(assistedReplyRoute).not.toContain("storage.createMessage");
   });
 
-  it("sends admin-created request email only after persistence using the canonical base", () => {
+  it("durably queues admin-created setup email before canonical claim-time rendering", () => {
     const canonicalBase = sectionBetween(
-      source,
-      "const resolveCanonicalPublicBase",
-      "const ensureShareTokenForRequest"
+      notificationService,
+      "export function resolveCanonicalTradeScoutBaseUrl",
+      "export function resolveNotificationEmailActionUrl"
     );
-    expect(canonicalBase).toContain("return resolveCanonicalTradeScoutBaseUrl(");
-    expect(canonicalBase).toContain("process.env.PUBLIC_WEB_URL");
-    expect(canonicalBase).toContain("process.env.APP_URL");
-    expect(canonicalBase).toContain("process.env.APP_BASE_URL");
-    expect(canonicalBase).not.toContain("parsed.origin");
+    expect(canonicalBase).toContain("CANONICAL_TRADESCOUT_BASE_URL");
+    expect(notificationService).toContain(
+      "const canonicalBaseUrl = resolveCanonicalTradeScoutBaseUrl(candidateBaseUrl)"
+    );
 
     const insertIndex = createRoute.indexOf(".insert(workRequests)");
-    const emailIndex = createRoute.indexOf("await emailService.sendEmail({");
-    expect(insertIndex).toBeGreaterThanOrEqual(0);
-    expect(emailIndex).toBeGreaterThan(insertIndex);
-    expect(createRoute.indexOf('deliveryStatus: "pending"')).toBeLessThan(emailIndex);
-    expect(createRoute).toContain("const publicBase = resolveCanonicalPublicBase();");
-    expect(createRoute).toContain('purpose: "direct_connect_account_setup"');
-    const emailDispatch = sectionBetween(
-      createRoute,
-      "if (targetEmailForNotification) {",
-      "} else if (shouldSendSetupFlow) {"
+    const setupEnqueueIndex = createRoute.indexOf(
+      "notificationService.enqueueDirectConnectAccountSetupEmail"
     );
-    expect(emailDispatch).not.toContain("resolveOrigin(req)");
+    const requestEnqueueIndex = createRoute.indexOf(
+      "notificationService.enqueueDirectConnectRequestEmail"
+    );
+    const creationDoneIndex = createRoute.indexOf("const created = creationResult.request");
+    const dispatchIndex = createRoute.indexOf("notificationService.dispatchDirectConnectEmail");
+    expect(insertIndex).toBeGreaterThanOrEqual(0);
+    expect(setupEnqueueIndex).toBeGreaterThan(insertIndex);
+    expect(requestEnqueueIndex).toBeGreaterThan(insertIndex);
+    expect(setupEnqueueIndex).toBeLessThan(creationDoneIndex);
+    expect(requestEnqueueIndex).toBeLessThan(creationDoneIndex);
+    expect(dispatchIndex).toBeGreaterThan(creationDoneIndex);
+    expect(createRoute.indexOf('deliveryStatus: "pending"')).toBeLessThan(dispatchIndex);
+    expect(createRoute).not.toContain("emailService.sendEmail");
+    expect(createRoute).not.toContain("passwordResetService.createToken");
+    expect(createRoute).not.toContain("emailVerificationService.createToken");
+    expect(notificationService).toContain('emailPurpose: "direct_connect_account_setup"');
   });
 });

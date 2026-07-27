@@ -31,6 +31,9 @@ describe("Direct Connect restricted email mode", () => {
     expect(
       isEmailPurposeAllowedForMode("account_creation_only", "direct_connect_admin_oversight")
     ).toBe(true);
+    expect(
+      isEmailPurposeAllowedForMode("account_creation_only", "tradepartner_request_notification")
+    ).toBe(true);
     expect(isEmailPurposeAllowedForMode("account_creation_only", "notification")).toBe(false);
     expect(isEmailPurposeAllowedForMode("all", "notification")).toBe(true);
   });
@@ -46,6 +49,11 @@ describe("Direct Connect restricted email mode", () => {
         emailPurpose: "direct_connect_request",
       })
     ).toBe("direct_connect_request");
+    expect(
+      resolveNotificationEmailPurpose({
+        emailPurpose: "tradepartner_request_notification",
+      })
+    ).toBe("tradepartner_request_notification");
     expect(
       resolveNotificationEmailPurpose({
         type: "new_project_request",
@@ -295,32 +303,43 @@ describe("TradePartner Express email delivery contract", () => {
   const notifications = read("server/notification-service.ts");
 
   it("uses explicit purposes for owner, requester, and admin notification email", () => {
-    expect(route).toContain('emailPurpose: "direct_connect_request"');
-    expect(route).toContain(
-      'purpose: requesterWasCreated ? "account_creation" : "direct_connect_request"'
-    );
+    expect(route).toContain('emailPurpose: "tradepartner_request_notification"');
+    expect(route).toContain('? "direct_connect_account_setup"');
+    expect(route).toContain(': "direct_connect_request"');
+    expect(notifications).toContain('purpose === "tradepartner_request_notification"');
     expect(oversight).toContain('emailPurpose: "direct_connect_admin_oversight"');
     expect(oversight).toContain("workRequestId: requestId");
   });
 
-  it("awaits the business inbox send and avoids also emailing the owner", () => {
-    expect(route).toContain("const businessEmailResult = await emailService.sendEmail");
-    expect(route).not.toContain("void emailService");
-    expect(route).toContain("target.notificationEmail || !target.ownerEmail");
-    expect(route).toContain('? ["in_app", "push"]');
-    expect(route).toContain(': ["in_app", "email", "push"]');
+  it("binds the durable provider email to the shared business inbox", () => {
+    expect(route).toContain("normalizeEmail(target.notificationEmail)");
+    expect(route).toContain("normalizeEmail(target.ownerEmail)");
+    expect(route).toContain("recipientEmail: providerRecipientEmail");
+    expect(route).toContain("recipientTarget: target.notificationEmail");
+    expect(route).toContain('"shared_business_inbox"');
+    expect(notifications).toContain('kind: "tradepartner_profile_request"');
+    expect(notifications).toContain("recipientEmail,");
+    expect(notifications).toContain("resolveNotificationEmailRecipient(notification, user)");
+    expect(route).not.toContain("emailService.sendEmail");
   });
 
   it("keeps provider failure fail-soft and does not copy request contact data into email", () => {
-    const directEmailStart = route.indexOf("if (target.notificationEmail) {");
-    const directEmailEnd = route.indexOf("const requestWorkspaceParams", directEmailStart);
-    const directEmailBlock = route.slice(directEmailStart, directEmailEnd);
+    const dispatchStart = route.indexOf("const dispatchDurableEmail");
+    const dispatchEnd = route.indexOf("const requestWorkspaceParams", dispatchStart);
+    const dispatchBlock = route.slice(dispatchStart, dispatchEnd);
+    const templateStart = notifications.indexOf(
+      'if (template?.kind === "tradepartner_profile_request")'
+    );
+    const templateBlock = notifications.slice(templateStart, templateStart + 4_000);
 
-    expect(directEmailBlock).toContain("[tradepartner-express] business notification email failed");
-    expect(directEmailBlock).not.toContain("body.email");
-    expect(directEmailBlock).not.toContain("body.phone");
-    expect(directEmailBlock).not.toContain("body.message");
-    expect(directEmailBlock).not.toContain("sanitizedMessage");
+    expect(dispatchBlock).toContain("[tradepartner-express] durable email remains queued");
+    expect(dispatchBlock).not.toContain("error,");
+    expect(templateBlock).toContain("requesterDisplayName");
+    expect(templateBlock).toContain("requestSummary");
+    expect(templateBlock).not.toContain("body.email");
+    expect(templateBlock).not.toContain("body.phone");
+    expect(templateBlock).not.toContain("body.message");
+    expect(templateBlock).not.toContain("sanitizedMessage");
   });
 
   it("writes structured suppression and failure evidence", () => {
@@ -335,20 +354,21 @@ describe("TradePartner Express email delivery contract", () => {
     );
   });
 
-  it("keeps delivery-log persistence fail-soft so email attempts still run", () => {
+  it("keeps supplemental push/SMS evidence fail-soft after durable email intent creation", () => {
     const logDeliveryStart = notifications.indexOf(
       "private async logDelivery(input: NotificationDeliveryLogInput)"
     );
     const logDeliveryBlock = notifications.slice(logDeliveryStart, logDeliveryStart + 1_200);
 
     expect(logDeliveryStart).toBeGreaterThan(-1);
+    expect(notifications).toContain("async enqueueNotification(tx: any");
+    expect(notifications).toContain("this.enqueueNotification(tx, notification)");
+    expect(notifications).toContain("await tx.insert(notificationDeliveryLog).values");
     expect(logDeliveryBlock).toContain("try {");
     expect(logDeliveryBlock).toContain(
       "await db.insert(notificationDeliveryLog).values(buildNotificationDeliveryLogValues(input))"
     );
-    expect(logDeliveryBlock).toContain(
-      "[notifications] Failed to persist delivery evidence"
-    );
+    expect(logDeliveryBlock).toContain("[notifications] Failed to persist delivery evidence");
     expect(notifications).toContain("[notifications] Failed to mark notification sent");
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { createClientOperationId } from "@/lib/clientOperationId";
 import {
   Select,
   SelectContent,
@@ -131,6 +132,10 @@ export default function HomesVault() {
   const firstUseUserState = user ? "authenticated" : "anonymous";
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const pendingDraftOperationRef = useRef<{
+    fingerprint: string;
+    operationId: string;
+  } | null>(null);
   const [selectedHomeId, setSelectedHomeId] = useState<string | null>(() => initialHomeIdFromUrl());
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() =>
     initialProjectIdFromUrl()
@@ -639,10 +644,18 @@ export default function HomesVault() {
         homePacketSelectedDetailIds: [...packet.selectedDetailIds],
         homePacketReadinessState: handoffPreview.packetReadinessState,
       };
+      const fingerprint = JSON.stringify(payload);
+      const operationId =
+        pendingDraftOperationRef.current?.fingerprint === fingerprint
+          ? pendingDraftOperationRef.current.operationId
+          : createClientOperationId("dc-home");
+      pendingDraftOperationRef.current = { fingerprint, operationId };
+      payload.operationId = operationId;
 
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
     onSuccess: (data: any) => {
+      pendingDraftOperationRef.current = null;
       const requestId = String(data?.id || "");
       toast({
         title: "Direct Connect draft created",

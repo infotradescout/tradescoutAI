@@ -7,7 +7,7 @@ import {
   workRequestEvents,
   workRequests,
 } from "@shared/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 
 export const DIRECT_CONNECT_CONVERSATION_ASSIGNMENT_STATUSES = ["accepted", "completed"] as const;
@@ -38,6 +38,7 @@ export type DirectConnectConversationAuthorityCandidate = {
   requestStatus: string | null;
   assignmentId: string;
   assignmentStatus: string | null;
+  providerKey: string | null;
   contractorId: string | null;
   responderUserId: string | null;
   workerId: string | null;
@@ -51,6 +52,7 @@ export type DirectConnectConversationAuthoritySuccess = {
   authorizedParticipantUserIds: [string, string];
   requesterUserId: string;
   providerUserId: string;
+  contractorId: string | null;
   conversationStatus: string;
   workRequestId: string;
   assignmentId: string;
@@ -74,6 +76,42 @@ function metadataRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+export function isDirectConnectMessageScopedToRequest(
+  messageMetadata: unknown,
+  workRequestId: unknown
+): boolean {
+  const expectedWorkRequestId = normalizedId(workRequestId);
+  if (!expectedWorkRequestId) return false;
+  return normalizedId(metadataRecord(messageMetadata).workRequestId) === expectedWorkRequestId;
+}
+
+const DIRECT_CONNECT_PARTICIPANT_RESERVED_METADATA = new Set([
+  "assignmentId",
+  "clientMessageId",
+  "connectionId",
+  "representedProviderUserId",
+  "staffActorUserId",
+  "staffAssisted",
+  "staffReason",
+  "workRequestId",
+  "_interactionSignature",
+  "_messageType",
+  "_senderType",
+]);
+
+export function sanitizeDirectConnectParticipantMessageMetadata(
+  messageMetadata: unknown
+): Record<string, unknown> {
+  if (!messageMetadata || typeof messageMetadata !== "object" || Array.isArray(messageMetadata)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(messageMetadata as Record<string, unknown>).filter(
+      ([key]) => !DIRECT_CONNECT_PARTICIPANT_RESERVED_METADATA.has(key)
+    )
+  );
 }
 
 export function evaluateDirectConnectConversationAuthorityCandidate(
@@ -102,8 +140,17 @@ export function evaluateDirectConnectConversationAuthorityCandidate(
     return { ok: false, reason: "EVENT_BINDING_MISMATCH" };
   }
 
+  const eventAssignmentId = normalizedId(metadata.assignmentId);
+  const eventProviderKey = normalizedId(metadata.providerKey);
+  const requiresExactEventBinding =
+    Number(metadata.authorityBindingVersion || 0) >= 2 ||
+    Boolean(eventAssignmentId || eventProviderKey);
+  if (requiresExactEventBinding && (!eventAssignmentId || !eventProviderKey)) {
+    return { ok: false, reason: "EVENT_ASSIGNMENT_MISMATCH" };
+  }
   const eventAssignmentBindings = [
     [metadata.assignmentId, candidate.assignmentId],
+    [metadata.providerKey, candidate.providerKey],
     [metadata.contractorId, candidate.contractorId],
     [metadata.responderUserId, candidate.responderUserId],
     [metadata.workerId, candidate.workerId],
@@ -153,6 +200,7 @@ export function evaluateDirectConnectConversationAuthorityCandidate(
     authorizedParticipantUserIds: [requesterUserId, providerUserId],
     requesterUserId,
     providerUserId,
+    contractorId: normalizedId(candidate.contractorId),
     conversationStatus: String(candidate.conversation.status || ""),
     workRequestId: candidate.workRequestId,
     assignmentId: candidate.assignmentId,
@@ -226,10 +274,13 @@ export async function resolveDirectConnectConversationAuthority(
     return { ok: false, reason: "CONNECTION_AUTHORITY_MISSING" };
   }
 
+  const acceptedEventMetadata = metadataRecord(acceptedEvent.eventMetadata);
+  const eventAssignmentId = normalizedId(acceptedEventMetadata.assignmentId);
   const assignments = await db
     .select({
       assignmentId: workRequestAssignments.id,
       assignmentStatus: workRequestAssignments.status,
+      providerKey: workRequestAssignments.providerKey,
       contractorId: workRequestAssignments.contractorId,
       responderUserId: workRequestAssignments.responderUserId,
       workerId: workRequestAssignments.workerId,
@@ -239,9 +290,18 @@ export async function resolveDirectConnectConversationAuthority(
     .from(workRequestAssignments)
     .leftJoin(contractors, eq(contractors.id, workRequestAssignments.contractorId))
     .leftJoin(workers, eq(workers.id, workRequestAssignments.workerId))
-    .where(eq(workRequestAssignments.workRequestId, acceptedEvent.workRequestId))
+    .where(
+      and(
+        eq(workRequestAssignments.workRequestId, acceptedEvent.workRequestId),
+        eventAssignmentId
+          ? eq(workRequestAssignments.id, eventAssignmentId)
+          : inArray(workRequestAssignments.status, ["accepted", "completed"] as Array<
+              "accepted" | "completed"
+            >)
+      )
+    )
     .orderBy(desc(workRequestAssignments.updatedAt), desc(workRequestAssignments.id))
-    .limit(50);
+    .limit(eventAssignmentId ? 1 : 10);
 
   const evaluated = assignments.map((assignment) =>
     evaluateDirectConnectConversationAuthorityCandidate({
@@ -254,6 +314,7 @@ export async function resolveDirectConnectConversationAuthority(
       requestStatus: acceptedEvent.requestStatus,
       assignmentId: String(assignment.assignmentId),
       assignmentStatus: assignment.assignmentStatus,
+      providerKey: assignment.providerKey,
       contractorId: assignment.contractorId,
       responderUserId: assignment.responderUserId,
       workerId: assignment.workerId,

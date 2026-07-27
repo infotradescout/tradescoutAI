@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 
 type ContractorRoutedRequest = {
   requestId: string;
+  assignmentId: string;
+  assignmentStatus: string;
   requestType: string;
   category: string;
   county: string | null;
@@ -39,20 +41,18 @@ export default function ContractorDashboard() {
   });
 
   const respondMutation = useMutation({
-    mutationFn: async (input: { requestId: string; responseType: string }) =>
-      apiRequest("POST", `/api/direct-connect/contractor/requests/${input.requestId}/respond`, {
-        responseType: input.responseType,
+    mutationFn: async (input: { assignmentId: string; decision: "accept" | "decline" }) =>
+      apiRequest("POST", `/api/direct-connect/assignments/${input.assignmentId}/respond`, {
+        decision: input.decision,
+        ...(input.decision === "accept"
+          ? {
+              availabilityWindow: "Contact me to coordinate availability.",
+              priceBand: "custom_quote",
+              scopeNote:
+                "I am interested in this request; final scope and scheduling still need confirmation.",
+            }
+          : { reason: "Unavailable" }),
       }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["/api/direct-connect/contractor/requests"],
-      });
-    },
-  });
-
-  const contactMutation = useMutation({
-    mutationFn: async (requestId: string) =>
-      apiRequest("POST", `/api/direct-connect/contractor/requests/${requestId}/request-contact`),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["/api/direct-connect/contractor/requests"],
@@ -184,35 +184,36 @@ export default function ContractorDashboard() {
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={Boolean(request.responseState) || respondMutation.isPending}
+                        disabled={
+                          Boolean(request.responseState) ||
+                          !["suggested", "invited"].includes(request.assignmentStatus) ||
+                          respondMutation.isPending
+                        }
                         onClick={() =>
                           respondMutation.mutate({
-                            requestId: request.requestId,
-                            responseType: "interested",
+                            assignmentId: request.assignmentId,
+                            decision: "accept",
                           })
                         }
                       >
-                        Respond interested
+                        Accept request
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={Boolean(request.responseState) || respondMutation.isPending}
+                        disabled={
+                          Boolean(request.responseState) ||
+                          !["suggested", "invited"].includes(request.assignmentStatus) ||
+                          respondMutation.isPending
+                        }
                         onClick={() =>
                           respondMutation.mutate({
-                            requestId: request.requestId,
-                            responseType: "need_more_info",
+                            assignmentId: request.assignmentId,
+                            decision: "decline",
                           })
                         }
                       >
-                        Need more info
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={contactMutation.isPending}
-                        onClick={() => contactMutation.mutate(request.requestId)}
-                      >
-                        Request contact
+                        Not available
                       </Button>
                     </div>
                   </div>

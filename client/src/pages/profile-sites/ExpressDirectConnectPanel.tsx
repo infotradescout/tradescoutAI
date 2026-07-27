@@ -49,6 +49,33 @@ type ExpressDirectConnectPanelProps = {
 };
 
 type PanelView = "choice" | "request" | "call_started" | "success";
+type OnboardingEmailStatus =
+  | "pending"
+  | "processing"
+  | "retry_scheduled"
+  | "sent"
+  | "delivered"
+  | "accepted_unreconciled"
+  | "delivery_unknown"
+  | "failed"
+  | "bounced"
+  | "suppressed"
+  | "exhausted"
+  | "unknown";
+
+const ONBOARDING_EMAIL_STATUSES = new Set<OnboardingEmailStatus>([
+  "pending",
+  "processing",
+  "retry_scheduled",
+  "sent",
+  "delivered",
+  "accepted_unreconciled",
+  "delivery_unknown",
+  "failed",
+  "bounced",
+  "suppressed",
+  "exhausted",
+]);
 
 const REQUEST_MODE_CONFIG: Record<
   ExpressDirectConnectMode,
@@ -130,13 +157,12 @@ export default function ExpressDirectConnectPanel({
   const [error, setError] = useState("");
   const [callPhone, setCallPhone] = useState("");
   const [callTel, setCallTel] = useState("");
-  const [accountCreated, setAccountCreated] = useState(false);
+  const [accountNeedsSetup, setAccountNeedsSetup] = useState(false);
   const [requestId, setRequestId] = useState("");
   const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
   const [onboardingPath, setOnboardingPath] = useState("");
-  const [onboardingEmailStatus, setOnboardingEmailStatus] = useState<
-    "sent" | "skipped" | "failed" | "unknown"
-  >("unknown");
+  const [onboardingEmailStatus, setOnboardingEmailStatus] =
+    useState<OnboardingEmailStatus>("unknown");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -172,7 +198,7 @@ export default function ExpressDirectConnectPanel({
     setError("");
     setCallPhone("");
     setCallTel("");
-    setAccountCreated(false);
+    setAccountNeedsSetup(false);
     setRequestId("");
     setRequestWorkspacePath("");
     setOnboardingPath("");
@@ -219,7 +245,7 @@ export default function ExpressDirectConnectPanel({
     platformBaseHref
   );
   const manageRequestPath =
-    accountCreated && onboardingPath
+    accountNeedsSetup && onboardingPath
       ? onboardingPath
       : `/pre-scout-setup?mode=signin&email=${encodeURIComponent(form.email)}&next=${encodeURIComponent(requestPath)}`;
   const manageRequestHref = qualifyPublicProfileItemDestination(
@@ -294,15 +320,15 @@ export default function ExpressDirectConnectPanel({
               : "We couldn’t send that yet. Your details are still here—please try again."
         );
       }
-      setAccountCreated(json?.accountCreated === true);
+      setAccountNeedsSetup(json?.accountNeedsSetup === true || json?.accountCreated === true);
       setRequestId(String(json?.requestId || ""));
       setRequestWorkspacePath(
         typeof json?.requestWorkspacePath === "string" ? json.requestWorkspacePath : ""
       );
       setOnboardingPath(typeof json?.onboardingPath === "string" ? json.onboardingPath : "");
       setOnboardingEmailStatus(
-        ["sent", "skipped", "failed"].includes(json?.onboardingEmailStatus)
-          ? json.onboardingEmailStatus
+        ONBOARDING_EMAIL_STATUSES.has(json?.onboardingEmailStatus)
+          ? (json.onboardingEmailStatus as OnboardingEmailStatus)
           : "unknown"
       );
       setView("success");
@@ -599,7 +625,7 @@ export default function ExpressDirectConnectPanel({
               {!hasViewerSession ? (
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">
-                    {accountCreated
+                    {accountNeedsSetup
                       ? "Finish setup and manage this request"
                       : "Sign in to manage this request"}
                   </p>
@@ -607,13 +633,16 @@ export default function ExpressDirectConnectPanel({
                     See replies from {businessName}, decisions, job progress, and follow-up in one
                     convenient place.
                   </p>
-                  {accountCreated && onboardingEmailStatus === "sent" ? (
+                  {accountNeedsSetup &&
+                  ["pending", "processing", "retry_scheduled", "sent", "delivered"].includes(
+                    onboardingEmailStatus
+                  ) ? (
                     <p className="mt-2 text-xs font-medium text-emerald-700">
-                      A setup email was sent. You can also continue here now.
+                      A secure setup email is queued or on its way.
                     </p>
-                  ) : accountCreated ? (
+                  ) : accountNeedsSetup ? (
                     <p className="mt-2 text-xs font-medium text-amber-700">
-                      No email is required to continue from this browser.
+                      If the setup email does not arrive, use Forgot password on the sign-in screen.
                     </p>
                   ) : null}
                   {requiresDocumentNavigation(manageRequestHref) ? (
@@ -621,14 +650,14 @@ export default function ExpressDirectConnectPanel({
                       href={manageRequestHref}
                       className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
                     >
-                      {accountCreated ? "Manage my request" : "Sign in and manage it"}
+                      {accountNeedsSetup ? "Manage my request" : "Sign in and manage it"}
                     </a>
                   ) : (
                     <Link
                       href={manageRequestHref}
                       className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
                     >
-                      {accountCreated ? "Manage my request" : "Sign in and manage it"}
+                      {accountNeedsSetup ? "Manage my request" : "Sign in and manage it"}
                     </Link>
                   )}
                   <p className="mt-3 text-xs text-stone-500">

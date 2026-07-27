@@ -28,6 +28,15 @@ describe("crawler telemetry contracts", () => {
     expect(source).toContain("pruneCrawlerRequestEventsIfNeeded");
     expect(source).toContain("resolveCountyFips");
     expect(source).toContain("refreshBotObservationDailyAggregate");
+    expect(source).toContain("crawlerTelemetryWriteQueue");
+    expect(source).toContain("maxConcurrent");
+    expect(source).toContain("countyFipsInFlight");
+    expect(source).toContain("runCrawlerTelemetryMaintenance");
+    expect(source).toContain("markCrawlerTelemetryRetrySafe");
+    expect(source).toContain("commitAttempted");
+    expect(source).toContain("botDailyAggPendingDropped");
+    expect(source).not.toContain("void pruneCrawlerRequestEventsIfNeeded()");
+    expect(source).not.toContain("void backfillCountyFipsIfNeeded()");
     expect(source).toContain("getBotCrawlAggregateSignals");
     expect(requestActorSource).toContain("OAI-SearchBot");
     expect(requestActorSource).toContain("DuckAssistBot");

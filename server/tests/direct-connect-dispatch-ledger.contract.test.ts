@@ -32,19 +32,62 @@ describe("direct connect dispatch ledger contracts", () => {
   });
 
   it("keeps contact locked by default and prevents release without explicit approval", () => {
+    const migration = read("migrations/0115_direct_connect_ledger_foundation.sql");
     const serviceSource = read("server/services/directConnectDispatchLedgerService.ts");
-    expect(serviceSource).toContain("contact_gate_state text NOT NULL DEFAULT 'locked'");
+    expect(migration).toContain("contact_gate_state text NOT NULL DEFAULT 'locked'");
     expect(serviceSource).toContain("CONTACT_RELEASE_REQUIRES_APPROVAL");
-    expect(serviceSource).toContain("AND contact_gate_state = 'user_approved'");
+    expect(serviceSource).toContain("AND contact_gate_state IN ('user_approved', 'released')");
+    expect(serviceSource).toContain("AND contact_gate_assignment_id = ${normalized.assignmentId}");
+    expect(serviceSource).toContain("AND contact_gate_provider_key = ${normalized.providerKey}");
   });
 
   it("stores contractor response contract in structured table", () => {
+    const migration = read("migrations/0115_direct_connect_ledger_foundation.sql");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS direct_connect_contractor_responses");
+    expect(migration).toContain("response_type text NOT NULL");
+    expect(migration).toContain("contact_request_state text NOT NULL DEFAULT 'locked'");
+  });
+
+  it("owns ledger schema through migration instead of fire-and-forget route startup DDL", () => {
+    const routeSource = read("server/routes/direct-connect.ts");
     const serviceSource = read("server/services/directConnectDispatchLedgerService.ts");
-    expect(serviceSource).toContain(
-      "CREATE TABLE IF NOT EXISTS direct_connect_contractor_responses"
-    );
-    expect(serviceSource).toContain("response_type text NOT NULL");
-    expect(serviceSource).toContain("contact_request_state text NOT NULL DEFAULT 'locked'");
+    const migration = read("migrations/0115_direct_connect_ledger_foundation.sql");
+    const schemaGuard = read("scripts/check-required-production-schema.mjs");
+    const requiredTables = [
+      "direct_connect_dispatch_requests",
+      "direct_connect_dispatch_candidates",
+      "direct_connect_dispatch_events",
+      "direct_connect_contractor_responses",
+      "direct_connect_lifecycle_notifications",
+      "direct_connect_job_workspaces",
+      "direct_connect_notifications",
+      "job_estimates",
+      "job_estimate_line_items",
+      "job_material_items",
+      "job_labor_items",
+      "job_acceptances",
+      "job_payment_requests",
+      "job_schedule_proposals",
+      "job_payment_records",
+      "job_checkpoints",
+      "job_change_orders",
+      "job_punch_list_items",
+      "job_completion_requests",
+      "job_invoices",
+      "job_invoice_line_items",
+      "job_receipts",
+    ];
+    expect(routeSource).not.toContain("ensureDirectConnectDispatchLedgerTables");
+    expect(serviceSource).not.toContain("ensureDirectConnectDispatchLedgerTables");
+    for (const table of requiredTables) {
+      expect(migration).toContain(`CREATE TABLE IF NOT EXISTS ${table}`);
+      expect(schemaGuard).toContain(`'${table}'`);
+    }
+    expect(migration).toContain("idx_dc_contractor_responses_assignment_binding");
+    expect(migration).toContain("direct_connect_notifications_idempotency_idx");
+    expect(migration).toContain("CREATE OR REPLACE VIEW direct_connect_exact_binding_violations");
+    expect(schemaGuard).toContain("FROM direct_connect_exact_binding_violations");
+    expect(schemaGuard).toContain("directConnectExactBindingReady");
   });
 
   it("does not use payment, ads, featured placement, or subscription status in eligibility", () => {

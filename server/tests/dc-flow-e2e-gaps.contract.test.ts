@@ -97,13 +97,16 @@ describe("workRequests schema enums", () => {
 // ─── 4. responseSummary column and storage ───────────────────────────────────
 describe("workRequestAssignments — responseSummary column", () => {
   it("has responseSummary jsonb column in schema", () => {
-    const idx = SCHEMA.indexOf("export const workRequestAssignments");
-    expect(idx).toBeGreaterThan(0);
-    const window = SCHEMA.slice(idx, idx + 1500);
-    expect(window).toContain('responseSummary: jsonb("response_summary")');
-    expect(window).toContain("availabilityWindow");
-    expect(window).toContain("priceBand");
-    expect(window).toContain("scopeNote");
+    const tableStart = SCHEMA.indexOf("export const workRequestAssignments");
+    const tableEnd = SCHEMA.indexOf("export const professionalPartnerships", tableStart);
+    expect(tableStart).toBeGreaterThan(0);
+    expect(tableEnd).toBeGreaterThan(tableStart);
+
+    const tableBlock = SCHEMA.slice(tableStart, tableEnd);
+    expect(tableBlock).toContain('responseSummary: jsonb("response_summary")');
+    expect(tableBlock).toContain("availabilityWindow");
+    expect(tableBlock).toContain("priceBand");
+    expect(tableBlock).toContain("scopeNote");
   });
 
   it("stores responseSummary in the assignment update on accept", () => {

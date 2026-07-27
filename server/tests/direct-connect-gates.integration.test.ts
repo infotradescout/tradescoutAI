@@ -4,6 +4,8 @@ import { db } from "../db";
 import { clearAdminAuditLog, getAdminAuditLog } from "../services/adminAuditLogService";
 import {
   users,
+  businesses,
+  businessCounties,
   contractorCounties,
   contractors,
   contractorTrades,
@@ -11,6 +13,7 @@ import {
   tradeRequirements,
   trades,
   workRequestAssignments,
+  workRequestEvents,
   workRequests,
 } from "@shared/schema";
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
@@ -659,6 +662,124 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(respondRes.status).not.toBe(404);
   });
 
+  it("keeps two requests between the same participants in separate message threads", async () => {
+    const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const { agent: providerAgent, user: providerUser } = await createAuthedAgent({
+      role: "contractor",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const [county] = await db.select().from(counties).limit(1);
+    expect(county).toBeTruthy();
+
+    await db
+      .update(users)
+      .set({
+        countyFips: String((county as any).fips),
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(users.id, String(requesterUser.id)));
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [providerContractor] = await db
+      .insert(contractors)
+      .values({
+        userId: providerUser.id,
+        companyName: `Scoped Thread Provider ${unique}`,
+        slug: `scoped-thread-provider-${unique}`,
+        isActive: true,
+      } as any)
+      .returning();
+    await db.insert(contractorCounties).values({
+      contractorId: providerContractor.id,
+      countyId: (county as any).id,
+    } as any);
+
+    const acceptRequest = async (suffix: string, decoyAssignmentCount = 0) => {
+      const createRes = await requesterAgent.post("/api/direct-connect/requests").send({
+        title: `Scoped thread ${suffix} ${unique}`,
+        description: `Keep every message for request ${suffix} isolated from the other request.`,
+        category: "service_request",
+        countyFips: String((county as any).fips),
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        autoRoute: false,
+      });
+      expect(createRes.status).toBe(201);
+      const requestId = String(createRes.body?.id || "");
+
+      const expressRes = await providerAgent
+        .post(`/api/direct-connect/requests/${requestId}/express-interest`)
+        .send({});
+      expect([200, 201]).toContain(expressRes.status);
+      const assignmentId = String(expressRes.body?.assignment?.id || "");
+
+      if (decoyAssignmentCount > 0) {
+        await db.insert(workRequestAssignments).values(
+          Array.from({ length: decoyAssignmentCount }, (_, index) => ({
+            id: `zzzz-${unique}-${suffix}-${String(index).padStart(3, "0")}`,
+            workRequestId: requestId,
+            contractorId: `decoy-contractor-${unique}-${suffix}-${index}`,
+            status: "invited" as const,
+          }))
+        );
+      }
+
+      const respondRes = await providerAgent
+        .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
+        .send({
+          decision: "accept",
+          availabilityWindow: "This week",
+          priceBand: "standard",
+          scopeNote: `Accepted only for request ${suffix}.`,
+        });
+      expect(respondRes.status).toBe(200);
+      return {
+        requestId,
+        conversationId: String(respondRes.body?.conversationId || ""),
+      };
+    };
+
+    const first = await acceptRequest("one", 55);
+    const second = await acceptRequest("two");
+    expect(first.conversationId).not.toBe(second.conversationId);
+
+    const firstContent = `First request only ${unique}`;
+    const secondContent = `Second request only ${unique}`;
+    const firstSend = await providerAgent
+      .post(`/api/messages/threads/${first.conversationId}/messages`)
+      .send({ content: firstContent, messageType: "text" });
+    const secondSend = await providerAgent
+      .post(`/api/messages/threads/${second.conversationId}/messages`)
+      .send({ content: secondContent, messageType: "text" });
+    expect(firstSend.status).toBe(200);
+    expect(secondSend.status).toBe(200);
+
+    const firstThread = await requesterAgent.get(`/api/messages/threads/${first.conversationId}`);
+    const secondThread = await requesterAgent.get(`/api/messages/threads/${second.conversationId}`);
+    expect(firstThread.status).toBe(200);
+    expect(secondThread.status).toBe(200);
+    expect(firstThread.body?.messages?.map((message: any) => message.content)).toContain(
+      firstContent
+    );
+    expect(firstThread.body?.messages?.map((message: any) => message.content)).not.toContain(
+      secondContent
+    );
+    expect(secondThread.body?.messages?.map((message: any) => message.content)).toContain(
+      secondContent
+    );
+    expect(secondThread.body?.messages?.map((message: any) => message.content)).not.toContain(
+      firstContent
+    );
+  });
+
   it("promotes open direct-connect requests to routed when provider expresses interest", async () => {
     const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
       role: "homeowner",
@@ -725,6 +846,249 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       .where(eq(workRequests.id, requestId))
       .limit(1);
     expect(String(updatedRequest?.status || "")).toBe("routed");
+  });
+
+  it("lets an operator manually assign one eligible provider idempotently", async () => {
+    const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const { agent: operatorAgent, user: operatorUser } = await createAuthedAgent({
+      role: "ops_admin",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const providerUser = await createUserOnly({
+      role: "contractor",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const [county] = await db.select().from(counties).limit(1);
+    expect(county).toBeTruthy();
+
+    await db
+      .update(users)
+      .set({
+        countyFips: String((county as any).fips),
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(users.id, String(requesterUser.id)));
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [providerContractor] = await db
+      .insert(contractors)
+      .values({
+        userId: providerUser.id,
+        companyName: `Manual Assignment Provider ${unique}`,
+        slug: `manual-assignment-provider-${unique}`,
+        isActive: true,
+      } as any)
+      .returning();
+
+    await db.insert(contractorCounties).values({
+      contractorId: providerContractor.id,
+      countyId: (county as any).id,
+    } as any);
+
+    const createRes = await requesterAgent.post("/api/direct-connect/requests").send({
+      title: `Manual assignment ${unique}`,
+      description: "Need an operator to assign one eligible provider to this request.",
+      category: "service_request",
+      countyFips: String((county as any).fips),
+      stateCode: String((county as any).stateCode || "").toUpperCase(),
+      autoRoute: false,
+    });
+    expect(createRes.status).toBe(201);
+    expect(String(createRes.body?.status || "")).toBe("open");
+
+    const requestId = String(createRes.body?.id || "");
+    const operationId = `manual-assignment-${unique}`;
+    const payload = {
+      providerId: providerContractor.id,
+      providerType: "contractor",
+      reason: "Requester asked for this provider and eligibility gates passed.",
+      operationId,
+    };
+
+    const assignRes = await operatorAgent
+      .post(`/api/admin/direct-connect/requests/${requestId}/manual-assignment`)
+      .send(payload);
+    expect(assignRes.status).toBe(201);
+    expect(assignRes.body?.alreadyAssigned).toBe(false);
+    expect(String(assignRes.body?.provider?.userId || "")).toBe(String(providerUser.id));
+
+    const repeatRes = await operatorAgent
+      .post(`/api/admin/direct-connect/requests/${requestId}/manual-assignment`)
+      .send(payload);
+    expect(repeatRes.status).toBe(200);
+    expect(repeatRes.body?.alreadyAssigned).toBe(true);
+
+    const otherProviderUser = await createUserOnly({
+      role: "contractor",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const [otherProviderContractor] = await db
+      .insert(contractors)
+      .values({
+        userId: otherProviderUser.id,
+        companyName: `Other Manual Assignment Provider ${unique}`,
+        slug: `other-manual-assignment-provider-${unique}`,
+        isActive: true,
+      } as any)
+      .returning();
+    await db.insert(contractorCounties).values({
+      contractorId: otherProviderContractor.id,
+      countyId: (county as any).id,
+    } as any);
+    const conflictingReplayRes = await operatorAgent
+      .post(`/api/admin/direct-connect/requests/${requestId}/manual-assignment`)
+      .send({
+        ...payload,
+        providerId: otherProviderContractor.id,
+      });
+    expect(conflictingReplayRes.status).toBe(409);
+    expect(String(conflictingReplayRes.body?.message || "")).toContain(
+      "operationId was already used"
+    );
+
+    const assignments = await db
+      .select()
+      .from(workRequestAssignments)
+      .where(
+        and(
+          eq(workRequestAssignments.workRequestId, requestId),
+          eq(workRequestAssignments.contractorId, String(providerContractor.id))
+        )
+      );
+    expect(assignments).toHaveLength(1);
+    expect(String(assignments[0]?.status || "")).toBe("invited");
+    expect((assignments[0]?.scoreSnapshot as any)?.routingMode).toBe("staff_manual");
+
+    const [updatedRequest] = await db
+      .select({ status: workRequests.status })
+      .from(workRequests)
+      .where(eq(workRequests.id, requestId))
+      .limit(1);
+    expect(String(updatedRequest?.status || "")).toBe("routed");
+
+    const events = await db
+      .select()
+      .from(workRequestEvents)
+      .where(eq(workRequestEvents.workRequestId, requestId));
+    const manualEvent = events.find(
+      (event) => (event.metadata as any)?.operation === "staff_manual_provider_assignment"
+    );
+    expect(manualEvent).toBeTruthy();
+    expect(String(manualEvent?.actorUserId || "")).toBe(String(operatorUser.id));
+    expect((manualEvent?.metadata as any)?.operationId).toBe(operationId);
+  });
+
+  it("keeps two businesses owned by one account as distinct manual assignments", async () => {
+    const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const { agent: operatorAgent } = await createAuthedAgent({
+      role: "ops_admin",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const businessOwner = await createUserOnly({
+      role: "business_owner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const [county] = await db.select().from(counties).limit(1);
+    expect(county).toBeTruthy();
+    await db
+      .update(users)
+      .set({
+        countyFips: String((county as any).fips),
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(users.id, String(requesterUser.id)));
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const insertedBusinesses = await db
+      .insert(businesses)
+      .values([
+        {
+          name: `Same Owner Business A ${unique}`,
+          slug: `same-owner-business-a-${unique}`,
+          ownerUserId: businessOwner.id,
+          roleContext: "business_owner",
+          claimStatus: "claimed",
+          status: "active",
+        },
+        {
+          name: `Same Owner Business B ${unique}`,
+          slug: `same-owner-business-b-${unique}`,
+          ownerUserId: businessOwner.id,
+          roleContext: "business_owner",
+          claimStatus: "claimed",
+          status: "active",
+        },
+      ] as any)
+      .returning();
+    expect(insertedBusinesses).toHaveLength(2);
+    await db.insert(businessCounties).values(
+      insertedBusinesses.map((business) => ({
+        businessId: business.id,
+        countyId: (county as any).id,
+      }))
+    );
+
+    const createRes = await requesterAgent.post("/api/direct-connect/requests").send({
+      title: `Multi-business manual assignment ${unique}`,
+      description: "Need two separately selected businesses from the same owner account.",
+      category: "service_request",
+      countyFips: String((county as any).fips),
+      stateCode: String((county as any).stateCode || "").toUpperCase(),
+      autoRoute: false,
+    });
+    expect(createRes.status).toBe(201);
+    const requestId = String(createRes.body?.id || "");
+
+    for (const [index, business] of insertedBusinesses.entries()) {
+      const assignRes = await operatorAgent
+        .post(`/api/admin/direct-connect/requests/${requestId}/manual-assignment`)
+        .send({
+          providerId: business.id,
+          providerType: "business",
+          reason: `Requester selected business ${index + 1} from this owner account.`,
+          operationId: `same-owner-${unique}-${index}`,
+        });
+      expect(assignRes.status).toBe(201);
+      expect(assignRes.body?.alreadyAssigned).toBe(false);
+      expect(String(assignRes.body?.provider?.id || "")).toBe(String(business.id));
+    }
+
+    const ownerAssignments = await db
+      .select()
+      .from(workRequestAssignments)
+      .where(
+        and(
+          eq(workRequestAssignments.workRequestId, requestId),
+          eq(workRequestAssignments.responderUserId, String(businessOwner.id))
+        )
+      );
+    expect(ownerAssignments).toHaveLength(2);
+    expect(ownerAssignments.map((assignment) => assignment.providerKey).sort()).toEqual(
+      insertedBusinesses.map((business) => `business:${business.id}`).sort()
+    );
   });
 
   it("degrades optional list enrichment failures and still returns 200 request list", async () => {

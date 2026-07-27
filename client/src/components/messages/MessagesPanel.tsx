@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +33,8 @@ import {
   type ConversationContext,
   type ConversationContextKind,
 } from "./conversationContextAdapter";
+import { getMessageAuthorLabel } from "@/lib/messageAuthor";
+import { createClientMessageId } from "@/lib/clientMessageId";
 
 type Thread = {
   id: string;
@@ -436,18 +438,27 @@ export default function MessagesPanel() {
       id: m.id,
       threadId: m.conversationId,
       authorId: m.senderId,
-      authorName: m.senderId === user?.id ? "You" : "Them",
+      authorName: getMessageAuthorLabel(m, user?.id, messagesQuery.data?.thread.participant?.name),
       content: m.content,
       createdAt: m.createdAt,
       isMine: m.senderId === user?.id,
     })) || [];
 
+  const pendingSendRef = useRef<{
+    fingerprint: string;
+    clientMessageId: string;
+  } | null>(null);
+
   const sendMutation = useMutation({
-    mutationFn: (payload: { threadId: string; content: string }) =>
+    mutationFn: (payload: { threadId: string; content: string; clientMessageId: string }) =>
       apiRequest("POST", `/api/messages/threads/${payload.threadId}/messages`, {
         content: payload.content,
+        clientMessageId: payload.clientMessageId,
       }),
     onSuccess: (_data, variables) => {
+      if (pendingSendRef.current?.clientMessageId === variables.clientMessageId) {
+        pendingSendRef.current = null;
+      }
       queryClient.invalidateQueries({
         queryKey: ["/api/messages/threads", variables.threadId],
       });
@@ -481,7 +492,14 @@ export default function MessagesPanel() {
 
   const handleSend = () => {
     if (!activeThreadId || !newMessage.trim()) return;
-    sendMutation.mutate({ threadId: activeThreadId, content: newMessage });
+    const content = newMessage.trim();
+    const fingerprint = JSON.stringify({ threadId: activeThreadId, content });
+    const clientMessageId =
+      pendingSendRef.current?.fingerprint === fingerprint
+        ? pendingSendRef.current.clientMessageId
+        : createClientMessageId();
+    pendingSendRef.current = { fingerprint, clientMessageId };
+    sendMutation.mutate({ threadId: activeThreadId, content, clientMessageId });
   };
 
   const handleShareHomeReport = () => {

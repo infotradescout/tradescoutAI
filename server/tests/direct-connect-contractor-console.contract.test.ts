@@ -18,9 +18,8 @@ describe("direct connect contractor console contracts", () => {
 
   it("keeps contact gated and requires response before contact request", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain(
-      "Submit an interested or need_more_info response before requesting contact."
-    );
+    expect(source).toContain("Accept the exact assignment before requesting contact.");
+    expect(source).toContain("DIRECT_CONNECT_EXACT_ASSIGNMENT_REQUIRED");
     expect(source).toContain('nextState: "contractor_requested"');
     expect(source).not.toContain("buy lead");
     expect(source).not.toContain("featured placement");
@@ -35,9 +34,10 @@ describe("direct connect contractor console contracts", () => {
     const source = read("client/src/pages/contractor-dashboard.tsx");
     expect(source).toContain("Routed local requests");
     expect(source).toContain("/api/direct-connect/contractor/requests");
-    expect(source).toContain("Respond interested");
-    expect(source).toContain("Need more info");
-    expect(source).toContain("Request contact");
+    expect(source).toContain("/api/direct-connect/assignments/");
+    expect(source).toContain("Accept request");
+    expect(source).toContain("Not available");
+    expect(source).not.toContain("/request-contact");
     expect(source).toContain("latestStatus");
   });
 });

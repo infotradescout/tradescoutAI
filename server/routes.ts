@@ -155,8 +155,15 @@ import { hasExposureAuthority } from "./services/exposureAuthority";
 import {
   getDirectConnectConversationSenderType,
   isAuthorizedDirectConnectConversationParticipant,
+  isDirectConnectMessageScopedToRequest,
   resolveDirectConnectConversationAuthority,
+  sanitizeDirectConnectParticipantMessageMetadata,
 } from "./services/directConnectConversationAuthority";
+import {
+  DirectConnectMessagePersistenceError,
+  dispatchDirectConnectMessageNotification,
+  persistDirectConnectMessage,
+} from "./services/directConnectMessagePersistence";
 import { scoutcoinService } from "./services/scoutcoinService";
 import {
   buildPublicSolarPriceInsight,
@@ -1200,7 +1207,7 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
     // Mark before sending to prevent rapid re-sends if the provider is slow/failing.
     sessionAny[key] = now;
 
-    const { token, expiresAt } = emailVerificationService.createToken(userId);
+    const { token, expiresAt } = await emailVerificationService.createToken(userId);
     const verifyBase = getPublicBaseUrlFromRequest(req);
     const next = sanitizeNextPath((req.session as any)?.oauthNext) || "/pre-scout-setup";
     const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -2922,7 +2929,7 @@ export async function registerRoutes(app: any) {
       let verificationToken: string | undefined;
 
       if (emailVerificationRequired) {
-        const { token, expiresAt } = emailVerificationService.createToken(created.user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(created.user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const next = "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -3440,7 +3447,7 @@ export async function registerRoutes(app: any) {
       let emailVerificationSent = false;
       let verificationToken: string | undefined;
       if (emailVerificationRequired && !user.emailVerified) {
-        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const next = "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -3993,7 +4000,7 @@ export async function registerRoutes(app: any) {
           return res.json({ message: "Email already verified." });
         }
 
-        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const requestedNext = sanitizeNextPath((req.body as any)?.next);
         const next = requestedNext || "/pre-scout-setup";
@@ -4033,12 +4040,12 @@ export async function registerRoutes(app: any) {
       const token = typeof body.token === "string" ? body.token.trim() : "";
       if (!token) return res.status(400).json({ message: "Token is required" });
 
-      const userId = emailVerificationService.consumeToken(token);
+      const userId = await emailVerificationService.verifyEmail(token);
       if (!userId) {
         return res.status(400).json({ message: "Invalid or expired verification token" });
       }
 
-      const updated = await storage.updateUser(userId, { emailVerified: true } as any);
+      const updated = await storage.getUser(userId);
       if (!updated) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -8617,7 +8624,7 @@ export async function registerRoutes(app: any) {
         const user = await storage.getUserByEmail(String(email).toLowerCase());
 
         if (user) {
-          const { token, code, expiresAt } = passwordResetService.createToken(user.id);
+          const { token, code, expiresAt } = await passwordResetService.createToken(user.id);
           const resetBase =
             process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
           const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
@@ -8672,13 +8679,12 @@ export async function registerRoutes(app: any) {
           return res.status(400).json({ message: "Invalid or expired verification code" });
         }
 
-        const valid = passwordResetService.consumeCodeForUser(user.id, normalizedCode);
-        if (!valid) {
+        const exchanged = await passwordResetService.exchangeCodeForToken(user.id, normalizedCode);
+        if (!exchanged) {
           return res.status(400).json({ message: "Invalid or expired verification code" });
         }
 
-        const { token } = passwordResetService.createToken(user.id);
-        return res.json({ token });
+        return res.json({ token: exchanged.token });
       } catch (error: any) {
         return sendAutoClassifiedError(res, error, "Failed to verify reset code");
       }
@@ -8704,18 +8710,12 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
 
-      const userId = passwordResetService.consumeToken(token);
+      const passwordHash = await hashPassword(newPassword);
+      const userId = await passwordResetService.resetPassword(token, passwordHash);
 
       if (!userId) {
         return res.status(400).json({ message: "Invalid or expired token" });
       }
-
-      const passwordHash = await hashPassword(newPassword);
-
-      await storage.updateUser(userId, {
-        password: passwordHash,
-        updatedAt: new Date(),
-      });
 
       return res.json({ message: "Password has been reset successfully" });
     } catch (error: any) {
@@ -13869,8 +13869,22 @@ export async function registerRoutes(app: any) {
               ) {
                 return null;
               }
+              const scopedMessages = (
+                await storage.getMessagesByConversation(String(thread.id))
+              ).filter((message: any) =>
+                isDirectConnectMessageScopedToRequest(message.metadata, authority.workRequestId)
+              );
+              const lastScopedMessage = scopedMessages.at(-1) || null;
               return {
                 ...thread,
+                lastMessageSnippet: lastScopedMessage?.content || null,
+                lastMessageAt:
+                  lastScopedMessage?.createdAt ||
+                  authority.conversation.createdAt ||
+                  thread.lastMessageAt,
+                unreadCount: scopedMessages.filter(
+                  (message: any) => message.senderId !== userId && !message.readAt
+                ).length,
                 kind: "general" as const,
                 context: {
                   kind: "general" as const,
@@ -13970,7 +13984,11 @@ export async function registerRoutes(app: any) {
           return res.status(403).json({ message: "Access denied" });
         }
         const legacyConversation = legacyAuthority.conversation;
-        const legacyMessages = await storage.getMessagesByConversation(req.params.threadId);
+        const legacyMessages = (
+          await storage.getMessagesByConversation(req.params.threadId)
+        ).filter((message: any) =>
+          isDirectConnectMessageScopedToRequest(message.metadata, legacyAuthority.workRequestId)
+        );
         const legacyThread = {
           id: legacyConversation.id,
           subject: null as string | null,
@@ -14030,7 +14048,10 @@ export async function registerRoutes(app: any) {
         if (!isAuthorizedDirectConnectConversationParticipant(legacyAuthority, userId)) {
           return res.status(403).json({ message: "Access denied" });
         }
-        const legacyMessages = await storage.getMessagesByConversation(threadId);
+        const legacyMessages = (await storage.getMessagesByConversation(threadId)).filter(
+          (message: any) =>
+            isDirectConnectMessageScopedToRequest(message.metadata, legacyAuthority.workRequestId)
+        );
         await Promise.all(
           legacyMessages
             .filter((message: any) => message.senderId !== userId && !message.readAt)
@@ -14420,7 +14441,7 @@ export async function registerRoutes(app: any) {
         }
 
         const conversation = await storage.getMarketplaceConversation(req.params.threadId);
-        const { content, messageType, metadata } = (req.body ?? {}) as any;
+        const { content, messageType, metadata, clientMessageId } = (req.body ?? {}) as any;
 
         if (conversation) {
           if (conversation.buyerId !== userId && conversation.sellerId !== userId) {
@@ -14463,22 +14484,39 @@ export async function registerRoutes(app: any) {
         if (!senderType) {
           return res.status(403).json({ message: "Access denied" });
         }
-        const message = await storage.createMessage({
-          conversationId: req.params.threadId,
-          senderId: userId,
+        const persisted = await persistDirectConnectMessage({
+          authority,
+          senderUserId: String(userId),
           senderType,
           content,
           messageType: messageType || "text",
+          clientMessageId,
           metadata: {
-            ...(metadata && typeof metadata === "object" ? metadata : {}),
+            ...sanitizeDirectConnectParticipantMessageMetadata(metadata),
             connectionId: authority.assignmentId,
             assignmentId: authority.assignmentId,
             workRequestId: authority.workRequestId,
           },
         });
-        res.json({ message });
+        await dispatchDirectConnectMessageNotification(persisted.notificationId);
+        res.json({
+          message: persisted.message,
+          idempotentReplay: persisted.idempotentReplay,
+        });
       } catch (error: any) {
         console.error("Error sending thread message:", error);
+        if (error instanceof DirectConnectMessagePersistenceError) {
+          const status =
+            error.code === "SENDER_NOT_AUTHORIZED"
+              ? 403
+              : error.code === "CONVERSATION_CLOSED" || error.code === "CLIENT_MESSAGE_ID_CONFLICT"
+                ? 409
+                : 400;
+          return res.status(status).json({
+            reasonCode: error.code,
+            message: error.message,
+          });
+        }
         res.status(500).json({ message: "Failed to send message" });
       }
     }
@@ -14523,13 +14561,21 @@ export async function registerRoutes(app: any) {
       try {
         const { rating, feedback } = (req.body ?? {}) as any;
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-
-        const conversation = await storage.getConversation(req.params.id);
-        if (!conversation) {
-          return res.status(404).json({ message: "Conversation not found" });
+        const authority = await resolveDirectConnectConversationAuthority(req.params.id);
+        if (!authority.ok) {
+          if (authority.reason === "THREAD_NOT_FOUND") {
+            return res.status(404).json({ message: "Conversation not found" });
+          }
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Conversation rating requires an accepted Direct Connect connection.",
+          });
+        }
+        if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
+          return res.status(403).json({ message: "Access denied" });
         }
 
-        const raterType = conversation.homeownerId === userId ? "homeowner" : "contractor";
+        const raterType = authority.requesterUserId === String(userId) ? "homeowner" : "contractor";
 
         const updatedConversation = await storage.rateConversation(
           req.params.id,
@@ -14553,13 +14599,62 @@ export async function registerRoutes(app: any) {
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        return res.status(400).json({
-          reasonCode: "MISSING_AUTHORITY_GATE",
-          message:
-            "Direct conversation messaging is blocked. Use /api/social/conversations/start for intent-gated contact.",
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) {
+          return res.status(401).json({ message: "Authentication required" });
+        }
+        const authority = await resolveDirectConnectConversationAuthority(req.params.id);
+        if (!authority.ok) {
+          if (authority.reason === "THREAD_NOT_FOUND") {
+            return res.status(404).json({ message: "Conversation not found" });
+          }
+          return res.status(403).json({
+            reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+            message: "Messaging requires an accepted Direct Connect connection.",
+          });
+        }
+        if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+        if (authority.conversationStatus !== "active") {
+          return res.status(409).json({
+            reasonCode: "CONVERSATION_CLOSED",
+            message: "This conversation is closed and cannot accept new messages.",
+          });
+        }
+        const senderType = getDirectConnectConversationSenderType(authority, userId);
+        if (!senderType) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+        const { content, messageType, metadata, clientMessageId } = (req.body ?? {}) as any;
+        const persisted = await persistDirectConnectMessage({
+          authority,
+          senderUserId: String(userId),
+          senderType,
+          content,
+          messageType: messageType || "text",
+          clientMessageId,
+          metadata: sanitizeDirectConnectParticipantMessageMetadata(metadata),
+        });
+        await dispatchDirectConnectMessageNotification(persisted.notificationId);
+        return res.status(persisted.idempotentReplay ? 200 : 201).json({
+          message: persisted.message,
+          idempotentReplay: persisted.idempotentReplay,
         });
       } catch (error: any) {
         console.error("Error creating message:", error);
+        if (error instanceof DirectConnectMessagePersistenceError) {
+          const status =
+            error.code === "SENDER_NOT_AUTHORIZED"
+              ? 403
+              : error.code === "CONVERSATION_CLOSED" || error.code === "CLIENT_MESSAGE_ID_CONFLICT"
+                ? 409
+                : 400;
+          return res.status(status).json({
+            reasonCode: error.code,
+            message: error.message,
+          });
+        }
         res.status(500).json({ message: "Failed to send message" });
       }
     }
@@ -14587,8 +14682,12 @@ export async function registerRoutes(app: any) {
           return res.status(403).json({ message: "Access denied" });
         }
 
-        const messages = await storage.getMessagesByConversation(req.params.id);
-        res.json(messages);
+        const conversationMessages = (
+          await storage.getMessagesByConversation(req.params.id)
+        ).filter((message: any) =>
+          isDirectConnectMessageScopedToRequest(message.metadata, authority.workRequestId)
+        );
+        res.json(conversationMessages);
       } catch (error: any) {
         console.error("Error fetching messages:", error);
         res.status(500).json({ message: "Failed to fetch messages" });
@@ -14596,16 +14695,120 @@ export async function registerRoutes(app: any) {
     }
   );
 
+  const resolveAuthorizedDirectConnectArtifactConversation = async (
+    conversationIdValue: unknown,
+    userIdValue: unknown,
+    res: any,
+    options: { requireActive?: boolean } = {}
+  ) => {
+    const conversationId = String(conversationIdValue || "").trim();
+    const userId = String(userIdValue || "").trim();
+    if (!conversationId || !userId) {
+      res.status(400).json({ message: "A Direct Connect conversation is required." });
+      return null;
+    }
+
+    const authority = await resolveDirectConnectConversationAuthority(conversationId);
+    if (!authority.ok) {
+      if (authority.reason === "THREAD_NOT_FOUND") {
+        res.status(404).json({ message: "Conversation not found" });
+      } else {
+        res.status(403).json({
+          reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
+          message: "This artifact requires an accepted Direct Connect connection.",
+        });
+      }
+      return null;
+    }
+    if (!isAuthorizedDirectConnectConversationParticipant(authority, userId)) {
+      res.status(403).json({ message: "Access denied" });
+      return null;
+    }
+    if (options.requireActive && authority.conversationStatus !== "active") {
+      res.status(409).json({
+        reasonCode: "CONVERSATION_CLOSED",
+        message: "This Direct Connect conversation is no longer active.",
+      });
+      return null;
+    }
+    return authority;
+  };
+
+  const nonNegativeMoneyInput = z
+    .union([
+      z
+        .string()
+        .trim()
+        .regex(/^\d+(?:\.\d{1,2})?$/),
+      z.number().finite().nonnegative(),
+    ])
+    .transform((value) => String(value));
+  const quoteCreateSchema = z
+    .object({
+      conversationId: z.string().trim().min(1),
+      title: z.string().trim().min(1).max(200),
+      description: z.string().trim().max(5000).nullable().optional(),
+      laborCost: nonNegativeMoneyInput.nullable().optional(),
+      materialCost: nonNegativeMoneyInput.nullable().optional(),
+      totalCost: nonNegativeMoneyInput,
+      validUntil: z.coerce.date().nullable().optional(),
+      status: z.enum(["draft", "sent"]).optional(),
+      terms: z.string().trim().max(5000).nullable().optional(),
+    })
+    .strict();
+  const quoteProviderUpdateSchema = quoteCreateSchema
+    .omit({ conversationId: true, totalCost: true })
+    .extend({
+      totalCost: nonNegativeMoneyInput.optional(),
+      status: z.enum(["draft", "sent", "expired"]).optional(),
+    })
+    .partial()
+    .strict();
+  const quoteRequesterUpdateSchema = z
+    .object({
+      status: z.enum(["accepted", "declined"]),
+    })
+    .strict();
+
   // Quotes
   app.post("/api/quotes", isAuthenticated, async (req: any, res: any) => {
     try {
-      const contractorId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
-      const quoteData = { ...req.body, contractorId };
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const parsed = quoteCreateSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: "Enter a valid Direct Connect quote.",
+          issues: parsed.error.flatten(),
+        });
+      }
+      const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+        parsed.data.conversationId,
+        userId,
+        res,
+        { requireActive: true }
+      );
+      if (!authority) return;
+      if (authority.providerUserId !== String(userId)) {
+        return res.status(403).json({
+          reasonCode: "PROVIDER_AUTHORITY_REQUIRED",
+          message: "Only the connected provider can create a quote.",
+        });
+      }
+      if (!authority.contractorId) {
+        return res.status(409).json({
+          reasonCode: "QUOTE_PROVIDER_PROFILE_REQUIRED",
+          message: "This provider connection does not support legacy quote artifacts.",
+        });
+      }
 
       // Track contractor quote submission with locality context
       // LocalityTracker call removed
 
-      const quote = await storage.createQuote(quoteData);
+      const quote = await storage.createQuote({
+        ...parsed.data,
+        conversationId: authority.conversation.id,
+        contractorId: authority.contractorId,
+      });
       res.json(quote);
     } catch (error: any) {
       console.error("Error creating quote:", error);
@@ -14620,41 +14823,14 @@ export async function registerRoutes(app: any) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const conversation = await storage.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ message: "Conversation not found" });
-      }
+      const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+        req.params.id,
+        userId,
+        res
+      );
+      if (!authority) return;
 
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const boundConnections = await db
-        .select({
-          connectionId: workRequestAssignments.id,
-        })
-        .from(workRequestAssignments)
-        .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
-        .where(
-          and(
-            eq(workRequestAssignments.contractorId, conversation.contractorId),
-            eq(workRequests.createdByUserId, conversation.homeownerId),
-            eq(workRequests.source, "direct_connect" as any),
-            inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
-            inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
-          )
-        )
-        .orderBy(desc(workRequestAssignments.updatedAt))
-        .limit(1);
-
-      if (!boundConnections[0]) {
-        return res.status(403).json({
-          reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
-          message: "Conversation access requires an active Direct Connect connection.",
-        });
-      }
-
-      const quotes = await storage.getQuotesByConversation(req.params.id);
+      const quotes = await storage.getQuotesByConversation(authority.conversation.id);
       res.json(quotes);
     } catch (error: any) {
       console.error("Error fetching quotes:", error);
@@ -14664,7 +14840,33 @@ export async function registerRoutes(app: any) {
 
   app.put("/api/quotes/:id", isAuthenticated, async (req: any, res: any) => {
     try {
-      const quote = await storage.updateQuote(req.params.id, req.body);
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const existingQuote = await storage.getQuote(req.params.id);
+      if (!existingQuote) {
+        return res.status(404).json({ message: "Quote not found" });
+      }
+      const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+        existingQuote.conversationId,
+        userId,
+        res,
+        { requireActive: true }
+      );
+      if (!authority) return;
+
+      const isProvider = authority.providerUserId === String(userId);
+      const parsed = (
+        isProvider ? quoteProviderUpdateSchema : quoteRequesterUpdateSchema
+      ).safeParse(req.body ?? {});
+      if (!parsed.success || Object.keys(parsed.data).length === 0) {
+        return res.status(400).json({
+          message: isProvider
+            ? "Enter valid quote changes."
+            : "The requester may only accept or decline this quote.",
+          issues: parsed.success ? undefined : parsed.error.flatten(),
+        });
+      }
+
+      const quote = await storage.updateQuote(req.params.id, parsed.data);
       res.json(quote);
     } catch (error: any) {
       console.error("Error updating quote:", error);
@@ -14680,41 +14882,14 @@ export async function registerRoutes(app: any) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const conversation = await storage.getConversation(req.params.id);
-      if (!conversation) {
-        return res.status(404).json({ message: "Conversation not found" });
-      }
+      const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+        req.params.id,
+        userId,
+        res
+      );
+      if (!authority) return;
 
-      if (conversation.homeownerId !== userId && conversation.contractorId !== userId) {
-        return res.status(403).json({ message: "Access denied" });
-      }
-
-      const boundConnections = await db
-        .select({
-          connectionId: workRequestAssignments.id,
-        })
-        .from(workRequestAssignments)
-        .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
-        .where(
-          and(
-            eq(workRequestAssignments.contractorId, conversation.contractorId),
-            eq(workRequests.createdByUserId, conversation.homeownerId),
-            eq(workRequests.source, "direct_connect" as any),
-            inArray(workRequestAssignments.status, ["accepted", "completed"] as any),
-            inArray(workRequests.status, ["routed", "in_progress", "completed"] as any)
-          )
-        )
-        .orderBy(desc(workRequestAssignments.updatedAt))
-        .limit(1);
-
-      if (!boundConnections[0]) {
-        return res.status(403).json({
-          reasonCode: "CONNECTION_AUTHORITY_REQUIRED",
-          message: "Conversation access requires an active Direct Connect connection.",
-        });
-      }
-
-      const lists = await storage.getMaterialListsByConversation(req.params.id);
+      const lists = await storage.getMaterialListsByConversation(authority.conversation.id);
       res.json(lists);
     } catch (error: any) {
       console.error("Error fetching material lists:", error);
@@ -14724,10 +14899,63 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/material-lists", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const conversationId = String(req.body?.conversationId || "").trim();
+      const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+        conversationId,
+        userId,
+        res,
+        { requireActive: true }
+      );
+      if (!authority) return;
+      if (!authority.contractorId) {
+        return res.status(409).json({
+          reasonCode: "MATERIAL_LIST_PROVIDER_PROFILE_REQUIRED",
+          message: "This provider connection does not support legacy material-list artifacts.",
+        });
+      }
+      const title = String(req.body?.title || "").trim();
+      const items = Array.isArray(req.body?.items) ? req.body.items : [];
+      if (!title || title.length > 200 || items.length === 0 || items.length > 250) {
+        return res.status(400).json({ message: "Enter a valid material list." });
+      }
+      const actorType =
+        authority.providerUserId === String(userId)
+          ? ("contractor" as const)
+          : ("homeowner" as const);
       const list = await storage.createMaterialList({
-        contractorId: req.body.contractorId || userId,
-        ...req.body,
+        conversationId: authority.conversation.id,
+        contractorId: authority.contractorId,
+        title,
+        description:
+          req.body?.description === null
+            ? null
+            : String(req.body?.description || "")
+                .trim()
+                .slice(0, 5000) || null,
+        items: items.map((item: any) => ({
+          id: String(item?.id || randomUUID()).slice(0, 160),
+          name: String(item?.name || "")
+            .trim()
+            .slice(0, 240),
+          quantity: Math.max(0, Number(item?.quantity) || 0),
+          estimatedCost: Math.max(0, Number(item?.estimatedCost) || 0),
+          vendor: item?.vendor ? String(item.vendor).trim().slice(0, 240) : undefined,
+          sku: item?.sku ? String(item.sku).trim().slice(0, 160) : undefined,
+          suggestedBy: actorType,
+          status: "pending" as const,
+          notes: item?.notes ? String(item.notes).trim().slice(0, 2000) : undefined,
+        })),
+        totalEstimatedCost:
+          req.body?.totalEstimatedCost === null ||
+          typeof req.body?.totalEstimatedCost === "undefined"
+            ? null
+            : String(Math.max(0, Number(req.body.totalEstimatedCost) || 0)),
+        vendorInfo:
+          req.body?.vendorInfo && typeof req.body.vendorInfo === "object"
+            ? req.body.vendorInfo
+            : null,
+        status: "draft",
       });
       res.status(201).json(list);
     } catch (error: any) {
@@ -14738,10 +14966,42 @@ export async function registerRoutes(app: any) {
 
   app.post("/api/material-lists/:id/suggestions", isAuthenticated, async (req: any, res: any) => {
     try {
+      const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+      const existingList = await storage.getMaterialList(req.params.id);
+      if (!existingList) {
+        return res.status(404).json({ message: "Material list not found" });
+      }
+      const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+        existingList.conversationId,
+        userId,
+        res,
+        { requireActive: true }
+      );
+      if (!authority) return;
+      const parsedSuggestion = z
+        .object({
+          name: z.string().trim().min(1).max(240),
+          quantity: z.coerce.number().positive().max(1_000_000),
+          estimatedCost: z.coerce.number().nonnegative().max(1_000_000_000),
+          vendor: z.string().trim().max(240).optional(),
+          sku: z.string().trim().max(160).optional(),
+          notes: z.string().trim().max(2000).optional(),
+        })
+        .strict()
+        .safeParse(req.body ?? {});
+      if (!parsedSuggestion.success) {
+        return res.status(400).json({
+          message: "Enter a valid material suggestion.",
+          issues: parsedSuggestion.error.flatten(),
+        });
+      }
       const suggestion = {
-        ...req.body,
-        id: req.body.id || `sugg-${Date.now()}`,
-        suggestedBy: req.body.suggestedBy || "homeowner",
+        ...parsedSuggestion.data,
+        id: randomUUID(),
+        suggestedBy:
+          authority.providerUserId === String(userId)
+            ? ("contractor" as const)
+            : ("homeowner" as const),
       };
       const list = await storage.addMaterialListItemSuggestion(req.params.id, suggestion);
       res.json(list);
@@ -14756,11 +15016,49 @@ export async function registerRoutes(app: any) {
     isAuthenticated,
     async (req: any, res: any) => {
       try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        const existingList = await storage.getMaterialList(req.params.id);
+        if (!existingList) {
+          return res.status(404).json({ message: "Material list not found" });
+        }
+        const authority = await resolveAuthorizedDirectConnectArtifactConversation(
+          existingList.conversationId,
+          userId,
+          res,
+          { requireActive: true }
+        );
+        if (!authority) return;
+        const parsedStatus = z
+          .object({
+            status: z.enum(["approved", "denied"]),
+            denialReason: z.string().trim().max(2000).optional(),
+          })
+          .strict()
+          .safeParse(req.body ?? {});
+        if (!parsedStatus.success) {
+          return res.status(400).json({
+            message: "Enter a valid material-item decision.",
+            issues: parsedStatus.error.flatten(),
+          });
+        }
+        const actorType = authority.providerUserId === String(userId) ? "contractor" : "homeowner";
+        const existingItem = (existingList.items as any[]).find(
+          (item) => String(item?.id || "") === req.params.itemId
+        );
+        if (!existingItem) {
+          return res.status(404).json({ message: "Material item not found" });
+        }
+        if (existingItem.suggestedBy === actorType) {
+          return res.status(403).json({
+            reasonCode: "COUNTERPART_DECISION_REQUIRED",
+            message: "The other Direct Connect participant must review this suggestion.",
+          });
+        }
         const list = await storage.updateMaterialListItemStatus(
           req.params.id,
           req.params.itemId,
-          req.body.status,
-          req.body.denialReason
+          parsedStatus.data.status,
+          parsedStatus.data.denialReason
         );
         res.json(list);
       } catch (error: any) {
@@ -16517,7 +16815,7 @@ export async function registerRoutes(app: any) {
             // Activation: generate password reset token and optionally email it (only when a user exists)
             let activationLink: string | undefined;
             if (!dryRun && userId && userId !== "__dry_run__") {
-              const { token, expiresAt } = passwordResetService.createToken(userId);
+              const { token, expiresAt } = await passwordResetService.createToken(userId);
               activationPrepared++;
               const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
@@ -16528,7 +16826,7 @@ export async function registerRoutes(app: any) {
                 );
                 let verifyLink: string | null = null;
                 if (emailVerificationRequired) {
-                  const verify = emailVerificationService.createToken(userId);
+                  const verify = await emailVerificationService.createToken(userId);
                   const verifyBase = getPublicBaseUrlFromRequest(req as any);
                   verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
                 }

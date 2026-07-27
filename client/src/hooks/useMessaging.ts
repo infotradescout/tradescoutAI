@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 import { getApiBaseUrl } from "@/lib/apiBaseUrl";
+import { createClientMessageId } from "@/lib/clientMessageId";
 
 interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  senderType: "homeowner" | "contractor";
+  senderType: "homeowner" | "contractor" | "staff";
   content: string;
   messageType: "text" | "quote" | "schedule" | "materials" | "image";
   metadata?: Record<string, any>;
@@ -35,6 +36,11 @@ export function useMessaging(userId: string) {
   const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const currentConversationRef = useRef<string | null>(null);
+  const pendingSendRef = useRef<{
+    fingerprint: string;
+    clientMessageId: string;
+  } | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 10;
 
@@ -81,7 +87,11 @@ export function useMessaging(userId: string) {
 
     newSocket.on("new_message", (message: Message) => {
       console.log("[Messaging] New message received:", message);
-      setMessages((prev) => [...prev, message]);
+      if (message.conversationId === currentConversationRef.current) {
+        setMessages((prev) =>
+          prev.some((existing) => existing.id === message.id) ? prev : [...prev, message]
+        );
+      }
     });
 
     newSocket.on("message_read", (data: { messageId: string; readAt: Date }) => {
@@ -93,7 +103,7 @@ export function useMessaging(userId: string) {
     });
 
     newSocket.on("user_typing", (data: { userId: string; conversationId: string }) => {
-      if (data.conversationId === currentConversation) {
+      if (data.conversationId === currentConversationRef.current) {
         setTypingUsers((prev) => {
           const updated = new Set(prev);
           updated.add(data.userId);
@@ -103,7 +113,7 @@ export function useMessaging(userId: string) {
     });
 
     newSocket.on("user_stopped_typing", (data: { userId: string; conversationId: string }) => {
-      if (data.conversationId === currentConversation) {
+      if (data.conversationId === currentConversationRef.current) {
         setTypingUsers((prev) => {
           const updated = new Set(prev);
           updated.delete(data.userId);
@@ -150,10 +160,14 @@ export function useMessaging(userId: string) {
     async (conversationId: string) => {
       if (!socket) return;
 
+      currentConversationRef.current = conversationId;
       setCurrentConversation(conversationId);
+      setMessages([]);
+      setTypingUsers(new Set());
       setIsLoading(true);
       try {
         socket.emit("join_conversation", conversationId, (response: any) => {
+          if (currentConversationRef.current !== conversationId) return;
           if (response.success) {
             setMessages(response.messages);
             setError(null);
@@ -175,10 +189,33 @@ export function useMessaging(userId: string) {
     async (content: string, messageType: string = "text", metadata?: Record<string, any>) => {
       if (!socket || !currentConversation) {
         setError("No active conversation");
-        return;
+        throw new Error("No active conversation");
       }
 
-      try {
+      const fingerprint = JSON.stringify({
+        conversationId: currentConversation,
+        content,
+        messageType,
+        metadata: metadata || null,
+      });
+      const clientMessageId =
+        pendingSendRef.current?.fingerprint === fingerprint
+          ? pendingSendRef.current.clientMessageId
+          : createClientMessageId();
+      pendingSendRef.current = { fingerprint, clientMessageId };
+
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const acknowledgementTimeout = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          const timeoutError = new Error(
+            "Message delivery was not acknowledged. Retry to safely check the same send."
+          );
+          setError(timeoutError.message);
+          reject(timeoutError);
+        }, 15_000);
+
         socket.emit(
           "send_message",
           {
@@ -186,18 +223,34 @@ export function useMessaging(userId: string) {
             content,
             messageType,
             metadata,
+            clientMessageId,
           },
           (response: any) => {
-            if (!response.success) {
-              setError(response.error);
+            window.clearTimeout(acknowledgementTimeout);
+            if (settled) {
+              if (
+                response?.success &&
+                pendingSendRef.current?.clientMessageId === clientMessageId
+              ) {
+                pendingSendRef.current = null;
+              }
+              return;
+            }
+            settled = true;
+            if (!response?.success) {
+              const responseError = response?.error || "Failed to send message";
+              setError(responseError);
+              reject(new Error(responseError));
             } else {
+              if (pendingSendRef.current?.clientMessageId === clientMessageId) {
+                pendingSendRef.current = null;
+              }
               setError(null);
+              resolve();
             }
           }
         );
-      } catch (err) {
-        setError((err as Error).message);
-      }
+      });
     },
     [socket, currentConversation]
   );

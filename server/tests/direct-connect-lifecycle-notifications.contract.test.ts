@@ -9,7 +9,7 @@ const read = (relativePath: string) => {
 
 describe("direct connect lifecycle notifications contracts", () => {
   it("creates durable lifecycle notification records", () => {
-    const source = read("server/services/directConnectDispatchLedgerService.ts");
+    const source = read("migrations/0115_direct_connect_ledger_foundation.sql");
     expect(source).toContain("CREATE TABLE IF NOT EXISTS direct_connect_lifecycle_notifications");
     expect(source).toContain("recipient_type text NOT NULL");
     expect(source).toContain("recipient_id text NOT NULL");

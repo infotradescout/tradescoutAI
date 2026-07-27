@@ -113,7 +113,7 @@ describe("Gap 4 – Inbox accept navigates to conversation thread", () => {
   });
 
   it("sends requester accepted notifications to the same Messages thread", () => {
-    expect(routeSrc).toContain("`/messages?thread=${encodeURIComponent(String(convId))}`");
+    expect(routeSrc).toContain("`/messages?thread=${encodeURIComponent(String(conversationId))}`");
     expect(routeSrc).toContain('actionText: isAccept ? "Open conversation" : "View request"');
   });
 });

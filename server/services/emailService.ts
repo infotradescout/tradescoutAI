@@ -1,5 +1,19 @@
-import type { MailDataRequired } from "@sendgrid/mail";
-import sgMail from "@sendgrid/mail";
+import { MailService, type MailDataRequired } from "@sendgrid/mail";
+
+const DEFAULT_EMAIL_PROVIDER_REQUEST_TIMEOUT_MS = 30_000;
+const MIN_EMAIL_PROVIDER_REQUEST_TIMEOUT_MS = 250;
+const MAX_EMAIL_PROVIDER_REQUEST_TIMEOUT_MS = 2 * 60 * 1000;
+
+export function resolveEmailProviderRequestTimeoutMs(value: unknown): number {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_EMAIL_PROVIDER_REQUEST_TIMEOUT_MS;
+  }
+  return Math.min(
+    MAX_EMAIL_PROVIDER_REQUEST_TIMEOUT_MS,
+    Math.max(MIN_EMAIL_PROVIDER_REQUEST_TIMEOUT_MS, parsed)
+  );
+}
 
 export type SendEmailParams = {
   to: string | string[];
@@ -16,6 +30,11 @@ export type SendEmailParams = {
   bcc?: string[];
   replyTo?: string;
   headers?: Record<string, string>;
+  /**
+   * Hard provider request deadline. Durable delivery callers keep this below
+   * their claim lease so another worker cannot reclaim an in-flight request.
+   */
+  requestTimeoutMs?: number;
   /** Optional classifier so we can selectively suppress emails by env */
   purpose?: string;
 };
@@ -24,10 +43,7 @@ export type SendEmailResult = {
   skipped: boolean;
   messageId?: string;
   provider: "sendgrid" | "brevo" | "none";
-  skippedReason?:
-    | "provider_not_configured"
-    | "sender_not_configured"
-    | "email_mode_suppressed";
+  skippedReason?: "provider_not_configured" | "sender_not_configured" | "email_mode_suppressed";
 };
 
 export type EmailMode = "all" | "account_creation_only";
@@ -112,8 +128,10 @@ class EmailService {
   private provider: EmailProvider;
   private defaultFrom: string;
   private configurationError: string | null;
+  private sendgridApiKey: string | undefined;
   private brevoApiKey: string | undefined;
   private mode: EmailMode;
+  private providerRequestTimeoutMs: number;
 
   constructor() {
     const apiKey = process.env.SENDGRID_API_KEY;
@@ -124,11 +142,11 @@ class EmailService {
     this.defaultFrom = providerConfiguration.defaultFrom;
     this.configurationError = providerConfiguration.configurationError;
 
+    this.sendgridApiKey = apiKey;
     this.brevoApiKey = brevoApiKey;
-
-    if (this.provider === "sendgrid" && apiKey) {
-      sgMail.setApiKey(apiKey);
-    }
+    this.providerRequestTimeoutMs = resolveEmailProviderRequestTimeoutMs(
+      process.env.EMAIL_PROVIDER_REQUEST_TIMEOUT_MS
+    );
 
     if (this.configurationError && this.provider !== "none") {
       console.error("[email] Provider configuration is incomplete", {
@@ -195,8 +213,19 @@ class EmailService {
       typeof params.from === "object" && params.from
         ? params.from
         : { email: params.from || this.defaultFrom };
+    const requestTimeoutMs = resolveEmailProviderRequestTimeoutMs(
+      params.requestTimeoutMs ?? this.providerRequestTimeoutMs
+    );
 
     if (this.provider === "sendgrid") {
+      if (!this.sendgridApiKey) {
+        console.warn("[email] SendGrid selected but SENDGRID_API_KEY missing; skipping send");
+        return {
+          skipped: true,
+          provider: this.provider,
+          skippedReason: "provider_not_configured",
+        };
+      }
       const content: Array<{ type: "text/html" | "text/plain"; value: string }> = [];
       if (params.html) content.push({ type: "text/html", value: params.html });
       if (params.text) content.push({ type: "text/plain", value: params.text });
@@ -212,7 +241,12 @@ class EmailService {
         headers: params.headers,
       };
 
-      const [response] = await sgMail.send(payload);
+      // Use a request-local client so concurrent sends with different claim
+      // leases cannot race through SendGrid's mutable global timeout setting.
+      const sendgridMailer = new MailService();
+      sendgridMailer.setApiKey(this.sendgridApiKey);
+      sendgridMailer.setTimeout(requestTimeoutMs);
+      const [response] = await sendgridMailer.send(payload);
       const messageId = (response?.headers as any)?.["x-message-id"];
 
       return {
@@ -249,19 +283,40 @@ class EmailService {
         ...(params.headers ? { headers: params.headers } : {}),
       };
 
-      const resp = await fetchFn("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          "api-key": this.brevoApiKey,
-        },
-        body: JSON.stringify(payload),
-      });
+      let resp: Response;
+      try {
+        resp = await fetchFn("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: {
+            accept: "application/json",
+            "content-type": "application/json",
+            "api-key": this.brevoApiKey,
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(requestTimeoutMs),
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.name === "TimeoutError" || error.name === "AbortError")
+        ) {
+          throw Object.assign(
+            new Error(`Brevo provider request timed out after ${requestTimeoutMs}ms.`),
+            { code: "ETIMEDOUT" }
+          );
+        }
+        throw error;
+      }
 
       if (!resp.ok) {
         const text = await resp.text().catch(() => "");
-        throw new Error(`Brevo send failed (${resp.status}): ${text || resp.statusText}`);
+        throw Object.assign(
+          new Error(`Brevo send failed (${resp.status}): ${text || resp.statusText}`),
+          {
+            code: `BREVO_HTTP_${resp.status}`,
+            statusCode: resp.status,
+          }
+        );
       }
 
       const json: any = await resp.json().catch(() => null);

@@ -11,7 +11,11 @@ describe("Direct Connect Messages job bridge", () => {
 
     expect(routeSource).toContain('"/api/direct-connect/messages/threads/:threadId/job"');
     expect(routeSource).toContain("Thread not available for this user");
-    expect(routeSource).toContain("a.status = 'accepted'");
+    expect(routeSource).toContain("resolveDirectConnectConversationAuthority(threadId)");
+    expect(routeSource).toContain(
+      "eq(workRequestAssignments.id, conversationAuthority.assignmentId)"
+    );
+    expect(routeSource).toContain("expectedConversationId: threadId");
     expect(routeSource).toContain("getJobWorkspaceByRequestId(requestId)");
     expect(routeSource).toContain("buildMessageJobAssist");
     expect(routeSource).toContain("learningSignals");

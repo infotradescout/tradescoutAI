@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { MaterialListBuilder } from "@/components/MaterialListBuilder";
+import { getMessageAuthorLabel } from "@/lib/messageAuthor";
+import { createClientMessageId } from "@/lib/clientMessageId";
 
 interface Conversation {
   id: string;
@@ -42,7 +44,7 @@ interface Message {
   id: string;
   conversationId: string;
   senderId: string;
-  senderType: "homeowner" | "contractor";
+  senderType: "homeowner" | "contractor" | "staff";
   content: string;
   messageType: "text" | "quote" | "schedule" | "materials" | "image";
   metadata?: Record<string, unknown> | null;
@@ -74,6 +76,7 @@ type SendMessagePayload = {
   content: string;
   messageType: Message["messageType"];
   metadata?: Record<string, unknown>;
+  clientMessageId: string;
 };
 
 export default function Chat() {
@@ -99,6 +102,10 @@ export default function Chat() {
   const [scheduleProposedAt, setScheduleProposedAt] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const pendingSendRef = useRef<{
+    fingerprint: string;
+    clientMessageId: string;
+  } | null>(null);
 
   const conversationId = params?.conversationId;
 
@@ -133,7 +140,10 @@ export default function Chat() {
     mutationFn: async (messageData: SendMessagePayload) => {
       return apiRequest("POST", `/api/conversations/${conversationId}/messages`, messageData);
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      if (pendingSendRef.current?.clientMessageId === variables.clientMessageId) {
+        pendingSendRef.current = null;
+      }
       queryClient.invalidateQueries({
         queryKey: ["/api/conversations", conversationId, "messages"],
       });
@@ -180,10 +190,27 @@ export default function Chat() {
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
-    sendMessageMutation.mutate({
-      content: newMessage,
-      messageType: "text",
+    sendMessageMutation.mutate(
+      withStableClientMessageId({
+        content: newMessage,
+        messageType: "text",
+      })
+    );
+  };
+
+  const withStableClientMessageId = (
+    payload: Omit<SendMessagePayload, "clientMessageId">
+  ): SendMessagePayload => {
+    const fingerprint = JSON.stringify({
+      conversationId,
+      ...payload,
     });
+    const clientMessageId =
+      pendingSendRef.current?.fingerprint === fingerprint
+        ? pendingSendRef.current.clientMessageId
+        : createClientMessageId();
+    pendingSendRef.current = { fingerprint, clientMessageId };
+    return { ...payload, clientMessageId };
   };
 
   const handleRateConversation = () => {
@@ -215,16 +242,18 @@ export default function Chat() {
       budget ? `Target budget: ${budget}` : null,
     ].filter(Boolean);
 
-    sendMessageMutation.mutate({
-      content: lines.join("\n"),
-      messageType: "quote",
-      metadata: {
-        kind: "quote_request",
-        title: title || null,
-        details: details || null,
-        targetBudget: budget || null,
-      },
-    });
+    sendMessageMutation.mutate(
+      withStableClientMessageId({
+        content: lines.join("\n"),
+        messageType: "quote",
+        metadata: {
+          kind: "quote_request",
+          title: title || null,
+          details: details || null,
+          targetBudget: budget || null,
+        },
+      })
+    );
 
     setShowQuoteDialog(false);
     setQuoteTitle("");
@@ -254,16 +283,18 @@ export default function Chat() {
       details ? `Details: ${details}` : null,
     ].filter(Boolean);
 
-    sendMessageMutation.mutate({
-      content: lines.join("\n"),
-      messageType: "schedule",
-      metadata: {
-        kind: "schedule_request",
-        title: title || null,
-        details: details || null,
-        proposedAt: proposedAt || null,
-      },
-    });
+    sendMessageMutation.mutate(
+      withStableClientMessageId({
+        content: lines.join("\n"),
+        messageType: "schedule",
+        metadata: {
+          kind: "schedule_request",
+          title: title || null,
+          details: details || null,
+          proposedAt: proposedAt || null,
+        },
+      })
+    );
 
     setShowScheduleDialog(false);
     setScheduleTitle("");
@@ -277,7 +308,7 @@ export default function Chat() {
 
   const renderMessage = (message: Message) => {
     const isOwn = message.senderId === user?.id;
-    const senderName = message.senderType === "homeowner" ? "Homeowner" : "Contractor";
+    const senderName = getMessageAuthorLabel(message, user?.id);
 
     return (
       <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-4`}>

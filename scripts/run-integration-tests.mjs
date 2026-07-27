@@ -23,6 +23,7 @@ const defaultIntegrationTestFiles = [
   "server/tests/hoa-api.test.ts",
   "server/tests/marketplace-api.test.ts",
   "server/tests/messages-api.test.ts",
+  "server/tests/notification-delivery-outbox.integration.test.ts",
   "server/tests/notifications-api.test.ts",
   "server/tests/phase2b-ingress.integration.test.ts",
   "server/tests/phase2c-privileged.integration.test.ts",

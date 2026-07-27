@@ -11,7 +11,7 @@ describe("direct connect job lifecycle foundation contracts", () => {
   it("creates a job workspace only after contact release", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain('nextState === "released"');
-    expect(source).toContain("createOrGetJobWorkspaceAtContactRelease");
+    expect(source).toContain("releaseContactAndCreateOrGetJobWorkspace");
     expect(source).toContain('eventType: "job_workspace_created"');
   });
 
@@ -27,7 +27,7 @@ describe("direct connect job lifecycle foundation contracts", () => {
   });
 
   it("defines optional lifecycle module tables", () => {
-    const source = read("server/services/directConnectDispatchLedgerService.ts");
+    const source = read("migrations/0115_direct_connect_ledger_foundation.sql");
     expect(source).toContain("CREATE TABLE IF NOT EXISTS direct_connect_job_workspaces");
     expect(source).toContain("CREATE TABLE IF NOT EXISTS job_estimates");
     expect(source).toContain("CREATE TABLE IF NOT EXISTS job_estimate_line_items");

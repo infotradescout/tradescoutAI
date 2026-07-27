@@ -10,11 +10,18 @@ const read = (relativePath: string) => {
 describe("admin direct-connect provisioning contract", () => {
   it("provisions target users by email and triggers setup email flow", () => {
     const source = read("server/routes/direct-connect.ts");
+    const notifications = read("server/notification-service.ts");
 
     expect(source).toContain("/api/admin/direct-connect/requests");
     expect(source).toContain("targetUserProvisioned");
-    expect(source).toContain("passwordResetService.createToken");
-    expect(source).toContain("emailVerificationService.createToken");
+    expect(source).toContain("notificationService.enqueueDirectConnectAccountSetupEmail");
+    expect(source).toContain("notificationService.dispatchDirectConnectEmail");
+    expect(source).not.toContain("passwordResetService.createToken");
+    expect(source).not.toContain("emailVerificationService.createToken");
+    expect(source).not.toContain("emailService.sendEmail");
+    expect(notifications).toContain("passwordResetService.createScopedToken");
+    expect(notifications).toContain("emailVerificationService.createScopedToken");
+    expect(notifications).toContain("`notification-delivery:${deliveryIntentId}`");
     expect(source).toContain("setupEmailSent");
     expect(source).toContain("const shouldSendSetupFlow =");
     expect(source).toContain("!targetHasPassword");
@@ -29,9 +36,12 @@ describe("admin direct-connect provisioning contract", () => {
     expect(source).toContain("resolveOrCreateAdminTrade");
     expect(source).toContain("resolvedTradeId");
     expect(source).toContain("createdTradeId");
-    expect(source).toContain('deliveryMethods: ["in_app"]');
-    expect(source).toContain("Failed to notify target user for admin-created request");
+    expect(notifications).toContain('deliveryMethods: ["in_app", "email"]');
+    expect(source).not.toContain('deliveryMethods: ["in_app"]');
+    expect(source).not.toContain("Failed to notify target user for admin-created request");
     expect(source).toContain('console.info("[direct-connect] Admin-created request"');
-    expect(source).toContain("emailResult.skipped !== true");
+    expect(source).toContain('["sent", "delivered"].includes(emailDeliveryStatus)');
+    expect(source).toContain("emailRetryCount");
+    expect(source).toContain("emailNextRetryAt");
   });
 });

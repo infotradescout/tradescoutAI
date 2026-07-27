@@ -15,6 +15,7 @@ const sectionBetween = (source: string, start: string, end: string) => {
 
 describe("Direct Connect admin idempotency and assisted authority contracts", () => {
   const source = read("server/routes/direct-connect.ts");
+  const notificationService = read("server/notification-service.ts");
   const createRoute = sectionBetween(
     source,
     '"/api/admin/direct-connect/requests"',
@@ -39,7 +40,7 @@ describe("Direct Connect admin idempotency and assisted authority contracts", ()
       "const directConnectAdminAssistedReplySchema",
       "const isDirectConnectOperator"
     );
-    expect(adminSchema).toContain("operationId: z");
+    expect(adminSchema).toContain("operationId: directConnectOperationIdSchema");
     expect(assistedSchema).toContain("operationId: z");
 
     expect(requestCard).toContain("const pendingCreateOperationId = useRef<string | null>(null)");
@@ -76,18 +77,31 @@ describe("Direct Connect admin idempotency and assisted authority contracts", ()
     expect(createRoute).toContain("operationLockClient.release()");
   });
 
-  it("records pending admin email evidence before send and retains errors for operators", () => {
+  it("links durable admin email evidence before dispatch and retains retry errors", () => {
     const pendingIndex = createRoute.indexOf('deliveryStatus: "pending"');
-    const sendIndex = createRoute.indexOf("await emailService.sendEmail({");
-    const finalIndex = createRoute.indexOf(".update(workRequestEvents)", sendIndex);
+    const setupEnqueueIndex = createRoute.indexOf(
+      "notificationService.enqueueDirectConnectAccountSetupEmail"
+    );
+    const requestEnqueueIndex = createRoute.indexOf(
+      "notificationService.enqueueDirectConnectRequestEmail"
+    );
+    const linkedEvidenceIndex = createRoute.indexOf("deliveryIntentId: durableEmail.delivery.id");
+    const dispatchIndex = createRoute.indexOf("notificationService.dispatchDirectConnectEmail");
+    const finalIndex = createRoute.indexOf(".update(workRequestEvents)", dispatchIndex);
 
     expect(pendingIndex).toBeGreaterThanOrEqual(0);
-    expect(sendIndex).toBeGreaterThan(pendingIndex);
-    expect(finalIndex).toBeGreaterThan(sendIndex);
+    expect(setupEnqueueIndex).toBeGreaterThan(pendingIndex);
+    expect(requestEnqueueIndex).toBeGreaterThan(pendingIndex);
+    expect(linkedEvidenceIndex).toBeGreaterThan(requestEnqueueIndex);
+    expect(dispatchIndex).toBeGreaterThan(linkedEvidenceIndex);
+    expect(finalIndex).toBeGreaterThan(dispatchIndex);
+    expect(createRoute).not.toContain("emailService.sendEmail");
     expect(createRoute).toContain("emailProviderErrorMessage = redactContactDetails(");
     expect(createRoute).toContain(".slice(0, 500)");
     expect(createRoute).toContain("errorMessage: emailProviderErrorMessage");
     expect(createRoute).toContain("Admin email dispatch evidence remained pending");
+    expect(notificationService).toContain('status: "retry_scheduled"');
+    expect(notificationService).toContain("errorMessage: failure.errorMessage");
   });
 
   it("locks and revalidates exact assisted authority before one atomic message/event write", () => {
@@ -147,8 +161,6 @@ describe("Direct Connect admin idempotency and assisted authority contracts", ()
       '"/api/admin/direct-connect/requests/:id/route"'
     );
     expect(adminDetail).toContain("conversationMessageRows.filter");
-    expect(adminDetail).toContain(
-      'String(metadata.workRequestId || "") === requestId'
-    );
+    expect(adminDetail).toContain('String(metadata.workRequestId || "") === requestId');
   });
 });

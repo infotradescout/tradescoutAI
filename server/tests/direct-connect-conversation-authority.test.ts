@@ -4,6 +4,8 @@ import {
   evaluateDirectConnectConversationAuthorityCandidate,
   getDirectConnectConversationSenderType,
   isAuthorizedDirectConnectConversationParticipant,
+  isDirectConnectMessageScopedToRequest,
+  sanitizeDirectConnectParticipantMessageMetadata,
   type DirectConnectConversationAuthorityCandidate,
 } from "../services/directConnectConversationAuthority";
 
@@ -40,6 +42,7 @@ function candidate(
     requestStatus: "in_progress",
     assignmentId: "assignment-1",
     assignmentStatus: "accepted",
+    providerKey: "contractor:contractor-profile-1",
     contractorId: "contractor-profile-1",
     responderUserId: null,
     workerId: null,
@@ -50,6 +53,49 @@ function candidate(
 }
 
 describe("Direct Connect conversation authority", () => {
+  it("allows a historical acceptance event with only an exact conversation binding", () => {
+    const result = evaluateDirectConnectConversationAuthorityCandidate(
+      candidate({
+        eventMetadata: {
+          conversationId: "conversation-1",
+        },
+      })
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      workRequestId: "request-1",
+      assignmentId: "assignment-1",
+      providerUserId: "contractor-user-1",
+    });
+  });
+
+  it("requires both exact assignment keys on versioned acceptance events", () => {
+    expect(
+      evaluateDirectConnectConversationAuthorityCandidate(
+        candidate({
+          eventMetadata: {
+            authorityBindingVersion: 2,
+            conversationId: "conversation-1",
+          },
+        })
+      )
+    ).toEqual({ ok: false, reason: "EVENT_ASSIGNMENT_MISMATCH" });
+
+    expect(
+      evaluateDirectConnectConversationAuthorityCandidate(
+        candidate({
+          eventMetadata: {
+            authorityBindingVersion: 2,
+            conversationId: "conversation-1",
+            assignmentId: "assignment-1",
+            providerKey: "contractor:contractor-profile-1",
+          },
+        })
+      )
+    ).toMatchObject({ ok: true, assignmentId: "assignment-1" });
+  });
+
   it("authorizes a traditional contractor user while preserving contractors.id as the key", () => {
     const result = evaluateDirectConnectConversationAuthorityCandidate(candidate());
 
@@ -58,6 +104,7 @@ describe("Direct Connect conversation authority", () => {
       authorizedParticipantUserIds: ["requester-1", "contractor-user-1"],
       requesterUserId: "requester-1",
       providerUserId: "contractor-user-1",
+      contractorId: "contractor-profile-1",
       conversationStatus: "active",
       workRequestId: "request-1",
       assignmentId: "assignment-1",
@@ -89,6 +136,7 @@ describe("Direct Connect conversation authority", () => {
       ok: true,
       authorizedParticipantUserIds: ["requester-1", "business-user-1"],
       providerUserId: "business-user-1",
+      contractorId: null,
     });
   });
 
@@ -214,6 +262,32 @@ describe("Direct Connect conversation authority", () => {
 
     expect(isAuthorizedDirectConnectConversationParticipant(result, "stranger-1")).toBe(false);
     expect(getDirectConnectConversationSenderType(result, "stranger-1")).toBeNull();
+  });
+
+  it("fails closed when a legacy message is not bound to the authorized request", () => {
+    expect(isDirectConnectMessageScopedToRequest({ workRequestId: "request-1" }, "request-1")).toBe(
+      true
+    );
+    expect(isDirectConnectMessageScopedToRequest({ workRequestId: "request-2" }, "request-1")).toBe(
+      false
+    );
+    expect(isDirectConnectMessageScopedToRequest({}, "request-1")).toBe(false);
+    expect(isDirectConnectMessageScopedToRequest(null, "request-1")).toBe(false);
+  });
+
+  it("strips participant attempts to forge staff and request authority metadata", () => {
+    expect(
+      sanitizeDirectConnectParticipantMessageMetadata({
+        kind: "schedule_request",
+        staffAssisted: true,
+        staffActorUserId: "fake-staff",
+        representedProviderUserId: "fake-provider",
+        workRequestId: "different-request",
+        assignmentId: "different-assignment",
+        connectionId: "different-connection",
+        _senderType: "staff",
+      })
+    ).toEqual({ kind: "schedule_request" });
   });
 
   it("exposes closed conversation state without dropping read authority", () => {

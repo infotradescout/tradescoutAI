@@ -61,7 +61,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
       'if (dispatch?.homeContextIntent && dispatch.homeContextIntent !== "skip_for_now")'
     );
     expect(routesSource).toContain(
-      'if (created?.id && String(body.homeContextIntent || "skip_for_now") !== "skip_for_now")'
+      'created?.id &&\n          !idempotentReplay &&\n          String(body.homeContextIntent || "skip_for_now") !== "skip_for_now"'
     );
     expect(routesSource).toContain('homeContextIntent === "create_from_request"');
     expect(routesSource).toContain('homeContextIntent === "update_from_request"');

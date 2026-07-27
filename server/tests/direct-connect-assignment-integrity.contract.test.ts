@@ -12,16 +12,17 @@ describe("direct connect assignment integrity contracts", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain("filterContractorsEligibleForRequest");
     expect(source).toContain("filterBusinessesEligibleForRequest");
-    expect(source).toContain(
-      "const allAssignments = [...contractorAssignments, ...businessAssignments]"
-    );
+    expect(source).toContain("const assignmentPayloads = [");
+    expect(source).toContain("...eligibleContractors.map((contractor) => ({");
+    expect(source).toContain("...eligibleBusinesses.map((business) => ({");
+    expect(source).toContain(".values(missingAssignmentPayloads)");
     expect(source).toContain('logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"');
   });
 
-  it("emits visible-to-contractors event when assignment rows are created", () => {
+  it("emits visible-to-contractors analytics from eligible assignment payloads", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain("logDirectConnectVisibilityEvent({");
-    expect(source).toContain("visibleContractorCount: allAssignments.length");
+    expect(source).toContain("visibleContractorCount: assignmentPayloads.length");
   });
 
   it("does not require Home Record/HomeID to create routed assignment visibility", () => {

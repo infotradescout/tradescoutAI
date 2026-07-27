@@ -27,9 +27,12 @@ describe("Direct Connect provider acceptance authority contract", () => {
     expect(acceptBranch).not.toMatch(/try\s*\{/);
   });
 
-  it("never reuses a closed or archived conversation as acceptance authority", () => {
-    expect(acceptBranch).toContain('eq(conversations.status, "active" as any)');
+  it("creates one request-scoped conversation and never reuses a participant-pair thread", () => {
     expect(acceptBranch).toContain('status: "active"');
+    expect(acceptBranch).toContain("Never reuse a");
+    expect(acceptBranch).not.toContain("const existing = await tx");
+    expect(acceptBranch).not.toContain("eq(conversations.homeownerId");
+    expect(acceptBranch).not.toContain("eq(conversations.contractorId");
   });
 
   it("binds the acceptance event to the exact assignment and provider form", () => {

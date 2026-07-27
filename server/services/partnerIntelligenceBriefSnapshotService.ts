@@ -1,4 +1,5 @@
 import { pool } from "../db";
+import { withPoolTransaction } from "../utils/poolTransaction";
 import { getLisaFeed } from "./lisaRuntime";
 import {
   getPartnerCountyObservationSnapshots,
@@ -491,9 +492,8 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       : [],
   });
 
-  await pool.query("BEGIN");
-  try {
-    await pool.query(
+  await withPoolTransaction(pool, async (client) => {
+    await client.query(
       `
         delete from tradepartner_intelligence_brief_snapshots
         where partner_slug = $1
@@ -505,7 +505,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       [params.partnerSlug, params.window, stateCode, surface, limit]
     );
 
-    await pool.query(
+    await client.query(
       `
         insert into tradepartner_intelligence_brief_snapshots (
           partner_slug,
@@ -538,7 +538,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
       ]
     );
 
-    await pool.query(
+    await client.query(
       `
         insert into tradepartner_intelligence_brief_history (
           partner_slug,
@@ -570,12 +570,7 @@ export async function refreshPartnerIntelligenceBriefSnapshot(params: {
         JSON.stringify(brief.lisa),
       ]
     );
-
-    await pool.query("COMMIT");
-  } catch (error) {
-    await pool.query("ROLLBACK");
-    throw error;
-  }
+  });
 
   return brief;
 }

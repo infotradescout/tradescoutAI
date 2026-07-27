@@ -19,17 +19,17 @@ describe("direct connect notification/email delivery safety contracts", () => {
     expect(source).toContain('title: "New Direct Connect request"');
     expect(source).toContain('actionUrl: "/direct-connect/inbox"');
     expect(source).toContain('actionText: "View in Direct Connect"');
-    expect(source).toContain(
-      "message: `You have a new Direct Connect request: ${requestRow.title}`"
-    );
+    expect(source).toContain("message: `You have a new Direct Connect request: ${requestTitle}`");
+    expect(source).toContain("notificationService.enqueueNotification(tx");
   });
 
   it("notifies only eligible assigned provider userIds on routed visibility", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain("const notifyUserIds = new Set<string>();");
-    expect(source).toContain("if (candidate?.userId) notifyUserIds.add(candidate.userId);");
-    expect(source).toContain("if (assignment.responderUserId) {");
-    expect(source).toContain("notifyUserIds.add(String(assignment.responderUserId));");
+    expect(source).toContain("resolvePersistedAssignmentNotificationUserIds");
+    expect(source).toContain("ACTIVE_ROUTING_ASSIGNMENT_STATUSES");
+    expect(source).toContain("assignments: activeAssignments");
+    expect(source).toContain("providerNotificationUserIds");
+    expect(source).not.toContain("if (candidate?.userId) notifyUserIds.add(candidate.userId);");
   });
 
   it("keeps contractor-action requester notifications contact-gated and platform-contained", () => {
@@ -37,10 +37,10 @@ describe("direct connect notification/email delivery safety contracts", () => {
     expect(source).toContain('type: isAccept ? "dc_provider_accepted" : "dc_provider_declined"');
     expect(source).toContain("title: isAccept");
     expect(source).toContain("actionUrl:");
-    expect(source).toContain("`/messages?thread=${encodeURIComponent(String(convId))}`");
-    expect(source).toContain("await recordContractorResponse({");
-    expect(source).toContain(
-      'contactRequestState: responseType === "interested" ? "contractor_requested" : "locked"'
+    expect(source).toContain("`/messages?thread=${encodeURIComponent(String(conversationId))}`");
+    expect(source).toContain("await recordContractorResponse(");
+    expect(source).toMatch(
+      /contactRequestState:\s*responseType === "interested"\s*\?\s*"contractor_requested"\s*:\s*"locked"/
     );
   });
 

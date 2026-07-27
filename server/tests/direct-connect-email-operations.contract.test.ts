@@ -22,14 +22,22 @@ describe("Direct Connect email operations contract", () => {
     expect(email).toContain('purpose === "direct_connect_request"');
     expect(email).toContain('purpose === "direct_connect_admin_oversight"');
     expect(email).toContain('purpose === "direct_connect_account_setup"');
-    expect(route).toMatch(/purpose: "(?:email_verification|direct_connect_account_setup)"/);
-    expect(route).toContain('purpose: "direct_connect_request"');
+    expect(route).toContain("notificationService.enqueueDirectConnectRequestEmail");
+    expect(route).toContain("notificationService.enqueueDirectConnectAccountSetupEmail");
+    expect(route).toContain("notificationService.dispatchDirectConnectEmail");
+    expect(notifications).toContain('emailPurpose: "direct_connect_request"');
+    expect(notifications).toContain('emailPurpose: "direct_connect_account_setup"');
+    expect(notifications).toContain('kind: "direct_connect_account_setup"');
     expect(route).not.toContain('purpose: "account_verification"');
   });
 
   it("uses the shared configured provider and records its message id", () => {
-    expect(notifications).toContain('import { emailService } from "./services/emailService"');
+    expect(notifications).toContain(
+      'import { emailService, type SendEmailResult } from "./services/emailService"'
+    );
     expect(notifications).toContain("result.messageId");
+    expect(notifications).toContain("externalId: input.result.messageId || null");
+    expect(notifications).toContain("result.messageId || null");
     expect(notifications).not.toContain('from: "notifications@tradescout.app"');
   });
 

@@ -21,20 +21,18 @@ import {
   workers,
   userHomes,
   userHomeRecords,
+  notifications,
 } from "@shared/schema";
 import {
   evaluateContractorEligibility,
   evaluateRoutingReadiness,
   type CanonicalDirectConnectRequest,
 } from "@shared/directConnectRoutingSpine";
-import { and, asc, desc, eq, exists, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, inArray, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { storage } from "../storage";
-import { notificationService, resolveCanonicalTradeScoutBaseUrl } from "../notification-service";
+import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
-import { emailService } from "../services/emailService";
-import { passwordResetService } from "../services/passwordResetService";
-import { emailVerificationService } from "../services/emailVerificationService";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import { logAdminAction } from "../services/adminAuditLogService";
 import { recordTrustLedgerEvent } from "../services/trustLedgerService";
@@ -45,14 +43,13 @@ import {
   listInternalDirectConnectNotifications,
   markAllInternalDirectConnectNotificationsRead,
   markInternalDirectConnectNotificationRead,
-  createOrGetJobWorkspaceAtContactRelease,
-  ensureDirectConnectDispatchLedgerTables,
   getAllowedLifecycleActions,
   getLifecycleStatusForRecipient,
   getJobWorkspaceByRequestId,
   getUnreadLifecycleStatusCount,
   persistFinalizedDispatchRequest,
   recordContractorResponse,
+  releaseContactAndCreateOrGetJobWorkspace,
   setDispatchContactGateState,
   snapshotDispatchCandidate,
 } from "../services/directConnectDispatchLedgerService";
@@ -73,7 +70,19 @@ import {
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
 import { resolveAnonymousSessionId } from "../utils/anonymousSession";
-import { resolveDirectConnectConversationAuthority } from "../services/directConnectConversationAuthority";
+import { buildWorkRequestAssignmentProviderKey } from "../utils/workRequestAssignmentProviderKey";
+import {
+  isAuthorizedDirectConnectConversationParticipant,
+  resolveDirectConnectConversationAuthority,
+} from "../services/directConnectConversationAuthority";
+import {
+  isAuthorizedDirectConnectJobWorkspaceParticipant,
+  resolveDirectConnectAcceptedProviderBinding,
+  resolveDirectConnectJobWorkspaceAuthority,
+  resolveDirectConnectJobWorkspaceAuthorityForRequest,
+  type DirectConnectAcceptedProviderBinding,
+  type DirectConnectJobWorkspaceAuthoritySuccess,
+} from "../services/directConnectJobWorkspaceAuthority";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -768,7 +777,15 @@ async function auditDirectConnectBypassUsage(params: {
   }
 }
 
+const directConnectOperationIdSchema = z
+  .string()
+  .trim()
+  .min(8)
+  .max(120)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
+
 const directConnectRequestSchema = z.object({
+  operationId: directConnectOperationIdSchema,
   title: z.string().min(1),
   description: z.string().min(1),
   category: z.string().min(1).optional(),
@@ -819,12 +836,7 @@ const adminDirectConnectRequestSchema = directConnectRequestSchema
     category: z.enum(ADMIN_DIRECT_CONNECT_CATEGORIES).optional(),
     targetUserId: z.string().min(1).optional(),
     targetEmail: z.string().email().optional(),
-    operationId: z
-      .string()
-      .trim()
-      .min(8)
-      .max(120)
-      .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
+    operationId: directConnectOperationIdSchema,
   })
   .refine((data) => Boolean(data.targetUserId || data.targetEmail), {
     message: "targetUserId or targetEmail is required",
@@ -880,6 +892,18 @@ const directConnectAdminQueueSchema = z.object({
 
 const directConnectAdminRouteSchema = z.object({
   expandReach: z.boolean().optional().default(false),
+});
+
+const directConnectAdminManualAssignmentSchema = z.object({
+  providerId: z.string().trim().min(1).max(255),
+  providerType: z.enum(["contractor", "business"]),
+  reason: z.string().trim().min(3).max(500),
+  operationId: z
+    .string()
+    .trim()
+    .min(8)
+    .max(120)
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/),
 });
 
 const directConnectAdminAssistedReplySchema = z.object({
@@ -1524,13 +1548,6 @@ function logDirectConnectVisibilityEvent(metadata: Record<string, unknown>) {
   logDirectConnectFunnelEvent("direct_connect_request_visible_to_contractors", metadata);
 }
 
-const contractorConsoleResponseSchema = z.object({
-  responseType: z.enum(["interested", "need_more_info", "not_a_fit", "unavailable"]),
-  message: z.string().max(600).optional(),
-  availability: z.string().max(160).optional(),
-  estimatedTiming: z.string().max(160).optional(),
-});
-
 const estimateCreateSchema = z.object({
   title: z.string().min(3).max(160),
   scopeSummary: z.string().min(10).max(2000),
@@ -1977,10 +1994,181 @@ const toTradeDisplayName = (value: string): string => {
     .slice(0, 120);
 };
 
-export function registerDirectConnectRoutes(app: Express) {
-  void ensureDirectConnectDispatchLedgerTables().catch((error) => {
-    console.warn("[direct-connect] Failed to ensure dispatch ledger tables", error);
+type DirectConnectDispatchExecutor = {
+  execute(query: unknown): Promise<any>;
+};
+
+const sanitizeDirectConnectFoundationText = (value: unknown, maxLength: number) =>
+  redactContactDetails(String(value || ""))
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+
+function buildDirectConnectDispatchFoundationCanonical(args: {
+  requestRow: any;
+  sourceSurface: "direct_connect" | "direct_connect_admin";
+}): {
+  canonical: CanonicalDirectConnectRequest;
+  routingReadiness: ReturnType<typeof evaluateRoutingReadiness>;
+} {
+  const requestId = String(args.requestRow?.id || "").trim();
+  const title = sanitizeDirectConnectFoundationText(args.requestRow?.title, 180);
+  const description = sanitizeDirectConnectFoundationText(args.requestRow?.description, 5000);
+  const category = String(args.requestRow?.category || "direct_connect");
+  const countyFips = String(args.requestRow?.countyFips || "").trim() || null;
+  const stateCode = String(args.requestRow?.stateCode || "").trim() || null;
+  const answers: Record<"what" | "where" | "when" | "details", string> = {
+    what: title,
+    where: [countyFips, stateCode].filter(Boolean).join(", "),
+    when: "",
+    details: description,
+  };
+  const completenessState =
+    title.trim().length >= 3 && description.trim().length >= 10 ? "ready_to_share" : "too_vague";
+  const routingReadiness = evaluateRoutingReadiness({
+    category,
+    answers,
+    description,
+    completenessState,
   });
+  const createdAtValue = args.requestRow?.createdAt;
+  const createdAt =
+    createdAtValue instanceof Date
+      ? createdAtValue.toISOString()
+      : String(createdAtValue || "").trim() || new Date().toISOString();
+
+  return {
+    canonical: {
+      requestId,
+      intent: category,
+      requestType: category,
+      category,
+      county: countyFips,
+      cityArea: null,
+      urgency: null,
+      description,
+      answers,
+      completenessState,
+      routingReadiness,
+      visibilityState: "review_ready",
+      contactGateState: "locked",
+      createdAt,
+      sourceSurface: args.sourceSurface,
+    },
+    routingReadiness,
+  };
+}
+
+async function ensureDirectConnectDispatchFoundation(args: {
+  executor: DirectConnectDispatchExecutor;
+  requestRow: any;
+  requesterUserId: string;
+  actorType: "requester" | "staff";
+  actorId: string;
+  operationId: string;
+  sourceSurface: "direct_connect" | "direct_connect_admin";
+}) {
+  const { canonical, routingReadiness } = buildDirectConnectDispatchFoundationCanonical({
+    requestRow: args.requestRow,
+    sourceSurface: args.sourceSurface,
+  });
+  const eventId = (eventType: string) =>
+    `dc-foundation:${createHash("sha256")
+      .update(`${canonical.requestId}:${args.operationId}:${eventType}`)
+      .digest("hex")}`;
+
+  await persistFinalizedDispatchRequest(
+    {
+      canonical,
+      userId: args.requesterUserId,
+      anonymousSessionId: null,
+    },
+    args.executor
+  );
+  await appendDispatchEvent(
+    {
+      eventId: eventId("request_finalized"),
+      requestId: canonical.requestId,
+      actorType: args.actorType,
+      actorId: args.actorId,
+      eventType: "request_finalized",
+      metadata: {
+        category: canonical.category,
+        routingReadiness,
+        operationId: args.operationId,
+        source: args.sourceSurface,
+      },
+    },
+    args.executor
+  );
+  await appendDispatchEvent(
+    {
+      eventId: eventId(`request_${routingReadiness}`),
+      requestId: canonical.requestId,
+      actorType: "system",
+      actorId: null,
+      eventType:
+        routingReadiness === "route_ready" ? "request_route_ready" : "request_route_blocked",
+      metadata: {
+        routingReadiness,
+        operationId: args.operationId,
+        source: args.sourceSurface,
+      },
+    },
+    args.executor
+  );
+  await appendDispatchEvent(
+    {
+      eventId: eventId("request_shared"),
+      requestId: canonical.requestId,
+      actorType: args.actorType,
+      actorId: args.actorId,
+      eventType: "request_shared",
+      metadata: {
+        operationId: args.operationId,
+        source: args.sourceSurface,
+      },
+    },
+    args.executor
+  );
+}
+
+export function registerDirectConnectRoutes(app: Express) {
+  const requireExactJobWorkspaceParticipant = async (args: {
+    workspaceId: string;
+    userId: string;
+    res: Response;
+    expectedConversationId?: string;
+    expectedAssignmentId?: string;
+  }): Promise<DirectConnectJobWorkspaceAuthoritySuccess | null> => {
+    if (!String(args.workspaceId || "").trim()) {
+      args.res.status(400).json({ message: "Job workspace id is required" });
+      return null;
+    }
+    const authority = await resolveDirectConnectJobWorkspaceAuthority(args.workspaceId, {
+      expectedConversationId: args.expectedConversationId,
+      expectedAssignmentId: args.expectedAssignmentId,
+    });
+    if (!authority.ok) {
+      const status = authority.reason === "WORKSPACE_NOT_FOUND" ? 404 : 403;
+      args.res.status(status).json({
+        message:
+          status === 404
+            ? "Job workspace not found"
+            : "Job workspace is not bound to an accepted Direct Connect connection.",
+        code: authority.reason,
+      });
+      return null;
+    }
+    if (!isAuthorizedDirectConnectJobWorkspaceParticipant(authority, args.userId)) {
+      args.res.status(403).json({
+        message: "Job workspace not available for this account.",
+        code: "JOB_WORKSPACE_PARTICIPANT_MISMATCH",
+      });
+      return null;
+    }
+    return authority;
+  };
   const isProductionEnv = process.env.NODE_ENV === "production";
   const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
   const directConnectRateLimitKey = (req: AuthedRequest) => {
@@ -2154,12 +2342,6 @@ export function registerDirectConnectRoutes(app: Express) {
     return `${proto}://${host}`;
   };
 
-  const resolveCanonicalPublicBase = () => {
-    return resolveCanonicalTradeScoutBaseUrl(
-      process.env.PUBLIC_WEB_URL || process.env.APP_URL || process.env.APP_BASE_URL || undefined
-    );
-  };
-
   const ensureShareTokenForRequest = async (
     requestId: string,
     tx: typeof db | any = db
@@ -2231,6 +2413,551 @@ export function registerDirectConnectRoutes(app: Express) {
     );
   };
 
+  const enqueueRoutedDirectConnectProviderNotifications = async ({
+    tx,
+    userIds,
+    requestId,
+    requestTitle,
+  }: {
+    tx: any;
+    userIds: string[];
+    requestId: string;
+    requestTitle: string;
+  }): Promise<string[]> => {
+    const notificationIds: string[] = [];
+    const uniqueUserIds = Array.from(
+      new Set(userIds.map((id) => String(id || "").trim()).filter(Boolean))
+    );
+    for (const notifyUserId of uniqueUserIds) {
+      const deliveryObligationKey = `direct-connect-provider-invitation:${requestId}:${notifyUserId}`;
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${deliveryObligationKey}, 0))`
+      );
+      const [existing] = await tx
+        .select({ id: notifications.id })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.userId, notifyUserId),
+            sql`${notifications.metadata} ->> 'deliveryObligationKey' = ${deliveryObligationKey}`
+          )
+        )
+        .limit(1);
+      if (existing?.id) {
+        notificationIds.push(String(existing.id));
+        continue;
+      }
+
+      const notification = await notificationService.enqueueNotification(tx, {
+        userId: notifyUserId,
+        type: "new_project_request",
+        title: "New Direct Connect request",
+        message: `You have a new Direct Connect request: ${requestTitle}`,
+        actionUrl: "/direct-connect/inbox",
+        actionText: "View in Direct Connect",
+        iconName: "briefcase",
+        iconColor: "orange",
+        metadata: {
+          workRequestId: requestId,
+          emailPurpose: "direct_connect_request",
+          notificationContext: "provider_invitation",
+          deliveryObligationKey,
+        },
+        deliveryMethods: ["in_app", "email"],
+      });
+      notificationIds.push(String(notification.id));
+    }
+    return notificationIds;
+  };
+
+  const dispatchDurableDirectConnectNotifications = async (notificationIds: string[]) => {
+    await Promise.all(
+      Array.from(new Set(notificationIds.map((id) => String(id || "").trim()).filter(Boolean))).map(
+        async (notificationId) => {
+          try {
+            await notificationService.sendNotification(notificationId);
+          } catch (error) {
+            console.error("[direct-connect] Durable provider notification dispatch deferred", {
+              notificationId,
+              error,
+            });
+          }
+        }
+      )
+    );
+  };
+
+  const ACTIVE_ROUTING_ASSIGNMENT_STATUSES = ["suggested", "invited"] as const;
+
+  const resolvePersistedAssignmentNotificationUserIds = async ({
+    tx,
+    requestId,
+    assignments,
+  }: {
+    tx: any;
+    requestId: string;
+    assignments: any[];
+  }): Promise<string[]> => {
+    const recipientUserIds = new Set<string>();
+    const unresolvedContractorAssignments: any[] = [];
+    const businessIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment) => String(assignment.providerKey || "").trim())
+          .filter((providerKey) => providerKey.startsWith("business:"))
+          .map((providerKey) => providerKey.slice("business:".length))
+          .filter(Boolean)
+      )
+    );
+    const businessRows =
+      businessIds.length > 0
+        ? await tx
+            .select({ id: businesses.id, ownerUserId: businesses.ownerUserId })
+            .from(businesses)
+            .where(inArray(businesses.id, businessIds))
+        : [];
+    const currentBusinessOwnerById = new Map(
+      businessRows.map((business: any) => [
+        String(business.id),
+        String(business.ownerUserId || "").trim(),
+      ])
+    );
+
+    for (const assignment of assignments) {
+      const persistedResponderUserId = String(assignment.responderUserId || "").trim();
+      if (persistedResponderUserId) {
+        const providerKey = String(assignment.providerKey || "").trim();
+        if (providerKey.startsWith("business:")) {
+          const businessId = providerKey.slice("business:".length);
+          if (currentBusinessOwnerById.get(businessId) !== persistedResponderUserId) {
+            continue;
+          }
+        }
+        recipientUserIds.add(persistedResponderUserId);
+      } else if (assignment.contractorId) {
+        unresolvedContractorAssignments.push(assignment);
+      }
+    }
+
+    if (unresolvedContractorAssignments.length > 0) {
+      const routingEvents = await tx
+        .select({ metadata: workRequestEvents.metadata })
+        .from(workRequestEvents)
+        .where(
+          and(
+            eq(workRequestEvents.workRequestId, requestId),
+            inArray(workRequestEvents.type, ["provider_suggested", "provider_invited"] as any)
+          )
+        )
+        .orderBy(asc(workRequestEvents.createdAt));
+      const persistedRecipientByProviderKey = new Map<string, string>();
+      for (const event of routingEvents) {
+        const metadata =
+          event.metadata && typeof event.metadata === "object"
+            ? (event.metadata as Record<string, unknown>)
+            : {};
+        const providerKey = String(metadata.providerKey || "").trim();
+        const providerUserId = String(
+          metadata.contractorUserId || metadata.responderUserId || ""
+        ).trim();
+        if (providerKey && providerUserId && !persistedRecipientByProviderKey.has(providerKey)) {
+          persistedRecipientByProviderKey.set(providerKey, providerUserId);
+        }
+      }
+
+      const unresolvedContractorIds = new Set<string>();
+      for (const assignment of unresolvedContractorAssignments) {
+        const providerKey = String(assignment.providerKey || "").trim();
+        const persistedRecipient = persistedRecipientByProviderKey.get(providerKey);
+        if (persistedRecipient) {
+          recipientUserIds.add(persistedRecipient);
+        } else {
+          const contractorId = String(assignment.contractorId || "").trim();
+          if (contractorId) unresolvedContractorIds.add(contractorId);
+        }
+      }
+
+      if (unresolvedContractorIds.size > 0) {
+        const contractorRows = await tx
+          .select({ id: contractors.id, userId: contractors.userId })
+          .from(contractors)
+          .where(inArray(contractors.id, Array.from(unresolvedContractorIds)));
+        for (const contractor of contractorRows) {
+          const contractorUserId = String(contractor.userId || "").trim();
+          if (contractorUserId) recipientUserIds.add(contractorUserId);
+        }
+      }
+    }
+
+    return Array.from(recipientUserIds);
+  };
+
+  const reconcilePersistedRoutingNotifications = async ({
+    requestId,
+    requestTitle,
+    providerKeys,
+    mutationTx,
+    deferProviderNotifications = false,
+  }: {
+    requestId: string;
+    requestTitle: string;
+    providerKeys?: string[];
+    mutationTx?: any;
+    deferProviderNotifications?: boolean;
+  }): Promise<{
+    assignments: any[];
+    notificationUserIds: string[];
+    notificationIds: string[];
+    requestAcceptingAssignments: boolean;
+  }> => {
+    const reconcile = async (tx: any) => {
+      const requestLockResult = await tx.execute(sql`
+        SELECT status::text AS status
+        FROM work_requests
+        WHERE id = ${requestId}
+          AND source::text = 'direct_connect'
+        FOR UPDATE
+      `);
+      const lockedStatus = String((requestLockResult.rows?.[0] as any)?.status || "");
+      if (!["open", "routed"].includes(lockedStatus)) {
+        return {
+          assignments: [] as any[],
+          notificationUserIds: [] as string[],
+          notificationIds: [] as string[],
+          requestAcceptingAssignments: false,
+        };
+      }
+
+      const normalizedProviderKeys = Array.from(
+        new Set((providerKeys || []).map((key) => String(key || "").trim()).filter(Boolean))
+      );
+      const assignmentPredicate =
+        normalizedProviderKeys.length > 0
+          ? and(
+              eq(workRequestAssignments.workRequestId, requestId),
+              inArray(workRequestAssignments.status, ACTIVE_ROUTING_ASSIGNMENT_STATUSES as any),
+              inArray(workRequestAssignments.providerKey, normalizedProviderKeys)
+            )
+          : and(
+              eq(workRequestAssignments.workRequestId, requestId),
+              inArray(workRequestAssignments.status, ACTIVE_ROUTING_ASSIGNMENT_STATUSES as any)
+            );
+      const assignments = await tx.select().from(workRequestAssignments).where(assignmentPredicate);
+      const notificationUserIds = await resolvePersistedAssignmentNotificationUserIds({
+        tx,
+        requestId,
+        assignments,
+      });
+      const notificationIds = await enqueueRoutedDirectConnectProviderNotifications({
+        tx,
+        userIds: notificationUserIds,
+        requestId,
+        requestTitle,
+      });
+      return {
+        assignments,
+        notificationUserIds,
+        notificationIds,
+        requestAcceptingAssignments: true,
+      };
+    };
+
+    const result = mutationTx ? await reconcile(mutationTx) : await db.transaction(reconcile);
+    if (!deferProviderNotifications) {
+      await dispatchDurableDirectConnectNotifications(result.notificationIds);
+    }
+    return result;
+  };
+
+  const reconcileExplicitDirectConnectProviderRouting = async ({
+    requestRow,
+    requestedTargetIds,
+    actorUserId,
+    source,
+    routeMode,
+    createdForUserId,
+    reconcileOnlyExistingAssignments = false,
+  }: {
+    requestRow: any;
+    requestedTargetIds: string[];
+    actorUserId: string;
+    source: "direct_connect" | "direct_connect_admin";
+    routeMode: "owner_direct" | "direct_targeted" | "direct_targeted_admin";
+    createdForUserId?: string;
+    reconcileOnlyExistingAssignments?: boolean;
+  }): Promise<{
+    assignments: any[];
+    notificationIds: string[];
+    routed: boolean;
+    excludedTargets: any[];
+  }> => {
+    const requestId = String(requestRow.id);
+    const targetIds = Array.from(
+      new Set(requestedTargetIds.map((id) => String(id || "").trim()).filter(Boolean))
+    );
+    if (targetIds.length === 0) {
+      return {
+        assignments: [],
+        notificationIds: [],
+        routed: false,
+        excludedTargets: [],
+      };
+    }
+    const requestedProviderKeys = targetIds.flatMap((targetId) => [
+      buildWorkRequestAssignmentProviderKey("contractor", targetId),
+      buildWorkRequestAssignmentProviderKey("business", targetId),
+    ]);
+    if (reconcileOnlyExistingAssignments) {
+      const [persistedAssignment] = await db
+        .select({ id: workRequestAssignments.id })
+        .from(workRequestAssignments)
+        .where(
+          and(
+            eq(workRequestAssignments.workRequestId, requestId),
+            inArray(workRequestAssignments.providerKey, requestedProviderKeys)
+          )
+        )
+        .limit(1);
+      if (persistedAssignment) {
+        const reconciliation = await reconcilePersistedRoutingNotifications({
+          requestId,
+          requestTitle: String(requestRow.title || "Direct Connect request"),
+          providerKeys: requestedProviderKeys,
+        });
+        return {
+          assignments: reconciliation.assignments,
+          notificationIds: reconciliation.notificationIds,
+          routed: false,
+          excludedTargets: [],
+        };
+      }
+    }
+
+    const invitedContractors = await db
+      .select()
+      .from(contractors)
+      .where(inArray(contractors.id, targetIds));
+    const invitedContractorIds = new Set(
+      invitedContractors.map((contractor) => String(contractor.id || "").trim()).filter(Boolean)
+    );
+    const potentialBusinessIds = targetIds.filter((id) => !invitedContractorIds.has(id));
+    const invitedBusinesses =
+      potentialBusinessIds.length > 0
+        ? await db
+            .select()
+            .from(businesses)
+            .where(
+              and(
+                inArray(businesses.id, potentialBusinessIds),
+                eq(businesses.status, "active" as any)
+              )
+            )
+        : [];
+    const contractorEligibility = await filterContractorsEligibleForRequest(
+      invitedContractors,
+      requestRow
+    );
+    const businessEligibility = await filterBusinessesEligibleForRequest(
+      invitedBusinesses,
+      requestRow
+    );
+    const eligibleContractors = contractorEligibility.eligible;
+    const eligibleBusinesses = businessEligibility.eligible.filter(
+      (business) => business.ownerUserId
+    );
+    const excludedTargets = [
+      ...contractorEligibility.ineligible,
+      ...contractorEligibility.tradeEligibility.ineligible,
+      ...businessEligibility.ineligible,
+    ];
+    const now = new Date();
+    const assignmentPayloads = [
+      ...eligibleContractors.map((contractor) => ({
+        workRequestId: requestId,
+        providerKey: buildWorkRequestAssignmentProviderKey("contractor", contractor.id),
+        contractorId: contractor.id,
+        responderUserId: contractor.userId || null,
+        status: "invited" as const,
+        createdAt: now,
+        updatedAt: now,
+      })),
+      ...eligibleBusinesses.map((business) => ({
+        workRequestId: requestId,
+        providerKey: buildWorkRequestAssignmentProviderKey("business", business.id),
+        contractorId: null as any,
+        responderUserId: business.ownerUserId!,
+        status: "invited" as const,
+        createdAt: now,
+        updatedAt: now,
+      })),
+    ];
+    if (assignmentPayloads.length === 0) {
+      return {
+        assignments: [],
+        notificationIds: [],
+        routed: false,
+        excludedTargets,
+      };
+    }
+
+    const persistence = await db.transaction(async (tx: any) => {
+      const lockedRequest = await tx.execute(sql`
+        SELECT status::text AS status
+        FROM work_requests
+        WHERE id = ${requestId}
+          AND source::text = 'direct_connect'
+        FOR UPDATE
+      `);
+      const lockedStatus = String((lockedRequest.rows?.[0] as any)?.status || "");
+      const existingTargetAssignments = await tx
+        .select()
+        .from(workRequestAssignments)
+        .where(eq(workRequestAssignments.workRequestId, requestId));
+      const existingTargetProviderKeys = new Set(
+        existingTargetAssignments
+          .map((assignment: any) => String(assignment.providerKey || "").trim())
+          .filter(Boolean)
+      );
+      const missingAssignmentPayloads = assignmentPayloads.filter(
+        (assignment) => !existingTargetProviderKeys.has(String(assignment.providerKey || "").trim())
+      );
+      if (!["open", "routed"].includes(lockedStatus)) {
+        return {
+          insertedAssignments: [] as any[],
+          notificationIds: [] as string[],
+          activeAssignments: [] as any[],
+          requestAcceptingAssignments: false,
+        };
+      }
+
+      const insertedAssignments =
+        missingAssignmentPayloads.length > 0
+          ? await tx
+              .insert(workRequestAssignments)
+              .values(missingAssignmentPayloads)
+              .onConflictDoNothing()
+              .returning()
+          : [];
+      const insertedProviderKeys = new Set(
+        insertedAssignments.map((assignment: any) => String(assignment.providerKey || "").trim())
+      );
+      const contractorEvents = eligibleContractors
+        .filter((contractor) =>
+          insertedProviderKeys.has(
+            buildWorkRequestAssignmentProviderKey("contractor", contractor.id)
+          )
+        )
+        .map((contractor) => ({
+          workRequestId: requestId,
+          type: "provider_invited" as const,
+          actorUserId,
+          metadata: {
+            providerKey: buildWorkRequestAssignmentProviderKey("contractor", contractor.id),
+            contractorId: contractor.id,
+            contractorUserId: contractor.userId ?? null,
+            source,
+            routeMode,
+            createdForUserId: createdForUserId || null,
+          },
+        }));
+      const businessEvents = eligibleBusinesses
+        .filter((business) =>
+          insertedProviderKeys.has(buildWorkRequestAssignmentProviderKey("business", business.id))
+        )
+        .map((business) => ({
+          workRequestId: requestId,
+          type: "provider_invited" as const,
+          actorUserId,
+          metadata: {
+            providerKey: buildWorkRequestAssignmentProviderKey("business", business.id),
+            businessId: business.id,
+            responderUserId: business.ownerUserId ?? null,
+            source,
+            routeMode,
+            createdForUserId: createdForUserId || null,
+          },
+        }));
+      if (contractorEvents.length > 0 || businessEvents.length > 0) {
+        await tx.insert(workRequestEvents).values([...contractorEvents, ...businessEvents]);
+      }
+      await Promise.all(
+        insertedAssignments.map((assignment: any) =>
+          snapshotDispatchCandidate(
+            {
+              requestId,
+              businessId: String(assignment.providerKey || "").startsWith("business:")
+                ? String(assignment.providerKey).slice("business:".length)
+                : null,
+              contractorId: assignment.contractorId ? String(assignment.contractorId) : null,
+              responderUserId: assignment.responderUserId
+                ? String(assignment.responderUserId)
+                : null,
+              workerId: assignment.workerId ? String(assignment.workerId) : null,
+              eligibility: { status: "eligible", eligible: true },
+              eligibilityReasons: ["explicit_direct_connect_target"],
+              territoryMatched: true,
+              categoryMatched: true,
+              verificationState: "verified_or_allowed",
+              profileReadiness: "ready",
+              contactEligibility: true,
+              trustState: "eligible",
+            },
+            tx
+          )
+        )
+      );
+
+      if (insertedAssignments.length > 0) {
+        await tx
+          .update(workRequests)
+          .set({ status: "routed", updatedAt: now })
+          .where(eq(workRequests.id, requestId));
+      }
+      const activeAssignments = await tx
+        .select()
+        .from(workRequestAssignments)
+        .where(
+          and(
+            eq(workRequestAssignments.workRequestId, requestId),
+            inArray(workRequestAssignments.providerKey, requestedProviderKeys),
+            inArray(workRequestAssignments.status, ACTIVE_ROUTING_ASSIGNMENT_STATUSES as any)
+          )
+        );
+      const notificationUserIds = await resolvePersistedAssignmentNotificationUserIds({
+        tx,
+        requestId,
+        assignments: activeAssignments,
+      });
+      const notificationIds = await enqueueRoutedDirectConnectProviderNotifications({
+        tx,
+        userIds: notificationUserIds,
+        requestId,
+        requestTitle: String(requestRow.title || "Direct Connect request"),
+      });
+      return {
+        insertedAssignments,
+        notificationIds,
+        activeAssignments,
+        requestAcceptingAssignments: true,
+      };
+    });
+
+    await dispatchDurableDirectConnectNotifications(persistence.notificationIds);
+    logDirectConnectVisibilityEvent({
+      requestId,
+      visibleContractorCount: assignmentPayloads.length,
+      dispatchMode: routeMode,
+      countyFips: requestRow.countyFips || null,
+      tradeId: requestRow.tradeId || null,
+    });
+    return {
+      assignments: persistence.insertedAssignments,
+      notificationIds: persistence.notificationIds,
+      routed: persistence.insertedAssignments.length > 0,
+      excludedTargets,
+    };
+  };
+
   const routeRequestToTopContractors = async ({
     requestRow,
     actorUserId,
@@ -2238,6 +2965,7 @@ export function registerDirectConnectRoutes(app: Express) {
     bypassVerificationGate,
     mutationTx,
     deferProviderNotifications = false,
+    reconcileOnlyExistingAssignments = false,
   }: {
     requestRow: any;
     actorUserId: string;
@@ -2245,12 +2973,40 @@ export function registerDirectConnectRoutes(app: Express) {
     bypassVerificationGate: boolean;
     mutationTx?: any;
     deferProviderNotifications?: boolean;
+    reconcileOnlyExistingAssignments?: boolean;
   }): Promise<{
     assignments: any[];
     routed: boolean;
     deferredNotificationUserIds?: string[];
+    deferredNotificationIds?: string[];
   }> => {
     const requestId = String(requestRow.id);
+    if (reconcileOnlyExistingAssignments) {
+      const mutationDb = mutationTx || db;
+      const [persistedAssignment] = await mutationDb
+        .select({ id: workRequestAssignments.id })
+        .from(workRequestAssignments)
+        .where(eq(workRequestAssignments.workRequestId, requestId))
+        .limit(1);
+      if (persistedAssignment) {
+        const reconciliation = await reconcilePersistedRoutingNotifications({
+          requestId,
+          requestTitle: String(requestRow.title || "Direct Connect request"),
+          mutationTx,
+          deferProviderNotifications,
+        });
+        return {
+          assignments: reconciliation.assignments,
+          routed: false,
+          ...(deferProviderNotifications
+            ? {
+                deferredNotificationUserIds: reconciliation.notificationUserIds,
+                deferredNotificationIds: reconciliation.notificationIds,
+              }
+            : {}),
+        };
+      }
+    }
     let countyFips = typeof requestRow.countyFips === "string" ? requestRow.countyFips.trim() : "";
     let stateCode = typeof requestRow.stateCode === "string" ? requestRow.stateCode.trim() : "";
     const tradeSlug = typeof requestRow.tradeId === "string" ? requestRow.tradeId : "";
@@ -2636,10 +3392,8 @@ export function registerDirectConnectRoutes(app: Express) {
         .map((a: any) => a.contractorId)
         .filter((id: any): id is string => Boolean(id))
     );
-    const existingByResponderUser = new Set(
-      existingAssignments
-        .map((a: any) => a.responderUserId)
-        .filter((id: any): id is string => Boolean(id))
+    const existingProviderKeys = new Set(
+      existingAssignments.map((a: any) => String(a.providerKey || "").trim()).filter(Boolean)
     );
     const existingByWorker = new Set(
       existingAssignments.map((a: any) => a.workerId).filter((id: any): id is string => Boolean(id))
@@ -2648,17 +3402,26 @@ export function registerDirectConnectRoutes(app: Express) {
     const now = new Date();
     const newAssignmentsPayload: any[] = [];
     const providerSuggestedEvents: any[] = [];
+    const candidateEvidenceByProviderKey = new Map<
+      string,
+      {
+        snapshot: Parameters<typeof snapshotDispatchCandidate>[0];
+        eventMetadata: Record<string, unknown>;
+      }
+    >();
 
     for (const candidate of topRanked) {
       if (!candidate.id) continue;
-      // Skip if already assigned (by contractorId for contractors, by responderUserId for businesses/workers, by workerId for workers)
-      if ((candidate as any).isWorkerProvider) {
-        if (existingByWorker.has(candidate.id)) continue;
-        if (candidate.userId && existingByResponderUser.has(candidate.userId)) continue;
-      } else if ((candidate as any).isBusinessProvider) {
-        if (candidate.userId && existingByResponderUser.has(candidate.userId)) continue;
-      } else {
-        if (existingByContractor.has(candidate.id)) continue;
+      const isBusinessProvider = Boolean((candidate as any).isBusinessProvider);
+      const isWorkerProvider = Boolean((candidate as any).isWorkerProvider);
+      const assignmentProviderKey = buildWorkRequestAssignmentProviderKey(
+        isWorkerProvider ? "worker" : isBusinessProvider ? "business" : "contractor",
+        candidate.id
+      );
+      if (existingProviderKeys.has(assignmentProviderKey)) continue;
+      if (isWorkerProvider && existingByWorker.has(candidate.id)) continue;
+      if (!isBusinessProvider && !isWorkerProvider && existingByContractor.has(candidate.id)) {
+        continue;
       }
 
       const recCount = Number(candidate.positiveRecommendations ?? 0) || 0;
@@ -2686,33 +3449,26 @@ export function registerDirectConnectRoutes(app: Express) {
         recommendationCount: recCount,
         routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
       };
-      await snapshotDispatchCandidate({
-        requestId,
-        businessId: (candidate as any).isBusinessProvider ? candidate.id : null,
-        contractorId:
-          (candidate as any).isBusinessProvider || (candidate as any).isWorkerProvider
-            ? null
-            : candidate.id,
-        responderUserId:
-          (candidate as any).isBusinessProvider || (candidate as any).isWorkerProvider
-            ? (candidate.userId ?? null)
-            : null,
-        workerId: (candidate as any).isWorkerProvider ? candidate.id : null,
-        eligibility: { status: "eligible", eligible: true },
-        eligibilityReasons: ["route_ready_eligible_pool"],
-        territoryMatched: true,
-        categoryMatched: true,
-        verificationState: "eligible",
-        profileReadiness: "ready",
-        contactEligibility: true,
-        trustState: "eligible",
-      });
-      await appendDispatchEvent({
-        requestId,
-        actorType: "system",
-        actorId: null,
-        eventType: "candidate_eligible",
-        metadata: {
+      candidateEvidenceByProviderKey.set(assignmentProviderKey, {
+        snapshot: {
+          requestId,
+          businessId: (candidate as any).isBusinessProvider ? candidate.id : null,
+          contractorId:
+            (candidate as any).isBusinessProvider || (candidate as any).isWorkerProvider
+              ? null
+              : candidate.id,
+          responderUserId: candidate.userId ?? null,
+          workerId: (candidate as any).isWorkerProvider ? candidate.id : null,
+          eligibility: { status: "eligible", eligible: true },
+          eligibilityReasons: ["route_ready_eligible_pool"],
+          territoryMatched: true,
+          categoryMatched: true,
+          verificationState: "eligible",
+          profileReadiness: "ready",
+          contactEligibility: true,
+          trustState: "eligible",
+        },
+        eventMetadata: {
           candidateId: candidate.id,
           providerType: (candidate as any).isWorkerProvider
             ? "worker"
@@ -2723,15 +3479,14 @@ export function registerDirectConnectRoutes(app: Express) {
         },
       });
 
-      const isBusinessProvider = Boolean((candidate as any).isBusinessProvider);
-      const isWorkerProvider = Boolean((candidate as any).isWorkerProvider);
       newAssignmentsPayload.push({
         workRequestId: requestId,
+        providerKey: assignmentProviderKey,
         // For contractor-profile candidates, set contractorId.
         // For business providers, set responderUserId.
         // For worker/helper providers, set both workerId and responderUserId.
         contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
-        responderUserId: isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
+        responderUserId: candidate.userId ?? null,
         workerId: isWorkerProvider ? candidate.id : null,
         status: "suggested" as const,
         scoreSnapshot,
@@ -2744,10 +3499,10 @@ export function registerDirectConnectRoutes(app: Express) {
         type: "provider_suggested" as const,
         actorUserId: String(actorUserId),
         metadata: {
+          providerKey: assignmentProviderKey,
           contractorId: isBusinessProvider || isWorkerProvider ? null : candidate.id,
           contractorUserId: candidate.userId ?? null,
-          responderUserId:
-            isBusinessProvider || isWorkerProvider ? (candidate.userId ?? null) : null,
+          responderUserId: candidate.userId ?? null,
           workerId: isWorkerProvider ? candidate.id : null,
           providerType: isWorkerProvider
             ? "worker"
@@ -2761,78 +3516,149 @@ export function registerDirectConnectRoutes(app: Express) {
     }
 
     if (!newAssignmentsPayload.length) {
-      return { assignments: [], routed: false };
+      const reconciliation = await reconcilePersistedRoutingNotifications({
+        requestId,
+        requestTitle: String(requestRow.title || "Direct Connect request"),
+        mutationTx,
+        deferProviderNotifications,
+      });
+      return {
+        assignments: reconciliation.assignments,
+        routed: false,
+        ...(deferProviderNotifications
+          ? {
+              deferredNotificationUserIds: reconciliation.notificationUserIds,
+              deferredNotificationIds: reconciliation.notificationIds,
+            }
+          : {}),
+      };
     }
 
     const persistRoutingMutation = async (tx: any) => {
+      const requestLockResult = await tx.execute(sql`
+        SELECT status::text AS status
+        FROM work_requests
+        WHERE id = ${requestId}
+          AND source::text = 'direct_connect'
+        FOR UPDATE
+      `);
+      const lockedRequestStatus = String((requestLockResult.rows?.[0] as any)?.status || "");
+      if (!["open", "routed"].includes(lockedRequestStatus)) {
+        return {
+          inserted: [] as any[],
+          providerNotificationUserIds: [] as string[],
+          notificationIds: [] as string[],
+        };
+      }
       const inserted = await tx
         .insert(workRequestAssignments)
         .values(newAssignmentsPayload)
+        .onConflictDoNothing()
         .returning();
-      await tx.insert(workRequestEvents).values(providerSuggestedEvents);
-      await tx
-        .update(workRequests)
-        .set({ status: "routed", updatedAt: now })
-        .where(eq(workRequests.id, requestId));
-      return inserted;
+      const insertedProviderKeys = new Set(
+        inserted.map((assignment: any) => String(assignment.providerKey || "").trim())
+      );
+      const insertedEvents = providerSuggestedEvents.filter((event: any) =>
+        insertedProviderKeys.has(String(event.metadata?.providerKey || "").trim())
+      );
+      if (insertedEvents.length > 0) {
+        await tx.insert(workRequestEvents).values(insertedEvents);
+      }
+      for (const assignment of inserted as any[]) {
+        const providerKey = String(assignment.providerKey || "").trim();
+        const evidence = candidateEvidenceByProviderKey.get(providerKey);
+        if (!evidence) continue;
+        await snapshotDispatchCandidate(evidence.snapshot, tx);
+        await appendDispatchEvent(
+          {
+            eventId: `dc-candidate:${String(assignment.id)}`,
+            requestId,
+            actorType: "system",
+            actorId: null,
+            eventType: "candidate_eligible",
+            metadata: evidence.eventMetadata,
+          },
+          tx
+        );
+      }
+      if (inserted.length > 0) {
+        await tx
+          .update(workRequests)
+          .set({ status: "routed", updatedAt: now })
+          .where(eq(workRequests.id, requestId));
+      }
+      const activeAssignments = await tx
+        .select()
+        .from(workRequestAssignments)
+        .where(
+          and(
+            eq(workRequestAssignments.workRequestId, requestId),
+            inArray(workRequestAssignments.status, ACTIVE_ROUTING_ASSIGNMENT_STATUSES as any)
+          )
+        );
+      const providerNotificationUserIds = await resolvePersistedAssignmentNotificationUserIds({
+        tx,
+        requestId,
+        assignments: activeAssignments,
+      });
+      const notificationIds =
+        providerNotificationUserIds.length > 0
+          ? await enqueueRoutedDirectConnectProviderNotifications({
+              tx,
+              userIds: providerNotificationUserIds,
+              requestId,
+              requestTitle: String(requestRow.title || "Direct Connect request"),
+            })
+          : [];
+      return { inserted, providerNotificationUserIds, notificationIds };
     };
-    const insertedAssignments = mutationTx
+    const routingMutation = mutationTx
       ? await persistRoutingMutation(mutationTx)
       : await db.transaction(persistRoutingMutation);
+    const insertedAssignments = routingMutation.inserted;
 
-    try {
-      await recordTrustLedgerEvent({
-        actorUserId,
-        entityType: "work_request",
-        entityId: requestId,
-        eventType: "direct_connect_routed",
-        sourceSurface: "direct_connect",
-        verificationLevel: "system_verified",
-        confidence: 0.82,
-        metadata: {
-          assignmentCount: insertedAssignments.length,
-          routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
-          countyFips: countyFips || null,
-          tradeId: tradeRecord?.id || null,
-        },
-      });
-    } catch (e) {
-      console.warn("[direct-connect] Failed to write trust ledger routed event", e);
-    }
-
-    logDirectConnectVisibilityEvent({
-      requestId,
-      visibleContractorCount: insertedAssignments.length,
-      dispatchMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
-      countyFips: countyFips || null,
-      tradeId: tradeRecord?.id || null,
-    });
-
-    // Collect all userIds to notify: contractor owners + business owners.
-    const notifyUserIds = new Set<string>();
-    for (const assignment of insertedAssignments as any[]) {
-      if (assignment.contractorId) {
-        const candidate = topRanked.find((item) => item.id === assignment.contractorId);
-        if (candidate?.userId) notifyUserIds.add(candidate.userId);
+    if (insertedAssignments.length > 0) {
+      try {
+        await recordTrustLedgerEvent({
+          actorUserId,
+          entityType: "work_request",
+          entityId: requestId,
+          eventType: "direct_connect_routed",
+          sourceSurface: "direct_connect",
+          verificationLevel: "system_verified",
+          confidence: 0.82,
+          metadata: {
+            assignmentCount: insertedAssignments.length,
+            routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
+            countyFips: countyFips || null,
+            tradeId: tradeRecord?.id || null,
+          },
+        });
+      } catch (e) {
+        console.warn("[direct-connect] Failed to write trust ledger routed event", e);
       }
-      if (assignment.responderUserId) {
-        notifyUserIds.add(String(assignment.responderUserId));
-      }
-    }
-    const providerNotificationUserIds = Array.from(notifyUserIds);
-    if (!deferProviderNotifications) {
-      await notifyRoutedDirectConnectProviders({
-        userIds: providerNotificationUserIds,
+
+      logDirectConnectVisibilityEvent({
         requestId,
-        requestTitle: String(requestRow.title || "Direct Connect request"),
+        visibleContractorCount: insertedAssignments.length,
+        dispatchMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
+        countyFips: countyFips || null,
+        tradeId: tradeRecord?.id || null,
       });
+    }
+
+    if (!deferProviderNotifications) {
+      await dispatchDurableDirectConnectNotifications(routingMutation.notificationIds);
     }
 
     return {
       assignments: insertedAssignments,
-      routed: true,
+      routed: insertedAssignments.length > 0,
       ...(deferProviderNotifications
-        ? { deferredNotificationUserIds: providerNotificationUserIds }
+        ? {
+            deferredNotificationUserIds: routingMutation.providerNotificationUserIds,
+            deferredNotificationIds: routingMutation.notificationIds,
+          }
         : {}),
     };
   };
@@ -2878,6 +3704,9 @@ export function registerDirectConnectRoutes(app: Express) {
             .status(400)
             .json({ message: "Only Direct Connect requests can be routed here" });
         }
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only route your own requests" });
+        }
 
         // Idempotency guard: if this request has already been routed and the caller
         // is not explicitly expanding reach, return a benign 200 without creating
@@ -2896,10 +3725,6 @@ export function registerDirectConnectRoutes(app: Express) {
         // already-routed state.
         if (requestRow.status !== "open" && !(requestRow.status === "routed" && expandReach)) {
           return res.status(400).json({ message: "Only open requests can be routed" });
-        }
-
-        if (String(requestRow.createdByUserId) !== String(userId)) {
-          return res.status(403).json({ message: "You can only route your own requests" });
         }
 
         await auditDirectConnectBypassUsage({
@@ -2982,22 +3807,26 @@ export function registerDirectConnectRoutes(app: Express) {
             (contractor) => !existingContractorIds.has(String(contractor.id || "").trim())
           );
 
-          // For businesses: check existing responderUserId assignments to avoid duplicates.
+          // Business identity must stay tied to the selected business, not merely
+          // its owner: one account may legitimately own multiple businesses.
           const existingBizAssignments =
             eligibleBusinesses.length > 0
               ? await db
-                  .select({ responderUserId: (workRequestAssignments as any).responderUserId })
+                  .select({ providerKey: workRequestAssignments.providerKey })
                   .from(workRequestAssignments)
                   .where(eq(workRequestAssignments.workRequestId, requestId))
               : [];
-          const existingResponderUserIds = new Set(
+          const existingBusinessProviderKeys = new Set(
             existingBizAssignments
-              .map((a: any) => String(a.responderUserId || "").trim())
+              .map((assignment) => String(assignment.providerKey || "").trim())
               .filter(Boolean)
           );
           const businessesToAssign = eligibleBusinesses.filter(
             (biz) =>
-              biz.ownerUserId && !existingResponderUserIds.has(String(biz.ownerUserId || "").trim())
+              biz.ownerUserId &&
+              !existingBusinessProviderKeys.has(
+                buildWorkRequestAssignmentProviderKey("business", biz.id)
+              )
           );
 
           if (!contractorsToAssign.length && !businessesToAssign.length) {
@@ -3016,6 +3845,7 @@ export function registerDirectConnectRoutes(app: Express) {
           const now = new Date();
           const contractorAssignmentsPayload = contractorsToAssign.map((contractor) => ({
             workRequestId: requestId,
+            providerKey: buildWorkRequestAssignmentProviderKey("contractor", contractor.id),
             contractorId: contractor.id,
             status: "invited" as const,
             createdAt: now,
@@ -3023,6 +3853,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }));
           const businessAssignmentsPayload = businessesToAssign.map((biz) => ({
             workRequestId: requestId,
+            providerKey: buildWorkRequestAssignmentProviderKey("business", biz.id),
             contractorId: null as any,
             responderUserId: biz.ownerUserId!,
             status: "invited" as const,
@@ -3033,78 +3864,120 @@ export function registerDirectConnectRoutes(app: Express) {
             ...contractorAssignmentsPayload,
             ...businessAssignmentsPayload,
           ];
-          const assignments = await db
-            .insert(workRequestAssignments)
-            .values(allAssignmentsPayload)
-            .returning();
-
-          await db
-            .update(workRequests)
-            .set({ status: "routed", updatedAt: now })
-            .where(eq(workRequests.id, requestId));
-
-          try {
-            const contractorEvents = contractorsToAssign.map((contractor) => ({
-              workRequestId: requestId,
-              type: "provider_invited" as const,
-              actorUserId: String(userId),
-              metadata: {
-                contractorId: contractor.id,
-                contractorUserId: contractor.userId ?? null,
-                source: "direct_connect",
-                routeMode: "owner_direct",
-              },
-            }));
-            const businessEvents = businessesToAssign.map((biz) => ({
-              workRequestId: requestId,
-              type: "provider_invited" as const,
-              actorUserId: String(userId),
-              metadata: {
-                businessId: biz.id,
-                responderUserId: biz.ownerUserId ?? null,
-                source: "direct_connect",
-                routeMode: "owner_direct",
-              },
-            }));
-            if (contractorEvents.length || businessEvents.length) {
-              await db.insert(workRequestEvents).values([...contractorEvents, ...businessEvents]);
+          const persistence = await db.transaction(async (tx) => {
+            const lockResult = await tx.execute(sql`
+              SELECT status::text AS status
+              FROM work_requests
+              WHERE id = ${requestId}
+                AND source::text = 'direct_connect'
+                AND created_by_user_id = ${String(userId)}
+              FOR UPDATE
+            `);
+            const lockedStatus = String((lockResult.rows?.[0] as any)?.status || "");
+            if (lockedStatus !== "open" && !(lockedStatus === "routed" && expandReach)) {
+              return {
+                assignments: [] as any[],
+                notificationIds: [] as string[],
+                requestUnavailable: true as const,
+              };
             }
-          } catch (error) {
-            console.warn("[direct-connect] Failed to record direct provider_invited events", error);
-          }
 
-          try {
-            const notifyUserIds: string[] = [
-              ...(contractorsToAssign.map((c) => c.userId).filter(Boolean) as string[]),
-              ...(businessesToAssign.map((b) => b.ownerUserId).filter(Boolean) as string[]),
-            ];
-            await Promise.all(
-              notifyUserIds.map(async (notifyUserId) => {
-                await notificationService.createNotification({
-                  userId: notifyUserId,
-                  type: "new_project_request",
-                  title: "New Direct Connect request",
-                  message: `You have a new Direct Connect request: ${requestRow.title}`,
-                  actionUrl: "/direct-connect/inbox",
-                  actionText: "View in Direct Connect",
-                  iconName: "briefcase",
-                  iconColor: "orange",
-                  metadata: {
-                    workRequestId: requestId,
-                    emailPurpose: "direct_connect_request",
-                    notificationContext: "provider_invitation",
-                  },
-                  deliveryMethods: ["in_app", "email", "push"],
-                });
-              })
+            const assignments = await tx
+              .insert(workRequestAssignments)
+              .values(allAssignmentsPayload)
+              .onConflictDoNothing()
+              .returning();
+            if (assignments.length === 0) {
+              return {
+                assignments,
+                notificationIds: [] as string[],
+                requestUnavailable: false as const,
+              };
+            }
+
+            const insertedProviderKeys = new Set(
+              assignments.map((assignment) => String(assignment.providerKey || "").trim())
             );
-          } catch (error) {
-            console.error("[direct-connect] Failed to notify directly invited providers", error);
+            const contractorEvents = contractorsToAssign
+              .filter((contractor) =>
+                insertedProviderKeys.has(
+                  buildWorkRequestAssignmentProviderKey("contractor", contractor.id)
+                )
+              )
+              .map((contractor) => ({
+                workRequestId: requestId,
+                type: "provider_invited" as const,
+                actorUserId: String(userId),
+                metadata: {
+                  providerKey: buildWorkRequestAssignmentProviderKey("contractor", contractor.id),
+                  contractorId: contractor.id,
+                  contractorUserId: contractor.userId ?? null,
+                  source: "direct_connect",
+                  routeMode: "owner_direct",
+                },
+              }));
+            const businessEvents = businessesToAssign
+              .filter((biz) =>
+                insertedProviderKeys.has(buildWorkRequestAssignmentProviderKey("business", biz.id))
+              )
+              .map((biz) => ({
+                workRequestId: requestId,
+                type: "provider_invited" as const,
+                actorUserId: String(userId),
+                metadata: {
+                  providerKey: buildWorkRequestAssignmentProviderKey("business", biz.id),
+                  businessId: biz.id,
+                  responderUserId: biz.ownerUserId ?? null,
+                  source: "direct_connect",
+                  routeMode: "owner_direct",
+                },
+              }));
+            await tx.insert(workRequestEvents).values([...contractorEvents, ...businessEvents]);
+            await tx
+              .update(workRequests)
+              .set({ status: "routed", updatedAt: now })
+              .where(eq(workRequests.id, requestId));
+            const notifyUserIds = [
+              ...(contractorsToAssign
+                .filter((contractor) =>
+                  insertedProviderKeys.has(
+                    buildWorkRequestAssignmentProviderKey("contractor", contractor.id)
+                  )
+                )
+                .map((contractor) => contractor.userId)
+                .filter(Boolean) as string[]),
+              ...(businessesToAssign
+                .filter((business) =>
+                  insertedProviderKeys.has(
+                    buildWorkRequestAssignmentProviderKey("business", business.id)
+                  )
+                )
+                .map((business) => business.ownerUserId)
+                .filter(Boolean) as string[]),
+            ];
+            const notificationIds = await enqueueRoutedDirectConnectProviderNotifications({
+              tx,
+              userIds: notifyUserIds,
+              requestId,
+              requestTitle: String(requestRow.title || "Direct Connect request"),
+            });
+            return {
+              assignments,
+              notificationIds,
+              requestUnavailable: false as const,
+            };
+          });
+          if (persistence.requestUnavailable) {
+            return res.status(409).json({
+              message: "This request is no longer accepting provider assignments.",
+            });
           }
+          const assignments = persistence.assignments;
+          await dispatchDurableDirectConnectNotifications(persistence.notificationIds || []);
 
           return res.status(200).json({
             assignments,
-            routed: true,
+            routed: assignments.length > 0,
             excludedTargets: [
               ...contractorEligibility.ineligible,
               ...contractorEligibility.tradeEligibility.ineligible,
@@ -3655,6 +4528,17 @@ export function registerDirectConnectRoutes(app: Express) {
             const key = String(row.request_id || "");
             if (!key || workspaceByRequestId.has(key)) continue;
             workspaceByRequestId.set(key, row);
+          }
+          for (const [requestId, workspace] of workspaceByRequestId) {
+            const authority = await resolveDirectConnectJobWorkspaceAuthority(
+              String(workspace.id || "")
+            );
+            if (
+              !authority.ok ||
+              !isAuthorizedDirectConnectJobWorkspaceParticipant(authority, userId)
+            ) {
+              workspaceByRequestId.delete(requestId);
+            }
           }
         }
         const estimateSummaryByRequestId = new Map<
@@ -4474,7 +5358,15 @@ export function registerDirectConnectRoutes(app: Express) {
           recipientType: "requester",
           recipientId: String(userId),
         }).catch(() => 0);
-        const jobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const candidateJobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const candidateWorkspaceAuthority = candidateJobWorkspace?.id
+          ? await resolveDirectConnectJobWorkspaceAuthority(String(candidateJobWorkspace.id))
+          : null;
+        const jobWorkspace =
+          candidateWorkspaceAuthority?.ok &&
+          isAuthorizedDirectConnectJobWorkspaceParticipant(candidateWorkspaceAuthority, userId)
+            ? candidateJobWorkspace
+            : null;
         const workspaceStage = String(jobWorkspace?.active_stage || "contact") as any;
         const allowedLifecycleActions = jobWorkspace
           ? getAllowedLifecycleActions({ stage: workspaceStage, role: "requester" })
@@ -4998,56 +5890,79 @@ export function registerDirectConnectRoutes(app: Express) {
         const threadId = String(req.params.threadId || "").trim();
         if (!threadId) return res.status(400).json({ message: "Thread id is required" });
 
-        const [conversation] = await db
-          .select()
-          .from(conversations)
-          .where(eq(conversations.id, threadId))
-          .limit(1);
-        if (!conversation) return res.status(404).json({ message: "Conversation not found" });
-
-        const contractor = await storage.getContractorByUserId(userId).catch(() => null);
-        const providerKey = String(conversation.contractorId || "").trim();
-        const requesterUserId = String(conversation.homeownerId || "").trim();
-        const viewerIsRequester = requesterUserId === userId;
-        const viewerIsProvider =
-          providerKey === userId ||
-          (contractor?.id ? providerKey === String(contractor.id) : false);
-        if (!viewerIsRequester && !viewerIsProvider) {
+        const conversationAuthority = await resolveDirectConnectConversationAuthority(threadId);
+        if (!conversationAuthority.ok) {
+          const status = conversationAuthority.reason === "THREAD_NOT_FOUND" ? 404 : 403;
+          return res.status(status).json({
+            message:
+              status === 404
+                ? "Conversation not found"
+                : "Conversation is not bound to an accepted Direct Connect request.",
+            code: conversationAuthority.reason,
+          });
+        }
+        if (!isAuthorizedDirectConnectConversationParticipant(conversationAuthority, userId)) {
           return res.status(403).json({ message: "Thread not available for this user" });
         }
 
-        const acceptedRows = await db.execute(sql`
-          SELECT
-            wr.id AS request_id,
-            wr.title,
-            wr.description,
-            wr.category,
-            wr.county,
-            wr.city_area,
-            wr.status AS request_status,
-            wr.created_at AS request_created_at,
-            a.id AS assignment_id,
-            a.status AS assignment_status,
-            a.response_summary
-          FROM work_requests wr
-          INNER JOIN work_request_assignments a ON a.work_request_id = wr.id
-          WHERE wr.created_by_user_id = ${requesterUserId}
-            AND wr.source = 'direct_connect'
-            AND a.status = 'accepted'
-            AND (
-              a.contractor_id = ${providerKey}
-              OR a.responder_user_id = ${providerKey}
+        const [accepted] = await db
+          .select({
+            requestId: workRequests.id,
+            title: workRequests.title,
+            description: workRequests.description,
+            category: workRequests.category,
+            requestStatus: workRequests.status,
+            requestCreatedAt: workRequests.createdAt,
+            assignmentId: workRequestAssignments.id,
+            assignmentStatus: workRequestAssignments.status,
+            responseSummary: workRequestAssignments.responseSummary,
+          })
+          .from(workRequests)
+          .innerJoin(
+            workRequestAssignments,
+            eq(workRequestAssignments.workRequestId, workRequests.id)
+          )
+          .where(
+            and(
+              eq(workRequests.id, conversationAuthority.workRequestId),
+              eq(workRequestAssignments.id, conversationAuthority.assignmentId)
             )
-          ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC NULLS LAST
-          LIMIT 1
-        `);
-        const accepted = ((acceptedRows.rows || []) as any[])[0] || null;
+          )
+          .limit(1);
         if (!accepted) {
           return res.status(404).json({ message: "No accepted Direct Connect job for thread" });
         }
+        const dispatchLocationRows = await db.execute(sql`
+          SELECT county, city_area
+          FROM direct_connect_dispatch_requests
+          WHERE id = ${conversationAuthority.workRequestId}
+          LIMIT 1
+        `);
+        const dispatchLocation = ((dispatchLocationRows.rows || []) as any[])[0] || null;
+        const acceptedCounty = dispatchLocation?.county ? String(dispatchLocation.county) : null;
+        const acceptedCityArea = dispatchLocation?.city_area
+          ? String(dispatchLocation.city_area)
+          : null;
 
-        const requestId = String(accepted.request_id || "");
-        const jobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const requesterUserId = conversationAuthority.requesterUserId;
+        const viewerIsRequester = requesterUserId === userId;
+        const requestId = conversationAuthority.workRequestId;
+        const workspaceAuthority = await resolveDirectConnectJobWorkspaceAuthorityForRequest(
+          requestId,
+          {
+            expectedConversationId: threadId,
+            expectedAssignmentId: conversationAuthority.assignmentId,
+          }
+        );
+        if (!workspaceAuthority.ok && workspaceAuthority.reason !== "WORKSPACE_NOT_FOUND") {
+          return res.status(403).json({
+            message: "Job workspace is not bound to this conversation.",
+            code: workspaceAuthority.reason,
+          });
+        }
+        const jobWorkspace = workspaceAuthority.ok
+          ? await getJobWorkspaceByRequestId(requestId)
+          : null;
         const workspaceId = jobWorkspace?.id ? String(jobWorkspace.id) : null;
         const workspaceStage = String(jobWorkspace?.active_stage || "contact") as any;
         const allowedLifecycleActions = jobWorkspace
@@ -5172,9 +6087,9 @@ export function registerDirectConnectRoutes(app: Express) {
           requestTitle,
           requestDescription,
           category: accepted.category ? String(accepted.category) : null,
-          county: accepted.county ? String(accepted.county) : null,
-          cityArea: accepted.city_area ? String(accepted.city_area) : null,
-          responseSummary: accepted.response_summary || null,
+          county: acceptedCounty,
+          cityArea: acceptedCityArea,
+          responseSummary: accepted.responseSummary || null,
           allowedLifecycleActions,
           latestEstimateStatus,
           latestScheduleStatus,
@@ -5217,15 +6132,15 @@ export function registerDirectConnectRoutes(app: Express) {
             title: requestTitle,
             description: requestDescription,
             category: accepted.category ? String(accepted.category) : null,
-            county: accepted.county ? String(accepted.county) : null,
-            cityArea: accepted.city_area ? String(accepted.city_area) : null,
-            status: String(accepted.request_status || "in_progress"),
-            createdAt: accepted.request_created_at || null,
+            county: acceptedCounty,
+            cityArea: acceptedCityArea,
+            status: String(accepted.requestStatus || "in_progress"),
+            createdAt: accepted.requestCreatedAt || null,
           },
           assignment: {
-            id: String(accepted.assignment_id || ""),
-            status: String(accepted.assignment_status || "accepted"),
-            responseSummary: accepted.response_summary || null,
+            id: String(accepted.assignmentId || ""),
+            status: String(accepted.assignmentStatus || "accepted"),
+            responseSummary: accepted.responseSummary || null,
           },
           job: {
             status: jobWorkspace?.status ? String(jobWorkspace.status) : null,
@@ -5301,6 +6216,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
 
@@ -5731,25 +6652,28 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
 
-        await setDispatchContactGateState({ requestId, nextState });
-        if (nextState === "released" && ownerUserId) {
-          const candidateRows = await db.execute(sql`
-            SELECT contractor_id, business_id, responder_user_id
-            FROM direct_connect_dispatch_candidates
-            WHERE request_id = ${requestId}
-              AND eligibility_state = 'eligible'
-            ORDER BY created_at ASC
-            LIMIT 1
-          `);
-          const candidate = ((candidateRows.rows || []) as any[])[0] || null;
-          const responseRows = await db.execute(sql`
-            SELECT id
-            FROM direct_connect_contractor_responses
-            WHERE request_id = ${requestId}
-            ORDER BY created_at DESC
-            LIMIT 1
-          `);
-          const latestResponse = ((responseRows.rows || []) as any[])[0] || null;
+        let acceptedBinding: DirectConnectAcceptedProviderBinding | null = null;
+        if (["user_approved", "denied", "released"].includes(nextState)) {
+          const acceptedBindingResult =
+            await resolveDirectConnectAcceptedProviderBinding(requestId);
+          if (!acceptedBindingResult.ok) {
+            return res.status(409).json({
+              message:
+                "Contact consent must stay bound to the exact provider who accepted this request.",
+              code: acceptedBindingResult.reason,
+            });
+          }
+          acceptedBinding = acceptedBindingResult.binding;
+          if (acceptedBinding.requesterUserId !== ownerUserId) {
+            return res.status(409).json({
+              message: "Accepted connection does not belong to this request owner.",
+              code: "WORKSPACE_REQUESTER_MISMATCH",
+            });
+          }
+        }
+
+        let releasedWorkspace: any = null;
+        if (nextState === "released" && ownerUserId && acceptedBinding) {
           const dispatchRows = await db.execute(sql`
             SELECT category, county, city_area
             FROM direct_connect_dispatch_requests
@@ -5757,25 +6681,58 @@ export function registerDirectConnectRoutes(app: Express) {
             LIMIT 1
           `);
           const dispatch = ((dispatchRows.rows || []) as any[])[0] || null;
-          const workspace = await createOrGetJobWorkspaceAtContactRelease({
+          releasedWorkspace = await releaseContactAndCreateOrGetJobWorkspace({
             requestId,
             requesterUserId: ownerUserId,
-            businessId: candidate?.business_id ? String(candidate.business_id) : null,
-            contractorId: candidate?.contractor_id ? String(candidate.contractor_id) : null,
-            contractorResponseId: latestResponse?.id ? String(latestResponse.id) : null,
+            assignmentId: acceptedBinding.assignmentId,
+            providerKey: acceptedBinding.providerKey,
+            conversationId: acceptedBinding.conversationId,
+            providerUserId: acceptedBinding.providerUserId,
+            businessId: acceptedBinding.businessId,
+            contractorId: acceptedBinding.contractorId,
+            contractorResponseId: acceptedBinding.contractorResponseId,
             category: dispatch?.category ? String(dispatch.category) : null,
             county: dispatch?.county ? String(dispatch.county) : null,
             cityArea: dispatch?.city_area ? String(dispatch.city_area) : null,
           });
-          if (workspace?.id) {
+          const exactWorkspaceAuthority = releasedWorkspace?.id
+            ? await resolveDirectConnectJobWorkspaceAuthority(String(releasedWorkspace.id), {
+                expectedConversationId: acceptedBinding.conversationId,
+                expectedAssignmentId: acceptedBinding.assignmentId,
+              })
+            : null;
+          if (!exactWorkspaceAuthority?.ok) {
+            return res.status(409).json({
+              message: "Job workspace authority could not be verified.",
+              code:
+                exactWorkspaceAuthority && !exactWorkspaceAuthority.ok
+                  ? exactWorkspaceAuthority.reason
+                  : "WORKSPACE_NOT_FOUND",
+            });
+          }
+          if (releasedWorkspace?.id) {
             await appendDispatchEvent({
+              eventId: `direct-connect-job-workspace-created:${String(releasedWorkspace.id)}`,
               requestId,
               actorType: "system",
               actorId: null,
               eventType: "job_workspace_created",
-              metadata: { workspaceId: String(workspace.id), source: "contact_released" },
+              metadata: {
+                workspaceId: String(releasedWorkspace.id),
+                assignmentId: acceptedBinding.assignmentId,
+                providerKey: acceptedBinding.providerKey,
+                conversationId: acceptedBinding.conversationId,
+                source: "contact_released",
+              },
             });
           }
+        } else {
+          await setDispatchContactGateState({
+            requestId,
+            nextState,
+            assignmentId: acceptedBinding?.assignmentId,
+            providerKey: acceptedBinding?.providerKey,
+          });
         }
         const eventType =
           nextState === "user_approved"
@@ -5788,17 +6745,43 @@ export function registerDirectConnectRoutes(app: Express) {
                   ? "contact_requested"
                   : "request_shared";
         await appendDispatchEvent({
+          eventId:
+            `direct-connect-contact-gate:${requestId}:` +
+            `${acceptedBinding?.assignmentId || "unbound"}:${nextState}`,
           requestId,
           actorType: "requester",
           actorId: userId,
           eventType,
-          metadata: { nextState, previousState: currentState, actor: "requester" },
+          metadata: {
+            nextState,
+            previousState: currentState,
+            actor: "requester",
+            assignmentId: acceptedBinding?.assignmentId || null,
+            providerKey: acceptedBinding?.providerKey || null,
+          },
         });
         return res.status(200).json({ requestId, contactGateState: nextState });
       } catch (error: any) {
         if (String(error?.message || "") === "CONTACT_RELEASE_REQUIRES_APPROVAL") {
           return res.status(409).json({
             message: "Contact cannot release without explicit user approval.",
+          });
+        }
+        if (String(error?.message || "").startsWith("DIRECT_CONNECT_JOB_WORKSPACE_")) {
+          return res.status(409).json({
+            message:
+              "Contact cannot release because the accepted provider workspace is ambiguous or mismatched.",
+            code: String(error.message),
+          });
+        }
+        if (
+          String(error?.message || "").startsWith("DIRECT_CONNECT_CONTACT_RELEASE_") ||
+          String(error?.message || "").startsWith("CONTACT_GATE_")
+        ) {
+          return res.status(409).json({
+            message:
+              "Contact consent no longer matches the exact accepted provider. Refresh the request before retrying.",
+            code: String(error.message),
           });
         }
         return res.status(500).json({ message: "Failed to update contact gate state" });
@@ -5840,19 +6823,37 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(200).json({ status: "cancelled" });
         }
 
-        if (
-          requestRow.status !== "open" &&
-          requestRow.status !== "in_progress" &&
-          requestRow.status !== "routed"
-        ) {
-          return res
-            .status(400)
-            .json({ message: "Only open, routed, or in-progress requests can be cancelled" });
+        if (requestRow.status !== "open" && requestRow.status !== "routed") {
+          return res.status(400).json({
+            message:
+              "Only open or routed requests can be cancelled. Use the accepted job workspace to close active work.",
+          });
         }
 
         const now = new Date();
 
         await db.transaction(async (tx) => {
+          const lockedRequestRows = await tx.execute(sql`
+            SELECT status
+            FROM work_requests
+            WHERE id = ${requestId}
+            FOR UPDATE
+          `);
+          const lockedStatus = String(((lockedRequestRows.rows || []) as any[])[0]?.status || "");
+          if (!["open", "routed"].includes(lockedStatus)) {
+            throw new Error("DIRECT_CONNECT_CANCEL_STATE_CONFLICT");
+          }
+          const acceptedEventRows = await tx.execute(sql`
+            SELECT id
+            FROM work_request_events
+            WHERE work_request_id = ${requestId}
+              AND type::text = 'provider_accepted'
+            LIMIT 1
+          `);
+          if (((acceptedEventRows.rows || []) as any[])[0]) {
+            throw new Error("DIRECT_CONNECT_CANCEL_ACCEPTED_REQUEST");
+          }
+
           await tx
             .update(workRequests)
             .set({ status: "cancelled", shareToken: null, updatedAt: now })
@@ -5934,6 +6935,17 @@ export function registerDirectConnectRoutes(app: Express) {
 
         res.status(200).json({ status: "cancelled" });
       } catch (error: any) {
+        if (
+          [
+            "DIRECT_CONNECT_CANCEL_STATE_CONFLICT",
+            "DIRECT_CONNECT_CANCEL_ACCEPTED_REQUEST",
+          ].includes(String(error?.message || ""))
+        ) {
+          return res.status(409).json({
+            message:
+              "This request already has an accepted provider. Close it from the job workspace instead.",
+          });
+        }
         console.error("Error cancelling direct connect request:", error);
         res
           .status(500)
@@ -5979,6 +6991,34 @@ export function registerDirectConnectRoutes(app: Express) {
         const now = new Date();
 
         await db.transaction(async (tx) => {
+          const lockedRequestRows = await tx.execute(sql`
+            SELECT status
+            FROM work_requests
+            WHERE id = ${requestId}
+            FOR UPDATE
+          `);
+          const lockedStatus = String(((lockedRequestRows.rows || []) as any[])[0]?.status || "");
+          if (lockedStatus !== "cancelled") {
+            throw new Error("DIRECT_CONNECT_REOPEN_STATE_CONFLICT");
+          }
+          const priorAcceptanceRows = await tx.execute(sql`
+            SELECT
+              EXISTS (
+                SELECT 1
+                FROM work_request_events
+                WHERE work_request_id = ${requestId}
+                  AND type::text = 'provider_accepted'
+              )
+              OR EXISTS (
+                SELECT 1
+                FROM direct_connect_job_workspaces
+                WHERE request_id = ${requestId}
+              ) AS has_bound_history
+          `);
+          if (Boolean(((priorAcceptanceRows.rows || []) as any[])[0]?.has_bound_history)) {
+            throw new Error("DIRECT_CONNECT_REOPEN_BOUND_HISTORY");
+          }
+
           await tx
             .update(workRequests)
             .set({ status: "open", updatedAt: now })
@@ -5999,13 +7039,6 @@ export function registerDirectConnectRoutes(app: Express) {
         });
 
         try {
-          await appendDispatchEvent({
-            requestId,
-            actorType: "requester",
-            actorId: String(userId),
-            eventType: "request_closed",
-            metadata: { reason: "completed" },
-          });
           await recordTrustLedgerEvent({
             actorUserId: String(userId),
             entityType: "work_request",
@@ -6033,6 +7066,16 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
         });
       } catch (error: any) {
+        if (
+          ["DIRECT_CONNECT_REOPEN_STATE_CONFLICT", "DIRECT_CONNECT_REOPEN_BOUND_HISTORY"].includes(
+            String(error?.message || "")
+          )
+        ) {
+          return res.status(409).json({
+            message:
+              "A request with accepted-provider history cannot be reopened. Start a new Direct Connect request.",
+          });
+        }
         console.error("Error reopening direct connect request:", error);
         res
           .status(500)
@@ -6303,6 +7346,8 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     directConnectCreateLimiter,
     async (req: AuthedRequest, res: Response) => {
+      let requesterOperationLockClient: any = null;
+      let requesterOperationLockKey: string | null = null;
       try {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) {
@@ -6327,6 +7372,73 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(400).json({
             message: "Please include non-contact project details in title and scope.",
           });
+        }
+        const operationPayloadFingerprint = body.operationId
+          ? createHash("sha256").update(JSON.stringify(body)).digest("hex")
+          : null;
+        let existingRequesterOperation:
+          | {
+              request: typeof workRequests.$inferSelect;
+              metadata: unknown;
+            }
+          | undefined;
+        if (body.operationId && operationPayloadFingerprint) {
+          requesterOperationLockKey =
+            `direct-connect-requester-create:${ownerUserId}:` + body.operationId;
+          requesterOperationLockClient = await pool.connect();
+          await requesterOperationLockClient.query(
+            "SELECT pg_advisory_lock(hashtextextended($1, 0))",
+            [requesterOperationLockKey]
+          );
+          const operations = await db
+            .select({
+              request: workRequests,
+              metadata: workRequestEvents.metadata,
+            })
+            .from(workRequestEvents)
+            .innerJoin(workRequests, eq(workRequests.id, workRequestEvents.workRequestId))
+            .where(
+              and(
+                eq(workRequestEvents.actorUserId, ownerUserId),
+                sql`${workRequestEvents.metadata} ->> 'operation' = 'requester_create_request'`,
+                sql`${workRequestEvents.metadata} ->> 'operationId' = ${body.operationId}`
+              )
+            )
+            .orderBy(desc(workRequestEvents.createdAt), desc(workRequestEvents.id))
+            .limit(2);
+          if (operations.length > 1) {
+            return res.status(409).json({
+              code: "IDEMPOTENCY_EVIDENCE_CONFLICT",
+              message: "Conflicting idempotency evidence exists for this request.",
+              operationId: body.operationId,
+            });
+          }
+          existingRequesterOperation = operations[0];
+          if (existingRequesterOperation) {
+            const metadata =
+              existingRequesterOperation.metadata &&
+              typeof existingRequesterOperation.metadata === "object"
+                ? (existingRequesterOperation.metadata as Record<string, unknown>)
+                : {};
+            if (String(metadata.payloadFingerprint || "") !== operationPayloadFingerprint) {
+              return res.status(409).json({
+                code: "IDEMPOTENCY_PAYLOAD_CONFLICT",
+                message: "This operationId was already used with a different request.",
+                operationId: body.operationId,
+              });
+            }
+            await db.transaction((tx: any) =>
+              ensureDirectConnectDispatchFoundation({
+                executor: tx,
+                requestRow: existingRequesterOperation!.request,
+                requesterUserId: ownerUserId,
+                actorType: "requester",
+                actorId: ownerUserId,
+                operationId: body.operationId,
+                sourceSurface: "direct_connect",
+              })
+            );
+          }
         }
 
         // Authenticated requester gates (profile/verification) stay enforced.
@@ -6448,10 +7560,12 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
-        const targetProfile = body.targetProfileSlug
-          ? await storage.getProfileBySlugPublic(body.targetProfileSlug)
-          : undefined;
-        if (body.targetProfileSlug && !targetProfile) {
+        const idempotentReplay = Boolean(existingRequesterOperation);
+        const targetProfile =
+          body.targetProfileSlug && !idempotentReplay
+            ? await storage.getProfileBySlugPublic(body.targetProfileSlug)
+            : undefined;
+        if (body.targetProfileSlug && !idempotentReplay && !targetProfile) {
           return res.status(404).json({
             code: "TARGET_PROFILE_NOT_FOUND",
             message: "This profile is no longer available for Direct Connect requests.",
@@ -6460,13 +7574,13 @@ export function registerDirectConnectRoutes(app: Express) {
         const targetProfileOwnerUserId = targetProfile
           ? await storage.getProfileOwnerUserId(targetProfile.id)
           : null;
-        if (targetProfile && !targetProfileOwnerUserId) {
+        if (!idempotentReplay && targetProfile && !targetProfileOwnerUserId) {
           return res.status(404).json({
             code: "TARGET_PROFILE_NOT_FOUND",
             message: "This profile is no longer available for Direct Connect requests.",
           });
         }
-        if (targetProfileOwnerUserId === ownerUserId) {
+        if (!idempotentReplay && targetProfileOwnerUserId === ownerUserId) {
           return res.status(400).json({
             code: "TARGET_PROFILE_IS_REQUESTER",
             message: "You cannot send a Direct Connect request to your own profile.",
@@ -6481,143 +7595,77 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
         const isDirectToProviders = targetProviderIds.length > 0;
-        const isDirectToProfile = Boolean(targetProfile && targetProfileOwnerUserId);
+        const isDirectToProfile = Boolean(
+          body.targetProfileSlug &&
+          (idempotentReplay || (targetProfile && targetProfileOwnerUserId))
+        );
         const isExplicitTarget = isDirectToProviders || isDirectToProfile;
         const shouldAutoRoute = body.autoRoute !== false && !isExplicitTarget;
         const useFastTestCreate =
           process.env.NODE_ENV === "test" && String(req.query?.e2eFast || "") === "1";
 
-        const [created] = await db
-          .insert(workRequests)
-          .values({
-            createdByUserId: String(ownerUserId),
-            title: sanitizedTitle,
-            description: sanitizedDescription,
-            category: body.category,
-            countyFips,
-            stateCode,
-            // Explicit profile/provider requests stay private and never enter the community board.
-            scope: isExplicitTarget ? "personal" : "community",
-            source: "direct_connect" as any,
-            sourceRefId: targetProfile?.id,
-            status: "open" as const,
-            visibility: isExplicitTarget ? "private" : "community",
-            exposureMode: "guided",
-            competitionMode: "none",
-            budgetMin,
-            budgetMax,
-            attachments,
-            tradeId: body.tradeId,
-          })
-          .returning();
+        const created =
+          existingRequesterOperation?.request ||
+          (await db.transaction(async (tx: any) => {
+            const [insertedRequest] = await tx
+              .insert(workRequests)
+              .values({
+                createdByUserId: String(ownerUserId),
+                title: sanitizedTitle,
+                description: sanitizedDescription,
+                category: body.category,
+                countyFips,
+                stateCode,
+                // Explicit profile/provider requests stay private and never enter the community board.
+                scope: isExplicitTarget ? "personal" : "community",
+                source: "direct_connect" as any,
+                sourceRefId: targetProfile?.id,
+                status: "open" as const,
+                visibility: isExplicitTarget ? "private" : "community",
+                exposureMode: "guided",
+                competitionMode: "none",
+                budgetMin,
+                budgetMax,
+                attachments,
+                tradeId: body.tradeId,
+              })
+              .returning();
+            await tx.insert(workRequestEvents).values({
+              workRequestId: insertedRequest.id,
+              type: "created",
+              actorUserId: ownerUserId,
+              metadata: {
+                source: "direct_connect",
+                operation: "requester_create_request",
+                operationId: body.operationId,
+                payloadFingerprint: operationPayloadFingerprint,
+              },
+            });
+            return insertedRequest;
+          }));
 
         let createdResponse = created;
         const createdRequestId = created?.id ? String(created.id) : undefined;
-        if (useFastTestCreate && created) {
-          try {
-            await db.insert(workRequestEvents).values({
-              workRequestId: created.id,
-              type: "created",
-              actorUserId: ownerUserId ? String(ownerUserId) : null,
-              metadata: { source: "direct_connect", mode: "e2e_fast_create" },
-            });
-          } catch (e) {
-            console.warn("[direct-connect] Failed to record fast E2E request created event", e);
-          }
+        if (createdRequestId) (req as any).requestId = createdRequestId;
+
+        if (createdRequestId && created) {
+          await db.transaction((tx: any) =>
+            ensureDirectConnectDispatchFoundation({
+              executor: tx,
+              requestRow: created,
+              requesterUserId: String(ownerUserId),
+              actorType: "requester",
+              actorId: String(ownerUserId),
+              operationId: body.operationId,
+              sourceSurface: "direct_connect",
+            })
+          );
+        }
+        if (useFastTestCreate && created && !idempotentReplay) {
           return res.status(201).json(createdResponse ?? null);
         }
 
-        if (createdRequestId) {
-          const requestCategory = String(body.category || "direct_connect");
-          const canonicalAnswers: Record<"what" | "where" | "when" | "details", string> = {
-            what: sanitizedTitle,
-            where: [countyFips, stateCode].filter(Boolean).join(", "),
-            when: "",
-            details: sanitizedDescription,
-          };
-          const completenessState =
-            sanitizedTitle.trim().length >= 3 && sanitizedDescription.trim().length >= 10
-              ? "ready_to_share"
-              : "too_vague";
-          const routingReadiness = evaluateRoutingReadiness({
-            category: requestCategory,
-            answers: canonicalAnswers,
-            description: sanitizedDescription,
-            completenessState,
-          });
-          const canonical: CanonicalDirectConnectRequest = {
-            requestId: createdRequestId,
-            intent: String((req.query.intent as string) || requestCategory || "direct_connect"),
-            requestType: requestCategory,
-            category: requestCategory,
-            county: countyFips || null,
-            cityArea: null,
-            urgency: null,
-            description: sanitizedDescription,
-            answers: canonicalAnswers,
-            completenessState,
-            routingReadiness,
-            visibilityState: "review_ready",
-            contactGateState: "locked",
-            createdAt: new Date().toISOString(),
-            sourceSurface: "direct_connect",
-          };
-          try {
-            await persistFinalizedDispatchRequest({
-              canonical,
-              userId: String(ownerUserId),
-              anonymousSessionId: null,
-            });
-            await appendDispatchEvent({
-              requestId: createdRequestId,
-              actorType: "requester",
-              actorId: String(ownerUserId),
-              eventType: "request_finalized",
-              metadata: {
-                category: requestCategory,
-                routingReadiness,
-              },
-            });
-            await appendDispatchEvent({
-              requestId: createdRequestId,
-              actorType: "system",
-              actorId: null,
-              eventType:
-                routingReadiness === "route_ready"
-                  ? "request_route_ready"
-                  : "request_route_blocked",
-              metadata: { routingReadiness },
-            });
-            await appendDispatchEvent({
-              requestId: createdRequestId,
-              actorType: "requester",
-              actorId: String(ownerUserId),
-              eventType: "request_shared",
-              metadata: { source: "direct_connect_create" },
-            });
-          } catch (error) {
-            if (isSchemaMismatchError(error)) {
-              console.warn(
-                "[direct-connect] Dispatch ledger schema mismatch while creating request; continuing with work request only",
-                error
-              );
-            } else {
-              throw error;
-            }
-          }
-        }
-
-        if (created) {
-          try {
-            await db.insert(workRequestEvents).values({
-              workRequestId: created.id,
-              type: "created",
-              actorUserId: ownerUserId ? String(ownerUserId) : null,
-              metadata: { source: "direct_connect" },
-            });
-          } catch (e) {
-            console.warn("[direct-connect] Failed to record work request created event", e);
-          }
+        if (created && !idempotentReplay) {
           logDirectConnectFunnelEvent("direct_connect_request_submitted", {
             requestId: String(created.id),
             category: String(created.category || body.category || "direct_connect"),
@@ -6699,6 +7747,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (
           created &&
+          !idempotentReplay &&
           (assetLink.homeId ||
             assetLink.assetComponentId ||
             assetLink.assetComponentType ||
@@ -6716,7 +7765,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        if (created?.id && body.homePacketId) {
+        if (created?.id && !idempotentReplay && body.homePacketId) {
           try {
             await db.insert(workRequestEvents).values({
               workRequestId: created.id,
@@ -6735,7 +7784,11 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        if (created?.id && String(body.homeContextIntent || "skip_for_now") !== "skip_for_now") {
+        if (
+          created?.id &&
+          !idempotentReplay &&
+          String(body.homeContextIntent || "skip_for_now") !== "skip_for_now"
+        ) {
           try {
             const requestedHomeId = String(body.homeId || "").trim() || null;
             const ownedLinkedHome = await resolveOwnedHomeForDirectConnect(
@@ -6825,7 +7878,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        if (bypassContext && ownerUserId) {
+        if (bypassContext && ownerUserId && !idempotentReplay) {
           await auditDirectConnectBypassUsage({
             req,
             actorUserId: String(ownerUserId),
@@ -6838,270 +7891,156 @@ export function registerDirectConnectRoutes(app: Express) {
         // A profile CTA is an explicit recipient choice. Route the private
         // request to that published profile's owner without exposing contact
         // details or placing the request into county-wide discovery.
-        if (created && targetProfile && targetProfileOwnerUserId) {
+        if (created && idempotentReplay && body.targetProfileSlug) {
+          await reconcilePersistedRoutingNotifications({
+            requestId: String(created.id),
+            requestTitle: String(created.title || "Direct Connect request"),
+          });
+          const [fresh] = await db
+            .select()
+            .from(workRequests)
+            .where(eq(workRequests.id, created.id))
+            .limit(1);
+          if (fresh) createdResponse = fresh as any;
+        }
+
+        if (created && !idempotentReplay && targetProfile && targetProfileOwnerUserId) {
           try {
             const now = new Date();
-            await db.transaction(async (tx) => {
-              await tx.insert(workRequestAssignments).values({
-                workRequestId: created.id,
-                contractorId: null,
-                responderUserId: targetProfileOwnerUserId,
-                status: "invited",
-                scoreSnapshot: {
-                  reasons: ["requester_selected_published_profile"],
-                  routingMode: "profile_direct_connect",
-                },
-                createdAt: now,
-                updatedAt: now,
+            const targetProfileProviderKey = (targetProfile as any).businessId
+              ? buildWorkRequestAssignmentProviderKey("business", (targetProfile as any).businessId)
+              : buildWorkRequestAssignmentProviderKey("responder", targetProfileOwnerUserId);
+            const targetProfileRouting = await db.transaction(async (tx) => {
+              const lockedRequest = await tx.execute(sql`
+                SELECT status::text AS status
+                FROM work_requests
+                WHERE id = ${String(created.id)}
+                  AND source::text = 'direct_connect'
+                  AND created_by_user_id = ${ownerUserId}
+                FOR UPDATE
+              `);
+              const lockedStatus = String((lockedRequest.rows?.[0] as any)?.status || "");
+              const [existingTargetAssignment] = await tx
+                .select()
+                .from(workRequestAssignments)
+                .where(
+                  and(
+                    eq(workRequestAssignments.workRequestId, String(created.id)),
+                    eq(workRequestAssignments.providerKey, targetProfileProviderKey)
+                  )
+                )
+                .limit(1);
+              if (!["open", "routed"].includes(lockedStatus)) {
+                return { notificationIds: [] as string[], routed: false };
+              }
+              const insertedAssignments = existingTargetAssignment
+                ? []
+                : await tx
+                    .insert(workRequestAssignments)
+                    .values({
+                      workRequestId: created.id,
+                      providerKey: targetProfileProviderKey,
+                      contractorId: null,
+                      responderUserId: targetProfileOwnerUserId,
+                      status: "invited",
+                      scoreSnapshot: {
+                        reasons: ["requester_selected_published_profile"],
+                        routingMode: "profile_direct_connect",
+                      },
+                      createdAt: now,
+                      updatedAt: now,
+                    })
+                    .onConflictDoNothing()
+                    .returning();
+              if (insertedAssignments.length > 0) {
+                await tx
+                  .update(workRequests)
+                  .set({ status: "routed", updatedAt: now })
+                  .where(eq(workRequests.id, created.id));
+              }
+              if (insertedAssignments.length > 0) {
+                await tx.insert(workRequestEvents).values({
+                  workRequestId: created.id,
+                  type: "provider_invited",
+                  actorUserId: String(ownerUserId),
+                  metadata: {
+                    profileId: targetProfile.id,
+                    profileSlug: targetProfile.slug,
+                    responderUserId: targetProfileOwnerUserId,
+                    source: "profile_direct_connect",
+                  },
+                });
+                const insertedAssignment = insertedAssignments[0] as any;
+                await snapshotDispatchCandidate(
+                  {
+                    requestId: String(created.id),
+                    businessId: String(insertedAssignment.providerKey || "").startsWith("business:")
+                      ? String(insertedAssignment.providerKey).slice("business:".length)
+                      : null,
+                    responderUserId:
+                      String(insertedAssignment.responderUserId || "").trim() || null,
+                    eligibility: { status: "eligible", eligible: true },
+                    eligibilityReasons: ["requester_selected_published_profile"],
+                    territoryMatched: true,
+                    categoryMatched: true,
+                    verificationState: "verified_or_allowed",
+                    profileReadiness: "ready",
+                    contactEligibility: true,
+                    trustState: "eligible",
+                  },
+                  tx
+                );
+              }
+              const persistedAssignments = [
+                ...(existingTargetAssignment ? [existingTargetAssignment] : []),
+                ...insertedAssignments,
+              ].filter((assignment: any) =>
+                ACTIVE_ROUTING_ASSIGNMENT_STATUSES.includes(String(assignment.status) as any)
+              );
+              const notificationUserIds = await resolvePersistedAssignmentNotificationUserIds({
+                tx,
+                requestId: String(created.id),
+                assignments: persistedAssignments,
               });
-              await tx
-                .update(workRequests)
-                .set({ status: "routed", updatedAt: now })
-                .where(eq(workRequests.id, created.id));
-              await tx.insert(workRequestEvents).values({
-                workRequestId: created.id,
-                type: "provider_invited",
-                actorUserId: String(ownerUserId),
-                metadata: {
-                  profileId: targetProfile.id,
-                  profileSlug: targetProfile.slug,
-                  responderUserId: targetProfileOwnerUserId,
-                  source: "profile_direct_connect",
-                },
+              const notificationIds = await enqueueRoutedDirectConnectProviderNotifications({
+                tx,
+                userIds: notificationUserIds,
+                requestId: String(created.id),
+                requestTitle: String(created.title || "Direct Connect request"),
               });
+              return { notificationIds, routed: true };
             });
-            createdResponse = { ...created, status: "routed", updatedAt: now } as any;
+            if (targetProfileRouting.routed) {
+              createdResponse = { ...created, status: "routed", updatedAt: now } as any;
+            }
+            await dispatchDurableDirectConnectNotifications(targetProfileRouting.notificationIds);
           } catch (error) {
             console.error("[direct-connect] Failed to route request to selected profile", error);
             throw error;
-          }
-          try {
-            await notificationService.createNotification({
-              userId: targetProfileOwnerUserId,
-              type: "new_project_request",
-              title: "New Direct Connect request",
-              message: `You have a new Direct Connect request: ${created.title}`,
-              actionUrl: "/direct-connect/inbox",
-              actionText: "View in Direct Connect",
-              iconName: "briefcase",
-              iconColor: "orange",
-              metadata: {
-                workRequestId: String(created.id),
-                emailPurpose: "direct_connect_request",
-                notificationContext: "provider_invitation",
-              },
-              deliveryMethods: ["in_app", "email", "push"],
-            });
-          } catch (error) {
-            console.error(
-              "[direct-connect] Failed to notify selected profile owner; request remains routed",
-              error
-            );
           }
         }
 
         // Explicit targeting preserves requester choice; this is not automatic routing.
         if (created && targetProviderIds.length > 0) {
           try {
-            const requestedIds = targetProviderIds;
-            // Resolve contractor IDs and business IDs from the universal provider search.
-            const invitedContractors = await db
+            await reconcileExplicitDirectConnectProviderRouting({
+              requestRow: created,
+              requestedTargetIds: targetProviderIds,
+              actorUserId: String(userId),
+              source: "direct_connect",
+              routeMode: "direct_targeted",
+              createdForUserId: String(ownerUserId),
+              reconcileOnlyExistingAssignments: idempotentReplay,
+            });
+            const [fresh] = await db
               .select()
-              .from(contractors)
-              .where(inArray(contractors.id, requestedIds));
-            const invitedContractorIds = new Set(
-              invitedContractors.map((c) => String(c.id || "").trim()).filter(Boolean)
-            );
-            const potentialBusinessIds = requestedIds.filter((id) => !invitedContractorIds.has(id));
-            const invitedBusinesses =
-              potentialBusinessIds.length > 0
-                ? await db
-                    .select()
-                    .from(businesses)
-                    .where(
-                      and(
-                        inArray(businesses.id, potentialBusinessIds),
-                        eq(businesses.status, "active" as any)
-                      )
-                    )
-                : [];
-            const contractorEligibility = await filterContractorsEligibleForRequest(
-              invitedContractors,
-              created
-            );
-            const eligibleContractors = contractorEligibility.eligible;
-            const businessEligibility = await filterBusinessesEligibleForRequest(
-              invitedBusinesses,
-              created
-            );
-            const eligibleBusinesses = businessEligibility.eligible;
-            // Contract anchor (direct-pick creation): responderUserId: biz.ownerUserId!; allAssignments;
-            // ...contractorAssignments, ...businessAssignments; businessEvents; contractorEvents; notifyUserIds;
-            // invitedBusinesses.map((b) => b.ownerUserId)
-            if (createdRequestId) {
-              await Promise.all([
-                ...eligibleContractors.map((contractor: any) =>
-                  snapshotDispatchCandidate({
-                    requestId: createdRequestId,
-                    contractorId: String(contractor.id),
-                    responderUserId: contractor.userId ? String(contractor.userId) : null,
-                    eligibility: { status: "eligible", eligible: true },
-                    eligibilityReasons: ["eligible_for_dispatch"],
-                    territoryMatched: true,
-                    categoryMatched: true,
-                    verificationState: "verified_or_allowed",
-                    profileReadiness: "ready",
-                    contactEligibility: true,
-                    trustState: "eligible",
-                  })
-                ),
-                ...contractorEligibility.ineligible.map((entry: any) =>
-                  snapshotDispatchCandidate({
-                    requestId: createdRequestId,
-                    contractorId: String(entry.contractorId || ""),
-                    eligibility: evaluateContractorEligibility({
-                      isActive: true,
-                      isVerified: false,
-                      profileComplete: true,
-                      contactEligible: false,
-                      categoryMatch: true,
-                      territoryMatch: !String(entry.reason || "").includes("outside"),
-                      trustOrCvsEligible: true,
-                    }),
-                    ineligibilityReasons: [String(entry.reason || "not_eligible")],
-                    territoryMatched: !String(entry.reason || "").includes("outside"),
-                    categoryMatched: true,
-                    verificationState: "unknown",
-                    profileReadiness: "unknown",
-                    contactEligibility: false,
-                    trustState: "unknown",
-                  })
-                ),
-                ...eligibleBusinesses.map((business: any) =>
-                  snapshotDispatchCandidate({
-                    requestId: createdRequestId,
-                    businessId: String(business.id),
-                    responderUserId: business.ownerUserId ? String(business.ownerUserId) : null,
-                    eligibility: { status: "eligible", eligible: true },
-                    eligibilityReasons: ["eligible_for_dispatch"],
-                    territoryMatched: true,
-                    categoryMatched: true,
-                    verificationState: "verified_or_allowed",
-                    profileReadiness: "ready",
-                    contactEligibility: true,
-                    trustState: "eligible",
-                  })
-                ),
-                ...businessEligibility.ineligible.map((entry: any) =>
-                  snapshotDispatchCandidate({
-                    requestId: createdRequestId,
-                    businessId: String(entry.businessId || ""),
-                    eligibility: { status: "not_eligible", eligible: false },
-                    ineligibilityReasons: [String(entry.reason || "not_eligible")],
-                    territoryMatched: !String(entry.reason || "").includes("outside"),
-                    categoryMatched: !String(entry.reason || "").includes("category"),
-                    verificationState: "unknown",
-                    profileReadiness: "unknown",
-                    contactEligibility: false,
-                    trustState: "unknown",
-                  })
-                ),
-              ]);
-            }
-            const now = new Date();
-            const contractorAssignments = eligibleContractors.map((contractor) => ({
-              workRequestId: created.id,
-              contractorId: contractor.id,
-              status: "invited" as const,
-              createdAt: now,
-              updatedAt: now,
-            }));
-            const businessAssignments = eligibleBusinesses
-              .filter((biz) => biz.ownerUserId)
-              .map((biz) => ({
-                workRequestId: created.id,
-                contractorId: null as any,
-                responderUserId: biz.ownerUserId!,
-                status: "invited" as const,
-                createdAt: now,
-                updatedAt: now,
-              }));
-            const allAssignments = [...contractorAssignments, ...businessAssignments];
-            if (allAssignments.length > 0) {
-              await db.insert(workRequestAssignments).values(allAssignments);
-              await db
-                .update(workRequests)
-                .set({ status: "routed", updatedAt: now })
-                .where(eq(workRequests.id, created.id));
-              logDirectConnectVisibilityEvent({
-                requestId: String(created.id),
-                visibleContractorCount: allAssignments.length,
-                dispatchMode: "direct_targeted",
-                countyFips: countyFips || null,
-                tradeId: body.tradeId || null,
-              });
-              try {
-                const contractorEvents = eligibleContractors.map((contractor) => ({
-                  workRequestId: created.id,
-                  type: "provider_invited" as const,
-                  actorUserId: String(userId),
-                  metadata: {
-                    contractorId: contractor.id,
-                    contractorUserId: contractor.userId ?? null,
-                    source: "direct_connect",
-                  },
-                }));
-                const businessEvents = eligibleBusinesses
-                  .filter((biz) => biz.ownerUserId)
-                  .map((biz) => ({
-                    workRequestId: created.id,
-                    type: "provider_invited" as const,
-                    actorUserId: String(userId),
-                    metadata: {
-                      businessId: biz.id,
-                      responderUserId: biz.ownerUserId ?? null,
-                      source: "direct_connect",
-                    },
-                  }));
-                if (contractorEvents.length || businessEvents.length) {
-                  await db
-                    .insert(workRequestEvents)
-                    .values([...contractorEvents, ...businessEvents]);
-                }
-              } catch (e) {
-                console.warn("[direct-connect] Failed to record provider_invited events", e);
-              }
-              try {
-                const notifyUserIds: string[] = [
-                  ...(eligibleContractors.map((c) => c.userId).filter(Boolean) as string[]),
-                  ...(eligibleBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
-                ];
-                await Promise.all(
-                  notifyUserIds.map(async (notifyUserId) => {
-                    await notificationService.createNotification({
-                      userId: notifyUserId,
-                      type: "new_project_request",
-                      title: "New Direct Connect request",
-                      message: `You have a new Direct Connect request: ${created.title}`,
-                      actionUrl: "/direct-connect/inbox",
-                      actionText: "View in Direct Connect",
-                      iconName: "briefcase",
-                      iconColor: "orange",
-                      metadata: {
-                        workRequestId: String(created.id),
-                        emailPurpose: "direct_connect_request",
-                        notificationContext: "provider_invitation",
-                      },
-                      deliveryMethods: ["in_app", "email", "push"],
-                    });
-                  })
-                );
-              } catch (e) {
-                console.error("[direct-connect] Failed to notify invited providers", e);
-              }
-            }
+              .from(workRequests)
+              .where(eq(workRequests.id, created.id))
+              .limit(1);
+            if (fresh) createdResponse = fresh as any;
           } catch (e) {
             console.error("[direct-connect] Failed to invite target providers", e);
+            throw e;
           }
         }
 
@@ -7113,6 +8052,7 @@ export function registerDirectConnectRoutes(app: Express) {
               actorUserId: String(userId),
               expandReach: false,
               bypassVerificationGate: canBypassVerification,
+              reconcileOnlyExistingAssignments: idempotentReplay,
             });
             const [fresh] = await db
               .select()
@@ -7124,6 +8064,7 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           } catch (e) {
             console.error("[direct-connect] Failed to auto-route request on create", e);
+            throw e;
           }
         }
 
@@ -7136,7 +8077,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        if (created?.id) {
+        if (created?.id && !idempotentReplay) {
           try {
             await notifySuperAdminsOfDirectConnectRequest({
               requestId: String(created.id),
@@ -7150,7 +8091,19 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        res.status(201).json(createdResponse ?? null);
+        res.status(idempotentReplay ? 200 : 201).json(
+          createdResponse
+            ? {
+                ...createdResponse,
+                ...(body.operationId
+                  ? {
+                      operationId: body.operationId,
+                      idempotentReplay,
+                    }
+                  : {}),
+              }
+            : null
+        );
       } catch (error: any) {
         console.error("Error creating direct connect request:", error);
         if (isSchemaMismatchError(error)) {
@@ -7162,6 +8115,22 @@ export function registerDirectConnectRoutes(app: Express) {
         res
           .status(500)
           .json({ message: "Failed to create request", requestId: (req as any).requestId || null });
+      } finally {
+        if (requesterOperationLockClient && requesterOperationLockKey) {
+          try {
+            await requesterOperationLockClient.query(
+              "SELECT pg_advisory_unlock(hashtextextended($1, 0))",
+              [requesterOperationLockKey]
+            );
+          } catch (unlockError) {
+            console.error("[direct-connect] Failed to release requester create operation lock", {
+              requesterOperationLockKey,
+              error: unlockError,
+            });
+          } finally {
+            requesterOperationLockClient.release();
+          }
+        }
       }
     }
   );
@@ -7344,14 +8313,67 @@ export function registerDirectConnectRoutes(app: Express) {
               operationId: body.operationId,
             });
           }
+          const replayRequesterUserId =
+            String(operationMetadata.createdForUserId || "").trim() ||
+            String(existingOperation.request.createdByUserId);
+          await db.transaction((tx: any) =>
+            ensureDirectConnectDispatchFoundation({
+              executor: tx,
+              requestRow: existingOperation.request,
+              requesterUserId: replayRequesterUserId,
+              actorType: "staff",
+              actorId: String(actorUserId),
+              operationId: body.operationId,
+              sourceSurface: "direct_connect_admin",
+            })
+          );
+          const replayTargetProviderIds = resolveTargetProviderIds(body);
+          const replayBypassContext = resolveDirectConnectVerificationBypass(req, req.user);
+          if (replayTargetProviderIds.length > 0) {
+            await reconcileExplicitDirectConnectProviderRouting({
+              requestRow: existingOperation.request,
+              requestedTargetIds: replayTargetProviderIds,
+              actorUserId: String(actorUserId),
+              source: "direct_connect_admin",
+              routeMode: "direct_targeted_admin",
+              createdForUserId: replayRequesterUserId,
+              reconcileOnlyExistingAssignments: true,
+            });
+          } else if (body.autoRoute !== false) {
+            await routeRequestToTopContractors({
+              requestRow: existingOperation.request,
+              actorUserId: String(actorUserId),
+              expandReach: false,
+              bypassVerificationGate: replayBypassContext.active,
+              reconcileOnlyExistingAssignments: true,
+            });
+          }
+          const [reconciledRequest] = await db
+            .select()
+            .from(workRequests)
+            .where(eq(workRequests.id, String(existingOperation.request.id)))
+            .limit(1);
+          const replayRequest = reconciledRequest || existingOperation.request;
+          const shareToken = await ensureShareTokenForRequest(String(replayRequest.id));
+          const replayResponse = {
+            ...replayRequest,
+            ...(shareToken
+              ? {
+                  shareToken,
+                  dcMiniLandingUrl: `${resolveOrigin(req)}/r/${encodeURIComponent(
+                    String(shareToken)
+                  )}`,
+                }
+              : {}),
+          };
           return res.status(200).json({
-            request: existingOperation.request,
+            request: replayResponse,
             requesterIntent: "hire_provider",
-            resolvedCategory: existingOperation.request.category,
+            resolvedCategory: replayRequest.category,
             createdForUser: {
               id:
                 String(operationMetadata.createdForUserId || "").trim() ||
-                String(existingOperation.request.createdByUserId),
+                String(replayRequest.createdByUserId),
             },
             setupEmailSent: false,
             requestEmailSent: false,
@@ -7381,11 +8403,14 @@ export function registerDirectConnectRoutes(app: Express) {
         let requestEmailSkippedReason: string | null = null;
         let setupEmailMessageId: string | undefined;
         let requestEmailMessageId: string | undefined;
+        let emailNotificationId: string | undefined;
+        let emailDeliveryId: string | undefined;
+        let emailDeliveryStatus: string | undefined;
+        let emailRetryCount = 0;
+        let emailNextRetryAt: Date | null = null;
         let emailProviderErrorMessage: string | null = null;
         let activationLinkIncluded = false;
         let verifyLinkIncluded = false;
-        let activationLink: string | undefined;
-        let verifyLink: string | undefined;
         let targetEmailForNotification: string | null = null;
         let targetResolutionSource: "target_user_id" | "target_email" = "target_user_id";
         if (body.targetUserId) {
@@ -7505,6 +8530,15 @@ export function registerDirectConnectRoutes(app: Express) {
               requesterIntent: "hire_provider",
             },
           });
+          await ensureDirectConnectDispatchFoundation({
+            executor: tx,
+            requestRow: request,
+            requesterUserId: resolvedTargetUserId,
+            actorType: "staff",
+            actorId: String(actorUserId),
+            operationId: body.operationId,
+            sourceSurface: "direct_connect_admin",
+          });
           const [emailDispatchEvent] = await tx
             .insert(workRequestEvents)
             .values({
@@ -7523,7 +8557,45 @@ export function registerDirectConnectRoutes(app: Express) {
               },
             })
             .returning({ id: workRequestEvents.id });
-          return { request, emailDispatchEvent };
+          const durableEmail = targetEmailForNotification
+            ? shouldSendSetupFlow
+              ? await notificationService.enqueueDirectConnectAccountSetupEmail(tx, {
+                  userId: resolvedTargetUserId,
+                  workRequestId: String(request.id),
+                })
+              : await notificationService.enqueueDirectConnectRequestEmail(tx, {
+                  userId: resolvedTargetUserId,
+                  workRequestId: String(request.id),
+                  requestTitle: String(request.title),
+                  metadata: {
+                    notificationContext: "admin_created_request_email",
+                    adminOperationId: body.operationId,
+                    createdByStaffUserId: String(actorUserId),
+                  },
+                })
+            : null;
+          if (durableEmail?.delivery) {
+            await tx
+              .update(workRequestEvents)
+              .set({
+                metadata: {
+                  operation: "admin_request_email_dispatch",
+                  operationId: body.operationId,
+                  emailPurpose,
+                  deliveryStatus: durableEmail.delivery.status,
+                  externalId: null,
+                  errorCode: null,
+                  errorMessage: null,
+                  recipientUserId: resolvedTargetUserId,
+                  notificationId: durableEmail.notification.id,
+                  deliveryIntentId: durableEmail.delivery.id,
+                  retryCount: durableEmail.delivery.retryCount,
+                  nextRetryAt: durableEmail.delivery.nextRetryAt?.toISOString() || null,
+                },
+              })
+              .where(eq(workRequestEvents.id, String(emailDispatchEvent.id)));
+          }
+          return { request, emailDispatchEvent, durableEmail };
         });
         const created = creationResult.request;
         const emailDispatchEventId = String(creationResult.emailDispatchEvent.id);
@@ -7533,72 +8605,39 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (created) {
           if (targetEmailForNotification) {
-            const publicBase = resolveCanonicalPublicBase();
-            const requestUrl = `${publicBase}/direct-connect/engagements?requestId=${encodeURIComponent(
-              String(created.id)
-            )}`;
             try {
-              if (shouldSendActivation) {
-                const reset = passwordResetService.createToken(resolvedTargetUserId);
-                activationLink = `${publicBase}/reset-password?token=${reset.token}&next=${encodeURIComponent(
-                  "/pre-scout-setup"
-                )}`;
+              if (!creationResult.durableEmail) {
+                throw new Error("Durable Direct Connect email intent was not created.");
               }
-              if (shouldSendVerification) {
-                const verify = emailVerificationService.createToken(resolvedTargetUserId);
-                verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent(
-                  "/pre-scout-setup"
-                )}`;
-              }
+              const durableNotificationId = creationResult.durableEmail.notification.id;
+              emailNotificationId = durableNotificationId;
+              emailDeliveryId = creationResult.durableEmail.delivery?.id;
+              emailDeliveryStatus = creationResult.durableEmail.delivery?.status || "pending";
+              emailRetryCount = creationResult.durableEmail.delivery?.retryCount || 0;
+              emailNextRetryAt = creationResult.durableEmail.delivery?.nextRetryAt || null;
 
+              const emailResult =
+                await notificationService.dispatchDirectConnectEmail(durableNotificationId);
+              emailNotificationId = emailResult.notification.id;
+              emailDeliveryId = emailResult.delivery?.id;
+              emailDeliveryStatus = emailResult.delivery?.status || "pending";
+              emailRetryCount = emailResult.delivery?.retryCount || 0;
+              emailNextRetryAt = emailResult.delivery?.nextRetryAt || null;
+              emailProviderErrorMessage = emailResult.delivery?.errorMessage || null;
+
+              const emailSent = ["sent", "delivered"].includes(emailDeliveryStatus);
+              const externalId = emailResult.delivery?.externalId || undefined;
+              const skippedReason = emailSent
+                ? null
+                : emailResult.delivery?.errorCode || emailDeliveryStatus;
               if (shouldSendSetupFlow) {
-                const emailResult = await emailService.sendEmail({
-                  to: targetEmailForNotification,
-                  subject: "Complete setup to access your Direct Connect request",
-                  html: [
-                    "<p>Your TradeScout Direct Connect request is ready.</p>",
-                    shouldSendActivation
-                      ? "<p>Set your password to access your account.</p>"
-                      : "<p>Sign in to view and manage your request.</p>",
-                    shouldSendVerification ? "<p>Verify your email to continue.</p>" : "",
-                    activationLink ? `<p><a href="${activationLink}">Set password</a>.</p>` : "",
-                    verifyLink ? `<p><a href="${verifyLink}">Verify your email</a>.</p>` : "",
-                    `<p><a href="${requestUrl}">Open Direct Connect</a>.</p>`,
-                    "<p>If you did not expect this, you can ignore this email.</p>",
-                  ].join("\n"),
-                  text: [
-                    activationLink ? `Set password: ${activationLink}` : null,
-                    verifyLink ? `Verify email: ${verifyLink}` : null,
-                    `Open Direct Connect: ${requestUrl}`,
-                  ]
-                    .filter(Boolean)
-                    .join("\n"),
-                  purpose: "direct_connect_account_setup",
-                });
-                setupEmailSent = emailResult.skipped !== true;
-                setupEmailMessageId = emailResult.messageId;
-                setupEmailSkippedReason =
-                  emailResult.skipped === true
-                    ? emailResult.skippedReason || "suppressed_or_unconfigured"
-                    : null;
+                setupEmailSent = emailSent;
+                setupEmailMessageId = externalId;
+                setupEmailSkippedReason = skippedReason;
               } else {
-                const emailResult = await emailService.sendEmail({
-                  to: targetEmailForNotification,
-                  subject: "You have a new TradeScout Direct Connect request",
-                  html: [
-                    "<p>A Direct Connect request was created for your account.</p>",
-                    `<p><a href="${requestUrl}">Open Direct Connect</a>.</p>`,
-                    "<p>If you did not expect this, you can ignore this email.</p>",
-                  ].join("\n"),
-                  text: `Open Direct Connect: ${requestUrl}`,
-                  purpose: "direct_connect_request",
-                });
-                requestEmailSent = emailResult.skipped !== true;
-                requestEmailMessageId = emailResult.messageId;
-                requestEmailSkippedReason =
-                  emailResult.skipped === true
-                    ? emailResult.skippedReason || "suppressed_or_unconfigured"
-                    : null;
+                requestEmailSent = emailSent;
+                requestEmailMessageId = externalId;
+                requestEmailSkippedReason = skippedReason;
               }
             } catch (emailError) {
               emailProviderErrorMessage = redactContactDetails(
@@ -7630,6 +8669,7 @@ export function registerDirectConnectRoutes(app: Express) {
             const skippedReason = shouldSendSetupFlow
               ? setupEmailSkippedReason
               : requestEmailSkippedReason;
+            const durableDeliveryStatus = emailDeliveryStatus || (emailSent ? "sent" : "failed");
             await db
               .update(workRequestEvents)
               .set({
@@ -7637,11 +8677,15 @@ export function registerDirectConnectRoutes(app: Express) {
                   operation: "admin_request_email_dispatch",
                   operationId: body.operationId,
                   emailPurpose,
-                  deliveryStatus: emailSent ? "provider_accepted" : "skipped_or_failed",
+                  deliveryStatus: durableDeliveryStatus,
                   externalId: externalId || null,
                   errorCode: skippedReason || null,
                   errorMessage: emailProviderErrorMessage,
                   recipientUserId: resolvedTargetUserId,
+                  notificationId: emailNotificationId || null,
+                  deliveryIntentId: emailDeliveryId || null,
+                  retryCount: emailRetryCount,
+                  nextRetryAt: emailNextRetryAt?.toISOString() || null,
                 },
               })
               .where(eq(workRequestEvents.id, emailDispatchEventId));
@@ -7651,29 +8695,6 @@ export function registerDirectConnectRoutes(app: Express) {
               emailDispatchEventId,
               error: emailEvidenceError,
             });
-          }
-
-          try {
-            await notificationService.createNotification({
-              userId: resolvedTargetUserId,
-              type: "new_project_request",
-              title: "A Direct Connect request was created for you",
-              message: `Open Direct Connect to review: ${created.title}`,
-              actionUrl: "/direct-connect",
-              actionText: "Open Direct Connect",
-              iconName: "briefcase",
-              iconColor: "orange",
-              metadata: {
-                workRequestId: String(created.id),
-                notificationContext: "admin_created_request",
-              },
-              deliveryMethods: ["in_app"],
-            });
-          } catch (e) {
-            console.error(
-              "[direct-connect] Failed to notify target user for admin-created request",
-              e
-            );
           }
 
           console.info("[direct-connect] Admin-created request", {
@@ -7704,136 +8725,20 @@ export function registerDirectConnectRoutes(app: Express) {
 
         // Staff-directed explicit targeting preserves individual choice for this request.
         if (created && targetProviderIds.length > 0) {
-          try {
-            const requestedIds = targetProviderIds;
-            // Resolve contractor IDs and business IDs from the universal provider search.
-            const invitedContractors = await db
-              .select()
-              .from(contractors)
-              .where(inArray(contractors.id, requestedIds));
-            const invitedContractorIds = new Set(
-              invitedContractors.map((c) => String(c.id || "").trim()).filter(Boolean)
-            );
-            const potentialBusinessIds = requestedIds.filter((id) => !invitedContractorIds.has(id));
-            const invitedBusinesses =
-              potentialBusinessIds.length > 0
-                ? await db
-                    .select()
-                    .from(businesses)
-                    .where(
-                      and(
-                        inArray(businesses.id, potentialBusinessIds),
-                        eq(businesses.status, "active" as any)
-                      )
-                    )
-                : [];
-            const contractorEligibility = await filterContractorsEligibleForRequest(
-              invitedContractors,
-              created
-            );
-            const eligibleContractors = contractorEligibility.eligible;
-            const businessEligibility = await filterBusinessesEligibleForRequest(
-              invitedBusinesses,
-              created
-            );
-            const eligibleBusinesses = businessEligibility.eligible;
-            const now = new Date();
-            const contractorAssignments = eligibleContractors.map((contractor) => ({
-              workRequestId: created.id,
-              contractorId: contractor.id,
-              status: "invited" as const,
-              createdAt: now,
-              updatedAt: now,
-            }));
-            const businessAssignments = eligibleBusinesses
-              .filter((biz) => biz.ownerUserId)
-              .map((biz) => ({
-                workRequestId: created.id,
-                contractorId: null as any,
-                responderUserId: biz.ownerUserId!,
-                status: "invited" as const,
-                createdAt: now,
-                updatedAt: now,
-              }));
-            const allAssignments = [...contractorAssignments, ...businessAssignments];
-            if (allAssignments.length > 0) {
-              await db.insert(workRequestAssignments).values(allAssignments);
-              await db
-                .update(workRequests)
-                .set({ status: "routed", updatedAt: now })
-                .where(eq(workRequests.id, created.id));
-              logDirectConnectVisibilityEvent({
-                requestId: String(created.id),
-                visibleContractorCount: allAssignments.length,
-                dispatchMode: "direct_targeted_admin",
-                countyFips: countyFips || null,
-                tradeId: resolvedTrade?.slug || null,
-              });
-              try {
-                const contractorEvents = eligibleContractors.map((contractor) => ({
-                  workRequestId: created.id,
-                  type: "provider_invited" as const,
-                  actorUserId: String(actorUserId),
-                  metadata: {
-                    contractorId: contractor.id,
-                    contractorUserId: contractor.userId ?? null,
-                    source: "direct_connect_admin",
-                    createdForUserId: resolvedTargetUserId,
-                  },
-                }));
-                const businessEvents = eligibleBusinesses
-                  .filter((biz) => biz.ownerUserId)
-                  .map((biz) => ({
-                    workRequestId: created.id,
-                    type: "provider_invited" as const,
-                    actorUserId: String(actorUserId),
-                    metadata: {
-                      businessId: biz.id,
-                      responderUserId: biz.ownerUserId ?? null,
-                      source: "direct_connect_admin",
-                      createdForUserId: resolvedTargetUserId,
-                    },
-                  }));
-                if (contractorEvents.length || businessEvents.length) {
-                  await db
-                    .insert(workRequestEvents)
-                    .values([...contractorEvents, ...businessEvents]);
-                }
-              } catch (e) {
-                console.warn("[direct-connect] Failed to record provider_invited events", e);
-              }
-              try {
-                const notifyUserIds: string[] = [
-                  ...(eligibleContractors.map((c) => c.userId).filter(Boolean) as string[]),
-                  ...(eligibleBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
-                ];
-                await Promise.all(
-                  notifyUserIds.map(async (notifyUserId) => {
-                    await notificationService.createNotification({
-                      userId: notifyUserId,
-                      type: "new_project_request",
-                      title: "New Direct Connect request",
-                      message: `You have a new Direct Connect request: ${created.title}`,
-                      actionUrl: "/direct-connect/inbox",
-                      actionText: "View in Direct Connect",
-                      iconName: "briefcase",
-                      iconColor: "orange",
-                      metadata: {
-                        workRequestId: String(created.id),
-                        emailPurpose: "direct_connect_request",
-                        notificationContext: "provider_invitation",
-                      },
-                      deliveryMethods: ["in_app", "email", "push"],
-                    });
-                  })
-                );
-              } catch (e) {
-                console.error("[direct-connect] Failed to notify invited providers", e);
-              }
-            }
-          } catch (e) {
-            console.error("[direct-connect] Failed to invite target providers", e);
-          }
+          await reconcileExplicitDirectConnectProviderRouting({
+            requestRow: created,
+            requestedTargetIds: targetProviderIds,
+            actorUserId: String(actorUserId),
+            source: "direct_connect_admin",
+            routeMode: "direct_targeted_admin",
+            createdForUserId: resolvedTargetUserId,
+          });
+          const [fresh] = await db
+            .select()
+            .from(workRequests)
+            .where(eq(workRequests.id, created.id))
+            .limit(1);
+          if (fresh) createdResponse = fresh as any;
         }
 
         if (created && shouldAutoRoute) {
@@ -7854,6 +8759,7 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           } catch (e) {
             console.error("[direct-connect] Failed to auto-route admin-created request", e);
+            throw e;
           }
         }
 
@@ -7882,12 +8788,15 @@ export function registerDirectConnectRoutes(app: Express) {
           requestEmailSkippedReason,
           setupEmailMessageId,
           requestEmailMessageId,
+          emailDeliveryStatus: emailDeliveryStatus || null,
+          emailNotificationId: emailNotificationId || null,
+          emailDeliveryIntentId: emailDeliveryId || null,
+          emailRetryCount,
+          emailNextRetryAt: emailNextRetryAt?.toISOString() || null,
           activationLinkIncluded,
           verifyLinkIncluded,
           resolvedTradeId: resolvedTrade?.slug ?? null,
           createdTradeId: resolvedTrade?.created === true,
-          ...(process.env.NODE_ENV !== "production" && activationLink ? { activationLink } : {}),
-          ...(process.env.NODE_ENV !== "production" && verifyLink ? { verifyLink } : {}),
           createdByStaffUserId: String(actorUserId),
         });
       } catch (error: any) {
@@ -7964,21 +8873,43 @@ export function registerDirectConnectRoutes(app: Express) {
     const workerIds = Array.from(
       new Set(assignments.map((a) => String(a.workerId || "").trim()).filter(Boolean))
     );
+    const businessIds = Array.from(
+      new Set(
+        assignments
+          .map((assignment) => String(assignment.providerKey || "").trim())
+          .filter((providerKey) => providerKey.startsWith("business:"))
+          .map((providerKey) => providerKey.slice("business:".length))
+          .filter(Boolean)
+      )
+    );
     const contractorRows = contractorIds.length
       ? await db.select().from(contractors).where(inArray(contractors.id, contractorIds))
       : [];
     const workerRows = workerIds.length
       ? await db.select().from(workers).where(inArray(workers.id, workerIds))
       : [];
+    const businessRows = businessIds.length
+      ? await db.select().from(businesses).where(inArray(businesses.id, businessIds))
+      : [];
     const contractorById = new Map<string, any>(contractorRows.map((row) => [String(row.id), row]));
     const workerById = new Map<string, any>(workerRows.map((row) => [String(row.id), row]));
+    const businessById = new Map<string, any>(businessRows.map((row) => [String(row.id), row]));
     const providerUserIds = Array.from(
       new Set(
         assignments
           .flatMap((assignment) => {
             const contractor = contractorById.get(String(assignment.contractorId || ""));
             const worker = workerById.get(String(assignment.workerId || ""));
-            return [assignment.responderUserId, contractor?.userId, worker?.userId];
+            const providerKey = String(assignment.providerKey || "");
+            const business = providerKey.startsWith("business:")
+              ? businessById.get(providerKey.slice("business:".length))
+              : null;
+            return [
+              assignment.responderUserId,
+              contractor?.userId,
+              worker?.userId,
+              business?.ownerUserId,
+            ];
           })
           .map((value) => String(value || "").trim())
           .filter(Boolean)
@@ -7996,7 +8927,13 @@ export function registerDirectConnectRoutes(app: Express) {
     const details = assignments.map((assignment) => {
       const contractor = contractorById.get(String(assignment.contractorId || ""));
       const worker = workerById.get(String(assignment.workerId || ""));
-      const entityProviderUserId = String(contractor?.userId || worker?.userId || "").trim();
+      const providerKey = String(assignment.providerKey || "");
+      const business = providerKey.startsWith("business:")
+        ? businessById.get(providerKey.slice("business:".length))
+        : null;
+      const entityProviderUserId = String(
+        contractor?.userId || worker?.userId || business?.ownerUserId || ""
+      ).trim();
       const responderUserId = String(assignment.responderUserId || "").trim();
       const providerIdentityConflict = Boolean(
         entityProviderUserId && responderUserId && entityProviderUserId !== responderUserId
@@ -8009,23 +8946,29 @@ export function registerDirectConnectRoutes(app: Express) {
         ? "contractor"
         : worker
           ? "worker"
-          : assignment.responderUserId
-            ? "business_or_user"
-            : "unknown";
+          : business
+            ? "business"
+            : assignment.responderUserId
+              ? "business_or_user"
+              : "unknown";
       const providerName = contractor
         ? String(contractor.companyName || contractor.slug)
         : worker
           ? [worker.firstName, worker.lastName].filter(Boolean).join(" ")
-          : providerUser
-            ? [providerUser.firstName, providerUser.lastName].filter(Boolean).join(" ") || null
-            : null;
+          : business
+            ? String(business.name || business.slug || business.id)
+            : providerUser
+              ? [providerUser.firstName, providerUser.lastName].filter(Boolean).join(" ") || null
+              : null;
       const profileUrl = contractor?.slug
         ? `/contractors/${encodeURIComponent(String(contractor.slug))}`
         : worker?.id
           ? `/helpers/${encodeURIComponent(String(worker.id))}`
-          : providerUserId
-            ? `/profile/${encodeURIComponent(providerUserId)}`
-            : null;
+          : business?.slug
+            ? `/u/${encodeURIComponent(String(business.slug))}`
+            : providerUserId
+              ? `/profile/${encodeURIComponent(providerUserId)}`
+              : null;
 
       return {
         ...assignment,
@@ -8035,6 +8978,7 @@ export function registerDirectConnectRoutes(app: Express) {
         providerName,
         profileUrl,
         contractorSlug: contractor?.slug || null,
+        businessId: business?.id || null,
       };
     });
 
@@ -8283,15 +9227,41 @@ export function registerDirectConnectRoutes(app: Express) {
                ndl.external_id AS "externalId",
                ndl.error_code AS "errorCode",
                ndl.error_message AS "errorMessage",
+               COALESCE(ndl.retry_count, 0)::int AS "retryCount",
+               ndl.next_retry_at AS "nextRetryAt",
                ndl.sent_at AS "sentAt",
                ndl.delivered_at AS "deliveredAt",
                ndl.failed_at AS "failedAt",
-               ndl.created_at AS "createdAt"
+               ndl.created_at AS "createdAt",
+               ndl.updated_at AS "updatedAt",
+               CASE
+                 WHEN ndl.id IS NULL THEN false
+                 WHEN ndl.status IN (
+                   'sent',
+                   'delivered',
+                   'accepted_unreconciled',
+                   'delivery_unknown',
+                   'failed',
+                   'bounced',
+                   'suppressed',
+                   'exhausted'
+                 ) AND ndl.next_retry_at IS NULL THEN true
+                 ELSE false
+               END AS terminal
              FROM notifications n
              LEFT JOIN notification_delivery_log ndl ON ndl.notification_id = n.id
-             WHERE n.metadata ->> 'workRequestId' = $1
+             WHERE (
+               n.metadata ->> 'workRequestId' = $1
+               OR (
+                 n.metadata ->> 'emailPurpose' = 'direct_connect_account_setup'
+                 AND n.metadata -> 'emailTemplate' ->> 'kind' =
+                   'direct_connect_account_setup'
+                 AND n.metadata -> 'emailTemplate' ->> 'workRequestId' = $1
+                 AND n.user_id = $2
+               )
+             )
              ORDER BY n.created_at DESC, ndl.created_at DESC`,
-            [requestId]
+            [requestId, String(request.createdByUserId)]
           );
           deliveries = deliveryResult.rows;
         } catch (deliveryError) {
@@ -8303,34 +9273,61 @@ export function registerDirectConnectRoutes(app: Express) {
             error: deliveryError,
           });
         }
+        const loadedDurableEvidenceKeys = new Set(
+          deliveries
+            .filter((delivery) => delivery.notificationId && delivery.id)
+            .map((delivery) => `${String(delivery.notificationId)}:${String(delivery.id)}`)
+        );
         for (const event of events) {
           const metadata =
             event.metadata && typeof event.metadata === "object"
               ? (event.metadata as Record<string, any>)
               : {};
           const isAdminRequestEmail = metadata.operation === "admin_request_email_dispatch";
-          const isTradePartnerNotificationEmail =
+          const isTradePartnerProviderEmail =
             metadata.operation === "tradepartner_notification_email_dispatch";
-          if (!isAdminRequestEmail && !isTradePartnerNotificationEmail) continue;
+          const isTradePartnerRequesterEmail =
+            metadata.operation === "tradepartner_requester_email_dispatch";
+          if (
+            !isAdminRequestEmail &&
+            !isTradePartnerProviderEmail &&
+            !isTradePartnerRequesterEmail
+          ) {
+            continue;
+          }
+          // Durable NotificationService deliveries are already represented by
+          // notification_delivery_log above. Suppress the request-scoped audit
+          // fallback only when that exact durable intent was actually loaded.
+          const durableEvidenceKey =
+            metadata.notificationId && metadata.deliveryIntentId
+              ? `${String(metadata.notificationId)}:${String(metadata.deliveryIntentId)}`
+              : null;
+          if (durableEvidenceKey && loadedDurableEvidenceKeys.has(durableEvidenceKey)) continue;
           deliveries.push({
             id: `event:${String(event.id)}`,
             notificationId: null,
             recipientUserId: metadata.recipientUserId || null,
-            title: isTradePartnerNotificationEmail
+            title: isTradePartnerProviderEmail
               ? "TradePartner profile Direct Connect notification email"
-              : "Admin-created Direct Connect request email",
+              : isTradePartnerRequesterEmail
+                ? "TradePartner profile requester setup or confirmation email"
+                : "Admin-created Direct Connect request email",
             emailPurpose: metadata.emailPurpose || null,
             deliveryMethod: "email",
             status: metadata.deliveryStatus || "unknown",
             externalId: metadata.externalId || null,
             errorCode: metadata.errorCode || null,
             errorMessage: metadata.errorMessage || null,
+            retryCount: 0,
+            nextRetryAt: null,
             sentAt:
               metadata.deliveryStatus === "provider_accepted" ? event.createdAt || null : null,
             deliveredAt: null,
             failedAt:
               metadata.deliveryStatus === "skipped_or_failed" ? event.createdAt || null : null,
             createdAt: event.createdAt || null,
+            updatedAt: event.createdAt || null,
+            terminal: metadata.deliveryStatus !== "pending",
             evidenceSource: "work_request_event",
           });
         }
@@ -8341,6 +9338,9 @@ export function registerDirectConnectRoutes(app: Express) {
             title: request.title,
             description: request.description,
             category: request.category,
+            tradeId: request.tradeId,
+            countyFips: request.countyFips,
+            stateCode: request.stateCode,
             status: request.status,
             source: request.source,
             createdAt: request.createdAt,
@@ -8449,14 +9449,13 @@ export function registerDirectConnectRoutes(app: Express) {
         if (routingOutcome.status !== 200) {
           return res.status(routingOutcome.status).json({ message: routingOutcome.message });
         }
-        const { deferredNotificationUserIds = [], ...result } = routingOutcome.result;
-        if (result.routed && deferredNotificationUserIds.length > 0) {
-          const request = await loadDirectConnectRequest(requestId);
-          await notifyRoutedDirectConnectProviders({
-            userIds: deferredNotificationUserIds,
-            requestId,
-            requestTitle: String(request?.title || "Direct Connect request"),
-          });
+        const {
+          deferredNotificationUserIds: _deferredNotificationUserIds = [],
+          deferredNotificationIds = [],
+          ...result
+        } = routingOutcome.result;
+        if (result.routed && deferredNotificationIds.length > 0) {
+          await dispatchDurableDirectConnectNotifications(deferredNotificationIds);
         }
         await logAdminAction({
           action: "admin_direct_connect_route",
@@ -8471,6 +9470,470 @@ export function registerDirectConnectRoutes(app: Express) {
       } catch (error) {
         console.error("[direct-connect] Admin routing failed", error);
         return res.status(500).json({ message: "Failed to route Direct Connect request" });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/direct-connect/requests/:id/manual-assignment",
+    isAuthenticated,
+    isDirectConnectOperator,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const actorUserId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!actorUserId) return res.status(401).json({ message: "Unauthorized" });
+
+        const parsed = directConnectAdminManualAssignmentSchema.safeParse(req.body ?? {});
+        if (!parsed.success) {
+          return res.status(400).json({
+            message: "Invalid manual provider assignment",
+            issues: parsed.error.flatten(),
+          });
+        }
+
+        const requestId = String(req.params.id || "").trim();
+        const { providerId, providerType, reason, operationId } = parsed.data;
+        const [replayEvent] = await db
+          .select()
+          .from(workRequestEvents)
+          .where(
+            and(
+              eq(workRequestEvents.workRequestId, requestId),
+              eq(workRequestEvents.type, "provider_invited" as any),
+              sql`${workRequestEvents.metadata} ->> 'operation' = 'staff_manual_provider_assignment'`,
+              sql`${workRequestEvents.metadata} ->> 'operationId' = ${operationId}`
+            )
+          )
+          .orderBy(desc(workRequestEvents.createdAt), desc(workRequestEvents.id))
+          .limit(1);
+        if (replayEvent) {
+          const replayMetadata =
+            replayEvent.metadata && typeof replayEvent.metadata === "object"
+              ? (replayEvent.metadata as Record<string, any>)
+              : {};
+          if (
+            String(replayMetadata.providerId || "") !== providerId ||
+            String(replayMetadata.providerType || "") !== providerType
+          ) {
+            return res.status(409).json({
+              message:
+                "This operationId was already used for a different manual provider assignment.",
+            });
+          }
+          const replayAssignmentId = String(replayMetadata.assignmentId || "").trim();
+          const [replayAssignment] = replayAssignmentId
+            ? await db
+                .select()
+                .from(workRequestAssignments)
+                .where(
+                  and(
+                    eq(workRequestAssignments.id, replayAssignmentId),
+                    eq(workRequestAssignments.workRequestId, requestId)
+                  )
+                )
+                .limit(1)
+            : [];
+          if (!replayAssignment) {
+            return res.status(409).json({
+              message:
+                "The prior manual assignment operation is incomplete and requires operator review.",
+            });
+          }
+          return res.status(200).json({
+            assignment: replayAssignment,
+            alreadyAssigned: true,
+            notificationQueued: false,
+            idempotentReplay: true,
+          });
+        }
+
+        const request = await loadDirectConnectRequest(requestId);
+        if (!request) return res.status(404).json({ message: "Request not found" });
+        if (!["open", "routed"].includes(String(request.status || ""))) {
+          return res.status(409).json({
+            message: "Only open or routed Direct Connect requests can receive a new provider.",
+          });
+        }
+
+        const assignmentProviderKey = buildWorkRequestAssignmentProviderKey(
+          providerType,
+          providerId
+        );
+        const [contractor] =
+          providerType === "contractor"
+            ? await db.select().from(contractors).where(eq(contractors.id, providerId)).limit(1)
+            : [];
+        const [business] =
+          providerType === "business"
+            ? await db
+                .select()
+                .from(businesses)
+                .where(and(eq(businesses.id, providerId), eq(businesses.status, "active" as any)))
+                .limit(1)
+            : [];
+
+        if (providerType === "contractor" && (!contractor || contractor.isActive === false)) {
+          return res.status(404).json({ message: "Active contractor provider not found" });
+        }
+        if (providerType === "business" && !business) {
+          return res.status(404).json({ message: "Active business provider not found" });
+        }
+
+        const contractorEligibility = contractor
+          ? await filterContractorsEligibleForRequest([contractor], request)
+          : null;
+        const businessEligibility = business
+          ? await filterBusinessesEligibleForRequest([business], request)
+          : null;
+        const eligibleContractor = contractorEligibility?.eligible?.[0] || null;
+        const eligibleBusiness = businessEligibility?.eligible?.[0] || null;
+        const providerUserId = String(
+          eligibleContractor?.userId || eligibleBusiness?.ownerUserId || ""
+        ).trim();
+
+        if (!eligibleContractor && !eligibleBusiness) {
+          const eligibilityReasons = [
+            ...(contractorEligibility?.ineligible || []),
+            ...(contractorEligibility?.tradeEligibility?.ineligible || []),
+            ...(businessEligibility?.ineligible || []),
+          ];
+          return res.status(409).json({
+            message:
+              "This provider is not eligible for the request county, trade, or verification requirements.",
+            code: "PROVIDER_NOT_ELIGIBLE",
+            eligibilityReasons,
+          });
+        }
+        if (!providerUserId) {
+          return res.status(409).json({
+            message: "The selected provider does not have an active owner account to notify.",
+            code: "PROVIDER_ACCOUNT_MISSING",
+          });
+        }
+        if (providerUserId === String(request.createdByUserId)) {
+          return res.status(409).json({
+            message: "The requester cannot be assigned as the provider for their own request.",
+            code: "REQUESTER_PROVIDER_CONFLICT",
+          });
+        }
+
+        const now = new Date();
+        const assignmentOutcome = await db.transaction(async (tx: any) => {
+          const assignmentLockKeys = [
+            `direct-connect-manual-assignment-operation:${requestId}:${operationId}`,
+            `direct-connect-manual-assignment-provider:${requestId}:${providerType}:${providerId}`,
+          ].sort();
+          for (const assignmentLockKey of assignmentLockKeys) {
+            await tx.execute(
+              sql`SELECT pg_advisory_xact_lock(hashtextextended(${assignmentLockKey}, 0))`
+            );
+          }
+
+          const lockedRequestResult = await tx.execute(sql`
+            SELECT
+              id,
+              title,
+              status::text AS status,
+              source::text AS source,
+              category,
+              created_by_user_id AS "createdByUserId",
+              county_fips AS "countyFips",
+              trade_id AS "tradeId"
+            FROM work_requests
+            WHERE id = ${requestId}
+              AND source::text = 'direct_connect'
+            FOR UPDATE
+          `);
+          const lockedRequest = lockedRequestResult.rows?.[0] as any;
+          if (!lockedRequest) {
+            return { status: 404 as const, message: "Request not found" };
+          }
+          if (!["open", "routed"].includes(String(lockedRequest.status || ""))) {
+            return {
+              status: 409 as const,
+              message: "This request is no longer accepting provider assignments.",
+            };
+          }
+
+          const lockedContractorEligibility = contractor
+            ? await filterContractorsEligibleForRequest([contractor], lockedRequest)
+            : null;
+          const lockedBusinessEligibility = business
+            ? await filterBusinessesEligibleForRequest([business], lockedRequest)
+            : null;
+          if (
+            !lockedContractorEligibility?.eligible?.[0] &&
+            !lockedBusinessEligibility?.eligible?.[0]
+          ) {
+            return {
+              status: 409 as const,
+              code: "PROVIDER_NOT_ELIGIBLE",
+              message:
+                "This provider is no longer eligible for the request county, trade, or verification requirements.",
+            };
+          }
+
+          const [existingOperation] = await tx
+            .select()
+            .from(workRequestEvents)
+            .where(
+              and(
+                eq(workRequestEvents.workRequestId, requestId),
+                eq(workRequestEvents.type, "provider_invited" as any),
+                sql`${workRequestEvents.metadata} ->> 'operation' = 'staff_manual_provider_assignment'`,
+                sql`${workRequestEvents.metadata} ->> 'operationId' = ${operationId}`
+              )
+            )
+            .orderBy(desc(workRequestEvents.createdAt), desc(workRequestEvents.id))
+            .limit(1);
+          if (existingOperation) {
+            const existingMetadata =
+              existingOperation.metadata && typeof existingOperation.metadata === "object"
+                ? (existingOperation.metadata as Record<string, any>)
+                : {};
+            if (
+              String(existingMetadata.providerId || "") !== providerId ||
+              String(existingMetadata.providerType || "") !== providerType
+            ) {
+              return {
+                status: 409 as const,
+                message:
+                  "This operationId was already used for a different manual provider assignment.",
+              };
+            }
+            const existingAssignmentId = String(existingMetadata.assignmentId || "").trim();
+            const [operationAssignment] = existingAssignmentId
+              ? await tx
+                  .select()
+                  .from(workRequestAssignments)
+                  .where(
+                    and(
+                      eq(workRequestAssignments.id, existingAssignmentId),
+                      eq(workRequestAssignments.workRequestId, requestId)
+                    )
+                  )
+                  .limit(1)
+              : [];
+            if (!operationAssignment) {
+              return {
+                status: 409 as const,
+                message:
+                  "The prior manual assignment operation is incomplete and requires operator review.",
+              };
+            }
+            return {
+              status: 200 as const,
+              assignment: operationAssignment,
+              alreadyAssigned: true,
+            };
+          }
+
+          const [existingAssignment] =
+            providerType === "contractor"
+              ? await tx
+                  .select()
+                  .from(workRequestAssignments)
+                  .where(
+                    and(
+                      eq(workRequestAssignments.workRequestId, requestId),
+                      or(
+                        eq(workRequestAssignments.providerKey, assignmentProviderKey),
+                        and(
+                          isNull(workRequestAssignments.providerKey),
+                          eq(workRequestAssignments.contractorId, providerId)
+                        )
+                      )
+                    )
+                  )
+                  .orderBy(desc(sql`${workRequestAssignments.providerKey} IS NOT NULL`))
+                  .limit(1)
+              : await tx
+                  .select()
+                  .from(workRequestAssignments)
+                  .where(
+                    and(
+                      eq(workRequestAssignments.workRequestId, requestId),
+                      eq(workRequestAssignments.providerKey, assignmentProviderKey)
+                    )
+                  )
+                  .limit(1);
+
+          if (
+            existingAssignment &&
+            !["declined", "withdrawn"].includes(String(existingAssignment.status || ""))
+          ) {
+            return {
+              status: 200 as const,
+              assignment: existingAssignment,
+              alreadyAssigned: true,
+            };
+          }
+
+          const assignmentValues = {
+            providerKey: assignmentProviderKey,
+            contractorId: providerType === "contractor" ? providerId : null,
+            responderUserId: providerType === "business" ? providerUserId : null,
+            workerId: null,
+            status: "invited" as const,
+            scoreSnapshot: {
+              reasons: ["TradeScout operator manually assigned an eligible provider"],
+              routingMode: "staff_manual",
+            },
+            updatedAt: now,
+          };
+          let assignment: any;
+          let reinvited = false;
+          if (existingAssignment) {
+            [assignment] = await tx
+              .update(workRequestAssignments)
+              .set(assignmentValues)
+              .where(eq(workRequestAssignments.id, existingAssignment.id))
+              .returning();
+            reinvited = true;
+          } else {
+            [assignment] = await tx
+              .insert(workRequestAssignments)
+              .values({
+                workRequestId: requestId,
+                ...assignmentValues,
+                createdAt: now,
+              })
+              .onConflictDoNothing()
+              .returning();
+            if (!assignment) {
+              [assignment] = await tx
+                .select()
+                .from(workRequestAssignments)
+                .where(
+                  and(
+                    eq(workRequestAssignments.workRequestId, requestId),
+                    eq(workRequestAssignments.providerKey, assignmentProviderKey)
+                  )
+                )
+                .limit(1);
+              if (!assignment) {
+                return {
+                  status: 409 as const,
+                  message: "This provider assignment changed concurrently. Refresh and try again.",
+                };
+              }
+              return {
+                status: 200 as const,
+                assignment,
+                alreadyAssigned: true,
+              };
+            }
+          }
+
+          if (String(lockedRequest.status || "") === "open") {
+            await tx
+              .update(workRequests)
+              .set({ status: "routed", updatedAt: now })
+              .where(eq(workRequests.id, requestId));
+          }
+
+          await tx.insert(workRequestEvents).values({
+            workRequestId: requestId,
+            type: "provider_invited" as const,
+            actorUserId,
+            metadata: {
+              operation: "staff_manual_provider_assignment",
+              operationId,
+              assignmentId: assignment.id,
+              providerKey: assignmentProviderKey,
+              providerId,
+              providerType,
+              providerUserId,
+              reinvited,
+              reason,
+              source: "direct_connect_admin",
+            },
+          });
+
+          return {
+            status: reinvited ? (200 as const) : (201 as const),
+            assignment,
+            alreadyAssigned: false,
+          };
+        });
+
+        if (!("assignment" in assignmentOutcome)) {
+          return res.status(assignmentOutcome.status).json({
+            message: assignmentOutcome.message,
+            ...("code" in assignmentOutcome ? { code: assignmentOutcome.code } : {}),
+          });
+        }
+
+        let notificationQueued = false;
+        if (!assignmentOutcome.alreadyAssigned) {
+          try {
+            await notificationService.createNotification({
+              userId: providerUserId,
+              type: "new_project_request",
+              title: "Direct Connect request assigned to you",
+              message: `TradeScout assigned a Direct Connect request for your review: ${request.title}`,
+              actionUrl: "/direct-connect/inbox",
+              actionText: "Review request",
+              iconName: "briefcase",
+              iconColor: "orange",
+              metadata: {
+                workRequestId: requestId,
+                assignmentId: assignmentOutcome.assignment.id,
+                emailPurpose: "direct_connect_request",
+                notificationContext: "staff_manual_assignment",
+                assignedByStaffUserId: actorUserId,
+                operationId,
+              },
+              deliveryMethods: ["in_app", "email", "push"],
+            });
+            notificationQueued = true;
+          } catch (notificationError) {
+            console.error("[direct-connect] Manual assignment notification enqueue failed", {
+              requestId,
+              assignmentId: assignmentOutcome.assignment.id,
+              error: notificationError,
+            });
+          }
+        }
+
+        await logAdminAction({
+          action: "admin_direct_connect_manual_assignment",
+          actorId: actorUserId,
+          targetType: "work_request",
+          targetId: requestId,
+          assignmentId: assignmentOutcome.assignment.id,
+          providerId,
+          providerType,
+          providerUserId,
+          reason,
+          operationId,
+          alreadyAssigned: assignmentOutcome.alreadyAssigned,
+          notificationQueued,
+        });
+
+        return res.status(assignmentOutcome.status).json({
+          assignment: assignmentOutcome.assignment,
+          alreadyAssigned: assignmentOutcome.alreadyAssigned,
+          notificationQueued,
+          provider: {
+            id: providerId,
+            type: providerType,
+            userId: providerUserId,
+            name:
+              providerType === "contractor"
+                ? String(eligibleContractor?.companyName || eligibleContractor?.slug || providerId)
+                : String(eligibleBusiness?.name || eligibleBusiness?.slug || providerId),
+            profileUrl:
+              providerType === "contractor" && eligibleContractor?.slug
+                ? `/contractors/${encodeURIComponent(String(eligibleContractor.slug))}`
+                : providerType === "business" && eligibleBusiness?.slug
+                  ? `/u/${encodeURIComponent(String(eligibleBusiness.slug))}`
+                  : `/profile/${encodeURIComponent(providerUserId)}`,
+          },
+        });
+      } catch (error) {
+        console.error("[direct-connect] Admin manual assignment failed", error);
+        return res.status(500).json({ message: "Failed to assign provider" });
       }
     }
   );
@@ -9285,37 +10748,109 @@ export function registerDirectConnectRoutes(app: Express) {
             `)
         );
 
-        const responseByRequest = new Map<string, any>();
+        const responseByAssignmentId = new Map<string, any>();
         const responseRows = await safeSelectRows("contractor responses", () =>
           contractorId
             ? db.execute(sql`
-              SELECT DISTINCT ON (request_id)
+              SELECT DISTINCT ON (assignment_id)
                 request_id,
+                assignment_id,
+                provider_key,
                 response_type,
                 contact_request_state,
                 created_at
               FROM direct_connect_contractor_responses
-              WHERE contractor_id = ${contractorId}
-                 OR responder_user_id = ${userId}
-              ORDER BY request_id, created_at DESC
+              WHERE assignment_id IS NOT NULL
+                AND (
+                  contractor_id = ${contractorId}
+                  OR responder_user_id = ${userId}
+                )
+              ORDER BY assignment_id, created_at DESC, id DESC
             `)
             : db.execute(sql`
-              SELECT DISTINCT ON (request_id)
+              SELECT DISTINCT ON (assignment_id)
                 request_id,
+                assignment_id,
+                provider_key,
                 response_type,
                 contact_request_state,
                 created_at
               FROM direct_connect_contractor_responses
-              WHERE responder_user_id = ${userId}
-              ORDER BY request_id, created_at DESC
+              WHERE assignment_id IS NOT NULL
+                AND responder_user_id = ${userId}
+              ORDER BY assignment_id, created_at DESC, id DESC
             `)
         );
         for (const row of responseRows as any[]) {
-          responseByRequest.set(String(row.request_id), row);
+          responseByAssignmentId.set(String(row.assignment_id), row);
         }
         const requestIds = Array.from(
           new Set((candidateRows as any[]).map((row: any) => String(row.request_id || "")))
         ).filter(Boolean);
+        const assignmentByRequestId = new Map<string, any>();
+        if (requestIds.length) {
+          const assignmentRows = await safeSelectRows("exact routed assignments", () =>
+            contractorId
+              ? db.execute(sql`
+                  SELECT DISTINCT ON (work_request_id)
+                    id,
+                    work_request_id,
+                    status,
+                    updated_at
+                  FROM work_request_assignments
+                  WHERE work_request_id IN (${sql.join(
+                    requestIds.map((requestId) => sql`${requestId}`),
+                    sql`, `
+                  )})
+                    AND (
+                      contractor_id = ${contractorId}
+                      OR responder_user_id = ${userId}
+                      OR (${workerId} IS NOT NULL AND worker_id = ${workerId})
+                    )
+                  ORDER BY
+                    work_request_id,
+                    CASE status
+                      WHEN 'accepted' THEN 0
+                      WHEN 'completed' THEN 1
+                      WHEN 'invited' THEN 2
+                      WHEN 'suggested' THEN 3
+                      ELSE 4
+                    END,
+                    updated_at DESC,
+                    id DESC
+                `)
+              : db.execute(sql`
+                  SELECT DISTINCT ON (work_request_id)
+                    id,
+                    work_request_id,
+                    status,
+                    updated_at
+                  FROM work_request_assignments
+                  WHERE work_request_id IN (${sql.join(
+                    requestIds.map((requestId) => sql`${requestId}`),
+                    sql`, `
+                  )})
+                    AND (
+                      responder_user_id = ${userId}
+                      OR (${workerId} IS NOT NULL AND worker_id = ${workerId})
+                    )
+                  ORDER BY
+                    work_request_id,
+                    CASE status
+                      WHEN 'accepted' THEN 0
+                      WHEN 'completed' THEN 1
+                      WHEN 'invited' THEN 2
+                      WHEN 'suggested' THEN 3
+                      ELSE 4
+                    END,
+                    updated_at DESC,
+                    id DESC
+                `)
+          );
+          for (const assignment of assignmentRows as any[]) {
+            assignmentByRequestId.set(String(assignment.work_request_id), assignment);
+          }
+        }
         const workspaceByRequestId = new Map<string, any>();
         if (requestIds.length) {
           const workspaceRows = await safeSelectRows("workspaces", () =>
@@ -9332,6 +10867,17 @@ export function registerDirectConnectRoutes(app: Express) {
             const key = String(row.request_id || "");
             if (!key || workspaceByRequestId.has(key)) continue;
             workspaceByRequestId.set(key, row);
+          }
+          for (const [requestId, workspace] of workspaceByRequestId) {
+            const authority = await resolveDirectConnectJobWorkspaceAuthority(
+              String(workspace.id || "")
+            );
+            if (
+              !authority.ok ||
+              !isAuthorizedDirectConnectJobWorkspaceParticipant(authority, userId)
+            ) {
+              workspaceByRequestId.delete(requestId);
+            }
           }
         }
         const lifecycleByRequestId = new Map<
@@ -9571,18 +11117,27 @@ export function registerDirectConnectRoutes(app: Express) {
         for (const row of candidateRows as any[]) {
           const requestId = String(row.request_id || "");
           if (!requestId || deduped.has(requestId)) continue;
-          const latestResponse = responseByRequest.get(requestId) || null;
+          const exactAssignment = assignmentByRequestId.get(requestId) || null;
+          if (!exactAssignment) continue;
+          const latestResponse =
+            responseByAssignmentId.get(String(exactAssignment.id || "")) || null;
           const lifecycleMeta = lifecycleByRequestId.get(requestId) || null;
-          const estimateMeta = estimateSummaryByRequestId.get(requestId) || null;
-          const paymentMeta = paymentSummaryByRequestId.get(requestId) || null;
-          const scheduleMeta = scheduleSummaryByRequestId.get(requestId) || null;
-          const checkpointMeta = checkpointSummaryByRequestId.get(requestId) || null;
-          const changeOrderMeta = changeOrderSummaryByRequestId.get(requestId) || null;
-          const punchMeta = punchSummaryByRequestId.get(requestId) || null;
-          const completionMeta = completionSummaryByRequestId.get(requestId) || null;
-          const invoiceMeta = invoiceSummaryByRequestId.get(requestId) || null;
-          const receiptMeta = receiptSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
+          const estimateMeta = workspace ? estimateSummaryByRequestId.get(requestId) || null : null;
+          const paymentMeta = workspace ? paymentSummaryByRequestId.get(requestId) || null : null;
+          const scheduleMeta = workspace ? scheduleSummaryByRequestId.get(requestId) || null : null;
+          const checkpointMeta = workspace
+            ? checkpointSummaryByRequestId.get(requestId) || null
+            : null;
+          const changeOrderMeta = workspace
+            ? changeOrderSummaryByRequestId.get(requestId) || null
+            : null;
+          const punchMeta = workspace ? punchSummaryByRequestId.get(requestId) || null : null;
+          const completionMeta = workspace
+            ? completionSummaryByRequestId.get(requestId) || null
+            : null;
+          const invoiceMeta = workspace ? invoiceSummaryByRequestId.get(requestId) || null : null;
+          const receiptMeta = workspace ? receiptSummaryByRequestId.get(requestId) || null : null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
                 stage: String(workspace.active_stage || "contact") as any,
@@ -9591,6 +11146,8 @@ export function registerDirectConnectRoutes(app: Express) {
             : [];
           deduped.set(requestId, {
             requestId,
+            assignmentId: String(exactAssignment.id),
+            assignmentStatus: String(exactAssignment.status || ""),
             requestType: String(row.request_type || ""),
             category: String(row.category || ""),
             county: row.county ? String(row.county) : null,
@@ -9823,7 +11380,15 @@ export function registerDirectConnectRoutes(app: Express) {
           recipientType: "contractor",
           recipientId: userId,
         }).catch(() => 0);
-        const jobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const candidateJobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const candidateWorkspaceAuthority = candidateJobWorkspace?.id
+          ? await resolveDirectConnectJobWorkspaceAuthority(String(candidateJobWorkspace.id))
+          : null;
+        const jobWorkspace =
+          candidateWorkspaceAuthority?.ok &&
+          isAuthorizedDirectConnectJobWorkspaceParticipant(candidateWorkspaceAuthority, userId)
+            ? candidateJobWorkspace
+            : null;
         const allowedLifecycleActions = jobWorkspace
           ? getAllowedLifecycleActions({
               stage: String(jobWorkspace.active_stage || "contact") as any,
@@ -10246,116 +11811,13 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     directConnectProviderResponseLimiter,
     async (req: AuthedRequest, res: Response) => {
-      try {
-        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
-        if (!userId) return res.status(401).json({ message: "Unauthorized" });
-        const requestId = String(req.params.id || "").trim();
-        if (!requestId) return res.status(400).json({ message: "Request id is required" });
-
-        const parse = contractorConsoleResponseSchema.safeParse(req.body ?? {});
-        if (!parse.success) {
-          return res
-            .status(400)
-            .json({ message: "Invalid response payload", issues: parse.error.flatten() });
-        }
-
-        const contractor = await storage.getContractorByUserId(userId);
-        const workerProfile = await db
-          .select({ id: (workers as any).id })
-          .from(workers as any)
-          .where(eq((workers as any).userId, userId))
-          .limit(1);
-        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
-
-        const contractorId = contractor?.id ? String(contractor.id) : null;
-        const eligibilityResult = contractorId
-          ? await db.execute(sql`
-              SELECT c.request_id
-              FROM direct_connect_dispatch_candidates c
-              WHERE c.request_id = ${requestId}
-                AND c.eligibility_state = 'eligible'
-                AND (
-                  c.contractor_id = ${contractorId}
-                  OR c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-                )
-              LIMIT 1
-            `)
-          : await db.execute(sql`
-              SELECT c.request_id
-              FROM direct_connect_dispatch_candidates c
-              WHERE c.request_id = ${requestId}
-                AND c.eligibility_state = 'eligible'
-                AND (
-                  c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-                )
-              LIMIT 1
-            `);
-        if (!((eligibilityResult.rows || []) as any[])[0]) {
-          return res.status(403).json({ message: "Request not available for this contractor" });
-        }
-
-        const existing = contractorId
-          ? await db.execute(sql`
-              SELECT id
-              FROM direct_connect_contractor_responses
-              WHERE request_id = ${requestId}
-                AND (
-                  contractor_id = ${contractorId}
-                  OR responder_user_id = ${userId}
-                )
-              ORDER BY created_at DESC
-              LIMIT 1
-            `)
-          : await db.execute(sql`
-              SELECT id
-              FROM direct_connect_contractor_responses
-              WHERE request_id = ${requestId}
-                AND responder_user_id = ${userId}
-              ORDER BY created_at DESC
-              LIMIT 1
-            `);
-        if (((existing.rows || []) as any[])[0]) {
-          return res.status(409).json({ message: "A response already exists for this request." });
-        }
-
-        const responseType = parse.data.responseType;
-        const canRequestContact =
-          responseType === "interested" || responseType === "need_more_info";
-        await recordContractorResponse({
-          requestId,
-          contractorId,
-          responderUserId: userId,
-          responseType,
-          message: parse.data.message ? String(parse.data.message).trim() : null,
-          availability: parse.data.availability ? String(parse.data.availability).trim() : null,
-          estimatedTiming: parse.data.estimatedTiming
-            ? String(parse.data.estimatedTiming).trim()
-            : null,
-          contactRequestState: canRequestContact ? "contractor_requested" : "locked",
-        });
-        await appendDispatchEvent({
-          requestId,
-          actorType: "contractor",
-          actorId: userId,
-          eventType: "contractor_responded",
-          metadata: { responseType },
-        });
-
-        return res.status(200).json({
-          ok: true,
-          requestId,
-          responseType,
-          contactRequestState: canRequestContact ? "contractor_requested" : "locked",
-        });
-      } catch (error) {
-        console.error("Error recording contractor console response:", error);
-        return res.status(500).json({
-          message: "Failed to submit response",
-          requestId: (req as any).requestId || null,
-        });
-      }
+      const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      return res.status(409).json({
+        code: "DIRECT_CONNECT_EXACT_ASSIGNMENT_REQUIRED",
+        message:
+          "Respond through the exact assignment shown in your routed request. Request-level response authority is no longer accepted.",
+      });
     }
   );
 
@@ -10369,84 +11831,104 @@ export function registerDirectConnectRoutes(app: Express) {
         const requestId = String(req.params.id || "").trim();
         if (!requestId) return res.status(400).json({ message: "Request id is required" });
 
-        const contractor = await storage.getContractorByUserId(userId);
-        const workerProfile = await db
-          .select({ id: (workers as any).id })
-          .from(workers as any)
-          .where(eq((workers as any).userId, userId))
-          .limit(1);
-        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
-
-        const contractorId = contractor?.id ? String(contractor.id) : null;
-        const eligibilityResult = contractorId
-          ? await db.execute(sql`
-              SELECT c.request_id
-              FROM direct_connect_dispatch_candidates c
-              WHERE c.request_id = ${requestId}
-                AND c.eligibility_state = 'eligible'
-                AND (
-                  c.contractor_id = ${contractorId}
-                  OR c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-                )
-              LIMIT 1
-            `)
-          : await db.execute(sql`
-              SELECT c.request_id
-              FROM direct_connect_dispatch_candidates c
-              WHERE c.request_id = ${requestId}
-                AND c.eligibility_state = 'eligible'
-                AND (
-                  c.responder_user_id = ${userId}
-                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-                )
-              LIMIT 1
-            `);
-        if (!((eligibilityResult.rows || []) as any[])[0]) {
-          return res.status(403).json({ message: "Request not available for this contractor" });
-        }
-
-        const latestResponseResult = contractorId
-          ? await db.execute(sql`
-              SELECT response_type
-              FROM direct_connect_contractor_responses
-              WHERE request_id = ${requestId}
-                AND (
-                  contractor_id = ${contractorId}
-                  OR responder_user_id = ${userId}
-                )
-              ORDER BY created_at DESC
-              LIMIT 1
-            `)
-          : await db.execute(sql`
-              SELECT response_type
-              FROM direct_connect_contractor_responses
-              WHERE request_id = ${requestId}
-                AND responder_user_id = ${userId}
-              ORDER BY created_at DESC
-              LIMIT 1
-            `);
-        const latestResponse = ((latestResponseResult.rows || []) as any[])[0];
-        const responseType = String(latestResponse?.response_type || "");
-        if (!["interested", "need_more_info"].includes(responseType)) {
+        const acceptedBindingResult = await resolveDirectConnectAcceptedProviderBinding(requestId);
+        if (!acceptedBindingResult.ok) {
           return res.status(409).json({
-            message: "Submit an interested or need_more_info response before requesting contact.",
+            message: "Accept the exact assignment before requesting contact.",
+            code: acceptedBindingResult.reason,
+          });
+        }
+        const acceptedBinding = acceptedBindingResult.binding;
+        if (acceptedBinding.providerUserId !== userId) {
+          return res.status(403).json({
+            message: "Only the accepted provider can request contact.",
           });
         }
 
-        await setDispatchContactGateState({ requestId, nextState: "contractor_requested" });
-        await appendDispatchEvent({
-          requestId,
-          actorType: "contractor",
-          actorId: userId,
-          eventType: "contact_requested",
-          metadata: { via: "contractor_console" },
+        const contactGateResult = await db.transaction(async (tx: any) => {
+          const gateRows = await tx.execute(sql`
+            SELECT contact_gate_state, contact_gate_assignment_id, contact_gate_provider_key
+            FROM direct_connect_dispatch_requests
+            WHERE id = ${requestId}
+            FOR UPDATE
+          `);
+          const gate = ((gateRows.rows || []) as any[])[0] || null;
+          if (!gate) {
+            return {
+              ok: false as const,
+              code: "CONTACT_GATE_NOT_FOUND",
+              message: "Contact gate is not available for this request.",
+            };
+          }
+
+          const persistedGate = {
+            state: String(gate.contact_gate_state || "locked"),
+            assignmentId: String(gate.contact_gate_assignment_id || "").trim(),
+            providerKey: String(gate.contact_gate_provider_key || "").trim(),
+          };
+          const hasAcceptedBinding =
+            persistedGate.assignmentId === acceptedBinding.assignmentId &&
+            persistedGate.providerKey === acceptedBinding.providerKey;
+          const hasNoBinding = !persistedGate.assignmentId && !persistedGate.providerKey;
+          const advancedContactGateStates = new Set(["user_approved", "released"]);
+
+          if (advancedContactGateStates.has(persistedGate.state)) {
+            return hasAcceptedBinding
+              ? { ok: true as const, state: persistedGate.state }
+              : {
+                  ok: false as const,
+                  code: "CONTACT_GATE_BINDING_CONFLICT",
+                  message: "Contact gate is not bound to the accepted assignment.",
+                };
+          }
+          if (
+            !["locked", "contractor_requested"].includes(persistedGate.state) ||
+            (!hasAcceptedBinding && !hasNoBinding)
+          ) {
+            return {
+              ok: false as const,
+              code: "CONTACT_GATE_BINDING_CONFLICT",
+              message: "Contact gate is not bound to the accepted assignment.",
+            };
+          }
+
+          await setDispatchContactGateState(
+            {
+              requestId,
+              nextState: "contractor_requested",
+              assignmentId: acceptedBinding.assignmentId,
+              providerKey: acceptedBinding.providerKey,
+            },
+            tx
+          );
+          await appendDispatchEvent(
+            {
+              eventId: `direct-connect-contact-requested:${requestId}:${acceptedBinding.assignmentId}`,
+              requestId,
+              actorType: "contractor",
+              actorId: userId,
+              eventType: "contact_requested",
+              metadata: {
+                via: "contractor_console",
+                assignmentId: acceptedBinding.assignmentId,
+                providerKey: acceptedBinding.providerKey,
+              },
+            },
+            tx
+          );
+          return { ok: true as const, state: "contractor_requested" };
         });
 
+        if (!contactGateResult.ok) {
+          return res.status(409).json({
+            message: contactGateResult.message,
+            code: contactGateResult.code,
+          });
+        }
         return res.status(200).json({
           ok: true,
           requestId,
-          contactGateState: "contractor_requested",
+          contactGateState: contactGateResult.state,
         });
       } catch (error) {
         console.error("Error requesting contact from contractor console:", error);
@@ -10466,6 +11948,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
 
@@ -10604,6 +12092,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const estimateId = String(req.params.estimateId || "").trim();
         const parse = estimateLineItemSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -10758,6 +12252,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const estimateId = String(req.params.estimateId || "").trim();
         if (!jobWorkspaceId || !estimateId) {
           return res.status(400).json({ message: "jobWorkspaceId and estimateId are required" });
@@ -10889,6 +12389,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const estimateId = String(req.params.estimateId || "").trim();
         const parse = estimateUpdateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -10987,6 +12493,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const estimateId = String(req.params.estimateId || "").trim();
         const parse = estimateSendSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -11085,6 +12597,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const estimateId = String(req.params.estimateId || "").trim();
         const parse = estimateRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -11178,6 +12696,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
         const parse = paymentRequestCreateSchema.safeParse(req.body ?? {});
@@ -11314,6 +12838,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const paymentRequestId = String(req.params.paymentRequestId || "").trim();
         if (!jobWorkspaceId || !paymentRequestId) {
           return res
@@ -11403,6 +12933,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const paymentRequestId = String(req.params.paymentRequestId || "").trim();
         const parse = paymentRequestRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -11476,6 +13012,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
         const parse = scheduleProposalCreateSchema.safeParse(req.body ?? {});
@@ -11615,6 +13157,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const scheduleProposalId = String(req.params.scheduleProposalId || "").trim();
         if (!jobWorkspaceId || !scheduleProposalId) {
           return res
@@ -11703,6 +13251,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const scheduleProposalId = String(req.params.scheduleProposalId || "").trim();
         const parse = scheduleProposalRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -11791,6 +13345,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
 
@@ -11886,6 +13446,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = checkpointCreateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
           return res
@@ -11997,6 +13563,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
 
@@ -12063,6 +13635,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const checkpointId = String(req.params.checkpointId || "").trim();
         const parse = checkpointUpdateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -12177,6 +13755,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const checkpointId = String(req.params.checkpointId || "").trim();
         const parse = checkpointRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -12234,6 +13818,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = changeOrderCreateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
           return res
@@ -12372,6 +13962,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
 
@@ -12445,6 +14041,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const changeOrderId = String(req.params.changeOrderId || "").trim();
 
         const rows = await db.execute(sql`
@@ -12535,6 +14137,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const changeOrderId = String(req.params.changeOrderId || "").trim();
         const parse = changeOrderRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -12605,6 +14213,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
 
         const workspaceRows = await db.execute(sql`
           SELECT id, request_id
@@ -12700,6 +14314,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = punchItemCreateSchema.safeParse(req.body ?? {});
         if (!parse.success)
           return res
@@ -12777,6 +14397,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         if (!jobWorkspaceId)
           return res.status(400).json({ message: "Job workspace id is required" });
 
@@ -12844,6 +14470,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const punchItemId = String(req.params.punchItemId || "").trim();
         const parse = punchItemUpdateSchema.safeParse(req.body ?? {});
         if (!parse.success)
@@ -12929,6 +14561,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const punchItemId = String(req.params.punchItemId || "").trim();
         const parse = punchItemRespondSchema.safeParse(req.body ?? {});
         if (!parse.success)
@@ -12985,6 +14623,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = completionRequestCreateSchema.safeParse(req.body ?? {});
         if (!parse.success)
           return res
@@ -13064,6 +14708,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = completionRequestRespondSchema.safeParse(req.body ?? {});
         if (!parse.success)
           return res.status(400).json({
@@ -13168,6 +14818,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = invoiceCreateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
           return res
@@ -13284,6 +14940,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const invoiceId = String(req.params.invoiceId || "").trim();
 
         const rows = await db.execute(sql`
@@ -13379,6 +15041,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const invoiceId = String(req.params.invoiceId || "").trim();
         const parse = invoiceUpdateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -13510,6 +15178,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const invoiceId = String(req.params.invoiceId || "").trim();
         const parse = invoiceSendSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -13584,6 +15258,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const invoiceId = String(req.params.invoiceId || "").trim();
         const parse = invoiceRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -13660,6 +15340,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const parse = receiptCreateSchema.safeParse(req.body ?? {});
         if (!parse.success) {
           return res
@@ -13776,6 +15462,12 @@ export function registerDirectConnectRoutes(app: Express) {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const exactJobWorkspaceAuthority = await requireExactJobWorkspaceParticipant({
+          workspaceId: jobWorkspaceId,
+          userId,
+          res,
+        });
+        if (!exactJobWorkspaceAuthority) return;
         const receiptId = String(req.params.receiptId || "").trim();
 
         const rows = await db.execute(sql`
@@ -13927,6 +15619,12 @@ export function registerDirectConnectRoutes(app: Express) {
           if (!requestRow) {
             return { status: 404 as const, body: { message: "Work request not found" } };
           }
+          const requestOwnerUserId = String(
+            requestRow.createdByUserId ?? requestRow.created_by_user_id ?? ""
+          ).trim();
+          if (!requestOwnerUserId) {
+            throw new Error("DIRECT_CONNECT_REQUEST_OWNER_REQUIRED");
+          }
 
           const canRespond = assignmentStatus === "suggested" || assignmentStatus === "invited";
           if (!canRespond) {
@@ -13985,40 +15683,22 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(eq(workRequestAssignments.id, assignment.id))
               .returning();
 
-            // Ensure there is exactly one active conversation between requester
-            // and provider for this engagement. Closed/archived threads cannot
-            // become the authority for a new acceptance.
-            const homeownerId = String(requestRow.createdByUserId);
+            // A Direct Connect thread belongs to one work request. Never reuse a
+            // participant-pair conversation here: the same requester and provider
+            // can have multiple requests, and reusing one thread would mix their
+            // messages and authority.
+            const homeownerId = requestOwnerUserId;
             const providerContractorId = isContractorAssignment ? contractor!.id : String(userId);
-
-            const existing = await tx
-              .select()
-              .from(conversations)
-              .where(
-                and(
-                  eq(conversations.homeownerId, homeownerId),
-                  eq(conversations.contractorId, providerContractorId),
-                  eq(conversations.status, "active" as any)
-                )
-              )
-              .orderBy(asc(conversations.createdAt))
-              .limit(1);
-
-            let convo = existing[0];
-            if (!convo) {
-              const [createdConversation] = await tx
-                .insert(conversations)
-                .values({
-                  homeownerId,
-                  contractorId: providerContractorId,
-                  leadId: null,
-                  status: "active",
-                } as any)
-                .returning();
-              convo = createdConversation;
-            }
-
-            conversationId = String(convo.id);
+            const [createdConversation] = await tx
+              .insert(conversations)
+              .values({
+                homeownerId,
+                contractorId: providerContractorId,
+                leadId: null,
+                status: "active",
+              } as any)
+              .returning();
+            conversationId = String(createdConversation.id);
 
             // Assignment acceptance, active-conversation authority, request
             // promotion, and the binding event are one transaction. Any failure
@@ -14033,7 +15713,9 @@ export function registerDirectConnectRoutes(app: Express) {
               type: "provider_accepted",
               actorUserId: String(userId),
               metadata: {
+                authorityBindingVersion: 2,
                 assignmentId: String(updatedAssignment.id),
+                providerKey: updatedAssignment.providerKey || null,
                 contractorId: isContractorAssignment ? contractor!.id : null,
                 responderUserId: isBusinessAssignment || isWorkerAssignment ? String(userId) : null,
                 workerId: isWorkerAssignment ? assignmentWorkerId : null,
@@ -14045,7 +15727,7 @@ export function registerDirectConnectRoutes(app: Express) {
             await proposeAccountingAutomationFromDirectConnect(tx, {
               workRequestId: String(requestRow.id),
               assignmentId: String(updatedAssignment.id),
-              requesterUserId: String(requestRow.createdByUserId),
+              requesterUserId: requestOwnerUserId,
               providerUserId: String(userId),
               actorUserId: String(userId),
               conversationId,
@@ -14064,25 +15746,97 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(eq(workRequestAssignments.id, assignment.id))
               .returning();
 
-            try {
-              await tx.insert(workRequestEvents).values({
-                workRequestId: requestRow.id,
-                type: "provider_declined",
-                actorUserId: String(userId),
-                metadata: {
-                  contractorId: isContractorAssignment ? contractor!.id : null,
-                  responderUserId: isBusinessAssignment ? String(userId) : null,
-                  reason: declineReason || "Unavailable",
-                },
-              });
-            } catch (e) {
-              console.error("[direct-connect] Failed to log decline event", e);
-            }
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestRow.id,
+              type: "provider_declined",
+              actorUserId: String(userId),
+              metadata: {
+                contractorId: isContractorAssignment ? contractor!.id : null,
+                responderUserId: isBusinessAssignment ? String(userId) : null,
+                reason: declineReason || "Unavailable",
+              },
+            });
           }
+
+          const isAccept = updatedAssignment.status === "accepted";
+          const responseType = isAccept
+            ? "interested"
+            : declineReason
+              ? "not_a_fit"
+              : "unavailable";
+          const providerKey = String(updatedAssignment.providerKey || "").trim();
+          if (isAccept && !providerKey) {
+            throw new Error("DIRECT_CONNECT_ASSIGNMENT_PROVIDER_IDENTITY_REQUIRED");
+          }
+          await recordContractorResponse(
+            {
+              requestId: String(requestRow.id),
+              contractorId: isContractorAssignment && contractor?.id ? String(contractor.id) : null,
+              responderUserId: String(userId),
+              assignmentId: String(updatedAssignment.id),
+              providerKey: providerKey || null,
+              responseType,
+              message:
+                responseType === "interested"
+                  ? String(responseSummary?.scopeNote || "")
+                  : String(declineReason || ""),
+              availability:
+                responseType === "interested"
+                  ? String(responseSummary?.availabilityWindow || "")
+                  : null,
+              estimatedTiming:
+                responseType === "interested"
+                  ? String(responseSummary?.availabilityWindow || "")
+                  : null,
+              contactRequestState:
+                responseType === "interested" ? "contractor_requested" : "locked",
+            },
+            tx
+          );
+          if (isAccept) {
+            await setDispatchContactGateState(
+              {
+                requestId: String(requestRow.id),
+                nextState: "contractor_requested",
+                assignmentId: String(updatedAssignment.id),
+                providerKey,
+              },
+              tx as any
+            );
+          }
+          const deliveryObligationKey =
+            `direct-connect-assignment-response:${String(updatedAssignment.id)}:` +
+            String(updatedAssignment.status);
+          const requesterNotification = await notificationService.enqueueNotification(tx, {
+            userId: requestOwnerUserId,
+            type: isAccept ? "dc_provider_accepted" : "dc_provider_declined",
+            title: isAccept
+              ? "A provider accepted your request"
+              : "A provider declined your request",
+            message: isAccept
+              ? `A provider accepted your Direct Connect request: ${requestRow.title}`
+              : `A provider declined your Direct Connect request: ${requestRow.title}`,
+            actionUrl:
+              isAccept && conversationId
+                ? `/messages?thread=${encodeURIComponent(String(conversationId))}`
+                : "/direct-connect",
+            actionText: isAccept ? "Open conversation" : "View request",
+            iconName: isAccept ? "check-circle" : "x-circle",
+            iconColor: isAccept ? "green" : "gray",
+            metadata: {
+              workRequestId: String(requestRow.id),
+              assignmentId: String(updatedAssignment.id),
+              emailPurpose: "direct_connect_request",
+              notificationContext: isAccept ? "provider_accepted" : "provider_declined",
+              deliveryObligationKey,
+            },
+            deliveryMethods: ["in_app", "email"],
+          });
 
           return {
             status: 200 as const,
             body: { assignment: updatedAssignment, conversationId, responseSummary },
+            notificationId: String(requesterNotification.id),
           };
         });
 
@@ -14104,25 +15858,6 @@ export function registerDirectConnectRoutes(app: Express) {
                 ? "not_a_fit"
                 : "unavailable";
           const requestId = String(updatedAssignment.workRequestId || "");
-          await recordContractorResponse({
-            requestId,
-            contractorId: contractor?.id ? String(contractor.id) : null,
-            responderUserId: String(userId),
-            responseType,
-            message:
-              responseType === "interested"
-                ? String(responseSummary?.scopeNote || "")
-                : String(declineReason || ""),
-            availability:
-              responseType === "interested"
-                ? String(responseSummary?.availabilityWindow || "")
-                : null,
-            estimatedTiming:
-              responseType === "interested"
-                ? String(responseSummary?.availabilityWindow || "")
-                : null,
-            contactRequestState: responseType === "interested" ? "contractor_requested" : "locked",
-          });
           await appendDispatchEvent({
             requestId,
             actorType: "contractor",
@@ -14141,54 +15876,23 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         } catch (ledgerError) {
           console.warn(
-            "[direct-connect] Failed to persist contractor response in dispatch ledger",
+            "[direct-connect] Failed to append contractor response lifecycle evidence",
             ledgerError
           );
         }
-        // Notify the requester that a provider has accepted or declined their request.
-        // This runs outside the transaction so a notification failure never blocks the response.
-        try {
-          const { assignment: updatedAssignment, conversationId: convId } = result.body as any;
-          // Re-fetch the requester userId from the work request (already committed by the tx above).
-          const [reqRow] = await db
-            .select({ createdByUserId: workRequests.createdByUserId, title: workRequests.title })
-            .from(workRequests)
-            .where(eq(workRequests.id, updatedAssignment.workRequestId))
-            .limit(1);
-          if (reqRow?.createdByUserId) {
-            const isAccept = updatedAssignment.status === "accepted";
-            await notificationService.createNotification({
-              userId: String(reqRow.createdByUserId),
-              type: isAccept ? "dc_provider_accepted" : "dc_provider_declined",
-              title: isAccept
-                ? "A provider accepted your request"
-                : "A provider declined your request",
-              message: isAccept
-                ? `A provider accepted your Direct Connect request: ${reqRow.title}`
-                : `A provider declined your Direct Connect request: ${reqRow.title}`,
-              actionUrl:
-                isAccept && convId
-                  ? `/messages?thread=${encodeURIComponent(String(convId))}`
-                  : "/direct-connect",
-              actionText: isAccept ? "Open conversation" : "View request",
-              iconName: isAccept ? "check-circle" : "x-circle",
-              iconColor: isAccept ? "green" : "gray",
-              metadata: {
-                workRequestId: String(updatedAssignment.workRequestId),
-                emailPurpose: "direct_connect_request",
-                notificationContext: isAccept ? "provider_accepted" : "provider_declined",
-              },
-              deliveryMethods: ["in_app", "email", "push"],
-            });
-          }
-        } catch (notifErr) {
-          console.warn(
-            "[direct-connect] Failed to notify requester of provider response",
-            notifErr
-          );
-        }
+        await dispatchDurableDirectConnectNotifications([result.notificationId]);
         res.json(result.body);
       } catch (error: any) {
+        if (
+          String(error?.message || "") === "DIRECT_CONNECT_ASSIGNMENT_PROVIDER_IDENTITY_REQUIRED" ||
+          String(error?.message || "").startsWith("CONTACT_GATE_")
+        ) {
+          return res.status(409).json({
+            message:
+              "This assignment no longer matches the provider contact request. Refresh before responding.",
+            code: String(error.message),
+          });
+        }
         console.error("Error responding to direct connect assignment:", error);
         res.status(500).json({
           message: "Failed to respond to assignment",
@@ -14255,6 +15959,9 @@ export function registerDirectConnectRoutes(app: Express) {
         const isContractorProvider = Boolean(eligibleContractor?.id);
         const providerContractorId = isContractorProvider ? String(eligibleContractor!.id) : null;
         const providerResponderUserId = isContractorProvider ? null : String(userId);
+        const providerKey = isContractorProvider
+          ? buildWorkRequestAssignmentProviderKey("contractor", providerContractorId)
+          : buildWorkRequestAssignmentProviderKey("business", String(eligibleBusiness!.id));
 
         const assignmentResult = await db.transaction(async (tx) => {
           const requestLockResult = await tx.execute(sql`
@@ -14276,7 +15983,13 @@ export function registerDirectConnectRoutes(app: Express) {
                 .where(
                   and(
                     eq(workRequestAssignments.workRequestId, requestId),
-                    eq(workRequestAssignments.contractorId, providerContractorId!)
+                    or(
+                      eq(workRequestAssignments.providerKey, providerKey),
+                      and(
+                        isNull(workRequestAssignments.providerKey),
+                        eq(workRequestAssignments.contractorId, providerContractorId!)
+                      )
+                    )
                   )
                 )
                 .limit(1)
@@ -14286,7 +15999,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 .where(
                   and(
                     eq(workRequestAssignments.workRequestId, requestId),
-                    eq((workRequestAssignments as any).responderUserId, providerResponderUserId!)
+                    eq(workRequestAssignments.providerKey, providerKey)
                   )
                 )
                 .limit(1);
@@ -14306,6 +16019,7 @@ export function registerDirectConnectRoutes(app: Express) {
             .insert(workRequestAssignments)
             .values({
               workRequestId: requestId,
+              providerKey,
               contractorId: providerContractorId,
               responderUserId: providerResponderUserId,
               workerId: null,
@@ -14318,7 +16032,24 @@ export function registerDirectConnectRoutes(app: Express) {
               createdAt: now,
               updatedAt: now,
             })
+            .onConflictDoNothing()
             .returning();
+          if (!created) {
+            const [concurrentAssignment] = await tx
+              .select()
+              .from(workRequestAssignments)
+              .where(
+                and(
+                  eq(workRequestAssignments.workRequestId, requestId),
+                  eq(workRequestAssignments.providerKey, providerKey)
+                )
+              )
+              .limit(1);
+            if (!concurrentAssignment) {
+              throw new Error("Concurrent provider assignment could not be resolved.");
+            }
+            return { assignment: concurrentAssignment, alreadyAssigned: true };
+          }
 
           try {
             await tx.insert(workRequestEvents).values({
@@ -14326,6 +16057,7 @@ export function registerDirectConnectRoutes(app: Express) {
               type: "provider_self_selected" as const,
               actorUserId: String(userId),
               metadata: {
+                providerKey,
                 contractorId: providerContractorId,
                 responderUserId: providerResponderUserId,
                 source: "self_selected",

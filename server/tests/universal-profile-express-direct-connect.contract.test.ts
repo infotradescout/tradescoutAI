@@ -52,15 +52,22 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(panelSource).toContain("Calling is coming soon");
   });
 
-  it("commits the request before onboarding and does not depend on email delivery", () => {
+  it("commits the request and durable email intents before outbox delivery", () => {
     expect(routeSource).toContain("const requestWorkspacePath =");
-    expect(routeSource).toContain("const onboardingPath = activation");
-    expect(routeSource).toContain('let onboardingEmailStatus: "sent" | "skipped" | "failed"');
-    expect(routeSource).toContain("const emailResult = await emailService.sendEmail");
-    expect(routeSource).toContain('onboardingEmailStatus = "failed"');
+    expect(routeSource).toContain("const creationResult = await db.transaction");
+    expect(routeSource).toContain("enqueueTradePartnerRequestNotification");
+    expect(routeSource).toContain("enqueueDirectConnectAccountSetupEmail");
+    expect(routeSource).toContain("enqueueDirectConnectRequestEmail");
+    expect(routeSource).toContain("dispatchDirectConnectEmail");
+    expect(routeSource).not.toContain("emailService.sendEmail");
+    expect(routeSource).not.toContain("passwordResetService.createToken");
+    expect(routeSource).not.toContain("emailVerificationService.createToken");
+    expect(routeSource).toContain("const onboardingPath = requesterNeedsSetup");
+    expect(routeSource).toContain("accountNeedsSetup: requesterNeedsSetup");
+    expect(routeSource).not.toMatch(/onboardingPath[\s\S]{0,160}token=/);
     expect(routeSource).toContain("onboardingPath,");
     expect(routeSource).toContain("onboardingEmailStatus,");
-    expect(panelSource).toContain("No email is required to continue from this browser.");
+    expect(panelSource).toContain("A secure setup email is queued or on its way.");
   });
 
   it("returns signup to My Requests and offers HomeID only after signup", () => {

@@ -785,6 +785,55 @@
       "when": 1784521200000,
       "tag": "0108_post_comments_community_posts_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1785111154881,
+      "tag": "0109_auth_action_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1785114000000,
+      "tag": "0110_work_request_assignment_provider_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1785117600000,
+      "tag": "0111_notification_delivery_outbox_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1785121200000,
+      "tag": "0112_notification_delivery_claim_ownership",
+      "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1785124800000,
+      "tag": "0113_direct_connect_response_assignment_binding",
+      "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1785128400000,
+      "tag": "0114_direct_connect_contact_gate_binding",
+      "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1785132000000,
+      "tag": "0115_direct_connect_ledger_foundation",
+      "breakpoints": true
     }
   ]
 }

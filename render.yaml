@@ -7,7 +7,7 @@ services:
     # Do NOT use checksPass (deadlock risk with post-deploy observers).
     # GitHub Actions deploy workflow is optional backup only — not required for prod.
     autoDeployTrigger: commit
-    preDeployCommand: npm run db:migrate
+    preDeployCommand: npm run db:migrate && npm run db:verify:required
     buildCommand: npm run build
     startCommand: npm start
     envVars:

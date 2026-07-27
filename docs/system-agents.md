@@ -32,8 +32,8 @@ AGENT_SCOPE_SLUG=your-scope-slug
 - Modifying county metrics directly.
 - Acting as contractors, homeowners, or any human role.
 
-## CI/CD Expectations
-- GitHub secrets use `AGENT_IDENTITY_EMAIL`, `AGENT_IDENTITY_SECRET`, `AGENT_SCOPE_SLUG` (plus optional `AGENT_TYPE`, `AGENT_CLAIMS`).
+## Local Validation Expectations
+- The operator's local test environment supplies `AGENT_IDENTITY_EMAIL`, `AGENT_IDENTITY_SECRET`, `AGENT_SCOPE_SLUG` (plus optional `AGENT_TYPE`, `AGENT_CLAIMS`).
 - Agents run with `isTestRun=true` where applicable to prevent learning pipelines.
 - Bot Army outputs are inputs for Mission Control; they do not change authority.
 

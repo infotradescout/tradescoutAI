@@ -30,9 +30,8 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
     const routesSource = read("server/routes/direct-connect.ts");
 
     expect(routesSource).toContain("routeRequestToTopContractors");
-    expect(routesSource).toContain(
-      "const allAssignments = [...contractorAssignments, ...businessAssignments]"
-    );
+    expect(routesSource).toContain("const assignmentPayloads = [");
+    expect(routesSource).toContain(".values(missingAssignmentPayloads)");
     expect(routesSource).toContain(
       'logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"'
     );
@@ -55,9 +54,9 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
     const routesSource = read("server/routes/direct-connect.ts");
 
     expect(routesSource).toContain("homeownerContact: null");
-    expect(routesSource).toContain(
-      "Submit an interested or need_more_info response before requesting contact."
-    );
+    expect(routesSource).toContain("Accept the exact assignment before requesting contact.");
+    expect(routesSource).toContain("resolveDirectConnectAcceptedProviderBinding(requestId)");
+    expect(routesSource).toContain("acceptedBinding.providerUserId !== userId");
     expect(routesSource).toContain('nextState: "contractor_requested"');
     expect(routesSource).toContain('message: "Assignment not found"');
   });

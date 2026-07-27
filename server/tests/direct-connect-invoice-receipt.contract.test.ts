@@ -7,6 +7,10 @@ const servicePath = path.resolve(
   process.cwd(),
   "server/services/directConnectDispatchLedgerService.ts"
 );
+const ledgerMigrationPath = path.resolve(
+  process.cwd(),
+  "migrations/0115_direct_connect_ledger_foundation.sql"
+);
 
 function read(filePath: string) {
   return fs.readFileSync(filePath, "utf8");
@@ -42,9 +46,10 @@ describe("direct-connect invoice and receipt contract", () => {
 
   it("extends service schema/events/actions for invoices and receipts", () => {
     const source = read(servicePath);
-    expect(source).toContain("CREATE TABLE IF NOT EXISTS job_invoice_line_items");
-    expect(source).toContain("CREATE TABLE IF NOT EXISTS job_invoices");
-    expect(source).toContain("CREATE TABLE IF NOT EXISTS job_receipts");
+    const migration = read(ledgerMigrationPath);
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS job_invoice_line_items");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS job_invoices");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS job_receipts");
     expect(source).toContain('"invoice_started"');
     expect(source).toContain('"invoice_line_item_added"');
     expect(source).toContain('"invoice_sent"');

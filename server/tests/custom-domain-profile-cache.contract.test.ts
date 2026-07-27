@@ -125,6 +125,7 @@ describe("custom-domain profile cache contract", () => {
     expect(customDomainSource).toContain('"/assets/"');
     expect(customDomainSource).toContain('"/uploads/"');
     expect(customDomainSource).toContain('"/images/"');
+    expect(customDomainSource).toContain('"/offline.html"');
     expect(customDomainSource).toContain('requestPath.startsWith("/auth/")');
     expect(customDomainSource).toContain("isSameProfileCompatibilityPath(requestPath, slug)");
     expect(customDomainSource).toContain("res.redirect(301, `https://${host}/${suffix}`)");
@@ -151,5 +152,11 @@ describe("custom-domain profile cache contract", () => {
     const canonicalSource = source.slice(canonicalStart, canonicalEnd);
     expect(canonicalSource).toContain('host === "tradescoutai.onrender.com"');
     expect(canonicalSource).not.toContain('host.includes("tradescoutai.onrender.com")');
+
+    const corsStart = source.indexOf("function corsOptionsForRequest(");
+    const corsEnd = source.indexOf("const corsOptionsDelegate", corsStart);
+    const corsSource = source.slice(corsStart, corsEnd);
+    expect(corsSource).toContain("isCorsNeutralPublicAssetRequest(req.method, req.path)");
+    expect(corsSource).toContain("return callback(null, false)");
   });
 });
