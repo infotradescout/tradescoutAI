@@ -92,5 +92,6 @@ export function resolveProfileItemShareMetadata(args: {
     categories,
     itemSlug: args.itemSlug,
     photo: args.photo,
+    publicRouteContentBlocks: args.contentBlocks,
   });
 }

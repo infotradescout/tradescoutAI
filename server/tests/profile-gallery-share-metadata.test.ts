@@ -79,7 +79,7 @@ describe("profile gallery item sharing metadata", () => {
         title: "Blue Stone Patio | River City Masonry",
         imageUrl: "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg",
         imageAlt: "Finished blue stone patio",
-        canonical: `https://www.thetradescout.com/u/river-city-masonry?gallery=${item.slug}`,
+        canonical: `https://www.thetradescout.com/u/river-city-masonry/gallery/${item.slug}`,
       })
     );
     expect(metadata?.description).toContain(
@@ -129,7 +129,7 @@ describe("profile gallery item sharing metadata", () => {
       itemSlug: item.slug,
     });
 
-    expect(metadata?.canonical).toBe(`https://rivercity.example/?gallery=${item.slug}`);
+    expect(metadata?.canonical).toBe(`https://rivercity.example/gallery/${item.slug}`);
     expect(
       createProfileGalleryItemShareMetadata({
         profileName: "River City Masonry",

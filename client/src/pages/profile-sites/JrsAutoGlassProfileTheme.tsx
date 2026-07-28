@@ -2,10 +2,10 @@ import type { ReactNode } from "react";
 import { ShareButton } from "@/components/ShareButton";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import {
-  buildProfileGalleryShareSearch,
   listProfileGalleryItems,
   type ResolvedProfileGalleryItem,
 } from "@shared/profileGalleryShare";
+import { buildProfilePublicItemPath } from "@shared/profilePublicItemRoute";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import {
   Camera,
@@ -52,6 +52,7 @@ type Props = {
   hasViewerSession: boolean;
   tradeScoutReturnHref: string;
   profileShareDestination: string;
+  publicRouteContentBlocks?: unknown;
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
@@ -69,6 +70,7 @@ export default function JrsAutoGlassProfileTheme({
   hasViewerSession,
   tradeScoutReturnHref,
   profileShareDestination,
+  publicRouteContentBlocks,
   galleryItems = [],
   sharedGallerySlug = null,
   recommendationsDirectory = [],
@@ -211,7 +213,14 @@ export default function JrsAutoGlassProfileTheme({
                   </figcaption>
                   {item.slug ? (
                     <ShareButton
-                      destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
+                      destination={
+                        buildProfilePublicItemPath({
+                          profileBasePath: profileShareDestination,
+                          itemType: "gallery",
+                          itemSlug: item.slug,
+                          contentBlocks: publicRouteContentBlocks,
+                        }) || profileShareDestination
+                      }
                       title={`${item.title} from JR's Auto Glass`}
                       text="See this recent auto glass work from JR's Auto Glass"
                       size="icon"

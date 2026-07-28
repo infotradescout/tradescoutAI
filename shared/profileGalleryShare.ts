@@ -1,3 +1,5 @@
+import { buildProfilePublicItemUrl } from "./profilePublicItemRoute";
+
 const PROFILE_GALLERY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_PROFILE_GALLERY_SLUG_LENGTH = 120;
 const MAX_PROFILE_GALLERY_ITEMS = 60;
@@ -228,9 +230,13 @@ export function createProfileGalleryItemShareMetadata(args: {
 
   try {
     const imageUrl = new URL(item.imageUrl, args.assetOrigin).toString();
-    const canonicalUrl = new URL(args.profileUrl);
-    canonicalUrl.search = buildProfileGalleryShareSearch(item.slug);
-    canonicalUrl.hash = "";
+    const canonical = buildProfilePublicItemUrl({
+      profileUrl: args.profileUrl,
+      itemType: "gallery",
+      itemSlug: item.slug,
+      contentBlocks: args.contentBlocks,
+    });
+    if (!canonical) return null;
 
     const protection = "Your contact details stay private until you choose to connect.";
     const lead = capForShare(
@@ -251,7 +257,7 @@ export function createProfileGalleryItemShareMetadata(args: {
       description: [lead, detail, protection].filter(Boolean).join(" "),
       imageUrl,
       imageAlt: item.imageAlt,
-      canonical: canonicalUrl.toString(),
+      canonical,
     };
   } catch {
     return null;

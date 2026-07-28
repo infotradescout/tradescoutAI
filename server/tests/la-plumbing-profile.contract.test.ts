@@ -177,9 +177,14 @@ describe("LA Plumbing Solutions public profile contract", () => {
     const theme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
 
-    expect(theme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(theme).toContain("buildProfilePublicItemPath({");
+    expect(theme).toContain('itemType: "gallery"');
+    expect(theme).toContain("contentBlocks: publicRouteContentBlocks");
     expect(theme).toContain("profile-gallery-${item.slug}");
     expect(profileView).toContain("createProfileGalleryItemShareMetadata");
-    expect(profileView).toContain('ogType={galleryItemShareMeta ? "article" : "profile"}');
+    expect(profileView).toContain("const pageOgType = inventoryItemShareMeta");
+    expect(profileView).toContain(": galleryItemShareMeta");
+    expect(profileView).toContain('? "article"');
+    expect(profileView).toContain("ogType={pageOgType}");
   });
 });

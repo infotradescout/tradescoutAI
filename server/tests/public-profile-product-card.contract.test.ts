@@ -26,15 +26,20 @@ describe("public profile product-card contract", () => {
     expect(stone).toContain('data-testid="profile-inventory-card"');
     expect(stone).toContain('data-testid="profile-featured-product-card"');
     expect(stone).toContain("profileInventoryShareIndexForDisplay(");
+    expect(stone).toContain("buildProfilePublicItemPath({");
+    expect(stone).toContain('itemType: "inventory"');
     expect(stone).toContain("View details");
-    expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
+    expect(stone).toContain(
+      'startDirectConnect(stone.name, "request_material", stone.slug)'
+    );
     expect(stone).toContain("Ask about {stone.name}");
   });
 
   it("keeps JR's before-and-after proof separate from product inventory", () => {
     expect(autoGlass).toContain("Recent work");
     expect(autoGlass).toContain("Before and after");
-    expect(autoGlass).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(autoGlass).toContain("buildProfilePublicItemPath({");
+    expect(autoGlass).toContain('itemType: "gallery"');
     expect(autoGlass).not.toContain("PublicProfileProductCard");
     expect(autoGlass).not.toContain("inventory-card");
   });
@@ -70,9 +75,13 @@ describe("public profile Direct Connect entry contract", () => {
     // actually carries something specific forward (a stone name, a search
     // term). General entry points with no attached context stay "Direct
     // Connect" rather than being given a label that overpromises specificity.
-    expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
+    expect(stone).toContain(
+      'startDirectConnect(stone.name, "request_material", stone.slug)'
+    );
     expect(stone).toContain("Ask about {stone.name}");
-    expect(stone).toContain("startDirectConnect(stoneName)");
+    expect(stone).toContain(
+      'startDirectConnect(stoneName, "request_material", stoneSlug)'
+    );
     expect(stone).toContain("Ask about this stone");
     expect(stone).toContain("startDirectConnect(inventorySearch.trim()");
     expect(stone).toContain("Request this stone");

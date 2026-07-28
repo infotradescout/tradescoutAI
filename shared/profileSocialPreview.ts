@@ -7,7 +7,7 @@ const ITEM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DIRECT_CONTACT_CTA_PATTERN =
   /\b(?:call|phone|email|e-mail|text|sms|whats\s*app|visit (?:our )?website)\b/i;
 
-export type ProfileSocialPreviewItemType = "inventory" | "gallery";
+export type ProfileSocialPreviewItemType = "inventory" | "gallery" | "category";
 
 export type ResolvedProfileSocialPresentation = {
   brandName: string;
@@ -25,6 +25,7 @@ export type ProfileSocialPresentationConfig = {
   profileCta?: unknown;
   inventoryCta?: unknown;
   galleryCta?: unknown;
+  categoryCta?: unknown;
 };
 
 type ProfilePresentationBlock = {
@@ -95,6 +96,7 @@ function normalizeSocialAssetUrl(value: unknown): string | null {
 function fallbackCta(itemType?: ProfileSocialPreviewItemType | null): string {
   if (itemType === "inventory") return "View item · Direct Connect";
   if (itemType === "gallery") return "View work · Direct Connect";
+  if (itemType === "category") return "Browse collection · Direct Connect";
   return "View profile · Direct Connect";
 }
 
@@ -150,6 +152,8 @@ export function resolveProfileSocialPresentation(args: {
       ? owned.inventoryCta || owned.profileCta
       : args.itemType === "gallery"
         ? owned.galleryCta || owned.profileCta
+        : args.itemType === "category"
+          ? owned.categoryCta || owned.inventoryCta || owned.profileCta
         : owned.profileCta;
   return {
     brandName:
@@ -209,6 +213,12 @@ export function buildProfileSocialDescription(args: {
       160
     );
   }
+  if (itemName && args.itemType === "category") {
+    return cleanText(
+      `Browse current ${itemName} selections from ${brandName}, then request pricing or availability through TradeScout Direct Connect.`,
+      160
+    );
+  }
   return cleanPublicText(args.fallbackDescription, 160);
 }
 
@@ -232,6 +242,8 @@ export function buildProfileSocialPreviewImageUrl(args: {
       ? `/images/social/profile/${encodedProfileSlug}/inventory/${encodedItemSlug}.png`
       : itemType === "gallery"
         ? `/images/social/profile/${encodedProfileSlug}/gallery/${encodedItemSlug}.png`
+        : itemType === "category"
+          ? `/images/social/profile/${encodedProfileSlug}/category/${encodedItemSlug}.png`
         : `/images/social/profile/${encodedProfileSlug}.png`;
 
   const url = new URL(path, socialPreviewOrigin(args.pageOrigin));

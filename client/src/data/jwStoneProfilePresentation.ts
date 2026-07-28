@@ -120,3 +120,83 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
     },
   },
 } as const;
+
+/**
+ * Public routing is profile-owned data, separate from template presentation.
+ * Shared profile, metadata, sitemap, share, and Direct Connect code all read
+ * this same contract.
+ */
+export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
+  type: "publicDiscovery",
+  data: {
+    routes: {
+      inventory: "stones",
+      categories: "materials",
+    },
+    categories: [
+      {
+        sourceSlug: "granite",
+        publicSlug: "granite",
+        title: "Granite",
+        summary:
+          "Explore JW Stone's current Granite inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+        leadItemSlug: "arizona-gold",
+        indexable: true,
+      },
+      {
+        sourceSlug: "marble",
+        publicSlug: "marble",
+        title: "Marble",
+        summary:
+          "Explore JW Stone's current Marble inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+        leadItemSlug: "alabama-rose",
+        indexable: true,
+      },
+      {
+        sourceSlug: "quartzite",
+        publicSlug: "quartzite",
+        title: "Quartzite",
+        summary:
+          "Explore JW Stone's current Quartzite inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+        leadItemSlug: "atlantic",
+        indexable: true,
+      },
+      {
+        sourceSlug: "quartz",
+        publicSlug: "engineered-quartz",
+        title: "Engineered Quartz",
+        summary:
+          "Explore JW Stone's current Engineered Quartz inventory, compare named selections and photographs, and request current pricing or availability for a selected material.",
+        leadItemSlug: "aj-quartz",
+        indexable: true,
+      },
+      {
+        sourceSlug: "onyx",
+        publicSlug: "onyx",
+        title: "Onyx",
+        summary:
+          "Explore the Onyx currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+        leadItemSlug: "honey-onyx",
+        indexable: true,
+      },
+      {
+        sourceSlug: "soapstone",
+        publicSlug: "soapstone",
+        title: "Soapstone",
+        summary:
+          "Explore the Soapstone currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+        leadItemSlug: "soapstone",
+        indexable: true,
+      },
+      {
+        sourceSlug: "basalt",
+        publicSlug: "basalt",
+        title: "Basalt",
+        summary:
+          "Explore the Basalt currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+        leadItemSlug: "matrix-basalt",
+        indexable: true,
+      },
+    ],
+  },
+} as const;

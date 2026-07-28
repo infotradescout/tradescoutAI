@@ -2,9 +2,12 @@ import type { Express, Request, Response } from "express";
 import { buildPublicProfileSocialPreview } from "../publicProfileSocialPreview";
 import { buildSignedSocialPreview } from "../signedSocialPreview";
 import { buildWorkRequestSocialPreview } from "../workRequestShareHtml";
-import { resolvePublicOrigin } from "../utils/publicOrigin";
+import {
+  resolveMappedProfileShareSlug,
+  resolvePublicOrigin,
+} from "../utils/publicOrigin";
 
-type PreviewRouteKind = "profile" | "inventory" | "gallery";
+type PreviewRouteKind = "profile" | "inventory" | "gallery" | "category";
 type PreviewImageState = {
   sourceImageRequested: boolean;
   sourceImageLoaded: boolean;
@@ -61,11 +64,18 @@ function signedPreviewCacheControl(preview: { expiresAt: number }): string {
 function registerPreviewRoute(app: Express, route: string, kind: PreviewRouteKind): void {
   app.get(route, async (req: Request, res: Response) => {
     try {
+      const requestedProfileSlug = String(req.params.profileSlug || "")
+        .trim()
+        .toLowerCase();
+      const mappedProfileSlug = resolveMappedProfileShareSlug(req);
+      if (mappedProfileSlug && requestedProfileSlug !== mappedProfileSlug) {
+        return sendMissing(res);
+      }
       const photo = kind === "inventory" ? normalizedInventoryPhoto(req.query.photo) : undefined;
       if (photo === null) return sendMissing(res);
 
       const preview = await buildPublicProfileSocialPreview({
-        profileSlug: String(req.params.profileSlug || ""),
+        profileSlug: requestedProfileSlug,
         itemType: kind === "profile" ? null : kind,
         itemSlug: kind === "profile" ? undefined : req.params.itemSlug,
         photo,
@@ -130,5 +140,10 @@ export function registerPublicProfileSocialPreviewRoutes(app: Express): void {
     "inventory"
   );
   registerPreviewRoute(app, "/images/social/profile/:profileSlug/gallery/:itemSlug.png", "gallery");
+  registerPreviewRoute(
+    app,
+    "/images/social/profile/:profileSlug/category/:itemSlug.png",
+    "category"
+  );
   registerPreviewRoute(app, "/images/social/profile/:profileSlug.png", "profile");
 }

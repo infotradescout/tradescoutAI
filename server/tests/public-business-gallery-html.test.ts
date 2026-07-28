@@ -97,11 +97,12 @@ describe("public business gallery HTML", () => {
       'property="og:image" content="https://www.thetradescout.com/uploads/business/blue-stone-patio.jpg"'
     );
     expect(html).toContain(
-      `property="og:url" content="https://www.thetradescout.com/business/river-city-masonry?gallery=${galleryItem.slug}"`
+      `property="og:url" content="https://www.thetradescout.com/business/river-city-masonry/gallery/${galleryItem.slug}"`
     );
     expect(html).toContain(
-      `link rel="canonical" href="https://www.thetradescout.com/business/river-city-masonry?gallery=${galleryItem.slug}"`
+      `link rel="canonical" href="https://www.thetradescout.com/business/river-city-masonry/gallery/${galleryItem.slug}"`
     );
+    expect(html).not.toContain(`?gallery=${galleryItem.slug}`);
     expect(html).toContain(`data-seo-business-gallery="${galleryItem.slug}"`);
     expect(html).toContain('"@type":"ImageObject"');
     expect(html).not.toContain('property="og:image:width"');

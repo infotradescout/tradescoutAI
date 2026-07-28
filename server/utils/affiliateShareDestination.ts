@@ -1,5 +1,13 @@
 import type { Request } from "express";
-import { resolveMappedProfileShareOrigin } from "./publicOrigin";
+import {
+  isProfilePublicCategoryDestination,
+  isProfilePublicItemDestination,
+} from "@shared/profilePublicItemRoute";
+import { storage } from "../storage";
+import {
+  resolveMappedProfileShareOrigin,
+  resolveMappedProfileShareSlug,
+} from "./publicOrigin";
 
 const INTERNAL_DESTINATION_BASE = "https://internal.invalid";
 
@@ -22,12 +30,40 @@ export function isSafeAffiliateShareDestination(destination: string): boolean {
 export function resolveAffiliateShareDestinationOrigin(
   req: Pick<Request, "headers" | "protocol">,
   platformOrigin: string,
-  destination: string
+  destination: string,
+  profileContentBlocks?: unknown
 ): string {
   if (!isSafeAffiliateShareDestination(destination)) return platformOrigin;
 
   const resolved = new URL(destination, platformOrigin);
-  if (resolved.pathname !== "/") return platformOrigin;
+  const isProfileDestination =
+    resolved.pathname === "/" ||
+    isProfilePublicItemDestination(
+      `${resolved.pathname}${resolved.search}`,
+      profileContentBlocks
+    ) ||
+    isProfilePublicCategoryDestination(
+      `${resolved.pathname}${resolved.search}`,
+      profileContentBlocks
+    );
+  if (!isProfileDestination) return platformOrigin;
 
   return resolveMappedProfileShareOrigin(req) || platformOrigin;
+}
+
+export async function resolveAffiliateOriginForRequest(
+  req: Pick<Request, "headers" | "protocol">,
+  platformOrigin: string,
+  destination: string
+): Promise<string> {
+  const mappedProfileSlug = resolveMappedProfileShareSlug(req);
+  const mappedProfile = mappedProfileSlug
+    ? await storage.getProfileBySlugPublic(mappedProfileSlug)
+    : undefined;
+  return resolveAffiliateShareDestinationOrigin(
+    req,
+    platformOrigin,
+    destination,
+    mappedProfile?.contentBlocks
+  );
 }

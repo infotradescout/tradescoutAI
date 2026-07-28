@@ -12,6 +12,18 @@ function mappedRequest(host = "jwstonelogistics.com") {
   } as any;
 }
 
+const jwDiscovery = [
+  {
+    type: "publicDiscovery",
+    data: {
+      routes: {
+        inventory: "stones",
+        categories: "materials",
+      },
+    },
+  },
+];
+
 describe("affiliate share destinations", () => {
   it("rejects absolute, protocol-relative, backslash, and malformed destinations", () => {
     expect(isSafeAffiliateShareDestination("/?stone=blue-dunes")).toBe(true);
@@ -32,19 +44,43 @@ describe("affiliate share destinations", () => {
     ).toBe("https://jwstonelogistics.com");
   });
 
+  it("keeps validated clean item routes on the verified custom host", () => {
+    expect(
+      resolveAffiliateShareDestinationOrigin(
+        mappedRequest(),
+        "https://www.thetradescout.com",
+        "/stones/blue-dunes?photo=2",
+        jwDiscovery
+      )
+    ).toBe("https://jwstonelogistics.com");
+  });
+
+  it("keeps validated category routes on the verified custom host", () => {
+    expect(
+      resolveAffiliateShareDestinationOrigin(
+        mappedRequest(),
+        "https://www.thetradescout.com",
+        "/materials/granite",
+        jwDiscovery
+      )
+    ).toBe("https://jwstonelogistics.com");
+  });
+
   it("keeps platform routes on TradeScout even when shared from a custom host", () => {
     expect(
       resolveAffiliateShareDestinationOrigin(
         mappedRequest(),
         "https://www.thetradescout.com",
-        "/services/offer-1"
+        "/services/offer-1",
+        jwDiscovery
       )
     ).toBe("https://www.thetradescout.com");
     expect(
       resolveAffiliateShareDestinationOrigin(
         mappedRequest(),
         "https://www.thetradescout.com",
-        "/exchange/tools/item-1"
+        "/exchange/tools/item-1",
+        jwDiscovery
       )
     ).toBe("https://www.thetradescout.com");
   });

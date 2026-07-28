@@ -43,13 +43,25 @@ import {
 import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
 import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { applyProfileSiteContentAdapter } from "@/data/profileSiteContentAdapters";
-import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
-  buildProfileGalleryShareSearch,
+  createProfileInventoryItemShareMetadata,
+  listProfileInventoryItems,
+} from "@shared/profileItemShare";
+import {
   createProfileGalleryItemShareMetadata,
   listProfileGalleryItems,
   resolveProfileGalleryItem,
 } from "@shared/profileGalleryShare";
+import {
+  createProfileInventoryCategoryShareMetadata,
+} from "@shared/profileCategoryShare";
+import {
+  buildProfilePublicCategoryPath,
+  buildProfilePublicItemPath,
+  buildProfilePublicItemUrl,
+  resolveProfilePublicCategoryRoute,
+  resolveProfilePublicItemRoute,
+} from "@shared/profilePublicItemRoute";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import {
   ISSA_BUILD_LEGACY_PROFILE_SLUG,
@@ -76,6 +88,7 @@ import {
   buildProfileSocialTitle,
   resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
+import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -478,7 +491,9 @@ type PublicProfileResponse = {
 export default function ProfileSiteView() {
   const { user, isAuthenticated } = useAuth();
   const [, paramsU] = useRoute("/u/:slug");
+  const [, paramsUItem] = useRoute("/u/:slug/:collection/:itemSlug");
   const [matchP, paramsP] = useRoute("/p/:slug");
+  const [matchPItem, paramsPItem] = useRoute("/p/:slug/:collection/:itemSlug");
   const [location, navigate] = useLocation();
   // Custom-domain root has no /u/:slug in the path at all -- the server
   // tells us the slug directly via this injected global (see
@@ -488,13 +503,24 @@ export default function ProfileSiteView() {
       ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
           .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
       : undefined;
-  const slug = (paramsU?.slug || paramsP?.slug || customDomainSlug || "").trim();
+  const slug = (
+    paramsU?.slug ||
+    paramsUItem?.slug ||
+    paramsP?.slug ||
+    paramsPItem?.slug ||
+    customDomainSlug ||
+    ""
+  ).trim();
   const [data, setData] = useState<PublicProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
+  const [expressInventoryContext, setExpressInventoryContext] = useState<{
+    itemName: string;
+    itemId: string;
+  } | null>(null);
   const [manageEditMode, setManageEditMode] = useState(() => {
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).get("edit") === "1";
@@ -556,8 +582,14 @@ export default function ProfileSiteView() {
       return;
     }
 
-    if (matchP) {
-      navigate(`/u/${encodeURIComponent(slug)}`, { replace: true });
+    if (matchP || matchPItem) {
+      const itemSuffix =
+        matchPItem && paramsPItem?.collection && paramsPItem?.itemSlug
+          ? `/${encodeURIComponent(paramsPItem.collection)}/${encodeURIComponent(
+              paramsPItem.itemSlug
+            )}${window.location.search}`
+          : "";
+      navigate(`/u/${encodeURIComponent(slug)}${itemSuffix}`, { replace: true });
       return;
     }
 
@@ -597,8 +629,61 @@ export default function ProfileSiteView() {
           new URLSearchParams(window.location.search).get("book") !== "1" &&
           window.location.hostname.toLowerCase() !== customDomain.trim().toLowerCase()
         ) {
-          const redirectUrl = new URL("/", `https://${customDomain.trim()}`);
-          redirectUrl.search = window.location.search;
+          const searchParams = new URLSearchParams(window.location.search);
+          const contentBlocks = applyProfileSiteContentAdapter({
+            profileSlug: json.profile.slug,
+            contentBlocks: json.profile.contentBlocks,
+          });
+          const routedItem = resolveProfilePublicItemRoute({
+            pathname: window.location.pathname,
+            profileBasePath: `/u/${encodeURIComponent(json.profile.slug)}`,
+            contentBlocks,
+          });
+          const routedCategory = resolveProfilePublicCategoryRoute({
+            pathname: window.location.pathname,
+            profileBasePath: `/u/${encodeURIComponent(json.profile.slug)}`,
+            contentBlocks,
+          });
+          const requestedItemType =
+            routedItem?.itemType ||
+            (searchParams.get("stone")
+              ? "inventory"
+              : searchParams.get("gallery")
+                ? "gallery"
+                : null);
+          const requestedItemSlug =
+            routedItem?.itemSlug ||
+            (requestedItemType === "inventory"
+              ? searchParams.get("stone")
+              : requestedItemType === "gallery"
+                ? searchParams.get("gallery")
+                : null);
+          const requestedPhoto = Number.parseInt(searchParams.get("photo") || "", 10);
+          const itemPath =
+            requestedItemType && requestedItemSlug
+              ? buildProfilePublicItemPath({
+                  profileBasePath: "/",
+                  itemType: requestedItemType,
+                  itemSlug: requestedItemSlug,
+                  imageIndex: requestedPhoto > 1 ? requestedPhoto - 1 : 0,
+                  contentBlocks,
+                })
+              : null;
+          const categoryPath =
+            !itemPath && (routedCategory?.categorySlug || searchParams.get("category"))
+              ? buildProfilePublicCategoryPath({
+                  profileBasePath: "/",
+                  categorySlug: routedCategory?.categorySlug || searchParams.get("category"),
+                  contentBlocks,
+                })
+              : null;
+          const redirectUrl = new URL(
+            itemPath || categoryPath || "/",
+            `https://${customDomain.trim()}`
+          );
+          if (!itemPath && !categoryPath) redirectUrl.search = window.location.search;
+          const referralCode = searchParams.get("ref");
+          if (referralCode) redirectUrl.searchParams.set("ref", referralCode);
           redirectUrl.hash = window.location.hash;
           window.location.replace(redirectUrl.toString());
           return; // Stay in the loading state until the browser navigates away.
@@ -615,15 +700,28 @@ export default function ProfileSiteView() {
     };
 
     run();
-  }, [slug, matchP, navigate, reloadKey]);
+  }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
 
   useEffect(() => {
     if (!data || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("stone")) return;
+    const contentBlocks = applyProfileSiteContentAdapter({
+      profileSlug: data.profile.slug,
+      contentBlocks: data.profile.contentBlocks,
+    });
+    const customDomainRoute = Boolean(
+      (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
+        .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
+    );
+    const routeItem = resolveProfilePublicItemRoute({
+      pathname: window.location.pathname,
+      profileBasePath: customDomainRoute ? "/" : `/u/${encodeURIComponent(data.profile.slug)}`,
+      contentBlocks,
+    });
+    if (params.get("stone") || routeItem?.itemType === "inventory") return;
     const sharedGalleryItem = resolveProfileGalleryItem(
-      data.profile.contentBlocks,
-      params.get("gallery")
+      contentBlocks,
+      routeItem?.itemType === "gallery" ? routeItem.itemSlug : params.get("gallery")
     );
     if (!sharedGalleryItem) return;
 
@@ -772,23 +870,83 @@ export default function ProfileSiteView() {
       })());
   const itemShareParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const routedProfileItem =
+    typeof window !== "undefined"
+      ? resolveProfilePublicItemRoute({
+          pathname: window.location.pathname,
+          profileBasePath: isOnProfileCustomDomain
+            ? "/"
+            : `/u/${encodeURIComponent(profile.slug)}`,
+          contentBlocks,
+        })
+      : null;
+  const routedProfileCategory =
+    typeof window !== "undefined"
+      ? resolveProfilePublicCategoryRoute({
+          pathname: window.location.pathname,
+          profileBasePath: isOnProfileCustomDomain
+            ? "/"
+            : `/u/${encodeURIComponent(profile.slug)}`,
+          contentBlocks,
+        })
+      : null;
   const inventoryItemShareMeta = createProfileInventoryItemShareMetadata({
     profileName: displayName,
     profileUrl: profileCanonicalBase,
     assetOrigin: typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin(),
     categories: inventoryCategories,
-    itemSlug: itemShareParams?.get("stone"),
+    itemSlug:
+      routedProfileItem?.itemType === "inventory"
+        ? routedProfileItem.itemSlug
+        : itemShareParams?.get("stone"),
     photo: itemShareParams?.get("photo"),
+    publicRouteContentBlocks: contentBlocks,
   });
   const galleryItemShareMeta = createProfileGalleryItemShareMetadata({
     profileName: displayName,
     profileUrl: profileCanonicalBase,
     assetOrigin: typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin(),
     contentBlocks,
-    itemSlug: itemShareParams?.get("gallery"),
+    itemSlug:
+      routedProfileItem?.itemType === "gallery"
+        ? routedProfileItem.itemSlug
+        : itemShareParams?.get("gallery"),
+  });
+  const inventoryCategoryShareMeta = createProfileInventoryCategoryShareMetadata({
+    profileName: displayName,
+    profileUrl: profileCanonicalBase,
+    assetOrigin: typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin(),
+    categories: inventoryCategories,
+    categorySlug: routedProfileCategory?.categorySlug || itemShareParams?.get("category"),
+    publicRouteContentBlocks: contentBlocks,
   });
   // Existing inventory links win if a malformed URL supplies both selectors.
   const itemShareMeta = inventoryItemShareMeta || galleryItemShareMeta;
+  const categoryShareMeta = itemShareMeta ? null : inventoryCategoryShareMeta;
+  const itemShareDestination = itemShareMeta
+    ? buildProfilePublicItemPath({
+        profileBasePath: profileShareDestination,
+        itemType: itemShareMeta.itemType,
+        itemSlug: itemShareMeta.itemSlug,
+        imageIndex:
+          itemShareMeta.itemType === "inventory" ? itemShareMeta.shareImageIndex : undefined,
+        contentBlocks,
+      })
+    : null;
+  const categoryShareDestination = categoryShareMeta
+    ? buildProfilePublicCategoryPath({
+        profileBasePath: profileShareDestination,
+        categorySlug: categoryShareMeta.categorySlug,
+        contentBlocks,
+      })
+    : null;
+  const currentPageShareDestination =
+    itemShareDestination || categoryShareDestination || profileShareDestination;
+  const currentPageShareTitle =
+    inventoryItemShareMeta?.itemName ||
+    galleryItemShareMeta?.itemTitle ||
+    categoryShareMeta?.categoryName ||
+    displayName;
   const sharedGallerySlug = inventoryItemShareMeta ? null : galleryItemShareMeta?.itemSlug || null;
   const featuredGalleryItem =
     galleryItems.find((item) => item.slug === sharedGallerySlug) || galleryItems[0];
@@ -823,27 +981,30 @@ export default function ProfileSiteView() {
     logoUrl: profile.seoMeta?.faviconUrl,
     accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
     configuredCtaLabel: profile.ctaConfig?.primary?.label,
-    itemType: itemShareMeta?.itemType || null,
+    itemType: itemShareMeta?.itemType || (categoryShareMeta ? "category" : null),
     contentBlocks,
   });
   const publicSocialBrandName = itemSocialPresentation.brandName;
   const socialTitle = buildProfileSocialTitle({
     brandName: publicSocialBrandName,
-    itemType: itemShareMeta?.itemType || null,
-    itemName: itemSocialName,
+    itemType: itemShareMeta?.itemType || (categoryShareMeta ? "category" : null),
+    itemName: itemSocialName || categoryShareMeta?.categoryName,
     category: inventoryItemShareMeta?.category,
   });
-  const seoTitle = sanitizePublicDiscoveryText(itemShareMeta?.title || profileSeoTitle, 240);
+  const seoTitle = sanitizePublicDiscoveryText(
+    itemShareMeta?.title || categoryShareMeta?.title || profileSeoTitle,
+    240
+  );
   const fallbackSeoDescription = sanitizePublicDiscoveryText(
-    itemShareMeta?.description || profileSeoDescription,
+    itemShareMeta?.description || categoryShareMeta?.description || profileSeoDescription,
     1000
   );
   const seoDescription = sanitizePublicDiscoveryText(
-    itemShareMeta
+    itemShareMeta || categoryShareMeta
       ? buildProfileSocialDescription({
           brandName: publicSocialBrandName,
-          itemType: itemShareMeta.itemType,
-          itemName: itemSocialName,
+          itemType: itemShareMeta?.itemType || "category",
+          itemName: itemSocialName || categoryShareMeta?.categoryName,
           category: inventoryItemShareMeta?.category,
           fallbackDescription: fallbackSeoDescription,
         })
@@ -854,8 +1015,8 @@ export default function ProfileSiteView() {
     typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
       ? profile.seoMeta.imageUrl
       : undefined;
-  const sourceSeoImage = itemShareMeta
-    ? itemShareMeta.imageUrl
+  const sourceSeoImage = itemShareMeta || categoryShareMeta
+    ? itemShareMeta?.imageUrl || categoryShareMeta?.imageUrl
     : profileSocialPresentation.profileImageUrl || legacyProfileSeoImage;
   const socialPreviewPageOrigin =
     typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin();
@@ -902,8 +1063,8 @@ export default function ProfileSiteView() {
     buildProfileSocialPreviewImageUrl({
       pageOrigin: socialPreviewPageOrigin,
       profileSlug: profile.slug,
-      itemType: itemShareMeta?.itemType || null,
-      itemSlug: itemShareMeta?.itemSlug,
+      itemType: itemShareMeta?.itemType || (categoryShareMeta ? "category" : null),
+      itemSlug: itemShareMeta?.itemSlug || categoryShareMeta?.categorySlug,
       photo: itemShareParams?.get("photo"),
       versionSeed: [
         publicSocialBrandName,
@@ -915,7 +1076,8 @@ export default function ProfileSiteView() {
         itemSocialPresentation.ctaLabel,
       ].join("|"),
     }) || sourceSeoImage;
-  const seoCanonical = itemShareMeta?.canonical || profileCanonicalBase;
+  const seoCanonical =
+    itemShareMeta?.canonical || categoryShareMeta?.canonical || profileCanonicalBase;
   const profileStructuredData = {
     "@context": "https://schema.org",
     "@type": business?.name ? "LocalBusiness" : "Person",
@@ -926,7 +1088,7 @@ export default function ProfileSiteView() {
     ...(publicCategories.length ? { category: publicCategories.slice(0, 6) } : {}),
     ...(publicServiceAreas.length ? { areaServed: publicServiceAreas.slice(0, 10) } : {}),
   };
-  const structuredData = inventoryItemShareMeta
+  const entityStructuredData = inventoryItemShareMeta
     ? {
         "@context": "https://schema.org",
         "@graph": [
@@ -972,7 +1134,51 @@ export default function ProfileSiteView() {
             },
           ],
         }
-      : profileStructuredData;
+      : categoryShareMeta
+        ? {
+            "@context": "https://schema.org",
+            "@graph": [
+              Object.fromEntries(
+                Object.entries(profileStructuredData).filter(([key]) => key !== "@context")
+              ),
+              {
+                "@type": "CollectionPage",
+                "@id": `${categoryShareMeta.canonical}#collection`,
+                name: sanitizePublicDiscoveryText(categoryShareMeta.title, 240),
+                description: sanitizePublicDiscoveryText(categoryShareMeta.description, 500),
+                url: categoryShareMeta.canonical,
+                mainEntity: {
+                  "@type": "ItemList",
+                  numberOfItems: categoryShareMeta.itemCount,
+                  itemListElement: categoryShareMeta.itemSlugs.map((itemSlug, index) => ({
+                    "@type": "ListItem",
+                    position: index + 1,
+                    url: buildProfilePublicItemUrl({
+                      profileUrl: profileCanonicalBase,
+                      itemType: "inventory",
+                      itemSlug,
+                      contentBlocks,
+                    }),
+                  })),
+                },
+              },
+            ],
+          }
+        : profileStructuredData;
+  const structuredDataMainEntityId = inventoryItemShareMeta
+    ? `${inventoryItemShareMeta.canonical}#product`
+    : galleryItemShareMeta
+      ? `${galleryItemShareMeta.canonical}#image`
+      : categoryShareMeta
+        ? `${categoryShareMeta.canonical}#collection`
+        : `${profileCanonicalBase}#identity`;
+  const structuredData = withTradeScoutPublishingProvenance({
+    structuredData: entityStructuredData,
+    pageUrl: seoCanonical,
+    mainEntityId: structuredDataMainEntityId,
+    ownerIdentityId: `${profileCanonicalBase}#identity`,
+    pageType: itemShareMeta || categoryShareMeta ? "WebPage" : "ProfilePage",
+  });
   const normalizedViewerRole = String((user as any)?.role || "")
     .trim()
     .toLowerCase();
@@ -1174,6 +1380,114 @@ export default function ProfileSiteView() {
   ) : null;
   const manageChromeSpacer =
     viewerCanManage || wantsManageUi ? <div className="h-14" aria-hidden /> : null;
+  const pageOgType = inventoryItemShareMeta
+    ? "product"
+    : galleryItemShareMeta
+      ? "article"
+      : categoryShareMeta
+        ? "website"
+        : "profile";
+  const categoryNoIndex = Boolean(categoryShareMeta && !categoryShareMeta.indexable);
+  const publishedInventoryItems = listProfileInventoryItems(inventoryCategories);
+  const categoryInventoryItems = categoryShareMeta
+    ? publishedInventoryItems.filter((item) =>
+        categoryShareMeta.itemSlugs.includes(item.slug)
+      )
+    : [];
+  const openInventoryDirectConnect = (itemName: string, itemId: string) => {
+    setExpressInventoryContext({ itemName, itemId });
+    setExpressPanelOpen(true);
+  };
+  const openGeneralDirectConnect = () => {
+    setExpressInventoryContext(null);
+    setExpressPanelOpen(true);
+  };
+  const templateIndependentInventoryContext =
+    siteTemplate !== "wholesaler" && (inventoryItemShareMeta || categoryShareMeta) ? (
+      <section
+        className="mx-auto w-full max-w-6xl border-y border-white/10 bg-stone-950 px-4 py-6 text-white md:px-6"
+        data-testid="public-profile-inventory-context"
+        data-public-inventory-category={categoryShareMeta?.categorySlug}
+        data-public-inventory-item={inventoryItemShareMeta?.itemSlug}
+      >
+        <div className="grid gap-5 md:grid-cols-[minmax(220px,360px)_1fr] md:items-start">
+          <img
+            src={inventoryItemShareMeta?.imageUrl || categoryShareMeta?.imageUrl}
+            alt={inventoryItemShareMeta?.imageAlt || categoryShareMeta?.imageAlt || ""}
+            className="aspect-[16/10] w-full rounded-2xl bg-white/5 object-contain"
+          />
+          <div className="min-w-0 space-y-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-ts-orange">
+                {inventoryItemShareMeta
+                  ? inventoryItemShareMeta.category || "Current inventory"
+                  : `${categoryShareMeta?.itemCount || 0} current ${
+                      categoryShareMeta?.itemCount === 1 ? "selection" : "selections"
+                    }`}
+              </p>
+              <h1 className="mt-2 text-3xl font-bold text-white">
+                {inventoryItemShareMeta?.itemName || categoryShareMeta?.categoryName}
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/75">
+                {inventoryItemShareMeta?.description || categoryShareMeta?.description}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <ShareButton
+                destination={currentPageShareDestination}
+                title={currentPageShareTitle}
+                text={`View ${currentPageShareTitle} from ${displayName}`}
+                imageUrl={seoImage}
+                className="border-white/20 text-white"
+              />
+              <Button
+                type="button"
+                onClick={() =>
+                  openInventoryDirectConnect(
+                    inventoryItemShareMeta?.itemName ||
+                      categoryShareMeta?.categoryName ||
+                      "Current inventory",
+                    inventoryItemShareMeta?.itemSlug || categoryShareMeta?.categorySlug || ""
+                  )
+                }
+                className="bg-ts-orange text-white hover:bg-ts-orange-dark"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                {inventoryItemShareMeta ? "Ask about this item" : "Ask about this category"}
+              </Button>
+            </div>
+            {categoryInventoryItems.length > 0 ? (
+              <div
+                className="grid max-h-[34rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-3"
+                aria-label={`${categoryShareMeta?.categoryName} inventory`}
+              >
+                {categoryInventoryItems.map((item) => {
+                  const itemPath =
+                    buildProfilePublicItemPath({
+                      profileBasePath: profileShareDestination,
+                      itemType: "inventory",
+                      itemSlug: item.slug,
+                      contentBlocks,
+                    }) || profileShareDestination;
+                  return (
+                    <a
+                      key={item.slug}
+                      href={itemPath}
+                      className="rounded-xl border border-white/10 bg-white/5 p-3 transition-colors hover:border-ts-orange/60 hover:bg-white/10"
+                    >
+                      <span className="block truncate font-semibold text-white">{item.name}</span>
+                      <span className="mt-1 block text-xs text-white/60">
+                        View exact item and photos
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    ) : null;
 
   if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass") {
     return (
@@ -1183,18 +1497,21 @@ export default function ProfileSiteView() {
           socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
-          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
+          ogType={pageOgType}
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
+          noIndex={categoryNoIndex}
         />
+        {templateIndependentInventoryContext}
         <JrsAutoGlassProfileTheme
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
-          onDirectConnect={() => setExpressPanelOpen(true)}
+          onDirectConnect={openGeneralDirectConnect}
           hasViewerSession={hasViewerSession}
           tradeScoutReturnHref={tradeScoutReturnHref}
           profileShareDestination={profileShareDestination}
+          publicRouteContentBlocks={contentBlocks}
           galleryItems={galleryItems}
           sharedGallerySlug={sharedGallerySlug}
           recommendationsDirectory={recommendationsDirectory}
@@ -1218,7 +1535,10 @@ export default function ProfileSiteView() {
           businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
-          requestMode="auto_glass"
+          requestMode={expressInventoryContext ? "materials" : "auto_glass"}
+          initialStoneName={expressInventoryContext?.itemName}
+          initialItemId={expressInventoryContext?.itemId}
+          initialRequestType={expressInventoryContext ? "request_material" : null}
         />
         {manageChromeSpacer}
         {manageChrome}
@@ -1235,15 +1555,17 @@ export default function ProfileSiteView() {
           socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
-          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
+          ogType={pageOgType}
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
+          noIndex={categoryNoIndex}
         />
+        {templateIndependentInventoryContext}
         <ProFabProfileTheme
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
-          onDirectConnect={() => setExpressPanelOpen(true)}
+          onDirectConnect={openGeneralDirectConnect}
           hasViewerSession={hasViewerSession}
           tradeScoutReturnHref={tradeScoutReturnHref}
           recommendationsDirectory={recommendationsDirectory}
@@ -1267,7 +1589,10 @@ export default function ProfileSiteView() {
           businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
-          requestMode="service"
+          requestMode={expressInventoryContext ? "materials" : "service"}
+          initialStoneName={expressInventoryContext?.itemName}
+          initialItemId={expressInventoryContext?.itemId}
+          initialRequestType={expressInventoryContext ? "request_material" : null}
         />
         {manageChromeSpacer}
         {manageChrome}
@@ -1288,20 +1613,23 @@ export default function ProfileSiteView() {
           socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
-          ogType={galleryItemShareMeta ? "article" : "profile"}
+          ogType={pageOgType}
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
         />
+        {templateIndependentInventoryContext}
         <LocalServiceProfileTheme
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
           businessName={displayName}
           presentation={resolvedLocalServicePresentation}
-          onDirectConnect={() => setExpressPanelOpen(true)}
+          onDirectConnect={openGeneralDirectConnect}
           hasViewerSession={hasViewerSession}
           tradeScoutReturnHref={tradeScoutReturnHref}
           profileShareDestination={profileShareDestination}
+          publicRouteContentBlocks={contentBlocks}
           galleryItems={galleryItems}
           sharedGallerySlug={sharedGallerySlug}
           recommendationsDirectory={recommendationsDirectory}
@@ -1328,7 +1656,10 @@ export default function ProfileSiteView() {
           businessAddress={publicBusinessAddress}
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
-          requestMode="service"
+          requestMode={expressInventoryContext ? "materials" : "service"}
+          initialStoneName={expressInventoryContext?.itemName}
+          initialItemId={expressInventoryContext?.itemId}
+          initialRequestType={expressInventoryContext ? "request_material" : null}
         />
         {manageChromeSpacer}
         {manageChrome}
@@ -1344,10 +1675,11 @@ export default function ProfileSiteView() {
           socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
-          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
+          ogType={pageOgType}
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
+          noIndex={categoryNoIndex}
         />
         <div
           style={
@@ -1372,6 +1704,13 @@ export default function ProfileSiteView() {
             useExpressDirectConnect={useExpressDirectConnect}
             allowExpressCall={canExpressCall}
             profileShareDestination={profileShareDestination}
+            currentPageShareDestination={currentPageShareDestination}
+            currentPageShareTitle={
+              currentPageShareTitle === displayName
+                ? displayName
+                : `${currentPageShareTitle} | ${displayName}`
+            }
+            sharedInventoryCategorySlug={categoryShareMeta?.categorySlug || null}
             platformBaseHref={platformBaseHref}
             sharedGallerySlug={sharedGallerySlug}
             tradeScoutReturnHref={tradeScoutReturnHref}
@@ -1406,11 +1745,13 @@ export default function ProfileSiteView() {
         socialTitle={socialTitle}
         description={seoDescription}
         canonical={seoCanonical}
-        ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
+        ogType={pageOgType}
         ogImage={seoImage}
         structuredData={structuredData}
         preserveCanonicalQuery={Boolean(itemShareMeta)}
+        noIndex={categoryNoIndex}
       />
+      {templateIndependentInventoryContext}
       <Card className="bg-tsCard overflow-hidden">
         <CardHeader className="space-y-4 bg-tsCardMuted">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1418,10 +1759,10 @@ export default function ProfileSiteView() {
               <div className="flex items-center justify-between gap-3">
                 <Badge variant="secondary">Public profile</Badge>
                 <ShareButton
-                  destination={profileShareDestination}
-                  title={displayName}
-                  text={`Check out ${displayName} on TradeScout`}
-                  imageUrl={profileSocialPreviewImageUrl}
+                  destination={currentPageShareDestination}
+                  title={currentPageShareTitle}
+                  text={`Check out ${currentPageShareTitle} on TradeScout`}
+                  imageUrl={seoImage}
                 />
               </div>
               <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
@@ -1649,7 +1990,14 @@ export default function ProfileSiteView() {
                               ) : null}
                             </div>
                             <ShareButton
-                              destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
+                              destination={
+                                buildProfilePublicItemPath({
+                                  profileBasePath: profileShareDestination,
+                                  itemType: "gallery",
+                                  itemSlug: item.slug,
+                                  contentBlocks,
+                                }) || profileShareDestination
+                              }
                               title={`${item.title} by ${displayName}`}
                               text={`View ${item.title} from ${displayName} on TradeScout`}
                               imageUrl={gallerySocialPreviewImageUrl(item)}
@@ -1786,7 +2134,7 @@ export default function ProfileSiteView() {
                   <div className="flex flex-col gap-3">
                     <Button
                       type="button"
-                      onClick={() => setExpressPanelOpen(true)}
+                      onClick={openGeneralDirectConnect}
                       className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
@@ -1832,7 +2180,10 @@ export default function ProfileSiteView() {
         businessAddress={publicBusinessAddress}
         hasViewerSession={hasViewerSession}
         allowCall={canExpressCall}
-        requestMode="service"
+        requestMode={expressInventoryContext ? "materials" : "service"}
+        initialStoneName={expressInventoryContext?.itemName}
+        initialItemId={expressInventoryContext?.itemId}
+        initialRequestType={expressInventoryContext ? "request_material" : null}
       />
       {manageChromeSpacer}
       {manageChrome}

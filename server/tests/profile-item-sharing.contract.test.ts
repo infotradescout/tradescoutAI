@@ -16,24 +16,41 @@ describe("profile item sharing contract", () => {
     expect(serverEntry).toContain("`https://${customDomain}/${requestSearchSuffix(req)}`");
   });
 
-  it("keeps item query parameters in hydrated canonical and Open Graph URLs", () => {
+  it("keeps exact item context in hydrated canonical and Open Graph URLs", () => {
     const helmet = read("client/src/components/SEOHelmet.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
 
     expect(helmet).toContain("preserveCanonicalQuery");
     expect(helmet).toContain("if (!preserveSearch) parsed.search");
     expect(profileView).toContain("preserveCanonicalQuery={Boolean(itemShareMeta)}");
-    expect(profileView).toContain('galleryItemShareMeta ? "article" : "profile"');
+    expect(profileView).toContain('galleryItemShareMeta');
+    expect(profileView).toContain('categoryShareMeta');
+    expect(profileView).toContain('const pageOgType = inventoryItemShareMeta');
     expect(profileView).toContain("profileImageUrl: profile.seoMeta?.imageUrl");
     expect(profileView).toContain(
       ": profileSocialPresentation.profileImageUrl || legacyProfileSeoImage"
     );
   });
 
+  it("keeps item and category context visible and actionable outside wholesaler templates", () => {
+    const profileView = read("client/src/pages/ProfileSiteView.tsx");
+
+    expect(profileView).toContain('data-testid="public-profile-inventory-context"');
+    expect(profileView).toContain('siteTemplate !== "wholesaler"');
+    expect(profileView).toContain("categoryInventoryItems.map((item)");
+    expect(profileView).toContain("currentPageShareDestination");
+    expect(profileView).toContain("initialStoneName={expressInventoryContext?.itemName}");
+    expect(profileView).toContain("initialItemId={expressInventoryContext?.itemId}");
+    expect(profileView).toContain(
+      'initialRequestType={expressInventoryContext ? "request_material" : null}'
+    );
+  });
+
   it("shares and reopens the exact selected inventory photo", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
 
-    expect(theme).toContain("buildProfileInventoryShareSearch(");
+    expect(theme).toContain("buildProfilePublicItemPath({");
+    expect(theme).toContain("profileInventoryShareIndexForDisplay(");
     expect(theme).toContain("openImageIndex");
     expect(theme).toContain('params.get("photo")');
     expect(theme).toContain("setOpenImageIndex(sharedItem.imageIndex)");
@@ -50,13 +67,13 @@ describe("profile item sharing contract", () => {
     expect(profileHtml).toContain("createProfileGalleryItemShareMetadata");
     expect(profileHtml).toContain('data-seo-profile-item="${itemShare.itemType}"');
     expect(profileHtml).toContain('"@type": "ImageObject"');
-    expect(profileView).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(profileView).toContain("buildProfilePublicItemPath({");
     expect(profileView).toContain("profile-gallery-${item.slug}");
     expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
-    expect(theme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(theme).toContain("buildProfilePublicItemPath({");
     expect(theme).toContain("profile-gallery-${item.slug}");
     expect(theme).toContain("<ShareButton");
-    expect(autoGlassTheme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(autoGlassTheme).toContain("buildProfilePublicItemPath({");
     expect(autoGlassTheme).toContain("profile-gallery-${item.slug}");
     expect(autoGlassTheme).toContain("<ShareButton");
   });

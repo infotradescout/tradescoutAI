@@ -1,5 +1,8 @@
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
-import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "@/data/jwStoneProfilePresentation";
+import {
+  JW_STONE_PROFILE_PRESENTATION_BLOCK,
+  JW_STONE_PUBLIC_DISCOVERY_BLOCK,
+} from "@/data/jwStoneProfilePresentation";
 import {
   applyInventoryLeadImageOverrides,
   readFeaturedStoneSlugs,
@@ -19,11 +22,39 @@ type ProfileSiteContentAdapter = (blocks: ProfileContentBlock[]) => ProfileConte
 
 const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
   const leadImageBySlug = readInventoryLeadImageBySlug(blocks);
+  const discoveryDefaults = JW_STONE_PUBLIC_DISCOVERY_BLOCK.data;
+  const withDiscoveryDefaults = blocks.map((block) => {
+    if (block?.type !== "publicDiscovery") return block;
+    const data =
+      block.data && typeof block.data === "object" && !Array.isArray(block.data)
+        ? block.data
+        : {};
+    const routes =
+      data.routes && typeof data.routes === "object" && !Array.isArray(data.routes)
+        ? (data.routes as Record<string, unknown>)
+        : {};
+    return {
+      ...block,
+      data: {
+        ...data,
+        routes: {
+          ...discoveryDefaults.routes,
+          ...routes,
+        },
+        categories: Array.isArray(data.categories)
+          ? data.categories
+          : [...discoveryDefaults.categories],
+      },
+    };
+  });
   return [
-    ...blocks.filter((block) => block?.type !== "inventoryCatalog"),
-    ...(blocks.some((block) => block?.type === "profilePresentation")
+    ...withDiscoveryDefaults.filter((block) => block?.type !== "inventoryCatalog"),
+    ...(withDiscoveryDefaults.some((block) => block?.type === "profilePresentation")
       ? []
       : [{ ...JW_STONE_PROFILE_PRESENTATION_BLOCK } as ProfileContentBlock]),
+    ...(withDiscoveryDefaults.some((block) => block?.type === "publicDiscovery")
+      ? []
+      : [{ ...JW_STONE_PUBLIC_DISCOVERY_BLOCK } as ProfileContentBlock]),
     {
       type: "inventoryCatalog",
       data: {

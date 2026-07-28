@@ -110,6 +110,13 @@ import {
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
+import {
+  buildPublicProfileCanonicalRedirectTarget,
+  resolvePublicProfileCategoryRequest,
+  resolvePublicProfileItemRequest,
+  type ResolvedPublicProfileCategoryRequest,
+  type ResolvedPublicProfileItemRequest,
+} from "./publicProfileItemRouting";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -321,9 +328,11 @@ const CUSTOM_DOMAIN_CACHE = new Map<
 >();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
 const MAPPED_PROFILE_DOMAIN_HOST_KEY = "mappedProfileDomainHost";
+const MAPPED_PROFILE_DOMAIN_SLUG_KEY = "mappedProfileDomainSlug";
 
-function markMappedProfileDomainRequest(req: Request, host: string): void {
+function markMappedProfileDomainRequest(req: Request, host: string, slug: string): void {
   (req as any)[MAPPED_PROFILE_DOMAIN_HOST_KEY] = host;
+  (req as any)[MAPPED_PROFILE_DOMAIN_SLUG_KEY] = slug;
 }
 
 function isMappedProfileDomainSameOrigin(req: Request, origin: string): boolean {
@@ -345,6 +354,38 @@ function requestSearchSuffix(req: Request): string {
   return queryIndex >= 0 ? requestUrl.slice(queryIndex) : "";
 }
 
+function customDomainCanonicalRedirectTarget(
+  req: Request,
+  host: string,
+  canonicalPath: string
+): string {
+  const target = new URL(canonicalPath, `https://${host}`);
+  const rawReferral = Array.isArray(req.query.ref) ? req.query.ref[0] : req.query.ref;
+  const referralCode = typeof rawReferral === "string" ? rawReferral.trim() : "";
+  if (referralCode) target.searchParams.set("ref", referralCode);
+  return target.toString();
+}
+
+function profileItemPathSuffix(
+  itemRequest: ResolvedPublicProfileItemRequest,
+  profileBasePath: string
+): string {
+  const normalizedBase = profileBasePath.replace(/\/+$/, "");
+  return itemRequest.canonicalPath.startsWith(`${normalizedBase}/`)
+    ? itemRequest.canonicalPath.slice(normalizedBase.length)
+    : itemRequest.canonicalPath;
+}
+
+function profileCategoryPathSuffix(
+  categoryRequest: ResolvedPublicProfileCategoryRequest,
+  profileBasePath: string
+): string {
+  const normalizedBase = profileBasePath.replace(/\/+$/, "");
+  return categoryRequest.canonicalPath.startsWith(`${normalizedBase}/`)
+    ? categoryRequest.canonicalPath.slice(normalizedBase.length)
+    : categoryRequest.canonicalPath;
+}
+
 function alternateCustomDomainHost(host: string): string {
   return host.startsWith("www.") ? host.slice(4) : `www.${host}`;
 }
@@ -352,6 +393,7 @@ function alternateCustomDomainHost(host: string): string {
 function isCustomDomainAuthorityRequest(req: Request): boolean {
   const requestPath = req.path || "/";
   return (
+    !isCustomDomainMechanicsPath(requestPath) ||
     requestPath === "/" ||
     requestPath === "" ||
     requestPath === "/robots.txt" ||
@@ -379,6 +421,7 @@ function isCustomDomainMechanicsPath(requestPath: string): boolean {
     requestPath === "/api" ||
     requestPath.startsWith("/auth/") ||
     requestPath === "/auth" ||
+    requestPath.startsWith("/r/") ||
     requestPath.startsWith("/.well-known/")
   ) {
     return true;
@@ -455,7 +498,8 @@ function redirectUnhandledCustomProfilePath(
     return true;
   }
 
-  return redirectPublicRequestToPlatform(req, res);
+  sendPublicPageNotFound(res, "Profile page not found");
+  return true;
 }
 
 // A configured profile custom domain should show
@@ -467,7 +511,9 @@ async function renderProfileOnCustomDomain(
   req: Request,
   res: Response,
   host: string,
-  slug: string
+  slug: string,
+  itemRequest?: ResolvedPublicProfileItemRequest | null,
+  categoryRequest?: ResolvedPublicProfileCategoryRequest | null
 ): Promise<boolean> {
   const indexPath = path.join(process.cwd(), "dist/public", "index.html");
   const templateHtml = getCachedTemplate(indexPath);
@@ -479,9 +525,16 @@ async function renderProfileOnCustomDomain(
     slug,
     origin,
     templateHtml,
-    itemSlug: req.query.stone,
-    itemPhoto: req.query.photo,
-    gallerySlug: req.query.gallery,
+    itemSlug:
+      itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : req.query.stone,
+    itemPhoto:
+      itemRequest?.itemType === "inventory"
+        ? String(itemRequest.imageIndex + 1)
+        : req.query.photo,
+    gallerySlug:
+      itemRequest?.itemType === "gallery" ? itemRequest.itemSlug : req.query.gallery,
+    categorySlug:
+      categoryRequest?.kind === "category" ? categoryRequest.categorySlug : req.query.category,
   });
   if (!html) return false;
 
@@ -492,6 +545,11 @@ async function renderProfileOnCustomDomain(
   // Set them explicitly instead of relying on that later middleware.
   const start = Date.now();
   const canonicalProfilePath = `/u/${encodeURIComponent(slug)}`;
+  const crawlerPathOverride = itemRequest
+    ? `${canonicalProfilePath}${profileItemPathSuffix(itemRequest, "/")}`
+    : categoryRequest
+      ? `${canonicalProfilePath}${profileCategoryPathSuffix(categoryRequest, "/")}`
+      : canonicalProfilePath;
   const contract = getLandingIntentContractForPath(canonicalProfilePath);
   res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
   res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
@@ -502,7 +560,7 @@ async function renderProfileOnCustomDomain(
     void recordCrawlerRequestEvent(req, res.statusCode, {
       responseTimeMs: Date.now() - start,
       responseBytes: Buffer.byteLength(html),
-      pathOverride: canonicalProfilePath,
+      pathOverride: crawlerPathOverride,
     });
   });
   res.send(html);
@@ -522,12 +580,42 @@ async function serveCustomDomainProfilePath(
   ownerUserId: string
 ): Promise<boolean> {
   const path = req.path || "/";
-  if (path === "/" || path === "") {
-    // The affiliate referral system otherwise never sees this request at all
-    // -- this middleware runs ahead of the route stack it normally lives in
-    // (server/routes.ts), and short-circuits the response before reaching
-    // it. A clean visit still attributes to the profile's own owner, and an
-    // explicit ?ref=... (e.g. from a share link) is still honored.
+  const isProfilePageRequest =
+    (req.method === "GET" || req.method === "HEAD") &&
+    !isCustomDomainMechanicsPath(path) &&
+    !["/robots.txt", "/sitemap.xml", "/llms.txt"].includes(path);
+  const profileRecord = isProfilePageRequest
+    ? await storage.getProfileBySlugPublic(slug)
+    : undefined;
+  const itemRequest = profileRecord
+    ? resolvePublicProfileItemRequest({
+        profile: profileRecord,
+        pathname: path,
+        profileBasePath: "/",
+        stone: req.query.stone,
+        gallery: req.query.gallery,
+        photo: req.query.photo,
+      })
+    : { kind: "none" as const };
+  const categoryRequest = profileRecord
+    ? resolvePublicProfileCategoryRequest({
+        profile: profileRecord,
+        pathname: path,
+        profileBasePath: "/",
+        category: req.query.category,
+      })
+    : { kind: "none" as const };
+
+  if (itemRequest.kind === "invalid-item-route") {
+    sendPublicPageNotFound(res, "Profile item not found");
+    return true;
+  }
+  if (categoryRequest.kind === "invalid-category-route") {
+    sendPublicPageNotFound(res, "Profile category not found");
+    return true;
+  }
+
+  const attributeProfileVisit = async (source: string) => {
     const handledExplicitOrExisting = await handleExplicitOrExistingReferral(req, res);
     if (!handledExplicitOrExisting) {
       await attributeCleanPageViewToOwner({
@@ -535,15 +623,60 @@ async function serveCustomDomainProfilePath(
         res,
         ownerUserId,
         destination: req.originalUrl || "/",
-        source: "custom_domain_clean",
+        source,
         conversionType: "public_profile_view",
       });
     }
+  };
+
+  if (itemRequest.kind === "item") {
+    if (itemRequest.source === "legacy-query") {
+      res.redirect(
+        301,
+        customDomainCanonicalRedirectTarget(req, host, itemRequest.canonicalPath)
+      );
+      return true;
+    }
+    await attributeProfileVisit("custom_domain_item");
+    if (await renderProfileOnCustomDomain(req, res, host, slug, itemRequest)) return true;
+    sendPublicPageRenderFailure(res, "Unable to render profile item");
+    return true;
+  }
+
+  if (categoryRequest.kind === "category") {
+    if (categoryRequest.source === "legacy-query") {
+      res.redirect(
+        301,
+        customDomainCanonicalRedirectTarget(req, host, categoryRequest.canonicalPath)
+      );
+      return true;
+    }
+    await attributeProfileVisit("custom_domain_category");
+    if (
+      await renderProfileOnCustomDomain(
+        req,
+        res,
+        host,
+        slug,
+        null,
+        categoryRequest
+      )
+    ) {
+      return true;
+    }
+    sendPublicPageRenderFailure(res, "Unable to render profile category");
+    return true;
+  }
+
+  if (path === "/" || path === "") {
+    // The affiliate referral system otherwise never sees this request at all
+    // -- this middleware runs ahead of the route stack it normally lives in
+    // (server/routes.ts), and short-circuits the response before reaching
+    // it. A clean visit still attributes to the profile's own owner, and an
+    // explicit ?ref=... (e.g. from a share link) is still honored.
+    await attributeProfileVisit("custom_domain_clean");
     if (await renderProfileOnCustomDomain(req, res, host, slug)) return true;
-    res.redirect(
-      301,
-      `https://${CANONICAL_WEB_HOST}/u/${encodeURIComponent(slug)}${requestSearchSuffix(req)}`
-    );
+    sendPublicPageRenderFailure(res, "Unable to render profile");
     return true;
   }
   if (path === "/robots.txt") {
@@ -601,7 +734,7 @@ app.use(async (req, res, next) => {
     const cached = shouldRevalidateProfileDomain ? undefined : CUSTOM_DOMAIN_CACHE.get(host);
     if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
       if (cached.kind === "profile") {
-        markMappedProfileDomainRequest(req, host);
+        markMappedProfileDomainRequest(req, host, cached.slug);
         if (await serveCustomDomainProfilePath(req, res, host, cached.slug, cached.ownerUserId))
           return;
         if (redirectUnhandledCustomProfilePath(req, res, host, cached.slug)) return;
@@ -631,7 +764,7 @@ app.use(async (req, res, next) => {
     // only as a redirect alias. Exact matches win, and duplicate matches fail
     // closed instead of routing a host to an arbitrary profile.
     const alternateHost = alternateCustomDomainHost(host);
-    const profileDomainRows = await db
+    const exactProfileDomains = await db
       .select({
         slug: profiles.slug,
         ownerUserId: profiles.ownerUserId,
@@ -643,32 +776,42 @@ app.use(async (req, res, next) => {
         and(
           eq(profiles.status, "published" as any),
           sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
-          sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) IN (${host}, ${alternateHost})`
+          sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${host}`
         )
       )
-      .limit(3);
-
-    const exactProfileDomains = profileDomainRows.filter(
-      (row) => String(row.configuredHost || "").trim() === host
-    );
-    const aliasProfileDomains = profileDomainRows.filter(
-      (row) => String(row.configuredHost || "").trim() === alternateHost
-    );
+      .limit(2);
     // An exact profile-domain collision is unsafe to resolve by row order.
     if (exactProfileDomains.length > 1) {
-      if (redirectPublicRequestToPlatform(req, res)) return;
-      return next();
+      sendPublicPageNotFound(res, "Profile domain unavailable");
+      return;
     }
     const profileDomain = exactProfileDomains.length === 1 ? exactProfileDomains[0] : undefined;
+    const aliasProfileDomains =
+      exactProfileDomains.length === 0
+        ? await db
+            .select({
+              slug: profiles.slug,
+              ownerUserId: profiles.ownerUserId,
+              configuredHost: sql<string>`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), ''))`,
+            })
+            .from(profiles)
+            .innerJoin(users, eq(profiles.ownerUserId, users.id))
+            .where(
+              and(
+                eq(profiles.status, "published" as any),
+                sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+                sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${alternateHost}`
+              )
+            )
+            .limit(2)
+        : [];
     const aliasProfileDomain =
-      exactProfileDomains.length === 0 && aliasProfileDomains.length === 1
-        ? aliasProfileDomains[0]
-        : undefined;
+      aliasProfileDomains.length === 1 ? aliasProfileDomains[0] : undefined;
 
     const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
     if (profileSlug) {
       const ownerUserId = String(profileDomain?.ownerUserId || "");
-      markMappedProfileDomainRequest(req, host);
+      markMappedProfileDomainRequest(req, host, profileSlug);
       CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, ownerUserId, at: now });
       if (await serveCustomDomainProfilePath(req, res, host, profileSlug, ownerUserId)) return;
       if (redirectUnhandledCustomProfilePath(req, res, host, profileSlug)) return;
@@ -1604,6 +1747,189 @@ app.use(landingContractHeaders);
                 }
               });
 
+              // Recover already-shared unscoped stone URLs without guessing.
+              // The redirect is allowed only when exactly one public profile
+              // owns both the "stones" route name and the requested item.
+              app.get("/stones/:itemSlug", async (req, res) => {
+                try {
+                  const collection = "stones";
+                  const candidates = await db
+                    .select({
+                      slug: profiles.slug,
+                      seoMeta: profiles.seoMeta,
+                      contentBlocks: profiles.contentBlocks,
+                    })
+                    .from(profiles)
+                    .innerJoin(users, eq(profiles.ownerUserId, users.id))
+                    .where(
+                      and(
+                        eq(profiles.status, "published" as any),
+                        sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+                        sql`EXISTS (
+                          SELECT 1
+                          FROM jsonb_array_elements(COALESCE(${profiles.contentBlocks}, '[]'::jsonb)) AS block
+                          WHERE block ->> 'type' = 'publicDiscovery'
+                            AND lower(COALESCE(block -> 'data' -> 'routes' ->> 'inventory', '')) = ${collection}
+                        )`
+                      )
+                    );
+
+                  const matches = candidates
+                    .map((profileRecord) => ({
+                      profileRecord,
+                      itemRequest: resolvePublicProfileItemRequest({
+                        profile: profileRecord,
+                        pathname: `/${collection}/${String(req.params.itemSlug || "")}`,
+                        profileBasePath: "/",
+                        photo: req.query.photo,
+                      }),
+                    }))
+                    .filter(
+                      (
+                        candidate
+                      ): candidate is {
+                        profileRecord: (typeof candidates)[number];
+                        itemRequest: ResolvedPublicProfileItemRequest;
+                      } => candidate.itemRequest.kind === "item"
+                    );
+
+                  if (matches.length !== 1) {
+                    return sendPublicPageNotFound(res, "Profile item not found");
+                  }
+
+                  const { profileRecord, itemRequest } = matches[0];
+                  const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
+                  const destination = customDomain
+                    ? `https://${customDomain}${itemRequest.canonicalPath}`
+                    : `https://${CANONICAL_WEB_HOST}/u/${encodeURIComponent(
+                        profileRecord.slug
+                      )}${itemRequest.canonicalPath}`;
+                  return res.redirect(301, destination);
+                } catch (error) {
+                  console.error("Error resolving unscoped public profile item:", error);
+                  return sendPublicPageRenderFailure(res, "Unable to resolve profile item");
+                }
+              });
+
+              // Profile-owned item pages use one scoped route on TradeScout
+              // and the same suffix on a verified custom domain.
+              app.get(
+                ["/u/:slug/:collection/:itemSlug", "/p/:slug/:collection/:itemSlug"],
+                async (req, res) => {
+                  try {
+                    const indexPath = path.join(publicDistPath, "index.html");
+                    const templateHtml = getCachedTemplate(indexPath);
+                    if (!templateHtml) {
+                      return res.status(404).send("Application files not found");
+                    }
+
+                    const origin = resolvePublicOrigin(req);
+                    const slug = String(req.params.slug || "");
+                    const profileRecord = await storage.getProfileBySlugPublic(slug);
+                    if (!profileRecord) {
+                      return sendPublicPageNotFound(res, "Profile not found");
+                    }
+
+                    const requestedBasePath = req.path.startsWith("/p/")
+                      ? `/p/${encodeURIComponent(slug)}`
+                      : `/u/${encodeURIComponent(slug)}`;
+                    const itemRequest = resolvePublicProfileItemRequest({
+                      profile: profileRecord,
+                      pathname: req.path,
+                      profileBasePath: requestedBasePath,
+                      photo: req.query.photo,
+                    });
+                    const categoryRequest = resolvePublicProfileCategoryRequest({
+                      profile: profileRecord,
+                      pathname: req.path,
+                      profileBasePath: requestedBasePath,
+                    });
+                    if (
+                      itemRequest.kind !== "item" &&
+                      categoryRequest.kind !== "category"
+                    ) {
+                      return sendPublicPageNotFound(res, "Profile destination not found");
+                    }
+
+                    const destinationSuffix =
+                      itemRequest.kind === "item"
+                        ? profileItemPathSuffix(itemRequest, requestedBasePath)
+                        : categoryRequest.kind === "category"
+                          ? profileCategoryPathSuffix(categoryRequest, requestedBasePath)
+                          : "";
+                    if (!destinationSuffix) {
+                      return sendPublicPageNotFound(res, "Profile destination not found");
+                    }
+                    const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
+                    if (customDomain) {
+                      const destination = buildPublicProfileCanonicalRedirectTarget({
+                        origin: `https://${customDomain}`,
+                        canonicalPath: destinationSuffix,
+                        referral: req.query.ref,
+                      });
+                      if (!destination) {
+                        return sendPublicPageNotFound(
+                          res,
+                          "Profile destination not found"
+                        );
+                      }
+                      return res.redirect(301, destination);
+                    }
+                    if (req.path.startsWith("/p/")) {
+                      const destination = buildPublicProfileCanonicalRedirectTarget({
+                        origin,
+                        canonicalPath: `/u/${encodeURIComponent(slug)}${destinationSuffix}`,
+                        referral: req.query.ref,
+                      });
+                      if (!destination) {
+                        return sendPublicPageNotFound(
+                          res,
+                          "Profile destination not found"
+                        );
+                      }
+                      return res.redirect(301, destination);
+                    }
+
+                    const html = await buildPublicProfileHtml({
+                      slug,
+                      origin,
+                      templateHtml,
+                      itemSlug:
+                        itemRequest.kind === "item" &&
+                        itemRequest.itemType === "inventory"
+                          ? itemRequest.itemSlug
+                          : undefined,
+                      itemPhoto:
+                        itemRequest.kind === "item" &&
+                        itemRequest.itemType === "inventory"
+                          ? String(itemRequest.imageIndex + 1)
+                          : undefined,
+                      gallerySlug:
+                        itemRequest.kind === "item" &&
+                        itemRequest.itemType === "gallery"
+                          ? itemRequest.itemSlug
+                          : undefined,
+                      categorySlug:
+                        categoryRequest.kind === "category"
+                          ? categoryRequest.categorySlug
+                          : undefined,
+                    });
+                    if (!html) {
+                      return sendPublicPageNotFound(res, "Profile destination not found");
+                    }
+
+                    res.setHeader(
+                      "Cache-Control",
+                      "public, max-age=300, stale-while-revalidate=86400"
+                    );
+                    res.send(html);
+                  } catch (error) {
+                    console.error("Error rendering public profile item HTML:", error);
+                    sendPublicPageRenderFailure(res, "Failed to render profile item");
+                  }
+                }
+              );
+
               // Public profile pages: server-rendered HTML for crawlability
               app.get(["/u/:slug", "/p/:slug"], async (req, res) => {
                 try {
@@ -1632,7 +1958,72 @@ app.use(landingContractHeaders);
                   // own domain instead of dual-hosting the same profile under
                   // /u/:slug too.
                   const profileRecord = await storage.getProfileBySlugPublic(slug);
+                  if (!profileRecord) {
+                    res.setHeader("Cache-Control", "no-store");
+                    return res
+                      .status(404)
+                      .send(buildPublicProfileEarlyHtml({ slug, origin, templateHtml }));
+                  }
+                  const canonicalProfileBase = `/u/${encodeURIComponent(slug)}`;
+                  const itemRequest = resolvePublicProfileItemRequest({
+                    profile: profileRecord,
+                    pathname: canonicalProfileBase,
+                    profileBasePath: canonicalProfileBase,
+                    stone: req.query.stone,
+                    gallery: req.query.gallery,
+                    photo: req.query.photo,
+                  });
+                  const categoryRequest = resolvePublicProfileCategoryRequest({
+                    profile: profileRecord,
+                    pathname: canonicalProfileBase,
+                    profileBasePath: canonicalProfileBase,
+                    category: req.query.category,
+                  });
+                  if (itemRequest.kind === "invalid-item-route") {
+                    return sendPublicPageNotFound(res, "Profile item not found");
+                  }
+                  if (categoryRequest.kind === "invalid-category-route") {
+                    return sendPublicPageNotFound(res, "Profile category not found");
+                  }
                   const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
+                  if (
+                    itemRequest.kind === "item"
+                  ) {
+                    const itemSuffix = profileItemPathSuffix(
+                      itemRequest,
+                      canonicalProfileBase
+                    );
+                    const destination = buildPublicProfileCanonicalRedirectTarget({
+                      origin: customDomain ? `https://${customDomain}` : origin,
+                      canonicalPath: customDomain
+                        ? itemSuffix
+                        : itemRequest.canonicalPath,
+                      referral: req.query.ref,
+                    });
+                    if (!destination) {
+                      return sendPublicPageNotFound(res, "Profile item not found");
+                    }
+                    return res.redirect(301, destination);
+                  }
+                  if (
+                    categoryRequest.kind === "category"
+                  ) {
+                    const categorySuffix = profileCategoryPathSuffix(
+                      categoryRequest,
+                      canonicalProfileBase
+                    );
+                    const destination = buildPublicProfileCanonicalRedirectTarget({
+                      origin: customDomain ? `https://${customDomain}` : origin,
+                      canonicalPath: customDomain
+                        ? categorySuffix
+                        : categoryRequest.canonicalPath,
+                      referral: req.query.ref,
+                    });
+                    if (!destination) {
+                      return sendPublicPageNotFound(res, "Profile category not found");
+                    }
+                    return res.redirect(301, destination);
+                  }
                   if (customDomain && String(req.query.book || "") !== "1") {
                     return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);
                   }
@@ -1652,6 +2043,7 @@ app.use(landingContractHeaders);
                     itemSlug: req.query.stone,
                     itemPhoto: req.query.photo,
                     gallerySlug: req.query.gallery,
+                    categorySlug: req.query.category,
                   });
 
                   if (!html) {

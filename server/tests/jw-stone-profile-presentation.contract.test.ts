@@ -2,7 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
+import {
+  JW_STONE_PROFILE_PRESENTATION_BLOCK,
+  JW_STONE_PUBLIC_DISCOVERY_BLOCK,
+} from "../../client/src/data/jwStoneProfilePresentation";
 
 function readWorkspaceOrTrackedFile(relativePath: string) {
   const absolutePath = path.resolve(process.cwd(), relativePath);
@@ -26,6 +29,10 @@ const expressSource = fs.readFileSync(
 const presentation = JW_STONE_PROFILE_PRESENTATION_BLOCK.data;
 const migrationSource = fs.readFileSync(
   path.resolve(process.cwd(), "migrations/0110_jw_stone_profile_presentation.sql"),
+  "utf8"
+);
+const discoveryMigrationSource = fs.readFileSync(
+  path.resolve(process.cwd(), "migrations/0111_jw_stone_public_discovery_routes.sql"),
   "utf8"
 );
 const inventory = JSON.parse(
@@ -255,6 +262,41 @@ describe("JW Stone profile presentation contract", () => {
     }
     expect(migrationSource).toContain(
       "WHERE block ->> 'type' = 'profilePresentation'"
+    );
+  });
+
+  it("stores item and material routes as profile-owned discovery data", () => {
+    expect(JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.routes).toEqual({
+      inventory: "stones",
+      categories: "materials",
+    });
+    expect(JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories).toHaveLength(7);
+    expect(
+      JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.find(
+        (category) => category.sourceSlug === "quartz"
+      )
+    ).toMatchObject({
+      publicSlug: "engineered-quartz",
+      title: "Engineered Quartz",
+      leadItemSlug: "aj-quartz",
+      indexable: true,
+    });
+    expect(discoveryMigrationSource).toContain("'type', 'publicDiscovery'");
+    expect(discoveryMigrationSource).toContain("'inventory', 'stones'");
+    expect(discoveryMigrationSource).toContain("'categories', 'materials'");
+    expect(discoveryMigrationSource).toContain('"publicSlug": "engineered-quartz"');
+    expect(discoveryMigrationSource).toContain("WHERE profile.slug = 'jw-stone'");
+    expect(discoveryMigrationSource).toContain(
+      "'categories', defaults.categories"
+    );
+    expect(discoveryMigrationSource).toContain(
+      "WHERE existing.block ->> 'type' IS DISTINCT FROM 'publicDiscovery'"
+    );
+    expect(discoveryMigrationSource).toContain(
+      "jsonb_agg(entry.block ORDER BY entry.sort_key)"
+    );
+    expect(discoveryMigrationSource).toContain(
+      "rebuilt.content_blocks IS DISTINCT FROM rebuilt.next_content_blocks"
     );
   });
 });

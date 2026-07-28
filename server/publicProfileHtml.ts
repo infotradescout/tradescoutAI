@@ -5,16 +5,21 @@ import {
   resolveProfileItemShareMetadata,
 } from "./profileItemShareMetadata";
 import {
-  buildProfileGalleryShareSearch,
   createProfileGalleryItemShareMetadata,
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
 import type { ProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
-import {
-  buildProfileInventoryShareSearch,
-  listProfileInventoryItems,
-} from "@shared/profileItemShare";
+import { listProfileInventoryItems } from "@shared/profileItemShare";
 import type { ProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
+import {
+  buildProfilePublicCategoryUrl,
+  buildProfilePublicItemUrl,
+} from "@shared/profilePublicItemRoute";
+import {
+  createProfileInventoryCategoryShareMetadata,
+  listProfileInventoryCategories,
+  type ProfileInventoryCategoryShareMetadata,
+} from "@shared/profileCategoryShare";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
   buildProfileSocialDescription,
@@ -22,6 +27,7 @@ import {
   buildProfileSocialTitle,
   resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
+import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -40,6 +46,7 @@ type PublicProfileHtmlOptions = {
   itemSlug?: unknown;
   itemPhoto?: unknown;
   gallerySlug?: unknown;
+  categorySlug?: unknown;
 };
 
 type PublicProfileEarlyHtmlOptions = {
@@ -249,6 +256,10 @@ export async function buildPublicProfileLlmsText({
 
   lines.push(
     "",
+    "## Ownership and publishing",
+    `- This profile is owned by ${displayName} and published through TradeScout.`,
+    "- TradeScout provides publishing and Direct Connect technology; it is not the business or owner of the profile's listed items.",
+    "",
     "## Reader guidance",
     "- Treat this host as the canonical public source for this profile.",
     "- Use only the public facts listed here or on the canonical page.",
@@ -272,12 +283,39 @@ export async function buildPublicProfileSitemapXml({
   const inventory = listProfileInventoryItems(
     inventoryCategoriesForProfile(profileRecord.slug, profileRecord.contentBlocks)
   );
+  const categories = listProfileInventoryCategories(
+    inventoryCategoriesForProfile(profileRecord.slug, profileRecord.contentBlocks),
+    profileRecord.contentBlocks
+  ).filter((category) => category.indexable);
   const gallery = listProfileGalleryItems(profileRecord.contentBlocks);
   const urls = [
     `${publicOrigin}/`,
-    ...inventory.map((item) => `${publicOrigin}/${buildProfileInventoryShareSearch(item.slug, 0)}`),
-    ...gallery.map((item) => `${publicOrigin}/${buildProfileGalleryShareSearch(item.slug)}`),
-  ].slice(0, 501);
+    ...categories.map((category) =>
+      buildProfilePublicCategoryUrl({
+        profileUrl: `${publicOrigin}/`,
+        categorySlug: category.slug,
+        contentBlocks: profileRecord.contentBlocks,
+      })
+    ),
+    ...inventory.map((item) =>
+      buildProfilePublicItemUrl({
+        profileUrl: `${publicOrigin}/`,
+        itemType: "inventory",
+        itemSlug: item.slug,
+        contentBlocks: profileRecord.contentBlocks,
+      })
+    ),
+    ...gallery.map((item) =>
+      buildProfilePublicItemUrl({
+        profileUrl: `${publicOrigin}/`,
+        itemType: "gallery",
+        itemSlug: item.slug,
+        contentBlocks: profileRecord.contentBlocks,
+      })
+    ),
+  ]
+    .filter((url): url is string => Boolean(url))
+    .slice(0, 50_000);
 
   const updatedAt = new Date(profileRecord.updatedAt || "");
   const lastmod = Number.isNaN(updatedAt.getTime())
@@ -547,10 +585,87 @@ function withProfileItemJsonLd(
   };
 }
 
+function withProfileCategoryJsonLd(
+  baseJsonLd: Record<string, any>,
+  categoryShare: ProfileInventoryCategoryShareMetadata | null,
+  profileUrl: string,
+  contentBlocks: unknown
+) {
+  if (!categoryShare) return baseJsonLd;
+  const baseGraph = Array.isArray(baseJsonLd["@graph"])
+    ? baseJsonLd["@graph"]
+    : [Object.fromEntries(Object.entries(baseJsonLd).filter(([key]) => key !== "@context"))];
+  const itemList = categoryShare.itemSlugs
+    .map((itemSlug, index) => {
+      const url = buildProfilePublicItemUrl({
+        profileUrl,
+        itemType: "inventory",
+        itemSlug,
+        contentBlocks,
+      });
+      return url
+        ? {
+            "@type": "ListItem",
+            position: index + 1,
+            url,
+          }
+        : null;
+    })
+    .filter(Boolean);
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      ...baseGraph,
+      {
+        "@type": "CollectionPage",
+        "@id": `${categoryShare.canonical}#collection`,
+        name: cleanPublicProfileText(categoryShare.title, 240),
+        description: cleanPublicProfileText(categoryShare.description, 500),
+        url: categoryShare.canonical,
+        isPartOf: {
+          "@id": `${profileUrl}#identity`,
+        },
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: itemList.length,
+          itemListElement: itemList,
+        },
+      },
+    ],
+  };
+}
+
+function withProfilePublishingProvenance(
+  structuredData: Record<string, any>,
+  profileUrl: string,
+  itemShare: PublicProfileItemShareMetadata | null,
+  categoryShare: ProfileInventoryCategoryShareMetadata | null
+) {
+  const pageUrl = itemShare?.canonical || categoryShare?.canonical || profileUrl;
+  const mainEntityId =
+    itemShare?.itemType === "inventory"
+      ? `${itemShare.canonical}#product`
+      : itemShare?.itemType === "gallery"
+        ? `${itemShare.canonical}#image`
+        : categoryShare
+          ? `${categoryShare.canonical}#collection`
+          : `${profileUrl}#identity`;
+
+  return withTradeScoutPublishingProvenance({
+    structuredData,
+    pageUrl,
+    mainEntityId,
+    ownerIdentityId: `${profileUrl}#identity`,
+    pageType: itemShare || categoryShare ? "WebPage" : "ProfilePage",
+  });
+}
+
 function buildJsonLd(
   profile: PublicProfileData,
   origin: string,
-  itemShare: PublicProfileItemShareMetadata | null
+  itemShare: PublicProfileItemShareMetadata | null,
+  categoryShare: ProfileInventoryCategoryShareMetadata | null
 ) {
   const profileUrl = resolveProfileUrl(profile, origin);
   const displayName =
@@ -612,35 +727,59 @@ function buildJsonLd(
           "@context": "https://schema.org",
           "@graph": [localBusiness, faqJsonLd],
         };
-    return withProfileItemJsonLd(baseJsonLd, itemShare, profileUrl, true);
+    return withProfilePublishingProvenance(
+      withProfileCategoryJsonLd(
+        withProfileItemJsonLd(baseJsonLd, itemShare, profileUrl, true),
+        categoryShare,
+        profileUrl,
+        profile.profile.contentBlocks
+      ),
+      profileUrl,
+      itemShare,
+      categoryShare
+    );
   }
 
-  return withProfileItemJsonLd(
-    {
-      "@context": "https://schema.org",
-      "@type": "Person",
-      "@id": `${profileUrl}#identity`,
-      name: displayName,
-      description,
-      jobTitle: cleanPublicProfileText(profile.profile.roleContext, 160) || undefined,
-      url: profileUrl,
-    },
-    itemShare,
+  return withProfilePublishingProvenance(
+    withProfileCategoryJsonLd(
+      withProfileItemJsonLd(
+        {
+          "@context": "https://schema.org",
+          "@type": "Person",
+          "@id": `${profileUrl}#identity`,
+          name: displayName,
+          description,
+          jobTitle: cleanPublicProfileText(profile.profile.roleContext, 160) || undefined,
+          url: profileUrl,
+        },
+        itemShare,
+        profileUrl,
+        false
+      ),
+      categoryShare,
+      profileUrl,
+      profile.profile.contentBlocks
+    ),
     profileUrl,
-    false
+    itemShare,
+    categoryShare
   );
 }
 
 function buildMeta(
   profile: PublicProfileData,
   origin: string,
-  itemShare: PublicProfileItemShareMetadata | null
+  itemShare: PublicProfileItemShareMetadata | null,
+  categoryShare: ProfileInventoryCategoryShareMetadata | null
 ) {
   const displayName =
     cleanPublicProfileText(profile.business?.name?.trim() || profile.profile.displayName, 200) ||
     "TradeScout public profile";
   const titleSource = cleanPublicProfileText(
-    itemShare?.title || profile.profile.seoMeta?.title || `${displayName} | TradeScout`,
+    itemShare?.title ||
+      categoryShare?.title ||
+      profile.profile.seoMeta?.title ||
+      `${displayName} | TradeScout`,
     240
   );
   const documentTitle = formatTradeScoutTitle(titleSource || "TradeScout public profile");
@@ -658,18 +797,19 @@ function buildMeta(
     accentColor:
       profile.business?.brandColors?.accent || profile.business?.brandColors?.primary,
     configuredCtaLabel: profile.profile.ctaConfig?.primary?.label,
-    itemType: itemShare?.itemType || null,
+    itemType: itemShare?.itemType || (categoryShare ? "category" : null),
     contentBlocks: profile.profile.contentBlocks,
   });
   const publicBrandName = presentation.brandName;
   const socialTitle = buildProfileSocialTitle({
     brandName: publicBrandName,
-    itemType: itemShare?.itemType || null,
-    itemName,
+    itemType: itemShare?.itemType || (categoryShare ? "category" : null),
+    itemName: itemName || categoryShare?.categoryName,
     category: itemShare?.itemType === "inventory" ? itemShare.category : null,
   });
   const fallbackDescription = cleanPublicProfileText(
     itemShare?.description ||
+      categoryShare?.description ||
       profile.profile.seoMeta?.description ||
       profile.profile.headline ||
       profile.profile.servicesDescription ||
@@ -679,12 +819,13 @@ function buildMeta(
   );
   const description = capDescriptionLength(
     cleanPublicProfileText(
-      itemShare
+      itemShare || categoryShare
         ? buildProfileSocialDescription({
             brandName: publicBrandName,
-            itemType: itemShare.itemType,
-            itemName,
-            category: itemShare.itemType === "inventory" ? itemShare.category : null,
+            itemType: itemShare?.itemType || "category",
+            itemName: itemName || categoryShare?.categoryName,
+            category:
+              itemShare?.itemType === "inventory" ? itemShare.category : null,
             fallbackDescription,
           })
         : fallbackDescription,
@@ -692,8 +833,8 @@ function buildMeta(
     )
   );
   const legacyProfileImageUrl = profile.profile.seoMeta?.imageUrl || null;
-  const sourceImageUrl = itemShare
-    ? itemShare.imageUrl
+  const sourceImageUrl = itemShare || categoryShare
+    ? itemShare?.imageUrl || categoryShare?.imageUrl || ""
     : presentation.profileImageUrl ||
       legacyProfileImageUrl ||
       `${origin}/tradescout-social-preview.png?v=12`;
@@ -710,8 +851,8 @@ function buildMeta(
     buildProfileSocialPreviewImageUrl({
       pageOrigin: origin,
       profileSlug: profile.profile.slug,
-      itemType: itemShare?.itemType || null,
-      itemSlug: itemShare?.itemSlug,
+      itemType: itemShare?.itemType || (categoryShare ? "category" : null),
+      itemSlug: itemShare?.itemSlug || categoryShare?.categorySlug,
       photo: itemPhoto,
       versionSeed: [
         publicBrandName,
@@ -725,10 +866,12 @@ function buildMeta(
       ].join("|"),
     }) || sourceImageUrl;
   const faviconUrl = profile.profile.seoMeta?.faviconUrl || legacyProfileImageUrl;
-  const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
+  const canonical =
+    itemShare?.canonical || categoryShare?.canonical || resolveProfileUrl(profile, origin);
   const keywords = [
     itemName,
     itemShare?.itemType === "inventory" ? itemShare.category || "" : "",
+    categoryShare?.categoryName || "",
     displayName,
     profile.profile.roleContext || "",
     ...(profile.business?.categories || []),
@@ -759,6 +902,8 @@ function buildMeta(
         ? "product"
         : itemShare?.itemType === "gallery"
           ? "article"
+          : categoryShare
+            ? "website"
           : "profile",
   };
 }
@@ -770,6 +915,7 @@ export async function buildPublicProfileHtml({
   itemSlug,
   itemPhoto,
   gallerySlug,
+  categorySlug,
 }: PublicProfileHtmlOptions): Promise<string | null> {
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
@@ -828,11 +974,20 @@ export async function buildPublicProfileHtml({
     contentBlocks: data.profile.contentBlocks,
     itemSlug: gallerySlug,
   });
+  const categoryShare = createProfileInventoryCategoryShareMetadata({
+    profileName: displayName,
+    profileUrl: resolveProfileUrl(data, origin),
+    assetOrigin: origin,
+    categories: inventoryCategoriesForProfile(data.profile.slug, data.profile.contentBlocks),
+    categorySlug,
+    publicRouteContentBlocks: data.profile.contentBlocks,
+  });
   // Existing inventory links win if conflicting query parameters are supplied.
   // Normal profile links carry only one item selector.
   const itemShare = inventoryItemShare || galleryItemShare;
-  const meta = buildMeta(data, origin, itemShare);
-  const jsonLd = buildJsonLd(data, origin, itemShare);
+  const pageCategoryShare = itemShare ? null : categoryShare;
+  const meta = buildMeta(data, origin, itemShare, pageCategoryShare);
+  const jsonLd = buildJsonLd(data, origin, itemShare, pageCategoryShare);
 
   let html = templateHtml;
 
@@ -850,7 +1005,11 @@ export async function buildPublicProfileHtml({
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    `<meta name="robots" content="${
+      pageCategoryShare && !pageCategoryShare.indexable
+        ? "noindex, follow"
+        : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+    }" />`
   );
   html = upsertTag(
     html,
@@ -1003,12 +1162,23 @@ export async function buildPublicProfileHtml({
       <p>${escapeHtml(cleanPublicProfileText(itemShare.description, 500))}</p>
     </section>`
     : "";
+  const categorySummary = pageCategoryShare
+    ? `<section data-seo-profile-category="${escapeHtml(pageCategoryShare.categorySlug)}">
+      <h2>${escapeHtml(cleanPublicProfileText(pageCategoryShare.categoryName, 200))}</h2>
+      <img src="${escapeHtml(pageCategoryShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(pageCategoryShare.imageAlt, 240))}" />
+      <p>${escapeHtml(cleanPublicProfileText(pageCategoryShare.description, 500))}</p>
+      <p>${pageCategoryShare.itemCount} current ${
+        pageCategoryShare.itemCount === 1 ? "selection" : "selections"
+      }</p>
+    </section>`
+    : "";
   const rootSummary = `
 <main data-seo-profile="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(displayName)}</h1>
     <p>${escapeHtml(meta.description)}</p>
     ${itemSummary}
+    ${categorySummary}
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}

@@ -34,6 +34,7 @@ export type SocialPreviewCardContext = {
     | "profile"
     | "inventory"
     | "gallery"
+    | "category"
     | "business"
     | "helper"
     | "portfolio"

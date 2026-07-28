@@ -98,13 +98,45 @@ describe("Pro Fab Specialty Services public profile contract", () => {
   it("mounts the branded theme and Express Direct Connect on the canonical route", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const entry = read("server/index.ts");
+    const proFabBranchStart = profileView.indexOf(
+      'if (profile.slug === "pro-fab-specialty-services")'
+    );
+    const proFabBranchEnd = profileView.indexOf(
+      "\n  if (\n    resolvedLocalServicePresentation",
+      proFabBranchStart
+    );
+    const proFabBranch = profileView.slice(proFabBranchStart, proFabBranchEnd);
+    const generalDirectConnectStart = profileView.indexOf(
+      "const openGeneralDirectConnect = () => {"
+    );
+    const generalDirectConnectEnd = profileView.indexOf(
+      "};",
+      generalDirectConnectStart
+    );
+    const generalDirectConnect = profileView.slice(
+      generalDirectConnectStart,
+      generalDirectConnectEnd
+    );
 
     expect(profileView).toContain("import ProFabProfileTheme");
     expect(profileView).toContain('profile.slug === "pro-fab-specialty-services"');
-    expect(profileView).toContain("<ProFabProfileTheme");
-    expect(profileView).toContain('trustActions={renderProfileTrustActions("dark")}');
-    expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
-    expect(profileView).toContain('requestMode="service"');
+    expect(proFabBranchStart).toBeGreaterThanOrEqual(0);
+    expect(proFabBranchEnd).toBeGreaterThan(proFabBranchStart);
+    expect(proFabBranch).toContain("<ProFabProfileTheme");
+    expect(proFabBranch).toContain('trustActions={renderProfileTrustActions("dark")}');
+    expect(proFabBranch).toContain("recommendationsDirectory={recommendationsDirectory}");
+    expect(proFabBranch).toContain("onDirectConnect={openGeneralDirectConnect}");
+    expect(proFabBranch).toContain(
+      'requestMode={expressInventoryContext ? "materials" : "service"}'
+    );
+    expect(proFabBranch).toContain("initialStoneName={expressInventoryContext?.itemName}");
+    expect(proFabBranch).toContain("initialItemId={expressInventoryContext?.itemId}");
+    expect(proFabBranch).toContain(
+      'initialRequestType={expressInventoryContext ? "request_material" : null}'
+    );
+    expect(generalDirectConnectStart).toBeGreaterThanOrEqual(0);
+    expect(generalDirectConnect).toContain("setExpressInventoryContext(null)");
+    expect(generalDirectConnect).toContain("setExpressPanelOpen(true)");
     expect(entry).toContain("import { provisionProFabProfile }");
     expect(entry).toContain('await provisionProfile("ProFab", provisionProFabProfile)');
   });
