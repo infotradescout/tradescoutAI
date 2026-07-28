@@ -34,9 +34,44 @@ describe("universal public-profile Express Direct Connect contract", () => {
   });
 
   it("opens Express Direct Connect from JR and generic public profile CTAs", () => {
-    expect(profileSource).toContain('requestMode="auto_glass"');
-    expect(profileSource).toContain('requestMode="service"');
-    expect(profileSource).toContain("onDirectConnect={() => setExpressPanelOpen(true)}");
+    const autoGlassStart = profileSource.indexOf(
+      'if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass")'
+    );
+    const autoGlassEnd = profileSource.indexOf(
+      '// Legacy specialty shell until a fabrication gallery template ships.',
+      autoGlassStart
+    );
+    const autoGlassBranch = profileSource.slice(autoGlassStart, autoGlassEnd);
+    const genericStart = profileSource.indexOf(
+      'return (\n    <Page className="max-w-6xl space-y-6">'
+    );
+    const genericBranch = profileSource.slice(genericStart);
+    const generalDirectConnectStart = profileSource.indexOf(
+      "const openGeneralDirectConnect = () => {"
+    );
+    const generalDirectConnectEnd = profileSource.indexOf(
+      "};",
+      generalDirectConnectStart
+    );
+    const generalDirectConnect = profileSource.slice(
+      generalDirectConnectStart,
+      generalDirectConnectEnd
+    );
+
+    expect(autoGlassStart).toBeGreaterThanOrEqual(0);
+    expect(autoGlassEnd).toBeGreaterThan(autoGlassStart);
+    expect(autoGlassBranch).toContain("onDirectConnect={openGeneralDirectConnect}");
+    expect(autoGlassBranch).toContain(
+      'requestMode={expressInventoryContext ? "materials" : "auto_glass"}'
+    );
+    expect(genericStart).toBeGreaterThanOrEqual(0);
+    expect(genericBranch).toContain("onClick={openGeneralDirectConnect}");
+    expect(genericBranch).toContain(
+      'requestMode={expressInventoryContext ? "materials" : "service"}'
+    );
+    expect(generalDirectConnectStart).toBeGreaterThanOrEqual(0);
+    expect(generalDirectConnect).toContain("setExpressInventoryContext(null)");
+    expect(generalDirectConnect).toContain("setExpressPanelOpen(true)");
     expect(jrSource).toContain("onClick={onDirectConnect}");
     expect(jrSource.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(jrSource).not.toContain("preScoutCreateHref");

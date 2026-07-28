@@ -59,8 +59,26 @@ describe("request-scoped CORS origin", () => {
     const businessStart = source.indexOf("if (businessSlug) {");
     const businessEnd = source.indexOf("const [account]", businessStart);
     const businessSource = source.slice(businessStart, businessEnd);
+    const markerStart = source.indexOf("function markMappedProfileDomainRequest(");
+    const markerEnd = source.indexOf(
+      "function isMappedProfileDomainSameOrigin(",
+      markerStart
+    );
+    const markerSource = source.slice(markerStart, markerEnd);
 
-    expect(source).toContain("markMappedProfileDomainRequest(req, host)");
+    expect(markerStart).toBeGreaterThanOrEqual(0);
+    expect(markerEnd).toBeGreaterThan(markerStart);
+    expect(markerSource).toContain(
+      "function markMappedProfileDomainRequest(req: Request, host: string, slug: string)"
+    );
+    expect(markerSource).toContain(
+      "(req as any)[MAPPED_PROFILE_DOMAIN_HOST_KEY] = host"
+    );
+    expect(markerSource).toContain(
+      "(req as any)[MAPPED_PROFILE_DOMAIN_SLUG_KEY] = slug"
+    );
+    expect(source).toContain("markMappedProfileDomainRequest(req, host, cached.slug)");
+    expect(source).toContain("markMappedProfileDomainRequest(req, host, profileSlug)");
     expect(corsSource).toContain("isMappedProfileDomainSameOrigin(req, origin)");
     expect(corsSource).not.toContain("if (isSameRequestHttpOrigin(req, origin))");
     expect(cachedBusinessSource).not.toContain("markMappedProfileDomainRequest");

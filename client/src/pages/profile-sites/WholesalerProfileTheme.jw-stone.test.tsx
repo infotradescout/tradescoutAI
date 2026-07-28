@@ -243,6 +243,22 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(container.querySelector("#inventory-browser")).not.toBeNull();
   });
 
+  it("hands Direct Connect the immutable JW item slug alongside its display name", () => {
+    act(() => {
+      root.render(<WholesalerProfileTheme {...props} />);
+    });
+
+    click(container.querySelector('button[aria-label="Ask about Test Stone 1"]'));
+
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
+      open: true,
+      initialItemId: "test-stone-1",
+      initialStoneName: "Test Stone 1",
+      initialRequestType: "request_material",
+    });
+    expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
+  });
+
   it("adapts guidance and Direct Connect intent to the selected customer type", () => {
     act(() => {
       root.render(<WholesalerProfileTheme {...props} />);

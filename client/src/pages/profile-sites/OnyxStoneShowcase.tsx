@@ -7,10 +7,8 @@ import {
 } from "react";
 import { ArrowUpRight, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import {
-  buildProfileInventoryShareSearch,
-  profileInventoryShareIndexForDisplay,
-} from "@shared/profileItemShare";
+import { profileInventoryShareIndexForDisplay } from "@shared/profileItemShare";
+import { buildProfilePublicItemPath } from "@shared/profilePublicItemRoute";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
 import type { DirectConnectTarget } from "./directConnectMaterial";
 
@@ -31,6 +29,7 @@ type Props = {
   trustFacts: string[];
   faqItems: Array<{ question?: string; answer?: string }>;
   profileShareDestination: string;
+  publicRouteContentBlocks?: unknown;
   onDirectConnect: (target?: DirectConnectTarget) => void;
 };
 
@@ -44,6 +43,7 @@ export default function OnyxStoneShowcase({
   trustFacts: _trustFacts,
   faqItems: _faqItems,
   profileShareDestination,
+  publicRouteContentBlocks,
   onDirectConnect,
 }: Props) {
   const initialProduct =
@@ -334,7 +334,12 @@ export default function OnyxStoneShowcase({
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="button"
-                onClick={() => onDirectConnect(activeProduct.name)}
+                onClick={() =>
+                  onDirectConnect({
+                    itemId: activeProduct.slug,
+                    itemName: activeProduct.name,
+                  })
+                }
                 className="inline-flex min-h-12 items-center justify-center gap-2 border-2 border-ts-orange bg-[var(--brand-bg,#f7f3ea)]/92 px-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-ts-orange transition hover:bg-[var(--brand-bg,#f7f3ea)]"
               >
                 Direct Connect
@@ -376,14 +381,19 @@ export default function OnyxStoneShowcase({
               </div>
               <div className="flex gap-2">
                 <ShareButton
-                  destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                    activeProduct.slug,
-                    profileInventoryShareIndexForDisplay(
-                      activeProduct.images,
-                      activeProduct.shareImageOrder,
-                      photoIndex
-                    )
-                  )}`}
+                  destination={
+                    buildProfilePublicItemPath({
+                      profileBasePath: profileShareDestination,
+                      itemType: "inventory",
+                      itemSlug: activeProduct.slug,
+                      imageIndex: profileInventoryShareIndexForDisplay(
+                        activeProduct.images,
+                        activeProduct.shareImageOrder,
+                        photoIndex
+                      ),
+                      contentBlocks: publicRouteContentBlocks,
+                    }) || profileShareDestination
+                  }
                   title={activeProduct.name}
                   text={`See this ${activeProduct.name} photo on TradeScout`}
                   size="icon"
@@ -432,7 +442,10 @@ export default function OnyxStoneShowcase({
                 type="button"
                 onClick={() => {
                   setActivePhoto(null);
-                  onDirectConnect(activeProduct.name);
+                  onDirectConnect({
+                    itemId: activeProduct.slug,
+                    itemName: activeProduct.name,
+                  });
                 }}
                 className="inline-flex min-h-11 flex-none items-center justify-center border-2 border-ts-orange px-5 text-[10px] font-semibold uppercase tracking-[0.22em] text-ts-orange"
               >

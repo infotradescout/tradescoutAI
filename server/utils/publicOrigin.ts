@@ -58,3 +58,18 @@ export function resolveMappedProfileShareOrigin(
   }
   return `https://${mappedHost}`;
 }
+
+/** Returns the profile slug paired with the verified mapped host. */
+export function resolveMappedProfileShareSlug(
+  req: Pick<Request, "headers" | "protocol">
+): string | null {
+  const mappedSlug = String(
+    (req as Pick<Request, "headers" | "protocol"> & { mappedProfileDomainSlug?: unknown })
+      .mappedProfileDomainSlug || ""
+  )
+    .trim()
+    .toLowerCase();
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(mappedSlug) && mappedSlug.length <= 120
+    ? mappedSlug
+    : null;
+}

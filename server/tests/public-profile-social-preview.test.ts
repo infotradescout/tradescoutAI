@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { JW_STONE_INVENTORY_CATEGORIES } from "../../client/src/data/jwStoneInventory";
+import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 
 const storageMocks = vi.hoisted(() => ({
   getProfileBySlugPublic: vi.fn(),
@@ -13,6 +15,28 @@ import { resolvePublicProfileSocialPreview } from "../publicProfileSocialPreview
 
 const BLUE_MARE_SOURCE_IMAGE =
   "https://www.thetradescout.com/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp";
+const JW_CATEGORY_PREVIEW_CASES = JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map(
+  (config) => {
+    const sourceCategory = JW_STONE_INVENTORY_CATEGORIES.find(
+      (category) => category.categorySlug === config.sourceSlug
+    );
+    const leadStone = sourceCategory?.stones.find(
+      (stone) => stone.slug === config.leadItemSlug
+    );
+    if (!sourceCategory || !leadStone?.images[0]) {
+      throw new Error(`Missing JW category preview fixture for ${config.publicSlug}`);
+    }
+    return {
+      slug: config.publicSlug,
+      name: config.title,
+      itemCount: sourceCategory.stones.length,
+      sourceImageUrl: new URL(
+        leadStone.images[0],
+        "https://www.thetradescout.com"
+      ).toString(),
+    };
+  }
+);
 
 describe("public profile social preview context", () => {
   beforeEach(() => {
@@ -42,6 +66,7 @@ describe("public profile social preview context", () => {
       // These stale/unverified values must never override JW Stone's reconciled,
       // source-backed catalog when building a public social preview.
       contentBlocks: [
+        JW_STONE_PUBLIC_DISCOVERY_BLOCK,
         {
           type: "profilePresentation",
           data: {
@@ -149,6 +174,55 @@ describe("public profile social preview context", () => {
     );
     expect(inventoryPreview?.sourceImageUrl).toBe(BLUE_MARE_SOURCE_IMAGE);
     expect(inventoryPreview?.sourceImageUrl).not.toBe(profilePreview?.sourceImageUrl);
+  });
+
+  it.each(JW_CATEGORY_PREVIEW_CASES)(
+    "builds a stable category-specific card for JW $name",
+    async ({ slug, name, itemCount, sourceImageUrl }) => {
+      const request = {
+        profileSlug: "jw-stone",
+        itemType: "category" as const,
+        itemSlug: slug,
+        pageOrigin: "https://jwstonelogistics.com",
+      };
+      const preview = await resolvePublicProfileSocialPreview(request);
+      const repeated = await resolvePublicProfileSocialPreview(request);
+
+      expect(preview).not.toBeNull();
+      expect(preview?.context).toMatchObject({
+        kind: "category",
+        title: name,
+        eyebrow: `${itemCount} current ${itemCount === 1 ? "selection" : "selections"}`,
+        brandName: "JW Stone Logistics",
+        supportingText: "JW Stone Logistics",
+        locationLabel: "Pensacola, FL",
+        ctaLabel: "View photos · Request pricing",
+        sourceImageUrl,
+        logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
+        accentColor: "#81904a",
+      });
+      expect(preview?.sourceImageUrl).toBe(sourceImageUrl);
+      expect(repeated?.fingerprint).toBe(preview?.fingerprint);
+      expect(repeated?.previewImageUrl).toBe(preview?.previewImageUrl);
+
+      const previewUrl = new URL(preview!.previewImageUrl);
+      expect(previewUrl.origin).toBe("https://www.thetradescout.com");
+      expect(previewUrl.pathname).toBe(
+        `/images/social/profile/jw-stone/category/${slug}.png`
+      );
+      expect(previewUrl.searchParams.get("v")).toMatch(/^4-/);
+    }
+  );
+
+  it("does not publish a preview for JW's excluded unconfirmed placeholder category", async () => {
+    await expect(
+      resolvePublicProfileSocialPreview({
+        profileSlug: "jw-stone",
+        itemType: "category",
+        itemSlug: "unconfirmed",
+        pageOrigin: "https://jwstonelogistics.com",
+      })
+    ).resolves.toBeNull();
   });
 
   it("uses the same stored presentation contract for an unrelated profile", async () => {

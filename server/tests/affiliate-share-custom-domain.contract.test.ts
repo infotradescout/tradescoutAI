@@ -7,7 +7,9 @@ describe("affiliate sharing from verified profile domains", () => {
     const routes = fs.readFileSync(path.resolve(process.cwd(), "server/routes.ts"), "utf8");
 
     expect(routes).toContain("if (!isSafeAffiliateShareDestination(destination))");
-    expect(routes).toContain("const destinationOrigin = resolveAffiliateShareDestinationOrigin(");
+    expect(routes).toContain(
+      "const destinationOrigin = await resolveAffiliateOriginForRequest("
+    );
     expect(routes).toContain(
       "destinationOrigin === baseOrigin ? baseOrigin : resolvePublicOrigin(req)"
     );

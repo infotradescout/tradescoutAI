@@ -120,7 +120,7 @@ import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { resolvePublicOrigin } from "./utils/publicOrigin";
 import {
   isSafeAffiliateShareDestination,
-  resolveAffiliateShareDestinationOrigin,
+  resolveAffiliateOriginForRequest,
 } from "./utils/affiliateShareDestination";
 import {
   affiliateShareSlugError,
@@ -3736,11 +3736,7 @@ export async function registerRoutes(app: any) {
       }
 
       const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
-      const destinationOrigin = resolveAffiliateShareDestinationOrigin(
-        req,
-        baseOrigin,
-        destination
-      );
+      const destinationOrigin = await resolveAffiliateOriginForRequest(req, baseOrigin, destination);
       const shortLinkOrigin =
         destinationOrigin === baseOrigin ? baseOrigin : resolvePublicOrigin(req);
       const full = new URL(destination, destinationOrigin);

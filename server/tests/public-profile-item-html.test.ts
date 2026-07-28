@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
+import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
+import { listProfileInventoryItems } from "@shared/profileItemShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
+import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
+import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
 
 const jwSocialPresentationBlock = {
   type: "profilePresentation",
@@ -16,6 +20,7 @@ const jwSocialPresentationBlock = {
     },
   },
 };
+const jwPublicDiscoveryBlock = JW_STONE_PUBLIC_DISCOVERY_BLOCK;
 
 const profileRecord = {
   id: "profile-jw",
@@ -37,7 +42,7 @@ const profileRecord = {
   },
   ctaConfig: {},
   profileBooking: null as any,
-  contentBlocks: [jwSocialPresentationBlock] as any[],
+  contentBlocks: [jwSocialPresentationBlock, jwPublicDiscoveryBlock] as any[],
 };
 
 const businessRecord = {
@@ -97,7 +102,7 @@ describe("public profile item HTML", () => {
     profileRecord.seoMeta.description = "JW Stone inventory in Chattanooga.";
     profileRecord.seoMeta.customDomain = "jwstonelogistics.com";
     profileRecord.profileBooking = null;
-    profileRecord.contentBlocks = [jwSocialPresentationBlock];
+    profileRecord.contentBlocks = [jwSocialPresentationBlock, jwPublicDiscoveryBlock];
     businessRecord.name = "JW Stone LLC";
     businessRecord.categories = ["Stone wholesaler"];
     businessRecord.serviceAreas = ["Hamilton County"];
@@ -143,11 +148,11 @@ describe("public profile item HTML", () => {
       /property="og:image" content="https:\/\/www\.thetradescout\.com\/images\/social\/profile\/jw-stone\/inventory\/blue-dunes\.png\?photo=2&amp;v=4-[a-z0-9]+"/
     );
     expect(html).toContain(
-      'property="og:url" content="https://jwstonelogistics.com/?stone=blue-dunes&amp;photo=2"'
+      'property="og:url" content="https://jwstonelogistics.com/stones/blue-dunes?photo=2"'
     );
     expect(html).toContain('property="og:type" content="product"');
     expect(html).toContain(
-      'link rel="canonical" href="https://jwstonelogistics.com/?stone=blue-dunes&amp;photo=2"'
+      'link rel="canonical" href="https://jwstonelogistics.com/stones/blue-dunes?photo=2"'
     );
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
@@ -175,7 +180,18 @@ describe("public profile item HTML", () => {
     expect(html).toContain('"@id":"https://www.thetradescout.com/u/jw-stone#identity"');
     expect(html).toContain('"@type":"Product"');
     expect(html).not.toContain('"brand"');
-    expect(html).not.toContain('"@type":"Organization"');
+    expect(html).toContain(
+      '"@type":"Organization","@id":"https://www.thetradescout.com/#organization","name":"TradeScout"'
+    );
+    expect(html).toContain(
+      '"mainEntity":{"@id":"https://www.thetradescout.com/u/jw-stone/stones/blue-dunes#product"}'
+    );
+    expect(html).toContain(
+      '"publisher":{"@id":"https://www.thetradescout.com/#organization"}'
+    );
+    expect(html).toContain(
+      '"provider":{"@id":"https://www.thetradescout.com/#organization"}'
+    );
   });
 
   it("falls back to the context-aware profile card for an unknown item", async () => {
@@ -309,6 +325,7 @@ describe("public profile item HTML", () => {
 
   it("sanitizes indexed gallery descriptions without removing the real item", async () => {
     profileRecord.contentBlocks = [
+      jwPublicDiscoveryBlock,
       {
         id: "recent-work",
         type: "gallery",
@@ -406,11 +423,11 @@ describe("public profile item HTML", () => {
       )
     );
     expect(html).toContain(
-      `property="og:url" content="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
+      `property="og:url" content="https://jwstonelogistics.com/gallery/${galleryItem.slug}"`
     );
     expect(html).toContain('property="og:type" content="article"');
     expect(html).toContain(
-      `link rel="canonical" href="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
+      `link rel="canonical" href="https://jwstonelogistics.com/gallery/${galleryItem.slug}"`
     );
     expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
     expect(html).toContain('data-seo-profile-item="gallery"');
@@ -449,10 +466,10 @@ describe("public profile item HTML", () => {
       )
     );
     expect(html).toContain(
-      `property="og:url" content="https://www.thetradescout.com/u/jrs-auto-glass?gallery=${beforeItem.slug}"`
+      `property="og:url" content="https://www.thetradescout.com/u/jrs-auto-glass/gallery/${beforeItem.slug}"`
     );
     expect(html).toContain(
-      `link rel="canonical" href="https://www.thetradescout.com/u/jrs-auto-glass?gallery=${beforeItem.slug}"`
+      `link rel="canonical" href="https://www.thetradescout.com/u/jrs-auto-glass/gallery/${beforeItem.slug}"`
     );
     expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
     expect(html).toContain('property="og:image:width" content="1200"');
@@ -465,7 +482,15 @@ describe("public profile item HTML", () => {
     expect(html).toContain(
       '"creator":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass#identity"}'
     );
-    expect(html).not.toContain('"@type":"Organization"');
+    expect(html).toContain(
+      '"@type":"Organization","@id":"https://www.thetradescout.com/#organization","name":"TradeScout"'
+    );
+    expect(html).toContain(
+      `"mainEntity":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass/gallery/${beforeItem.slug}#image"}`
+    );
+    expect(html).toContain(
+      '"publisher":{"@id":"https://www.thetradescout.com/#organization"}'
+    );
   });
 
   it("builds profile-specific LLM guidance without direct contact or exact-address text", async () => {
@@ -479,6 +504,7 @@ describe("public profile item HTML", () => {
       "Call 423-555-0199, email owner@example.com, visit https://private.example or 123 Main Street.";
     profileRecord.servicesDescription = "Installations at 456 Market Ave. See www.vendor.example.";
     profileRecord.contentBlocks = [
+      jwPublicDiscoveryBlock,
       {
         type: "services",
         data: {
@@ -512,8 +538,65 @@ describe("public profile item HTML", () => {
     expect(guidance).not.toContain("/api/");
   });
 
-  it("builds a host-local sitemap with real update time and public item URLs", async () => {
+  it("keeps SSR metadata, schema, and preview context aligned for all seven JW material pages", async () => {
+    const inventoryCategories = inventoryCategoriesForProfile(
+      profileRecord.slug,
+      profileRecord.contentBlocks
+    );
+    const categories = listProfileInventoryCategories(
+      inventoryCategories,
+      profileRecord.contentBlocks
+    );
+
+    expect(categories).toHaveLength(7);
+
+    for (const category of categories) {
+      const canonical = `https://jwstonelogistics.com/materials/${category.slug}`;
+      const html = await buildPublicProfileHtml({
+        slug: "jw-stone",
+        origin: "https://jwstonelogistics.com",
+        templateHtml,
+        categorySlug: category.slug,
+      });
+
+      expect(html).not.toBeNull();
+      expect(html).toContain(
+        `property="og:title" content="${category.name} | JW Stone Logistics"`
+      );
+      expect(html).toContain(
+        `property="og:description" content="Browse current ${category.name} selections from JW Stone Logistics, then request pricing or availability through TradeScout Direct Connect."`
+      );
+      expect(html).toContain(`property="og:url" content="${canonical}"`);
+      expect(html).toContain(`link rel="canonical" href="${canonical}"`);
+      expect(html).toMatch(
+        new RegExp(
+          `property="og:image" content="https://www\\.thetradescout\\.com/images/social/profile/jw-stone/category/${category.slug}\\.png\\?v=4-[a-z0-9]+"`
+        )
+      );
+      expect(html).toContain('property="og:type" content="website"');
+      expect(html).toContain(
+        'meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"'
+      );
+      expect(html).toContain(`data-seo-profile-category="${category.slug}"`);
+      expect(html).toContain(`<h2>${category.name}</h2>`);
+      expect(html).toContain(`${category.itemCount} current`);
+      expect(html).toContain('"@type":"CollectionPage"');
+      expect(html).toContain(`"@id":"${canonical}#collection"`);
+      expect(html).toContain(`"url":"${canonical}"`);
+      expect(html).toContain(`"numberOfItems":${category.itemCount}`);
+      expect(html).not.toContain('data-seo-profile-item="inventory"');
+
+      for (const itemSlug of category.itemSlugs) {
+        expect(html).toContain(
+          `"url":"https://jwstonelogistics.com/stones/${itemSlug}"`
+        );
+      }
+    }
+  });
+
+  it("builds the exact host-local sitemap set for 119 stones, seven materials, and gallery", async () => {
     profileRecord.contentBlocks = [
+      jwPublicDiscoveryBlock,
       {
         id: "recent-work",
         type: "gallery",
@@ -529,17 +612,43 @@ describe("public profile item HTML", () => {
       },
     ];
     const galleryItem = listProfileGalleryItems(profileRecord.contentBlocks)[0];
+    const inventoryCategories = inventoryCategoriesForProfile(
+      profileRecord.slug,
+      profileRecord.contentBlocks
+    );
+    const inventoryItems = listProfileInventoryItems(inventoryCategories);
+    const materialCategories = listProfileInventoryCategories(
+      inventoryCategories,
+      profileRecord.contentBlocks
+    );
 
     const sitemap = await buildPublicProfileSitemapXml({
       slug: "jw-stone",
       origin: "https://jwstonelogistics.com",
     });
-
-    expect(sitemap).toContain("<loc>https://jwstonelogistics.com/</loc>");
-    expect(sitemap).toContain("<loc>https://jwstonelogistics.com/?stone=blue-dunes</loc>");
-    expect(sitemap).toContain(
-      `<loc>https://jwstonelogistics.com/?gallery=${galleryItem.slug}</loc>`
+    const locations = Array.from(
+      sitemap?.matchAll(/<loc>([^<]+)<\/loc>/g) || [],
+      (match) => match[1]
     );
+    const expectedLocations = [
+      "https://jwstonelogistics.com/",
+      ...materialCategories.map(
+        (category) => `https://jwstonelogistics.com/materials/${category.slug}`
+      ),
+      ...inventoryItems.map(
+        (item) => `https://jwstonelogistics.com/stones/${item.slug}`
+      ),
+      `https://jwstonelogistics.com/gallery/${galleryItem.slug}`,
+    ];
+
+    expect(inventoryItems).toHaveLength(119);
+    expect(materialCategories).toHaveLength(7);
+    expect(locations).toEqual(expectedLocations);
+    expect(locations).toHaveLength(1 + 119 + 7 + 1);
+    expect(new Set(locations).size).toBe(locations.length);
+    expect(sitemap).not.toContain("https://www.thetradescout.com/");
+    expect(sitemap).not.toContain("?stone=");
+    expect(sitemap).not.toContain("/inventory/");
     expect(sitemap).toContain("<lastmod>2026-06-15</lastmod>");
   });
 });

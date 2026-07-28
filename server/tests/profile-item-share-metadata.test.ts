@@ -50,7 +50,7 @@ describe("profile inventory item sharing", () => {
       imageIndex: 1,
       title: "Sample Stone at Example Supply",
       imageUrl: "https://example.com/images/sample-two.webp",
-      canonical: "https://example.com/?stone=sample-stone&photo=2",
+      canonical: "https://example.com/inventory/sample-stone?photo=2",
     });
     expect(metadata?.description).toContain("protected TradeScout Direct Connect");
   });
@@ -82,7 +82,7 @@ describe("profile inventory item sharing", () => {
     expect(metadata).toMatchObject({
       imageIndex: 2,
       imageUrl: "https://example.com/images/yard.webp",
-      canonical: "https://example.com/?stone=stable-stone&photo=2",
+      canonical: "https://example.com/inventory/stable-stone?photo=2",
     });
     expect(profileInventoryShareIndexForDisplay(displayImages, shareImageOrder, 0)).toBe(2);
     expect(buildProfileInventoryShareSearch("stable-stone", 2)).toBe("?stone=stable-stone&photo=3");
@@ -139,7 +139,7 @@ describe("profile inventory item sharing", () => {
     expect(metadata).toMatchObject({
       title: "Honey Onyx | TradeScout",
       imageUrl: "https://example.com/images/businesses/honey-onyx/2.jpg",
-      canonical: "https://example.com/u/honey-onyx?stone=honey-onyx",
+      canonical: "https://example.com/u/honey-onyx/inventory/honey-onyx",
     });
     expect(metadata?.description).not.toContain("Honey Onyx's current inventory");
     expect(metadata?.imageAlt).toBe("Honey Onyx material photo 1");
@@ -151,7 +151,12 @@ describe("profile inventory item sharing", () => {
       profileName: "JW Stone LLC",
       profileUrl: "https://jwstonelogistics.com/",
       assetOrigin: "https://jwstonelogistics.com/",
-      contentBlocks: [],
+      contentBlocks: [
+        {
+          type: "publicDiscovery",
+          data: { routes: { inventory: "stones" } },
+        },
+      ],
       itemSlug: "amazonic-green",
     });
 
@@ -159,7 +164,7 @@ describe("profile inventory item sharing", () => {
       itemName: "Amazonic Green",
       itemSlug: "amazonic-green",
       imageIndex: 0,
-      canonical: "https://jwstonelogistics.com/?stone=amazonic-green",
+      canonical: "https://jwstonelogistics.com/stones/amazonic-green",
     });
     expect(metadata?.imageUrl).toMatch(
       /^https:\/\/jwstonelogistics\.com\/images\/businesses\/jw-stone\/inventory-source\/.+\.webp$/

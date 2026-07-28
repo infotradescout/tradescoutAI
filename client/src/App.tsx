@@ -99,8 +99,8 @@ const AppLayout = memo(function AppLayout() {
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
   const isPublicProfileRoute =
-    (/^\/u\/[^/]+$/.test(pathOnly) ||
-      /^\/p\/[^/]+$/.test(pathOnly) ||
+    (/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
+      /^\/p\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/business\/[^/]+$/.test(pathOnly) ||
       /^\/contractors\/[^/]+$/.test(pathOnly) ||
       /^\/helpers\/[^/]+$/.test(pathOnly) ||
@@ -108,7 +108,9 @@ const AppLayout = memo(function AppLayout() {
     !pathOnly.endsWith("/edit");
 
   const isStandaloneProfileRoute =
-    (/^\/u\/[^/]+$/.test(pathOnly) || /^\/p\/[^/]+$/.test(pathOnly)) && !pathOnly.endsWith("/edit");
+    (/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
+      /^\/p\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly)) &&
+    !pathOnly.endsWith("/edit");
 
   // Set server-side only when this page is being served at a business's own
   // custom domain root -- the URL path itself gives no clue which profile to

@@ -9,10 +9,8 @@ import {
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import {
-  buildProfileInventoryShareSearch,
-  profileInventoryShareIndexForDisplay,
-} from "@shared/profileItemShare";
+import { profileInventoryShareIndexForDisplay } from "@shared/profileItemShare";
+import { buildProfilePublicItemPath } from "@shared/profilePublicItemRoute";
 import { isLuxPresentation, type PremiumProductProfileData } from "@shared/premiumProductProfile";
 import type { DirectConnectTarget } from "./directConnectMaterial";
 import LuxuryMaterialHouseShowcase from "./LuxuryMaterialHouseShowcase";
@@ -40,6 +38,7 @@ type Props = {
   trustFacts: string[];
   faqItems: FaqItem[];
   profileShareDestination: string;
+  publicRouteContentBlocks?: unknown;
   platformBaseHref?: string;
   onDirectConnect: (target?: DirectConnectTarget) => void;
   /** Lux: platform engagement rendered after showcase. */
@@ -70,6 +69,7 @@ function EditorialProductProfileSections({
   trustFacts,
   faqItems,
   profileShareDestination,
+  publicRouteContentBlocks,
   platformBaseHref: _platformBaseHref = "",
   onDirectConnect,
 }: Props) {
@@ -123,7 +123,8 @@ function EditorialProductProfileSections({
     setActivePhoto(index);
   };
   const openPhoto = (index: number) => openProductPhoto(product, index);
-  const startFeaturedProductRequest = () => onDirectConnect(product.name);
+  const startFeaturedProductRequest = () =>
+    onDirectConnect({ itemId: product.slug, itemName: product.name });
   const activePhotoIndex = activePhoto ?? 0;
   const activePhotoDetail =
     activeGalleryProduct.slug === product.slug
@@ -230,7 +231,12 @@ function EditorialProductProfileSections({
                         </button>
                         <button
                           type="button"
-                          onClick={() => onDirectConnect(offeringProduct.name)}
+                          onClick={() =>
+                            onDirectConnect({
+                              itemId: offeringProduct.slug,
+                              itemName: offeringProduct.name,
+                            })
+                          }
                           aria-label={`Direct Connect about ${offeringProduct.name}`}
                           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-stone-950 px-5 text-sm font-black text-white transition hover:bg-ts-orange"
                         >
@@ -238,9 +244,14 @@ function EditorialProductProfileSections({
                           <ChevronRight className="h-4 w-4" />
                         </button>
                         <ShareButton
-                          destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                            offeringProduct.slug
-                          )}`}
+                          destination={
+                            buildProfilePublicItemPath({
+                              profileBasePath: profileShareDestination,
+                              itemType: "inventory",
+                              itemSlug: offeringProduct.slug,
+                              contentBlocks: publicRouteContentBlocks,
+                            }) || profileShareDestination
+                          }
                           title={offeringProduct.name}
                           text={`See ${offeringProduct.name} from ${profileName} on TradeScout`}
                           label={`Share ${offeringProduct.name}`}
@@ -332,7 +343,14 @@ function EditorialProductProfileSections({
               </p>
             </div>
             <ShareButton
-              destination={`${profileShareDestination}${buildProfileInventoryShareSearch(product.slug)}`}
+              destination={
+                buildProfilePublicItemPath({
+                  profileBasePath: profileShareDestination,
+                  itemType: "inventory",
+                  itemSlug: product.slug,
+                  contentBlocks: publicRouteContentBlocks,
+                }) || profileShareDestination
+              }
               title={product.name}
               text={`See ${product.name} on TradeScout`}
               label={`Share ${product.name}`}
@@ -575,14 +593,19 @@ function EditorialProductProfileSections({
               </div>
               <div className="flex items-center gap-2">
                 <ShareButton
-                  destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                    activeGalleryProduct.slug,
-                    profileInventoryShareIndexForDisplay(
-                      activeGalleryProduct.images,
-                      activeGalleryProduct.shareImageOrder,
-                      activePhotoIndex
-                    )
-                  )}`}
+                  destination={
+                    buildProfilePublicItemPath({
+                      profileBasePath: profileShareDestination,
+                      itemType: "inventory",
+                      itemSlug: activeGalleryProduct.slug,
+                      imageIndex: profileInventoryShareIndexForDisplay(
+                        activeGalleryProduct.images,
+                        activeGalleryProduct.shareImageOrder,
+                        activePhotoIndex
+                      ),
+                      contentBlocks: publicRouteContentBlocks,
+                    }) || profileShareDestination
+                  }
                   title={activeGalleryProduct.name}
                   text={`See this ${activeGalleryProduct.name} photo on TradeScout`}
                   size="icon"
@@ -672,7 +695,10 @@ function EditorialProductProfileSections({
                 type="button"
                 onClick={() => {
                   setActivePhoto(null);
-                  onDirectConnect(activeGalleryProduct.name);
+                  onDirectConnect({
+                    itemId: activeGalleryProduct.slug,
+                    itemName: activeGalleryProduct.name,
+                  });
                 }}
                 aria-label={`Direct Connect about ${activeGalleryProduct.name}`}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-ts-orange/45 bg-ts-orange/10 px-6 text-sm font-black text-ts-orange hover:bg-ts-orange/15"

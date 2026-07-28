@@ -108,7 +108,9 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
     expect(profileView).toContain("galleryItems={galleryItems}");
     expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
-    expect(theme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(theme).toContain("buildProfilePublicItemPath({");
+    expect(theme).toContain('itemType: "gallery"');
+    expect(theme).toContain("contentBlocks: publicRouteContentBlocks");
     expect(theme).toContain("listProfileGalleryItems(JRS_AUTO_GLASS_GALLERY_BLOCKS)");
     expect(theme).toContain("defaultRecentWork");
     expect(profileView).toContain("...JRS_AUTO_GLASS_GALLERY_BLOCKS");

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyProfileSiteContentAdapter } from "./profileSiteContentAdapters";
+import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "./jwStoneProfilePresentation";
 
 describe("profile site content adapters", () => {
   it("passes unknown profiles through without adding profile-specific content", () => {
@@ -21,6 +22,9 @@ describe("profile site content adapters", () => {
 
     expect(blocks).toContainEqual(about);
     expect(blocks.filter((block) => block.type === "profilePresentation")).toHaveLength(1);
+    expect(blocks.filter((block) => block.type === "publicDiscovery")).toEqual([
+      JW_STONE_PUBLIC_DISCOVERY_BLOCK,
+    ]);
     expect(blocks.filter((block) => block.type === "inventoryCatalog")).toHaveLength(1);
   });
 

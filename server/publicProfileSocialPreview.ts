@@ -6,8 +6,12 @@ import {
   type ProfileSocialPreviewItemType,
 } from "@shared/profileSocialPreview";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
+import { createProfileInventoryCategoryShareMetadata } from "@shared/profileCategoryShare";
 import { storage } from "./storage";
-import { resolveProfileItemShareMetadata } from "./profileItemShareMetadata";
+import {
+  inventoryCategoriesForProfile,
+  resolveProfileItemShareMetadata,
+} from "./profileItemShareMetadata";
 import {
   renderSocialPreviewCard,
   type SocialPreviewCardContext,
@@ -171,6 +175,23 @@ export async function resolvePublicProfileSocialPreview(
     eyebrow = "Recent work";
     resolvedItemSlug = item.itemSlug;
     resolvedItemType = "gallery";
+  } else if (options.itemType === "category") {
+    const category = createProfileInventoryCategoryShareMetadata({
+      profileName: canonicalBusinessName,
+      profileUrl,
+      assetOrigin,
+      categories: inventoryCategoriesForProfile(profileSlug, profileRecord.contentBlocks),
+      categorySlug: options.itemSlug,
+      publicRouteContentBlocks: profileRecord.contentBlocks,
+    });
+    if (!category) return null;
+    sourceImageUrl = category.imageUrl;
+    title = cleanText(category.categoryName, 100);
+    eyebrow = `${category.itemCount} current ${
+      category.itemCount === 1 ? "selection" : "selections"
+    }`;
+    resolvedItemSlug = category.categorySlug;
+    resolvedItemType = "category";
   }
 
   const presentation = resolveProfileSocialPresentation({

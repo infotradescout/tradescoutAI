@@ -21,8 +21,15 @@ import { buildSignedSocialPreviewImageUrl } from "../signedSocialPreview";
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const ETAG = '"blue-mare-preview"';
 
-function app() {
+function app(mappedProfile?: { host: string; slug: string }) {
   const instance = express();
+  if (mappedProfile) {
+    instance.use((req, _res, next) => {
+      (req as any).mappedProfileDomainHost = mappedProfile.host;
+      (req as any).mappedProfileDomainSlug = mappedProfile.slug;
+      next();
+    });
+  }
   registerPublicProfileSocialPreviewRoutes(instance);
   return instance;
 }
@@ -127,6 +134,41 @@ describe("public profile social preview routes", () => {
       photo: "2",
       pageOrigin: "https://www.thetradescout.com",
     });
+  });
+
+  it("serves a category-specific preview as a cacheable PNG", async () => {
+    const response = await request(app())
+      .get("/images/social/profile/jw-stone/category/granite.png?v=4-test")
+      .set("Host", "jwstonelogistics.com");
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toMatch(/^image\/png/);
+    expect(response.headers["cache-control"]).toBe(
+      "public, max-age=300, must-revalidate"
+    );
+    expect(Buffer.from(response.body)).toEqual(PNG);
+    expect(mocks.buildPublicProfileSocialPreview).toHaveBeenCalledWith({
+      profileSlug: "jw-stone",
+      itemType: "category",
+      itemSlug: "granite",
+      photo: undefined,
+      pageOrigin: "https://www.thetradescout.com",
+    });
+  });
+
+  it("rejects a category preview when the mapped host belongs to another profile", async () => {
+    const response = await request(
+      app({
+        host: "jwstonelogistics.com",
+        slug: "different-profile",
+      })
+    )
+      .get("/images/social/profile/jw-stone/category/granite.png")
+      .set("Host", "jwstonelogistics.com");
+
+    expect(response.status).toBe(404);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(mocks.buildPublicProfileSocialPreview).not.toHaveBeenCalled();
   });
 
   it("rejects malformed inventory photo selectors before rendering", async () => {

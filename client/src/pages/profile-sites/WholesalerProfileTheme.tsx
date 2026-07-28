@@ -27,16 +27,18 @@ import PremiumProductProfileSections from "./PremiumProductProfileSections";
 import { ShareButton } from "@/components/ShareButton";
 import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
 import {
-  buildProfileInventoryShareSearch,
   normalizeProfileInventoryItemSlug,
   normalizeProfileInventoryPhotoIndex,
   profileInventoryShareIndexForDisplay,
   resolveProfileInventoryItem,
 } from "@shared/profileItemShare";
+import { listProfileGalleryItems } from "@shared/profileGalleryShare";
+import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
 import {
-  buildProfileGalleryShareSearch,
-  listProfileGalleryItems,
-} from "@shared/profileGalleryShare";
+  buildProfilePublicCategoryPath,
+  buildProfilePublicItemPath,
+  resolveProfilePublicItemRoute,
+} from "@shared/profilePublicItemRoute";
 import { isLuxPresentation, isPremiumProductProfileData } from "@shared/premiumProductProfile";
 import {
   ISSA_BUILD_HERO_POSTER,
@@ -213,6 +215,9 @@ type WholesalerProfileThemeProps = {
   useExpressDirectConnect: boolean;
   allowExpressCall: boolean;
   profileShareDestination: string;
+  currentPageShareDestination?: string;
+  currentPageShareTitle?: string;
+  sharedInventoryCategorySlug?: string | null;
   platformBaseHref?: string;
   sharedGallerySlug?: string | null;
   tradeScoutReturnHref: string;
@@ -450,6 +455,9 @@ export default function WholesalerProfileTheme({
   useExpressDirectConnect,
   allowExpressCall,
   profileShareDestination,
+  currentPageShareDestination,
+  currentPageShareTitle,
+  sharedInventoryCategorySlug,
   platformBaseHref = "",
   sharedGallerySlug,
   tradeScoutReturnHref,
@@ -701,6 +709,29 @@ export default function WholesalerProfileTheme({
   )
     ? inventoryCatalogBlock.data.categories
     : [];
+  const publicInventoryCategories = useMemo(
+    () => listProfileInventoryCategories(inventoryCatalogFromContent, contentBlocks),
+    [inventoryCatalogBlock, contentBlocks]
+  );
+  const sharedInventoryCategory = publicInventoryCategories.find(
+    (category) => category.slug === sharedInventoryCategorySlug
+  );
+  const activePageShareDestination =
+    currentPageShareDestination || profileShareDestination;
+  const activePageShareTitle = currentPageShareTitle || displayName;
+  const activePageSocialPreviewImageUrl = sharedInventoryCategory
+    ? buildProfileSocialPreviewImageUrl({
+        pageOrigin: socialPreviewPageOrigin,
+        profileSlug,
+        itemType: "category",
+        itemSlug: sharedInventoryCategory.slug,
+        versionSeed: [
+          displayName,
+          sharedInventoryCategory.name,
+          sharedInventoryCategory.itemCount,
+        ].join("|"),
+      }) || profileSocialPreviewImageUrl
+    : profileSocialPreviewImageUrl;
   // Shuffled once per profile visit (not on every render), so a returning
   // visitor sees a different order at the top of each category without
   // scrolling -- stones never move out of the category they belong to.
@@ -721,7 +752,9 @@ export default function WholesalerProfileTheme({
       }),
     [inventoryCatalogBlock]
   );
-  const [activeCategorySlug, setActiveCategorySlug] = useState("all");
+  const [activeCategorySlug, setActiveCategorySlug] = useState(
+    sharedInventoryCategory?.sourceSlug || "all"
+  );
   const [inventoryExpanded, setInventoryExpanded] = useState(inventoryOpenByDefault);
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryVisibleLimit, setInventoryVisibleLimit] = useState(inventoryPageSize);
@@ -813,7 +846,17 @@ export default function WholesalerProfileTheme({
   // instead of just the profile root -- see ShareButton in the lightbox below.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const stoneParam = params.get("stone");
+    const customDomainRoute = Boolean(
+      (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
+        .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
+    );
+    const routedItem = resolveProfilePublicItemRoute({
+      pathname: window.location.pathname,
+      profileBasePath: customDomainRoute ? "/" : `/u/${encodeURIComponent(profileSlug)}`,
+      contentBlocks,
+    });
+    const stoneParam =
+      routedItem?.itemType === "inventory" ? routedItem.itemSlug : params.get("stone");
     const photoParam = params.get("photo");
 
     // Presentation-first: Lux deep links resolve from chapters
@@ -1040,11 +1083,31 @@ export default function WholesalerProfileTheme({
   // down the page) instead of the filtered results the click was for.
   const filterToCategory = (slug: string) => {
     setActiveCategorySlug(slug);
+    const publicCategory = publicInventoryCategories.find(
+      (category) => category.sourceSlug === slug
+    );
+    const destination = publicCategory
+      ? buildProfilePublicCategoryPath({
+          profileBasePath: profileShareDestination,
+          categorySlug: publicCategory.slug,
+          contentBlocks,
+        })
+      : slug === "all"
+        ? profileShareDestination
+        : null;
+    if (destination) navigate(destination);
     scrollToInventoryBrowser();
   };
 
+  useEffect(() => {
+    if (!sharedInventoryCategory) return;
+    setActiveCategorySlug(sharedInventoryCategory.sourceSlug);
+    setInventoryExpanded(true);
+    window.requestAnimationFrame(scrollToInventoryBrowser);
+  }, [sharedInventoryCategory?.slug]);
+
   const openFullInventory = () => {
-    setActiveCategorySlug("all");
+    filterToCategory("all");
     setInventorySearch("");
     if (inventoryExpanded) {
       scrollToInventoryBrowser();
@@ -1062,7 +1125,7 @@ export default function WholesalerProfileTheme({
 
   const showFeaturedInventory = () => {
     setInventoryExpanded(false);
-    setActiveCategorySlug("all");
+    filterToCategory("all");
     setInventorySearch("");
     setInventoryVisibleLimit(inventoryPageSize);
     window.requestAnimationFrame(() => {
@@ -1185,10 +1248,15 @@ export default function WholesalerProfileTheme({
                 : "Current collection"}
           </span>
           <ShareButton
-            destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-              stone.slug,
-              leadShareIndex
-            )}`}
+            destination={
+              buildProfilePublicItemPath({
+                profileBasePath: profileShareDestination,
+                itemType: "inventory",
+                itemSlug: stone.slug,
+                imageIndex: leadShareIndex,
+                contentBlocks,
+              }) || profileShareDestination
+            }
             title={stoneDisplayName}
             text={`${stoneDisplayName} from ${displayName}`}
             imageUrl={inventorySocialPreviewImageUrl(stone, leadShareIndex)}
@@ -1281,7 +1349,9 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               aria-label={`Ask about ${stoneDisplayName}`}
-              onClick={() => startDirectConnect(stoneDisplayName, "request_material")}
+              onClick={() =>
+                startDirectConnect(stoneDisplayName, "request_material", stone.slug)
+              }
               className={`min-h-10 rounded-xl border border-[var(--brand-accent)]/40 font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 ${
                 compact ? "px-1 text-[10px] sm:px-3 sm:text-xs" : "px-3 text-xs"
               }`}
@@ -1337,7 +1407,7 @@ export default function WholesalerProfileTheme({
                   setExpressPanelOpen(false);
                   setOpenStone(null);
                   setInventoryExpanded(false);
-                  setActiveCategorySlug("all");
+                  filterToCategory("all");
                   setInventorySearch("");
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
@@ -1352,10 +1422,10 @@ export default function WholesalerProfileTheme({
               </button>
               <div className="flex items-center justify-self-end gap-2">
                 <ShareButton
-                  destination={profileShareDestination}
-                  title={displayName}
-                  text={`Check out ${displayName}`}
-                  imageUrl={profileSocialPreviewImageUrl}
+                  destination={activePageShareDestination}
+                  title={activePageShareTitle}
+                  text={`Check out ${activePageShareTitle}`}
+                  imageUrl={activePageSocialPreviewImageUrl}
                   size="icon"
                   label=""
                   className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
@@ -1390,10 +1460,10 @@ export default function WholesalerProfileTheme({
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">
                 <ShareButton
-                  destination={profileShareDestination}
-                  title={displayName}
-                  text={`Check out ${displayName} on TradeScout`}
-                  imageUrl={profileSocialPreviewImageUrl}
+                  destination={activePageShareDestination}
+                  title={activePageShareTitle}
+                  text={`Check out ${activePageShareTitle} on TradeScout`}
+                  imageUrl={activePageSocialPreviewImageUrl}
                   size="icon"
                   label=""
                   className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
@@ -1726,6 +1796,7 @@ export default function WholesalerProfileTheme({
             trustFacts={trustFacts}
             faqItems={faqItems}
             profileShareDestination={profileShareDestination}
+            publicRouteContentBlocks={contentBlocks}
             platformBaseHref={platformBaseHref}
             onDirectConnect={startDirectConnectFromTarget}
             platformEngagement={
@@ -1772,6 +1843,7 @@ export default function WholesalerProfileTheme({
           trustFacts={trustFacts}
           faqItems={faqItems}
           profileShareDestination={profileShareDestination}
+          publicRouteContentBlocks={contentBlocks}
           platformBaseHref={platformBaseHref}
           onDirectConnect={startDirectConnectFromTarget}
         />
@@ -2025,10 +2097,15 @@ export default function WholesalerProfileTheme({
                                 </span>
                               ) : null}
                               <ShareButton
-                                destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                                  stone.slug,
-                                  leadShareIndex
-                                )}`}
+                                destination={
+                                  buildProfilePublicItemPath({
+                                    profileBasePath: profileShareDestination,
+                                    itemType: "inventory",
+                                    itemSlug: stone.slug,
+                                    imageIndex: leadShareIndex,
+                                    contentBlocks,
+                                  }) || profileShareDestination
+                                }
                                 title={stoneDisplayName}
                                 text={`${stoneDisplayName} at ${displayName}`}
                                 imageUrl={inventorySocialPreviewImageUrl(stone, leadShareIndex)}
@@ -2062,7 +2139,11 @@ export default function WholesalerProfileTheme({
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    startDirectConnect(stoneDisplayName, "request_material")
+                                    startDirectConnect(
+                                      stoneDisplayName,
+                                      "request_material",
+                                      stone.slug
+                                    )
                                   }
                                   className="min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-2 text-[10px] font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 sm:text-xs"
                                 >
@@ -2141,14 +2222,25 @@ export default function WholesalerProfileTheme({
                   )
                 ) : (
                   <div id="inventory-browser" className="scroll-mt-28 pb-10 md:pb-14">
-                    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+                    <div
+                      className="mb-6 flex flex-wrap items-end justify-between gap-3"
+                      data-public-inventory-category={sharedInventoryCategory?.slug}
+                    >
                       <div>
                         <h2
                           className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
                         >
-                          {inventoryTitle}
+                          {sharedInventoryCategory?.name || inventoryTitle}
                         </h2>
-                        <p className="text-sm !text-[#4a4238]">{inventoryDescription}</p>
+                        <p className="max-w-3xl text-sm !text-[#4a4238]">
+                          {sharedInventoryCategory?.summary || inventoryDescription}
+                        </p>
+                        {sharedInventoryCategory ? (
+                          <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--brand-primary)]/65">
+                            {sharedInventoryCategory.itemCount} current{" "}
+                            {sharedInventoryCategory.itemCount === 1 ? "selection" : "selections"}
+                          </p>
+                        ) : null}
                       </div>
                       {featuredStones.length > 0 ? (
                         <button
@@ -2184,7 +2276,7 @@ export default function WholesalerProfileTheme({
                           <span className="sr-only">Filter by material</span>
                           <select
                             value={activeCategorySlug}
-                            onChange={(event) => setActiveCategorySlug(event.target.value)}
+                            onChange={(event) => filterToCategory(event.target.value)}
                             className="min-h-12 w-full appearance-none rounded-xl border border-[var(--brand-primary)]/15 !bg-white px-4 pr-10 text-sm font-semibold !text-stone-900 outline-none focus:border-[var(--brand-primary)]/50"
                           >
                             <option value="all">All stone ({allInventoryStones.length})</option>
@@ -2205,7 +2297,7 @@ export default function WholesalerProfileTheme({
                           <button
                             type="button"
                             onClick={() => {
-                              setActiveCategorySlug("all");
+                              filterToCategory("all");
                               setInventorySearch("");
                             }}
                             className="min-h-12 rounded-xl border border-[var(--brand-primary)]/15 px-4 text-sm font-semibold text-[var(--brand-primary)] hover:bg-white"
@@ -2458,14 +2550,19 @@ export default function WholesalerProfileTheme({
                   </div>
                   <div className="flex items-center gap-2">
                     <ShareButton
-                      destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                        openStone.slug,
-                        profileInventoryShareIndexForDisplay(
-                          openStone.images,
-                          openStone.shareImageOrder,
-                          openImageIndex
-                        )
-                      )}`}
+                      destination={
+                        buildProfilePublicItemPath({
+                          profileBasePath: profileShareDestination,
+                          itemType: "inventory",
+                          itemSlug: openStone.slug,
+                          imageIndex: profileInventoryShareIndexForDisplay(
+                            openStone.images,
+                            openStone.shareImageOrder,
+                            openImageIndex
+                          ),
+                          contentBlocks,
+                        }) || profileShareDestination
+                      }
                       title={openStone.name}
                       text={`${openStone.name} from ${displayName}`}
                       imageUrl={inventorySocialPreviewImageUrl(
@@ -2598,8 +2695,9 @@ export default function WholesalerProfileTheme({
                     type="button"
                     onClick={() => {
                       const stoneName = openStone.name;
+                      const stoneSlug = openStone.slug;
                       setOpenStone(null);
-                      startDirectConnect(stoneName);
+                      startDirectConnect(stoneName, "request_material", stoneSlug);
                     }}
                     className="rounded-full border border-[var(--brand-accent)]/50 px-6 py-2.5 text-sm font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                   >
@@ -2762,14 +2860,19 @@ export default function WholesalerProfileTheme({
                           />
                         </button>
                         <ShareButton
-                          destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
-                            stone.slug,
-                            profileInventoryShareIndexForDisplay(
-                              stone.images,
-                              stone.shareImageOrder,
-                              0
-                            )
-                          )}`}
+                          destination={
+                            buildProfilePublicItemPath({
+                              profileBasePath: profileShareDestination,
+                              itemType: "inventory",
+                              itemSlug: stone.slug,
+                              imageIndex: profileInventoryShareIndexForDisplay(
+                                stone.images,
+                                stone.shareImageOrder,
+                                0
+                              ),
+                              contentBlocks,
+                            }) || profileShareDestination
+                          }
                           title={stone.name}
                           text={`${stone.name} at ${displayName}`}
                           imageUrl={inventorySocialPreviewImageUrl(
@@ -2813,7 +2916,9 @@ export default function WholesalerProfileTheme({
                         </button>
                         <button
                           type="button"
-                          onClick={() => startDirectConnect(stone.name, "request_material")}
+                          onClick={() =>
+                            startDirectConnect(stone.name, "request_material", stone.slug)
+                          }
                           className="w-full rounded-xl border border-[var(--brand-accent)]/40 px-4 py-3 text-sm font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                         >
                           Ask about {stone.name}
@@ -2862,7 +2967,14 @@ export default function WholesalerProfileTheme({
                           ) : null}
                         </div>
                         <ShareButton
-                          destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
+                          destination={
+                            buildProfilePublicItemPath({
+                              profileBasePath: profileShareDestination,
+                              itemType: "gallery",
+                              itemSlug: item.slug,
+                              contentBlocks,
+                            }) || profileShareDestination
+                          }
                           title={`${item.title} by ${displayName}`}
                           text={`View ${item.title} from ${displayName} on TradeScout`}
                           imageUrl={gallerySocialPreviewImageUrl(item)}

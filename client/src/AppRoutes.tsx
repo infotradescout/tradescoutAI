@@ -639,6 +639,12 @@ export const AppRoutes = memo(function AppRoutes({
         </Switch>
       ) : isStandaloneProfileRoute ? (
         <Switch>
+          <Route path="/u/:slug/:collection/:itemSlug">
+            <LazyPage Component={ProfileSiteView} />
+          </Route>
+          <Route path="/p/:slug/:collection/:itemSlug">
+            <LazyPage Component={ProfileSiteView} />
+          </Route>
           <Route path="/u/:slug">
             <LazyPage Component={ProfileSiteView} />
           </Route>
@@ -954,6 +960,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/profile/:userId">
                 <LazyPage Component={PublicProfileView} />
+              </Route>
+              <Route path="/u/:slug/:collection/:itemSlug">
+                <LazyPage Component={ProfileSiteView} />
+              </Route>
+              <Route path="/p/:slug/:collection/:itemSlug">
+                <LazyPage Component={ProfileSiteView} />
               </Route>
               <Route path="/u/:slug">
                 <LazyPage Component={ProfileSiteView} />

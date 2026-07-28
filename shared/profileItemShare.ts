@@ -1,3 +1,5 @@
+import { buildProfilePublicItemUrl } from "./profilePublicItemRoute";
+
 const PROFILE_ITEM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_PROFILE_ITEM_SLUG_LENGTH = 120;
 const MAX_PROFILE_ITEM_DESCRIPTION_LENGTH = 160;
@@ -219,6 +221,7 @@ export function createProfileInventoryItemShareMetadata(args: {
   categories: unknown;
   itemSlug: unknown;
   photo?: unknown;
+  publicRouteContentBlocks?: unknown;
 }): ProfileInventoryItemShareMetadata | null {
   const profileName = String(args.profileName || "").trim();
   const item = resolveProfileInventoryItem(args.categories, args.itemSlug, args.photo);
@@ -226,9 +229,14 @@ export function createProfileInventoryItemShareMetadata(args: {
 
   try {
     const imageUrl = new URL(item.images[item.imageIndex], args.assetOrigin).toString();
-    const canonicalUrl = new URL(args.profileUrl);
-    canonicalUrl.search = buildProfileInventoryShareSearch(item.slug, item.shareImageIndex);
-    canonicalUrl.hash = "";
+    const canonical = buildProfilePublicItemUrl({
+      profileUrl: args.profileUrl,
+      itemType: "inventory",
+      itemSlug: item.slug,
+      imageIndex: item.shareImageIndex,
+      contentBlocks: args.publicRouteContentBlocks,
+    });
+    if (!canonical) return null;
     const categoryDetail = item.category ? ` (${item.category})` : "";
     const itemIsProfile =
       item.name.localeCompare(profileName, undefined, { sensitivity: "base" }) === 0;
@@ -250,7 +258,7 @@ export function createProfileInventoryItemShareMetadata(args: {
       imageAlt: itemIsProfile
         ? `${item.name} material photo ${item.shareImageIndex + 1}`
         : `${item.name} — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
-      canonical: canonicalUrl.toString(),
+      canonical,
     };
   } catch {
     return null;
