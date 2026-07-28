@@ -92,7 +92,10 @@ export async function antiScrapeShield(req: Request, res: Response, next: NextFu
     /^\/@vite/i, // vite HMR
     /^\/node_modules/i, // dev dependencies
   ];
-  if (allowlistedPaths.some((p) => p.test(path))) {
+  // Context-aware social cards are generated on demand despite their .png
+  // suffix, so they must retain the ordinary per-client request limits.
+  const isDynamicSocialPreview = /^\/images\/social\//i.test(path);
+  if (!isDynamicSocialPreview && allowlistedPaths.some((p) => p.test(path))) {
     return next();
   }
 

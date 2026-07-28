@@ -70,7 +70,8 @@ await esbuild.build({
     'fresh',
     'range-parser',
     'node-cron',
-    '@google-cloud/vertexai'
+    '@google-cloud/vertexai',
+    'sharp',
   ],
   plugins: [aliasPlugin],
   banner: {

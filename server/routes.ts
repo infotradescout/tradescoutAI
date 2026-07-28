@@ -65,6 +65,7 @@ import { mountAdminRoutes } from "./routes/admin";
 import missionControlRouter from "./routes/mission-control";
 import preferredSourceRouter from "./routes/preferred-source";
 import { registerPublicMetadataRoutes } from "./routes/public-metadata";
+import { registerPublicProfileSocialPreviewRoutes } from "./routes/public-profile-social-preview";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import tradePartnerLandingRouter from "./routes/tradepartner-landing";
 import partnerInterestRouter from "./routes/partner-interest";
@@ -1433,6 +1434,7 @@ export async function registerRoutes(app: any) {
     buildRevision,
     defaultFirstIntroAppendix: DEFAULT_FIRST_INTRO_APPENDIX,
   });
+  registerPublicProfileSocialPreviewRoutes(app);
 
   const marketSignalsAccess = async (req: any, res: any, next: any) => {
     try {
@@ -3863,7 +3865,7 @@ export async function registerRoutes(app: any) {
   });
 
   // Public redirect for a share link slug
-  app.get("/r/:slug", async (req: any, res: any) => {
+  app.get("/r/:slug", async (req: any, res: any, next: any) => {
     try {
       const slug = typeof req.params?.slug === "string" ? req.params.slug.trim() : "";
       if (!slug) return res.redirect(302, "/");
@@ -3880,7 +3882,10 @@ export async function registerRoutes(app: any) {
         .where(eq(affiliateShareLinks.friendlySlug, slug))
         .limit(1);
 
-      if (!row?.id || !row.fullUrl) return res.redirect(302, "/");
+      // `/r/:token` is also the public Direct Connect request route. If this
+      // value is not an affiliate slug, let the later public-page renderer
+      // resolve it instead of swallowing the request with a generic redirect.
+      if (!row?.id || !row.fullUrl) return next();
 
       const referralCode = String((row as any).referralCode || "").trim();
       if (referralCode) {

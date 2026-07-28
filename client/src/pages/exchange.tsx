@@ -1448,7 +1448,7 @@ export default function Exchange() {
                                   className="h-8 w-8 p-0 text-white/70 hover:text-white"
                                   onClick={() =>
                                     shareLink(
-                                      `/exchange?item=${encodeURIComponent(item.id)}`,
+                                      detailPath,
                                       item.title || "Exchange listing",
                                       item.description
                                     )

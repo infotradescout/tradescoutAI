@@ -53,6 +53,7 @@ import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
 import { buildPublicCommunityPostHtml } from "./publicCommunityPostHtml";
+import { buildPublicGroupHtml } from "./publicGroupHtml";
 import {
   buildPublicTradeCountyHtml,
   buildPublicTradeDirectoryHtml,
@@ -81,6 +82,7 @@ import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
 import { buildPublicProfileServiceOfferHtml } from "./publicProfileServiceOfferHtml";
 import { buildPublicHomeScoutListingHtml } from "./publicHomeScoutListingHtml";
+import { buildPublicHomeScoutCountyHtml } from "./publicHomeScoutCountyHtml";
 import { buildPublicContractorPromoHtml } from "./publicContractorPromoHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
@@ -198,7 +200,11 @@ app.use((req, res, next) => {
   const originalSend = res.send.bind(res);
 
   res.send = ((body?: any) => {
-    if (typeof body === "string" && body.includes("data-seo-")) {
+    if (
+      typeof body === "string" &&
+      /<html[\s>]/i.test(body) &&
+      /<meta\b[^>]*\bproperty\s*=\s*(["'])og:image\1/i.test(body)
+    ) {
       return originalSend(
         preparePublicSeoHtmlForUserAgent(body, String(req.headers["user-agent"] || ""))
       );
@@ -1551,6 +1557,35 @@ app.use(landingContractHeaders);
                 }
               });
 
+              // Public community groups: only explicitly public, active groups
+              // receive server-rendered metadata for social link unfurlers.
+              app.get("/group/:id", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(404).send("Application files not found");
+                  }
+
+                  const html = await buildPublicGroupHtml({
+                    groupId: String(req.params.id || ""),
+                    postId: typeof req.query.post === "string" ? req.query.post : null,
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                  });
+                  if (!html) return res.status(404).send("Community group not found");
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=60, must-revalidate"
+                  );
+                  res.send(html);
+                } catch (error) {
+                  console.error("Error rendering public community group HTML:", error);
+                  res.status(500).send("Failed to render community group");
+                }
+              });
+
               // Public profile pages: server-rendered HTML for crawlability
               app.get(["/u/:slug", "/p/:slug"], async (req, res) => {
                 try {
@@ -2231,6 +2266,37 @@ app.use(landingContractHeaders);
                     res,
                     "Failed to render HomeScout listing page"
                   );
+                }
+              });
+
+              // HomeScout county pages: resolve a canonical county label before
+              // the dynamic social-card upgrader builds the final share image.
+              app.get("/homescout/:stateCode/:countyFips", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
+
+                  const html = await buildPublicHomeScoutCountyHtml({
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                    stateCode: String(req.params.stateCode || ""),
+                    countyFips: String(req.params.countyFips || ""),
+                  });
+                  if (!html) {
+                    return sendPublicPageNotFound(res, "HomeScout county not found");
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=3600"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering HomeScout county HTML:", err);
+                  return sendPublicPageRenderFailure(res, "Failed to render HomeScout county page");
                 }
               });
 

@@ -1,6 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
+
+function readWorkspaceOrTrackedFile(relativePath: string) {
+  const absolutePath = path.resolve(process.cwd(), relativePath);
+  if (fs.existsSync(absolutePath)) {
+    return fs.readFileSync(absolutePath, "utf8");
+  }
+  return execFileSync("git", ["show", `HEAD:${relativePath}`], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+}
 
 const source = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
@@ -17,10 +29,7 @@ const inventory = JSON.parse(
   )
 ) as Array<{ slug: string; sourceFileIds?: string[] }>;
 const driveSource = JSON.parse(
-  fs.readFileSync(
-    path.resolve(process.cwd(), "docs/audits/data/jw-stone-drive-source-2026-07-13.json"),
-    "utf8"
-  )
+  readWorkspaceOrTrackedFile("docs/audits/data/jw-stone-drive-source-2026-07-13.json")
 ) as { files: Array<{ driveFileId: string; sourceName: string }> };
 const sourceNameById = new Map(
   driveSource.files.map((file) => [file.driveFileId, file.sourceName] as const)
@@ -49,6 +58,8 @@ describe("JW Stone profile presentation contract", () => {
 
   it("makes the full catalog the primary JW Stone action", () => {
     expect(source).toContain("const openFullInventory = () =>");
+    expect(source).toContain("useState(isJwStone)");
+    expect(source).toContain("useState(isJwStone ? 12 : 24)");
     expect(source).toContain("Browse full inventory");
     expect(source).toContain('stone.slug === "rhino-white"');
     expect(source).toContain("Rhino White · current inventory");
@@ -66,6 +77,49 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain("{allInventoryStones.length} stones · one collection");
     expect(source).not.toContain("{allInventoryStones.length} current stones");
     expect(source).toContain('id="inventory-browser"');
+    expect(source).toContain("hasInventoryFilters || isJwStone");
+    expect(source).toContain("grid-cols-2");
+    expect(source).toContain("xl:grid-cols-5");
+  });
+
+  it("adapts the customer path without removing any of the four established audiences", () => {
+    expect(source).toContain('data-testid="jw-stone-audience-chooser"');
+    expect(source).toContain('role="tablist"');
+    expect(source).toContain('role="tabpanel"');
+    expect(source).toContain("Fabricators");
+    expect(source).toContain("Builders & Developers");
+    expect(source).toContain("Architects & Designers");
+    expect(source).toContain("Homeowners");
+    expect(source).toContain(
+      "Review named stone, confirmed finishes where listed, and source bundle counts"
+    );
+    expect(source).toContain(
+      "Share project volume, location, and timing so JW Stone can review material consistency"
+    );
+    expect(source).toContain("Compare stone imagery, category, and confirmed finish details");
+    expect(source).toContain("Start with a room, inspiration, or selected stone");
+    expect(source).toContain('requestType: "ask_about_bundle"');
+    expect(source.match(/requestType: "match_project"/g)).toHaveLength(3);
+    expect(source).toContain(
+      "Pricing and current availability are confirmed through Direct Connect."
+    );
+    expect(source).toContain("Helpful context to include");
+    expect(source).not.toContain("Serving Pensacola");
+    expect(source).not.toContain("no minimum order");
+    expect(source).not.toContain("what's actually in stock");
+  });
+
+  it("reduces vertical scroll through progressive disclosure while retaining the source content", () => {
+    expect(source).toContain("JW_STONE_STORY_IMAGES.map");
+    expect(source).toContain("snap-mandatory");
+    expect(source).toContain("<details");
+    expect(source).toContain("recommendationsExpanded");
+    expect(source).toContain("Show fewer recommendations");
+    expect(source).toContain("Math.min(recommendationsDirectory.length, 24)");
+    expect(source).toContain('id="why-us"');
+    expect(source).toContain('id="materials"');
+    expect(source).toContain('id="connect"');
+    expect(source).toContain("TradeScoutProfileHandoff");
   });
 
   it("presents a premium featured row of random picks refreshed every visit, without fashion-copy language or pricing", () => {

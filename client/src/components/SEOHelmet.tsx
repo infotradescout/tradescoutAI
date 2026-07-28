@@ -4,6 +4,8 @@ import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME } from "@shared/brand";
 
 interface SEOHelmetProps {
   title?: string;
+  /** Business-led Open Graph/X title. The browser title remains TradeScout-branded. */
+  socialTitle?: string;
   description?: string;
   keywords?: string;
   canonical?: string;
@@ -17,6 +19,7 @@ interface SEOHelmetProps {
 
 export function SEOHelmet({
   title = "TradeScout | Connection Without Compromise",
+  socialTitle,
   description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
   keywords = "scout, local helper, local businesses, direct connect, exchange, business profiles, local services, local products, trusted providers",
   canonical,
@@ -38,6 +41,7 @@ export function SEOHelmet({
   );
   const ogImageUrl = resolveAssetUrl(ogImage, finalCanonical);
   const formattedTitle = formatTradeScoutTitle(title);
+  const formattedSocialTitle = socialTitle?.trim() || formattedTitle;
 
   useEffect(() => {
     // Update document title
@@ -49,7 +53,7 @@ export function SEOHelmet({
     updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
 
     // Open Graph
-    updateMetaTag("og:title", formattedTitle, "property");
+    updateMetaTag("og:title", formattedSocialTitle, "property");
     updateMetaTag("og:description", description, "property");
     updateMetaTag("og:type", ogType, "property");
     updateMetaTag("og:url", finalCanonical, "property");
@@ -58,7 +62,7 @@ export function SEOHelmet({
 
     // Twitter Card
     updateMetaTag("twitter:card", "summary_large_image", "name");
-    updateMetaTag("twitter:title", formattedTitle, "name");
+    updateMetaTag("twitter:title", formattedSocialTitle, "name");
     updateMetaTag("twitter:description", description, "name");
     updateMetaTag("twitter:image", ogImageUrl, "name");
     updateMetaTag("twitter:site", "@TradeScout", "name");
@@ -95,6 +99,7 @@ export function SEOHelmet({
     };
   }, [
     formattedTitle,
+    formattedSocialTitle,
     description,
     keywords,
     currentUrl,

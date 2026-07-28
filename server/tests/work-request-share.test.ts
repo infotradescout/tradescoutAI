@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildWorkRequestPreviewTitle,
@@ -106,5 +108,15 @@ describe("work request share redaction", () => {
       contactGateState: "contact_released",
       releasedContact: rawContact,
     });
+  });
+
+  it("lets non-affiliate /r tokens reach the public Direct Connect share renderer", () => {
+    const routesSource = fs.readFileSync(path.resolve(process.cwd(), "server/routes.ts"), "utf8");
+    const indexSource = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
+    const affiliateRoute = routesSource.slice(routesSource.indexOf('app.get("/r/:slug"'));
+
+    expect(affiliateRoute.slice(0, 1_500)).toContain("return next()");
+    expect(indexSource).toContain('app.get("/r/:shareToken"');
+    expect(indexSource).toContain("buildWorkRequestShareHtml");
   });
 });

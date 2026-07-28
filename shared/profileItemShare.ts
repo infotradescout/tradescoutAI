@@ -31,6 +31,7 @@ export type ProfileInventoryItemShareMetadata = {
   itemSlug: string;
   category: string | null;
   imageIndex: number;
+  shareImageIndex: number;
   title: string;
   description: string;
   imageUrl: string;
@@ -238,6 +239,7 @@ export function createProfileInventoryItemShareMetadata(args: {
       itemSlug: item.slug,
       category: item.category,
       imageIndex: item.imageIndex,
+      shareImageIndex: item.shareImageIndex,
       title: itemIsProfile ? `${item.name} | TradeScout` : `${item.name} at ${profileName}`,
       description: capDescription(
         itemIsProfile
