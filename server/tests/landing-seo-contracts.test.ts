@@ -104,8 +104,8 @@ describe("landing SEO contracts", () => {
       read("server/publicRecentHtml.ts"),
       read("server/publicTradeCityHtml.ts"),
       read("server/publicTradeHtml.ts"),
-      read("server/workRequestShareHtml.ts"),
     ];
+    const requestShareHtml = read("server/workRequestShareHtml.ts");
 
     expect(shareImage.subarray(1, 4).toString("ascii")).toBe("PNG");
     expect(shareImage.readUInt32BE(16)).toBe(1200);
@@ -118,6 +118,10 @@ describe("landing SEO contracts", () => {
       expect(source).toContain("/tradescout-social-preview.png?v=12");
       expect(source).not.toContain("/tradescout-social-preview.png?v=11");
     }
+    expect(requestShareHtml).toContain(
+      "/images/social/request/${encodeURIComponent(shareToken)}.png"
+    );
+    expect(requestShareHtml).not.toContain("/tradescout-social-preview.png?v=12");
   });
 
   it("keeps social previews separate from missing member avatars", () => {

@@ -191,6 +191,19 @@ describe("client/AppRoutes.tsx per-category routes", () => {
 describe("client/exchange.tsx getCategoryHref", () => {
   const src = readClientFile("pages/exchange.tsx");
 
+  it("shares each listing's already-computed canonical detail path", () => {
+    const detailPathIndex = src.indexOf(
+      "const detailPath = `/exchange/${detailCategory}/${item.id}`"
+    );
+    expect(detailPathIndex).toBeGreaterThan(-1);
+    expect(src.slice(detailPathIndex, detailPathIndex + 8_000)).toContain(
+      "shareLink(\n                                      detailPath,"
+    );
+    expect(src.slice(detailPathIndex, detailPathIndex + 8_000)).not.toContain(
+      "`/exchange?item=${encodeURIComponent(item.id)}`"
+    );
+  });
+
   it("routes vehicles to /exchange/vehicles", () => {
     const block = src.slice(src.indexOf("getCategoryHref"), src.indexOf("getCategoryHref") + 600);
     expect(block).toContain('"vehicles"');
@@ -247,6 +260,10 @@ describe("ExchangeCategoryPage.tsx", () => {
   it("has share button for individual items", () => {
     expect(src).toContain("handleShare");
     expect(src).toContain("Share2");
+    expect(src).toContain("path: `/exchange/${config.slug}/${encodeURIComponent(item.id)}`");
+    expect(src).not.toContain(
+      "path: `/exchange/${config.slug}?item=${encodeURIComponent(item.id)}`"
+    );
   });
 
   it("has share button for the category itself", () => {

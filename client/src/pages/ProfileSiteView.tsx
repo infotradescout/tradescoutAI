@@ -42,7 +42,7 @@ import {
 } from "@/components/profile/PublicProfileItems";
 import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
 import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
-import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
+import { applyProfileSiteContentAdapter } from "@/data/profileSiteContentAdapters";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
   buildProfileGalleryShareSearch,
@@ -66,12 +66,16 @@ import {
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
   seedBlocksForTemplate,
-  applyInventoryLeadImageOverrides,
-  readInventoryLeadImageBySlug,
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import {
+  buildProfileSocialDescription,
+  buildProfileSocialPreviewImageUrl,
+  buildProfileSocialTitle,
+  resolveProfileSocialPresentation,
+} from "@shared/profileSocialPreview";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -708,34 +712,16 @@ export default function ProfileSiteView() {
     .map((value) => sanitizePublicDiscoveryText(value, 160))
     .filter(Boolean);
   const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
-  // JW Stone's reconciled catalog is versioned with the profile experience so
-  // the public page cannot silently fall back to an older database seed. Drive
-  // folder placement is evidence, not an assertion: uncertain materials stay
-  // in "Material to Confirm" and finishes only appear when the source says so.
+  const adaptedContentBlocks = applyProfileSiteContentAdapter({
+    profileSlug: profile.slug,
+    contentBlocks: storedContentBlocks,
+  });
   const contentBlocks = isIssaBuildProfileSlug(profile.slug)
     ? [...ISSA_BUILD_PROFILE_CONTENT_BLOCKS]
-    : profile.slug === "jw-stone"
-      ? [
-          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
-          {
-            type: "inventoryCatalog",
-            data: {
-              categories: JW_STONE_INVENTORY_CATEGORIES.map((category) => ({
-                ...category,
-                stones: applyInventoryLeadImageOverrides(
-                  category.stones,
-                  readInventoryLeadImageBySlug(storedContentBlocks)
-                ),
-              })),
-              featuredStoneSlugs: readFeaturedStoneSlugs(storedContentBlocks),
-              leadImageBySlug: readInventoryLeadImageBySlug(storedContentBlocks),
-            },
-          },
-        ]
-      : profile.slug === "jrs-auto-glass" &&
-          !storedContentBlocks.some((block: any) => block?.type === "gallery")
-        ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
-        : storedContentBlocks;
+    : profile.slug === "jrs-auto-glass" &&
+        !adaptedContentBlocks.some((block: any) => block?.type === "gallery")
+      ? [...adaptedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
+      : adaptedContentBlocks;
   const profileCustomDomain =
     typeof profile.seoMeta?.customDomain === "string"
       ? profile.seoMeta.customDomain.trim().toLowerCase()
@@ -821,16 +807,114 @@ export default function ProfileSiteView() {
           `${displayName} on TradeScout. See services, recent work, and local offers, then send a private request when you're ready.`,
     1000
   );
+  const itemSocialName = inventoryItemShareMeta?.itemName || galleryItemShareMeta?.itemTitle || "";
+  const profileSocialPresentation = resolveProfileSocialPresentation({
+    brandName: displayName,
+    fallbackBrandName: profile.displayName,
+    logoUrl: profile.seoMeta?.faviconUrl,
+    profileImageUrl: profile.seoMeta?.imageUrl,
+    accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
+    configuredCtaLabel: profile.ctaConfig?.primary?.label,
+    contentBlocks,
+  });
+  const itemSocialPresentation = resolveProfileSocialPresentation({
+    brandName: displayName,
+    fallbackBrandName: profile.displayName,
+    logoUrl: profile.seoMeta?.faviconUrl,
+    accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
+    configuredCtaLabel: profile.ctaConfig?.primary?.label,
+    itemType: itemShareMeta?.itemType || null,
+    contentBlocks,
+  });
+  const publicSocialBrandName = itemSocialPresentation.brandName;
+  const socialTitle = buildProfileSocialTitle({
+    brandName: publicSocialBrandName,
+    itemType: itemShareMeta?.itemType || null,
+    itemName: itemSocialName,
+    category: inventoryItemShareMeta?.category,
+  });
   const seoTitle = sanitizePublicDiscoveryText(itemShareMeta?.title || profileSeoTitle, 240);
-  const seoDescription = sanitizePublicDiscoveryText(
+  const fallbackSeoDescription = sanitizePublicDiscoveryText(
     itemShareMeta?.description || profileSeoDescription,
     1000
   );
-  const seoImage =
-    itemShareMeta?.imageUrl ||
-    (typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
+  const seoDescription = sanitizePublicDiscoveryText(
+    itemShareMeta
+      ? buildProfileSocialDescription({
+          brandName: publicSocialBrandName,
+          itemType: itemShareMeta.itemType,
+          itemName: itemSocialName,
+          category: inventoryItemShareMeta?.category,
+          fallbackDescription: fallbackSeoDescription,
+        })
+      : fallbackSeoDescription,
+    1000
+  );
+  const legacyProfileSeoImage =
+    typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
       ? profile.seoMeta.imageUrl
-      : undefined);
+      : undefined;
+  const sourceSeoImage = itemShareMeta
+    ? itemShareMeta.imageUrl
+    : profileSocialPresentation.profileImageUrl || legacyProfileSeoImage;
+  const socialPreviewPageOrigin =
+    typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin();
+  const profileSocialPreviewImageUrl =
+    buildProfileSocialPreviewImageUrl({
+      pageOrigin: socialPreviewPageOrigin,
+      profileSlug: profile.slug,
+      versionSeed: [
+        profileSocialPresentation.brandName,
+        profileSocialPresentation.logoUrl || "",
+        profileSocialPresentation.profileImageUrl || "",
+        profileSocialPresentation.accentColor,
+        profileSocialPresentation.ctaLabel,
+        profileSeoTitle,
+        profileSeoDescription,
+      ].join("|"),
+    }) || sourceSeoImage;
+  const gallerySocialPreviewImageUrl = (item: { slug: string; title: string; imageUrl: string }) => {
+    const galleryPresentation = resolveProfileSocialPresentation({
+      brandName: displayName,
+      fallbackBrandName: profile.displayName,
+      logoUrl: profile.seoMeta?.faviconUrl,
+      accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
+      configuredCtaLabel: profile.ctaConfig?.primary?.label,
+      itemType: "gallery",
+      contentBlocks,
+    });
+    return buildProfileSocialPreviewImageUrl({
+      pageOrigin: socialPreviewPageOrigin,
+      profileSlug: profile.slug,
+      itemType: "gallery",
+      itemSlug: item.slug,
+      versionSeed: [
+        galleryPresentation.brandName,
+        galleryPresentation.logoUrl || "",
+        galleryPresentation.accentColor,
+        galleryPresentation.ctaLabel,
+        item.title,
+        item.imageUrl,
+      ].join("|"),
+    }) || item.imageUrl;
+  };
+  const seoImage =
+    buildProfileSocialPreviewImageUrl({
+      pageOrigin: socialPreviewPageOrigin,
+      profileSlug: profile.slug,
+      itemType: itemShareMeta?.itemType || null,
+      itemSlug: itemShareMeta?.itemSlug,
+      photo: itemShareParams?.get("photo"),
+      versionSeed: [
+        publicSocialBrandName,
+        socialTitle || seoTitle,
+        seoDescription,
+        sourceSeoImage || "",
+        itemSocialPresentation.logoUrl || "",
+        itemSocialPresentation.accentColor,
+        itemSocialPresentation.ctaLabel,
+      ].join("|"),
+    }) || sourceSeoImage;
   const seoCanonical = itemShareMeta?.canonical || profileCanonicalBase;
   const profileStructuredData = {
     "@context": "https://schema.org",
@@ -1096,6 +1180,7 @@ export default function ProfileSiteView() {
       <>
         <SEOHelmet
           title={seoTitle}
+          socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
           ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
@@ -1147,6 +1232,7 @@ export default function ProfileSiteView() {
       <>
         <SEOHelmet
           title={seoTitle}
+          socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
           ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
@@ -1199,6 +1285,7 @@ export default function ProfileSiteView() {
       <>
         <SEOHelmet
           title={seoTitle}
+          socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
           ogType={galleryItemShareMeta ? "article" : "profile"}
@@ -1254,6 +1341,7 @@ export default function ProfileSiteView() {
       <>
         <SEOHelmet
           title={seoTitle}
+          socialTitle={socialTitle}
           description={seoDescription}
           canonical={seoCanonical}
           ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
@@ -1315,6 +1403,7 @@ export default function ProfileSiteView() {
     <Page className="max-w-6xl space-y-6">
       <SEOHelmet
         title={seoTitle}
+        socialTitle={socialTitle}
         description={seoDescription}
         canonical={seoCanonical}
         ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
@@ -1332,6 +1421,7 @@ export default function ProfileSiteView() {
                   destination={profileShareDestination}
                   title={displayName}
                   text={`Check out ${displayName} on TradeScout`}
+                  imageUrl={profileSocialPreviewImageUrl}
                 />
               </div>
               <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
@@ -1562,6 +1652,7 @@ export default function ProfileSiteView() {
                               destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
                               title={`${item.title} by ${displayName}`}
                               text={`View ${item.title} from ${displayName} on TradeScout`}
+                              imageUrl={gallerySocialPreviewImageUrl(item)}
                               className="border-white/20 text-white"
                             />
                           </div>

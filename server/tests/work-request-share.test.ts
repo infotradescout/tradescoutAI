@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildWorkRequestPreviewTitle,
@@ -36,6 +38,21 @@ describe("work request share redaction", () => {
     const previewTitle = buildWorkRequestPreviewTitle(title, "Shared request");
     expect(previewTitle).toContain("Roof leak");
     expect(previewTitle).not.toContain("225-555-1212");
+  });
+
+  it("removes exact-address, URL, bare-domain, and social-handle vectors from public metadata", () => {
+    const unsafe =
+      "Kitchen at 123 Provider Lane. See https://provider.example/work, provider.example, or @provider_team.";
+    const summary = buildWorkRequestScopeSummary(unsafe);
+    const title = buildWorkRequestPreviewTitle(unsafe);
+
+    for (const publicText of [summary, title]) {
+      expect(publicText).not.toContain("123 Provider Lane");
+      expect(publicText).not.toContain("https://provider.example");
+      expect(publicText).not.toContain("provider.example");
+      expect(publicText).not.toContain("@provider_team");
+      expect(publicText).toContain("Continue through TradeScout");
+    }
   });
 
   it("omits released contact from serialized card payloads before release", () => {
@@ -106,5 +123,15 @@ describe("work request share redaction", () => {
       contactGateState: "contact_released",
       releasedContact: rawContact,
     });
+  });
+
+  it("lets non-affiliate /r tokens reach the public Direct Connect share renderer", () => {
+    const routesSource = fs.readFileSync(path.resolve(process.cwd(), "server/routes.ts"), "utf8");
+    const indexSource = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
+    const affiliateRoute = routesSource.slice(routesSource.indexOf('app.get("/r/:slug"'));
+
+    expect(affiliateRoute.slice(0, 1_500)).toContain("return next()");
+    expect(indexSource).toContain('app.get("/r/:shareToken"');
+    expect(indexSource).toContain("buildWorkRequestShareHtml");
   });
 });

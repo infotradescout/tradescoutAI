@@ -16,6 +16,12 @@ import {
 } from "@shared/profileItemShare";
 import type { ProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import {
+  buildProfileSocialDescription,
+  buildProfileSocialPreviewImageUrl,
+  buildProfileSocialTitle,
+  resolveProfileSocialPresentation,
+} from "@shared/profileSocialPreview";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -76,6 +82,11 @@ type PublicProfileData = {
       faviconUrl?: string;
       customDomain?: string;
     };
+    ctaConfig?: {
+      primary?: {
+        label?: string;
+      };
+    };
     profileBooking?: {
       enabled?: boolean;
       paidBookings?: boolean;
@@ -95,6 +106,10 @@ type PublicProfileData = {
     city?: string;
     stateCode?: string;
     zipCode?: string;
+    brandColors?: {
+      primary?: string;
+      accent?: string;
+    };
   } | null;
 };
 
@@ -628,29 +643,89 @@ function buildMeta(
     itemShare?.title || profile.profile.seoMeta?.title || `${displayName} | TradeScout`,
     240
   );
-  const title = formatTradeScoutTitle(titleSource || "TradeScout public profile");
-  const description = capDescriptionLength(
-    cleanPublicProfileText(
-      itemShare?.description ||
-        profile.profile.seoMeta?.description ||
-        profile.profile.headline ||
-        profile.profile.servicesDescription ||
-        profile.profile.roleContext ||
-        "TradeScout public profile",
-      1000
-    )
-  );
-  const profileImageUrl = profile.profile.seoMeta?.imageUrl || null;
-  const imageUrl =
-    itemShare?.imageUrl || profileImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
-  const faviconUrl = profile.profile.seoMeta?.faviconUrl || profileImageUrl;
-  const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
+  const documentTitle = formatTradeScoutTitle(titleSource || "TradeScout public profile");
   const itemName =
     itemShare?.itemType === "inventory"
       ? cleanPublicProfileText(itemShare.itemName, 200)
       : itemShare?.itemType === "gallery"
         ? cleanPublicProfileText(itemShare.itemTitle, 200)
         : "";
+  const presentation = resolveProfileSocialPresentation({
+    brandName: displayName,
+    fallbackBrandName: profile.profile.displayName,
+    logoUrl: profile.profile.seoMeta?.faviconUrl,
+    profileImageUrl: profile.profile.seoMeta?.imageUrl,
+    accentColor:
+      profile.business?.brandColors?.accent || profile.business?.brandColors?.primary,
+    configuredCtaLabel: profile.profile.ctaConfig?.primary?.label,
+    itemType: itemShare?.itemType || null,
+    contentBlocks: profile.profile.contentBlocks,
+  });
+  const publicBrandName = presentation.brandName;
+  const socialTitle = buildProfileSocialTitle({
+    brandName: publicBrandName,
+    itemType: itemShare?.itemType || null,
+    itemName,
+    category: itemShare?.itemType === "inventory" ? itemShare.category : null,
+  });
+  const fallbackDescription = cleanPublicProfileText(
+    itemShare?.description ||
+      profile.profile.seoMeta?.description ||
+      profile.profile.headline ||
+      profile.profile.servicesDescription ||
+      profile.profile.roleContext ||
+      "TradeScout public profile",
+    1000
+  );
+  const description = capDescriptionLength(
+    cleanPublicProfileText(
+      itemShare
+        ? buildProfileSocialDescription({
+            brandName: publicBrandName,
+            itemType: itemShare.itemType,
+            itemName,
+            category: itemShare.itemType === "inventory" ? itemShare.category : null,
+            fallbackDescription,
+          })
+        : fallbackDescription,
+      1000
+    )
+  );
+  const legacyProfileImageUrl = profile.profile.seoMeta?.imageUrl || null;
+  const sourceImageUrl = itemShare
+    ? itemShare.imageUrl
+    : presentation.profileImageUrl ||
+      legacyProfileImageUrl ||
+      `${origin}/tradescout-social-preview.png?v=12`;
+  const itemPhoto = itemShare
+    ? (() => {
+        try {
+          return new URL(itemShare.canonical).searchParams.get("photo");
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+  const imageUrl =
+    buildProfileSocialPreviewImageUrl({
+      pageOrigin: origin,
+      profileSlug: profile.profile.slug,
+      itemType: itemShare?.itemType || null,
+      itemSlug: itemShare?.itemSlug,
+      photo: itemPhoto,
+      versionSeed: [
+        publicBrandName,
+        socialTitle,
+        description,
+        sourceImageUrl,
+        presentation.logoUrl || "",
+        itemShare ? "" : presentation.profileImageUrl || "",
+        presentation.accentColor,
+        presentation.ctaLabel,
+      ].join("|"),
+    }) || sourceImageUrl;
+  const faviconUrl = profile.profile.seoMeta?.faviconUrl || legacyProfileImageUrl;
+  const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
   const keywords = [
     itemName,
     itemShare?.itemType === "inventory" ? itemShare.category || "" : "",
@@ -666,23 +741,16 @@ function buildMeta(
     .join(", ");
 
   return {
-    title,
+    documentTitle,
+    socialTitle,
     description,
     imageUrl,
     imageType: imageMimeType(imageUrl),
     imageAlt:
-      cleanPublicProfileText(itemShare?.imageAlt || `${displayName} preview`, 240) ||
-      "TradeScout public profile preview",
-    imageWidth: itemShare
-      ? undefined
-      : profileImageUrl
-        ? profile.profile.seoMeta?.imageWidth
-        : 1200,
-    imageHeight: itemShare
-      ? undefined
-      : profileImageUrl
-        ? profile.profile.seoMeta?.imageHeight
-        : 630,
+      cleanPublicProfileText(`${socialTitle} preview`, 240) || "TradeScout public profile preview",
+    imageWidth: 1200,
+    imageHeight: 630,
+    sourceImageUrl,
     faviconUrl,
     canonical,
     keywords,
@@ -719,6 +787,7 @@ export async function buildPublicProfileHtml({
       roleContext: profileRecord.roleContext,
       servicesDescription: profileRecord.servicesDescription || undefined,
       seoMeta: profileRecord.seoMeta || undefined,
+      ctaConfig: profileRecord.ctaConfig || undefined,
       profileBooking: profileRecord.profileBooking || undefined,
       contentBlocks: Array.isArray(profileRecord.contentBlocks)
         ? profileRecord.contentBlocks
@@ -735,6 +804,7 @@ export async function buildPublicProfileHtml({
           city: businessRecord.city,
           stateCode: businessRecord.stateCode,
           zipCode: businessRecord.zipCode,
+          brandColors: businessRecord.brandColors,
         }
       : null,
   };
@@ -766,7 +836,7 @@ export async function buildPublicProfileHtml({
 
   let html = templateHtml;
 
-  html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
+  html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.documentTitle)}</title>`);
   html = upsertTag(
     html,
     /<meta name="description"[^>]*>/i,
@@ -790,7 +860,7 @@ export async function buildPublicProfileHtml({
   html = upsertTag(
     html,
     /<meta property="og:title"[^>]*>/i,
-    `<meta property="og:title" content="${escapeHtml(meta.title)}" />`
+    `<meta property="og:title" content="${escapeHtml(meta.socialTitle)}" />`
   );
   html = upsertTag(
     html,
@@ -851,7 +921,7 @@ export async function buildPublicProfileHtml({
   html = upsertTag(
     html,
     /<meta name="twitter:title"[^>]*>/i,
-    `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`
+    `<meta name="twitter:title" content="${escapeHtml(meta.socialTitle)}" />`
   );
   html = upsertTag(
     html,

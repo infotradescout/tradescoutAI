@@ -22,9 +22,9 @@ describe("public profile product-card contract", () => {
     expect(items.match(/<PublicProfileProductCard/g)?.length || 0).toBe(3);
   });
 
-  it("gives JW Stone inventory exact sharing, details, and protected request entry", () => {
-    expect(stone).toContain('"jw-stone-inventory-card"');
-    expect(stone).toContain('data-testid="jw-stone-featured-product-card"');
+  it("gives profile inventory exact sharing, details, and protected request entry", () => {
+    expect(stone).toContain('data-testid="profile-inventory-card"');
+    expect(stone).toContain('data-testid="profile-featured-product-card"');
     expect(stone).toContain("profileInventoryShareIndexForDisplay(");
     expect(stone).toContain("View details");
     expect(stone).toContain('startDirectConnect(stone.name, "request_material")');

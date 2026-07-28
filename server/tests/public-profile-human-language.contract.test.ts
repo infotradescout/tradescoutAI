@@ -50,11 +50,13 @@ describe("public profile human-language contract", () => {
 
   it("keeps paid profile themes customer-facing", () => {
     const stoneTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const jwPresentation = read("client/src/data/jwStoneProfilePresentation.ts");
     const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const requestPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
     expect(stoneTheme).toContain("What customers say");
-    expect(stoneTheme).toContain("Tell JW Stone what you need");
+    expect(stoneTheme).toContain("`Tell ${displayName} what you need`");
+    expect(jwPresentation).toContain("Tell JW Stone what you need");
     expect(stoneTheme).not.toContain("Recommendations Directory");
     expect(autoGlassTheme).toContain("Customer recommendations");
     expect(autoGlassTheme).toContain("Ready when you are");

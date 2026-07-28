@@ -65,6 +65,7 @@ import { mountAdminRoutes } from "./routes/admin";
 import missionControlRouter from "./routes/mission-control";
 import preferredSourceRouter from "./routes/preferred-source";
 import { registerPublicMetadataRoutes } from "./routes/public-metadata";
+import { registerPublicProfileSocialPreviewRoutes } from "./routes/public-profile-social-preview";
 import { registerAuthorityOperationsRoutes } from "./routes/authority-operations";
 import tradePartnerLandingRouter from "./routes/tradepartner-landing";
 import partnerInterestRouter from "./routes/partner-interest";
@@ -121,6 +122,10 @@ import {
   isSafeAffiliateShareDestination,
   resolveAffiliateShareDestinationOrigin,
 } from "./utils/affiliateShareDestination";
+import {
+  affiliateShareSlugError,
+  directConnectOwnsPersistedShareSlug,
+} from "./utils/shareRouteNamespace";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import {
   collectAuthorityRoles,
@@ -1433,6 +1438,7 @@ export async function registerRoutes(app: any) {
     buildRevision,
     defaultFirstIntroAppendix: DEFAULT_FIRST_INTRO_APPENDIX,
   });
+  registerPublicProfileSocialPreviewRoutes(app);
 
   const marketSignalsAccess = async (req: any, res: any, next: any) => {
     try {
@@ -3710,11 +3716,8 @@ export async function registerRoutes(app: any) {
       }
 
       const safeSlug = slugInput || `link-${Math.random().toString(36).slice(2, 8)}`;
-      if (!/^[a-z0-9-]{3,64}$/i.test(safeSlug)) {
-        return res
-          .status(400)
-          .json({ message: "slug must be 3-64 chars (letters, numbers, dash)" });
-      }
+      const slugError = affiliateShareSlugError(safeSlug);
+      if (slugError) return res.status(400).json({ message: slugError });
 
       let program = await storage.getAffiliateProgram(userId);
       if (!program) {
@@ -3863,10 +3866,12 @@ export async function registerRoutes(app: any) {
   });
 
   // Public redirect for a share link slug
-  app.get("/r/:slug", async (req: any, res: any) => {
+  app.get("/r/:slug", async (req: any, res: any, next: any) => {
     try {
       const slug = typeof req.params?.slug === "string" ? req.params.slug.trim() : "";
       if (!slug) return res.redirect(302, "/");
+
+      if (await directConnectOwnsPersistedShareSlug(slug)) return next();
 
       const [row] = await db
         .select({
@@ -3880,7 +3885,10 @@ export async function registerRoutes(app: any) {
         .where(eq(affiliateShareLinks.friendlySlug, slug))
         .limit(1);
 
-      if (!row?.id || !row.fullUrl) return res.redirect(302, "/");
+      // `/r/:token` is also the public Direct Connect request route. If this
+      // value is not an affiliate slug, let the later public-page renderer
+      // resolve it instead of swallowing the request with a generic redirect.
+      if (!row?.id || !row.fullUrl) return next();
 
       const referralCode = String((row as any).referralCode || "").trim();
       if (referralCode) {

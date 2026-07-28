@@ -154,6 +154,7 @@ describe("ISSA Build public profile contract", () => {
 
   it("uses approved ISSA Build photography for the first viewport", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const jwPresentation = read("client/src/data/jwStoneProfilePresentation.ts");
 
     expect(ISSA_BUILD_HERO_VIDEO).toBe("/images/businesses/issa-build/video/hero.mp4");
     expect(ISSA_BUILD_HERO_POSTER).toBe("/images/businesses/issa-build/video/hero-poster.jpg");
@@ -173,8 +174,9 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("isIssaBuildProfileSlug");
     expect(theme).toContain("ISSA_BUILD_HERO_VIDEO");
     expect(theme).toContain("ISSA_BUILD_HERO_POSTER");
-    expect(theme.indexOf("ISSA_BUILD_HERO_VIDEO")).toBeLessThan(
-      theme.indexOf('src: "/images/businesses/jw-stone/video/hero.mp4"')
+    expect(theme).not.toContain("/images/businesses/jw-stone/video/hero.mp4");
+    expect(jwPresentation).toContain(
+      'videoUrl: "/images/businesses/jw-stone/video/hero.mp4"'
     );
     expect(theme).toContain(
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
@@ -431,18 +433,20 @@ describe("ISSA Build public profile contract", () => {
     expect(profileCopy).not.toMatch(/street|avenue|boulevard|suite\s+\d/i);
   });
 
-  it("keeps JW Stone and ordinary wholesaler inventory grammar unchanged", () => {
+  it("keeps ordinary inventory grammar shared while JW presentation stays data-owned", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
-    expect(theme).toContain(
-      'data-testid={isJwStone ? "jw-stone-inventory-card" : "profile-inventory-card"}'
-    );
+    const jwPresentation = read("client/src/data/jwStoneProfilePresentation.ts");
+    expect(theme).toContain('data-testid="profile-inventory-card"');
     expect(theme).toContain("Browse full inventory");
     expect(theme).toContain("Current collection");
     expect(theme).toContain("View details");
     expect(theme).toContain("Material to confirm");
-    expect(theme).toContain('profileSlug === "jw-stone"');
+    expect(theme).not.toContain("isJwStone");
+    expect(theme).not.toContain('profileSlug === "jw-stone"');
+    expect(jwPresentation).toContain('initialView: "catalog"');
+    expect(jwPresentation).toContain('density: "compact"');
     expect(theme).toContain("openFullInventory");
-    // Inventory chrome stays gated behind non-premium / JW Stone paths.
+    // Premium product and luxury-house paths retain their own presentation.
     expect(theme).toContain("premiumProductData && premiumProduct");
     expect(theme).toContain("isLuxuryMaterialHouse");
   });

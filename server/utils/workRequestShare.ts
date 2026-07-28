@@ -1,3 +1,5 @@
+import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+
 export function redactContactDetails(input: string): string {
   const text = String(input || "");
   return text
@@ -60,14 +62,20 @@ export function serializeDirectConnectCardContactGatePayload(args: {
 }
 
 export function buildWorkRequestScopeSummary(input: string, maxLength = 220): string {
-  const redacted = redactContactDetails(input).replace(/\s+/g, " ").trim();
+  const redacted = sanitizePublicDiscoveryText(redactContactDetails(input), maxLength * 2)
+    .replace(/(^|\s)@[a-z0-9_]{2,30}\b/gi, "$1Continue through TradeScout")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!redacted) return "";
   if (redacted.length <= maxLength) return redacted;
   return `${redacted.slice(0, maxLength - 1).trimEnd()}...`;
 }
 
 export function buildWorkRequestPreviewTitle(input: string, fallback = "Shared request"): string {
-  const cleaned = redactContactDetails(input).replace(/\s+/g, " ").trim();
+  const cleaned = sanitizePublicDiscoveryText(redactContactDetails(input), 180)
+    .replace(/(^|\s)@[a-z0-9_]{2,30}\b/gi, "$1Continue through TradeScout")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!cleaned) return fallback;
   if (cleaned.length <= 90) return cleaned;
   return `${cleaned.slice(0, 89).trimEnd()}...`;

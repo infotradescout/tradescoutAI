@@ -2,6 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 
+const jwSocialPresentationBlock = {
+  type: "profilePresentation",
+  data: {
+    social: {
+      brandName: "JW Stone Logistics",
+      logoUrl: "/images/businesses/jw-stone/logo.svg",
+      profileImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
+      accentColor: "#81904a",
+      profileCta: "Explore inventory",
+      inventoryCta: "View photos · Request pricing",
+      galleryCta: "View project",
+    },
+  },
+};
+
 const profileRecord = {
   id: "profile-jw",
   slug: "jw-stone",
@@ -20,8 +35,9 @@ const profileRecord = {
     faviconUrl: "https://www.thetradescout.com/images/businesses/jw-stone/favicon.png",
     customDomain: "jwstonelogistics.com",
   },
+  ctaConfig: {},
   profileBooking: null as any,
-  contentBlocks: [] as any[],
+  contentBlocks: [jwSocialPresentationBlock] as any[],
 };
 
 const businessRecord = {
@@ -81,7 +97,7 @@ describe("public profile item HTML", () => {
     profileRecord.seoMeta.description = "JW Stone inventory in Chattanooga.";
     profileRecord.seoMeta.customDomain = "jwstonelogistics.com";
     profileRecord.profileBooking = null;
-    profileRecord.contentBlocks = [];
+    profileRecord.contentBlocks = [jwSocialPresentationBlock];
     businessRecord.name = "JW Stone LLC";
     businessRecord.categories = ["Stone wholesaler"];
     businessRecord.serviceAreas = ["Hamilton County"];
@@ -108,7 +124,7 @@ describe("public profile item HTML", () => {
     expect(html).not.toMatch(/opening soon|opening day|finishing touches|finished profile/i);
   });
 
-  it("renders product-specific social metadata for the exact shared JW stone photo", async () => {
+  it("renders a context-aware social card while retaining the exact shared JW stone photo", async () => {
     const html = await buildPublicProfileHtml({
       slug: "jw-stone",
       origin: "https://jwstonelogistics.com",
@@ -116,10 +132,15 @@ describe("public profile item HTML", () => {
       itemSlug: "blue-dunes",
       itemPhoto: "2",
     });
+    const sourceImageUrl =
+      "https://jwstonelogistics.com/images/businesses/jw-stone/inventory-source/1Hu2IWdWPGlItZtAxdAQFgnK3stA7DWE9.webp";
 
-    expect(html).toContain('property="og:title" content="Blue Dunes at JW Stone LLC | TradeScout"');
+    expect(html).toContain('property="og:title" content="Blue Dunes Granite | JW Stone Logistics"');
     expect(html).toContain(
-      'property="og:image" content="https://jwstonelogistics.com/images/businesses/jw-stone/inventory-source/1Hu2IWdWPGlItZtAxdAQFgnK3stA7DWE9.webp"'
+      'property="og:description" content="View Blue Dunes Granite photos and request current pricing or availability from JW Stone Logistics through TradeScout Direct Connect."'
+    );
+    expect(html).toMatch(
+      /property="og:image" content="https:\/\/www\.thetradescout\.com\/images\/social\/profile\/jw-stone\/inventory\/blue-dunes\.png\?photo=2&amp;v=4-[a-z0-9]+"/
     );
     expect(html).toContain(
       'property="og:url" content="https://jwstonelogistics.com/?stone=blue-dunes&amp;photo=2"'
@@ -128,10 +149,13 @@ describe("public profile item HTML", () => {
     expect(html).toContain(
       'link rel="canonical" href="https://jwstonelogistics.com/?stone=blue-dunes&amp;photo=2"'
     );
-    expect(html).not.toContain('property="og:image:width"');
-    expect(html).not.toContain('property="og:image:height"');
+    expect(html).toContain('property="og:image:width" content="1200"');
+    expect(html).toContain('property="og:image:height" content="630"');
+    expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
     expect(html).toContain('data-seo-profile-item="inventory"');
     expect(html).toContain('"@type":"Product"');
+    expect(html).toContain(`"image":["${sourceImageUrl}"]`);
+    expect(html).toContain(`<img src="${sourceImageUrl}"`);
     expect(html).toContain('"brand":{"@id":"https://jwstonelogistics.com/#identity"}');
     expect(html).not.toContain('"brand":{"@type":"Organization"');
   });
@@ -154,7 +178,7 @@ describe("public profile item HTML", () => {
     expect(html).not.toContain('"@type":"Organization"');
   });
 
-  it("uses the normal profile metadata for an unknown item", async () => {
+  it("falls back to the context-aware profile card for an unknown item", async () => {
     const html = await buildPublicProfileHtml({
       slug: "jw-stone",
       origin: "https://jwstonelogistics.com",
@@ -162,12 +186,66 @@ describe("public profile item HTML", () => {
       itemSlug: "not-a-real-stone",
     });
 
-    expect(html).toContain('property="og:title" content="JW Stone LLC | TradeScout"');
-    expect(html).toContain(
-      'property="og:image" content="https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png"'
+    expect(html).toContain('property="og:title" content="JW Stone Logistics"');
+    expect(html).toMatch(
+      /property="og:image" content="https:\/\/www\.thetradescout\.com\/images\/social\/profile\/jw-stone\.png\?v=4-[a-z0-9]+"/
     );
+    expect(html).toContain('property="og:url" content="https://jwstonelogistics.com/"');
+    expect(html).toContain('link rel="canonical" href="https://jwstonelogistics.com/"');
     expect(html).toContain('property="og:image:width" content="1200"');
+    expect(html).toContain('property="og:image:height" content="630"');
     expect(html).not.toContain('data-seo-profile-item="inventory"');
+  });
+
+  it("versions profile cards by the profile-owned image without changing item cards", async () => {
+    const withProfileImage = (profileImageUrl: string) => [
+      {
+        type: "profilePresentation",
+        data: {
+          social: {
+            ...jwSocialPresentationBlock.data.social,
+            profileImageUrl,
+          },
+        },
+      },
+    ];
+    const readOgImage = (html: string) =>
+      html.match(/<meta property="og:image" content="([^"]+)"/)?.[1] || "";
+
+    profileRecord.contentBlocks = withProfileImage(
+      "/images/businesses/jw-stone/video/hero-poster.jpg"
+    );
+    const firstProfileHtml = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+    });
+    const firstItemHtml = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+      itemSlug: "blue-dunes",
+      itemPhoto: "2",
+    });
+
+    profileRecord.contentBlocks = withProfileImage(
+      "/images/businesses/jw-stone/video/alternate-hero-poster.jpg"
+    );
+    const secondProfileHtml = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+    });
+    const secondItemHtml = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+      itemSlug: "blue-dunes",
+      itemPhoto: "2",
+    });
+
+    expect(readOgImage(firstProfileHtml!)).not.toBe(readOgImage(secondProfileHtml!));
+    expect(readOgImage(firstItemHtml!)).toBe(readOgImage(secondItemHtml!));
   });
 
   it("keeps visible and structured profile identity aligned to the canonical business", async () => {
@@ -197,6 +275,7 @@ describe("public profile item HTML", () => {
     businessRecord.categories = ["Stone wholesaler", "Email category@example.com"];
     businessRecord.serviceAreas = ["Hamilton County, TN"];
     profileRecord.contentBlocks = [
+      jwSocialPresentationBlock,
       {
         type: "faq",
         data: {
@@ -287,8 +366,9 @@ describe("public profile item HTML", () => {
     expect(missingPriceHtml).not.toContain("$0.00");
   });
 
-  it("renders image-specific social metadata for an exact shared gallery item", async () => {
+  it("renders a context-aware gallery card while retaining the exact source image", async () => {
     profileRecord.contentBlocks = [
+      jwSocialPresentationBlock,
       {
         id: "recent-work",
         type: "gallery",
@@ -314,12 +394,16 @@ describe("public profile item HTML", () => {
       templateHtml,
       gallerySlug: galleryItem.slug,
     });
+    const sourceImageUrl = "https://jwstonelogistics.com/uploads/profiles/blue-stone-patio.jpg";
 
+    expect(html).toContain('property="og:title" content="Blue Stone Patio | JW Stone Logistics"');
     expect(html).toContain(
-      'property="og:title" content="Blue Stone Patio | JW Stone LLC | TradeScout"'
+      'property="og:description" content="View Blue Stone Patio from JW Stone Logistics, then send a private request through TradeScout Direct Connect."'
     );
-    expect(html).toContain(
-      'property="og:image" content="https://jwstonelogistics.com/uploads/profiles/blue-stone-patio.jpg"'
+    expect(html).toMatch(
+      new RegExp(
+        `property="og:image" content="https://www\\.thetradescout\\.com/images/social/profile/jw-stone/gallery/${galleryItem.slug}\\.png\\?v=4-[a-z0-9]+"`
+      )
     );
     expect(html).toContain(
       `property="og:url" content="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
@@ -328,13 +412,15 @@ describe("public profile item HTML", () => {
     expect(html).toContain(
       `link rel="canonical" href="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
     );
-    expect(html).toContain("Your contact details stay private until you choose to connect.");
+    expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
     expect(html).toContain('data-seo-profile-item="gallery"');
     expect(html).toContain('"@type":"ImageObject"');
+    expect(html).toContain(`"contentUrl":"${sourceImageUrl}"`);
+    expect(html).toContain(`<img src="${sourceImageUrl}"`);
     expect(html).toContain('"creator":{"@id":"https://jwstonelogistics.com/#identity"}');
     expect(html).not.toContain('"creator":{"@type":"Organization"');
-    expect(html).not.toContain('property="og:image:width"');
-    expect(html).not.toContain('property="og:image:height"');
+    expect(html).toContain('property="og:image:width" content="1200"');
+    expect(html).toContain('property="og:image:height" content="630"');
   });
 
   it("renders JR's exact before-photo preview from its paid profile share link", async () => {
@@ -351,18 +437,30 @@ describe("public profile item HTML", () => {
       templateHtml,
       gallerySlug: beforeItem.slug,
     });
+    const sourceImageUrl =
+      "https://www.thetradescout.com/images/businesses/jrs-auto-glass/before.webp";
 
     expect(html).toContain(
-      'property="og:title" content="Windshield before replacement | JR&#39;s Auto Glass | TradeScout"'
+      'property="og:title" content="Windshield before replacement | JR&#39;s Auto Glass"'
     );
-    expect(html).toContain(
-      'property="og:image" content="https://www.thetradescout.com/images/businesses/jrs-auto-glass/before.webp"'
+    expect(html).toMatch(
+      new RegExp(
+        `property="og:image" content="https://www\\.thetradescout\\.com/images/social/profile/jrs-auto-glass/gallery/${beforeItem.slug}\\.png\\?v=4-[a-z0-9]+"`
+      )
     );
     expect(html).toContain(
       `property="og:url" content="https://www.thetradescout.com/u/jrs-auto-glass?gallery=${beforeItem.slug}"`
     );
+    expect(html).toContain(
+      `link rel="canonical" href="https://www.thetradescout.com/u/jrs-auto-glass?gallery=${beforeItem.slug}"`
+    );
+    expect(html).not.toContain(`property="og:image" content="${sourceImageUrl}"`);
+    expect(html).toContain('property="og:image:width" content="1200"');
+    expect(html).toContain('property="og:image:height" content="630"');
     expect(html).toContain('data-seo-profile-item="gallery"');
     expect(html).toContain('"@type":"ImageObject"');
+    expect(html).toContain(`"contentUrl":"${sourceImageUrl}"`);
+    expect(html).toContain(`<img src="${sourceImageUrl}"`);
     expect(html).toContain('"@type":"Person"');
     expect(html).toContain(
       '"creator":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass#identity"}'

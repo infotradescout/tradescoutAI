@@ -108,12 +108,13 @@ describe("WholesalerProfileTheme lux fail-closed", () => {
   });
 
   it("renders luxury house and never inventory chrome when inventoryCatalog is missing", () => {
-    const contentBlocks = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.filter(
-      (block) => block.type !== "inventoryCatalog"
-    ).map((block) => ({
-      type: block.type,
-      data: { ...(block.data as Record<string, unknown>) },
-    }));
+    const contentBlocks: Array<{ type: string; data: Record<string, unknown> }> =
+      ISSA_BUILD_PROFILE_CONTENT_BLOCKS.filter(
+        (block) => block.type !== "inventoryCatalog"
+      ).map((block) => ({
+        type: block.type,
+        data: { ...(block.data as Record<string, unknown>) },
+      }));
 
     expect(contentBlocks.some((block) => block.type === "inventoryCatalog")).toBe(false);
     expect(contentBlocks.some((block) => block.type === "premiumProduct")).toBe(true);

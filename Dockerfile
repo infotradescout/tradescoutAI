@@ -1,6 +1,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NODE_OPTIONS=--max-old-space-size=4096
+RUN apk add --no-cache fontconfig ttf-dejavu
 
 # Install dependencies deterministically from package-lock.json
 COPY package.json package-lock.json ./
@@ -35,6 +36,7 @@ RUN mkdir -p /app/data /app/migrations /app/docs
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apk add --no-cache fontconfig ttf-dejavu
 
 # Copy only what runtime needs
 COPY --from=builder /app/dist ./dist

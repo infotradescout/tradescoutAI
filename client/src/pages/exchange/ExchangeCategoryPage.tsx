@@ -272,7 +272,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
   // ── Share ──────────────────────────────────────────────────────────────────
   const handleShare = async (item: ExchangeItem) => {
     await share({
-      path: `/exchange/${config.slug}?item=${encodeURIComponent(item.id)}`,
+      path: `/exchange/${config.slug}/${encodeURIComponent(item.id)}`,
       title: item.title || "Exchange listing",
       text: item.description,
       contextLabel: "Listing link",

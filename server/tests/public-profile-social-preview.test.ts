@@ -1,0 +1,337 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const storageMocks = vi.hoisted(() => ({
+  getProfileBySlugPublic: vi.fn(),
+  getBusinessPublicById: vi.fn(),
+}));
+
+vi.mock("../storage", () => ({
+  storage: storageMocks,
+}));
+
+import { resolvePublicProfileSocialPreview } from "../publicProfileSocialPreview";
+
+const BLUE_MARE_SOURCE_IMAGE =
+  "https://www.thetradescout.com/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp";
+
+describe("public profile social preview context", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    storageMocks.getProfileBySlugPublic.mockResolvedValue({
+      id: "profile-jw",
+      slug: "jw-stone",
+      displayName: "JW Stone LLC",
+      headline: "Natural stone inventory",
+      roleContext: "wholesaler",
+      servicesDescription: "Browse current stone inventory.",
+      businessId: "business-jw",
+      updatedAt: "2026-07-28T12:00:00.000Z",
+      seoMeta: {
+        customDomain: "jwstonelogistics.com",
+        imageUrl:
+          "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
+        faviconUrl: "https://www.thetradescout.com/images/businesses/jw-stone/favicon.png",
+      },
+      ctaConfig: {
+        primary: {
+          label: "Generic request",
+          kind: "message",
+          value: "private-routing-value",
+        },
+      },
+      // These stale/unverified values must never override JW Stone's reconciled,
+      // source-backed catalog when building a public social preview.
+      contentBlocks: [
+        {
+          type: "profilePresentation",
+          data: {
+            social: {
+              brandName: "JW Stone Logistics",
+              logoUrl: "/images/businesses/jw-stone/logo.svg",
+              profileImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
+              accentColor: "#81904a",
+              profileCta: "Explore inventory",
+              inventoryCta: "View photos · Request pricing",
+              galleryCta: "View project",
+            },
+          },
+        },
+        {
+          type: "inventoryCatalog",
+          data: {
+            categories: [
+              {
+                category: "Quartzite",
+                categorySlug: "quartzite",
+                stones: [
+                  {
+                    name: "Blue Mare",
+                    slug: "blue-mare",
+                    images: ["/uploads/unverified-blue-mare.webp"],
+                    finishes: ["Polished"],
+                    pricePerSqFt: 16.5,
+                    slabCounts: [25],
+                    availability: "in_stock",
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    storageMocks.getBusinessPublicById.mockResolvedValue({
+      id: "business-jw",
+      name: "JW Stone LLC",
+      categories: ["Stone wholesaler"],
+      serviceAreas: ["Escambia County"],
+      tradePartner: true,
+      city: "Pensacola",
+      stateCode: "FL",
+      brandColors: {
+        accent: "#81904a",
+      },
+    });
+  });
+
+  it("builds Blue Mare from verified context and asks for pricing without claiming it", async () => {
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "blue-mare",
+      pageOrigin: "https://jwstonelogistics.com",
+    });
+
+    expect(preview).not.toBeNull();
+    expect(preview?.context).toMatchObject({
+      kind: "inventory",
+      title: "Blue Mare",
+      eyebrow: "Quartzite",
+      brandName: "JW Stone Logistics",
+      supportingText: "JW Stone Logistics",
+      locationLabel: "Pensacola, FL",
+      ctaLabel: "View photos · Request pricing",
+      sourceImageUrl: BLUE_MARE_SOURCE_IMAGE,
+      logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
+      accentColor: "#81904a",
+    });
+    expect(preview?.sourceImageUrl).toBe(BLUE_MARE_SOURCE_IMAGE);
+
+    const previewUrl = new URL(preview!.previewImageUrl);
+    expect(previewUrl.origin).toBe("https://www.thetradescout.com");
+    expect(previewUrl.pathname).toBe("/images/social/profile/jw-stone/inventory/blue-mare.png");
+    expect(previewUrl.searchParams.get("v")).toMatch(/^4-/);
+
+    const visibleContext = Object.values(preview!.context)
+      .filter((value): value is string => typeof value === "string")
+      .join(" ");
+
+    expect(visibleContext).not.toMatch(/\b(?:polished|honed|leathered|finish)\b/i);
+    expect(visibleContext).not.toMatch(/\$\s*\d|\b\d+(?:\.\d+)?\s*(?:per|\/)\s*sq\.?\s*ft\b/i);
+    expect(visibleContext).not.toMatch(/\b\d+\s+slabs?\b/i);
+    expect(visibleContext).not.toMatch(/\b(?:in[- ]?stock|available now|currently available)\b/i);
+    expect(visibleContext).not.toContain("private-routing-value");
+    expect(visibleContext).not.toContain("Generic request");
+  });
+
+  it("uses the profile-owned card image without replacing exact inventory media", async () => {
+    const profilePreview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+    });
+    const inventoryPreview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "blue-mare",
+    });
+
+    expect(profilePreview?.sourceImageUrl).toBe(
+      "https://www.thetradescout.com/images/businesses/jw-stone/video/hero-poster.jpg"
+    );
+    expect(inventoryPreview?.sourceImageUrl).toBe(BLUE_MARE_SOURCE_IMAGE);
+    expect(inventoryPreview?.sourceImageUrl).not.toBe(profilePreview?.sourceImageUrl);
+  });
+
+  it("uses the same stored presentation contract for an unrelated profile", async () => {
+    storageMocks.getProfileBySlugPublic.mockResolvedValueOnce({
+      id: "profile-roofing",
+      slug: "blue-sky-roofing",
+      displayName: "Blue Sky Roofing",
+      headline: "Roofing for local homes",
+      roleContext: "contractor",
+      servicesDescription: "Roof repairs and replacement.",
+      businessId: "business-roofing",
+      updatedAt: "2026-07-28T13:00:00.000Z",
+      seoMeta: {
+        imageUrl: "/uploads/profiles/blue-sky-roofing/hero.webp",
+        faviconUrl: "/uploads/profiles/blue-sky-roofing/favicon.png",
+      },
+      ctaConfig: {
+        primary: {
+          label: "Request an estimate",
+          kind: "message",
+          value: "owner@private.example",
+        },
+      },
+      contentBlocks: [
+        {
+          type: "profilePresentation",
+          data: {
+            social: {
+              brandName: "Blue Sky Roofing Co.",
+              logoUrl: "/uploads/profiles/blue-sky-roofing/logo.svg",
+              profileImageUrl: "/uploads/profiles/blue-sky-roofing/share-hero.webp",
+              accentColor: "#2563eb",
+              profileCta: "Plan a roof project",
+            },
+          },
+        },
+      ],
+    });
+    storageMocks.getBusinessPublicById.mockResolvedValueOnce({
+      id: "business-roofing",
+      name: "Blue Sky Roofing LLC",
+      categories: ["Roofing contractor"],
+      tradePartner: true,
+      city: "Dallas",
+      stateCode: "TX",
+      brandColors: {
+        primary: "#0f172a",
+      },
+    });
+
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "blue-sky-roofing",
+    });
+
+    expect(preview?.context).toMatchObject({
+      kind: "profile",
+      title: "Blue Sky Roofing Co.",
+      brandName: "Blue Sky Roofing Co.",
+      eyebrow: "Roofing contractor",
+      supportingText: "Roofing for local homes",
+      locationLabel: "Dallas, TX",
+      ctaLabel: "Plan a roof project",
+      sourceImageUrl:
+        "https://www.thetradescout.com/uploads/profiles/blue-sky-roofing/share-hero.webp",
+      logoUrl: "https://www.thetradescout.com/uploads/profiles/blue-sky-roofing/logo.svg",
+      accentColor: "#2563eb",
+    });
+    expect(Object.values(preview!.context).join(" ")).not.toContain("owner@private.example");
+    expect(preview?.previewImageUrl).toMatch(
+      /^https:\/\/www\.thetradescout\.com\/images\/social\/profile\/blue-sky-roofing\.png\?v=4-/
+    );
+  });
+
+  it("falls back to generic profile fields and rejects contact-bypass CTA copy", async () => {
+    storageMocks.getProfileBySlugPublic.mockResolvedValueOnce({
+      id: "profile-generic",
+      slug: "generic-repair",
+      displayName: "Generic Repair",
+      headline: "Repairs done locally",
+      roleContext: "contractor",
+      servicesDescription: "General repairs.",
+      businessId: "business-generic",
+      updatedAt: "2026-07-28T14:00:00.000Z",
+      seoMeta: {
+        faviconUrl: "/uploads/profiles/generic-repair/mark.png",
+      },
+      ctaConfig: {
+        primary: {
+          label: "Call 214-555-0199",
+          kind: "call",
+          value: "214-555-0199",
+        },
+      },
+      contentBlocks: [],
+    });
+    storageMocks.getBusinessPublicById.mockResolvedValueOnce({
+      id: "business-generic",
+      name: "Generic Repair LLC",
+      categories: ["Repair service"],
+      tradePartner: false,
+      brandColors: {
+        accent: "#16a34a",
+      },
+    });
+
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "generic-repair",
+    });
+
+    expect(preview?.context).toMatchObject({
+      brandName: "Generic Repair LLC",
+      logoUrl: "https://www.thetradescout.com/uploads/profiles/generic-repair/mark.png",
+      accentColor: "#16a34a",
+      ctaLabel: "View profile · Direct Connect",
+      locationLabel: "",
+    });
+    expect(Object.values(preview!.context).join(" ")).not.toContain("214-555-0199");
+  });
+
+  it("normalizes equivalent photo selectors before fingerprinting and URL generation", async () => {
+    const omitted = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "blue-mare",
+    });
+    const invalid = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "blue-mare",
+      photo: "random-cache-buster",
+    });
+    const outOfRange = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "blue-mare",
+      photo: "99",
+    });
+
+    expect(invalid?.fingerprint).toBe(omitted?.fingerprint);
+    expect(outOfRange?.fingerprint).toBe(omitted?.fingerprint);
+    expect(invalid?.previewImageUrl).toBe(omitted?.previewImageUrl);
+    expect(outOfRange?.previewImageUrl).toBe(omitted?.previewImageUrl);
+  });
+
+  it("rejects malformed profile and unpublished item selectors", async () => {
+    const malformedProfile = await resolvePublicProfileSocialPreview({
+      profileSlug: "../../jw-stone",
+      itemType: "inventory",
+      itemSlug: "blue-mare",
+    });
+
+    expect(malformedProfile).toBeNull();
+    expect(storageMocks.getProfileBySlugPublic).not.toHaveBeenCalled();
+
+    const unknownItem = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "private-draft",
+    });
+
+    expect(unknownItem).toBeNull();
+  });
+
+  it("does not place a non-partner business location on its profile card", async () => {
+    storageMocks.getBusinessPublicById.mockResolvedValueOnce({
+      id: "business-jw",
+      name: "JW Stone LLC",
+      categories: ["Stone wholesaler"],
+      tradePartner: false,
+      city: "Private City",
+      stateCode: "FL",
+    });
+
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+    });
+
+    expect(preview?.context).toMatchObject({
+      title: "JW Stone Logistics",
+      brandName: "JW Stone Logistics",
+      ctaLabel: "Explore inventory",
+      locationLabel: "",
+    });
+    expect(Object.values(preview!.context).join(" ")).not.toContain("Private City");
+  });
+});
