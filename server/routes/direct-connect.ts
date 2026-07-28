@@ -5,6 +5,7 @@ import { db, pool } from "../db";
 import { randomBytes } from "crypto";
 import {
   type WorkRequest,
+  affiliateShareLinks,
   directConnectGiveawayEntries,
   workRequests,
   workRequestEvents,
@@ -2133,6 +2134,13 @@ export function registerDirectConnectRoutes(app: Express) {
     while (!shareToken && attempts < 5) {
       attempts += 1;
       const candidate = makeShareToken();
+      const [affiliateCollision] = await tx
+        .select({ id: affiliateShareLinks.id })
+        .from(affiliateShareLinks)
+        .where(eq(affiliateShareLinks.friendlySlug, candidate))
+        .limit(1);
+      if (affiliateCollision?.id) continue;
+
       try {
         await tx
           .update(workRequests)

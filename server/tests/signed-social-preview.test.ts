@@ -36,6 +36,12 @@ describe("signed social previews", () => {
       /^https:\/\/www\.thetradescout\.com\/images\/social\/card\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.png$/
     );
     const token = tokenFromUrl(url!);
+    const encodedPayload = token.slice(0, token.lastIndexOf("."));
+    const decodedPayload = Buffer.from(encodedPayload, "base64url").toString("utf8");
+    expect(decodedPayload).not.toContain("updated-at-1");
+    expect(decodedPayload).not.toContain("Table saw");
+    expect(decodedPayload).not.toContain("/uploads/public/table-saw.webp");
+    expect(token.length).toBeLessThan(2_000);
     expect(resolveSignedSocialPreviewToken(token)?.context).toMatchObject({
       kind: "listing",
       title: "Table saw",
@@ -45,6 +51,53 @@ describe("signed social previews", () => {
 
     const tampered = `${token.slice(0, -1)}${token.endsWith("a") ? "b" : "a"}`;
     expect(resolveSignedSocialPreviewToken(tampered)).toBeNull();
+  });
+
+  it("expires signed context cards on a bounded schedule", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-28T12:00:00Z"));
+    try {
+      const url = buildSignedSocialPreviewImageUrl({
+        pageOrigin: "https://www.thetradescout.com",
+        context: {
+          kind: "community_post",
+          title: "Public neighborhood update",
+          brandName: "TradeScout Community",
+          ctaLabel: "View post · Join the conversation",
+        },
+      });
+      const token = tokenFromUrl(url!);
+
+      expect(resolveSignedSocialPreviewToken(token)).not.toBeNull();
+      vi.advanceTimersByTime(11 * 60 * 1_000);
+      expect(resolveSignedSocialPreviewToken(token)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps an opaque card URL stable inside its metadata cache bucket", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-28T12:01:00Z"));
+    try {
+      const args = {
+        pageOrigin: "https://www.thetradescout.com",
+        context: {
+          kind: "listing" as const,
+          title: "Public table saw listing",
+          brandName: "TradeScout Exchange",
+          ctaLabel: "View listing · Connect safely",
+        },
+        versionSeed: "listing-revision-7",
+      };
+      const first = buildSignedSocialPreviewImageUrl(args);
+      vi.advanceTimersByTime(2 * 60 * 1_000);
+      const second = buildSignedSocialPreviewImageUrl(args);
+
+      expect(second).toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("renders a valid signed fallback card without a source image", async () => {

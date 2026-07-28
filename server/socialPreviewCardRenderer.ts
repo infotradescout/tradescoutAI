@@ -8,9 +8,26 @@ export const SOCIAL_PREVIEW_HEIGHT = 630;
 const IMAGE_PANEL_WIDTH = 760;
 const COPY_PANEL_X = IMAGE_PANEL_WIDTH;
 const COPY_PANEL_WIDTH = SOCIAL_PREVIEW_WIDTH - IMAGE_PANEL_WIDTH;
-const MAX_PUBLIC_ASSET_BYTES = 15 * 1024 * 1024;
+const MAX_SOURCE_ASSET_BYTES = 5 * 1024 * 1024;
+const MAX_LOGO_ASSET_BYTES = 2 * 1024 * 1024;
+const MAX_SOURCE_INPUT_PIXELS = 20_000_000;
+const MAX_LOGO_INPUT_PIXELS = 4_000_000;
 const SUPPORTED_PUBLIC_ASSET = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 const SUPPORTED_RASTER_PUBLIC_ASSET = /\.(?:avif|gif|jpe?g|png|webp)$/i;
+
+export const SOCIAL_PREVIEW_RENDER_CONCURRENCY = 2;
+export const SOCIAL_PREVIEW_RENDER_QUEUE_LIMIT = 8;
+export const SOCIAL_PREVIEW_RENDER_CAPACITY_ERROR_CODE =
+  "SOCIAL_PREVIEW_RENDER_CAPACITY_EXCEEDED";
+
+export class SocialPreviewRenderCapacityError extends Error {
+  readonly code = SOCIAL_PREVIEW_RENDER_CAPACITY_ERROR_CODE;
+
+  constructor() {
+    super("Social preview renderer is at capacity");
+    this.name = "SocialPreviewRenderCapacityError";
+  }
+}
 
 export type SocialPreviewCardContext = {
   kind:
@@ -50,6 +67,34 @@ export type RenderedSocialPreviewCard = {
 };
 
 let sharpPromise: Promise<typeof import("sharp").default> | null = null;
+let activeRenderCount = 0;
+const pendingRenderQueue: Array<() => void> = [];
+
+function createRenderSlotRelease(): () => void {
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const next = pendingRenderQueue.shift();
+    if (next) {
+      next();
+      return;
+    }
+    activeRenderCount = Math.max(0, activeRenderCount - 1);
+  };
+}
+
+async function acquireRenderSlot(): Promise<() => void> {
+  if (activeRenderCount < SOCIAL_PREVIEW_RENDER_CONCURRENCY) {
+    activeRenderCount += 1;
+    return createRenderSlotRelease();
+  }
+  if (pendingRenderQueue.length >= SOCIAL_PREVIEW_RENDER_QUEUE_LIMIT) {
+    throw new SocialPreviewRenderCapacityError();
+  }
+  await new Promise<void>((resolve) => pendingRenderQueue.push(resolve));
+  return createRenderSlotRelease();
+}
 
 function cleanText(value: unknown, maxLength: number): string {
   return String(value || "")
@@ -106,7 +151,8 @@ function pathnameFromPublicAsset(value: unknown, allowSvg: boolean): string | nu
 async function readLocalPublicAsset(
   value: unknown,
   publicRoots: string[],
-  allowSvg: boolean
+  allowSvg: boolean,
+  maxBytes: number
 ): Promise<Buffer | null> {
   const publicPath = pathnameFromPublicAsset(value, allowSvg);
   if (!publicPath) return null;
@@ -125,8 +171,10 @@ async function readLocalPublicAsset(
         continue;
       }
       const stat = await fs.stat(realCandidate);
-      if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_PUBLIC_ASSET_BYTES) continue;
-      return await fs.readFile(realCandidate);
+      if (!stat.isFile() || stat.size <= 0 || stat.size > maxBytes) continue;
+      const asset = await fs.readFile(realCandidate);
+      if (asset.length <= 0 || asset.length > maxBytes) continue;
+      return asset;
     } catch {
       // Try the next public root. Missing assets get a branded text fallback.
     }
@@ -196,7 +244,7 @@ function remotePublicAssetUrl(value: unknown): URL | null {
   }
 }
 
-async function responseImageBuffer(response: Response): Promise<Buffer | null> {
+async function responseImageBuffer(response: Response, maxBytes: number): Promise<Buffer | null> {
   if (!response.ok || !response.body) return null;
   const contentType = String(response.headers.get("content-type") || "")
     .split(";")[0]
@@ -204,7 +252,7 @@ async function responseImageBuffer(response: Response): Promise<Buffer | null> {
     .toLowerCase();
   if (!contentType.startsWith("image/") || contentType === "image/svg+xml") return null;
   const declaredLength = Number(response.headers.get("content-length") || "0");
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_PUBLIC_ASSET_BYTES) return null;
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) return null;
 
   const chunks: Uint8Array[] = [];
   let totalBytes = 0;
@@ -215,7 +263,7 @@ async function responseImageBuffer(response: Response): Promise<Buffer | null> {
       if (done) break;
       if (!value) continue;
       totalBytes += value.byteLength;
-      if (totalBytes > MAX_PUBLIC_ASSET_BYTES) {
+      if (totalBytes > maxBytes) {
         await reader.cancel();
         return null;
       }
@@ -227,7 +275,7 @@ async function responseImageBuffer(response: Response): Promise<Buffer | null> {
   return totalBytes > 0 ? Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))) : null;
 }
 
-async function readRemotePublicAsset(value: unknown): Promise<Buffer | null> {
+async function readRemotePublicAsset(value: unknown, maxBytes: number): Promise<Buffer | null> {
   const assetUrl = remotePublicAssetUrl(value);
   if (!assetUrl) return null;
 
@@ -240,7 +288,7 @@ async function readRemotePublicAsset(value: unknown): Promise<Buffer | null> {
         "User-Agent": "TradeScout-Social-Preview/1.0",
       },
     });
-    return await responseImageBuffer(response);
+    return await responseImageBuffer(response, maxBytes);
   } catch {
     return null;
   }
@@ -409,7 +457,7 @@ function fallbackImageSvg(accentColor: string): Buffer {
   </svg>`);
 }
 
-export async function renderSocialPreviewCard(
+async function renderSocialPreviewCardWithinSlot(
   context: SocialPreviewCardContext,
   options: RenderSocialPreviewOptions = {}
 ): Promise<RenderedSocialPreviewCard> {
@@ -418,12 +466,12 @@ export async function renderSocialPreviewCard(
   const accent = normalizeAccentColor(context.accentColor);
   const sourceImageRequested = Boolean(cleanText(context.sourceImageUrl, 2048));
   const [localSourceAsset, localLogoAsset] = await Promise.all([
-    readLocalPublicAsset(context.sourceImageUrl, publicRoots, false),
-    readLocalPublicAsset(context.logoUrl, publicRoots, true),
+    readLocalPublicAsset(context.sourceImageUrl, publicRoots, false, MAX_SOURCE_ASSET_BYTES),
+    readLocalPublicAsset(context.logoUrl, publicRoots, true, MAX_LOGO_ASSET_BYTES),
   ]);
   const [sourceAsset, logoAsset] = await Promise.all([
-    localSourceAsset || readRemotePublicAsset(context.sourceImageUrl),
-    localLogoAsset || readRemotePublicAsset(context.logoUrl),
+    localSourceAsset || readRemotePublicAsset(context.sourceImageUrl, MAX_SOURCE_ASSET_BYTES),
+    localLogoAsset || readRemotePublicAsset(context.logoUrl, MAX_LOGO_ASSET_BYTES),
   ]);
 
   let imagePanel: Buffer;
@@ -432,7 +480,7 @@ export async function renderSocialPreviewCard(
     try {
       imagePanel = await sharp(sourceAsset, {
         failOn: "warning",
-        limitInputPixels: 40_000_000,
+        limitInputPixels: MAX_SOURCE_INPUT_PIXELS,
         sequentialRead: true,
       })
         .rotate()
@@ -457,7 +505,7 @@ export async function renderSocialPreviewCard(
     try {
       preparedLogo = await sharp(logoAsset, {
         failOn: "warning",
-        limitInputPixels: 10_000_000,
+        limitInputPixels: MAX_LOGO_INPUT_PIXELS,
       })
         .resize(304, 64, {
           fit: "contain",
@@ -495,6 +543,18 @@ export async function renderSocialPreviewCard(
     sourceImageRequested,
     sourceImageLoaded,
   };
+}
+
+export async function renderSocialPreviewCard(
+  context: SocialPreviewCardContext,
+  options: RenderSocialPreviewOptions = {}
+): Promise<RenderedSocialPreviewCard> {
+  const releaseRenderSlot = await acquireRenderSlot();
+  try {
+    return await renderSocialPreviewCardWithinSlot(context, options);
+  } finally {
+    releaseRenderSlot();
+  }
 }
 
 export async function renderSocialPreviewCardPng(

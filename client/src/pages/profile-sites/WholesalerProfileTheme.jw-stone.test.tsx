@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "@/data/jwStoneProfilePresentation";
 import WholesalerProfileTheme from "./WholesalerProfileTheme";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -53,6 +54,7 @@ const inventoryStones = Array.from({ length: 14 }, (_, index) => ({
 }));
 
 const contentBlocks = [
+  JW_STONE_PROFILE_PRESENTATION_BLOCK,
   {
     type: "about",
     body: "JW Stone source and project support.",
@@ -195,16 +197,16 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(container.querySelector("#inventory-browser")).not.toBeNull();
     expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
     expect(container.querySelector('input[placeholder="Search by stone name"]')).not.toBeNull();
-    expect(container.querySelectorAll('[data-testid="jw-stone-inventory-card"]')).toHaveLength(12);
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
     expect(
-      container.querySelectorAll('[data-testid="jw-stone-featured-product-card"]')
+      container.querySelectorAll('[data-testid="profile-featured-product-card"]')
     ).toHaveLength(0);
     const showMoreInventory = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent === "Show 12 more"
     );
     click(showMoreInventory || null);
-    expect(container.querySelectorAll('[data-testid="jw-stone-inventory-card"]')).toHaveLength(14);
-    expect(container.querySelectorAll("details")).toHaveLength(2);
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(14);
+    expect(container.querySelectorAll('[data-testid="profile-faq-item"]')).toHaveLength(2);
     expect(container.querySelectorAll('img[src*="/story/"]')).toHaveLength(4);
     expect(container.textContent).toContain("JW Stone source and project support.");
     expect(container.textContent).toContain("Ask through Direct Connect.");
@@ -232,7 +234,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     click(featuredView || null);
     expect(container.querySelector("#inventory-browser")).toBeNull();
     expect(
-      container.querySelectorAll('[data-testid="jw-stone-featured-product-card"]')
+      container.querySelectorAll('[data-testid="profile-featured-product-card"]')
     ).toHaveLength(3);
     const reopenInventory = Array.from(container.querySelectorAll("#collection button")).find(
       (button) => button.textContent?.includes("Browse full inventory")
@@ -246,7 +248,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       root.render(<WholesalerProfileTheme {...props} />);
     });
 
-    const chooser = container.querySelector('[data-testid="jw-stone-audience-chooser"]');
+    const chooser = container.querySelector('[data-testid="profile-audience-chooser"]');
     expect(chooser).not.toBeNull();
     expect(chooser?.querySelectorAll('[role="tab"]')).toHaveLength(4);
     expect(chooser?.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
@@ -312,7 +314,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       (button) => button.textContent === "Show 12 more"
     );
     click(showMore || null);
-    expect(container.querySelectorAll('[data-testid="jw-stone-inventory-card"]')).toHaveLength(14);
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(14);
     expect(container.textContent).toContain("Test Stone 14");
     expect(container.textContent).not.toContain("Show 12 more");
 
@@ -320,12 +322,86 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       'input[placeholder="Search by stone name"]'
     );
     changeInput(search, "Test Stone 14");
-    expect(container.querySelectorAll('[data-testid="jw-stone-inventory-card"]')).toHaveLength(1);
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(1);
     expect(container.textContent).toContain("Test Stone 14");
 
     changeInput(search, "Unlisted Emerald");
     expect(container.textContent).toContain("No match for “Unlisted Emerald”");
     expect(container.textContent).toContain("JW Stone may be able to source it");
     expect(container.textContent).toContain("Request this stone");
+  });
+
+  it("applies the same Phase 2 UI contract to a non-JW profile slug", () => {
+    const genericPresentation = {
+      type: "profilePresentation",
+      data: {
+        inventory: {
+          initialView: "catalog",
+          density: "compact",
+          pageSize: 12,
+          pageStep: 12,
+          stickyControls: true,
+          sourceRequests: true,
+        },
+        audience: { layout: "guided" },
+        faq: { layout: "disclosure" },
+        recommendations: { initialLimit: 3, maxVisible: 24 },
+      },
+    };
+
+    act(() => {
+      root.render(
+        <WholesalerProfileTheme
+          {...props}
+          profileSlug="sample-stone-supplier"
+          displayName="Sample Stone Supplier"
+          profileShareDestination="/u/sample-stone-supplier"
+          contentBlocks={[
+            genericPresentation,
+            ...contentBlocks.filter((block) => block.type !== "profilePresentation"),
+          ]}
+        />
+      );
+    });
+
+    expect(container.querySelector("#inventory-browser")).not.toBeNull();
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
+    expect(container.querySelector('[data-testid="profile-audience-chooser"]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-testid="profile-faq-item"]')).toHaveLength(2);
+    expect(container.textContent).toContain("Recommendation 3");
+    expect(container.textContent).not.toContain("Recommendation 4");
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search by stone name"]'
+    );
+    changeInput(search, "Unlisted Emerald");
+    expect(container.textContent).toContain(
+      "Sample Stone Supplier may be able to source it for your project."
+    );
+  });
+
+  it("preserves legacy wholesaler behavior when no presentation block opts in", () => {
+    act(() => {
+      root.render(
+        <WholesalerProfileTheme
+          {...props}
+          profileSlug="legacy-stone-supplier"
+          displayName="Legacy Stone Supplier"
+          profileShareDestination="/u/legacy-stone-supplier"
+          contentBlocks={contentBlocks.filter((block) => block.type !== "profilePresentation")}
+        />
+      );
+    });
+
+    expect(container.querySelector("#inventory-browser")).toBeNull();
+    expect(container.querySelector('[data-testid="profile-audience-chooser"]')).toBeNull();
+    expect(container.querySelectorAll("details")).toHaveLength(0);
+    expect(container.textContent).toContain("Ask through Direct Connect.");
+    expect(container.textContent).toContain("Recommendation 4");
+    expect(
+      Array.from(container.querySelectorAll("button")).some(
+        (button) => button.textContent === "Show all 4 recommendations"
+      )
+    ).toBe(false);
   });
 });

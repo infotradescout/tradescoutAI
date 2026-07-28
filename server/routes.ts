@@ -122,6 +122,10 @@ import {
   isSafeAffiliateShareDestination,
   resolveAffiliateShareDestinationOrigin,
 } from "./utils/affiliateShareDestination";
+import {
+  affiliateShareSlugError,
+  directConnectOwnsPersistedShareSlug,
+} from "./utils/shareRouteNamespace";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import {
   collectAuthorityRoles,
@@ -3712,11 +3716,8 @@ export async function registerRoutes(app: any) {
       }
 
       const safeSlug = slugInput || `link-${Math.random().toString(36).slice(2, 8)}`;
-      if (!/^[a-z0-9-]{3,64}$/i.test(safeSlug)) {
-        return res
-          .status(400)
-          .json({ message: "slug must be 3-64 chars (letters, numbers, dash)" });
-      }
+      const slugError = affiliateShareSlugError(safeSlug);
+      if (slugError) return res.status(400).json({ message: slugError });
 
       let program = await storage.getAffiliateProgram(userId);
       if (!program) {
@@ -3869,6 +3870,8 @@ export async function registerRoutes(app: any) {
     try {
       const slug = typeof req.params?.slug === "string" ? req.params.slug.trim() : "";
       if (!slug) return res.redirect(302, "/");
+
+      if (await directConnectOwnsPersistedShareSlug(slug)) return next();
 
       const [row] = await db
         .select({

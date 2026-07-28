@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { buildPublicProfileSocialPreview } from "../publicProfileSocialPreview";
 import { buildSignedSocialPreview } from "../signedSocialPreview";
+import { buildWorkRequestSocialPreview } from "../workRequestShareHtml";
 import { resolvePublicOrigin } from "../utils/publicOrigin";
 
 type PreviewRouteKind = "profile" | "inventory" | "gallery";
@@ -51,6 +52,12 @@ function previewCacheControl(preview: PreviewImageState, stableCacheControl: str
     : stableCacheControl;
 }
 
+function signedPreviewCacheControl(preview: { expiresAt: number }): string {
+  const remainingSeconds = preview.expiresAt - Math.floor(Date.now() / 1_000);
+  if (remainingSeconds <= 0) return "no-store";
+  return `public, max-age=${Math.min(60, remainingSeconds)}, must-revalidate`;
+}
+
 function registerPreviewRoute(app: Express, route: string, kind: PreviewRouteKind): void {
   app.get(route, async (req: Request, res: Response) => {
     try {
@@ -70,7 +77,7 @@ function registerPreviewRoute(app: Express, route: string, kind: PreviewRouteKin
         req,
         res,
         preview,
-        previewCacheControl(preview, "public, max-age=86400, stale-while-revalidate=604800")
+        previewCacheControl(preview, "public, max-age=300, must-revalidate")
       );
     } catch (error) {
       console.error("[SocialPreview] Failed to render public profile preview:", error);
@@ -89,12 +96,32 @@ export function registerPublicProfileSocialPreviewRoutes(app: Express): void {
         req,
         res,
         preview,
-        previewCacheControl(preview, "public, max-age=31536000, immutable")
+        signedPreviewCacheControl(preview)
       );
     } catch (error) {
       console.error("[SocialPreview] Failed to render signed public preview:", error);
       res.setHeader("Cache-Control", "no-store");
       return res.redirect(302, "/tradescout-social-preview.png?v=12");
+    }
+  });
+  app.get("/images/social/request/:shareToken.png", async (req: Request, res: Response) => {
+    try {
+      const shareToken = String(req.params.shareToken || "");
+      if (!/^[a-f0-9]{32}$/i.test(shareToken)) return sendMissing(res);
+      const preview = await buildWorkRequestSocialPreview({
+        shareToken,
+        origin: resolvePublicOrigin(req),
+      });
+      if (!preview) return sendMissing(res);
+      return sendPreviewPng(
+        req,
+        res,
+        preview,
+        "no-store"
+      );
+    } catch (error) {
+      console.error("[SocialPreview] Failed to render shared request preview:", error);
+      return sendMissing(res);
     }
   });
   registerPreviewRoute(

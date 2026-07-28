@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
+import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 
 function readWorkspaceOrTrackedFile(relativePath: string) {
   const absolutePath = path.resolve(process.cwd(), relativePath);
@@ -20,6 +21,11 @@ const source = fs.readFileSync(
 );
 const expressSource = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx"),
+  "utf8"
+);
+const presentation = JW_STONE_PROFILE_PRESENTATION_BLOCK.data;
+const migrationSource = fs.readFileSync(
+  path.resolve(process.cwd(), "migrations/0110_jw_stone_profile_presentation.sql"),
   "utf8"
 );
 const inventory = JSON.parse(
@@ -42,30 +48,37 @@ function isCloseUpLead(sourceName = "") {
 
 describe("JW Stone profile presentation contract", () => {
   it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
-    expect(source).toContain('stone.slug === "amazonic-green"');
-    expect(source).toContain("Amazonic Green · current inventory");
-    expect(source).toContain("/images/businesses/jw-stone/video/hero.mp4");
-    expect(source).toContain("/images/businesses/jw-stone/video/hero-poster.jpg");
+    expect(presentation.hero.inventoryItemSlug).toBe("amazonic-green");
+    expect(presentation.hero.eyebrow).toBe("Amazonic Green · current inventory");
+    expect(presentation.hero.videoUrl).toBe("/images/businesses/jw-stone/video/hero.mp4");
+    expect(presentation.hero.posterUrl).toBe(
+      "/images/businesses/jw-stone/video/hero-poster.jpg"
+    );
+    expect(presentation.hero.preserveMedia).toBe(true);
     expect(source).toContain('heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"');
     expect(source).toContain('window.matchMedia("(prefers-reduced-motion: reduce)")');
     expect(source).toContain("autoPlay={!prefersReducedMotion}");
-    // No full-bleed wash on JW Stone / ISSA Build — stone/video stays true.
-    expect(source).toContain("{!isJwStone && !isIssaBuild ? (");
-    expect(source).not.toMatch(
-      /isJwStone \|\| isIssaBuild\s*\?\s*"bg-\[linear-gradient\(90deg,rgba\(9,7,4/
-    );
+    expect(source).toContain("!preserveHeroMedia && !isIssaBuild");
+    expect(source).not.toContain("isJwStone");
+    expect(source).not.toContain('profileSlug === "jw-stone"');
   });
 
   it("makes the full catalog the primary JW Stone action", () => {
+    expect(presentation.inventory.initialView).toBe("catalog");
+    expect(presentation.inventory.density).toBe("compact");
+    expect(presentation.inventory.pageSize).toBe(12);
+    expect(presentation.inventory.pageStep).toBe(12);
+    expect(presentation.inventory.stickyControls).toBe(true);
     expect(source).toContain("const openFullInventory = () =>");
-    expect(source).toContain("useState(isJwStone)");
-    expect(source).toContain("useState(isJwStone ? 12 : 24)");
+    expect(source).toContain("useState(inventoryOpenByDefault)");
+    expect(source).toContain("useState(inventoryPageSize)");
     expect(source).toContain("Browse full inventory");
-    expect(source).toContain('stone.slug === "rhino-white"');
-    expect(source).toContain("Rhino White · current inventory");
-    expect(source).toContain("rhinoWhiteWarehouseCtaImage");
+    expect(presentation.inventory.browseCtaEyebrow).toBe(
+      "Rhino White · current inventory"
+    );
+    expect(source).toContain("inventoryBrowseCtaImage");
     expect(source).toContain("rgba(7,15,18,0.66)_0%");
-    const ctaImage = source.indexOf("{rhinoWhiteWarehouseCtaImage ?");
+    const ctaImage = source.indexOf("{inventoryBrowseCtaImage ?");
     const ctaStart = source.lastIndexOf("<button", ctaImage);
     const ctaEnd = source.indexOf("</button>", ctaStart);
     const ctaSource = source.slice(ctaStart, ctaEnd);
@@ -77,13 +90,14 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain("{allInventoryStones.length} stones · one collection");
     expect(source).not.toContain("{allInventoryStones.length} current stones");
     expect(source).toContain('id="inventory-browser"');
-    expect(source).toContain("hasInventoryFilters || isJwStone");
+    expect(source).toContain("hasInventoryFilters || compactInventory");
     expect(source).toContain("grid-cols-2");
     expect(source).toContain("xl:grid-cols-5");
   });
 
   it("adapts the customer path without removing any of the four established audiences", () => {
-    expect(source).toContain('data-testid="jw-stone-audience-chooser"');
+    expect(presentation.audience.layout).toBe("guided");
+    expect(source).toContain('data-testid="profile-audience-chooser"');
     expect(source).toContain('role="tablist"');
     expect(source).toContain('role="tabpanel"');
     expect(source).toContain("Fabricators");
@@ -94,28 +108,32 @@ describe("JW Stone profile presentation contract", () => {
       "Review named stone, confirmed finishes where listed, and source bundle counts"
     );
     expect(source).toContain(
-      "Share project volume, location, and timing so JW Stone can review material consistency"
+      "Share project volume, location, and timing so ${displayName} can review material consistency"
     );
     expect(source).toContain("Compare stone imagery, category, and confirmed finish details");
     expect(source).toContain("Start with a room, inspiration, or selected stone");
     expect(source).toContain('requestType: "ask_about_bundle"');
     expect(source.match(/requestType: "match_project"/g)).toHaveLength(3);
-    expect(source).toContain(
+    expect(presentation.audience.availabilityNote).toBe(
       "Pricing and current availability are confirmed through Direct Connect."
     );
-    expect(source).toContain("Helpful context to include");
+    expect(presentation.audience.contextHeading).toBe("Helpful context to include");
     expect(source).not.toContain("Serving Pensacola");
     expect(source).not.toContain("no minimum order");
     expect(source).not.toContain("what's actually in stock");
   });
 
   it("reduces vertical scroll through progressive disclosure while retaining the source content", () => {
-    expect(source).toContain("JW_STONE_STORY_IMAGES.map");
+    expect(presentation.story.images).toHaveLength(4);
+    expect(presentation.faq.layout).toBe("disclosure");
+    expect(presentation.recommendations.initialLimit).toBe(3);
+    expect(presentation.recommendations.maxVisible).toBe(24);
+    expect(source).toContain("storyImages.map");
     expect(source).toContain("snap-mandatory");
     expect(source).toContain("<details");
     expect(source).toContain("recommendationsExpanded");
     expect(source).toContain("Show fewer recommendations");
-    expect(source).toContain("Math.min(recommendationsDirectory.length, 24)");
+    expect(source).toContain("recommendationMaxVisible");
     expect(source).toContain('id="why-us"');
     expect(source).toContain('id="materials"');
     expect(source).toContain('id="connect"');
@@ -148,7 +166,7 @@ describe("JW Stone profile presentation contract", () => {
   });
 
   it("shows featured inventory as image-forward product cards", () => {
-    expect(source).toContain('data-testid="jw-stone-featured-product-card"');
+    expect(source).toContain('data-testid="profile-featured-product-card"');
     expect(source).toContain('className="relative aspect-[4/3] overflow-hidden');
     expect(source).toContain("View details");
     expect(source).toContain("profileInventoryShareIndexForDisplay(");
@@ -167,13 +185,15 @@ describe("JW Stone profile presentation contract", () => {
   });
 
   it("turns a zero-result search into a prefilled material request", () => {
+    expect(presentation.inventory.sourceRequests).toBe(true);
     expect(source).toContain("Direct Connect");
-    expect(source).toContain("JW Stone may be able to source it for your project.");
+    expect(source).toContain("${displayName} may be able to source it for your project.");
     expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
   });
 
   it("unwinds JW Stone states in-profile; TradeScout exit stays in the site footer only", () => {
-    expect(source).toContain('aria-label="Back within JW Stone"');
+    expect(presentation.header.backLabel).toBe("Back within JW Stone");
+    expect(source).toContain("presentation.header?.backLabel");
     expect(source).toContain("const goBackWithinProfile = () =>");
     expect(source).toContain("if (expressPanelOpen)");
     expect(source).toContain("if (openStone)");
@@ -203,12 +223,38 @@ describe("JW Stone profile presentation contract", () => {
   });
 
   it("keeps the JW Stone brand centered between profile navigation controls", () => {
+    expect(presentation.header.layout).toBe("centered-brand");
+    expect(presentation.header.logoUrl).toBe("/images/businesses/jw-stone/logo.svg");
+    expect(presentation.header.homeLabel).toBe("JW Stone home");
     expect(source).toContain("grid-cols-[1fr_auto_1fr]");
-    expect(source).toContain('aria-label="JW Stone home"');
+    expect(source).toContain("presentation.header?.homeLabel");
     expect(source).toContain('className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"');
     expect(source).toContain("justify-self-start");
     expect(source).toContain("justify-self-end");
-    expect(source).toContain('isJwStone ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""');
+    expect(source).toContain('centeredBrandHeader ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""');
     expect(source).toContain("hidden h-10 gap-4 px-3 pb-2 text-[11px] font-bold sm:flex");
+  });
+
+  it("keeps the persisted migration aligned and only appends when the block is absent", () => {
+    const migratedData = migrationSource.match(/'data', '([\s\S]*?)'::jsonb/)?.[1];
+    expect(migratedData).toBeTruthy();
+    expect(JSON.parse(migratedData || "{}")).toEqual(presentation);
+    expect(migrationSource).toContain("'type', 'profilePresentation'");
+    expect(migrationSource).toContain('"brandName": "JW Stone Logistics"');
+    expect(presentation.social.profileImageUrl).toBe(
+      "/images/businesses/jw-stone/video/hero-poster.jpg"
+    );
+    expect(migrationSource).toContain(
+      '"profileImageUrl": "/images/businesses/jw-stone/video/hero-poster.jpg"'
+    );
+    expect(migrationSource).toContain('"accentColor": "#81904a"');
+    expect(migrationSource).toContain('"inventoryCta": "View photos · Request pricing"');
+    expect(migrationSource).toContain('"label": "JW Stone Picks"');
+    for (const slug of presentation.inventory.featuredCollection.slugs) {
+      expect(migrationSource).toContain(`"${slug}"`);
+    }
+    expect(migrationSource).toContain(
+      "WHERE block ->> 'type' = 'profilePresentation'"
+    );
   });
 });

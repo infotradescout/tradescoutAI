@@ -1,17 +1,29 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  timingSafeEqual,
+} from "node:crypto";
 import {
   renderSocialPreviewCard,
   type SocialPreviewCardContext,
 } from "./socialPreviewCardRenderer";
 
-const SIGNED_SOCIAL_PREVIEW_VERSION = 1;
+const SIGNED_SOCIAL_PREVIEW_VERSION = 3;
 const CANONICAL_SOCIAL_PREVIEW_ORIGIN = "https://www.thetradescout.com";
 // PNG cards are commonly 0.5–1 MB. Keep only the hottest signed cards in
 // process; CDN/browser caching carries the long-lived load.
 const MAX_SIGNED_PREVIEW_CACHE_ENTRIES = 16;
 const MAX_TOKEN_LENGTH = 8_000;
+const SIGNED_PREVIEW_TTL_SECONDS = 5 * 60;
+const SIGNED_PREVIEW_TIME_BUCKET_SECONDS = 5 * 60;
 const DEFAULT_DEVELOPMENT_SECRET = "tradescout-social-preview-development-only";
-const SIGNING_PURPOSE = "tradescout:social-preview:v1";
+const SIGNING_PURPOSE = "tradescout:social-preview:v3";
+const ENCRYPTION_PURPOSE = "tradescout:social-preview:encrypted-context:v1";
+const ENCRYPTION_IV_BYTES = 12;
+const ENCRYPTION_TAG_BYTES = 16;
+const ENCRYPTION_DIGEST_BYTES = 32;
 
 const SOCIAL_PREVIEW_KINDS = new Set<SocialPreviewCardContext["kind"]>([
   "profile",
@@ -43,6 +55,7 @@ type SignedSocialPreviewPayload = {
   o?: string;
   a?: string;
   r?: string;
+  x: number;
 };
 
 export type RenderedSignedSocialPreview = {
@@ -51,6 +64,7 @@ export type RenderedSignedSocialPreview = {
   etag: string;
   sourceImageRequested: boolean;
   sourceImageLoaded: boolean;
+  expiresAt: number;
 };
 
 const signedPreviewCache = new Map<string, Promise<RenderedSignedSocialPreview>>();
@@ -76,12 +90,24 @@ function cleanAccentColor(value: unknown): string {
 }
 
 function signingSecret(): string {
-  const configured = String(process.env.SESSION_SECRET || "").trim();
+  const configured = String(
+    process.env.SOCIAL_PREVIEW_SIGNING_SECRET || process.env.SESSION_SECRET || ""
+  ).trim();
   if (configured) return configured;
   if (process.env.NODE_ENV === "production") {
-    throw new Error("SESSION_SECRET is required for signed social previews.");
+    throw new Error(
+      "SOCIAL_PREVIEW_SIGNING_SECRET or SESSION_SECRET is required for signed social previews."
+    );
   }
   return DEFAULT_DEVELOPMENT_SECRET;
+}
+
+function encryptionKey(): Buffer {
+  return createHash("sha256")
+    .update(ENCRYPTION_PURPOSE)
+    .update("\0")
+    .update(signingSecret())
+    .digest();
 }
 
 function signatureFor(payload: string): string {
@@ -90,6 +116,60 @@ function signatureFor(payload: string): string {
     .update("\0")
     .update(payload)
     .digest("base64url");
+}
+
+function encryptPayload(payload: SignedSocialPreviewPayload): string {
+  const plaintext = Buffer.from(JSON.stringify(payload), "utf8");
+  const masterKey = encryptionKey();
+  const digest = createHmac("sha256", masterKey)
+    .update("payload\0")
+    .update(plaintext)
+    .digest();
+  const key = createHmac("sha256", masterKey).update("key\0").update(digest).digest();
+  const iv = createHmac("sha256", masterKey)
+    .update("iv\0")
+    .update(digest)
+    .digest()
+    .subarray(0, ENCRYPTION_IV_BYTES);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  cipher.setAAD(Buffer.concat([Buffer.from(SIGNING_PURPOSE, "utf8"), digest]));
+  const encrypted = Buffer.concat([
+    cipher.update(plaintext),
+    cipher.final(),
+  ]);
+  return Buffer.concat([digest, cipher.getAuthTag(), encrypted]).toString("base64url");
+}
+
+function decryptPayload(value: string): SignedSocialPreviewPayload | null {
+  try {
+    const encrypted = Buffer.from(value, "base64url");
+    if (encrypted.length <= ENCRYPTION_DIGEST_BYTES + ENCRYPTION_TAG_BYTES) return null;
+    const digest = encrypted.subarray(0, ENCRYPTION_DIGEST_BYTES);
+    const tag = encrypted.subarray(
+      ENCRYPTION_DIGEST_BYTES,
+      ENCRYPTION_DIGEST_BYTES + ENCRYPTION_TAG_BYTES
+    );
+    const ciphertext = encrypted.subarray(ENCRYPTION_DIGEST_BYTES + ENCRYPTION_TAG_BYTES);
+    const masterKey = encryptionKey();
+    const key = createHmac("sha256", masterKey).update("key\0").update(digest).digest();
+    const iv = createHmac("sha256", masterKey)
+      .update("iv\0")
+      .update(digest)
+      .digest()
+      .subarray(0, ENCRYPTION_IV_BYTES);
+    const decipher = createDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAAD(Buffer.concat([Buffer.from(SIGNING_PURPOSE, "utf8"), digest]));
+    decipher.setAuthTag(tag);
+    const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    const expectedDigest = createHmac("sha256", masterKey)
+      .update("payload\0")
+      .update(plaintext)
+      .digest();
+    if (!timingSafeEqual(digest, expectedDigest)) return null;
+    return JSON.parse(plaintext.toString("utf8")) as SignedSocialPreviewPayload;
+  } catch {
+    return null;
+  }
 }
 
 function socialPreviewOrigin(pageOrigin: string): string {
@@ -130,6 +210,16 @@ function payloadFor(
 ): SignedSocialPreviewPayload | null {
   const normalized = normalizeContext(context);
   if (!normalized) return null;
+  const currentBucket = Math.floor(
+    Math.floor(Date.now() / 1_000) / SIGNED_PREVIEW_TIME_BUCKET_SECONDS
+  );
+  const expiresAt =
+    (currentBucket + SIGNED_PREVIEW_TTL_SECONDS / SIGNED_PREVIEW_TIME_BUCKET_SECONDS + 1) *
+    SIGNED_PREVIEW_TIME_BUCKET_SECONDS;
+  const rawVersionSeed = String(versionSeed || "").slice(0, 4_096);
+  const versionDigest = rawVersionSeed
+    ? createHash("sha256").update(rawVersionSeed).digest("base64url").slice(0, 22)
+    : "";
 
   return {
     v: SIGNED_SOCIAL_PREVIEW_VERSION,
@@ -143,12 +233,18 @@ function payloadFor(
     ...(normalized.sourceImageUrl ? { i: normalized.sourceImageUrl } : {}),
     ...(normalized.logoUrl ? { o: normalized.logoUrl } : {}),
     ...(normalized.accentColor ? { a: normalized.accentColor } : {}),
-    ...(cleanText(versionSeed, 160) ? { r: cleanText(versionSeed, 160) } : {}),
+    ...(versionDigest ? { r: versionDigest } : {}),
+    x: expiresAt,
   };
 }
 
 function contextFromPayload(payload: SignedSocialPreviewPayload): SocialPreviewCardContext | null {
-  if (payload?.v !== SIGNED_SOCIAL_PREVIEW_VERSION || !SOCIAL_PREVIEW_KINDS.has(payload.k)) {
+  if (
+    payload?.v !== SIGNED_SOCIAL_PREVIEW_VERSION ||
+    !SOCIAL_PREVIEW_KINDS.has(payload.k) ||
+    !Number.isSafeInteger(payload.x) ||
+    payload.x <= Math.floor(Date.now() / 1_000)
+  ) {
     return null;
   }
   return normalizeContext({
@@ -172,7 +268,7 @@ export function buildSignedSocialPreviewImageUrl(args: {
 }): string | null {
   const payload = payloadFor(args.context, args.versionSeed);
   if (!payload) return null;
-  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const encodedPayload = encryptPayload(payload);
   const token = `${encodedPayload}.${signatureFor(encodedPayload)}`;
   if (token.length > MAX_TOKEN_LENGTH) return null;
   return new URL(
@@ -184,6 +280,7 @@ export function buildSignedSocialPreviewImageUrl(args: {
 export function resolveSignedSocialPreviewToken(tokenValue: unknown): {
   context: SocialPreviewCardContext;
   cacheKey: string;
+  expiresAt: number;
 } | null {
   const token = String(tokenValue || "").trim();
   if (!token || token.length > MAX_TOKEN_LENGTH) return null;
@@ -197,13 +294,14 @@ export function resolveSignedSocialPreviewToken(tokenValue: unknown): {
   if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) return null;
 
   try {
-    const decoded = Buffer.from(encodedPayload, "base64url").toString("utf8");
-    const parsed = JSON.parse(decoded) as SignedSocialPreviewPayload;
+    const parsed = decryptPayload(encodedPayload);
+    if (!parsed) return null;
     const context = contextFromPayload(parsed);
     if (!context) return null;
     return {
       context,
       cacheKey: createHash("sha256").update(token).digest("hex"),
+      expiresAt: parsed.x,
     };
   } catch {
     return null;
@@ -227,6 +325,7 @@ export async function buildSignedSocialPreview(
       etag: `"${createHash("sha256").update(png).digest("hex")}"`,
       sourceImageRequested: rendered.sourceImageRequested,
       sourceImageLoaded: rendered.sourceImageLoaded,
+      expiresAt: resolved.expiresAt,
     };
   })()
     .then((preview) => {

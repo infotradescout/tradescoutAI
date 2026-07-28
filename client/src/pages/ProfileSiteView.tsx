@@ -42,7 +42,7 @@ import {
 } from "@/components/profile/PublicProfileItems";
 import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
 import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
-import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
+import { applyProfileSiteContentAdapter } from "@/data/profileSiteContentAdapters";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
   buildProfileGalleryShareSearch,
@@ -66,8 +66,6 @@ import {
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
   seedBlocksForTemplate,
-  applyInventoryLeadImageOverrides,
-  readInventoryLeadImageBySlug,
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
@@ -76,7 +74,7 @@ import {
   buildProfileSocialDescription,
   buildProfileSocialPreviewImageUrl,
   buildProfileSocialTitle,
-  resolveProfileSocialBrandName,
+  resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
@@ -714,34 +712,16 @@ export default function ProfileSiteView() {
     .map((value) => sanitizePublicDiscoveryText(value, 160))
     .filter(Boolean);
   const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
-  // JW Stone's reconciled catalog is versioned with the profile experience so
-  // the public page cannot silently fall back to an older database seed. Drive
-  // folder placement is evidence, not an assertion: uncertain materials stay
-  // in "Material to Confirm" and finishes only appear when the source says so.
+  const adaptedContentBlocks = applyProfileSiteContentAdapter({
+    profileSlug: profile.slug,
+    contentBlocks: storedContentBlocks,
+  });
   const contentBlocks = isIssaBuildProfileSlug(profile.slug)
     ? [...ISSA_BUILD_PROFILE_CONTENT_BLOCKS]
-    : profile.slug === "jw-stone"
-      ? [
-          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
-          {
-            type: "inventoryCatalog",
-            data: {
-              categories: JW_STONE_INVENTORY_CATEGORIES.map((category) => ({
-                ...category,
-                stones: applyInventoryLeadImageOverrides(
-                  category.stones,
-                  readInventoryLeadImageBySlug(storedContentBlocks)
-                ),
-              })),
-              featuredStoneSlugs: readFeaturedStoneSlugs(storedContentBlocks),
-              leadImageBySlug: readInventoryLeadImageBySlug(storedContentBlocks),
-            },
-          },
-        ]
-      : profile.slug === "jrs-auto-glass" &&
-          !storedContentBlocks.some((block: any) => block?.type === "gallery")
-        ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
-        : storedContentBlocks;
+    : profile.slug === "jrs-auto-glass" &&
+        !adaptedContentBlocks.some((block: any) => block?.type === "gallery")
+      ? [...adaptedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
+      : adaptedContentBlocks;
   const profileCustomDomain =
     typeof profile.seoMeta?.customDomain === "string"
       ? profile.seoMeta.customDomain.trim().toLowerCase()
@@ -828,10 +808,27 @@ export default function ProfileSiteView() {
     1000
   );
   const itemSocialName = inventoryItemShareMeta?.itemName || galleryItemShareMeta?.itemTitle || "";
-  const publicSocialBrandName = resolveProfileSocialBrandName(profile.slug, displayName);
+  const profileSocialPresentation = resolveProfileSocialPresentation({
+    brandName: displayName,
+    fallbackBrandName: profile.displayName,
+    logoUrl: profile.seoMeta?.faviconUrl,
+    profileImageUrl: profile.seoMeta?.imageUrl,
+    accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
+    configuredCtaLabel: profile.ctaConfig?.primary?.label,
+    contentBlocks,
+  });
+  const itemSocialPresentation = resolveProfileSocialPresentation({
+    brandName: displayName,
+    fallbackBrandName: profile.displayName,
+    logoUrl: profile.seoMeta?.faviconUrl,
+    accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
+    configuredCtaLabel: profile.ctaConfig?.primary?.label,
+    itemType: itemShareMeta?.itemType || null,
+    contentBlocks,
+  });
+  const publicSocialBrandName = itemSocialPresentation.brandName;
   const socialTitle = buildProfileSocialTitle({
-    profileSlug: profile.slug,
-    fallbackBrandName: displayName,
+    brandName: publicSocialBrandName,
     itemType: itemShareMeta?.itemType || null,
     itemName: itemSocialName,
     category: inventoryItemShareMeta?.category,
@@ -844,8 +841,7 @@ export default function ProfileSiteView() {
   const seoDescription = sanitizePublicDiscoveryText(
     itemShareMeta
       ? buildProfileSocialDescription({
-          profileSlug: profile.slug,
-          fallbackBrandName: displayName,
+          brandName: publicSocialBrandName,
           itemType: itemShareMeta.itemType,
           itemName: itemSocialName,
           category: inventoryItemShareMeta?.category,
@@ -854,27 +850,54 @@ export default function ProfileSiteView() {
       : fallbackSeoDescription,
     1000
   );
-  const sourceSeoImage =
-    itemShareMeta?.imageUrl ||
-    (typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
+  const legacyProfileSeoImage =
+    typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
       ? profile.seoMeta.imageUrl
-      : undefined);
+      : undefined;
+  const sourceSeoImage = itemShareMeta
+    ? itemShareMeta.imageUrl
+    : profileSocialPresentation.profileImageUrl || legacyProfileSeoImage;
   const socialPreviewPageOrigin =
     typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin();
   const profileSocialPreviewImageUrl =
     buildProfileSocialPreviewImageUrl({
       pageOrigin: socialPreviewPageOrigin,
       profileSlug: profile.slug,
-      versionSeed: [publicSocialBrandName, profileSeoTitle, profileSeoDescription].join("|"),
+      versionSeed: [
+        profileSocialPresentation.brandName,
+        profileSocialPresentation.logoUrl || "",
+        profileSocialPresentation.profileImageUrl || "",
+        profileSocialPresentation.accentColor,
+        profileSocialPresentation.ctaLabel,
+        profileSeoTitle,
+        profileSeoDescription,
+      ].join("|"),
     }) || sourceSeoImage;
-  const gallerySocialPreviewImageUrl = (item: { slug: string; title: string; imageUrl: string }) =>
-    buildProfileSocialPreviewImageUrl({
+  const gallerySocialPreviewImageUrl = (item: { slug: string; title: string; imageUrl: string }) => {
+    const galleryPresentation = resolveProfileSocialPresentation({
+      brandName: displayName,
+      fallbackBrandName: profile.displayName,
+      logoUrl: profile.seoMeta?.faviconUrl,
+      accentColor: business?.brandColors?.accent || business?.brandColors?.primary,
+      configuredCtaLabel: profile.ctaConfig?.primary?.label,
+      itemType: "gallery",
+      contentBlocks,
+    });
+    return buildProfileSocialPreviewImageUrl({
       pageOrigin: socialPreviewPageOrigin,
       profileSlug: profile.slug,
       itemType: "gallery",
       itemSlug: item.slug,
-      versionSeed: [publicSocialBrandName, item.title, item.imageUrl].join("|"),
+      versionSeed: [
+        galleryPresentation.brandName,
+        galleryPresentation.logoUrl || "",
+        galleryPresentation.accentColor,
+        galleryPresentation.ctaLabel,
+        item.title,
+        item.imageUrl,
+      ].join("|"),
     }) || item.imageUrl;
+  };
   const seoImage =
     buildProfileSocialPreviewImageUrl({
       pageOrigin: socialPreviewPageOrigin,
@@ -887,6 +910,9 @@ export default function ProfileSiteView() {
         socialTitle || seoTitle,
         seoDescription,
         sourceSeoImage || "",
+        itemSocialPresentation.logoUrl || "",
+        itemSocialPresentation.accentColor,
+        itemSocialPresentation.ctaLabel,
       ].join("|"),
     }) || sourceSeoImage;
   const seoCanonical = itemShareMeta?.canonical || profileCanonicalBase;

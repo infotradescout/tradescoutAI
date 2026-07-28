@@ -97,6 +97,29 @@ describe("public HTML social-preview upgrade", () => {
       expectedCta: "Explore the local exchange",
     },
     {
+      canonical: "https://www.thetradescout.com/exchange?item=listing-1",
+      title: "Table saw — $250 | TradeScout Exchange | TradeScout",
+      expectedKind: "listing",
+      expectedBrand: "TradeScout Exchange",
+      expectedCta: "View listing · Connect safely",
+    },
+    {
+      canonical:
+        "https://www.thetradescout.com/exchange?tab=promotions&promo=summer-roof-special",
+      title: "Exchange Promotion | TradeScout",
+      expectedKind: "offer",
+      expectedBrand: "TradeScout Exchange",
+      expectedCta: "View promotion · Connect safely",
+    },
+    {
+      canonical:
+        "https://www.thetradescout.com/exchange?tab=sales&companyPromo=warehouse-clearance",
+      title: "Exchange Sale | TradeScout",
+      expectedKind: "offer",
+      expectedBrand: "TradeScout Exchange",
+      expectedCta: "View sale · Connect safely",
+    },
+    {
       canonical: "https://www.thetradescout.com/handmade/products/product-1",
       title: "Oak serving board | Handmade | TradeScout",
       expectedKind: "product",
@@ -106,6 +129,13 @@ describe("public HTML social-preview upgrade", () => {
     {
       canonical: "https://www.thetradescout.com/handmade",
       title: "Local handmade goods | TradeScout",
+      expectedKind: "directory",
+      expectedBrand: "TradeScout Handmade",
+      expectedCta: "Explore local handmade",
+    },
+    {
+      canonical: "https://www.thetradescout.com/handmade-marketplace",
+      title: "Handmade Marketplace | Local Artisan Products",
       expectedKind: "directory",
       expectedBrand: "TradeScout Handmade",
       expectedCta: "Explore local handmade",
@@ -205,6 +235,62 @@ describe("public HTML social-preview upgrade", () => {
       expect(upgraded).toContain(`<img src="${sourceImage}"`);
       expect(upgraded).toContain(`{"image":"${sourceImage}"}`);
       expect(upgraded).not.toContain(`property="og:image" content="${sourceImage}"`);
+    }
+  );
+
+  it.each([
+    {
+      canonical: "https://www.thetradescout.com/exchange?item=listing-1",
+      title: "Table saw — $250 | TradeScout Exchange | TradeScout",
+      description: "A table saw listed for sale on TradeScout Exchange.",
+      expectedKind: "listing",
+      expectedCta: "View listing · Connect safely",
+    },
+    {
+      canonical:
+        "https://www.thetradescout.com/exchange?tab=promotions&promo=summer-roof-special",
+      title: "Exchange Promotion | TradeScout",
+      description: "Check out this exclusive promotion on TradeScout Exchange.",
+      expectedKind: "offer",
+      expectedCta: "View promotion · Connect safely",
+    },
+    {
+      canonical:
+        "https://www.thetradescout.com/exchange?tab=sales&companyPromo=warehouse-clearance",
+      title: "Exchange Sale | TradeScout",
+      description: "Check out this sale on TradeScout Exchange.",
+      expectedKind: "offer",
+      expectedCta: "View sale · Connect safely",
+    },
+    {
+      canonical: "https://www.thetradescout.com/handmade-marketplace",
+      title: "Handmade Marketplace | Local Artisan Products",
+      description: "Discover handmade products from local artisans in the TradeScout marketplace.",
+      expectedKind: "directory",
+      expectedCta: "Explore local handmade",
+    },
+  ])(
+    "classifies the production-shaped legacy URL $canonical",
+    ({ canonical, title, description, expectedKind, expectedCta }) => {
+      const encodedCanonical = canonical.replace(/&/g, "&amp;");
+      const genericImage =
+        "https://www.thetradescout.com/tradescout-social-preview.png?v=12";
+      const input = htmlFor({
+        canonical,
+        title,
+        description,
+        image: genericImage,
+      }).replaceAll(canonical, encodedCanonical);
+
+      const resolved = resolveSignedSocialPreviewToken(
+        signedTokenFromHtml(upgradePublicSocialPreviewHtml(input))
+      );
+
+      expect(resolved?.context).toMatchObject({
+        kind: expectedKind,
+        ctaLabel: expectedCta,
+        sourceImageUrl: null,
+      });
     }
   );
 

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   preparePublicSeoHtmlForResponse,
   preparePublicSeoHtmlForUserAgent,
+  publicSocialMetadataCacheControl,
   stripPublicSeoBootPlaceholders,
 } from "../publicSeoHtml";
 
@@ -17,7 +18,9 @@ describe("public SEO response HTML", () => {
   it("prepares every server-rendered SEO response through the shared boundary", () => {
     const serverSource = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
 
-    expect(serverSource).toContain("preparePublicSeoHtmlForUserAgent(body");
+    expect(serverSource).toContain("preparePublicSeoHtmlForUserAgent(");
+    expect(serverSource).toContain("existingCacheControl");
+    expect(serverSource).toContain('!\/\\b(?:no-store|private)\\b\/i.test(existingCacheControl)');
     expect(serverSource).toContain('String(req.headers["user-agent"] || "")');
   });
 
@@ -77,5 +80,18 @@ describe("public SEO response HTML", () => {
     const html = '<html><body><main id="content">Ordinary page</main></body></html>';
 
     expect(stripPublicSeoBootPlaceholders(html)).toBe(html);
+  });
+
+  it("aligns signed-card HTML caching with the short opaque-token lifetime", () => {
+    expect(
+      publicSocialMetadataCacheControl(
+        '<meta property="og:image" content="/images/social/card/opaque.png" />'
+      )
+    ).toBe("public, max-age=60, must-revalidate");
+    expect(
+      publicSocialMetadataCacheControl(
+        '<meta property="og:image" content="/images/social/profile/example.png" />'
+      )
+    ).toBeNull();
   });
 });

@@ -4,10 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   buildPublicProfileSocialPreview: vi.fn(),
+  buildWorkRequestSocialPreview: vi.fn(),
 }));
 
 vi.mock("../publicProfileSocialPreview", () => ({
   buildPublicProfileSocialPreview: mocks.buildPublicProfileSocialPreview,
+}));
+
+vi.mock("../workRequestShareHtml", () => ({
+  buildWorkRequestSocialPreview: mocks.buildWorkRequestSocialPreview,
 }));
 
 import { registerPublicProfileSocialPreviewRoutes } from "../routes/public-profile-social-preview";
@@ -26,6 +31,7 @@ describe("public profile social preview routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.SESSION_SECRET = "social-preview-route-test-secret";
+    mocks.buildWorkRequestSocialPreview.mockResolvedValue(null);
     mocks.buildPublicProfileSocialPreview.mockResolvedValue({
       png: PNG,
       etag: ETAG,
@@ -43,7 +49,7 @@ describe("public profile social preview routes", () => {
     });
   });
 
-  it("serves a valid signed cross-surface card with immutable caching", async () => {
+  it("serves a valid signed cross-surface card with bounded revalidation", async () => {
     const imageUrl = buildSignedSocialPreviewImageUrl({
       pageOrigin: "https://www.thetradescout.com",
       context: {
@@ -59,9 +65,36 @@ describe("public profile social preview routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers["content-type"]).toMatch(/^image\/png/);
-    expect(response.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+    expect(response.headers["cache-control"]).toBe("public, max-age=60, must-revalidate");
     expect(Buffer.from(response.body).readUInt32BE(16)).toBe(1200);
     expect(Buffer.from(response.body).readUInt32BE(20)).toBe(630);
+  });
+
+  it("resolves a shared request card by opaque token and keeps revocation bounded", async () => {
+    mocks.buildWorkRequestSocialPreview.mockResolvedValueOnce({
+      png: PNG,
+      etag: '"request-preview"',
+      sourceImageRequested: false,
+      sourceImageLoaded: false,
+    });
+    const shareToken = "a".repeat(32);
+
+    const response = await request(app()).get(`/images/social/request/${shareToken}.png`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(mocks.buildWorkRequestSocialPreview).toHaveBeenCalledWith({
+      shareToken,
+      origin: expect.stringMatching(/^http:\/\/127\.0\.0\.1:/),
+    });
+  });
+
+  it("does not query shared requests for malformed opaque tokens", async () => {
+    const response = await request(app()).get("/images/social/request/not-a-token.png");
+
+    expect(response.status).toBe(404);
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(mocks.buildWorkRequestSocialPreview).not.toHaveBeenCalled();
   });
 
   it("rejects a tampered signed cross-surface card", async () => {
@@ -84,7 +117,7 @@ describe("public profile social preview routes", () => {
     expect(response.headers.etag).toBe(ETAG);
     expect(response.headers["x-content-type-options"]).toBe("nosniff");
     expect(response.headers["cache-control"]).toBe(
-      "public, max-age=86400, stale-while-revalidate=604800"
+      "public, max-age=300, must-revalidate"
     );
     expect(Buffer.from(response.body)).toEqual(PNG);
     expect(mocks.buildPublicProfileSocialPreview).toHaveBeenCalledWith({
@@ -141,6 +174,18 @@ describe("public profile social preview routes", () => {
 
     expect(response.status).toBe(404);
     expect(response.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("rechecks profile visibility at origin and stops rendering after revocation", async () => {
+    const first = await request(app()).get("/images/social/profile/jw-stone.png");
+    mocks.buildPublicProfileSocialPreview.mockResolvedValueOnce(null);
+    const revoked = await request(app()).get("/images/social/profile/jw-stone.png");
+
+    expect(first.status).toBe(200);
+    expect(first.headers["cache-control"]).toBe("public, max-age=300, must-revalidate");
+    expect(revoked.status).toBe(404);
+    expect(revoked.headers["cache-control"]).toBe("no-store");
+    expect(mocks.buildPublicProfileSocialPreview).toHaveBeenCalledTimes(2);
   });
 
   it("falls back to the static platform image when rendering fails", async () => {

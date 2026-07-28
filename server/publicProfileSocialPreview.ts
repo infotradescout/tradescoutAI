@@ -2,10 +2,7 @@ import { createHash } from "node:crypto";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
   buildProfileSocialPreviewImageUrl,
-  profileSocialPreviewAccentColor,
-  profileSocialPreviewCta,
-  profileSocialPreviewLogoUrl,
-  resolveProfileSocialBrandName,
+  resolveProfileSocialPresentation,
   type ProfileSocialPreviewItemType,
 } from "@shared/profileSocialPreview";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
@@ -127,14 +124,13 @@ export async function resolvePublicProfileSocialPreview(
     ? await storage.getBusinessPublicById(profileRecord.businessId)
     : null;
   const canonicalBusinessName = cleanText(businessRecord?.name || profileRecord.displayName, 100);
-  const publicBrandName = resolveProfileSocialBrandName(profileSlug, canonicalBusinessName);
   const assetOrigin = "https://www.thetradescout.com";
   const profileUrl = profileRecord.seoMeta?.customDomain
     ? `https://${String(profileRecord.seoMeta.customDomain).trim().toLowerCase()}/`
     : `${assetOrigin}/u/${encodeURIComponent(profileSlug)}`;
 
   let sourceImageUrl: string | null = null;
-  let title = publicBrandName;
+  let title = canonicalBusinessName;
   let eyebrow = cleanText(
     businessRecord?.categories?.[0] || profileRecord.roleContext || "Public profile",
     50
@@ -158,7 +154,6 @@ export async function resolvePublicProfileSocialPreview(
     sourceImageUrl = item.imageUrl;
     title = cleanText(item.itemName, 100);
     eyebrow = cleanText(item.category || "Current inventory", 50);
-    supportingText = publicBrandName;
     resolvedItemSlug = item.itemSlug;
     resolvedItemType = "inventory";
     resolvedPhoto = item.shareImageIndex > 0 ? String(item.shareImageIndex + 1) : null;
@@ -174,32 +169,39 @@ export async function resolvePublicProfileSocialPreview(
     sourceImageUrl = item.imageUrl;
     title = cleanText(item.itemTitle, 100);
     eyebrow = "Recent work";
-    supportingText = publicBrandName;
     resolvedItemSlug = item.itemSlug;
     resolvedItemType = "gallery";
-  } else {
-    sourceImageUrl = absolutePublicAsset(profileRecord.seoMeta?.imageUrl, assetOrigin);
   }
 
-  const logoUrl = absolutePublicAsset(
-    profileSocialPreviewLogoUrl(profileSlug) || profileRecord.seoMeta?.faviconUrl,
-    assetOrigin
-  );
-  const accentColor = profileSocialPreviewAccentColor(
-    profileSlug,
-    businessRecord?.brandColors?.accent || businessRecord?.brandColors?.primary
-  );
+  const presentation = resolveProfileSocialPresentation({
+    brandName: canonicalBusinessName,
+    fallbackBrandName: profileRecord.displayName,
+    logoUrl: profileRecord.seoMeta?.faviconUrl,
+    profileImageUrl: profileRecord.seoMeta?.imageUrl,
+    accentColor: businessRecord?.brandColors?.accent || businessRecord?.brandColors?.primary,
+    configuredCtaLabel: profileRecord.ctaConfig?.primary?.label,
+    itemType: resolvedItemType,
+    contentBlocks: profileRecord.contentBlocks,
+  });
+  if (resolvedItemType) {
+    supportingText = presentation.brandName;
+  } else {
+    title = presentation.brandName;
+    sourceImageUrl =
+      absolutePublicAsset(presentation.profileImageUrl, assetOrigin) ||
+      absolutePublicAsset(profileRecord.seoMeta?.imageUrl, assetOrigin);
+  }
   const context: SocialPreviewCardContext = {
     kind: resolvedItemType || "profile",
     title,
-    brandName: publicBrandName,
+    brandName: presentation.brandName,
     eyebrow,
     supportingText,
     locationLabel: publicLocationLabel(businessRecord),
-    ctaLabel: profileSocialPreviewCta(profileSlug, resolvedItemType),
+    ctaLabel: presentation.ctaLabel,
     sourceImageUrl,
-    logoUrl,
-    accentColor,
+    logoUrl: absolutePublicAsset(presentation.logoUrl, assetOrigin),
+    accentColor: presentation.accentColor,
   };
   const fingerprint = createHash("sha256")
     .update(

@@ -40,6 +40,21 @@ describe("work request share redaction", () => {
     expect(previewTitle).not.toContain("225-555-1212");
   });
 
+  it("removes exact-address, URL, bare-domain, and social-handle vectors from public metadata", () => {
+    const unsafe =
+      "Kitchen at 123 Provider Lane. See https://provider.example/work, provider.example, or @provider_team.";
+    const summary = buildWorkRequestScopeSummary(unsafe);
+    const title = buildWorkRequestPreviewTitle(unsafe);
+
+    for (const publicText of [summary, title]) {
+      expect(publicText).not.toContain("123 Provider Lane");
+      expect(publicText).not.toContain("https://provider.example");
+      expect(publicText).not.toContain("provider.example");
+      expect(publicText).not.toContain("@provider_team");
+      expect(publicText).toContain("Continue through TradeScout");
+    }
+  });
+
   it("omits released contact from serialized card payloads before release", () => {
     for (const contactGateState of [
       undefined,

@@ -96,7 +96,10 @@ import { provisionIssaBuildProfile } from "./services/issaBuildProfileProvisioni
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
-import { preparePublicSeoHtmlForUserAgent } from "./publicSeoHtml";
+import {
+  preparePublicSeoHtmlForUserAgent,
+  publicSocialMetadataCacheControl,
+} from "./publicSeoHtml";
 import { isSameRequestHttpOrigin, normalizeHttpOrigin } from "./utils/requestCors";
 import { CANONICAL_WEB_HOST, resolvePublicOrigin } from "./utils/publicOrigin";
 import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
@@ -205,9 +208,24 @@ app.use((req, res, next) => {
       /<html[\s>]/i.test(body) &&
       /<meta\b[^>]*\bproperty\s*=\s*(["'])og:image\1/i.test(body)
     ) {
-      return originalSend(
-        preparePublicSeoHtmlForUserAgent(body, String(req.headers["user-agent"] || ""))
+      const prepared = preparePublicSeoHtmlForUserAgent(
+        body,
+        String(req.headers["user-agent"] || "")
       );
+      const socialMetadataCacheControl = publicSocialMetadataCacheControl(prepared);
+      const existingCacheControl = String(res.getHeader("Cache-Control") || "");
+      if (
+        socialMetadataCacheControl &&
+        req.method === "GET" &&
+        res.statusCode < 400 &&
+        !(req as any).user &&
+        !/\b(?:no-store|private)\b/i.test(existingCacheControl)
+      ) {
+        // Signed card URLs rotate in short, deterministic buckets so hidden or
+        // moderated content cannot remain advertised by long-lived stale HTML.
+        res.setHeader("Cache-Control", socialMetadataCacheControl);
+      }
+      return originalSend(prepared);
     }
     return originalSend(body);
   }) as typeof res.send;
@@ -2191,10 +2209,8 @@ app.use(landingContractHeaders);
                     return res.status(404).send("Shared request not found");
                   }
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=180, stale-while-revalidate=3600"
-                  );
+                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive");
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering shared work request HTML:", err);

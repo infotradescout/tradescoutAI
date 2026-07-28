@@ -284,6 +284,7 @@ describe("PremiumProductProfileSections lux behavior", () => {
         name: chapter.name,
         slug: chapter.slug,
         images: [chapter.applicationImage, chapter.detailImage],
+        shareImageOrder: undefined,
       })) || [];
     expect(chapterOnlyProducts.length).toBeGreaterThan(0);
 

@@ -116,7 +116,21 @@ function surfacePresentation(canonical: string): SurfacePresentation {
     };
   }
   if (isPathRootOrChild(pathname, "/exchange")) {
-    const isListing = segments.length >= 3;
+    const hasLegacyListing = Boolean(searchParams.get("item")?.trim());
+    const hasLegacyPromotion = Boolean(searchParams.get("promo")?.trim());
+    const hasLegacyCompanyPromotion = Boolean(searchParams.get("companyPromo")?.trim());
+    if (hasLegacyCompanyPromotion || hasLegacyPromotion) {
+      return {
+        kind: "offer",
+        brandName: "TradeScout Exchange",
+        eyebrow: hasLegacyCompanyPromotion ? "Exchange sale" : "Exchange promotion",
+        ctaLabel: hasLegacyCompanyPromotion
+          ? "View sale · Connect safely"
+          : "View promotion · Connect safely",
+        accentColor: "#f97316",
+      };
+    }
+    const isListing = segments.length >= 3 || hasLegacyListing;
     return {
       kind: isListing ? "listing" : "directory",
       brandName: "TradeScout Exchange",
@@ -125,8 +139,8 @@ function surfacePresentation(canonical: string): SurfacePresentation {
       accentColor: "#f97316",
     };
   }
-  if (isPathRootOrChild(pathname, "/handmade")) {
-    const isHandmadeRoot = pathname === "/handmade";
+  if (pathname === "/handmade-marketplace" || isPathRootOrChild(pathname, "/handmade")) {
+    const isHandmadeRoot = pathname === "/handmade" || pathname === "/handmade-marketplace";
     return {
       kind: isHandmadeRoot ? "directory" : "product",
       brandName: "TradeScout Handmade",

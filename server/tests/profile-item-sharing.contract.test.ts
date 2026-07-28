@@ -24,6 +24,10 @@ describe("profile item sharing contract", () => {
     expect(helmet).toContain("if (!preserveSearch) parsed.search");
     expect(profileView).toContain("preserveCanonicalQuery={Boolean(itemShareMeta)}");
     expect(profileView).toContain('galleryItemShareMeta ? "article" : "profile"');
+    expect(profileView).toContain("profileImageUrl: profile.seoMeta?.imageUrl");
+    expect(profileView).toContain(
+      ": profileSocialPresentation.profileImageUrl || legacyProfileSeoImage"
+    );
   });
 
   it("shares and reopens the exact selected inventory photo", () => {

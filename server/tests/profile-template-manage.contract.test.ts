@@ -18,6 +18,10 @@ const wholesaler = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
   "utf8"
 );
+const contentAdapters = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/data/profileSiteContentAdapters.ts"),
+  "utf8"
+);
 
 describe("profile template manage surface contracts", () => {
   it("returns viewerCanManage and siteTemplate on the public profile payload", () => {
@@ -60,7 +64,8 @@ describe("profile template manage surface contracts", () => {
     expect(manageChrome).toContain("upsertInventoryLeadImage");
     expect(templates).toContain("leadImageBySlug");
     expect(templates).toContain("applyInventoryLeadImageOverrides");
-    expect(profileView).toContain("applyInventoryLeadImageOverrides");
+    expect(contentAdapters).toContain("applyInventoryLeadImageOverrides");
+    expect(profileView).toContain("applyProfileSiteContentAdapter");
     expect(profileView).toContain("profile-site-manage-signin");
     expect(profilesRoute).toContain("isStaffProfileManager");
   });

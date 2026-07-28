@@ -5,6 +5,13 @@ const SEO_ROOT_SUMMARY_PATTERN = /<div id="root">\s*<main data-seo-[\s\S]*?<\/ma
 const BOOT_FALLBACK_PATTERN = /\s*<div id="ts-boot-fallback"[\s\S]*?<\/section>\s*<\/div>\s*/i;
 const NOSCRIPT_FALLBACK_PATTERN =
   /\s*<noscript>\s*<div id="ts-boot-fallback-noscript"[\s\S]*?<\/noscript>\s*/i;
+const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
+
+export function publicSocialMetadataCacheControl(html: string): string | null {
+  return SIGNED_SOCIAL_CARD_PATTERN.test(String(html || ""))
+    ? "public, max-age=60, must-revalidate"
+    : null;
+}
 
 export function stripPublicSeoBootPlaceholders(html: string): string {
   return html.replace(BOOT_FALLBACK_PATTERN, "").replace(NOSCRIPT_FALLBACK_PATTERN, "");

@@ -1,24 +1,35 @@
+import { sanitizePublicDiscoveryText } from "./publicListingSafety";
+
 const CANONICAL_SOCIAL_PREVIEW_ORIGIN = "https://www.thetradescout.com";
-const PROFILE_SOCIAL_PREVIEW_TEMPLATE_VERSION = "3";
+const PROFILE_SOCIAL_PREVIEW_TEMPLATE_VERSION = "4";
 const PROFILE_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ITEM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const DIRECT_CONTACT_CTA_PATTERN =
+  /\b(?:call|phone|email|e-mail|text|sms|whats\s*app|visit (?:our )?website)\b/i;
 
 export type ProfileSocialPreviewItemType = "inventory" | "gallery";
 
-type ProfileSocialPresentation = {
-  publicBrandName?: string;
-  logoUrl?: string;
-  accentColor?: string;
-  inventoryCta?: string;
+export type ResolvedProfileSocialPresentation = {
+  brandName: string;
+  logoUrl: string | null;
+  profileImageUrl: string | null;
+  accentColor: string;
+  ctaLabel: string;
 };
 
-const PROFILE_SOCIAL_PRESENTATIONS: Record<string, ProfileSocialPresentation> = {
-  "jw-stone": {
-    publicBrandName: "JW Stone Logistics",
-    logoUrl: "/images/businesses/jw-stone/logo.svg",
-    accentColor: "#81904a",
-    inventoryCta: "View photos · Request pricing",
-  },
+export type ProfileSocialPresentationConfig = {
+  brandName?: unknown;
+  logoUrl?: unknown;
+  profileImageUrl?: unknown;
+  accentColor?: unknown;
+  profileCta?: unknown;
+  inventoryCta?: unknown;
+  galleryCta?: unknown;
+};
+
+type ProfilePresentationBlock = {
+  type?: unknown;
+  data?: unknown;
 };
 
 function cleanText(value: unknown, maxLength: number): string {
@@ -27,6 +38,10 @@ function cleanText(value: unknown, maxLength: number): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, maxLength);
+}
+
+function cleanPublicText(value: unknown, maxLength: number): string {
+  return cleanText(sanitizePublicDiscoveryText(value, maxLength), maxLength);
 }
 
 function normalizeSlug(value: unknown, pattern: RegExp, maxLength: number): string | null {
@@ -44,7 +59,7 @@ function stableToken(value: string): string {
 }
 
 function normalizedCategory(value: unknown): string {
-  const category = cleanText(value, 80);
+  const category = cleanPublicText(value, 80);
   return /^(?:unconfirmed|material to confirm|trending(?: at .*)?)$/i.test(category)
     ? ""
     : category;
@@ -61,56 +76,108 @@ function socialPreviewOrigin(pageOrigin: string): string {
   return CANONICAL_SOCIAL_PREVIEW_ORIGIN;
 }
 
-export function resolveProfileSocialBrandName(profileSlug: unknown, fallbackName: unknown): string {
-  const slug = normalizeSlug(profileSlug, PROFILE_SLUG_PATTERN, 120) || "";
-  return (
-    cleanText(PROFILE_SOCIAL_PRESENTATIONS[slug]?.publicBrandName, 100) ||
-    cleanText(fallbackName, 100) ||
-    "TradeScout profile"
-  );
-}
+function normalizeSocialAssetUrl(value: unknown): string | null {
+  const candidate = String(value || "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim()
+    .slice(0, 2048);
+  if (!candidate || /[\r\n\\\0]/.test(candidate)) return null;
+  if (candidate.startsWith("/") && !candidate.startsWith("//")) return candidate;
 
-export function profileSocialPreviewLogoUrl(profileSlug: unknown): string | null {
-  const slug = normalizeSlug(profileSlug, PROFILE_SLUG_PATTERN, 120) || "";
-  return cleanText(PROFILE_SOCIAL_PRESENTATIONS[slug]?.logoUrl, 500) || null;
-}
-
-export function profileSocialPreviewAccentColor(
-  profileSlug: unknown,
-  fallbackColor?: unknown
-): string {
-  const slug = normalizeSlug(profileSlug, PROFILE_SLUG_PATTERN, 120) || "";
-  const preferred = cleanText(PROFILE_SOCIAL_PRESENTATIONS[slug]?.accentColor, 16);
-  const fallback = cleanText(fallbackColor, 16);
-  if (/^#[0-9a-f]{6}$/i.test(preferred)) return preferred;
-  if (/^#[0-9a-f]{6}$/i.test(fallback)) return fallback;
-  return "#f97316";
-}
-
-export function profileSocialPreviewCta(
-  profileSlug: unknown,
-  itemType?: ProfileSocialPreviewItemType | null
-): string {
-  const slug = normalizeSlug(profileSlug, PROFILE_SLUG_PATTERN, 120) || "";
-  if (itemType === "inventory") {
-    return (
-      cleanText(PROFILE_SOCIAL_PRESENTATIONS[slug]?.inventoryCta, 48) ||
-      "View item · Request details"
-    );
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
+  } catch {
+    return null;
   }
+}
+
+function fallbackCta(itemType?: ProfileSocialPreviewItemType | null): string {
+  if (itemType === "inventory") return "View item · Direct Connect";
   if (itemType === "gallery") return "View work · Direct Connect";
   return "View profile · Direct Connect";
 }
 
+function configuredCtaLabel(value: unknown): string {
+  const raw = cleanText(value, 80);
+  if (!raw) return "";
+  const sanitized = cleanPublicText(raw, 80);
+  if (
+    !sanitized ||
+    sanitized !== raw ||
+    sanitized.includes("Continue through TradeScout") ||
+    DIRECT_CONTACT_CTA_PATTERN.test(sanitized)
+  ) {
+    return "";
+  }
+  return sanitized.slice(0, 48);
+}
+
+export function readProfileSocialPresentationConfig(
+  contentBlocks: unknown
+): ProfileSocialPresentationConfig {
+  if (!Array.isArray(contentBlocks)) return {};
+  const presentationBlock = (contentBlocks as ProfilePresentationBlock[]).find(
+    (block) => cleanText(block?.type, 64) === "profilePresentation"
+  );
+  if (
+    !presentationBlock?.data ||
+    typeof presentationBlock.data !== "object" ||
+    Array.isArray(presentationBlock.data)
+  ) {
+    return {};
+  }
+  const social = (presentationBlock.data as Record<string, unknown>).social;
+  return social && typeof social === "object" && !Array.isArray(social)
+    ? (social as ProfileSocialPresentationConfig)
+    : {};
+}
+
+export function resolveProfileSocialPresentation(args: {
+  brandName: unknown;
+  fallbackBrandName?: unknown;
+  logoUrl?: unknown;
+  profileImageUrl?: unknown;
+  accentColor?: unknown;
+  configuredCtaLabel?: unknown;
+  itemType?: ProfileSocialPreviewItemType | null;
+  contentBlocks?: unknown;
+}): ResolvedProfileSocialPresentation {
+  const owned = readProfileSocialPresentationConfig(args.contentBlocks);
+  const accentColor = cleanText(owned.accentColor || args.accentColor, 16);
+  const ownedCta =
+    args.itemType === "inventory"
+      ? owned.inventoryCta || owned.profileCta
+      : args.itemType === "gallery"
+        ? owned.galleryCta || owned.profileCta
+        : owned.profileCta;
+  return {
+    brandName:
+      cleanPublicText(owned.brandName, 100) ||
+      cleanPublicText(args.brandName, 100) ||
+      cleanPublicText(args.fallbackBrandName, 100) ||
+      "TradeScout profile",
+    logoUrl:
+      normalizeSocialAssetUrl(owned.logoUrl) || normalizeSocialAssetUrl(args.logoUrl),
+    profileImageUrl:
+      normalizeSocialAssetUrl(owned.profileImageUrl) ||
+      normalizeSocialAssetUrl(args.profileImageUrl),
+    accentColor: /^#[0-9a-f]{6}$/i.test(accentColor) ? accentColor : "#f97316",
+    ctaLabel:
+      configuredCtaLabel(ownedCta) ||
+      configuredCtaLabel(args.configuredCtaLabel) ||
+      fallbackCta(args.itemType),
+  };
+}
+
 export function buildProfileSocialTitle(args: {
-  profileSlug: unknown;
-  fallbackBrandName: unknown;
+  brandName: unknown;
   itemType?: ProfileSocialPreviewItemType | null;
   itemName?: unknown;
   category?: unknown;
 }): string {
-  const brandName = resolveProfileSocialBrandName(args.profileSlug, args.fallbackBrandName);
-  const itemName = cleanText(args.itemName, 100);
+  const brandName = cleanPublicText(args.brandName, 100) || "TradeScout profile";
+  const itemName = cleanPublicText(args.itemName, 100);
   if (!itemName) return brandName;
 
   const category = args.itemType === "inventory" ? normalizedCategory(args.category) : "";
@@ -119,15 +186,14 @@ export function buildProfileSocialTitle(args: {
 }
 
 export function buildProfileSocialDescription(args: {
-  profileSlug: unknown;
-  fallbackBrandName: unknown;
+  brandName: unknown;
   itemType?: ProfileSocialPreviewItemType | null;
   itemName?: unknown;
   category?: unknown;
   fallbackDescription?: unknown;
 }): string {
-  const brandName = resolveProfileSocialBrandName(args.profileSlug, args.fallbackBrandName);
-  const itemName = cleanText(args.itemName, 100);
+  const brandName = cleanPublicText(args.brandName, 100) || "TradeScout profile";
+  const itemName = cleanPublicText(args.itemName, 100);
   const category = args.itemType === "inventory" ? normalizedCategory(args.category) : "";
 
   if (itemName && args.itemType === "inventory") {
@@ -143,7 +209,7 @@ export function buildProfileSocialDescription(args: {
       160
     );
   }
-  return cleanText(args.fallbackDescription, 160);
+  return cleanPublicText(args.fallbackDescription, 160);
 }
 
 export function buildProfileSocialPreviewImageUrl(args: {

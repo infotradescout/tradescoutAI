@@ -20,7 +20,7 @@ import {
   buildProfileSocialDescription,
   buildProfileSocialPreviewImageUrl,
   buildProfileSocialTitle,
-  resolveProfileSocialBrandName,
+  resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
 
 // Google typically truncates meta description snippets around ~155-160
@@ -82,6 +82,11 @@ type PublicProfileData = {
       faviconUrl?: string;
       customDomain?: string;
     };
+    ctaConfig?: {
+      primary?: {
+        label?: string;
+      };
+    };
     profileBooking?: {
       enabled?: boolean;
       paidBookings?: boolean;
@@ -101,6 +106,10 @@ type PublicProfileData = {
     city?: string;
     stateCode?: string;
     zipCode?: string;
+    brandColors?: {
+      primary?: string;
+      accent?: string;
+    };
   } | null;
 };
 
@@ -641,10 +650,20 @@ function buildMeta(
       : itemShare?.itemType === "gallery"
         ? cleanPublicProfileText(itemShare.itemTitle, 200)
         : "";
-  const publicBrandName = resolveProfileSocialBrandName(profile.profile.slug, displayName);
+  const presentation = resolveProfileSocialPresentation({
+    brandName: displayName,
+    fallbackBrandName: profile.profile.displayName,
+    logoUrl: profile.profile.seoMeta?.faviconUrl,
+    profileImageUrl: profile.profile.seoMeta?.imageUrl,
+    accentColor:
+      profile.business?.brandColors?.accent || profile.business?.brandColors?.primary,
+    configuredCtaLabel: profile.profile.ctaConfig?.primary?.label,
+    itemType: itemShare?.itemType || null,
+    contentBlocks: profile.profile.contentBlocks,
+  });
+  const publicBrandName = presentation.brandName;
   const socialTitle = buildProfileSocialTitle({
-    profileSlug: profile.profile.slug,
-    fallbackBrandName: displayName,
+    brandName: publicBrandName,
     itemType: itemShare?.itemType || null,
     itemName,
     category: itemShare?.itemType === "inventory" ? itemShare.category : null,
@@ -662,8 +681,7 @@ function buildMeta(
     cleanPublicProfileText(
       itemShare
         ? buildProfileSocialDescription({
-            profileSlug: profile.profile.slug,
-            fallbackBrandName: displayName,
+            brandName: publicBrandName,
             itemType: itemShare.itemType,
             itemName,
             category: itemShare.itemType === "inventory" ? itemShare.category : null,
@@ -673,9 +691,12 @@ function buildMeta(
       1000
     )
   );
-  const profileImageUrl = profile.profile.seoMeta?.imageUrl || null;
-  const sourceImageUrl =
-    itemShare?.imageUrl || profileImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
+  const legacyProfileImageUrl = profile.profile.seoMeta?.imageUrl || null;
+  const sourceImageUrl = itemShare
+    ? itemShare.imageUrl
+    : presentation.profileImageUrl ||
+      legacyProfileImageUrl ||
+      `${origin}/tradescout-social-preview.png?v=12`;
   const itemPhoto = itemShare
     ? (() => {
         try {
@@ -697,10 +718,13 @@ function buildMeta(
         socialTitle,
         description,
         sourceImageUrl,
-        profile.profile.seoMeta?.imageUrl || "",
+        presentation.logoUrl || "",
+        itemShare ? "" : presentation.profileImageUrl || "",
+        presentation.accentColor,
+        presentation.ctaLabel,
       ].join("|"),
     }) || sourceImageUrl;
-  const faviconUrl = profile.profile.seoMeta?.faviconUrl || profileImageUrl;
+  const faviconUrl = profile.profile.seoMeta?.faviconUrl || legacyProfileImageUrl;
   const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
   const keywords = [
     itemName,
@@ -763,6 +787,7 @@ export async function buildPublicProfileHtml({
       roleContext: profileRecord.roleContext,
       servicesDescription: profileRecord.servicesDescription || undefined,
       seoMeta: profileRecord.seoMeta || undefined,
+      ctaConfig: profileRecord.ctaConfig || undefined,
       profileBooking: profileRecord.profileBooking || undefined,
       contentBlocks: Array.isArray(profileRecord.contentBlocks)
         ? profileRecord.contentBlocks
@@ -779,6 +804,7 @@ export async function buildPublicProfileHtml({
           city: businessRecord.city,
           stateCode: businessRecord.stateCode,
           zipCode: businessRecord.zipCode,
+          brandColors: businessRecord.brandColors,
         }
       : null,
   };
