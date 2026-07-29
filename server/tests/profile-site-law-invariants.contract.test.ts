@@ -9,6 +9,7 @@ const themeFiles = [
   "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
   "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
   "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
+  "client/src/pages/profile-sites/DefaultProfileTheme.tsx",
 ] as const;
 
 const profileView = fs.readFileSync(
@@ -29,7 +30,7 @@ describe("profile site law invariants", () => {
     const source = fs.readFileSync(path.resolve(process.cwd(), relPath), "utf8");
     expect(source).toContain("trustActions");
     expect(source).toContain('data-testid="profile-trust-section"');
-    expect(source).toContain("TradeScoutProfileHandoff");
+    expect(source).toMatch(/TradeScoutProfileHandoff|tradeScoutHandoff/);
     expect(source).toMatch(/Direct Connect|startDirectConnect|onDirectConnect/);
     expect(source).not.toMatch(/href=["']tel:/);
     expect(source).not.toMatch(/href=["']mailto:/);

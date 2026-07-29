@@ -3,6 +3,7 @@ import { db } from "../db";
 import { and, desc, eq, like, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
+import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
 
 export type PublicProfileRecord = {
   id: string;
@@ -115,6 +116,10 @@ export class ProfileRepository {
     const { legacyProfileBooking, ...publicProfile } = row;
     return {
       ...publicProfile,
+      profileSections:
+        readProfileSectionConfigBlock(publicProfile.contentBlocks) ??
+        publicProfile.profileSections ??
+        null,
       profileBooking:
         readProfileBookingConfigBlock(publicProfile.contentBlocks) ?? legacyProfileBooking ?? null,
     };

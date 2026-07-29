@@ -5,6 +5,7 @@ import {
   PRECISION_AERIAL_PROFILE_SLUG,
   PRECISION_AERIAL_PUBLIC_SOURCES,
   PRECISION_AERIAL_STEWARD_PROVIDER,
+  PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
@@ -14,7 +15,7 @@ export const PRECISION_AERIAL_PROFILE_PROVISIONING_SOURCE = ADMIN_MANAGED_PROFIL
 
 const PRECISION_AERIAL_STEWARD_EMAIL = `${PRECISION_AERIAL_PROFILE_SLUG}@profile-steward.invalid`;
 
-const DISABLED_PROFILE_SECTIONS = {
+const V1_PROFILE_SECTIONS = {
   about: false,
   rolesAndBadges: false,
   stats: false,
@@ -24,6 +25,140 @@ const DISABLED_PROFILE_SECTIONS = {
   communityActivity: false,
   contactCard: false,
 } as const;
+
+const DEFAULT_PROFILE_SECTIONS = {
+  about: true,
+  rolesAndBadges: false,
+  stats: false,
+  services: true,
+  marketplaceListings: false,
+  reviews: false,
+  communityActivity: false,
+  contactCard: true,
+} as const;
+
+const DEFAULT_BRAND_COLORS = {
+  primary: "#52c8f5",
+  primaryDark: "#087aa8",
+  accent: "#9de6ff",
+  secondary: "#aeb9c5",
+  background: "#05070a",
+  surface: "#101820",
+} as const;
+
+const PRECISION_AERIAL_PROFILE_HEADLINE = "Drone photo and video in Pensacola.";
+const PRECISION_AERIAL_PROFILE_CTA = {
+  primary: {
+    label: "Direct Connect",
+    kind: "message" as const,
+    value: "/direct-connect",
+  },
+} as const;
+const PRECISION_AERIAL_V1_PROFILE_SEO = {
+  title: "Precision Aerial Services | Pensacola Drone Photo and Video",
+  description:
+    "See aerial photo and video work from Precision Aerial Services in Pensacola and send a request through TradeScout Direct Connect.",
+} as const;
+const PRECISION_AERIAL_PROFILE_SEO = {
+  ...PRECISION_AERIAL_V1_PROFILE_SEO,
+  imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
+  imageWidth: 1440,
+  imageHeight: 1080,
+  faviconUrl: "/images/profiles/precision-aerial/logo.jpg",
+} as const;
+
+type ExistingProfileSeed = {
+  displayName?: unknown;
+  roleContext?: unknown;
+  headline?: unknown;
+  contentBlocks?: unknown;
+  ctaConfig?: unknown;
+  seoMeta?: unknown;
+};
+
+function asRecord(value: unknown): Record<string, any> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, any>)
+    : {};
+}
+
+function canonicalJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (!value || typeof value !== "object") return value;
+  return Object.keys(value as Record<string, unknown>)
+    .sort()
+    .reduce<Record<string, unknown>>((result, key) => {
+      result[key] = canonicalJson((value as Record<string, unknown>)[key]);
+      return result;
+    }, {});
+}
+
+function exactJsonMatch(left: unknown, right: unknown): boolean {
+  return JSON.stringify(canonicalJson(left)) === JSON.stringify(canonicalJson(right));
+}
+
+/**
+ * Matches only the exact profile and section state written by the v1
+ * provisioner. Any public or editor-owned change makes this false so startup
+ * cannot reinterpret customized data as a system seed.
+ */
+export function isPrecisionAerialV1SystemSeed(
+  profile: ExistingProfileSeed | null | undefined,
+  stewardPreferences: unknown
+): boolean {
+  if (!profile) return false;
+  const preferences = asRecord(stewardPreferences);
+  return (
+    profile.displayName === PRECISION_AERIAL_BUSINESS_NAME &&
+    profile.roleContext === "content_creator" &&
+    profile.headline === PRECISION_AERIAL_PROFILE_HEADLINE &&
+    exactJsonMatch(profile.contentBlocks, PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS) &&
+    exactJsonMatch(profile.ctaConfig, PRECISION_AERIAL_PROFILE_CTA) &&
+    exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_V1_PROFILE_SEO) &&
+    exactJsonMatch(preferences.profileSections, V1_PROFILE_SECTIONS)
+  );
+}
+
+export function resolvePrecisionAerialProfileSeedFields(
+  existingProfile: ExistingProfileSeed | null | undefined,
+  stewardPreferences: unknown
+): ExistingProfileSeed {
+  if (!existingProfile || isPrecisionAerialV1SystemSeed(existingProfile, stewardPreferences)) {
+    return {
+      displayName: PRECISION_AERIAL_BUSINESS_NAME,
+      roleContext: "content_creator",
+      headline: PRECISION_AERIAL_PROFILE_HEADLINE,
+      contentBlocks: PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS,
+      ctaConfig: PRECISION_AERIAL_PROFILE_CTA,
+      seoMeta: PRECISION_AERIAL_PROFILE_SEO,
+    };
+  }
+
+  return {
+    displayName: existingProfile.displayName,
+    roleContext: existingProfile.roleContext,
+    headline: existingProfile.headline,
+    contentBlocks: existingProfile.contentBlocks,
+    ctaConfig: existingProfile.ctaConfig,
+    seoMeta: existingProfile.seoMeta,
+  };
+}
+
+export function mergePrecisionAerialBusinessProfileData(
+  existingValue: unknown
+): Record<string, any> {
+  const existingProfileData = asRecord(existingValue);
+  const existingBrandColors = asRecord(existingProfileData.brandColors);
+  return {
+    category: "Drone photo and video",
+    tradePartner: false,
+    ...existingProfileData,
+    brandColors: {
+      ...DEFAULT_BRAND_COLORS,
+      ...existingBrandColors,
+    },
+  };
+}
 
 function isProtectedOrHumanAccount(user: any): boolean {
   const roles = [
@@ -130,6 +265,13 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
       existingSteward?.preferences && typeof existingSteward.preferences === "object"
         ? (existingSteward.preferences as Record<string, any>)
         : {};
+    const migrateExactV1Seed = isPrecisionAerialV1SystemSeed(existingProfile, existingPreferences);
+    const existingProfileSections =
+      existingPreferences.profileSections &&
+      typeof existingPreferences.profileSections === "object" &&
+      !Array.isArray(existingPreferences.profileSections)
+        ? existingPreferences.profileSections
+        : null;
     const stewardValues = {
       firstName: "TradeScout",
       lastName: "Profile Steward",
@@ -145,7 +287,10 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
       preferences: {
         ...existingPreferences,
         profileVisibility: "public",
-        profileSections: DISABLED_PROFILE_SECTIONS,
+        profileSections:
+          !existingSteward || migrateExactV1Seed || !existingProfileSections
+            ? DEFAULT_PROFILE_SECTIONS
+            : existingProfileSections,
         internalProfileSteward: {
           profileSlug: PRECISION_AERIAL_PROFILE_SLUG,
           source: PRECISION_AERIAL_PROFILE_PROVISIONING_SOURCE,
@@ -183,10 +328,7 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
       type: "other" as const,
       ownerUserId: steward.id,
       roleContext: "content_creator" as const,
-      profileData: {
-        category: "Drone photo and video",
-        tradePartner: false,
-      },
+      profileData: mergePrecisionAerialBusinessProfileData(existingBusiness?.profileData),
       claimStatus: "unclaimed",
       publicDiscoveryEnabled: false,
       sources: Array.from(
@@ -219,26 +361,15 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
           .returning();
     if (!business) throw new Error("Precision Aerial business provisioning failed");
 
+    const profileSeedFields = resolvePrecisionAerialProfileSeedFields(
+      existingProfile,
+      existingPreferences
+    );
     const profileValues = {
       ownerUserId: steward.id,
       businessId: business.id,
-      roleContext: "content_creator" as const,
       slug: PRECISION_AERIAL_PROFILE_SLUG,
-      displayName: PRECISION_AERIAL_BUSINESS_NAME,
-      headline: "Drone photo and video in Pensacola.",
-      contentBlocks: PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS,
-      ctaConfig: {
-        primary: {
-          label: "Direct Connect",
-          kind: "message" as const,
-          value: "/direct-connect",
-        },
-      },
-      seoMeta: {
-        title: "Precision Aerial Services | Pensacola Drone Photo and Video",
-        description:
-          "See aerial photo and video work from Precision Aerial Services in Pensacola and send a request through TradeScout Direct Connect.",
-      },
+      ...profileSeedFields,
       status: "published" as const,
       updatedAt: new Date(),
     };

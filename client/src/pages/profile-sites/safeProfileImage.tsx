@@ -64,6 +64,7 @@ type SafeProfileImgProps = Omit<
   /** Additional candidates after the primary src fails or decodes black. */
   fallbackSrcs?: string[];
   hideWhenExhausted?: boolean;
+  onExhausted?: () => void;
 };
 
 /** Profile-site image with black-frame + onError fallback chaining. */
@@ -71,6 +72,7 @@ export function SafeProfileImg({
   src,
   fallbackSrcs = [],
   hideWhenExhausted = true,
+  onExhausted,
   alt = "",
   ...rest
 }: SafeProfileImgProps) {
@@ -78,6 +80,7 @@ export function SafeProfileImg({
   if (images.length === 0) return null;
 
   const handlers = createFallbackImageHandlers(images, (img) => {
+    onExhausted?.();
     if (!hideWhenExhausted) return;
     img.removeAttribute("src");
     img.alt = alt ? `${alt} (temporarily unavailable)` : "Photo temporarily unavailable";

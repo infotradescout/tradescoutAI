@@ -17,7 +17,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { COLOR_PRESETS, getPresetNames } from "@shared/colorPresets";
+import {
+  COLOR_PRESETS,
+  getPresetNames,
+  getProfileBrandColorsForPreset,
+} from "@shared/colorPresets";
 import { StateCountySelector } from "@/components/state-county-selector";
 import {
   listSelectableProfileSiteTemplates,
@@ -148,6 +152,7 @@ const PROFILE_SECTION_OPTIONS: Array<{
 ];
 
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DEFAULT_PROFILE_COLORS = getProfileBrandColorsForPreset("default");
 
 function buildDefaultBooking(): ProfileBookingSettings {
   return {
@@ -205,12 +210,12 @@ export default function ProfileSiteEditor() {
     primary: string;
     secondary: string;
     background: string;
-    text: string;
+    surface: string;
   }>({
-    primary: COLOR_PRESETS.default.primary,
-    secondary: COLOR_PRESETS.default.secondary,
-    background: COLOR_PRESETS.default.background,
-    text: COLOR_PRESETS.default.text,
+    primary: DEFAULT_PROFILE_COLORS.primary,
+    secondary: DEFAULT_PROFILE_COLORS.secondary,
+    background: DEFAULT_PROFILE_COLORS.background,
+    surface: DEFAULT_PROFILE_COLORS.surface,
   });
   const [savingPublicSettings, setSavingPublicSettings] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocationSettings>({
@@ -244,10 +249,7 @@ export default function ProfileSiteEditor() {
           return;
         }
 
-        const detail = (await apiRequest(
-          "GET",
-          `/api/profiles/${found.id}`
-        )) as ProfileDetail;
+        const detail = (await apiRequest("GET", `/api/profiles/${found.id}`)) as ProfileDetail;
         setProfile(detail);
 
         setDisplayName(detail.displayName || "");
@@ -267,6 +269,77 @@ export default function ProfileSiteEditor() {
         setDomainInput(activeCustomDomain);
         setOgImageUrl(String(detail.seoMeta?.imageUrl || ""));
         setFaviconUrl(String(detail.seoMeta?.faviconUrl || ""));
+
+        try {
+          const brandPayload = (await apiRequest(
+            "GET",
+            `/api/profiles/${encodeURIComponent(detail.id)}/brand-colors`
+          )) as { brandColors?: Record<string, unknown> | null };
+          const colors =
+            brandPayload.brandColors && typeof brandPayload.brandColors === "object"
+              ? brandPayload.brandColors
+              : null;
+          if (colors) {
+            const nextColors = {
+              primary:
+                typeof colors.primary === "string" ? colors.primary : COLOR_PRESETS.default.primary,
+              secondary:
+                typeof colors.secondary === "string"
+                  ? colors.secondary
+                  : COLOR_PRESETS.default.secondary,
+              background:
+                typeof colors.background === "string"
+                  ? colors.background
+                  : DEFAULT_PROFILE_COLORS.background,
+              surface:
+                typeof colors.surface === "string"
+                  ? colors.surface
+                  : DEFAULT_PROFILE_COLORS.surface,
+            };
+            const loadedPrimaryDark =
+              typeof colors.primaryDark === "string" ? colors.primaryDark : nextColors.primary;
+            const loadedAccent =
+              typeof colors.accent === "string" ? colors.accent : nextColors.primary;
+            const matchingPreset = getPresetNames().find((name) => {
+              const preset = getProfileBrandColorsForPreset(name);
+              return (
+                preset.primary.toLowerCase() === nextColors.primary.toLowerCase() &&
+                preset.primaryDark.toLowerCase() === loadedPrimaryDark.toLowerCase() &&
+                preset.accent.toLowerCase() === loadedAccent.toLowerCase() &&
+                preset.secondary.toLowerCase() === nextColors.secondary.toLowerCase() &&
+                preset.background.toLowerCase() === nextColors.background.toLowerCase() &&
+                preset.surface.toLowerCase() === nextColors.surface.toLowerCase()
+              );
+            });
+            setColorPreset(matchingPreset || "custom");
+            setCustomColors(nextColors);
+          } else {
+            setColorPreset("default");
+            setCustomColors({
+              primary: DEFAULT_PROFILE_COLORS.primary,
+              secondary: DEFAULT_PROFILE_COLORS.secondary,
+              background: DEFAULT_PROFILE_COLORS.background,
+              surface: DEFAULT_PROFILE_COLORS.surface,
+            });
+          }
+        } catch (brandError) {
+          console.error("Error loading profile brand colors:", brandError);
+        }
+
+        try {
+          const sectionPayload = (await apiRequest(
+            "GET",
+            `/api/profiles/${encodeURIComponent(detail.id)}/profile-sections`
+          )) as { profileSections?: ProfileSections | null };
+          setProfileSections(
+            sectionPayload.profileSections && typeof sectionPayload.profileSections === "object"
+              ? sectionPayload.profileSections
+              : {}
+          );
+        } catch (sectionError) {
+          console.error("Error loading Profile section settings:", sectionError);
+          setProfileSections({});
+        }
 
         try {
           const bookingPayload = (await apiRequest(
@@ -343,8 +416,7 @@ export default function ProfileSiteEditor() {
     const loadPublicSettings = async () => {
       if (!slug) return;
       try {
-        const prefsPayload =
-          ((await apiRequest("GET", "/api/users/preferences")) as any) ?? {};
+        const prefsPayload = ((await apiRequest("GET", "/api/users/preferences")) as any) ?? {};
         const prefs =
           prefsPayload && typeof prefsPayload.preferences === "object"
             ? prefsPayload.preferences
@@ -360,23 +432,8 @@ export default function ProfileSiteEditor() {
         setServicesDescription(
           typeof prefs?.servicesDescription === "string" ? prefs.servicesDescription : ""
         );
-        setProfileSections(
-          prefs?.profileSections && typeof prefs.profileSections === "object"
-            ? prefs.profileSections
-            : {}
-        );
-        const preset =
-          typeof prefs?.colorScheme?.preset === "string" ? prefs.colorScheme.preset : "default";
-        setColorPreset(preset);
-        setCustomColors({
-          primary: prefs?.colorScheme?.primary || COLOR_PRESETS.default.primary,
-          secondary: prefs?.colorScheme?.secondary || COLOR_PRESETS.default.secondary,
-          background: prefs?.colorScheme?.background || COLOR_PRESETS.default.background,
-          text: prefs?.colorScheme?.text || COLOR_PRESETS.default.text,
-        });
 
-        const userProfile =
-          ((await apiRequest("GET", "/api/user/profile")) as any) ?? {};
+        const userProfile = ((await apiRequest("GET", "/api/user/profile")) as any) ?? {};
         setUserLocation({
           address: typeof userProfile?.address === "string" ? userProfile.address : "",
           city: typeof userProfile?.city === "string" ? userProfile.city : "",
@@ -807,10 +864,15 @@ export default function ProfileSiteEditor() {
   };
 
   const updateProfileSection = async (section: keyof ProfileSections, enabled: boolean) => {
+    if (!profile) return;
     const previous = profileSections;
     setProfileSections((prev) => ({ ...prev, [section]: enabled }));
     try {
-      await apiRequest("PATCH", "/api/users/profile-sections", { [section]: enabled });
+      await apiRequest(
+        "PATCH",
+        `/api/profiles/${encodeURIComponent(profile.id)}/profile-sections`,
+        { [section]: enabled }
+      );
     } catch (error: any) {
       setProfileSections(previous);
       toast({
@@ -991,15 +1053,21 @@ export default function ProfileSiteEditor() {
   };
 
   const saveColorScheme = async () => {
+    if (!profile) return;
     setSavingPublicSettings(true);
     try {
-      await apiRequest("PATCH", "/api/users/color-scheme", {
-        preset: colorPreset,
-        ...(colorPreset === "custom" ? customColors : {}),
-      });
+      const colors =
+        colorPreset === "custom"
+          ? customColors
+          : getProfileBrandColorsForPreset(colorPreset);
+      await apiRequest(
+        "PATCH",
+        `/api/profiles/${encodeURIComponent(profile.id)}/brand-colors`,
+        colors
+      );
       toast({
         title: "Saved",
-        description: "Public profile color scheme updated.",
+        description: "This profile's brand colors are now live.",
       });
     } catch (error: any) {
       toast({
@@ -1080,8 +1148,8 @@ export default function ProfileSiteEditor() {
             <div className="space-y-2">
               <Label className="text-white/70">Template</Label>
               <p className="text-xs text-white/55">
-                Wholesaler, Auto glass, Plumbing company, Electrician (solo), or Videographer.
-                More business templates are planned in the profile template taxonomy.
+                Wholesaler, Auto glass, Plumbing company, Electrician (solo), or Videographer. More
+                business templates are planned in the profile template taxonomy.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {listSelectableProfileSiteTemplates().map((template) => (
@@ -1676,11 +1744,11 @@ export default function ProfileSiteEditor() {
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-xs text-white/60">Text</Label>
+                      <Label className="text-xs text-white/60">Surface</Label>
                       <Input
-                        value={customColors.text}
+                        value={customColors.surface}
                         onChange={(event) =>
-                          setCustomColors((prev) => ({ ...prev, text: event.target.value }))
+                          setCustomColors((prev) => ({ ...prev, surface: event.target.value }))
                         }
                       />
                     </div>

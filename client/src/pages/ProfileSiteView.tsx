@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
+import DefaultProfileTheme from "@/pages/profile-sites/DefaultProfileTheme";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
@@ -53,9 +54,7 @@ import {
   listProfileGalleryItems,
   resolveProfileGalleryItem,
 } from "@shared/profileGalleryShare";
-import {
-  createProfileInventoryCategoryShareMetadata,
-} from "@shared/profileCategoryShare";
+import { createProfileInventoryCategoryShareMetadata } from "@shared/profileCategoryShare";
 import {
   buildProfilePublicCategoryPath,
   buildProfilePublicItemPath,
@@ -434,6 +433,7 @@ type PublicBusinessSubset = {
   id: string;
   name: string;
   categories: string[];
+  services?: string[];
   serviceAreas: string[];
   tradePartner?: boolean;
   brandColors?: {
@@ -877,9 +877,7 @@ export default function ProfileSiteView() {
     typeof window !== "undefined"
       ? resolveProfilePublicItemRoute({
           pathname: window.location.pathname,
-          profileBasePath: isOnProfileCustomDomain
-            ? "/"
-            : `/u/${encodeURIComponent(profile.slug)}`,
+          profileBasePath: isOnProfileCustomDomain ? "/" : `/u/${encodeURIComponent(profile.slug)}`,
           contentBlocks,
         })
       : null;
@@ -887,9 +885,7 @@ export default function ProfileSiteView() {
     typeof window !== "undefined"
       ? resolveProfilePublicCategoryRoute({
           pathname: window.location.pathname,
-          profileBasePath: isOnProfileCustomDomain
-            ? "/"
-            : `/u/${encodeURIComponent(profile.slug)}`,
+          profileBasePath: isOnProfileCustomDomain ? "/" : `/u/${encodeURIComponent(profile.slug)}`,
           contentBlocks,
         })
       : null;
@@ -1018,9 +1014,10 @@ export default function ProfileSiteView() {
     typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
       ? profile.seoMeta.imageUrl
       : undefined;
-  const sourceSeoImage = itemShareMeta || categoryShareMeta
-    ? itemShareMeta?.imageUrl || categoryShareMeta?.imageUrl
-    : profileSocialPresentation.profileImageUrl || legacyProfileSeoImage;
+  const sourceSeoImage =
+    itemShareMeta || categoryShareMeta
+      ? itemShareMeta?.imageUrl || categoryShareMeta?.imageUrl
+      : profileSocialPresentation.profileImageUrl || legacyProfileSeoImage;
   const socialPreviewPageOrigin =
     typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin();
   const profileSocialPreviewImageUrl =
@@ -1037,7 +1034,11 @@ export default function ProfileSiteView() {
         profileSeoDescription,
       ].join("|"),
     }) || sourceSeoImage;
-  const gallerySocialPreviewImageUrl = (item: { slug: string; title: string; imageUrl: string }) => {
+  const gallerySocialPreviewImageUrl = (item: {
+    slug: string;
+    title: string;
+    imageUrl: string;
+  }) => {
     const galleryPresentation = resolveProfileSocialPresentation({
       brandName: displayName,
       fallbackBrandName: profile.displayName,
@@ -1047,20 +1048,22 @@ export default function ProfileSiteView() {
       itemType: "gallery",
       contentBlocks,
     });
-    return buildProfileSocialPreviewImageUrl({
-      pageOrigin: socialPreviewPageOrigin,
-      profileSlug: profile.slug,
-      itemType: "gallery",
-      itemSlug: item.slug,
-      versionSeed: [
-        galleryPresentation.brandName,
-        galleryPresentation.logoUrl || "",
-        galleryPresentation.accentColor,
-        galleryPresentation.ctaLabel,
-        item.title,
-        item.imageUrl,
-      ].join("|"),
-    }) || item.imageUrl;
+    return (
+      buildProfileSocialPreviewImageUrl({
+        pageOrigin: socialPreviewPageOrigin,
+        profileSlug: profile.slug,
+        itemType: "gallery",
+        itemSlug: item.slug,
+        versionSeed: [
+          galleryPresentation.brandName,
+          galleryPresentation.logoUrl || "",
+          galleryPresentation.accentColor,
+          galleryPresentation.ctaLabel,
+          item.title,
+          item.imageUrl,
+        ].join("|"),
+      }) || item.imageUrl
+    );
   };
   const seoImage =
     buildProfileSocialPreviewImageUrl({
@@ -1252,15 +1255,13 @@ export default function ProfileSiteView() {
       signInHref={profileActionSignInHref}
       hasViewerSession={hasViewerSession}
       initialRecommendationCount={recommendationDirectorySummary.positive}
+      subjectKind={business ? "business" : "profile"}
       tone={tone}
     />
   );
   const readProfileBlockText = (blockType: "about" | "hero") =>
     contentBlocks
-      .filter(
-        (block: any) =>
-          block && typeof block === "object" && block.type === blockType
-      )
+      .filter((block: any) => block && typeof block === "object" && block.type === blockType)
       .map((block: any) => {
         const data = block?.data && typeof block.data === "object" ? block.data : {};
         const raw =
@@ -1277,7 +1278,8 @@ export default function ProfileSiteView() {
   const explicitAboutText = readProfileBlockText("about");
   const heroAboutFallback = readProfileBlockText("hero");
   const aboutText = explicitAboutText || heroAboutFallback;
-  const profileServiceTags = contentBlocks.flatMap((block: any) => {
+  const defaultAboutText = explicitAboutText;
+  const profileServiceTags: string[] = contentBlocks.flatMap((block: any) => {
     if (block?.type !== "services") return [] as string[];
     const data = block?.data && typeof block.data === "object" ? block.data : {};
     if (Array.isArray(data.items)) {
@@ -1300,12 +1302,20 @@ export default function ProfileSiteView() {
     }
     return [] as string[];
   });
-  const serviceTags = Array.from(
-    new Set(
-      (siteTemplate === "videographer" && profileServiceTags.length > 0
+  const businessServiceTags: string[] = Array.isArray(business?.services)
+    ? business.services
+        .map((item: unknown) => (typeof item === "string" ? item.trim() : ""))
+        .filter((item: string) => item.length > 0)
+    : [];
+  const serviceTags: string[] = Array.from(
+    new Set<string>(
+      (profileServiceTags.length > 0
         ? profileServiceTags
-        : [...publicCategories, ...profileServiceTags])
-        .map((item) => sanitizePublicDiscoveryText(item, 240))
+        : businessServiceTags.length > 0
+          ? businessServiceTags
+          : publicCategories
+      )
+        .map((item) => sanitizePublicDiscoveryText(item, 180))
         .filter((item) => item.length > 0)
     )
   );
@@ -1358,6 +1368,82 @@ export default function ProfileSiteView() {
       };
     })
     .filter((item) => item.body.length > 0);
+  const defaultHeroData = (() => {
+    const block = contentBlocks.find((entry: any) => entry?.type === "hero") as any;
+    return block?.data && typeof block.data === "object"
+      ? (block.data as Record<string, unknown>)
+      : {};
+  })();
+  const readDefaultHeroText = (key: string, limit = 500) =>
+    sanitizePublicDiscoveryText(
+      typeof defaultHeroData[key] === "string" ? defaultHeroData[key] : "",
+      limit
+    );
+  const readDefaultHeroUrl = (key: string, limit = 2000) => {
+    const value = defaultHeroData[key];
+    return typeof value === "string" ? value.trim().slice(0, limit) : "";
+  };
+  const defaultHeroTitle = readDefaultHeroText("title", 200);
+  const defaultHeroText = readDefaultHeroText("text", 800);
+  const defaultOperatorName = readDefaultHeroText("operatorName", 160);
+  const defaultLogoUrl =
+    readDefaultHeroUrl("logoUrl") ||
+    String(profile.seoMeta?.faviconUrl || "")
+      .trim()
+      .slice(0, 2000);
+  const defaultHeroImageUrl =
+    readDefaultHeroUrl("imageUrl") ||
+    readDefaultHeroUrl("heroImageUrl") ||
+    featuredGalleryItem?.imageUrl ||
+    "";
+  const defaultHeroImageAlt =
+    readDefaultHeroText("imageAlt", 400) ||
+    featuredGalleryItem?.imageAlt ||
+    `${displayName} featured work`;
+  const defaultFeaturedWorkUrl = readDefaultHeroUrl("featuredWorkUrl");
+  const defaultLocationLabel =
+    readDefaultHeroText("locationLabel", 200) ||
+    sanitizePublicDiscoveryText(
+      [business?.city, business?.stateCode]
+        .map((part) => String(part || "").trim())
+        .filter(Boolean)
+        .join(", "),
+      200
+    ) ||
+    serviceAreas[0] ||
+    "";
+  const defaultSocials = [
+    readDefaultHeroUrl("instagramUrl")
+      ? {
+          label: "Instagram",
+          handle: readDefaultHeroText("instagramHandle", 120),
+          href: readDefaultHeroUrl("instagramUrl"),
+          kind: "instagram" as const,
+        }
+      : null,
+    readDefaultHeroUrl("tiktokUrl")
+      ? {
+          label: "TikTok",
+          handle: readDefaultHeroText("tiktokHandle", 120),
+          href: readDefaultHeroUrl("tiktokUrl"),
+          kind: "tiktok" as const,
+        }
+      : null,
+  ].filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  const defaultRecommendations = recommendationsDirectory.map((entry) => {
+    const subjectHref = entry.contractor?.slug
+      ? qualifyPublicProfileItemDestination(
+          entry.contractor.canonicalBusinessProfileUrl ||
+            `/contractors/${encodeURIComponent(entry.contractor.slug)}`,
+          platformBaseHref
+        )
+      : undefined;
+    return {
+      ...entry,
+      subjectName: entry.contractor?.companyName || undefined,
+      subjectHref,
+    };
+  });
 
   const manageChrome = viewerCanManage ? (
     <ProfileSiteManageChrome
@@ -1404,9 +1490,7 @@ export default function ProfileSiteView() {
   const categoryNoIndex = Boolean(categoryShareMeta && !categoryShareMeta.indexable);
   const publishedInventoryItems = listProfileInventoryItems(inventoryCategories);
   const categoryInventoryItems = categoryShareMeta
-    ? publishedInventoryItems.filter((item) =>
-        categoryShareMeta.itemSlugs.includes(item.slug)
-      )
+    ? publishedInventoryItems.filter((item) => categoryShareMeta.itemSlugs.includes(item.slug))
     : [];
   const openInventoryDirectConnect = (itemName: string, itemId: string) => {
     setExpressServiceContext(null);
@@ -1704,7 +1788,7 @@ export default function ProfileSiteView() {
           noIndex={categoryNoIndex}
         />
         {templateIndependentInventoryContext}
-        <VideographerProfileTheme
+      <VideographerProfileTheme
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
           businessName={displayName}
@@ -1821,7 +1905,7 @@ export default function ProfileSiteView() {
   }
 
   return (
-    <Page className="max-w-6xl space-y-6">
+    <>
       <SEOHelmet
         title={seoTitle}
         socialTitle={socialTitle}
@@ -1833,426 +1917,155 @@ export default function ProfileSiteView() {
         preserveCanonicalQuery={Boolean(itemShareMeta)}
         noIndex={categoryNoIndex}
       />
+      {manageChromeSpacer}
       {templateIndependentInventoryContext}
-      <Card className="bg-tsCard overflow-hidden">
-        <CardHeader className="space-y-4 bg-tsCardMuted">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <Badge variant="secondary">Public profile</Badge>
-                <ShareButton
-                  destination={currentPageShareDestination}
-                  title={currentPageShareTitle}
-                  text={`Check out ${currentPageShareTitle} on TradeScout`}
-                  imageUrl={seoImage}
-                />
-              </div>
-              <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
-              <div className="inline-flex items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
-                <img
-                  src={featuredGalleryItem?.imageUrl || profilePlaceholderSrc}
-                  alt={featuredGalleryItem?.imageAlt || profilePlaceholderAlt}
-                  className={`h-12 w-16 rounded bg-white/10 ${
-                    featuredGalleryItem ? "object-cover" : "p-1 object-contain"
-                  }`}
-                  loading="lazy"
-                  onError={(event) => {
-                    event.currentTarget.src =
-                      "/images/tradescout/categories/general-contractor.svg";
-                  }}
-                />
-                <div className="text-xs text-white/70">
-                  {featuredGalleryItem
-                    ? sharedGallerySlug
-                      ? "The work someone shared with you"
-                      : "Recent work"
-                    : "New photos are on the way."}
+      <div
+        style={
+          {
+            ["--ts-profile-top-offset" as string]:
+              viewerCanManage || wantsManageUi ? "3.5rem" : "0px",
+          } as CSSProperties
+        }
+      >
+        <DefaultProfileTheme
+          businessName={displayName}
+          operatorName={defaultOperatorName || undefined}
+          profileKind={business ? "business" : "community"}
+          categoryLabel={publicCategories[0] || undefined}
+          locationLabel={defaultLocationLabel || undefined}
+          headline={publicHeadline}
+          heroTitle={defaultHeroTitle || undefined}
+          heroText={defaultHeroText || undefined}
+          logoUrl={defaultLogoUrl || undefined}
+          heroImageUrl={defaultHeroImageUrl || undefined}
+          heroImageAlt={defaultHeroImageAlt}
+          featuredWorkUrl={defaultFeaturedWorkUrl || undefined}
+          brandColors={business?.brandColors}
+          services={serviceTags}
+          serviceAreas={serviceAreas}
+          aboutText={defaultAboutText}
+          galleryItems={galleryItems}
+          sharedGallerySlug={sharedGallerySlug}
+          socials={defaultSocials}
+          customBlocks={customBlocks}
+          badges={
+            publicCategories.length > 0 ? publicCategories : business ? [] : [profileTypeLabel]
+          }
+          stats={quickFacts}
+          recommendations={defaultRecommendations}
+          recommendationMode={recommendationDirectoryMode}
+          showAbout={profileSections.about !== false}
+          showBadges={profileSections.rolesAndBadges !== false}
+          showStats={profileSections.stats !== false}
+          showServices={profileSections.services !== false}
+          showServiceAreas={profileSections.services !== false}
+          showRecommendations={profileSections.reviews !== false}
+          showContact={showContactCard}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+          onDirectConnect={openServiceDirectConnect}
+          shareAction={
+            <ShareButton
+              destination={currentPageShareDestination}
+              title={currentPageShareTitle}
+              text={`Check out ${currentPageShareTitle} on TradeScout`}
+              imageUrl={seoImage}
+              className="rounded-full border-[var(--profile-line)] bg-[var(--profile-primary-soft)] text-[var(--profile-fg)]"
+            />
+          }
+          renderGalleryShare={(item) => (
+            <ShareButton
+              destination={
+                buildProfilePublicItemPath({
+                  profileBasePath: profileShareDestination,
+                  itemType: "gallery",
+                  itemSlug: item.slug,
+                  contentBlocks,
+                }) || profileShareDestination
+              }
+              title={`${item.title} by ${displayName}`}
+              text={`View ${item.title} from ${displayName} on TradeScout`}
+              imageUrl={gallerySocialPreviewImageUrl(item)}
+              className="border-[var(--profile-line)] text-[var(--profile-surface-fg)]"
+            />
+          )}
+          bookingSection={
+            bookingEnabled ? (
+              <div className="rounded-3xl border border-[var(--profile-line)] bg-[var(--profile-surface)] p-6 text-[var(--profile-surface-fg)] sm:p-8">
+                <div className="flex flex-wrap items-start justify-between gap-5">
+                  <div>
+                    <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] opacity-60">
+                      <Calendar className="h-4 w-4 text-ts-orange" />
+                      Bookings
+                    </p>
+                    <h2 className="mt-3 text-3xl font-black tracking-[-0.04em]">Request a time.</h2>
+                  </div>
+                  <ProfileBookingRequestDialog
+                    profileId={profile.id}
+                    profileName={displayName}
+                    timezone={timezone}
+                    pricingRows={pricingRows}
+                    paidBookings={paidBookings}
+                    bookingPriceUsd={bookingPriceUsd}
+                    bookingCategory={bookingCategory}
+                    bookingStateCode={business?.stateCode || ""}
+                    hasViewerSession={hasViewerSession}
+                    viewerCanManage={viewerCanManage}
+                    signInHref={bookingSignInHref}
+                    platformBaseHref={platformBaseHref}
+                  />
                 </div>
-              </div>
-              {profileSections.about !== false ? (
-                <p className="text-white/70 text-sm uppercase tracking-[0.18em]">
-                  {profileTypeLabel}
-                </p>
-              ) : null}
-              {publicHeadline && profileSections.about !== false ? (
-                <p className="text-white/80 max-w-2xl">{publicHeadline}</p>
-              ) : null}
-            </div>
-            {profileSections.stats !== false && quickFacts.length > 0 ? (
-              <div className="grid min-w-[220px] grid-cols-2 gap-2">
-                {quickFacts.map((fact) => (
-                  <div key={fact.label} className="rounded-md bg-black/20 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wider text-white/60">
-                      {fact.label}
-                    </p>
-                    <p className="text-lg font-semibold text-white">{fact.value}</p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          {profileSections.rolesAndBadges !== false ? (
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-ts-orange text-white">{profileTypeLabel}</Badge>
-              <Badge className="bg-white/10 text-white">Requests stay private</Badge>
-            </div>
-          ) : null}
-        </CardHeader>
-
-        <CardContent className="p-4 md:p-6">
-          <div
-            className="mb-6"
-            data-testid="profile-trust-section"
-            aria-label="Trust and profile actions"
-          >
-            {renderProfileTrustActions("dark")}
-          </div>
-          <div className="grid gap-6 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
-              {profileSections.about !== false && (aboutText || publicHeadline) ? (
-                <section className="space-y-2">
-                  <h2 className="text-white font-semibold text-lg">About</h2>
-                  <p className="text-white/75 leading-relaxed">{aboutText || publicHeadline}</p>
-                </section>
-              ) : null}
-
-              {profileSections.services !== false && serviceTags.length > 0 ? (
-                <section className="space-y-3">
-                  <h2 className="text-white font-semibold text-lg">Services</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {serviceTags.slice(0, 24).map((service) => (
-                      <Badge key={service} className="bg-white/10 text-white">
-                        {service}
-                      </Badge>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {profileSections.services !== false && serviceAreas.length > 0 ? (
-                <section className="space-y-3">
-                  <h2 className="text-white font-semibold text-lg">Service Areas</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {serviceAreas.slice(0, 20).map((area) => (
-                      <Badge key={area} className="bg-white/10 text-white/80">
-                        {area}
-                      </Badge>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {profileSections.reviews !== false && recommendationsDirectory.length > 0 ? (
-                <section id="recommendations-directory" className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-white font-semibold text-lg">
-                      {recommendationDirectoryMode === "received"
-                        ? "What people say"
-                        : `Recommendations from ${displayName}`}
-                    </h2>
-                    <div className="text-xs text-white/70">
-                      {recommendationDirectorySummary.total}{" "}
-                      {recommendationDirectorySummary.total === 1
-                        ? "recommendation"
-                        : "recommendations"}
-                    </div>
-                  </div>
-                  <p className="text-xs text-white/60">
-                    {recommendationDirectoryMode === "received"
-                      ? "Recommendations people choose to share appear here."
-                      : "Providers this member chose to recommend appear here."}
-                  </p>
-                  <div className="space-y-3">
-                    {recommendationsDirectory.slice(0, 24).map((entry) => {
-                      const contractorHref = entry.contractor?.slug
-                        ? qualifyPublicProfileItemDestination(
-                            entry.contractor.canonicalBusinessProfileUrl ||
-                              `/contractors/${encodeURIComponent(entry.contractor.slug)}`,
-                            platformBaseHref
-                          )
-                        : "";
-
-                      return (
-                        <div
-                          key={entry.id}
-                          className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              {entry.recommendationType === "positive" ? (
-                                <Badge className="bg-emerald-600/80 text-white">
-                                  <ThumbsUp className="mr-1 h-3.5 w-3.5" />
-                                  Recommends
-                                </Badge>
-                              ) : (
-                                <Badge className="bg-red-600/80 text-white">
-                                  <ThumbsDown className="mr-1 h-3.5 w-3.5" />
-                                  Does not recommend
-                                </Badge>
-                              )}
-                              {entry.projectType ? (
-                                <Badge className="bg-white/10 text-white/80">
-                                  {entry.projectType}
-                                </Badge>
-                              ) : null}
-                            </div>
-                            <div className="text-xs text-white/60">
-                              {entry.createdAt
-                                ? new Date(entry.createdAt).toLocaleDateString()
-                                : "Recently"}
-                            </div>
-                          </div>
-                          <p className="text-sm text-white/80">{entry.comment}</p>
-                          {recommendationDirectoryMode === "received" ? (
-                            <p className="text-xs font-medium text-white/60">
-                              Shared by {entry.customerName || "a customer"}
-                            </p>
-                          ) : entry.contractor?.slug ? (
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                              className="border-white/20 text-white"
-                            >
-                              {requiresDocumentNavigation(contractorHref) ? (
-                                <a href={contractorHref}>{entry.contractor.companyName}</a>
-                              ) : (
-                                <Link href={contractorHref}>{entry.contractor.companyName}</Link>
-                              )}
-                            </Button>
-                          ) : (
-                            <p className="text-xs text-white/60">{entry.contractor.companyName}</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              ) : null}
-
-              {galleryItems.length > 0 ? (
-                <section className="space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-white font-semibold text-lg">Work &amp; Gallery</h2>
-                    <p className="text-xs text-white/60">Share any image directly</p>
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {galleryItems.map((item) => {
-                      const isSharedItem = item.slug === sharedGallerySlug;
-                      return (
-                        <article
-                          id={`profile-gallery-${item.slug}`}
-                          key={item.slug}
-                          className={`scroll-mt-24 overflow-hidden rounded-xl border bg-black/20 transition-shadow ${
-                            isSharedItem
-                              ? "border-ts-orange ring-2 ring-ts-orange/40 shadow-lg"
-                              : "border-white/10"
-                          }`}
-                        >
-                          <img
-                            src={item.imageUrl}
-                            alt={item.imageAlt}
-                            className="aspect-[4/3] w-full object-cover"
-                            loading="lazy"
-                          />
-                          <div className="space-y-3 p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <h3 className="font-medium text-white">{item.title}</h3>
-                                {item.description ? (
-                                  <p className="mt-1 text-sm leading-relaxed text-white/70">
-                                    {item.description}
-                                  </p>
-                                ) : null}
-                              </div>
-                              {isSharedItem ? (
-                                <Badge className="shrink-0 bg-ts-orange text-white">
-                                  Shared image
-                                </Badge>
-                              ) : null}
-                            </div>
-                            <ShareButton
-                              destination={
-                                buildProfilePublicItemPath({
-                                  profileBasePath: profileShareDestination,
-                                  itemType: "gallery",
-                                  itemSlug: item.slug,
-                                  contentBlocks,
-                                }) || profileShareDestination
-                              }
-                              title={`${item.title} by ${displayName}`}
-                              text={`View ${item.title} from ${displayName} on TradeScout`}
-                              imageUrl={gallerySocialPreviewImageUrl(item)}
-                              className="border-white/20 text-white"
-                            />
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              ) : null}
-
-              {customBlocks.length > 0 ? (
-                <section className="space-y-3">
-                  <h2 className="text-white font-semibold text-lg">Profile Highlights</h2>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    {customBlocks.map((block, index) => (
+                {calendarVisibility === "public" && slots.length > 0 ? (
+                  <div className="mt-6 grid gap-2 text-sm opacity-70 sm:grid-cols-2">
+                    {slots.slice(0, 14).map((slot) => (
                       <div
-                        key={`${block.title}-${index}`}
-                        className="rounded-lg bg-black/20 p-4 space-y-2"
+                        key={slot.id}
+                        className="flex items-center justify-between gap-4 rounded-xl border border-[var(--profile-line)] px-4 py-3"
                       >
-                        <h3 className="text-white font-medium">{block.title}</h3>
-                        <p className="text-white/70 text-sm leading-relaxed">{block.body}</p>
+                        <span className="flex items-center gap-2">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {dayNames[slot.dayOfWeek] || "Day"}
+                        </span>
+                        <span>
+                          {slot.startTime}–{slot.endTime}
+                        </span>
                       </div>
                     ))}
                   </div>
-                </section>
-              ) : null}
-
-              {bookingEnabled ? (
-                <section className="space-y-3 rounded-lg bg-black/20 p-4">
-                  <h2 className="text-white font-semibold flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-ts-orange" />
-                    Bookings
-                  </h2>
-                  <p className="text-sm text-white/70">
-                    Choose a time and send a booking request. Nothing is shared until you review it.
-                  </p>
-                  {calendarVisibility === "public" && slots.length > 0 ? (
-                    <div className="space-y-1 text-sm text-white/70">
-                      <div className="text-xs text-white/60 flex items-center gap-1 uppercase tracking-wider">
-                        <Clock3 className="h-3.5 w-3.5" />
-                        Availability ({timezone})
+                ) : null}
+                {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
+                  <div className="mt-6 divide-y divide-[var(--profile-line)] border-y border-[var(--profile-line)] text-sm">
+                    {pricingRows.slice(0, 10).map((row) => (
+                      <div key={row.id} className="flex justify-between gap-4 py-3">
+                        <span>{row.name}</span>
+                        <span className="font-black">{row.priceLabel}</span>
                       </div>
-                      {slots.slice(0, 14).map((slot) => (
-                        <div key={slot.id} className="flex justify-between gap-4">
-                          <span>{dayNames[slot.dayOfWeek] || "Day"}</span>
-                          <span>
-                            {slot.startTime} - {slot.endTime}
-                            {slot.label ? ` (${slot.label})` : ""}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  {booking.pricingTableEnabled === true && pricingRows.length > 0 ? (
-                    <div className="space-y-1 text-sm text-white/70">
-                      <div className="text-xs text-white/60 uppercase tracking-wider">
-                        Pricing table
-                      </div>
-                      {pricingRows.slice(0, 10).map((row) => (
-                        <div key={row.id} className="flex justify-between gap-4">
-                          <span>{row.name}</span>
-                          <span className="font-medium">{row.priceLabel}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  <div className="flex flex-wrap gap-3">
-                    <ProfileBookingRequestDialog
-                      profileId={profile.id}
-                      profileName={displayName}
-                      timezone={timezone}
-                      pricingRows={pricingRows}
-                      paidBookings={paidBookings}
-                      bookingPriceUsd={bookingPriceUsd}
-                      bookingCategory={bookingCategory}
-                      bookingStateCode={business?.stateCode || ""}
-                      hasViewerSession={hasViewerSession}
-                      viewerCanManage={viewerCanManage}
-                      signInHref={bookingSignInHref}
-                      platformBaseHref={platformBaseHref}
-                    />
-                    <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                      {requiresDocumentNavigation(
-                        hasViewerSession ? directConnectHref : preScoutCreateHref
-                      ) ? (
-                        <a href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
-                          Direct Connect
-                        </a>
-                      ) : (
-                        <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
-                          Direct Connect
-                        </Link>
-                      )}
-                    </Button>
+                    ))}
                   </div>
-                </section>
-              ) : null}
-            </div>
-
-            <aside className="space-y-4">
-              {business && (publicCategories.length > 0 || publicServiceAreas.length > 0) ? (
-                <section className="rounded-lg bg-black/20 p-4 space-y-3">
-                  <h2 className="text-white font-semibold">At a glance</h2>
-                  <div className="text-sm text-white/70 space-y-1">
-                    {publicCategories.length > 0 ? (
-                      <p>{publicCategories.slice(0, 6).join(" · ")}</p>
-                    ) : null}
-                    {publicServiceAreas.length > 0 ? (
-                      <p className="text-white/60">
-                        Serves {publicServiceAreas.slice(0, 6).join(", ")}
-                      </p>
-                    ) : null}
-                  </div>
-                </section>
-              ) : null}
-
-              {showContactCard ? (
-                <section className="space-y-3 rounded-lg bg-black/20 p-4">
-                  <h2 className="text-white font-semibold">
-                    {business ? "Ask about working together" : "Send a private request"}
-                  </h2>
-                  <div className="space-y-2 text-sm text-white/70">
-                    <div className="flex items-center gap-2 text-white/70">
-                      <ShieldCheck className="h-4 w-4 text-ts-orange" />
-                      <span>Your contact details stay private.</span>
-                    </div>
-                    <p className="text-white/60">
-                      Send a request first. You can continue directly after they accept.
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <Button
-                      type="button"
-                      onClick={openGeneralDirectConnect}
-                      className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      <span>Direct Connect</span>
-                    </Button>
-                    {!hasViewerSession ? (
-                      <Button
-                        asChild
-                        className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white"
-                      >
-                        {requiresDocumentNavigation(preScoutSignInHref) ? (
-                          <a href={preScoutSignInHref}>Sign in</a>
-                        ) : (
-                          <Link href={preScoutSignInHref}>Sign in</Link>
-                        )}
-                      </Button>
-                    ) : null}
-                  </div>
-                </section>
-              ) : null}
-            </aside>
-          </div>
-        </CardContent>
-      </Card>
-      <PublicProfileItems
-        items={profileItems}
-        profileSections={profileSections}
-        platformBaseHref={platformBaseHref}
-      />
-      <TradeScoutProfileHandoff
-        profileSlug={profile.slug}
-        profileName={displayName}
-        itemName={inventoryItemShareMeta?.itemName || galleryItemShareMeta?.itemTitle}
-        platformBaseHref={platformBaseHref}
-        className="rounded-3xl"
-      />
+                ) : null}
+              </div>
+            ) : null
+          }
+          profileItems={
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
+            ) : null
+          }
+          trustActions={renderProfileTrustActions("dark")}
+          lightTrustActions={renderProfileTrustActions("light")}
+          tradeScoutHandoff={
+            <TradeScoutProfileHandoff
+              profileSlug={profile.slug}
+              profileName={displayName}
+              itemName={inventoryItemShareMeta?.itemName || galleryItemShareMeta?.itemTitle}
+              platformBaseHref={platformBaseHref}
+            />
+          }
+        />
+      </div>
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}
@@ -2265,10 +2078,18 @@ export default function ProfileSiteView() {
         requestMode={expressInventoryContext ? "materials" : "service"}
         initialStoneName={expressInventoryContext?.itemName}
         initialItemId={expressInventoryContext?.itemId}
-        initialRequestType={expressInventoryContext ? "request_material" : null}
+        initialServiceName={expressInventoryContext ? null : expressServiceContext}
+        contactOperatorName={defaultOperatorName || undefined}
+        initialRequestType={
+          expressInventoryContext
+            ? "request_material"
+            : expressServiceContext
+              ? "request_service"
+              : null
+        }
+        deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
       />
-      {manageChromeSpacer}
       {manageChrome}
-    </Page>
+    </>
   );
 }

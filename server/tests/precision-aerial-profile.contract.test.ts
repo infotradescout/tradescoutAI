@@ -3,10 +3,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   PRECISION_AERIAL_BUSINESS_NAME,
+  PRECISION_AERIAL_MEDIA_SOURCES,
   PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS,
   PRECISION_AERIAL_PROFILE_SLUG,
   PRECISION_AERIAL_PUBLIC_SOURCES,
   PRECISION_AERIAL_STEWARD_PROVIDER,
+  PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { userRoleEnum } from "@shared/schema";
 import {
@@ -14,6 +16,11 @@ import {
   hasTradeScoutPendingOwnerCustody,
   isOwnerConfirmedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
+import {
+  isPrecisionAerialV1SystemSeed,
+  mergePrecisionAerialBusinessProfileData,
+  resolvePrecisionAerialProfileSeedFields,
+} from "../services/precisionAerialProfileProvisioning";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -27,9 +34,26 @@ describe("Precision Aerial production profile contract", () => {
     expect(PRECISION_AERIAL_BUSINESS_NAME).toBe("Precision Aerial Services");
     expect(hero?.data.title).toBe("A better view.");
     expect(hero?.data.text).toBe("Drone photo and video.");
+    expect(
+      PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "siteTemplate")?.data
+    ).toMatchObject({ id: "default" });
+    expect(hero?.data.imageUrl).toBe("/images/profiles/precision-aerial/real-estate-aerial-01.jpg");
+    expect(
+      PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "gallery")
+    ).toBeTruthy();
     expect(PRECISION_AERIAL_PUBLIC_SOURCES).toContain(
       "https://www.instagram.com/precisionaerialservice/"
     );
+    expect(PRECISION_AERIAL_MEDIA_SOURCES).toEqual([
+      {
+        assetPath: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
+        sourceUrl: "https://www.instagram.com/p/DWHQtuPkUv0/",
+      },
+      {
+        assetPath: "/images/profiles/precision-aerial/real-estate-aerial-02.jpg",
+        sourceUrl: "https://www.instagram.com/p/DWHQtuPkUv0/",
+      },
+    ]);
     for (const unsupported of [
       "certified",
       "certification",
@@ -59,17 +83,20 @@ describe("Precision Aerial production profile contract", () => {
     expect(source).toContain("internalProfileSteward");
     expect(source).toContain('profileVisibility: "public"');
     for (const section of [
-      "about",
       "rolesAndBadges",
       "stats",
-      "services",
       "marketplaceListings",
       "reviews",
       "communityActivity",
-      "contactCard",
     ]) {
       expect(source).toContain(`${section}: false`);
     }
+    for (const section of ["about", "services", "contactCard"]) {
+      expect(source).toContain(`${section}: true`);
+    }
+    expect(source).toContain("...existingProfileData");
+    expect(source).toContain("...existingBrandColors");
+    expect(source).toContain('primary: "#52c8f5"');
     expect(source).toContain('claimStatus: "unclaimed"');
     expect(source).toContain("publicDiscoveryEnabled: false");
     expect(source).toContain('status: "active"');
@@ -83,6 +110,129 @@ describe("Precision Aerial production profile contract", () => {
     expect(source).not.toMatch(/\b(phone|address):\s*["'`]/i);
     expect(source).not.toContain('verificationStatus: "approved"');
     expect(source).not.toContain("verifiedBadge: true");
+  });
+
+  it("migrates only the exact v1 system seed and preserves every customized profile field", () => {
+    const v1Sections = {
+      about: false,
+      rolesAndBadges: false,
+      stats: false,
+      services: false,
+      marketplaceListings: false,
+      reviews: false,
+      communityActivity: false,
+      contactCard: false,
+    };
+    const v1Profile = {
+      displayName: PRECISION_AERIAL_BUSINESS_NAME,
+      roleContext: "content_creator",
+      headline: "Drone photo and video in Pensacola.",
+      contentBlocks: PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
+      ctaConfig: {
+        primary: {
+          label: "Direct Connect",
+          kind: "message",
+          value: "/direct-connect",
+        },
+      },
+      seoMeta: {
+        title: "Precision Aerial Services | Pensacola Drone Photo and Video",
+        description:
+          "See aerial photo and video work from Precision Aerial Services in Pensacola and send a request through TradeScout Direct Connect.",
+      },
+    };
+
+    expect(isPrecisionAerialV1SystemSeed(v1Profile, { profileSections: v1Sections })).toBe(true);
+    const migrated = resolvePrecisionAerialProfileSeedFields(v1Profile, {
+      profileSections: v1Sections,
+    });
+    expect(migrated.contentBlocks).toEqual(PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS);
+    expect(migrated.seoMeta).toMatchObject({
+      imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
+      faviconUrl: "/images/profiles/precision-aerial/logo.jpg",
+    });
+
+    const customizedProfile = {
+      ...v1Profile,
+      headline: "Owner-written headline",
+      contentBlocks: [
+        { type: "siteTemplate", data: { id: "default" } },
+        { type: "custom", data: { body: "Owner-authored block" } },
+      ],
+      seoMeta: {
+        title: "Owner SEO title",
+        description: "Owner SEO description",
+        imageUrl: "/owner-image.jpg",
+      },
+      ctaConfig: {
+        primary: {
+          label: "Owner CTA",
+          kind: "message",
+          value: "/direct-connect",
+        },
+      },
+    };
+    expect(isPrecisionAerialV1SystemSeed(customizedProfile, { profileSections: v1Sections })).toBe(
+      false
+    );
+    const preserved = resolvePrecisionAerialProfileSeedFields(customizedProfile, {
+      profileSections: v1Sections,
+    });
+    expect(preserved).toEqual(customizedProfile);
+
+    expect(
+      isPrecisionAerialV1SystemSeed(v1Profile, {
+        profileSections: { ...v1Sections, reviews: true },
+      })
+    ).toBe(false);
+    expect(
+      isPrecisionAerialV1SystemSeed(
+        {
+          ...v1Profile,
+          seoMeta: { ...v1Profile.seoMeta, title: "Admin SEO title" },
+        },
+        { profileSections: v1Sections }
+      )
+    ).toBe(false);
+  });
+
+  it("fills missing Cameron palette defaults without overwriting profile data or color edits", () => {
+    const freshProfile = resolvePrecisionAerialProfileSeedFields(null, {});
+    expect(freshProfile.contentBlocks).toEqual(PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS);
+    expect(freshProfile.headline).toBe("Drone photo and video in Pensacola.");
+
+    const freshBusiness = mergePrecisionAerialBusinessProfileData(null);
+    expect(freshBusiness).toMatchObject({
+      category: "Drone photo and video",
+      tradePartner: false,
+      brandColors: {
+        primary: "#52c8f5",
+        background: "#05070a",
+        surface: "#101820",
+      },
+    });
+
+    const merged = mergePrecisionAerialBusinessProfileData({
+      category: "Owner category",
+      tradePartner: true,
+      ownerField: "keep-me",
+      brandColors: {
+        primary: "#123456",
+        surface: "#222222",
+      },
+    });
+
+    expect(merged).toMatchObject({
+      category: "Owner category",
+      tradePartner: true,
+      ownerField: "keep-me",
+      brandColors: {
+        primary: "#123456",
+        surface: "#222222",
+        background: "#05070a",
+        accent: "#9de6ff",
+      },
+    });
   });
 
   it("grants Direct Connect authority only for the exact slug, source, and owner match", () => {
@@ -150,9 +300,9 @@ describe("Precision Aerial production profile contract", () => {
     ).toBe(false);
   });
 
-  it("runs through the non-fatal startup wrapper and allows approved profile media", () => {
+  it("runs through the non-fatal startup wrapper and uses first-party media without an embed", () => {
     const entry = read("server/index.ts");
-    const theme = read("client/src/pages/profile-sites/VideographerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
 
     expect(entry).toContain(
       'import { provisionPrecisionAerialProfile } from "./services/precisionAerialProfileProvisioning"'
@@ -164,10 +314,17 @@ describe("Precision Aerial production profile contract", () => {
     expect(entry).toContain('"https://www.instagram.com"');
     expect(entry).toContain('"media-src": [');
     expect(entry).toContain('"https://www.thetradescout.com"');
-    expect(theme).toContain("instagramEmbedLoaded");
-    expect(theme).toContain("Playing loads Instagram content and shares browser data with Meta.");
-    expect(theme).toContain('referrerPolicy="no-referrer"');
-    expect(theme).not.toContain('loading="eager"');
+    expect(theme).toContain("safeFeaturedWorkUrl");
+    expect(theme).toContain("href={safeFeaturedWorkUrl}");
+    expect(theme).not.toContain("<iframe");
+    expect(
+      fs.existsSync(
+        path.resolve(
+          process.cwd(),
+          "client/public/images/profiles/precision-aerial/real-estate-aerial-01.jpg"
+        )
+      )
+    ).toBe(true);
   });
 
   it("discloses TradeScout custody before and after a pre-owner request", () => {
@@ -176,12 +333,8 @@ describe("Precision Aerial production profile contract", () => {
     const publicRoute = read("server/routes/profiles.ts");
 
     expect(expressRoute).toContain('deliveryCustody: "business" | "tradescout_pending_owner"');
-    expect(expressRoute).toContain(
-      'delivered: target.deliveryCustody === "business"'
-    );
-    expect(expressRoute).toContain(
-      "TradeScout received your request for ${target.businessName}"
-    );
+    expect(expressRoute).toContain('delivered: target.deliveryCustody === "business"');
+    expect(expressRoute).toContain("TradeScout received your request for ${target.businessName}");
     expect(panel).toContain(
       "TradeScout is receiving requests for ${businessName} until the owner connects this profile."
     );
@@ -191,11 +344,9 @@ describe("Precision Aerial production profile contract", () => {
     expect(panel).toContain(
       "TradeScout is receiving requests for ${businessName} until the owner connects this profile."
     );
-    expect(read("client/src/pages/profile-sites/VideographerProfileTheme.tsx")).toContain(
-      "This profile is not yet connected to its owner. TradeScout holds requests until"
+    expect(read("client/src/pages/profile-sites/DefaultProfileTheme.tsx")).toContain(
+      "TradeScout securely holds requests until this business connects its profile."
     );
-    expect(publicRoute).toContain(
-      "deliveryCustody: directConnectDeliveryCustody"
-    );
+    expect(publicRoute).toContain("deliveryCustody: directConnectDeliveryCustody");
   });
 });

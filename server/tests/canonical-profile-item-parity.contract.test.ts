@@ -44,6 +44,7 @@ describe("canonical profile item parity", () => {
     const localService = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const proFab = read("client/src/pages/profile-sites/ProFabProfileTheme.tsx");
     const videographer = read("client/src/pages/profile-sites/VideographerProfileTheme.tsx");
+    const defaultProfile = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
 
     expect(profileView).toContain("const profileItems = data.profileItems || {};");
     expect(profileView.match(/<PublicProfileItems/g)?.length).toBe(6);
@@ -52,7 +53,14 @@ describe("canonical profile item parity", () => {
         ?.length
     ).toBe(6);
     expect(profileView).toContain("profileItems={");
-    for (const theme of [wholesaler, autoGlass, localService, proFab, videographer]) {
+    for (const theme of [
+      wholesaler,
+      autoGlass,
+      localService,
+      proFab,
+      videographer,
+      defaultProfile,
+    ]) {
       expect(theme).toContain("profileItems?: ReactNode");
       expect(theme).toContain("{profileItems}");
     }

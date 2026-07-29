@@ -14,11 +14,13 @@ import {
 import { db } from "../db";
 import { and, asc, desc, eq, exists, inArray, isNull, like, ne, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 
 export type PublicBusinessRecord = {
   id: string;
   name: string;
   categories: string[];
+  services: string[];
   serviceAreas: string[];
   contactEmail?: string;
   contactPhone?: string;
@@ -69,6 +71,78 @@ function isMissingPublicDiscoveryEnabledColumn(error: any): boolean {
 
 function normalizeCountyIds(countyIds: string[] | undefined): string[] {
   return Array.from(new Set((countyIds || []).filter(Boolean).map((c) => String(c).trim())));
+}
+
+function normalizePublicText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().slice(0, maxLength);
+  return normalized || undefined;
+}
+
+function normalizePublicDiscoveryLabel(value: unknown, maxLength: number): string | undefined {
+  const normalized = sanitizePublicDiscoveryText(value, maxLength);
+  return normalized || undefined;
+}
+
+function normalizePublicDiscoveryList(
+  value: unknown,
+  maxItems: number,
+  maxItemLength: number
+): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const item of value) {
+    const text = normalizePublicDiscoveryLabel(item, maxItemLength);
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    normalized.push(text);
+    if (normalized.length >= maxItems) break;
+  }
+  return normalized;
+}
+
+function normalizePublicCity(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const raw = value.trim();
+  if (!raw || raw.length > 100 || !/^[\p{L}\p{M} .'-]+$/u.test(raw)) return undefined;
+  const sanitized = sanitizePublicDiscoveryText(raw, 100);
+  return sanitized === raw ? sanitized : undefined;
+}
+
+function normalizePublicStateCode(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const raw = value.trim();
+  return raw && /^[a-z]{2}$/i.test(raw) ? raw.toUpperCase() : undefined;
+}
+
+export function buildPublicBusinessPresentationFields(
+  profileData: Business["profileData"] | null | undefined,
+  isTradePartner: boolean,
+  publicLocationEnabled = profileData?.publicLocationEnabled !== false
+): Pick<PublicBusinessRecord, "categories" | "services"> &
+  Partial<Pick<PublicBusinessRecord, "address" | "city" | "stateCode" | "zipCode">> {
+  const category = normalizePublicDiscoveryLabel(profileData?.category, 180);
+  const base = {
+    categories: category ? [category] : [],
+    services: normalizePublicDiscoveryList(profileData?.services, 50, 180),
+  };
+
+  if (!publicLocationEnabled) return base;
+
+  const city = normalizePublicCity(profileData?.city);
+  const stateCode = normalizePublicStateCode(profileData?.stateCode);
+  const address = isTradePartner ? normalizePublicText(profileData?.address, 240) : undefined;
+  const zipCode = isTradePartner ? normalizePublicText(profileData?.zipCode, 32) : undefined;
+
+  return {
+    ...base,
+    ...(city ? { city } : {}),
+    ...(stateCode ? { stateCode } : {}),
+    ...(address ? { address } : {}),
+    ...(zipCode ? { zipCode } : {}),
+  };
 }
 
 export class BusinessRepository {
@@ -222,7 +296,6 @@ export class BusinessRepository {
       .where(eq(businessCounties.businessId, businessId))
       .orderBy(asc(counties.name), asc(counties.stateCode));
 
-    const categories = business.profileData?.category ? [business.profileData.category] : [];
     const publicContactEnabled = business.profileData?.publicContactEnabled !== false;
     const publicLocationEnabled = business.profileData?.publicLocationEnabled !== false;
     const publicWebsiteEnabled = business.profileData?.publicWebsiteEnabled !== false;
@@ -233,11 +306,16 @@ export class BusinessRepository {
       ? business.profileData?.phone || undefined
       : undefined;
     const isTradePartner = business.profileData?.tradePartner === true;
+    const publicPresentation = buildPublicBusinessPresentationFields(
+      business.profileData,
+      isTradePartner,
+      publicLocationEnabled
+    );
 
     return {
       id: business.id,
       name: business.name,
-      categories,
+      ...publicPresentation,
       serviceAreas: Array.from(
         new Set(
           countyRows
@@ -260,14 +338,6 @@ export class BusinessRepository {
       // after a visitor clicks the profile CTA and chooses Call.
       ...(isTradePartner && publicWebsiteEnabled
         ? { website: business.profileData?.website || undefined }
-        : {}),
-      ...(isTradePartner && publicLocationEnabled
-        ? {
-            address: business.profileData?.address || undefined,
-            city: business.profileData?.city || undefined,
-            stateCode: business.profileData?.stateCode || undefined,
-            zipCode: business.profileData?.zipCode || undefined,
-          }
         : {}),
     };
   }

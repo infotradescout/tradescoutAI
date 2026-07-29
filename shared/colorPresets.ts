@@ -32,6 +32,15 @@ export interface ColorScheme {
   border?: string;
 }
 
+export type ProfileBrandColors = {
+  primary: string;
+  primaryDark: string;
+  accent: string;
+  secondary: string;
+  background: string;
+  surface: string;
+};
+
 export const COLOR_PRESETS: Record<string, ColorScheme> = {
   default: {
     primary: "#f97316", // ts-orange (matches landing)
@@ -47,7 +56,7 @@ export const COLOR_PRESETS: Record<string, ColorScheme> = {
   warm: {
     primary: "#dc2626", // Red
     secondary: "#f59e0b", // Amber
-    background: "#1c1917ff", // Warm Dark
+    background: "#1c1917", // Warm Dark
     text: "#fef3c7", // Warm Light
     accent: "#fb923c", // Orange
     border: "#292524", // Warm Border
@@ -111,6 +120,31 @@ export const COLOR_PRESETS: Record<string, ColorScheme> = {
 };
 
 export const DEFAULT_COLOR_SCHEME = COLOR_PRESETS.default;
+
+const isSixDigitHex = (color: unknown): color is string =>
+  typeof color === "string" && /^#[0-9A-F]{6}$/i.test(color);
+
+/**
+ * Resolve a palette into the six-digit tokens accepted by profile persistence.
+ * A preset without an explicit surface uses that preset's own background.
+ */
+export function getProfileBrandColorsForPreset(presetName: string): ProfileBrandColors {
+  const fallback = COLOR_PRESETS.default;
+  const preset = COLOR_PRESETS[presetName] || fallback;
+  const primary = isSixDigitHex(preset.primary) ? preset.primary : fallback.primary;
+  const secondary = isSixDigitHex(preset.secondary) ? preset.secondary : fallback.secondary;
+  const background = isSixDigitHex(preset.background) ? preset.background : fallback.background;
+  const surfaceCandidate = preset.surface || preset.background;
+
+  return {
+    primary,
+    primaryDark: primary,
+    accent: isSixDigitHex(preset.accent) ? preset.accent : primary,
+    secondary,
+    background,
+    surface: isSixDigitHex(surfaceCandidate) ? surfaceCandidate : background,
+  };
+}
 
 /**
  * Get color scheme from user preferences or default

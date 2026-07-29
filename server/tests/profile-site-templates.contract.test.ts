@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyInventoryLeadImageOverrides,
+  getProfileSiteTemplateMeta,
   listSelectableProfileSiteTemplates,
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
@@ -29,6 +30,22 @@ describe("profile site templates", () => {
         tradePartner: true,
       })
     ).toBe("electrician-solo");
+  });
+
+  it("treats default as the canonical launch profile without selling it as an upgrade", () => {
+    expect(
+      resolveSiteTemplateId({
+        slug: "new-business",
+        contentBlocks: [{ type: "siteTemplate", data: { id: "default" } }],
+      })
+    ).toBe("default");
+    expect(listSelectableProfileSiteTemplates().some((entry) => entry.id === "default")).toBe(
+      false
+    );
+    expect(getProfileSiteTemplateMeta("default")).toMatchObject({
+      label: "Default profile",
+      selectable: false,
+    });
   });
 
   it("seeds known branded slugs when no block exists", () => {

@@ -33,19 +33,25 @@ describe("public profile human-language contract", () => {
 
   it("shows useful profile facts without internal labels or fake zero-value stats", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const defaultTheme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
 
     expect(profileView).toContain('const profileTypeLabel = business ? "Local business"');
     expect(profileView).toContain("const quickFacts = [");
-    expect(profileView).toContain("New photos are on the way.");
-    expect(profileView).toContain("Ask about working together");
-    expect(profileView).toContain("Send a private request");
-    expect(profileView).toContain("after they accept");
-    expect(profileView).not.toContain("after the business accepts");
-    expect(profileView).not.toContain("Website Profile");
-    expect(profileView).not.toContain("Business Snapshot");
-    expect(profileView).not.toContain("None listed");
-    expect(profileView).not.toContain("Super Admin oversight is active");
-    expect(profileView).not.toContain("TradeScout activity");
+    expect(profileView).toContain("stats={quickFacts}");
+    expect(defaultTheme).toContain("Choose a service to start a private request");
+    expect(defaultTheme).toContain("Your details stay private until the business responds.");
+    expect(defaultTheme).toContain(
+      "TradeScout securely holds requests until this business connects its profile."
+    );
+    expect(defaultTheme).toContain("businessInitials(businessName)");
+    for (const source of [profileView, defaultTheme]) {
+      expect(source).not.toContain("after the business accepts");
+      expect(source).not.toContain("Website Profile");
+      expect(source).not.toContain("Business Snapshot");
+      expect(source).not.toContain("None listed");
+      expect(source).not.toContain("Super Admin oversight is active");
+      expect(source).not.toContain("TradeScout activity");
+    }
   });
 
   it("keeps paid profile themes customer-facing", () => {

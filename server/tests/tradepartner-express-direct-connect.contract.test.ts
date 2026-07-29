@@ -78,7 +78,10 @@ describe("Public-profile Express Direct Connect contract", () => {
     const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(publicProfileRoute).toContain("business.tradePartner === true && business.address");
+    expect(publicProfileRoute).toContain(
+      "business.tradePartner === true && (business.address || business.zipCode)"
+    );
+    expect(publicProfileRoute).toContain("...(business.city ? { city: business.city } : {})");
     expect(profileView).toContain("const publicBusinessAddress = business?.address?.trim()");
     expect(profileView).toContain("businessAddress={publicBusinessAddress}");
     expect(wholesalerTheme).toContain("businessAddress={businessAddress}");

@@ -60,6 +60,7 @@ describe("profile item sharing contract", () => {
     const serverEntry = read("server/index.ts");
     const profileHtml = read("server/publicProfileHtml.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const defaultTheme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const videographerTheme = read("client/src/pages/profile-sites/VideographerProfileTheme.tsx");
@@ -69,7 +70,9 @@ describe("profile item sharing contract", () => {
     expect(profileHtml).toContain('data-seo-profile-item="${itemShare.itemType}"');
     expect(profileHtml).toContain('"@type": "ImageObject"');
     expect(profileView).toContain("buildProfilePublicItemPath({");
-    expect(profileView).toContain("profile-gallery-${item.slug}");
+    expect(profileView).toContain("renderGalleryShare={(item) => (");
+    expect(defaultTheme).toContain("profile-gallery-${item.slug}");
+    expect(defaultTheme).toContain("{renderGalleryShare(item)}");
     expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
     expect(theme).toContain("buildProfilePublicItemPath({");
     expect(theme).toContain("profile-gallery-${item.slug}");

@@ -47,13 +47,15 @@ describe("public profile product-card contract", () => {
 
 describe("public profile Direct Connect entry contract", () => {
   const profile = read("client/src/pages/ProfileSiteView.tsx");
+  const defaultTheme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
   const stone = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
   const autoGlass = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
   const express = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
   const directConnect = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
   it("limits request entry to Direct Connect or Make A Request and opens call-or-form choices", () => {
-    expect(profile).toContain("Direct Connect");
+    expect(profile).toContain("onDirectConnect={openServiceDirectConnect}");
+    expect(defaultTheme).toContain("Direct Connect");
     // "Direct Connect" labels the general, no-context entry points (nav
     // references, and any button that opens the flow with no specific item
     // attached). Buttons that carry something specific forward -- a stone
@@ -66,7 +68,7 @@ describe("public profile Direct Connect entry contract", () => {
     expect(express).toContain("Call");
     expect(express).toContain("Fill out the form");
     expect(directConnect).toContain("Direct Connect");
-    for (const source of [profile, autoGlass, directConnect]) {
+    for (const source of [profile, defaultTheme, autoGlass, directConnect]) {
       expect(source).not.toContain("Make A Request");
     }
     expect(directConnect).not.toContain("Start request\n            </Button>");

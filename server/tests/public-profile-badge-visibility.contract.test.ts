@@ -11,7 +11,11 @@ describe("public profile community-verification contract", () => {
     const provisioning = read("server/services/laPlumbingProfileProvisioning.ts");
 
     expect(routes).toContain("ownerPreferences.badges?.show !== false");
-    expect(routes).toContain("ownerPreferences.profileSections?.rolesAndBadges !== false");
+    expect(routes).toContain(
+      "const profileScopedSections = readProfileSectionConfigBlock(profile.contentBlocks)"
+    );
+    expect(routes).toContain("profileScopedSections ??");
+    expect(routes).toContain("profileSections.rolesAndBadges !== false");
     expect(routes).toContain('? ["Community Builder Badge"] : []');
     expect(routes).toContain("badges: publicProfileBadges");
     expect(provisioning).toContain("show: shouldShowBadges");

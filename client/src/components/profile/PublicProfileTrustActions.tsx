@@ -30,6 +30,7 @@ type PublicProfileTrustActionsProps = {
   signInHref: string;
   hasViewerSession: boolean;
   initialRecommendationCount?: number;
+  subjectKind?: "business" | "profile";
   tone?: "light" | "dark";
   className?: string;
 };
@@ -60,6 +61,7 @@ export function PublicProfileTrustActions({
   signInHref,
   hasViewerSession,
   initialRecommendationCount = 0,
+  subjectKind = "business",
   tone = "dark",
   className,
 }: PublicProfileTrustActionsProps) {
@@ -220,7 +222,7 @@ export function PublicProfileTrustActions({
             isLight ? "text-stone-500" : "text-white/55"
           )}
         >
-          Support this business
+          Support this {subjectKind}
         </p>
 
         <button

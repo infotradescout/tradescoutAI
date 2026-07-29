@@ -44,7 +44,7 @@ describe("canonical public-profile trust actions", () => {
     );
     const directory = routes.slice(
       routes.indexOf("let recommendationsDirectory"),
-      routes.indexOf("const profileSections")
+      routes.indexOf("let publicProfileOffers")
     );
 
     expect(binding).toContain("eq(contractors.userId, normalizedOwnerUserId)");
@@ -85,6 +85,7 @@ describe("canonical public-profile trust actions", () => {
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
       "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
+      "client/src/pages/profile-sites/DefaultProfileTheme.tsx",
     ].map(read);
 
     expect(actions).toContain(">Like</span>");
@@ -98,7 +99,7 @@ describe("canonical public-profile trust actions", () => {
     expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(5);
     themes.forEach((theme) => {
       expect(theme).toContain("trustActions: ReactNode");
-      expect(theme).toContain("{trustActions}");
+      expect(theme).toMatch(/\{(?:resolvedTrustActions|trustActions)\}/);
     });
   });
 

@@ -11,6 +11,7 @@ describe("custom-domain public Profile navigation contract", () => {
   const expressPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
   const manageChrome = read("client/src/components/profile/ProfileSiteManageChrome.tsx");
   const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+  const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
 
   it("qualifies existing platform-owned Profile actions against the platform origin", () => {
     expect(profileView).toContain("const directConnectPath =");
@@ -19,14 +20,15 @@ describe("custom-domain public Profile navigation contract", () => {
     expect(bookingDialog).toContain(
       "qualifyPublicProfileItemDestination(checkoutPath, platformBaseHref)"
     );
-    expect(profileView).toContain("const contractorHref = entry.contractor?.slug");
+    expect(profileView).toContain("const subjectHref = entry.contractor?.slug");
+    expect(profileView).toContain("subjectHref,");
     expect(profileView).toContain("platformBaseHref={platformBaseHref}");
   });
 
   it("uses document navigation after an existing action becomes cross-host", () => {
     expect(bookingDialog).toContain("window.location.assign(signInHref)");
     expect(bookingDialog).toContain("window.location.assign(qualifyPublicProfileItemDestination(");
-    expect(profileView).toContain("requiresDocumentNavigation(preScoutSignInHref)");
+    expect(trustActions).toContain("window.location.assign(signInHref)");
     expect(manageChrome).toContain("requiresDocumentNavigation(editorHref)");
     expect(wholesalerTheme).toContain("window.location.assign(ctaHref)");
   });

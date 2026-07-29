@@ -7,9 +7,9 @@
  * V1 selectable gallery (anyone can pick and run):
  *   wholesaler | auto-glass | plumbing-company | electrician-solo | videographer
  *
- * `default` is an invisible runtime fallback for untemplated / legacy profiles
- * (not shown in the picker). Expansion roadmap for ~200 business-specific
- * templates: docs/reference/profile/PROFILE_SITE_TEMPLATE_TAXONOMY.md
+ * `default` is the canonical launch profile used by onboarding and by profiles
+ * that have not purchased or selected a specialized theme. It stays out of the
+ * theme picker because it is the baseline product, not an upgrade.
  *
  * HARD LAW (every template / renderer, no exceptions):
  * - Trust section is always present (PublicProfileTrustActions)
@@ -104,9 +104,10 @@ export const PROFILE_SITE_TEMPLATES: ProfileSiteTemplateMeta[] = [
   },
   {
     id: "default",
-    label: "Standard profile",
-    description: "Generic TradeScout profile when no business template is selected yet.",
-    bestFor: "Legacy or untemplated profiles",
+    label: "Default profile",
+    description:
+      "Premium landing page personalized with the business's colors, media, services, and sections.",
+    bestFor: "Every new business before an optional specialized theme upgrade",
     family: "generic",
     selectable: false,
   },

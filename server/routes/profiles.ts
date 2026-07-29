@@ -59,6 +59,11 @@ import {
   readProfileBookingConfigBlock,
   upsertProfileBookingConfigBlock,
 } from "../../shared/profileBookingConfig";
+import {
+  PROFILE_SECTION_KEYS,
+  readProfileSectionConfigBlock,
+  upsertProfileSectionConfigBlock,
+} from "../../shared/profileSectionConfig";
 import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 import { resolveProfileBookingConfig } from "../services/profileBookingConfig";
 import {
@@ -676,6 +681,49 @@ const updateProfileSchema = z.object({
   seoMeta: profileSeoSchema.optional(),
 });
 
+const profileBrandColorsSchema = z
+  .object({
+    primary: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
+    primaryDark: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
+    accent: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
+    secondary: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
+    background: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
+    surface: z
+      .string()
+      .regex(/^#[0-9a-f]{6}$/i)
+      .optional(),
+  })
+  .strict()
+  .refine((colors) => Object.keys(colors).length > 0, {
+    message: "At least one brand color is required",
+  });
+const profileSectionVisibilitySchema = z
+  .object(
+    Object.fromEntries(PROFILE_SECTION_KEYS.map((key) => [key, z.boolean().optional()])) as Record<
+      (typeof PROFILE_SECTION_KEYS)[number],
+      z.ZodOptional<z.ZodBoolean>
+    >
+  )
+  .strict()
+  .refine((sections) => Object.keys(sections).length > 0, {
+    message: "At least one section setting is required",
+  });
+
 router.get("/api/profiles", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -846,6 +894,192 @@ router.patch("/api/profiles/:id/profile-booking", isAuthenticated, async (req, r
   } catch (error: any) {
     console.error("Error updating Profile booking settings:", error);
     res.status(500).json({ message: "Failed to update Profile booking settings" });
+  }
+});
+
+router.get("/api/profiles/:id/profile-sections", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const profile = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const owner = await storage.getUser(profile.ownerUserId);
+    if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+    const legacySections =
+      owner.preferences?.profileSections && typeof owner.preferences.profileSections === "object"
+        ? owner.preferences.profileSections
+        : {};
+    return res.json({
+      profileId,
+      profileSections: readProfileSectionConfigBlock(profile.contentBlocks) ?? legacySections,
+    });
+  } catch (error: any) {
+    console.error("Error fetching Profile section settings:", error);
+    return res.status(500).json({ message: "Failed to fetch Profile section settings" });
+  }
+});
+
+router.patch("/api/profiles/:id/profile-sections", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const canManageAnyProfile = isStaffProfileManager(req);
+    const profile = canManageAnyProfile
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const owner = await storage.getUser(profile.ownerUserId);
+    if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+    const legacySections =
+      owner.preferences?.profileSections && typeof owner.preferences.profileSections === "object"
+        ? owner.preferences.profileSections
+        : {};
+    const updates = profileSectionVisibilitySchema.parse(req.body);
+    const contentBlocks = upsertProfileSectionConfigBlock(
+      profile.contentBlocks,
+      updates,
+      legacySections
+    );
+    if (canManageAnyProfile) {
+      await storage.updateProfileById(profileId, { contentBlocks } as any);
+    } else {
+      await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
+    }
+    return res.json({
+      message: "Profile sections updated",
+      profileId,
+      profileSections: readProfileSectionConfigBlock(contentBlocks),
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid profile sections", errors: error.errors });
+    }
+    console.error("Error updating Profile section settings:", error);
+    return res.status(500).json({ message: "Failed to update Profile section settings" });
+  }
+});
+
+router.get("/api/profiles/:id/brand-colors", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const canManageAnyProfile = isStaffProfileManager(req);
+    const profile = canManageAnyProfile
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    if (!profile.businessId) return res.json({ profileId, businessId: null, brandColors: null });
+
+    const [business] = await db
+      .select({
+        id: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        profileData: businesses.profileData,
+      })
+      .from(businesses)
+      .where(eq(businesses.id, profile.businessId))
+      .limit(1);
+    if (!business) return res.status(404).json({ message: "Business not found" });
+    if (
+      !canManageAnyProfile &&
+      String(business.ownerUserId || "") !== String(profile.ownerUserId || "")
+    ) {
+      return res.status(403).json({ message: "Not authorized to manage this business" });
+    }
+
+    const profileData =
+      business.profileData && typeof business.profileData === "object"
+        ? (business.profileData as Record<string, any>)
+        : {};
+    const brandColors =
+      profileData.brandColors && typeof profileData.brandColors === "object"
+        ? profileData.brandColors
+        : null;
+    return res.json({ profileId, businessId: business.id, brandColors });
+  } catch (error: any) {
+    console.error("Error fetching profile brand colors:", error);
+    return res.status(500).json({ message: "Failed to fetch profile brand colors" });
+  }
+});
+
+router.patch("/api/profiles/:id/brand-colors", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const canManageAnyProfile = isStaffProfileManager(req);
+    const profile = canManageAnyProfile
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+    if (!profile.businessId) {
+      return res.status(409).json({ message: "This profile is not linked to a business" });
+    }
+
+    const updates = profileBrandColorsSchema.parse(req.body);
+    const [business] = await db
+      .select()
+      .from(businesses)
+      .where(eq(businesses.id, profile.businessId))
+      .limit(1);
+    if (!business) return res.status(404).json({ message: "Business not found" });
+    if (
+      !canManageAnyProfile &&
+      String(business.ownerUserId || "") !== String(profile.ownerUserId || "")
+    ) {
+      return res.status(403).json({ message: "Not authorized to manage this business" });
+    }
+
+    const existingProfileData =
+      business.profileData && typeof business.profileData === "object"
+        ? (business.profileData as Record<string, any>)
+        : {};
+    const existingBrandColors =
+      existingProfileData.brandColors && typeof existingProfileData.brandColors === "object"
+        ? (existingProfileData.brandColors as Record<string, any>)
+        : {};
+    const brandColors = { ...existingBrandColors, ...updates };
+    const [updated] = await db
+      .update(businesses)
+      .set({
+        profileData: {
+          ...existingProfileData,
+          brandColors,
+        },
+        updatedAt: new Date(),
+      } as any)
+      .where(
+        canManageAnyProfile
+          ? eq(businesses.id, business.id)
+          : and(eq(businesses.id, business.id), eq(businesses.ownerUserId, profile.ownerUserId))
+      )
+      .returning({ id: businesses.id, profileData: businesses.profileData });
+    if (!updated) {
+      return res.status(canManageAnyProfile ? 404 : 409).json({
+        message: canManageAnyProfile
+          ? "Business not found"
+          : "Business ownership changed; reload before saving brand colors",
+      });
+    }
+
+    return res.json({ profileId, businessId: updated.id, brandColors });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Invalid brand colors", errors: error.errors });
+    }
+    console.error("Error updating profile brand colors:", error);
+    return res.status(500).json({ message: "Failed to update profile brand colors" });
   }
 });
 
@@ -1355,9 +1589,16 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       : null;
   const ownerPreferences =
     ownerUser.preferences && typeof ownerUser.preferences === "object" ? ownerUser.preferences : {};
+  const profileScopedSections = readProfileSectionConfigBlock(profile.contentBlocks);
+  const profileSections =
+    profileScopedSections ??
+    (profile.profileSections && typeof profile.profileSections === "object"
+      ? profile.profileSections
+      : ownerPreferences.profileSections && typeof ownerPreferences.profileSections === "object"
+        ? ownerPreferences.profileSections
+        : {});
   const ownerAllowsPublicBadges =
-    ownerPreferences.badges?.show !== false &&
-    ownerPreferences.profileSections?.rolesAndBadges !== false;
+    ownerPreferences.badges?.show !== false && profileSections.rolesAndBadges !== false;
   const publicProfileBadges = !ownerAllowsPublicBadges
     ? []
     : Array.from(
@@ -1424,6 +1665,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
         id: business.id,
         name: business.name,
         categories: business.categories || [],
+        services: business.services || [],
         serviceAreas: business.serviceAreas || [],
         tradePartner: business.tradePartner === true,
         verificationStatus: publicVerificationStatus || null,
@@ -1450,11 +1692,11 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
           request: Boolean(directConnectOwnerUserId),
           deliveryCustody: directConnectDeliveryCustody,
         },
-        ...(business.tradePartner === true && business.address
+        ...(business.city ? { city: business.city } : {}),
+        ...(business.stateCode ? { stateCode: business.stateCode } : {}),
+        ...(business.tradePartner === true && (business.address || business.zipCode)
           ? {
-              address: business.address,
-              city: business.city || undefined,
-              stateCode: business.stateCode || undefined,
+              address: business.address || undefined,
               zipCode: business.zipCode || undefined,
             }
           : {}),
@@ -1609,10 +1851,6 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     });
   }
 
-  const profileSections =
-    profile.profileSections && typeof profile.profileSections === "object"
-      ? profile.profileSections
-      : {};
   let publicProfileOffers: Array<Record<string, unknown>> = [];
   let publicHandmadeProducts: Array<Record<string, unknown>> = [];
   let publicMarketplaceListings: PublicBusinessListingCard[] = [];
@@ -1827,7 +2065,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       contentBlocks: profile.contentBlocks,
       ctaConfig: sanitizePublicCtaConfig(profile.ctaConfig),
       seoMeta: effectiveSeoMeta,
-      profileSections: profile.profileSections || null,
+      profileSections,
       profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
       siteTemplate,
       contactPolicy: {
