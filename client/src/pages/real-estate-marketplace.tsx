@@ -277,7 +277,7 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
         title="HomeScout Listings | County-First Home Listings | TradeScout"
         description="Browse HomeScout Listings by county, review active home inventory, and activate the HomeScout Listings sell flow when ready."
         keywords="homescout listings, home listings, county home listings, homes for sale, tradescout homescout listings"
-        canonical="https://www.thetradescout.com/homescout-listings"
+        canonical="https://www.thetradescout.com/exchange/real-estate"
       />
       <RealEstateMarketplaceShell>
         <CountyRequiredGate surface="homescout" allowBypass={allowBypass}>

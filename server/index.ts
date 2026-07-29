@@ -77,6 +77,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import { publicDiscoveryRouteNormalization } from "./publicDiscoveryRouteNormalization";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
@@ -1620,6 +1621,8 @@ app.use(landingContractHeaders);
                   }
                 }
               );
+
+              app.use(publicDiscoveryRouteNormalization);
 
               // 2) Serve other static files (index.html, icons, etc.)
               app.use(

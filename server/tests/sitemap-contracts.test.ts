@@ -48,6 +48,8 @@ const expectedStaticPublicRoutes = [
   "https://www.thetradescout.com/compliance",
 ];
 
+const redirectOnlyStaticRoutes = ["https://www.thetradescout.com/homescout-listings"];
+
 describe("sitemap contracts", () => {
   it("dynamic sitemap index includes the crawler-facing directory, best, and recent feeds", () => {
     const source = read("server/routes/profiles.ts");
@@ -195,11 +197,16 @@ describe("sitemap contracts", () => {
 
   it("static sitemap.xml remains a conservative canonical urlset", () => {
     const source = read("client/public/sitemap.xml");
+    const generator = read("scripts/generate-sitemap.mjs");
 
     expect(source).toContain("<urlset");
     expect(source).not.toContain("<sitemapindex");
     for (const loc of expectedStaticPublicRoutes) {
       expect(source).toContain(`<loc>${loc}</loc>`);
+    }
+    for (const loc of redirectOnlyStaticRoutes) {
+      expect(source).not.toContain(`<loc>${loc}</loc>`);
+      expect(generator).not.toContain(`{ path: '${new URL(loc).pathname}'`);
     }
   });
 

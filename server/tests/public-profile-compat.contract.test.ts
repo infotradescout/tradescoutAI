@@ -164,13 +164,14 @@ describe("public profile compatibility contracts", () => {
     expect(seoHelmet).toContain("const publicUrl = canonicalBusinessProfileUrl");
     expect(seoHelmet).toContain("`${origin}/contractors/${contractor.id}`");
     expect(seoHelmet).toContain('"@id": publicUrl');
-    expect(seoHelmet).toContain("Verified Local Provider");
+    expect(seoHelmet).not.toContain("Verified Local Provider");
+    expect(seoHelmet).not.toContain('contractor.location || "Local Area"');
 
     expect(seoLocalBusiness).toContain("canonicalBusinessProfileUrl?: string | null");
     expect(seoLocalBusiness).toContain("const publicUrl = canonicalBusinessProfileUrl");
-    expect(seoLocalBusiness).toContain("Local provider services");
     expect(seoLocalBusiness).toContain('serviceType: "Local Services"');
-    expect(seoLocalBusiness).toContain("TradeScout verification records");
+    expect(seoLocalBusiness).not.toContain("TradeScout verification records");
+    expect(seoLocalBusiness).not.toContain("Free quotes available");
     expect(scoutMatrix).toContain("Older SEO helpers now accept canonical");
   });
 });
