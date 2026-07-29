@@ -107,7 +107,17 @@ describe("public community post HTML", () => {
       'link rel="canonical" href="https://www.thetradescout.com/community/posts/post-123"'
     );
     expect(html).toContain('"@type":"SocialMediaPosting"');
+    expect(html).toContain('"interactionType":"https://schema.org/LikeAction"');
+    expect(html).toContain('"mainEntityOfPage":{"@type":"WebPage"');
     expect(html).toContain('content="read-only-global"');
+    expect(html).toContain('data-seo-community-post="post-123"');
+    expect(html).toContain("<h1>Stone delivery update</h1>");
+    expect(html).toContain("By Taylor Neighbor — verified member · Chattanooga, TN");
+    expect(html).toContain("The new natural stone delivery arrived this morning.");
+    expect(html).toContain("3 likes · 2 comments · 1 shares");
+    expect(html).toContain(
+      '<img src="https://www.thetradescout.com/uploads/community/stone-delivery.webp"'
+    );
     expect(html).not.toContain('property="og:image:width"');
     expect(html).not.toContain("private@example.com");
     expect(html).not.toContain("private moderation context");
