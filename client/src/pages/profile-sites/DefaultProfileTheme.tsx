@@ -783,8 +783,11 @@ export default function DefaultProfileTheme({
                         ) : null}
                       </>
                     );
-                    const className =
-                      "group flex min-h-20 items-center gap-4 bg-[var(--profile-surface)] p-4 text-left sm:min-h-24 sm:p-5";
+                    const fillsOddDesktopRow =
+                      services.length % 2 === 1 && index === services.length - 1;
+                    const className = `group flex min-h-20 items-center gap-4 bg-[var(--profile-surface)] p-4 text-left sm:min-h-24 sm:p-5 ${
+                      fillsOddDesktopRow ? "sm:col-span-2" : ""
+                    }`;
 
                     return showContact ? (
                       <button

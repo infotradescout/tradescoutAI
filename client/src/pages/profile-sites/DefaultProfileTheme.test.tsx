@@ -123,6 +123,9 @@ describe("DefaultProfileTheme", () => {
     expect(hero?.querySelector('[data-testid^="default-profile-service-"]')).toBeNull();
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.querySelectorAll('[data-testid^="default-profile-service-"]')).toHaveLength(5);
+    expect(
+      container.querySelector('[data-testid="default-profile-service-4"]')?.className
+    ).toContain("sm:col-span-2");
 
     act(() => {
       container
