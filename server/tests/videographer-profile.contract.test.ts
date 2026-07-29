@@ -21,6 +21,9 @@ describe("videographer public profile", () => {
     expect(profileView).toContain("galleryItems={galleryItems}");
     expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
     expect(profileView).toContain("onDirectConnect={openServiceDirectConnect}");
+    expect(profileView).toContain(
+      'siteTemplate === "videographer" && profileServiceTags.length > 0'
+    );
     expect(profileView).toContain('requestMode="service"');
     expect(profileView).toContain("initialServiceName={expressServiceContext}");
   });

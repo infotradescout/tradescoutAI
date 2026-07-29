@@ -1277,34 +1277,34 @@ export default function ProfileSiteView() {
   const explicitAboutText = readProfileBlockText("about");
   const heroAboutFallback = readProfileBlockText("hero");
   const aboutText = explicitAboutText || heroAboutFallback;
+  const profileServiceTags = contentBlocks.flatMap((block: any) => {
+    if (block?.type !== "services") return [] as string[];
+    const data = block?.data && typeof block.data === "object" ? block.data : {};
+    if (Array.isArray(data.items)) {
+      return data.items
+        .map((item: unknown) => {
+          if (typeof item === "string") return item.trim();
+          if (!item || typeof item !== "object") return "";
+          const source = item as Record<string, unknown>;
+          const candidate =
+            source.title || source.name || source.label || source.description || source.text;
+          return typeof candidate === "string" ? candidate.trim() : "";
+        })
+        .filter((item: string) => item.length > 0);
+    }
+    if (typeof data.text === "string") {
+      return data.text
+        .split(/\n|,|\u2022|- /g)
+        .map((item: string) => item.trim())
+        .filter((item: string) => item.length > 0);
+    }
+    return [] as string[];
+  });
   const serviceTags = Array.from(
     new Set(
-      [
-        ...publicCategories,
-        ...contentBlocks.flatMap((block: any) => {
-          if (block?.type !== "services") return [] as string[];
-          const data = block?.data && typeof block.data === "object" ? block.data : {};
-          if (Array.isArray(data.items)) {
-            return data.items
-              .map((item: unknown) => {
-                if (typeof item === "string") return item.trim();
-                if (!item || typeof item !== "object") return "";
-                const source = item as Record<string, unknown>;
-                const candidate =
-                  source.title || source.name || source.label || source.description || source.text;
-                return typeof candidate === "string" ? candidate.trim() : "";
-              })
-              .filter((item: string) => item.length > 0);
-          }
-          if (typeof data.text === "string") {
-            return data.text
-              .split(/\n|,|\u2022|- /g)
-              .map((item: string) => item.trim())
-              .filter((item: string) => item.length > 0);
-          }
-          return [] as string[];
-        }),
-      ]
+      (siteTemplate === "videographer" && profileServiceTags.length > 0
+        ? profileServiceTags
+        : [...publicCategories, ...profileServiceTags])
         .map((item) => sanitizePublicDiscoveryText(item, 240))
         .filter((item) => item.length > 0)
     )
