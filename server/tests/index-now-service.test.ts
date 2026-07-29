@@ -43,7 +43,7 @@ describe("IndexNow publication service", () => {
     });
   });
 
-  it("stays disabled when no valid production key is configured", async () => {
+  it("stays disabled when an explicitly supplied key is invalid", async () => {
     const fetchImpl = vi.fn();
     await expect(
       submitIndexNowUrls(["/business/jw-stone"], {
