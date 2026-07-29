@@ -683,7 +683,11 @@ function buildJsonLd(
     .map((value) => cleanPublicProfileText(value, 120))
     .filter(Boolean)
     .slice(0, 5);
-  const publicServiceAreas = (profile.business?.serviceAreas || [])
+  const configuredServiceAreas =
+    profile.profile.slug === "jw-stone" && profile.business?.city
+      ? [[profile.business.city, profile.business.stateCode].filter(Boolean).join(", ")]
+      : profile.business?.serviceAreas || [];
+  const publicServiceAreas = configuredServiceAreas
     .map((value) => cleanPublicProfileText(value, 160))
     .filter(Boolean)
     .slice(0, 10);
@@ -958,10 +962,15 @@ export async function buildPublicProfileHtml({
   const displayName =
     cleanPublicProfileText(data.business?.name?.trim() || data.profile.displayName, 200) ||
     "TradeScout public profile";
+  const profileUrl = resolveProfileUrl(data, origin);
+  const profileInventoryCategories = inventoryCategoriesForProfile(
+    data.profile.slug,
+    data.profile.contentBlocks
+  );
   const inventoryItemShare = resolveProfileItemShareMetadata({
     profileSlug: data.profile.slug,
     profileName: displayName,
-    profileUrl: resolveProfileUrl(data, origin),
+    profileUrl,
     assetOrigin: origin,
     contentBlocks: data.profile.contentBlocks,
     itemSlug,
@@ -969,16 +978,16 @@ export async function buildPublicProfileHtml({
   });
   const galleryItemShare = createProfileGalleryItemShareMetadata({
     profileName: displayName,
-    profileUrl: resolveProfileUrl(data, origin),
+    profileUrl,
     assetOrigin: origin,
     contentBlocks: data.profile.contentBlocks,
     itemSlug: gallerySlug,
   });
   const categoryShare = createProfileInventoryCategoryShareMetadata({
     profileName: displayName,
-    profileUrl: resolveProfileUrl(data, origin),
+    profileUrl,
     assetOrigin: origin,
-    categories: inventoryCategoriesForProfile(data.profile.slug, data.profile.contentBlocks),
+    categories: profileInventoryCategories,
     categorySlug,
     publicRouteContentBlocks: data.profile.contentBlocks,
   });
@@ -1144,11 +1153,58 @@ export async function buildPublicProfileHtml({
     .filter(Boolean)
     .slice(0, 6)
     .join(", ");
-  const areasSummary = (businessRecord?.serviceAreas || [])
+  const configuredAreas =
+    data.profile.slug === "jw-stone" && businessRecord?.city
+      ? [[businessRecord.city, businessRecord.stateCode].filter(Boolean).join(", ")]
+      : businessRecord?.serviceAreas || [];
+  const areasSummary = configuredAreas
     .map((value) => cleanPublicProfileText(value, 160))
     .filter(Boolean)
     .slice(0, 8)
     .join(", ");
+  const inventoryCategories = listProfileInventoryCategories(
+    profileInventoryCategories,
+    data.profile.contentBlocks
+  ).filter((category) => category.indexable);
+  const inventoryItems = listProfileInventoryItems(profileInventoryCategories);
+  const categoryLinks = inventoryCategories
+    .map((category) => {
+      const url = buildProfilePublicCategoryUrl({
+        profileUrl,
+        categorySlug: category.slug,
+        contentBlocks: data.profile.contentBlocks,
+      });
+      return url
+        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} inventory</a> — ${category.itemCount} current ${category.itemCount === 1 ? "selection" : "selections"}</li>`
+        : "";
+    })
+    .filter(Boolean)
+    .join("");
+  const priorityItemSlugs =
+    data.profile.slug === "jw-stone"
+      ? ["taj-mahal", "cristallo", "blue-goias", "blue-dunes", "rhino-white", "titanium-leathered"]
+      : [];
+  const featuredInventoryItems = [
+    ...priorityItemSlugs
+      .map((slug) => inventoryItems.find((item) => item.slug === slug))
+      .filter((item): item is (typeof inventoryItems)[number] => Boolean(item)),
+    ...inventoryItems.filter((item) => !priorityItemSlugs.includes(item.slug)),
+  ].slice(0, 12);
+  const inventoryLinks = featuredInventoryItems
+    .map((item) => {
+      const url = buildProfilePublicItemUrl({
+        profileUrl,
+        itemType: "inventory",
+        itemSlug: item.slug,
+        contentBlocks: data.profile.contentBlocks,
+      });
+      const location = data.profile.slug === "jw-stone" ? " in Pensacola, FL" : "";
+      return url
+        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.name)}${escapeHtml(location)}</a>${item.category ? ` — ${escapeHtml(item.category)}` : ""}</li>`
+        : "";
+    })
+    .filter(Boolean)
+    .join("");
   const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
   const itemSummary = itemShare
     ? `<section data-seo-profile-item="${itemShare.itemType}">
@@ -1182,6 +1238,8 @@ export async function buildPublicProfileHtml({
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
+    ${categoryLinks ? `<section><h2>Shop natural stone by material</h2><ul>${categoryLinks}</ul></section>` : ""}
+    ${inventoryLinks ? `<section><h2>Featured stone inventory</h2><ul>${inventoryLinks}</ul></section>` : ""}
     ${bookingSummary ? `<p>${escapeHtml(bookingSummary)}</p>` : ""}
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
     <p>Send a private request when you are ready. Contact details stay private until both sides choose to connect.</p>
