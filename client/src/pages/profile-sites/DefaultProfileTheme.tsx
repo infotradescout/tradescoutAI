@@ -39,6 +39,7 @@ type SocialLink = {
 type DefaultProfileThemeProps = {
   businessName: string;
   operatorName?: string;
+  presentationVariant?: "classic" | "first-deliverable";
   profileKind?: "business" | "community";
   categoryLabel?: string;
   locationLabel?: string;
@@ -140,6 +141,16 @@ function businessInitials(name: string): string {
     .join("");
 }
 
+function samePublicCopy(first: string | undefined, second: string | undefined): boolean {
+  const normalize = (value: string | undefined) =>
+    String(value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  const normalizedFirst = normalize(first);
+  return normalizedFirst.length > 0 && normalizedFirst === normalize(second);
+}
+
 function safePublicUrl(value: string | undefined, allowRelative = false): string | undefined {
   const candidate = String(value || "").trim();
   if (!candidate || /[\r\n\\]/.test(candidate)) return undefined;
@@ -157,6 +168,7 @@ function safePublicUrl(value: string | undefined, allowRelative = false): string
 export default function DefaultProfileTheme({
   businessName,
   operatorName,
+  presentationVariant = "classic",
   profileKind = "business",
   categoryLabel,
   locationLabel,
@@ -237,8 +249,16 @@ export default function DefaultProfileTheme({
   const remainingGallery = safeGallery.filter(
     (item) => safePublicUrl(item.imageUrl, true) !== safeHeroImageUrl
   );
-  const visibleGallery =
-    remainingGallery.length > 0 ? remainingGallery : safeGallery.length > 1 ? safeGallery : [];
+  const firstDeliverable = presentationVariant === "first-deliverable";
+  const visibleGallery = firstDeliverable
+    ? safeGallery.length > 1
+      ? safeGallery
+      : remainingGallery
+    : remainingGallery.length > 0
+      ? remainingGallery
+      : safeGallery.length > 1
+        ? safeGallery
+        : [];
   const custodyText =
     deliveryCustody === "tradescout_pending_owner"
       ? "TradeScout securely holds requests until this business connects its profile."
@@ -252,6 +272,13 @@ export default function DefaultProfileTheme({
   useEffect(() => setHeroImageFailed(false), [safeHeroImageUrl]);
   const showLogo = Boolean(safeLogoUrl) && !logoFailed;
   const showHeroImage = Boolean(safeHeroImageUrl) && !heroImageFailed;
+  const heroForeground = showHeroImage ? "#ffffff" : foreground;
+  const heroMuted = rgba(heroForeground === "#ffffff" ? "#ffffff" : "#111418", 0.7);
+  const themeVariables = {
+    ...variables,
+    "--profile-hero-fg": heroForeground,
+    "--profile-hero-muted": heroMuted,
+  } as CSSProperties;
   const visibleRecommendations = recommendations.filter((recommendation) =>
     recommendationMode === "received"
       ? recommendation.recommendationType === "positive"
@@ -263,229 +290,438 @@ export default function DefaultProfileTheme({
   return (
     <main
       className="overflow-hidden bg-[var(--profile-bg)] text-[var(--profile-fg)]"
-      style={variables}
+      style={firstDeliverable ? themeVariables : variables}
       data-testid="default-profile-theme"
     >
-      <header className="relative z-20 border-b border-[var(--profile-line)]">
-        <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            {showLogo && safeLogoUrl ? (
-              <SafeProfileImg
-                src={safeLogoUrl}
-                alt={`${businessName} logo`}
-                className="h-11 w-11 shrink-0 rounded-full border border-[var(--profile-line)] object-cover"
-                onExhausted={() => setLogoFailed(true)}
-              />
-            ) : (
-              <span
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black"
-                style={{
-                  color: readableText(colors.primary),
-                  background: colors.primary,
-                }}
-                aria-hidden
-              >
-                {businessInitials(businessName)}
-              </span>
-            )}
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black tracking-[-0.02em] sm:text-base">
-                {businessName}
-              </p>
-              {operatorName || locationLabel ? (
-                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--profile-muted)]">
-                  {operatorName ? <span className="truncate">{operatorName}</span> : null}
-                  {operatorName && locationLabel ? <span aria-hidden>·</span> : null}
-                  {locationLabel ? (
-                    <span className="inline-flex min-w-0 items-center gap-1">
-                      <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-                      <span className="truncate">{locationLabel}</span>
-                    </span>
+      {firstDeliverable ? (
+        <section
+          className="relative isolate flex min-h-[700px] flex-col overflow-hidden sm:min-h-[760px] lg:min-h-[820px]"
+          data-testid="default-profile-hero"
+          style={
+            showHeroImage
+              ? undefined
+              : {
+                  background: `radial-gradient(circle at 82% 18%, ${rgba(
+                    colors.primary,
+                    0.36
+                  )}, transparent 34%), linear-gradient(145deg, ${colors.surface}, ${
+                    colors.background
+                  })`,
+                }
+          }
+        >
+          {showHeroImage && safeHeroImageUrl ? (
+            <SafeProfileImg
+              src={safeHeroImageUrl}
+              alt={heroImageAlt || `${businessName} featured image`}
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="eager"
+              onExhausted={() => setHeroImageFailed(true)}
+            />
+          ) : (
+            <div
+              className="absolute inset-0"
+              data-testid="default-profile-brand-hero"
+              aria-hidden
+            />
+          )}
+
+          <div
+            className="absolute inset-0"
+            style={{
+              background: showHeroImage
+                ? `linear-gradient(90deg, ${rgba(FALLBACK_COLORS.background, 0.96)} 0%, ${rgba(
+                    FALLBACK_COLORS.background,
+                    0.82
+                  )} 42%, ${rgba(FALLBACK_COLORS.background, 0.32)} 72%, ${rgba(
+                    FALLBACK_COLORS.background,
+                    0.54
+                  )} 100%), linear-gradient(to top, ${rgba(
+                    FALLBACK_COLORS.background,
+                    0.88
+                  )}, transparent 55%)`
+                : `linear-gradient(to top, ${rgba(colors.background, 0.36)}, transparent 55%)`,
+            }}
+            aria-hidden
+          />
+
+          <header
+            className="relative z-20 border-b"
+            style={{ borderColor: rgba(heroForeground, 0.12) }}
+          >
+            <div className="mx-auto flex min-h-24 w-full max-w-7xl items-center gap-3 px-4 py-4 sm:px-6 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                {showLogo && safeLogoUrl ? (
+                  <SafeProfileImg
+                    src={safeLogoUrl}
+                    alt={`${businessName} logo`}
+                    className="h-14 w-14 shrink-0 rounded-full border border-white/20 object-cover shadow-xl shadow-black/25 sm:h-16 sm:w-16"
+                    onExhausted={() => setLogoFailed(true)}
+                  />
+                ) : (
+                  <span
+                    className="grid h-14 w-14 shrink-0 place-items-center rounded-full text-sm font-black shadow-xl shadow-black/25 sm:h-16 sm:w-16"
+                    style={{
+                      color: readableText(colors.primary),
+                      background: colors.primary,
+                    }}
+                    aria-hidden
+                  >
+                    {businessInitials(businessName)}
+                  </span>
+                )}
+                <div className="min-w-0 text-[var(--profile-hero-fg)]">
+                  <p className="truncate text-sm font-black tracking-[-0.02em] sm:text-lg">
+                    {businessName}
+                  </p>
+                  {operatorName || locationLabel ? (
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-[var(--profile-hero-muted)] sm:text-sm">
+                      {operatorName ? <span className="truncate">{operatorName}</span> : null}
+                      {operatorName && locationLabel ? <span aria-hidden>·</span> : null}
+                      {locationLabel ? (
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+                          <span className="truncate">{locationLabel}</span>
+                        </span>
+                      ) : null}
+                    </p>
                   ) : null}
+                </div>
+              </div>
+              <div className="ml-auto flex items-center gap-2 text-[var(--profile-hero-fg)]">
+                <div className="rounded-full bg-black/25 backdrop-blur-sm">{shareAction}</div>
+                {showContact ? (
+                  <button
+                    type="button"
+                    onClick={() => onDirectConnect()}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ts-orange px-4 text-sm font-black text-white shadow-lg shadow-black/25 transition hover:bg-ts-orange-dark sm:min-h-12 sm:px-5"
+                  >
+                    <span className="sm:hidden">Connect</span>
+                    <span className="hidden sm:inline">Direct Connect</span>
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </header>
+
+          <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 items-end px-4 pb-12 pt-20 sm:px-6 sm:pb-16 lg:px-8 lg:pb-20">
+            <div
+              className="max-w-5xl text-[var(--profile-hero-fg)]"
+              data-testid="default-profile-hero-identity"
+            >
+              <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--profile-hero-muted)]">
+                {categoryLabel ? <span>{categoryLabel}</span> : null}
+                {categoryLabel && locationLabel ? (
+                  <span className="h-1 w-1 rounded-full bg-[var(--profile-primary)]" aria-hidden />
+                ) : null}
+                {locationLabel ? <span>{locationLabel}</span> : null}
+              </div>
+              <h1 className="mt-5 max-w-5xl text-5xl font-black leading-[0.92] tracking-[-0.06em] sm:text-7xl lg:text-[6.5rem]">
+                {businessName}
+              </h1>
+              {title !== businessName ? (
+                <p className="mt-6 max-w-4xl text-3xl font-black leading-tight tracking-[-0.04em] sm:text-5xl">
+                  {title}
                 </p>
               ) : null}
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            {shareAction}
-            {showContact ? (
-              <button
-                type="button"
-                onClick={() => onDirectConnect()}
-                className="hidden items-center gap-2 rounded-full bg-ts-orange px-5 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:bg-ts-orange-dark sm:inline-flex"
-              >
-                Direct Connect
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
+              {supportingText &&
+              !samePublicCopy(supportingText, title) &&
+              !samePublicCopy(supportingText, categoryLabel) ? (
+                <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--profile-hero-muted)] sm:text-lg">
+                  {supportingText}
+                </p>
+              ) : null}
 
-      <section className="relative">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-80"
-          style={{
-            background: `radial-gradient(circle at 15% 15%, ${rgba(
-              colors.primary,
-              0.19
-            )}, transparent 34%), radial-gradient(circle at 78% 78%, ${rgba(
-              colors.secondary,
-              0.13
-            )}, transparent 38%)`,
-          }}
-          aria-hidden
-        />
-        <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:min-h-[720px] lg:grid-cols-[minmax(0,0.9fr)_minmax(460px,1.1fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-16">
-          <div className="flex flex-col items-start">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--profile-muted)]">
-              {categoryLabel ? <span>{categoryLabel}</span> : null}
-              {categoryLabel && locationLabel ? (
-                <span className="h-1 w-1 rounded-full bg-[var(--profile-primary)]" aria-hidden />
-              ) : null}
-              {locationLabel ? <span>{locationLabel}</span> : null}
-            </div>
-            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-[5.35rem]">
-              {title}
-            </h1>
-            {supportingText ? (
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-[var(--profile-muted)] sm:text-lg">
-                {supportingText}
-              </p>
-            ) : null}
-            <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              {showContact ? (
-                <button
-                  type="button"
-                  onClick={() => onDirectConnect()}
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-ts-orange px-7 text-base font-black text-white shadow-xl shadow-black/25 transition hover:-translate-y-0.5 hover:bg-ts-orange-dark"
-                >
-                  <MessageCircle className="h-5 w-5" aria-hidden />
-                  Direct Connect
-                </button>
-              ) : null}
-              {safeFeaturedWorkUrl ? (
-                <a
-                  href={safeFeaturedWorkUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-[var(--profile-line)] bg-[var(--profile-primary-soft)] px-7 text-base font-bold transition hover:border-[var(--profile-primary)]"
-                >
-                  <Play className="h-4 w-4 fill-current" aria-hidden />
-                  View
-                </a>
-              ) : null}
-            </div>
-            {showContact ? (
-              <p className="mt-4 max-w-md text-xs leading-relaxed text-[var(--profile-muted)]">
-                {custodyText}
-              </p>
-            ) : null}
-            {safeSocials.length > 0 ? (
-              <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
-                {safeSocials.map((social) => (
+              <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                {showContact ? (
+                  <button
+                    type="button"
+                    onClick={() => onDirectConnect()}
+                    className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-ts-orange px-7 text-base font-black text-white shadow-xl shadow-black/30 transition hover:-translate-y-0.5 hover:bg-ts-orange-dark"
+                  >
+                    <MessageCircle className="h-5 w-5" aria-hidden />
+                    Direct Connect
+                  </button>
+                ) : null}
+                {safeFeaturedWorkUrl ? (
                   <a
-                    key={`${social.label}-${social.href}`}
-                    href={social.href}
+                    href={safeFeaturedWorkUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-bold text-[var(--profile-muted)] transition hover:text-[var(--profile-fg)]"
+                    className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-white/25 bg-black/25 px-7 text-base font-bold text-white backdrop-blur-sm transition hover:border-white/60 hover:bg-black/40"
                   >
-                    {social.kind === "instagram" ? (
-                      <Instagram className="h-4 w-4" aria-hidden />
-                    ) : (
-                      <ArrowUpRight className="h-4 w-4" aria-hidden />
-                    )}
-                    {social.handle || social.label}
+                    <Play className="h-4 w-4 fill-current" aria-hidden />
+                    Watch the work
                   </a>
-                ))}
+                ) : null}
               </div>
-            ) : null}
-          </div>
 
-          <div className="relative min-h-[290px] sm:min-h-[440px] lg:min-h-[620px]">
-            {showHeroImage && safeHeroImageUrl ? (
-              <div className="absolute inset-0 overflow-hidden rounded-[2rem] border border-[var(--profile-line)] bg-[var(--profile-surface)] shadow-2xl shadow-black/35 sm:rounded-[2.5rem]">
-                <SafeProfileImg
-                  src={safeHeroImageUrl}
-                  alt={heroImageAlt || `${businessName} featured image`}
-                  className="h-full w-full object-cover"
-                  loading="eager"
-                  onExhausted={() => setHeroImageFailed(true)}
-                />
-                <div
-                  className="absolute inset-x-0 bottom-0 h-1/3"
-                  style={{
-                    background: "linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0))",
-                  }}
-                  aria-hidden
-                />
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-white sm:p-7">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-white/65">
-                      Featured
+              {showContact && services.length > 0 ? (
+                <div className="mt-8 flex max-w-4xl flex-wrap gap-2">
+                  {services.slice(0, 3).map((service) => (
+                    <button
+                      key={service}
+                      type="button"
+                      onClick={() => onDirectConnect(service)}
+                      className="rounded-full border border-white/20 bg-black/20 px-4 py-2 text-left text-xs font-bold text-[var(--profile-hero-muted)] backdrop-blur-sm transition hover:border-[var(--profile-primary)] hover:text-[var(--profile-hero-fg)] sm:text-sm"
+                    >
+                      {service}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {safeSocials.length > 0 ? (
+                <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+                  {safeSocials.map((social) => (
+                    <a
+                      key={`${social.label}-${social.href}`}
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-bold text-[var(--profile-hero-muted)] transition hover:text-[var(--profile-hero-fg)]"
+                    >
+                      {social.kind === "instagram" ? (
+                        <Instagram className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <ArrowUpRight className="h-4 w-4" aria-hidden />
+                      )}
+                      {social.handle || social.label}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
+          <header className="relative z-20 border-b border-[var(--profile-line)]">
+            <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
+                {showLogo && safeLogoUrl ? (
+                  <SafeProfileImg
+                    src={safeLogoUrl}
+                    alt={`${businessName} logo`}
+                    className="h-11 w-11 shrink-0 rounded-full border border-[var(--profile-line)] object-cover"
+                    onExhausted={() => setLogoFailed(true)}
+                  />
+                ) : (
+                  <span
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black"
+                    style={{
+                      color: readableText(colors.primary),
+                      background: colors.primary,
+                    }}
+                    aria-hidden
+                  >
+                    {businessInitials(businessName)}
+                  </span>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black tracking-[-0.02em] sm:text-base">
+                    {businessName}
+                  </p>
+                  {operatorName || locationLabel ? (
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-[var(--profile-muted)]">
+                      {operatorName ? <span className="truncate">{operatorName}</span> : null}
+                      {operatorName && locationLabel ? <span aria-hidden>·</span> : null}
+                      {locationLabel ? (
+                        <span className="inline-flex min-w-0 items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+                          <span className="truncate">{locationLabel}</span>
+                        </span>
+                      ) : null}
                     </p>
-                    <p className="mt-1 text-lg font-black">{businessName}</p>
-                  </div>
+                  ) : null}
+                </div>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                {shareAction}
+                {showContact ? (
+                  <button
+                    type="button"
+                    onClick={() => onDirectConnect()}
+                    className="hidden items-center gap-2 rounded-full bg-ts-orange px-5 py-3 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:bg-ts-orange-dark sm:inline-flex"
+                  >
+                    Direct Connect
+                    <ArrowRight className="h-4 w-4" aria-hidden />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </header>
+
+          <section className="relative">
+            <div
+              className="pointer-events-none absolute inset-0 opacity-80"
+              style={{
+                background: `radial-gradient(circle at 15% 15%, ${rgba(
+                  colors.primary,
+                  0.19
+                )}, transparent 34%), radial-gradient(circle at 78% 78%, ${rgba(
+                  colors.secondary,
+                  0.13
+                )}, transparent 38%)`,
+              }}
+              aria-hidden
+            />
+            <div className="relative mx-auto grid w-full max-w-7xl gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:min-h-[720px] lg:grid-cols-[minmax(0,0.9fr)_minmax(460px,1.1fr)] lg:items-center lg:gap-14 lg:px-8 lg:py-16">
+              <div className="flex flex-col items-start">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--profile-muted)]">
+                  {categoryLabel ? <span>{categoryLabel}</span> : null}
+                  {categoryLabel && locationLabel ? (
+                    <span
+                      className="h-1 w-1 rounded-full bg-[var(--profile-primary)]"
+                      aria-hidden
+                    />
+                  ) : null}
+                  {locationLabel ? <span>{locationLabel}</span> : null}
+                </div>
+                <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-[5.35rem]">
+                  {title}
+                </h1>
+                {supportingText ? (
+                  <p className="mt-6 max-w-xl text-base leading-relaxed text-[var(--profile-muted)] sm:text-lg">
+                    {supportingText}
+                  </p>
+                ) : null}
+                <div className="mt-8 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                  {showContact ? (
+                    <button
+                      type="button"
+                      onClick={() => onDirectConnect()}
+                      className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-ts-orange px-7 text-base font-black text-white shadow-xl shadow-black/25 transition hover:-translate-y-0.5 hover:bg-ts-orange-dark"
+                    >
+                      <MessageCircle className="h-5 w-5" aria-hidden />
+                      Direct Connect
+                    </button>
+                  ) : null}
                   {safeFeaturedWorkUrl ? (
                     <a
                       href={safeFeaturedWorkUrl}
                       target="_blank"
                       rel="noreferrer"
-                      aria-label="View featured item"
-                      className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-black transition hover:scale-105"
+                      className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-[var(--profile-line)] bg-[var(--profile-primary-soft)] px-7 text-base font-bold transition hover:border-[var(--profile-primary)]"
                     >
-                      <Play className="h-5 w-5 fill-current" aria-hidden />
+                      <Play className="h-4 w-4 fill-current" aria-hidden />
+                      View
                     </a>
                   ) : null}
                 </div>
-              </div>
-            ) : (
-              <div
-                className="absolute inset-0 grid place-items-center overflow-hidden rounded-[2rem] border border-[var(--profile-line)] bg-[var(--profile-surface)] p-8 shadow-2xl shadow-black/25 sm:rounded-[2.5rem]"
-                style={{
-                  background: `linear-gradient(145deg, ${colors.surface}, ${colors.background})`,
-                }}
-                data-testid="default-profile-brand-hero"
-              >
-                <div
-                  className="absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl"
-                  style={{ background: rgba(colors.primary, 0.32) }}
-                  aria-hidden
-                />
-                <div className="relative flex max-w-md flex-col items-center text-center">
-                  {showLogo && safeLogoUrl ? (
-                    <SafeProfileImg
-                      src={safeLogoUrl}
-                      alt={`${businessName} logo`}
-                      className="h-28 w-28 rounded-full border border-[var(--profile-line)] object-cover shadow-2xl"
-                      onExhausted={() => setLogoFailed(true)}
-                    />
-                  ) : (
-                    <span
-                      className="grid h-28 w-28 place-items-center rounded-full text-3xl font-black"
-                      style={{
-                        color: readableText(colors.primary),
-                        background: colors.primary,
-                      }}
-                    >
-                      {businessInitials(businessName)}
-                    </span>
-                  )}
-                  <p className="mt-7 text-3xl font-black tracking-[-0.04em] text-[var(--profile-surface-fg)]">
-                    {businessName}
+                {showContact ? (
+                  <p className="mt-4 max-w-md text-xs leading-relaxed text-[var(--profile-muted)]">
+                    {custodyText}
                   </p>
-                  {categoryLabel ? (
-                    <p className="mt-2 text-sm text-[var(--profile-surface-fg)] opacity-65">
-                      {categoryLabel}
-                    </p>
-                  ) : null}
-                </div>
+                ) : null}
+                {safeSocials.length > 0 ? (
+                  <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+                    {safeSocials.map((social) => (
+                      <a
+                        key={`${social.label}-${social.href}`}
+                        href={social.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-bold text-[var(--profile-muted)] transition hover:text-[var(--profile-fg)]"
+                      >
+                        {social.kind === "instagram" ? (
+                          <Instagram className="h-4 w-4" aria-hidden />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4" aria-hidden />
+                        )}
+                        {social.handle || social.label}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            )}
-          </div>
-        </div>
-      </section>
+
+              <div className="relative min-h-[290px] sm:min-h-[440px] lg:min-h-[620px]">
+                {showHeroImage && safeHeroImageUrl ? (
+                  <div className="absolute inset-0 overflow-hidden rounded-[2rem] border border-[var(--profile-line)] bg-[var(--profile-surface)] shadow-2xl shadow-black/35 sm:rounded-[2.5rem]">
+                    <SafeProfileImg
+                      src={safeHeroImageUrl}
+                      alt={heroImageAlt || `${businessName} featured image`}
+                      className="h-full w-full object-cover"
+                      loading="eager"
+                      onExhausted={() => setHeroImageFailed(true)}
+                    />
+                    <div
+                      className="absolute inset-x-0 bottom-0 h-1/3"
+                      style={{
+                        background: "linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0))",
+                      }}
+                      aria-hidden
+                    />
+                    <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 text-white sm:p-7">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.18em] text-white/65">
+                          Featured
+                        </p>
+                        <p className="mt-1 text-lg font-black">{businessName}</p>
+                      </div>
+                      {safeFeaturedWorkUrl ? (
+                        <a
+                          href={safeFeaturedWorkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          aria-label="View featured item"
+                          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white text-black transition hover:scale-105"
+                        >
+                          <Play className="h-5 w-5 fill-current" aria-hidden />
+                        </a>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="absolute inset-0 grid place-items-center overflow-hidden rounded-[2rem] border border-[var(--profile-line)] bg-[var(--profile-surface)] p-8 shadow-2xl shadow-black/25 sm:rounded-[2.5rem]"
+                    style={{
+                      background: `linear-gradient(145deg, ${colors.surface}, ${colors.background})`,
+                    }}
+                    data-testid="default-profile-brand-hero"
+                  >
+                    <div
+                      className="absolute -right-24 -top-24 h-72 w-72 rounded-full blur-3xl"
+                      style={{ background: rgba(colors.primary, 0.32) }}
+                      aria-hidden
+                    />
+                    <div className="relative flex max-w-md flex-col items-center text-center">
+                      {showLogo && safeLogoUrl ? (
+                        <SafeProfileImg
+                          src={safeLogoUrl}
+                          alt={`${businessName} logo`}
+                          className="h-28 w-28 rounded-full border border-[var(--profile-line)] object-cover shadow-2xl"
+                          onExhausted={() => setLogoFailed(true)}
+                        />
+                      ) : (
+                        <span
+                          className="grid h-28 w-28 place-items-center rounded-full text-3xl font-black"
+                          style={{
+                            color: readableText(colors.primary),
+                            background: colors.primary,
+                          }}
+                        >
+                          {businessInitials(businessName)}
+                        </span>
+                      )}
+                      <p className="mt-7 text-3xl font-black tracking-[-0.04em] text-[var(--profile-surface-fg)]">
+                        {businessName}
+                      </p>
+                      {categoryLabel ? (
+                        <p className="mt-2 text-sm text-[var(--profile-surface-fg)] opacity-65">
+                          {categoryLabel}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {showServices && services.length > 0 ? (
         <section className="border-y border-[var(--profile-line)] bg-[var(--profile-surface)] text-[var(--profile-surface-fg)]">
@@ -493,37 +729,92 @@ export default function DefaultProfileTheme({
             <div className="grid gap-8 lg:grid-cols-[0.65fr_1.35fr] lg:gap-16">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--profile-accent-on-surface)]">
-                  Services
+                  {firstDeliverable ? "Available services" : "Services"}
                 </p>
                 <h2 className="mt-4 text-4xl font-black leading-tight tracking-[-0.045em] sm:text-5xl">
-                  Choose what you need.
+                  {firstDeliverable ? "Services" : "Choose what you need."}
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-relaxed opacity-65 sm:text-base">
-                  Choose a service to start a private request with the right context already added.
+                  {firstDeliverable
+                    ? showContact
+                      ? "Select a service to include it in your private request."
+                      : `Services available from ${businessName}.`
+                    : "Choose a service to start a private request with the right context already added."}
                 </p>
               </div>
-              <div className="grid gap-px overflow-hidden rounded-3xl border border-[var(--profile-line)] bg-[var(--profile-line)] sm:grid-cols-2">
-                {services.slice(0, 12).map((service, index) => (
-                  <button
-                    key={service}
-                    type="button"
-                    onClick={() => onDirectConnect(service)}
-                    className="group flex min-h-32 items-start gap-4 bg-[var(--profile-surface)] p-5 text-left transition hover:bg-[var(--profile-primary-soft)] sm:min-h-40 sm:p-6"
-                    data-testid={`default-profile-service-${index}`}
-                  >
-                    <span className="mt-0.5 text-xs font-black text-[var(--profile-accent-on-surface)]">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                      <span className="text-lg font-black leading-tight sm:text-xl">{service}</span>
-                      <ArrowUpRight
-                        className="h-5 w-5 shrink-0 opacity-45 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100"
-                        aria-hidden
-                      />
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {firstDeliverable ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {services.slice(0, 12).map((service, index) => {
+                    const content = (
+                      <>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="text-lg font-black leading-tight text-[var(--profile-fg)] sm:text-xl">
+                            {service}
+                          </span>
+                          {showContact ? (
+                            <span className="mt-auto pt-5 text-xs font-black uppercase tracking-[0.16em] text-[var(--profile-accent-on-bg)]">
+                              Add to request
+                            </span>
+                          ) : null}
+                        </span>
+                        {showContact ? (
+                          <ArrowUpRight
+                            className="h-5 w-5 shrink-0 text-[var(--profile-accent-on-bg)] opacity-65 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100"
+                            aria-hidden
+                          />
+                        ) : null}
+                      </>
+                    );
+                    const className =
+                      "group flex min-h-32 items-start justify-between gap-5 rounded-3xl border border-[var(--profile-line)] bg-[var(--profile-bg)] p-5 text-left sm:min-h-40 sm:p-6";
+
+                    return showContact ? (
+                      <button
+                        key={service}
+                        type="button"
+                        onClick={() => onDirectConnect(service)}
+                        className={`${className} transition hover:-translate-y-0.5 hover:border-[var(--profile-primary)]`}
+                        data-testid={`default-profile-service-${index}`}
+                      >
+                        {content}
+                      </button>
+                    ) : (
+                      <article
+                        key={service}
+                        className={className}
+                        data-testid={`default-profile-service-${index}`}
+                      >
+                        {content}
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="grid gap-px overflow-hidden rounded-3xl border border-[var(--profile-line)] bg-[var(--profile-line)] sm:grid-cols-2">
+                  {services.slice(0, 12).map((service, index) => (
+                    <button
+                      key={service}
+                      type="button"
+                      onClick={() => onDirectConnect(service)}
+                      className="group flex min-h-32 items-start gap-4 bg-[var(--profile-surface)] p-5 text-left transition hover:bg-[var(--profile-primary-soft)] sm:min-h-40 sm:p-6"
+                      data-testid={`default-profile-service-${index}`}
+                    >
+                      <span className="mt-0.5 text-xs font-black text-[var(--profile-accent-on-surface)]">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <span className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                        <span className="text-lg font-black leading-tight sm:text-xl">
+                          {service}
+                        </span>
+                        <ArrowUpRight
+                          className="h-5 w-5 shrink-0 opacity-45 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100"
+                          aria-hidden
+                        />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -534,10 +825,10 @@ export default function DefaultProfileTheme({
           <div className="flex flex-wrap items-end justify-between gap-5">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--profile-accent-on-bg)]">
-                Gallery
+                {firstDeliverable ? "Work" : "Gallery"}
               </p>
               <h2 className="mt-3 text-4xl font-black tracking-[-0.045em] sm:text-5xl">
-                Recent work.
+                {firstDeliverable ? "Selected work" : "Recent work."}
               </h2>
             </div>
             {instagram ? (
@@ -547,41 +838,82 @@ export default function DefaultProfileTheme({
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 text-sm font-black"
               >
-                Instagram
+                {firstDeliverable ? "More on Instagram" : "Instagram"}
                 <ArrowUpRight className="h-4 w-4" aria-hidden />
               </a>
             ) : null}
           </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <div
+            className={
+              firstDeliverable
+                ? "mt-8 grid gap-4 md:grid-cols-12"
+                : "mt-8 grid gap-4 md:grid-cols-2"
+            }
+          >
             {visibleGallery.slice(0, 6).map((item, index) => (
               <article
                 id={`profile-gallery-${item.slug}`}
                 key={item.slug}
-                className={`group overflow-hidden rounded-3xl border bg-[var(--profile-surface)] ${
+                className={`group overflow-hidden border bg-[var(--profile-surface)] ${
+                  firstDeliverable ? "relative rounded-[2rem]" : "rounded-3xl"
+                } ${
                   item.slug === sharedGallerySlug
                     ? "border-ts-orange ring-2 ring-ts-orange/35"
                     : "border-[var(--profile-line)]"
-                } ${index === 0 && visibleGallery.length > 2 ? "md:row-span-2" : ""}`}
+                } ${
+                  firstDeliverable
+                    ? visibleGallery.length === 2
+                      ? index === 0
+                        ? "md:col-span-7"
+                        : "md:col-span-5"
+                      : "md:col-span-6"
+                    : index === 0 && visibleGallery.length > 2
+                      ? "md:row-span-2"
+                      : ""
+                }`}
               >
                 <SafeProfileImg
                   src={item.imageUrl}
                   alt={item.imageAlt}
                   loading="lazy"
-                  className={`w-full object-cover transition duration-500 group-hover:scale-[1.02] ${
-                    index === 0 && visibleGallery.length > 2
-                      ? "aspect-[4/5] h-full"
-                      : "aspect-[4/3]"
-                  }`}
+                  className={
+                    firstDeliverable
+                      ? "aspect-[4/3] h-full min-h-[320px] w-full object-cover transition duration-500 group-hover:scale-[1.02] sm:min-h-[420px]"
+                      : `w-full object-cover transition duration-500 group-hover:scale-[1.02] ${
+                          index === 0 && visibleGallery.length > 2
+                            ? "aspect-[4/5] h-full"
+                            : "aspect-[4/3]"
+                        }`
+                  }
                 />
-                <div className="p-5 text-[var(--profile-surface-fg)]">
-                  <h3 className="text-lg font-black">{item.title}</h3>
-                  {item.description ? (
-                    <p className="mt-2 text-sm leading-relaxed opacity-65">{item.description}</p>
-                  ) : null}
-                  {renderGalleryShare ? (
-                    <div className="mt-4">{renderGalleryShare(item)}</div>
-                  ) : null}
-                </div>
+                {firstDeliverable ? (
+                  <div
+                    className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8"
+                    style={{
+                      background: "linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.02))",
+                    }}
+                  >
+                    <h3 className="text-xl font-black sm:text-2xl">{item.title}</h3>
+                    {item.description ? (
+                      <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/70">
+                        {item.description}
+                      </p>
+                    ) : null}
+                    {renderGalleryShare ? (
+                      <div className="mt-4">{renderGalleryShare(item)}</div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="p-5 text-[var(--profile-surface-fg)]">
+                    <h3 className="text-lg font-black">{item.title}</h3>
+                    {item.description ? (
+                      <p className="mt-2 text-sm leading-relaxed opacity-65">{item.description}</p>
+                    ) : null}
+                    {renderGalleryShare ? (
+                      <div className="mt-4">{renderGalleryShare(item)}</div>
+                    ) : null}
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -605,7 +937,25 @@ export default function DefaultProfileTheme({
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--profile-accent-on-bg)]">
                   About
                 </p>
-                <p className="mt-5 max-w-3xl text-2xl font-bold leading-snug tracking-[-0.025em] sm:text-3xl">
+                {firstDeliverable ? (
+                  <>
+                    <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.045em] sm:text-5xl">
+                      {businessName}
+                    </h2>
+                    {operatorName ? (
+                      <p className="mt-3 text-sm font-black uppercase tracking-[0.16em] text-[var(--profile-accent-on-bg)]">
+                        {operatorName}
+                      </p>
+                    ) : null}
+                  </>
+                ) : null}
+                <p
+                  className={
+                    firstDeliverable
+                      ? "mt-6 max-w-3xl text-xl font-bold leading-relaxed tracking-[-0.02em] sm:text-2xl"
+                      : "mt-5 max-w-3xl text-2xl font-bold leading-snug tracking-[-0.025em] sm:text-3xl"
+                  }
+                >
                   {aboutText}
                 </p>
               </div>
@@ -761,10 +1111,12 @@ export default function DefaultProfileTheme({
             <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] opacity-60">
-                  Start here
+                  {firstDeliverable ? "Private through TradeScout" : "Start here"}
                 </p>
                 <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.05em] sm:text-5xl">
-                  Connect with {businessName}.
+                  {firstDeliverable
+                    ? `Direct Connect with ${businessName}`
+                    : `Connect with ${businessName}.`}
                 </h2>
                 <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-65">{custodyText}</p>
               </div>

@@ -1386,6 +1386,10 @@ export default function ProfileSiteView() {
   const defaultHeroTitle = readDefaultHeroText("title", 200);
   const defaultHeroText = readDefaultHeroText("text", 800);
   const defaultOperatorName = readDefaultHeroText("operatorName", 160);
+  const defaultPresentationVariant =
+    defaultHeroData.presentationVariant === "first-deliverable"
+      ? ("first-deliverable" as const)
+      : ("classic" as const);
   const defaultLogoUrl =
     readDefaultHeroUrl("logoUrl") ||
     String(profile.seoMeta?.faviconUrl || "")
@@ -1930,6 +1934,7 @@ export default function ProfileSiteView() {
         <DefaultProfileTheme
           businessName={displayName}
           operatorName={defaultOperatorName || undefined}
+          presentationVariant={defaultPresentationVariant}
           profileKind={business ? "business" : "community"}
           categoryLabel={publicCategories[0] || undefined}
           locationLabel={defaultLocationLabel || undefined}

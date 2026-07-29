@@ -26,12 +26,13 @@ describe("DefaultProfileTheme", () => {
     container.remove();
   });
 
-  it("renders Cameron as a branded media-led default with service-specific Direct Connect", () => {
+  it("renders Cameron as a complete first-deliverable profile with service-specific Direct Connect", () => {
     act(() => {
       root.render(
         <DefaultProfileTheme
           businessName="Precision Aerial Services"
           operatorName="Cameron"
+          presentationVariant="first-deliverable"
           categoryLabel="Drone photo and video"
           locationLabel="Pensacola, Florida"
           headline="Drone photo and video in Pensacola."
@@ -97,13 +98,26 @@ describe("DefaultProfileTheme", () => {
     const theme = container.querySelector<HTMLElement>('[data-testid="default-profile-theme"]');
     expect(theme?.style.getPropertyValue("--profile-primary")).toBe("#52c8f5");
     expect(theme?.style.getPropertyValue("--profile-bg")).toBe("#05070a");
+    expect(theme?.style.getPropertyValue("--profile-hero-fg")).toBe("#ffffff");
+    expect(container.querySelector('[data-testid="default-profile-hero"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="default-profile-hero-identity"] h1')?.textContent
+    ).toBe("Precision Aerial Services");
     expect(container.querySelector('img[alt="Aerial property view"]')).not.toBeNull();
+    expect(container.querySelector('img[alt="Wide property view"]')).not.toBeNull();
+    expect(container.querySelector('img[alt="Closer property view"]')).not.toBeNull();
     expect(container.textContent).toContain("Precision Aerial Services");
     expect(container.textContent).toContain("Cameron");
     expect(container.textContent).toContain("A better view.");
     expect(container.textContent).toContain("Pensacola, Florida");
     expect(container.textContent).toContain("@PrecisionAerialService");
     expect(container.textContent).toContain("@chillshots");
+    expect(container.textContent).toContain("Watch the work");
+    expect(container.textContent).toContain("Selected work");
+    expect(container.textContent).toContain("Direct Connect with Precision Aerial Services");
+    expect(container.textContent).not.toContain("Choose what you need.");
+    expect(container.textContent).not.toContain("Recent work.");
+    expect(container.textContent).not.toContain("Featured");
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.querySelectorAll('[data-testid^="default-profile-service-"]')).toHaveLength(5);
 
@@ -116,15 +130,21 @@ describe("DefaultProfileTheme", () => {
     expect(container.textContent).toContain(
       "TradeScout securely holds requests until this business connects its profile."
     );
+    expect(
+      container.textContent?.match(
+        /TradeScout securely holds requests until this business connects its profile\./g
+      )
+    ).toHaveLength(1);
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
   });
 
-  it("uses a premium brand-led state when a business has no media", () => {
+  it("uses a deliberate brand-led state when a business has no media", () => {
     act(() => {
       root.render(
         <DefaultProfileTheme
           businessName="North Shore Repair"
+          presentationVariant="first-deliverable"
           categoryLabel="Home repair"
           locationLabel="Milwaukee, Wisconsin"
           heroTitle="Repairs done right."
@@ -149,6 +169,11 @@ describe("DefaultProfileTheme", () => {
     });
 
     expect(container.querySelector('[data-testid="default-profile-brand-hero"]')).not.toBeNull();
+    const theme = container.querySelector<HTMLElement>('[data-testid="default-profile-theme"]');
+    expect(theme?.style.getPropertyValue("--profile-hero-fg")).toBe("#111418");
+    expect(
+      container.querySelector('[data-testid="default-profile-hero-identity"] h1')?.textContent
+    ).toBe("North Shore Repair");
     expect(container.textContent).not.toContain("New photos");
     expect(container.textContent).not.toContain("coming soon");
     expect(container.textContent).not.toContain("Direct Connect");
@@ -194,6 +219,8 @@ describe("DefaultProfileTheme", () => {
     expect(container.textContent).toContain("A neighborhood kitchen.");
     expect(container.textContent).toContain("Private dining");
     expect(container.textContent).toContain("Services");
+    expect(container.textContent).toContain("Choose what you need.");
+    expect(container.querySelector('[data-testid="default-profile-hero"]')).toBeNull();
     expect(container.textContent).not.toContain("Recommendations");
   });
 

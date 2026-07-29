@@ -6,6 +6,7 @@ import {
   PRECISION_AERIAL_PUBLIC_SOURCES,
   PRECISION_AERIAL_STEWARD_PROVIDER,
   PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
+  PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
@@ -119,11 +120,37 @@ export function isPrecisionAerialV1SystemSeed(
   );
 }
 
+/**
+ * Matches only the exact unapproved default-profile seed that is currently in
+ * production. This one-time sentinel lets Cameron move to the isolated review
+ * candidate while preserving any profile that has been edited since launch.
+ */
+export function isPrecisionAerialV2SystemSeed(
+  profile: ExistingProfileSeed | null | undefined,
+  stewardPreferences: unknown
+): boolean {
+  if (!profile) return false;
+  const preferences = asRecord(stewardPreferences);
+  return (
+    profile.displayName === PRECISION_AERIAL_BUSINESS_NAME &&
+    profile.roleContext === "content_creator" &&
+    profile.headline === PRECISION_AERIAL_PROFILE_HEADLINE &&
+    exactJsonMatch(profile.contentBlocks, PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS) &&
+    exactJsonMatch(profile.ctaConfig, PRECISION_AERIAL_PROFILE_CTA) &&
+    exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_PROFILE_SEO) &&
+    exactJsonMatch(preferences.profileSections, DEFAULT_PROFILE_SECTIONS)
+  );
+}
+
 export function resolvePrecisionAerialProfileSeedFields(
   existingProfile: ExistingProfileSeed | null | undefined,
   stewardPreferences: unknown
 ): ExistingProfileSeed {
-  if (!existingProfile || isPrecisionAerialV1SystemSeed(existingProfile, stewardPreferences)) {
+  if (
+    !existingProfile ||
+    isPrecisionAerialV1SystemSeed(existingProfile, stewardPreferences) ||
+    isPrecisionAerialV2SystemSeed(existingProfile, stewardPreferences)
+  ) {
     return {
       displayName: PRECISION_AERIAL_BUSINESS_NAME,
       roleContext: "content_creator",
@@ -265,7 +292,9 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
       existingSteward?.preferences && typeof existingSteward.preferences === "object"
         ? (existingSteward.preferences as Record<string, any>)
         : {};
-    const migrateExactV1Seed = isPrecisionAerialV1SystemSeed(existingProfile, existingPreferences);
+    const migrateExactSystemSeed =
+      isPrecisionAerialV1SystemSeed(existingProfile, existingPreferences) ||
+      isPrecisionAerialV2SystemSeed(existingProfile, existingPreferences);
     const existingProfileSections =
       existingPreferences.profileSections &&
       typeof existingPreferences.profileSections === "object" &&
@@ -288,7 +317,7 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
         ...existingPreferences,
         profileVisibility: "public",
         profileSections:
-          !existingSteward || migrateExactV1Seed || !existingProfileSections
+          !existingSteward || migrateExactSystemSeed || !existingProfileSections
             ? DEFAULT_PROFILE_SECTIONS
             : existingProfileSections,
         internalProfileSteward: {

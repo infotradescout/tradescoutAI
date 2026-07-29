@@ -9,6 +9,7 @@ import {
   PRECISION_AERIAL_PUBLIC_SOURCES,
   PRECISION_AERIAL_STEWARD_PROVIDER,
   PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
+  PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { userRoleEnum } from "@shared/schema";
 import {
@@ -18,6 +19,7 @@ import {
 } from "../services/ownerConfirmedDirectProfile";
 import {
   isPrecisionAerialV1SystemSeed,
+  isPrecisionAerialV2SystemSeed,
   mergePrecisionAerialBusinessProfileData,
   resolvePrecisionAerialProfileSeedFields,
 } from "../services/precisionAerialProfileProvisioning";
@@ -34,6 +36,7 @@ describe("Precision Aerial production profile contract", () => {
     expect(PRECISION_AERIAL_BUSINESS_NAME).toBe("Precision Aerial Services");
     expect(hero?.data.title).toBe("A better view.");
     expect(hero?.data.text).toBe("Drone photo and video.");
+    expect(hero?.data.presentationVariant).toBe("first-deliverable");
     expect(
       PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "siteTemplate")?.data
     ).toMatchObject({ id: "default" });
@@ -112,7 +115,7 @@ describe("Precision Aerial production profile contract", () => {
     expect(source).not.toContain("verifiedBadge: true");
   });
 
-  it("migrates only the exact v1 system seed and preserves every customized profile field", () => {
+  it("migrates only exact system seeds and preserves every customized profile field", () => {
     const v1Sections = {
       about: false,
       rolesAndBadges: false,
@@ -151,6 +154,34 @@ describe("Precision Aerial production profile contract", () => {
       imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
       faviconUrl: "/images/profiles/precision-aerial/logo.jpg",
     });
+
+    const v2Sections = {
+      about: true,
+      rolesAndBadges: false,
+      stats: false,
+      services: true,
+      marketplaceListings: false,
+      reviews: false,
+      communityActivity: false,
+      contactCard: true,
+    };
+    const v2Profile = {
+      ...v1Profile,
+      contentBlocks: PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
+      seoMeta: {
+        ...v1Profile.seoMeta,
+        imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
+        imageWidth: 1440,
+        imageHeight: 1080,
+        faviconUrl: "/images/profiles/precision-aerial/logo.jpg",
+      },
+    };
+    expect(isPrecisionAerialV2SystemSeed(v2Profile, { profileSections: v2Sections })).toBe(true);
+    expect(
+      resolvePrecisionAerialProfileSeedFields(v2Profile, {
+        profileSections: v2Sections,
+      }).contentBlocks
+    ).toEqual(PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS);
 
     const customizedProfile = {
       ...v1Profile,
@@ -192,6 +223,18 @@ describe("Precision Aerial production profile contract", () => {
           seoMeta: { ...v1Profile.seoMeta, title: "Admin SEO title" },
         },
         { profileSections: v1Sections }
+      )
+    ).toBe(false);
+    expect(
+      isPrecisionAerialV2SystemSeed(
+        {
+          ...v2Profile,
+          contentBlocks: [
+            ...PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
+            { type: "custom", data: { body: "Admin-authored block" } },
+          ],
+        },
+        { profileSections: v2Sections }
       )
     ).toBe(false);
   });

@@ -69,11 +69,11 @@ export const PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS = [
 ] as const;
 
 /**
- * Keep this profile plain and media-first. Public service wording is limited
- * to work demonstrated by the supplied accounts; it does not imply inspection,
- * survey, mapping, thermal, fleet, insurance, or certification verification.
+ * Immutable migration sentinel for the exact default-profile seed currently
+ * serving in production. Any difference means an admin or owner may have
+ * edited the profile and the startup provisioner must preserve it.
  */
-export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS = [
+export const PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS = [
   {
     type: "siteTemplate",
     data: { id: "default" },
@@ -155,3 +155,24 @@ export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS = [
     },
   },
 ] as const;
+
+/**
+ * Cameron's isolated first-deliverable candidate. Public service wording is
+ * limited to work demonstrated by the supplied accounts; it does not imply
+ * inspection, survey, mapping, thermal, fleet, insurance, or certification
+ * verification. The presentation flag is generic profile data, not a slug
+ * branch, so the candidate can be reviewed without changing every default
+ * profile.
+ */
+export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
+  PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS.map((block) =>
+    block.type === "hero"
+      ? {
+          ...block,
+          data: {
+            ...block.data,
+            presentationVariant: "first-deliverable",
+          },
+        }
+      : block
+  );
