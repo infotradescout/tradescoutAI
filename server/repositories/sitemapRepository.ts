@@ -8,8 +8,9 @@ import {
   profiles,
   users,
 } from "@shared/schema";
+import { INTERNAL_ADMIN_PROFILE_SLUGS } from "@shared/publicProfileIndexing";
 import { db, pool as neonPool } from "../db";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, notInArray, sql } from "drizzle-orm";
 
 export class SitemapRepository {
   async listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
@@ -23,7 +24,8 @@ export class SitemapRepository {
       .where(
         and(
           eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
+          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+          notInArray(profiles.slug, [...INTERNAL_ADMIN_PROFILE_SLUGS])
         )
       )
       .orderBy(desc(profiles.updatedAt));

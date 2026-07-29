@@ -28,6 +28,10 @@ import {
   resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
+import {
+  isInternalAdminProfileSlug,
+  shouldIndexPublicProfileSlug,
+} from "@shared/publicProfileIndexing";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -277,6 +281,7 @@ export async function buildPublicProfileSitemapXml({
 }: PublicProfileSitemapOptions): Promise<string | null> {
   const publicOrigin = normalizePublicOrigin(origin);
   if (!publicOrigin) return null;
+  if (isInternalAdminProfileSlug(slug)) return null;
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
 
@@ -798,8 +803,7 @@ function buildMeta(
     fallbackBrandName: profile.profile.displayName,
     logoUrl: profile.profile.seoMeta?.faviconUrl,
     profileImageUrl: profile.profile.seoMeta?.imageUrl,
-    accentColor:
-      profile.business?.brandColors?.accent || profile.business?.brandColors?.primary,
+    accentColor: profile.business?.brandColors?.accent || profile.business?.brandColors?.primary,
     configuredCtaLabel: profile.profile.ctaConfig?.primary?.label,
     itemType: itemShare?.itemType || (categoryShare ? "category" : null),
     contentBlocks: profile.profile.contentBlocks,
@@ -828,8 +832,7 @@ function buildMeta(
             brandName: publicBrandName,
             itemType: itemShare?.itemType || "category",
             itemName: itemName || categoryShare?.categoryName,
-            category:
-              itemShare?.itemType === "inventory" ? itemShare.category : null,
+            category: itemShare?.itemType === "inventory" ? itemShare.category : null,
             fallbackDescription,
           })
         : fallbackDescription,
@@ -837,11 +840,12 @@ function buildMeta(
     )
   );
   const legacyProfileImageUrl = profile.profile.seoMeta?.imageUrl || null;
-  const sourceImageUrl = itemShare || categoryShare
-    ? itemShare?.imageUrl || categoryShare?.imageUrl || ""
-    : presentation.profileImageUrl ||
-      legacyProfileImageUrl ||
-      `${origin}/tradescout-social-preview.png?v=12`;
+  const sourceImageUrl =
+    itemShare || categoryShare
+      ? itemShare?.imageUrl || categoryShare?.imageUrl || ""
+      : presentation.profileImageUrl ||
+        legacyProfileImageUrl ||
+        `${origin}/tradescout-social-preview.png?v=12`;
   const itemPhoto = itemShare
     ? (() => {
         try {
@@ -908,7 +912,7 @@ function buildMeta(
           ? "article"
           : categoryShare
             ? "website"
-          : "profile",
+            : "profile",
   };
 }
 
@@ -997,6 +1001,7 @@ export async function buildPublicProfileHtml({
   const pageCategoryShare = itemShare ? null : categoryShare;
   const meta = buildMeta(data, origin, itemShare, pageCategoryShare);
   const jsonLd = buildJsonLd(data, origin, itemShare, pageCategoryShare);
+  const shouldIndexProfile = shouldIndexPublicProfileSlug(profileRecord.slug);
 
   let html = templateHtml;
 
@@ -1015,7 +1020,7 @@ export async function buildPublicProfileHtml({
     html,
     /<meta name="robots"[^>]*>/i,
     `<meta name="robots" content="${
-      pageCategoryShare && !pageCategoryShare.indexable
+      !shouldIndexProfile || (pageCategoryShare && !pageCategoryShare.indexable)
         ? "noindex, follow"
         : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
     }" />`
