@@ -258,3 +258,6 @@ export async function buildPublicCommunityPostHtml({
       imageUrl: postImageUrl,
       origin,
     })}</div>`
+  );
+  return html;
+}
