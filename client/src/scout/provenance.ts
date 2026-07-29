@@ -59,9 +59,17 @@ export function normalizeScoutKnowledgeSources(
 }
 
 export function buildScoutProvenance(
-  response: Pick<ScoutBackendResponse, "metadata" | "knowledge">
+  response: Pick<ScoutBackendResponse, "metadata" | "knowledge" | "evidence">
 ): ScoutMessage["provenance"] {
-  const sources = normalizeScoutKnowledgeSources(response.knowledge?.sources);
+  const sources = normalizeScoutKnowledgeSources([
+    ...(response.knowledge?.sources || []),
+    ...(response.evidence || []).map((source) => ({
+      title: source.title,
+      url: source.url || undefined,
+      type: source.type,
+      provider: source.provider,
+    })),
+  ]);
   return {
     sourceUsed: response.metadata?.sourceUsed,
     attemptedSource: response.metadata?.attemptedSource,

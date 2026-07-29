@@ -1,11 +1,13 @@
 import type { ScoutActionContract, ScoutResponseContract } from "../../shared/types/scout";
 import { enforceTradeScoutIdentityBoundary } from "./brandGuard";
 import { polishScoutLaunchResponse } from "./scoutLaunchResponsePolish";
+import { buildScoutResultContractV1 } from "./scoutResultContractV1";
 
 type FinalizeOptions = {
   requestId?: string | null;
   fallbackMessage?: string;
   requestMessage?: string | null;
+  workingMemoryUpdate?: Record<string, unknown> | null;
 };
 
 const DEFAULT_FALLBACK_MESSAGE = "I can still help you move forward. Your next best step is ready.";
@@ -106,8 +108,18 @@ export function finalizeScoutResponse(payload: unknown, options: FinalizeOptions
     metadata.requestId = options.requestId;
   }
 
+  const resultContract = buildScoutResultContractV1({
+    requestMessage: options.requestMessage,
+    source,
+    answer: polished.message,
+    actions: actions || [],
+    suggestedActions: suggestedActions || [],
+    workingMemoryUpdate: options.workingMemoryUpdate,
+  });
+
   const normalized: ScoutResponseContract = {
     ...(source as ScoutResponseContract),
+    ...resultContract,
     message: polished.message,
     ...(suggestedActions ? { suggestedActions } : {}),
     ...(actions ? { actions } : {}),

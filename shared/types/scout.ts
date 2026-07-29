@@ -42,7 +42,58 @@ export interface ScoutActionContract {
   payload?: Record<string, unknown>;
 }
 
-export interface ScoutResponseContract {
+export type ScoutResultContractIntentV1 =
+  | "code_query"
+  | "provider_search"
+  | "asset_action";
+
+export interface ScoutAmbiguityOptionV1 {
+  label: string;
+  action_id: string;
+}
+
+export interface ScoutPublicEntityV1 {
+  id: string;
+  type: string;
+  name?: string;
+  url?: string | null;
+  match_reasons?: string[];
+}
+
+export interface ScoutEvidenceV1 {
+  source_id: string;
+  title: string;
+  url: string | null;
+  type?: string;
+  provider?: string;
+  match_reason?: string;
+}
+
+export interface ScoutAllowedActionV1 {
+  action_id: string;
+  type: string;
+  label: string;
+  target?: string;
+  prompt?: string;
+  payload?: Record<string, unknown>;
+  primary?: boolean;
+  requires_confirmation: boolean;
+}
+
+export interface ScoutResultContractV1 {
+  contract_version: "scout_result.v1";
+  intent: ScoutResultContractIntentV1;
+  ambiguity_options: ScoutAmbiguityOptionV1[];
+  entities: ScoutPublicEntityV1[];
+  evidence: ScoutEvidenceV1[];
+  answer: string;
+  allowed_actions: ScoutAllowedActionV1[];
+  working_memory_update: Record<string, unknown>;
+}
+
+// Internal builders may create a partial response before the route-level
+// finalizer attaches the required ScoutResultContractV1 fields.
+export interface ScoutResponseContract extends Partial<ScoutResultContractV1> {
   message: string;
   suggestedActions?: string[];
   actions?: ScoutActionContract[];

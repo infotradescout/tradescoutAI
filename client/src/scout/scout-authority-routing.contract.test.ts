@@ -29,10 +29,10 @@ describe("scout authority routing contracts", () => {
     expect(source).toContain("/api/scout");
   });
 
-  it("retains explicit local UI shortcuts only", () => {
+  it("keeps user-clicked quick actions but removes message interception", () => {
     const source = read("client/src/scout/ScoutOS.tsx");
 
-    expect(source).toContain("resolveExplicitNavigationIntent");
+    expect(source).not.toContain("resolveExplicitNavigationIntent");
     expect(source).toContain("resolveQuickActionIntent");
   });
 });

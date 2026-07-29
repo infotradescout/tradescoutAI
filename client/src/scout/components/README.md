@@ -56,14 +56,12 @@ All classes below are defined in `client/src/index.css` and can be used anywhere
 ## React Components
 
 ### `ScoutThread` (`client/src/scout/ScoutThread.tsx`)
-The main message thread. Renders user and assistant bubbles, cluster cards, action chips, suggestions, and the live status bar.
+The main message thread. Renders user and assistant bubbles, server-owned result actions, evidence, and a neutral request loading state.
 
 **Sub-components (all exported and reusable):**
-- `ScoutLiveStatus` — the orange heartbeat strip. Props: `label: string`, `progress: number (0-1)`
 - `ClusterCard` — a single result cluster card. Props: `cluster: ScoutCluster`, `onAction?: (action) => void`
 - `EvidenceStrip` — collapsible "Why this answer" provenance strip. Props: `msg: ScoutMessage`, `enabled: boolean`
-- `MessageExtras` — action chips, cluster cards, override options, suggestions below any message
-- `AssistantStreamedText` — animated character-by-character text reveal
+- `MessageExtras` — server-owned ambiguity choices and allowed actions below any message
 
 ### `ScoutInputRow` (`client/src/scout/ScoutInputRow.tsx`)
 The Morphic command bar. Orange border glow on focus, sparkle icon, auto-growing textarea, mic button, orange send arrow.

@@ -1,7 +1,6 @@
 import React from "react";
 import clsx from "clsx";
 import {
-  Activity,
   ArrowRight,
   BadgeCheck,
   Bookmark,
@@ -27,16 +26,11 @@ import type {
   ScoutMessage,
   ScoutStatus,
 } from "./state";
+import type { ScoutAllowedActionV1 } from "@shared/types/scout";
 import type { ScoutContextCard } from "./scoutContextCards";
-import { validateAction } from "./actionValidation";
+import { isSafeLinkTarget, validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
 import { OnboardingPrompt } from "./OnboardingPrompt";
-import {
-  buildIntentDetailPrompts,
-  formatIntentDetailChips,
-  inferScoutIntentDetails,
-} from "./intentDetails";
-import { ScoutResultActionCard, classifyScoutResultIntent } from "./ScoutResultActionCard";
 import { safeScoutSourceUrl } from "./provenance";
 
 /* ----------------------------------------------------------
@@ -59,53 +53,6 @@ type ScoutThreadProps = {
   pendingContextCards?: ScoutContextCard[];
   locality?: ScoutLocality;
 };
-
-/* ----------------------------------------------------------
-   @reusable: AssistantStreamedText
-  Use: Animated character-by-character text reveal for any Scout response.
-   Respects prefers-reduced-motion. Pass shouldAnimate=false for instant display.
-   ---------------------------------------------------------- */
-function AssistantStreamedText({
-  content,
-  shouldAnimate,
-}: {
-  content: string;
-  shouldAnimate: boolean;
-}) {
-  const [visibleChars, setVisibleChars] = React.useState(() =>
-    shouldAnimate && typeof window !== "undefined" ? 0 : content.length
-  );
-
-  React.useEffect(() => {
-    if (!shouldAnimate) {
-      setVisibleChars(content.length);
-      return;
-    }
-    const reducedMotion =
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reducedMotion || content.length <= 60) {
-      setVisibleChars(content.length);
-      return;
-    }
-    setVisibleChars(0);
-    const step = Math.max(2, Math.ceil(content.length / 70));
-    const timer = window.setInterval(() => {
-      setVisibleChars((prev) => {
-        if (prev >= content.length) {
-          window.clearInterval(timer);
-          return content.length;
-        }
-        return Math.min(content.length, prev + step);
-      });
-    }, 12);
-    return () => window.clearInterval(timer);
-  }, [content, shouldAnimate]);
-
-  return <>{content.slice(0, visibleChars)}</>;
-}
 
 const SUMMARY_MAX_CHARS = 150;
 
@@ -173,6 +120,7 @@ function coerceReadableAssistantContent(content: string): string {
 
 function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
   const hasResultSurface = Boolean(
+    msg.resultContract ||
     msg.frame ||
     (Array.isArray(msg.clusters) && msg.clusters.length > 0) ||
     (Array.isArray(msg.suggestedActions) && msg.suggestedActions.length > 0) ||
@@ -194,71 +142,12 @@ function buildAssistantSummary(msg: ScoutMessage, displayContent: string): strin
   return trimToSummary(framedSummary || displayContent);
 }
 
-function IntentDetailCollector({
-  userMessage,
-  locality,
-  status,
-  onPrefill,
-}: {
-  userMessage?: string;
-  locality?: ScoutLocality;
-  status: ScoutStatus;
-  onPrefill?: (text: string) => void;
-}) {
-  const detail = React.useMemo(
-    () => inferScoutIntentDetails(userMessage, locality),
-    [locality, userMessage]
-  );
-  const chips = React.useMemo(() => formatIntentDetailChips(detail), [detail]);
-  const prompts = React.useMemo(
-    () => buildIntentDetailPrompts(userMessage, locality),
-    [locality, userMessage]
-  );
-  const nextPrompts = prompts.slice(0, 2);
-  const shouldShow =
-    nextPrompts.length > 0 &&
-    (status === "resolving_context" ||
-      status === "checking_documents" ||
-      status === "ready" ||
-      status === "executing_action");
-
-  if (!shouldShow) return null;
-
-  return (
-    <div className="scout-intent-collector" aria-label="Request context">
-      <div className="min-w-0">
-        <p className="scout-intent-collector__title">Request context</p>
-        <p className="scout-intent-collector__copy">
-          {chips.length > 0
-            ? chips.join(" | ")
-            : "Add anything that matters. Results will update when you are ready."}
-        </p>
-      </div>
-      <div className="scout-intent-collector__chips">
-        {nextPrompts.map((prompt) => (
-          <button
-            key={prompt.label}
-            type="button"
-            className="scout-intent-collector__chip"
-            onClick={() => onPrefill?.(prompt.prompt)}
-            disabled={!onPrefill}
-          >
-            {prompt.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function AssistantMessageBubble({
   msg,
   displayContent,
-  shouldAnimate,
 }: {
   msg: ScoutMessage;
   displayContent: string;
-  shouldAnimate: boolean;
 }) {
   const [expanded, setExpanded] = React.useState(false);
   const summary = React.useMemo(
@@ -270,11 +159,7 @@ function AssistantMessageBubble({
 
   return (
     <>
-      {content && (
-        <p className="whitespace-pre-line leading-relaxed">
-          <AssistantStreamedText content={content} shouldAnimate={shouldAnimate && !expanded} />
-        </p>
-      )}
+      {content && <p className="whitespace-pre-line leading-relaxed">{content}</p>}
       {hasDetails && (
         <button
           type="button"
@@ -309,6 +194,23 @@ function actionTarget(action: ScoutAction): string {
   return String(action.to || action.path || action.prompt || action.payload?.route || action.type);
 }
 
+function contractActionToScoutAction(action: ScoutAllowedActionV1): ScoutAction | null {
+  const target = typeof action.target === "string" ? action.target : undefined;
+  const payload = {
+    ...(action.payload || {}),
+    ...(action.requires_confirmation ? { requiresApproval: true } : {}),
+  };
+
+  return validateAction({
+    type: action.type as ScoutAction["type"],
+    label: action.label,
+    ...(target ? { to: target, path: target } : {}),
+    ...(action.prompt ? { prompt: action.prompt } : {}),
+    ...(Object.keys(payload).length > 0 ? { payload } : {}),
+    primary: action.primary,
+  });
+}
+
 function clusterKindMeta(kind: ScoutCluster["kind"]) {
   switch (kind) {
     case "pros":
@@ -330,74 +232,10 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
   }
 }
 
-function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
-  if (cluster.kind === "pros") {
-    return [
-      {
-        type: "NAVIGATE",
-        label: "Create request",
-        to: "/direct-connect",
-        subtitle: "Review before sharing",
-      },
-      { type: "NAVIGATE", label: "Browse local help", to: "/direct-connect/pros" },
-    ];
-  }
-
-  if (cluster.kind === "community") {
-    return [{ type: "NAVIGATE", label: "See local posts", to: "/community" }];
-  }
-
-  if (cluster.kind === "marketplace") {
-    return [{ type: "NAVIGATE", label: "Open Exchange", to: "/exchange" }];
-  }
-
-  if (cluster.kind === "projects") {
-    return [{ type: "NAVIGATE", label: "Save this search", to: "/direct-connect" }];
-  }
-
-  if (cluster.kind === "site") {
-    return [
-      {
-        type: "ASK_SCOUT",
-        label: "Refine search",
-        prompt: `Help me with ${cluster.title || "this"}.`,
-      },
-    ];
-  }
-
-  if (cluster.kind === "rules") {
-    return [
-      {
-        type: "ASK_SCOUT",
-        label: "Review before contact",
-        prompt: `Help me review what to check before contact for ${cluster.title || "this"}.`,
-      },
-    ];
-  }
-
-  if (cluster.kind === "account") {
-    return [{ type: "NAVIGATE", label: "Open settings", to: "/settings" }];
-  }
-
-  return [];
-}
-
-function buildAskScoutAction(cluster: ScoutCluster): ScoutAction {
-  const title = cluster.title || "this result";
-  const bodyHint = cluster.body ? ` Context: ${cluster.body.slice(0, 180)}` : "";
-  return {
-    type: "ASK_SCOUT",
-    label: "Choose next step",
-    prompt: `Help me review ${title} and choose the safest next step.${bodyHint}`,
-  };
-}
-
 function mergeClusterActions(cluster: ScoutCluster): ScoutAction[] {
   const candidates = [
     ...(cluster.primaryAction ? [{ ...cluster.primaryAction, primary: true }] : []),
     ...(Array.isArray(cluster.actions) ? cluster.actions : []),
-    ...defaultActionsForCluster(cluster),
-    buildAskScoutAction(cluster),
   ];
   const seen = new Set<string>();
   const merged: ScoutAction[] = [];
@@ -410,49 +248,6 @@ function mergeClusterActions(cluster: ScoutCluster): ScoutAction[] {
     merged.push(action);
   }
   return merged;
-}
-
-function quickStartsForPendingSearch(userMessage?: string): string[] {
-  const text = String(userMessage || "").toLowerCase();
-  if (/\b(ac|a c|hvac|heat|heating|furnace|air conditioner|not cooling|no heat)\b/.test(text)) {
-    return ["AC or heating", "Ask before calling", "Check prices"];
-  }
-  if (/\b(plumb|pipe|drain|toilet|sink|water heater|leak)\b/.test(text)) {
-    return ["Plumbing", "Soon or flexible", "Check prices"];
-  }
-  if (/\b(roof|shingle|gutter|leak)\b/.test(text)) {
-    return ["Roofing", "Quote questions", "Find local help"];
-  }
-  if (/\b(concrete|driveway|slab|sidewalk)\b/.test(text)) {
-    return ["Concrete", "Compare prices", "Find local help"];
-  }
-  return ["Find someone", "Check prices", "Ask before calling"];
-}
-
-function normalizeScoutQueryKey(value?: string): string {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function isScoutFollowUpQuery(value?: string): boolean {
-  const q = normalizeScoutQueryKey(value);
-  if (!q) return false;
-  return (
-    q.startsWith("compare local prices") ||
-    q.startsWith("what should i verify before contacting local help") ||
-    q.startsWith("search nearby posts and activity") ||
-    q.startsWith("save this search") ||
-    q.startsWith("save this area")
-  );
-}
-
-function isReadyForBranchingActions(userMessage?: string, locality?: ScoutLocality): boolean {
-  const detail = inferScoutIntentDetails(userMessage, locality);
-  const mustHave: Array<keyof typeof detail> = ["need", "area", "timing", "context", "perspective"];
-  return mustHave.every((key) => Boolean(detail[key]));
 }
 
 function buildEvidenceChips(msg: ScoutMessage): string[] {
@@ -801,9 +596,40 @@ function MessageExtras({
 }) {
   if (isUser) return null;
 
-  const hasActionChips = Boolean(msg.frame?.actionChips && msg.frame.actionChips.length > 0);
-  const hasClusters = Boolean(msg.clusters && msg.clusters.length > 0);
-  const hasOverride = Boolean(msg.overrideOption);
+  const hasResultContract = msg.resultContract?.contract_version === "scout_result.v1";
+  const contractActionEntries = React.useMemo(
+    () =>
+      (msg.resultContract?.allowed_actions || []).flatMap((source) => {
+        const action = contractActionToScoutAction(source);
+        return action ? [{ source, action }] : [];
+      }),
+    [msg.resultContract?.allowed_actions]
+  );
+  const ambiguityActions = React.useMemo(
+    () =>
+      (msg.resultContract?.ambiguity_options || []).flatMap((option) => {
+        const entry = contractActionEntries.find(
+          ({ source }) => source.action_id === option.action_id
+        );
+        return entry ? [{ option, action: entry.action }] : [];
+      }),
+    [contractActionEntries, msg.resultContract?.ambiguity_options]
+  );
+  const ambiguityActionIds = React.useMemo(
+    () => new Set((msg.resultContract?.ambiguity_options || []).map((option) => option.action_id)),
+    [msg.resultContract?.ambiguity_options]
+  );
+  const remainingContractActions = React.useMemo(
+    () => contractActionEntries.filter(({ source }) => !ambiguityActionIds.has(source.action_id)),
+    [ambiguityActionIds, contractActionEntries]
+  );
+  const hasContractActions = contractActionEntries.length > 0;
+  const contractEntities = msg.resultContract?.entities || [];
+  const hasContractEntities = contractEntities.length > 0;
+  const hasActionChips =
+    !hasResultContract && Boolean(msg.frame?.actionChips && msg.frame.actionChips.length > 0);
+  const hasClusters = !hasResultContract && Boolean(msg.clusters && msg.clusters.length > 0);
+  const hasOverride = !hasResultContract && Boolean(msg.overrideOption);
   const hasOnboardingPrompt = Boolean(
     msg.onboarding?.active && Boolean(msg.onboarding.question) && Boolean(onSendMessage)
   );
@@ -861,14 +687,134 @@ function MessageExtras({
   }, [msg.suggestedActions, msg.frame?.actionChips, msg.clusters]);
 
   const hasSuggestions = dedupedSuggestions.length > 0;
-  const shouldShowSuggestions = hasSuggestions && !hasActionChips && !hasClusters;
+  const shouldShowSuggestions =
+    !hasResultContract && hasSuggestions && !hasActionChips && !hasClusters;
   const hasAnything =
-    hasActionChips || hasClusters || hasOverride || hasSuggestions || hasOnboardingPrompt;
+    hasContractEntities ||
+    hasContractActions ||
+    hasActionChips ||
+    hasClusters ||
+    hasOverride ||
+    shouldShowSuggestions ||
+    hasOnboardingPrompt;
 
   if (!hasAnything) return null;
 
   return (
     <div className="mt-3 space-y-3">
+      {hasContractEntities && (
+        <div className="space-y-2" aria-label="Scout results">
+          {contractEntities.map((entity) => {
+            const entityName = entity.name || entity.type;
+            const safeUrl =
+              typeof entity.url === "string" && isSafeLinkTarget(entity.url)
+                ? entity.url
+                : undefined;
+            return (
+              <article
+                key={`${msg.id}-entity-${entity.id}`}
+                className="rounded-2xl p-3"
+                style={{
+                  background: "var(--surface-card)",
+                  border: "1px solid var(--border-subtle)",
+                }}
+              >
+                {safeUrl ? (
+                  <a href={safeUrl} className="text-sm font-semibold underline underline-offset-2">
+                    {entityName}
+                  </a>
+                ) : (
+                  <div className="text-sm font-semibold">{entityName}</div>
+                )}
+                {Array.isArray(entity.match_reasons) && entity.match_reasons.length > 0 && (
+                  <ul
+                    className="mt-2 space-y-1 pl-4 text-xs"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    {entity.match_reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {hasContractActions && (
+        <div
+          aria-label="Scout result actions"
+          className="rounded-2xl p-3 space-y-3"
+          style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)" }}
+        >
+          {ambiguityActions.length > 0 && (
+            <div className="space-y-2">
+              <div className="scout-section-label mb-0">
+                <Sparkles size={11} className="scout-section-label__icon" />
+                Choose what you mean
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {ambiguityActions.map(({ option, action }) => (
+                  <button
+                    key={`${msg.id}-ambiguity-${option.action_id}`}
+                    type="button"
+                    onClick={() => onAction?.(action)}
+                    disabled={!onAction}
+                    className="scout-tool-tray__btn scout-tool-tray__btn--secondary"
+                    style={{
+                      minHeight: "40px",
+                      fontSize: "12px",
+                      textTransform: "none",
+                      letterSpacing: "normal",
+                      padding: "0 14px",
+                    }}
+                  >
+                    <ArrowRight size={12} />
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {remainingContractActions.length > 0 && (
+            <div className="space-y-2">
+              <div className="scout-section-label mb-0">
+                <Sparkles size={11} className="scout-section-label__icon" />
+                Available actions
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {remainingContractActions.map(({ source, action }) => (
+                  <button
+                    key={`${msg.id}-contract-action-${source.action_id}`}
+                    type="button"
+                    onClick={() => onAction?.(action)}
+                    disabled={!onAction}
+                    className={clsx(
+                      "scout-tool-tray__btn",
+                      action.primary
+                        ? "scout-tool-tray__btn--primary"
+                        : "scout-tool-tray__btn--secondary"
+                    )}
+                    style={{
+                      minHeight: "40px",
+                      fontSize: "12px",
+                      textTransform: "none",
+                      letterSpacing: "normal",
+                      padding: "0 14px",
+                    }}
+                  >
+                    <ArrowRight size={12} />
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Action chips + clusters block */}
       {(hasActionChips || hasClusters || (showControllerExtras && hasOverride)) && (
         <div
@@ -1098,112 +1044,19 @@ function MessageExtras({
 }
 
 /* ----------------------------------------------------------
-   @reusable: ScoutLiveStatus
-   Use: The orange heartbeat strip showing Scout's real-time processing state.
-   Place above the thread or at the top of any active Scout surface.
-   Props: status (ScoutStatus), label (string), progress (0-1)
-   ---------------------------------------------------------- */
-export function ScoutLiveStatus({ label, progress }: { label: string; progress: number }) {
-  return (
-    <div className="space-y-1.5">
-      {/* Orange heartbeat bar */}
-      <div className="scout-live-status">
-        <Activity size={13} className="scout-live-status__icon" />
-        <div className="scout-live-status__divider" />
-        <span className="scout-live-status__text">
-          {label}{" "}
-          <span className="scout-live-status__highlight">
-            {Math.round(progress * 100)}% complete
-          </span>
-        </span>
-        <div className="scout-live-status__dot" />
-      </div>
-      {/* Progress bar */}
-      <div
-        className="h-0.5 w-full rounded-full overflow-hidden"
-        style={{ background: "rgba(255,255,255,0.06)" }}
-      >
-        <div
-          className="h-full rounded-full transition-[width] duration-150 ease-out"
-          style={{
-            width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
-            background: "linear-gradient(to right, #f97316, #ea580c)",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ----------------------------------------------------------
    Main ScoutThread component
    ---------------------------------------------------------- */
 const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
   status,
-  mode,
   showControllerExtras = true,
   onAction,
   onQuickAction,
   onOverride,
   overridePendingScope,
   onSendMessage,
-  onPrefill,
-  pendingContextCards,
-  locality,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [progress, setProgress] = React.useState(0);
-  const phaseStartRef = React.useRef<number | null>(null);
-
-  const latestAssistantMessageId = React.useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i -= 1) {
-      if (messages[i]?.role === "assistant") return messages[i].id;
-    }
-    return null;
-  }, [messages]);
-
-  const latestUserMessage = React.useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i -= 1) {
-      if (messages[i]?.role === "user") return messages[i];
-    }
-    return null;
-  }, [messages]);
-  const [resultCardQuery, setResultCardQuery] = React.useState<string | null>(null);
-  const lastResultCardRef = React.useRef<{
-    queryKey: string;
-    intent: ReturnType<typeof classifyScoutResultIntent>;
-  } | null>(null);
-  const localityLabel = React.useMemo(() => {
-    const county = String(locality?.countyName || locality?.county || "").trim();
-    const state = String(locality?.stateCode || locality?.state || "")
-      .trim()
-      .toUpperCase();
-    return [county, state].filter(Boolean).join(", ");
-  }, [locality?.county, locality?.countyName, locality?.state, locality?.stateCode]);
-
-  React.useEffect(() => {
-    if (!latestUserMessage?.content) return;
-    const queryText = String(latestUserMessage.content || "").trim();
-    const queryKey = normalizeScoutQueryKey(queryText);
-    if (!queryKey) return;
-
-    const intent = classifyScoutResultIntent(queryText);
-    const previous = lastResultCardRef.current;
-    if (!previous) {
-      lastResultCardRef.current = { queryKey, intent };
-      setResultCardQuery(queryText);
-      return;
-    }
-
-    if (previous.queryKey === queryKey) return;
-
-    const followUp = isScoutFollowUpQuery(queryText);
-    if (followUp && previous.intent === intent) return;
-
-    lastResultCardRef.current = { queryKey, intent };
-    setResultCardQuery(queryText);
-  }, [latestUserMessage]);
 
   React.useEffect(() => {
     const node = containerRef.current;
@@ -1220,86 +1073,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  React.useEffect(() => {
-    if (status === "idle" || status === "error") {
-      phaseStartRef.current = null;
-      setProgress(0);
-      return;
-    }
-    phaseStartRef.current = performance.now();
-  }, [status]);
-
-  React.useEffect(() => {
-    if (status === "idle" || status === "error") return;
-    const interval = window.setInterval(() => {
-      if (phaseStartRef.current == null) return;
-      const now = performance.now();
-      const elapsed = now - phaseStartRef.current;
-      type PhaseConfig = { base: number; max: number; durationMs: number };
-      const phaseConfig: Record<string, PhaseConfig> = {
-        resolving_context: { base: 0.06, max: 0.18, durationMs: 550 },
-        checking_documents: { base: 0.18, max: 0.75 + Math.random() * 0.15, durationMs: 4200 },
-        executing_action: { base: 0.6, max: 0.95 + Math.random() * 0.02, durationMs: 1900 },
-        ready: { base: 0.9, max: 1.0, durationMs: 750 },
-      };
-      const cfg: PhaseConfig = phaseConfig[status] ?? { base: 0.05, max: 0.8, durationMs: 2000 };
-      const phaseSpan = Math.max(cfg.max - cfg.base, 0.01);
-      let t = Math.min(1, elapsed / cfg.durationMs);
-      if (status === "ready") t = 1 - (1 - t) * (1 - t);
-      const value = cfg.base + t * phaseSpan;
-      setProgress((prev) => Math.min(Math.max(prev, value), 1));
-    }, 140);
-    return () => window.clearInterval(interval);
-  }, [status]);
-
-  // Build live status label
-  let statusLabel: string | null = null;
-  if (status === "resolving_context") {
-    statusLabel = "Getting oriented...";
-  } else if (status === "checking_documents") {
-    const statusMessages =
-      mode === "contractors"
-        ? [
-            "Reading your search...",
-            "Finding nearby help...",
-            "Checking trust and profile details...",
-          ]
-        : mode === "marketplace"
-          ? [
-              "Searching local listings...",
-              "Comparing matching offers...",
-              "Checking recent marketplace updates...",
-            ]
-          : mode === "admin"
-            ? [
-                "Reviewing admin activity...",
-                "Gathering current reports...",
-                "Preparing control settings...",
-              ]
-            : [
-                "Reading what you shared...",
-                "Collecting one missing detail at a time...",
-                "Building your best next step...",
-              ];
-
-    // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
-    const messageIndex = Math.floor(progress * statusMessages.length);
-    statusLabel = statusMessages[Math.min(messageIndex, statusMessages.length - 1)];
-  } else if (status === "executing_action") {
-    statusLabel = "Opening the next step...";
-  } else if (status === "ready") {
-    statusLabel = "Getting this ready...";
-  }
-
   const showProgress = status !== "idle" && status !== "error";
-  const canShowBranchingActions = isReadyForBranchingActions(latestUserMessage?.content, locality);
-
-  const statusStyles: React.CSSProperties =
-    status === "checking_documents"
-      ? { color: "var(--text-secondary)" }
-      : status === "ready"
-        ? { color: "var(--text-primary)" }
-        : { color: "var(--text-secondary)" };
+  const statusLabel =
+    status === "executing_action" ? "Completing the selected action..." : "Scout is working...";
 
   return (
     <div
@@ -1309,13 +1085,6 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       aria-live="polite"
       aria-relevant="additions text"
     >
-      {resultCardQuery && (
-        <ScoutResultActionCard
-          query={resultCardQuery}
-          localityLabel={localityLabel || undefined}
-          onAction={onAction}
-        />
-      )}
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 
@@ -1371,19 +1140,22 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     <img src="/tradescout-logo.png" alt="Scout" />
                   </div>
                   <span className="scout-assistant-bubble__name">Scout</span>
-                  <span className="scout-assistant-bubble__badge">Local results</span>
+                  {msg.resultContract && (
+                    <span className="scout-assistant-bubble__badge">
+                      {humanizeToken(msg.resultContract.intent)}
+                    </span>
+                  )}
                   {msgTime && <span className="scout-assistant-bubble__time">{msgTime}</span>}
                 </div>
                 {displayContent && (
                   <div className="scout-assistant-bubble__body">
-                    <AssistantMessageBubble
-                      msg={msg}
-                      displayContent={displayContent}
-                      shouldAnimate={msg.id === latestAssistantMessageId}
-                    />
+                    <AssistantMessageBubble msg={msg} displayContent={displayContent} />
                   </div>
                 )}
-                <EvidenceStrip msg={msg} enabled={showControllerExtras} />
+                <EvidenceStrip
+                  msg={msg}
+                  enabled={showControllerExtras || Boolean(msg.resultContract)}
+                />
               </div>
             )}
 
@@ -1402,69 +1174,28 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       })}
 
       {showProgress && (
-        <>
-          <IntentDetailCollector
-            userMessage={latestUserMessage?.content}
-            locality={locality}
-            status={status}
-            onPrefill={onPrefill}
-          />
-          <div
-            className="rounded-2xl border p-3"
-            style={{
-              borderColor: "var(--border-subtle)",
-              backgroundColor: "var(--surface-card)",
-              boxShadow: "var(--surface-card-shadow)",
-            }}
-          >
-            <div className="flex items-start gap-3">
-              <div className="scout-avatar mt-0.5" aria-hidden="true">
-                TS
+        <div
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "var(--surface-card)",
+            boxShadow: "var(--surface-card-shadow)",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="scout-avatar mt-0.5" aria-hidden="true">
+              TS
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
+                {statusLabel}
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold" style={statusStyles}>
-                  {statusLabel ?? "Starting your search..."}
-                </div>
-                <p
-                  className="mt-1 text-sm leading-relaxed"
-                  style={{ color: "var(--text-primary)" }}
-                >
-                  Reviewing the minimum details so you can choose one clear next step.
-                </p>
-                {canShowBranchingActions && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0
-                      ? pendingContextCards.slice(0, 3).map((card) => ({
-                          key: card.id,
-                          label: card.label,
-                          onClick: () => onAction && onAction(card.action),
-                        }))
-                      : quickStartsForPendingSearch(latestUserMessage?.content).map((label) => ({
-                          key: label,
-                          label,
-                          onClick: () => onQuickAction && onQuickAction(label),
-                        }))
-                    ).map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={item.onClick}
-                        className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
-                        style={{
-                          borderColor: "var(--border-subtle)",
-                          backgroundColor: "var(--surface-intermediate)",
-                          color: "var(--text-primary)",
-                        }}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-primary)" }}>
+                Nothing will be sent, published, or changed without your approval.
+              </p>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

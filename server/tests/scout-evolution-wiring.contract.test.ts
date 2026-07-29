@@ -7,28 +7,29 @@ function read(relativePath: string): string {
 }
 
 describe("Scout evolution wiring contracts", () => {
-  it("wires ObjectiveOnboardingFlow and WatchdogInterventionBanner into ScoutOS", () => {
+  it("keeps objective and watchdog context without competing result renderers", () => {
     const source = read("client/src/scout/ScoutOS.tsx");
 
     expect(source).toContain('import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow"');
     expect(source).toContain(
       'import WatchdogInterventionBanner from "./WatchdogInterventionBanner"'
     );
-    expect(source).toContain('import TrustAwareDecisionCard from "./TrustAwareDecisionCard"');
-    expect(source).toContain('import ToneAwareMessage from "./ToneAwareMessage"');
     expect(source).toContain("<ObjectiveOnboardingFlow");
     expect(source).toContain("<WatchdogInterventionBanner");
-    expect(source).toContain("<TrustAwareDecisionCard");
-    expect(source).toContain("<ToneAwareMessage");
+    expect(source).not.toContain('import TrustAwareDecisionCard from "./TrustAwareDecisionCard"');
+    expect(source).not.toContain('import ToneAwareMessage from "./ToneAwareMessage"');
+    expect(source).not.toContain("<TrustAwareDecisionCard");
+    expect(source).not.toContain("<ToneAwareMessage");
+    expect(source).toContain("resultContract: {");
   });
 
-  it("calls new Scout evolution endpoints from ScoutOS", () => {
+  it("does not reclassify or restyle the server-owned answer on the client", () => {
     const source = read("client/src/scout/ScoutOS.tsx");
 
     expect(source).toContain('"/api/scout/onboarding/objective-bundle"');
     expect(source).toContain('"/api/scout/watchdog/evaluate"');
-    expect(source).toContain('"/api/scout/tone/build"');
-    expect(source).toContain("UnifiedScoutRouterClient.resolveIntent(");
+    expect(source).not.toContain('"/api/scout/tone/build"');
+    expect(source).not.toContain("UnifiedScoutRouterClient.resolveIntent(");
   });
 
   it("exposes server endpoints for onboarding, watchdog, tone, and trust", () => {

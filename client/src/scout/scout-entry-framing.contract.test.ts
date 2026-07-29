@@ -105,9 +105,9 @@ describe("Scout entry framing contracts", () => {
     expect(homeSource).not.toContain("formatPriceSignalSource");
     expect(scoutOsSource).toContain("priceSignals: Array.isArray(data?.priceSignals)");
     expect(scoutOsSource).toContain("opportunityMoves: Array.isArray(data?.opportunityMoves)");
-    expect(scoutOsSource).toContain("sourceSignals: scoutSourceSignalsQuery.data");
-    expect(scoutOsSource).toContain("priceSignalEvidenceSources");
-    expect(scoutOsSource).toContain("provenance.sourceTitles");
+    expect(scoutOsSource).not.toContain("sourceSignals: scoutSourceSignalsQuery.data");
+    expect(scoutOsSource).not.toContain("priceSignalEvidenceSources");
+    expect(scoutOsSource).toContain("buildScoutProvenance(res)");
     expect(experienceSource).not.toContain("Scout Vault");
     expect(experienceSource).not.toContain("LISA");
   });
@@ -258,7 +258,7 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");
     expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
     expect(scoutOsSource).toContain("Findings and recommended paths");
-    expect(scoutOsSource).toContain("Recommended paths appear below");
+    expect(scoutOsSource).toContain("Server-provided actions appear with each answer");
     expect(scoutOsSource).toContain("Search saved conversations");
     expect(scoutOsSource).toContain("SAVED_SCOUT_SURFACE_FILTERS");
     expect(scoutOsSource).toContain("savedScoutSurfaceFilter");
@@ -283,7 +283,8 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("/vehicles?vehicleId=");
     expect(scoutOsSource).toContain("countyFips");
     expect(scoutOsSource).toContain("savedConversationQueryUrl");
-    expect(scoutOsSource).toContain('title: "Recommended paths"');
+    expect(scoutOsSource).toContain("resultContract:");
+    expect(scoutOsSource).toContain("allowed_actions: res.allowed_actions");
   });
 
   it("preserves explicit context when classic pages open Scout", () => {
@@ -339,7 +340,6 @@ describe("Scout entry framing contracts", () => {
       "client/src/scout/ScoutInputRow.tsx",
       "client/src/scout/ScoutThread.tsx",
       "client/src/scout/ScoutDirectConnectPanel.tsx",
-      "client/src/scout/scoutIntentSorter.ts",
       "client/src/scout/scoutExperience.ts",
     ]
       .map(read)
@@ -391,9 +391,10 @@ describe("Scout entry framing contracts", () => {
 
     expect(scoutOsSource).toContain("Search controls");
     expect(scoutOsSource).toContain("Results + controls");
-    expect(threadSource).toContain("Local results");
-    expect(threadSource).toContain("Request context");
+    expect(threadSource).not.toContain("Local results");
+    expect(threadSource).not.toContain("Request context");
     expect(threadSource).not.toContain("Community-Powered");
-    expect(threadSource).toContain("Here are the best next steps");
+    expect(threadSource).toContain("Choose what you mean");
+    expect(threadSource).toContain("Available actions");
   });
 });

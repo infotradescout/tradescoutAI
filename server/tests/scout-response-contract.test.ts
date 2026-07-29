@@ -17,6 +17,7 @@ describe("scout response contract guards", () => {
     expect(source).toContain("sanitizeActions");
     expect(source).toContain("enforceTradeScoutIdentityBoundary");
     expect(source).toContain("identity_boundary_override");
+    expect(source).toContain("buildScoutResultContractV1");
   });
 
   it("locks Scout identity to TradeScout and blocks external reinterpretation leakage", () => {
@@ -139,6 +140,11 @@ describe("scout response contract guards", () => {
     expect(source).toContain("NormalizedScoutRequest");
     expect(source).toContain("ScoutDecision");
     expect(source).toContain("ScoutResponseContract");
+    expect(source).toContain("ScoutResultContractIntentV1");
+    expect(source).toContain("contract_version");
+    expect(source).toContain("ambiguity_options");
+    expect(source).toContain("allowed_actions");
+    expect(source).toContain("working_memory_update");
   });
 
   it("includes scaffold pipeline modules for ordered route split", () => {

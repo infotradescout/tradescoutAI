@@ -27,7 +27,6 @@ import {
   resolveKnowledge,
   getLocalGuide,
   getLocalMarkdownGuide,
-  appendChatKnowledge,
   loadComprehensiveKnowledge,
   getKnowledgeBaseStatus,
   type KnowledgeSourceReference,
@@ -130,6 +129,19 @@ import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
 import ScoutProactiveWatchdog from "../services/scoutProactiveWatchdog";
 import ScoutToneAwareBuilder, { type ToneScenario } from "../services/scoutToneAwareBuilder";
 import scoutNormalizeRouter from "./scout-normalize";
+import {
+  buildScoutRequestRejectionResponse,
+  buildScoutUnavailableResponse,
+  createScoutRequestLimiters,
+  validateScoutRequestBounds,
+} from "../scout/scoutRequestHardening";
+import ScoutMemoryService from "../services/scoutMemoryService";
+import {
+  buildBoundedScoutHistory,
+  buildScoutSynthesisMemoryBlocks,
+  extractExplicitScoutMemoryUpdate,
+  type ScoutReasoningMemoryContext,
+} from "../scout/scoutWorkingMemory";
 // ⚠️ IMPORT ZONE — NO EXECUTABLE CODE ALLOWED
 // Any logic here will break the entire Scout router
 import {
@@ -147,6 +159,7 @@ import {
 } from "../utils/onboardingService";
 
 const router = Router();
+const scoutRequestLimiters = createScoutRequestLimiters();
 
 async function loadLiveReadinessDirectConnectItems(
   userId: string
@@ -867,6 +880,7 @@ async function synthesizeResponse(
   conversationHistory: string,
   userContext?: any,
   historyMessages?: { role: string; content: string }[],
+  durableMemoryContext?: ScoutReasoningMemoryContext | null,
   recentActivityPrompt?: string,
   requestState?: {
     auth: boolean;
@@ -953,6 +967,17 @@ ${JSON.stringify(requestState.launchContext, null, 2)}
     }
 
     const activityContext = recentActivityPrompt ? `\n${recentActivityPrompt}\n` : "";
+    const synthesisMemoryBlocks = buildScoutSynthesisMemoryBlocks({
+      conversationHistory,
+      historyMessages: Array.isArray(historyMessages)
+        ? historyMessages.filter(
+            (item): item is { role: "user" | "assistant"; content: string } =>
+              (item?.role === "user" || item?.role === "assistant") &&
+              typeof item?.content === "string"
+          )
+        : [],
+      durableMemory: durableMemoryContext,
+    });
 
     // Smart synthesis that ENFORCES the execution contract
     const synthesisPrompt = `${systemPrompt}
@@ -966,6 +991,8 @@ ${JSON.stringify(requestState.launchContext, null, 2)}
   ${userContextPrompt}
 
   ${activityContext}
+
+  ${synthesisMemoryBlocks}
 
   ${tradeHintBlock}
   ${communityHintBlock}
@@ -988,7 +1015,8 @@ Knowledge from TradeScout (Layer ${knowledge.layer}):
 ${knowledge.answer}
 
 KNOWLEDGE HANDLING RULES (CRITICAL):
-- The knowledge block above is the only source-of-truth for this turn.
+- The knowledge block above is the only evidence source for codes, prices, eligibility, providers, and external facts.
+- Active-thread and durable memory may establish the user's goals, preferences, corrections, and prior decisions, but never external facts.
 - If wider-web findings were available, they are already reflected in the knowledge block above.
 - NEVER tell the user "I can't search the internet" or "I cannot browse the web" in your message.
 - Instead:
@@ -2440,7 +2468,7 @@ router.post("/override", async (req: Request, res: Response) => {
   }
 });
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", ...scoutRequestLimiters, async (req: Request, res: Response) => {
   recordQuery();
   const baseJson = res.json.bind(res);
   // Enforce canonical Scout response contract for this endpoint while leaving
@@ -2453,6 +2481,10 @@ router.post("/", async (req: Request, res: Response) => {
           typeof (req.body as { message?: unknown } | undefined)?.message === "string"
             ? ((req.body as { message?: string }).message as string)
             : null,
+        workingMemoryUpdate:
+          ((res.locals as any)?.scoutWorkingMemoryUpdate as
+            | Record<string, unknown>
+            | undefined) ?? null,
       })
     );
 
@@ -2479,22 +2511,73 @@ router.post("/", async (req: Request, res: Response) => {
   };
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
+    const requestBounds = validateScoutRequestBounds(rawBody);
+    if (!requestBounds.ok) {
+      scoutTurnTelemetry.provider = "request_guard";
+      scoutTurnTelemetry.sourceUsed = "scout_request_bounds";
+      scoutTurnTelemetry.failureClass = "system_error";
+      scoutTurnTelemetry.fallbackUsed = false;
+      return res
+        .status(requestBounds.status)
+        .json(buildScoutRequestRejectionResponse(requestBounds));
+    }
     const message = typeof rawBody.message === "string" ? rawBody.message : "";
     const launchContext = normalizeScoutLaunchContext(rawBody.launchContext);
+    const boundedHistory = buildBoundedScoutHistory(rawBody.history, message);
+    const memoryUserIdCandidate =
+      (requestUser as any)?.id ?? (requestUser as any)?.claims?.sub ?? null;
+    const memoryUserId =
+      typeof memoryUserIdCandidate === "string" && memoryUserIdCandidate.trim()
+        ? memoryUserIdCandidate.trim()
+        : null;
+    const explicitMemoryUpdate = extractExplicitScoutMemoryUpdate(message);
+    if (memoryUserId && explicitMemoryUpdate) {
+      try {
+        await ScoutMemoryService.storeExplicitReasoningMemory(memoryUserId, explicitMemoryUpdate);
+        (res.locals as any).scoutWorkingMemoryUpdate = {
+          applied: true,
+          kind: explicitMemoryUpdate.kind,
+          source: "explicit_user_message",
+          user_confirmed: true,
+          source_message_hash: explicitMemoryUpdate.sourceMessageHash,
+        };
+      } catch (error) {
+        console.error("[Scout Memory] Failed to persist explicit user memory:", error);
+        (res.locals as any).scoutWorkingMemoryUpdate = {
+          applied: false,
+          kind: explicitMemoryUpdate.kind,
+          source: "explicit_user_message",
+          user_confirmed: true,
+          failure: "memory_store_unavailable",
+        };
+      }
+    }
+    const durableMemoryContext = memoryUserId
+      ? await ScoutMemoryService.getReasoningMemoryContext(memoryUserId, {
+          maxEntries: 12,
+          maxChars: 6_000,
+        })
+      : null;
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
-    const optimizationUserId = (requestUser as any)?.id;
+    const optimizationUserId = memoryUserId;
     if (optimizationUserId && message) {
       // Import optimization services
-      const ScoutMemoryService = (await import("../services/scoutMemoryService")).default;
       const { generateQueryHash, checkFaqMatch, routeQuery } =
         await import("../services/scoutOptimizationEngine");
 
+      const cacheContextKey = [
+        buildScoutLaunchContextCacheKey(launchContext),
+        `thread:${boundedHistory.digest}`,
+        `memory:${durableMemoryContext?.revision || "none"}`,
+      ]
+        .filter(Boolean)
+        .join("|");
       const queryHash = generateQueryHash(message, {
         county: rawBody.countyCode as string | undefined,
         state: rawBody.stateCode as string | undefined,
         trade: launchContext?.trade,
-        contextKey: buildScoutLaunchContextCacheKey(launchContext),
+        contextKey: cacheContextKey,
       });
 
       // 1. Check if response is cached
@@ -2583,7 +2666,9 @@ router.post("/", async (req: Request, res: Response) => {
       countyFips: normalizedFips,
       intent: normalizeScoutIntent(rawBody.intent, normalizedMessage),
       scoutConfidence: 0,
-      outcome: "completed",
+      // A successful HTTP response proves only that Scout answered or handed
+      // off a next step. It is not verified task completion.
+      outcome: "handed_off",
       failureReason: null,
       scoutMessageHash: hashMessageForScout(normalizedMessage),
     } as InsertScoutInteraction;
@@ -2634,7 +2719,7 @@ router.post("/", async (req: Request, res: Response) => {
       res.on("finish", async () => {
         if (!scoutInteractionLog) return;
         if (!scoutInteractionLog.outcome) {
-          scoutInteractionLog.outcome = res.statusCode >= 400 ? "blocked" : "completed";
+          scoutInteractionLog.outcome = res.statusCode >= 400 ? "blocked" : "handed_off";
         }
         if (res.statusCode >= 400 && !scoutInteractionLog.failureReason) {
           if (res.statusCode === 400) {
@@ -2646,7 +2731,10 @@ router.post("/", async (req: Request, res: Response) => {
           }
         }
 
-        if (scoutInteractionLog.outcome !== "completed") {
+        if (
+          scoutInteractionLog.outcome === "blocked" ||
+          scoutInteractionLog.outcome === "abandoned"
+        ) {
           scoutInteractionLog.failureReason = ensureFailureReason(
             scoutInteractionLog.failureReason || (res.statusCode >= 400 ? "ui_dead_end" : null)
           );
@@ -3107,9 +3195,7 @@ router.post("/", async (req: Request, res: Response) => {
           );
         } else if (intervention.action === "REDIRECT") {
           scoutInteractionLog.outcome = "handed_off";
-          scoutInteractionLog.failureReason = ensureFailureReason(
-            scoutInteractionLog.failureReason || "no_route"
-          );
+          scoutInteractionLog.failureReason = null;
         } else {
           scoutInteractionLog.outcome = "blocked";
           const missingDataDetected =
@@ -3416,10 +3502,9 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    // Build conversation history
-    const conversationHistory = history
-      .map((msg) => `${msg.role === "user" ? "User" : "Scout"}: ${msg.content}`)
-      .join("\n\n");
+    // Build bounded, role-validated working history. The current user message
+    // is supplied separately and removed if the client duplicated it in history.
+    const conversationHistory = boundedHistory.conversationHistory;
 
     // Get local guides if applicable
     let localGuideContext = "";
@@ -3520,7 +3605,8 @@ router.post("/", async (req: Request, res: Response) => {
       role: userRole,
       route: (req as any).route?.path || "unknown",
       capabilities: roles.length > 0 ? roles : ["guest"],
-      last_intent: history.length > 0 ? "continuation" : "new_conversation",
+      last_intent:
+        boundedHistory.messages.length > 0 ? "continuation" : "new_conversation",
       locality: {
         county: countyCode,
         state: stateCode,
@@ -3593,7 +3679,8 @@ router.post("/", async (req: Request, res: Response) => {
           systemPromptWithLocalGuides,
           conversationHistory,
           userContext,
-          history,
+          boundedHistory.messages,
+          durableMemoryContext,
           recentActivityPrompt,
           requestState,
           resolvedContext
@@ -4517,27 +4604,6 @@ router.post("/", async (req: Request, res: Response) => {
       aiResponse.sponsored = null;
     }
 
-    // Persist non-sensitive Q&A back into the knowledge corpus for future retrieval.
-    // To keep the brain focused on genuinely "new" information, only cache
-    // conversations where we had to reach out beyond TradeScout's own data
-    // (internet layer = 3).
-    if (knowledge.layer === 3) {
-      try {
-        appendChatKnowledge({
-          question: message,
-          answer: aiResponse.message,
-          userId,
-          countyCode,
-          stateCode,
-          layer: knowledge.layer,
-          sources: knowledge.sources,
-          actions: aiResponse.actions?.map((a) => a.type),
-        });
-      } catch (persistError) {
-        console.error("Failed to append chat knowledge:", persistError);
-      }
-    }
-
     /**
      * CRITICAL: Sanitize Scout response before sending to frontend.
      *
@@ -4867,64 +4933,22 @@ router.post("/", async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (!isTestRun && scoutInteractionLog) {
-      scoutInteractionLog.outcome = "handed_off";
+      scoutInteractionLog.outcome = "blocked";
       scoutInteractionLog.failureReason = ensureFailureReason(
         scoutInteractionLog.failureReason || "no_route"
       );
     }
-    scoutTurnTelemetry.provider = "fallback";
+    scoutTurnTelemetry.provider = "unavailable";
     scoutTurnTelemetry.sourceUsed = "exception_handler";
     scoutTurnTelemetry.failureClass = "system_error";
-    scoutTurnTelemetry.fallbackUsed = true;
+    scoutTurnTelemetry.fallbackUsed = false;
     console.error("Scout API error:", error);
-    const fallbackMessage = "Scout can still help. Pick a next step:";
-
-    const fallbackActions = [
-      {
-        type: "NAVIGATE",
-        label: "Open Direct Connect",
-        to: "/direct-connect",
-      },
-      {
-        type: "NAVIGATE",
-        label: "Browse local pros",
-        to: "/direct-connect/pros",
-      },
-      {
-        type: "NAVIGATE",
-        label: "Open Community",
-        to: "/community-feed",
-      },
-    ];
-
-    res.json({
-      message: fallbackMessage,
-      suggestedActions: ["Open Direct Connect", "Browse local pros", "Open Community"],
-      actions: fallbackActions,
-      actionResults: [],
-      sponsored: null,
-      publicEntities: [],
-      ctaHints: [],
-      metadata: {
-        intent: "fallback_recovery",
-        sourceUsed: "exception_handler",
-        fallbackUsed: true,
-        degradationReason: "route_exception",
-        confidenceBand: "unknown",
-      },
-      guardContext: {
-        canRetry: true,
-        recoveryAvailable: true,
-      },
-      knowledge: {
-        layer: 0,
-        sources: ["Fallback recovery response"],
-        confidence: "medium",
-      },
-      llmProvider: "fallback",
-      promptVersion: loadSystemPrompt().version,
-      timestamp: new Date().toISOString(),
-    });
+    return res.status(503).json(
+      buildScoutUnavailableResponse({
+        promptVersion: loadSystemPrompt().version,
+        requestId: ((req as any)?.requestId as string | undefined) || null,
+      })
+    );
   }
 });
 
@@ -5250,48 +5274,54 @@ router.post("/execute-action", async (req: Request, res: Response) => {
       }
     }
 
+    if (action.type !== "SAVE_PROFILE") {
+      return res.json({
+        success: true,
+        authorized: true,
+        executed: false,
+        message: "Action authorized for client execution",
+      });
+    }
+
     // Execute action through guard
     const result = await runScoutAction(action, guardContext, async (act) => {
-      if (act.type === "SAVE_PROFILE") {
-        if (!userId) {
-          throw new Error("Authentication required to update profile");
-        }
-
-        const { profilePatch, preferencesPatch } = sanitizeScoutProfileUpdatePayload(act.payload);
-        const currentUser = await storage.getUser(userId);
-        if (!currentUser) {
-          throw new Error("User not found");
-        }
-
-        const hasProfilePatch = Object.keys(profilePatch).length > 0;
-        const hasPreferencesPatch = Object.keys(preferencesPatch).length > 0;
-        if (!hasProfilePatch && !hasPreferencesPatch) {
-          throw new Error("No allowed profile fields provided");
-        }
-
-        const user = await storage.updateUser(userId, {
-          ...profilePatch,
-          ...(hasPreferencesPatch
-            ? { preferences: { ...(currentUser.preferences || {}), ...preferencesPatch } }
-            : {}),
-          profileVersion: CURRENT_PROFILE_VERSION,
-          updatedAt: new Date(),
-        });
-
-        return {
-          executed: true,
-          action: act.type,
-          updatedFields: [
-            ...Object.keys(profilePatch),
-            ...Object.keys(preferencesPatch).map((key) => `preferences.${key}`),
-          ],
-          userId: user.id,
-        };
+      if (act.type !== "SAVE_PROFILE") {
+        throw new Error("Unsupported server action");
+      }
+      if (!userId) {
+        throw new Error("Authentication required to update profile");
       }
 
-      // Placeholder executor—real implementations dispatch to specific handlers.
-      console.log("[Scout Action] Executing:", { type: act.type, target: act.target });
-      return { executed: true, action: act.type };
+      const { profilePatch, preferencesPatch } = sanitizeScoutProfileUpdatePayload(act.payload);
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        throw new Error("User not found");
+      }
+
+      const hasProfilePatch = Object.keys(profilePatch).length > 0;
+      const hasPreferencesPatch = Object.keys(preferencesPatch).length > 0;
+      if (!hasProfilePatch && !hasPreferencesPatch) {
+        throw new Error("No allowed profile fields provided");
+      }
+
+      const user = await storage.updateUser(userId, {
+        ...profilePatch,
+        ...(hasPreferencesPatch
+          ? { preferences: { ...(currentUser.preferences || {}), ...preferencesPatch } }
+          : {}),
+        profileVersion: CURRENT_PROFILE_VERSION,
+        updatedAt: new Date(),
+      });
+
+      return {
+        executed: true,
+        action: act.type,
+        updatedFields: [
+          ...Object.keys(profilePatch),
+          ...Object.keys(preferencesPatch).map((key) => `preferences.${key}`),
+        ],
+        userId: user.id,
+      };
     });
 
     if (result.ok) {
@@ -5312,7 +5342,9 @@ router.post("/execute-action", async (req: Request, res: Response) => {
       }
       return res.json({
         success: true,
-        message: result.message || "Action authorized",
+        authorized: true,
+        executed: true,
+        message: result.message || "Action completed",
         data: result.data,
         nextAction: (result as any).nextAction,
       });

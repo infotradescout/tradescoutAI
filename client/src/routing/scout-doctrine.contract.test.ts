@@ -52,7 +52,6 @@ describe("Scout routing/copy doctrine", () => {
     const files = [
       "client/src/scout/ScoutOS.tsx",
       "client/src/scout/ScoutThread.tsx",
-      "client/src/scout/scoutIntentSorter.ts",
       "client/src/components/scout/ScoutContinueBanner.tsx",
       "client/src/pages/contact.tsx",
     ];

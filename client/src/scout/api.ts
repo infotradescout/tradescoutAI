@@ -4,6 +4,13 @@ import type { ScoutMessage, ScoutAction, ScoutKnowledgeSource } from "./state";
 import type { RecentActivityEvent } from "../agent/activity";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 import type { ScoutLaunchContext } from "@shared/scoutLaunchContext";
+import type {
+  ScoutAllowedActionV1,
+  ScoutAmbiguityOptionV1,
+  ScoutEvidenceV1,
+  ScoutPublicEntityV1,
+  ScoutResultContractIntentV1,
+} from "@shared/types/scout";
 
 const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE as string | undefined;
 
@@ -87,6 +94,14 @@ export interface ScoutWorkingContext {
 }
 
 export interface ScoutBackendResponse {
+  contract_version: "scout_result.v1";
+  intent: ScoutResultContractIntentV1;
+  ambiguity_options: ScoutAmbiguityOptionV1[];
+  entities: ScoutPublicEntityV1[];
+  evidence: ScoutEvidenceV1[];
+  answer: string;
+  allowed_actions: ScoutAllowedActionV1[];
+  working_memory_update: Record<string, unknown>;
   message: string;
   suggestedActions?: string[];
   actions?: ScoutAction[];
@@ -177,35 +192,9 @@ async function postScoutWithTimeout(
 
 const SCOUT_POST_TIMEOUT_MS = 25_000;
 
-function inferModeFromMessageAndRoles(message: string, roles?: string[]): ScoutMode {
-  const lower = message.toLowerCase();
-  // IMPORTANT: Do not force a "contractors" mode just because the user has a contractor profile.
-  // People often wear multiple hats (homeowner + contractor). Mode should primarily follow the
-  // current question, not the account's tags, otherwise Scout answers from the wrong perspective.
-  const roleSet = new Set((roles ?? []).map((r) => r.toLowerCase()));
-
-  // Message-driven
-  if (lower.includes("marketplace") || lower.includes("for sale") || lower.includes("listing")) {
-    return "marketplace";
-  }
-  if (lower.includes("contractor") || lower.includes("pro") || lower.includes("trade")) {
-    return "contractors";
-  }
-
-  const rolesArray = Array.from(roleSet);
-
-  // Role-driven
-  if (rolesArray.some((r) => r.includes("car_dealer") || r.includes("auto_service"))) {
-    return "marketplace";
-  }
-
-  return "default";
-}
-
 // Aligns with server/routes/scout.ts -> interface ScoutRequest
 export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBackendResponse> {
-  const mode: ScoutMode =
-    options.mode ?? inferModeFromMessageAndRoles(options.message, options.roles);
+  const mode: ScoutMode = options.mode ?? "default";
 
   const countyFips =
     typeof options.locality?.countyFips === "string" &&

@@ -40,6 +40,13 @@ import { logAdminAction } from "../services/adminAuditLogService";
 import { recordTrustLedgerEvent } from "../services/trustLedgerService";
 import { computeDirectConnectProviderFitScore } from "../services/directConnectProviderFitScore";
 import {
+  classifyServiceAreaReach,
+  computeRequiredVerificationScore,
+  normalizeMeasuredCountSignal,
+  normalizeMeasuredRate,
+  type ServiceAreaReachTier,
+} from "../services/directConnectMeasuredEvidence";
+import {
   archiveInternalDirectConnectNotification,
   appendDispatchEvent,
   listInternalDirectConnectNotifications,
@@ -2277,8 +2284,8 @@ export function registerDirectConnectRoutes(app: Express) {
       id: string; // assignment key — use businessId
       userId: string | null;
       companyName: string;
-      positiveRecommendations: number;
-      totalRecommendations: number;
+      positiveRecommendations: number | null;
+      totalRecommendations: number | null;
       isBusinessProvider: true;
     }> = [];
     if (countyRecord?.id) {
@@ -2293,8 +2300,8 @@ export function registerDirectConnectRoutes(app: Express) {
             id: b.businessId,
             userId: b.ownerUserId,
             companyName: b.name,
-            positiveRecommendations: 0,
-            totalRecommendations: 0,
+            positiveRecommendations: null,
+            totalRecommendations: null,
             isBusinessProvider: true as const,
           }));
       } catch (e) {
@@ -2339,20 +2346,22 @@ export function registerDirectConnectRoutes(app: Express) {
       ? await storage.getTradeRequirementsByTradeId(tradeRecord.id)
       : null;
     const hasExplicitRequirements = hasExplicitTradeRequirements(requirements);
+    const contractorUserIds = baseContractors
+      .map((contractor: any) => String(contractor.userId || "").trim())
+      .filter(Boolean);
+    const verificationByUserId =
+      hasExplicitRequirements && contractorUserIds.length > 0
+        ? await storage.getUserVerificationSummary(contractorUserIds)
+        : {};
     if (!expandReach && requirements && hasExplicitRequirements && !bypassVerificationGate) {
       const requiresLicense = requirements.requiresLicense ?? false;
       const requiresInsurance = requirements.requiresInsurance ?? false;
       const requiresEin = requirements.requiresEin ?? false;
-      const userIds = baseContractors
-        .map((c: any) => c.userId as string | undefined)
-        .filter((id): id is string => Boolean(id));
-      const compliance =
-        userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
 
       const compliantIds = baseContractors
         .filter((c: any) => {
           if (!c.userId) return false;
-          const summary = compliance[c.userId];
+          const summary = verificationByUserId[c.userId];
           if (!summary) return false;
           if (requiresLicense && !summary.hasLicense) return false;
           if (requiresInsurance && !summary.hasInsurance) return false;
@@ -2377,54 +2386,62 @@ export function registerDirectConnectRoutes(app: Express) {
       ? await storage.getContractorServiceAreaCounts(gatedContractors.map((c: any) => c.id))
       : {};
 
-    const tierForCount = (count: number | undefined): "local" | "regional" | "wide" => {
-      const n = count ?? 0;
-      if (n <= 1) return "local";
-      if (n <= 5) return "regional";
-      return "wide";
-    };
-
     type RankedCandidate = {
       id: string;
       userId?: string | null;
       companyName?: string | null;
       positiveRecommendations?: number | null;
       totalRecommendations?: number | null;
-      reachTier: "local" | "regional" | "wide";
+      reachTier: ServiceAreaReachTier;
       providerFitScore: number;
       providerFitBreakdown: Record<string, unknown>;
       fitReasons: string[];
+      unmeasuredFields: string[];
+      evidenceCompleteness: number;
+      territoryMatched: boolean | null;
+      categoryMatched: boolean | null;
+      verificationState: string;
+      profileReadiness: string;
+      contactEligibility: boolean;
+      trustState: string;
       isBusinessProvider?: boolean;
+      isWorkerProvider?: boolean;
     };
 
     const ranked: RankedCandidate[] = [];
     for (const contractor of gatedContractors) {
       const stats = contractor.userId
-        ? await storage.getUserCredibilityStats(contractor.userId)
-        : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
+        ? await storage.getUserCredibilityStats(contractor.userId).catch(() => null)
+        : null;
+      const recommendationInsight = await storage
+        .getRecommendationInsight(contractor.id)
+        .catch(() => undefined);
 
-      const countyCount = serviceAreaCounts[contractor.id] ?? 0;
-      const reachTier = tierForCount(countyCount);
+      const countyCount = Object.prototype.hasOwnProperty.call(serviceAreaCounts, contractor.id)
+        ? serviceAreaCounts[contractor.id]
+        : null;
+      const reachTier = classifyServiceAreaReach(countyCount);
 
-      const recSignal = Math.max(
-        0,
-        Math.min(1, (Number(contractor.positiveRecommendations ?? 0) || 0) / 25)
+      const recSignal = normalizeMeasuredCountSignal(
+        contractor.positiveRecommendations,
+        25
       );
-      const completionSignal = Math.max(
-        0,
-        Math.min(1, (Number(stats.jobsCompleted ?? 0) || 0) / 25)
+      const completionSignal = normalizeMeasuredCountSignal(stats?.jobsCompleted, 25);
+      const activitySignal = normalizeMeasuredCountSignal(stats?.activeWeeks, 52);
+      const verificationScore = computeRequiredVerificationScore(
+        requirements,
+        contractor.userId ? verificationByUserId[contractor.userId] : null
       );
-      const activitySignal = Math.max(0, Math.min(1, (Number(stats.activeWeeks ?? 0) || 0) / 52));
       const fit = computeDirectConnectProviderFitScore({
-        countyMatch: Boolean(countyRecord?.id),
-        tradeMatch: Boolean(tradeRecord?.id),
-        verificationScore: requirements ? 0.8 : 0.6,
-        responseRate: 0.6,
+        countyMatch: countyRecord?.id && !usedExpandedFallback ? true : null,
+        tradeMatch: tradeRecord?.id ? true : null,
+        verificationScore,
+        responseRate: normalizeMeasuredRate(recommendationInsight?.responseRate),
         completionRate: completionSignal,
         recentActivity: activitySignal,
         recommendationTrust: recSignal,
-        disputePenalty: 0,
-        overCapacityPenalty: reachTier === "wide" ? 0.2 : 0,
+        disputePenalty: null,
+        overCapacityPenalty: null,
       });
 
       ranked.push({
@@ -2439,101 +2456,126 @@ export function registerDirectConnectRoutes(app: Express) {
         providerFitScore: fit.score,
         providerFitBreakdown: fit.breakdown as any,
         fitReasons: fit.reasons,
+        unmeasuredFields: fit.unmeasuredFields,
+        evidenceCompleteness: fit.evidenceCompleteness,
+        territoryMatched: fit.breakdown.countyMatch,
+        categoryMatched: fit.breakdown.tradeMatch,
+        verificationState:
+          verificationScore === null
+            ? "unknown"
+            : verificationScore === 1
+              ? "requirements_met"
+              : "requirements_not_met",
+        profileReadiness: "unknown",
+        contactEligibility: Boolean(contractor.userId),
+        trustState: recSignal === null ? "unknown" : "measured",
         isBusinessProvider: false,
       });
     }
 
-    // Merge business candidates (always treated as "local" tier, score from credibility stats).
+    // Merge county-filtered business candidates. Service-area breadth, category
+    // fit, verification, responsiveness, and trust remain unknown unless measured.
     // Deduplicate by userId to avoid notifying the same person twice (contractor + business owner).
     const seenUserIds = new Set(ranked.map((r) => r.userId).filter(Boolean));
     for (const biz of businessCandidates) {
       if (biz.userId && seenUserIds.has(biz.userId)) continue;
       const stats = biz.userId
-        ? await storage.getUserCredibilityStats(biz.userId)
-        : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
-      const completionSignal = Math.max(
-        0,
-        Math.min(1, (Number(stats.jobsCompleted ?? 0) || 0) / 25)
-      );
-      const activitySignal = Math.max(0, Math.min(1, (Number(stats.activeWeeks ?? 0) || 0) / 52));
+        ? await storage.getUserCredibilityStats(biz.userId).catch(() => null)
+        : null;
+      const completionSignal = normalizeMeasuredCountSignal(stats?.jobsCompleted, 25);
+      const activitySignal = normalizeMeasuredCountSignal(stats?.activeWeeks, 52);
       const fit = computeDirectConnectProviderFitScore({
-        countyMatch: Boolean(countyRecord?.id),
-        tradeMatch: Boolean(tradeRecord?.id),
-        verificationScore: 0.65,
-        responseRate: 0.55,
+        countyMatch: countyRecord?.id ? true : null,
+        tradeMatch: null,
+        verificationScore: null,
+        responseRate: null,
         completionRate: completionSignal,
         recentActivity: activitySignal,
-        recommendationTrust: 0.45,
-        disputePenalty: 0,
-        overCapacityPenalty: 0,
+        recommendationTrust: null,
+        disputePenalty: null,
+        overCapacityPenalty: null,
       });
       ranked.push({
         id: biz.id,
         userId: biz.userId,
         companyName: biz.companyName,
-        positiveRecommendations: 0,
-        totalRecommendations: 0,
-        reachTier: "local",
+        positiveRecommendations: null,
+        totalRecommendations: null,
+        reachTier: "unknown",
         providerFitScore: fit.score,
         providerFitBreakdown: fit.breakdown as any,
         fitReasons: fit.reasons,
+        unmeasuredFields: fit.unmeasuredFields,
+        evidenceCompleteness: fit.evidenceCompleteness,
+        territoryMatched: fit.breakdown.countyMatch,
+        categoryMatched: fit.breakdown.tradeMatch,
+        verificationState: "unknown",
+        profileReadiness: "unknown",
+        contactEligibility: Boolean(biz.userId),
+        trustState: "unknown",
         isBusinessProvider: true,
       });
       if (biz.userId) seenUserIds.add(biz.userId);
     }
 
-    // Merge worker (helper) candidates — always local tier, dedup by userId.
+    // Merge county-filtered worker candidates and keep unsupported evidence unknown.
     for (const worker of workerCandidates) {
       if (seenUserIds.has(worker.userId)) continue;
-      const stats = await storage.getUserCredibilityStats(worker.userId).catch(() => ({
-        jobsCompleted: 0,
-        peopleHelped: 0,
-        activeWeeks: 0,
-      }));
-      const completionSignal = Math.max(
-        0,
-        Math.min(1, (Number(stats.jobsCompleted ?? 0) || 0) / 25)
-      );
-      const activitySignal = Math.max(0, Math.min(1, (Number(stats.activeWeeks ?? 0) || 0) / 52));
+      const stats = await storage.getUserCredibilityStats(worker.userId).catch(() => null);
+      const completionSignal = normalizeMeasuredCountSignal(stats?.jobsCompleted, 25);
+      const activitySignal = normalizeMeasuredCountSignal(stats?.activeWeeks, 52);
       const fit = computeDirectConnectProviderFitScore({
         countyMatch: true,
-        tradeMatch: Boolean(tradeRecord?.id),
-        verificationScore: 0.55,
-        responseRate: 0.5,
+        tradeMatch: null,
+        verificationScore: null,
+        responseRate: null,
         completionRate: completionSignal,
         recentActivity: activitySignal,
-        recommendationTrust: 0.4,
-        disputePenalty: 0,
-        overCapacityPenalty: 0,
+        recommendationTrust: null,
+        disputePenalty: null,
+        overCapacityPenalty: null,
       });
       ranked.push({
         id: worker.workerId, // use workerId as the assignment key for workers
         userId: worker.userId,
         companyName: `${worker.firstName} ${worker.lastName}`,
-        positiveRecommendations: 0,
-        totalRecommendations: 0,
-        reachTier: "local",
+        positiveRecommendations: null,
+        totalRecommendations: null,
+        reachTier: "unknown",
         providerFitScore: fit.score,
         providerFitBreakdown: fit.breakdown as any,
         fitReasons: fit.reasons,
+        unmeasuredFields: fit.unmeasuredFields,
+        evidenceCompleteness: fit.evidenceCompleteness,
+        territoryMatched: fit.breakdown.countyMatch,
+        categoryMatched: fit.breakdown.tradeMatch,
+        verificationState: "unknown",
+        profileReadiness: "unknown",
+        contactEligibility: true,
+        trustState: "unknown",
         isWorkerProvider: true,
-      } as any);
+      });
       seenUserIds.add(worker.userId);
     }
 
-    const tierRank: Record<"local" | "regional" | "wide", number> = {
+    const tierRank: Record<ServiceAreaReachTier, number> = {
       local: 0,
       regional: 1,
       wide: 2,
+      unknown: 3,
     };
 
     ranked.sort((a, b) => {
-      const aTier = tierRank[a.reachTier] ?? 2;
-      const bTier = tierRank[b.reachTier] ?? 2;
-      if (aTier !== bTier) return aTier - bTier;
       const aScore = a.providerFitScore ?? 0;
       const bScore = b.providerFitScore ?? 0;
-      return bScore - aScore;
+      if (aScore !== bScore) return bScore - aScore;
+      if (a.evidenceCompleteness !== b.evidenceCompleteness) {
+        return b.evidenceCompleteness - a.evidenceCompleteness;
+      }
+      const aTier = tierRank[a.reachTier] ?? 3;
+      const bTier = tierRank[b.reachTier] ?? 3;
+      if (aTier !== bTier) return aTier - bTier;
+      return a.id.localeCompare(b.id);
     });
 
     const topRanked = ranked.slice(0, filters.limit || 5);
@@ -2576,7 +2618,11 @@ export function registerDirectConnectRoutes(app: Express) {
         if (existingByContractor.has(candidate.id)) continue;
       }
 
-      const recCount = Number(candidate.positiveRecommendations ?? 0) || 0;
+      const recCount =
+        candidate.positiveRecommendations === null ||
+        candidate.positiveRecommendations === undefined
+          ? null
+          : Number(candidate.positiveRecommendations);
       const reasons: string[] = [];
       if (usedExpandedFallback) {
         reasons.push("Expanded provider reach (demo fallback)");
@@ -2584,10 +2630,10 @@ export function registerDirectConnectRoutes(app: Express) {
         reasons.push("Local provider");
       } else if (candidate.reachTier === "regional") {
         reasons.push("Regional provider serving this county");
-      } else {
+      } else if (candidate.reachTier === "wide") {
         reasons.push("Serves this county and surrounding areas");
       }
-      if (recCount > 0) {
+      if (recCount !== null && Number.isFinite(recCount) && recCount > 0) {
         reasons.push(`${recCount} neighbor recommendations`);
       }
 
@@ -2597,7 +2643,9 @@ export function registerDirectConnectRoutes(app: Express) {
         providerFitBreakdown: candidate.providerFitBreakdown,
         reasons,
         fitReasons: candidate.fitReasons,
-        tradeMatch: Boolean(tradeRecord),
+        unmeasuredFields: candidate.unmeasuredFields,
+        evidenceCompleteness: candidate.evidenceCompleteness,
+        tradeMatch: candidate.categoryMatched,
         recommendationCount: recCount,
         routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
       };
@@ -2615,12 +2663,12 @@ export function registerDirectConnectRoutes(app: Express) {
         workerId: (candidate as any).isWorkerProvider ? candidate.id : null,
         eligibility: { status: "eligible", eligible: true },
         eligibilityReasons: ["route_ready_eligible_pool"],
-        territoryMatched: true,
-        categoryMatched: true,
-        verificationState: "eligible",
-        profileReadiness: "ready",
-        contactEligibility: true,
-        trustState: "eligible",
+        territoryMatched: candidate.territoryMatched,
+        categoryMatched: candidate.categoryMatched,
+        verificationState: candidate.verificationState,
+        profileReadiness: candidate.profileReadiness,
+        contactEligibility: candidate.contactEligibility,
+        trustState: candidate.trustState,
       });
       await appendDispatchEvent({
         requestId,
@@ -6859,32 +6907,26 @@ export function registerDirectConnectRoutes(app: Express) {
                     eligibility: { status: "eligible", eligible: true },
                     eligibilityReasons: ["eligible_for_dispatch"],
                     territoryMatched: true,
-                    categoryMatched: true,
-                    verificationState: "verified_or_allowed",
-                    profileReadiness: "ready",
-                    contactEligibility: true,
-                    trustState: "eligible",
+                    categoryMatched: null,
+                    verificationState: contractorEligibility.tradeEligibility.requirementsApplied
+                      ? "requirements_met"
+                      : "unknown",
+                    profileReadiness: "unknown",
+                    contactEligibility: Boolean(contractor.userId),
+                    trustState: "unknown",
                   })
                 ),
                 ...contractorEligibility.ineligible.map((entry: any) =>
                   snapshotDispatchCandidate({
                     requestId: createdRequestId,
                     contractorId: String(entry.contractorId || ""),
-                    eligibility: evaluateContractorEligibility({
-                      isActive: true,
-                      isVerified: false,
-                      profileComplete: true,
-                      contactEligible: false,
-                      categoryMatch: true,
-                      territoryMatch: !String(entry.reason || "").includes("outside"),
-                      trustOrCvsEligible: true,
-                    }),
+                    eligibility: { status: "not_eligible", eligible: false },
                     ineligibilityReasons: [String(entry.reason || "not_eligible")],
-                    territoryMatched: !String(entry.reason || "").includes("outside"),
-                    categoryMatched: true,
+                    territoryMatched: String(entry.reason || "").includes("outside") ? false : null,
+                    categoryMatched: null,
                     verificationState: "unknown",
                     profileReadiness: "unknown",
-                    contactEligibility: false,
+                    contactEligibility: null,
                     trustState: "unknown",
                   })
                 ),
@@ -6896,11 +6938,11 @@ export function registerDirectConnectRoutes(app: Express) {
                     eligibility: { status: "eligible", eligible: true },
                     eligibilityReasons: ["eligible_for_dispatch"],
                     territoryMatched: true,
-                    categoryMatched: true,
-                    verificationState: "verified_or_allowed",
-                    profileReadiness: "ready",
-                    contactEligibility: true,
-                    trustState: "eligible",
+                    categoryMatched: null,
+                    verificationState: "unknown",
+                    profileReadiness: "unknown",
+                    contactEligibility: Boolean(business.ownerUserId),
+                    trustState: "unknown",
                   })
                 ),
                 ...businessEligibility.ineligible.map((entry: any) =>
@@ -6909,11 +6951,11 @@ export function registerDirectConnectRoutes(app: Express) {
                     businessId: String(entry.businessId || ""),
                     eligibility: { status: "not_eligible", eligible: false },
                     ineligibilityReasons: [String(entry.reason || "not_eligible")],
-                    territoryMatched: !String(entry.reason || "").includes("outside"),
-                    categoryMatched: !String(entry.reason || "").includes("category"),
+                    territoryMatched: String(entry.reason || "").includes("outside") ? false : null,
+                    categoryMatched: String(entry.reason || "").includes("category") ? false : null,
                     verificationState: "unknown",
                     profileReadiness: "unknown",
-                    contactEligibility: false,
+                    contactEligibility: null,
                     trustState: "unknown",
                   })
                 ),

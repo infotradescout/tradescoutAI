@@ -63,14 +63,23 @@ export async function ensureDirectConnectDispatchLedgerTables() {
       eligibility_state text NOT NULL,
       eligibility_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
       ineligibility_reasons jsonb NOT NULL DEFAULT '[]'::jsonb,
-      territory_matched boolean NOT NULL DEFAULT false,
-      category_matched boolean NOT NULL DEFAULT false,
+      territory_matched boolean NULL,
+      category_matched boolean NULL,
       verification_state text NOT NULL DEFAULT 'unknown',
       profile_readiness text NOT NULL DEFAULT 'unknown',
-      contact_eligibility boolean NOT NULL DEFAULT false,
+      contact_eligibility boolean NULL,
       trust_state text NOT NULL DEFAULT 'unknown',
       created_at timestamptz NOT NULL DEFAULT now()
     );
+  `);
+  await db.execute(sql`
+    ALTER TABLE direct_connect_dispatch_candidates
+      ALTER COLUMN territory_matched DROP NOT NULL,
+      ALTER COLUMN territory_matched DROP DEFAULT,
+      ALTER COLUMN category_matched DROP NOT NULL,
+      ALTER COLUMN category_matched DROP DEFAULT,
+      ALTER COLUMN contact_eligibility DROP NOT NULL,
+      ALTER COLUMN contact_eligibility DROP DEFAULT;
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS direct_connect_dispatch_events (
@@ -1762,11 +1771,11 @@ export async function snapshotDispatchCandidate(args: {
   eligibility: ContractorEligibilityResult;
   eligibilityReasons?: string[];
   ineligibilityReasons?: string[];
-  territoryMatched: boolean;
-  categoryMatched: boolean;
+  territoryMatched: boolean | null;
+  categoryMatched: boolean | null;
   verificationState: string;
   profileReadiness: string;
-  contactEligibility: boolean;
+  contactEligibility: boolean | null;
   trustState: string;
 }) {
   try {

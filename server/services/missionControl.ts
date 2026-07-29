@@ -304,8 +304,8 @@ export async function recordScoutInteraction(input: InsertScoutInteraction) {
     throw new Error("Outcome is required for Scout interaction logging");
   }
 
-  if (outcome !== "completed" && !failureReason) {
-    throw new Error("failure_reason is required for non-completed Scout outcomes");
+  if ((outcome === "blocked" || outcome === "abandoned") && !failureReason) {
+    throw new Error("failure_reason is required for failed Scout outcomes");
   }
 
   if (failureReason && !allowedFailureReasons.has(failureReason as any)) {
@@ -318,7 +318,8 @@ export async function recordScoutInteraction(input: InsertScoutInteraction) {
     scoutConfidence: Number.isFinite(input.scoutConfidence)
       ? Math.max(0, Math.min(100, Math.round(input.scoutConfidence as number)))
       : 0,
-    failureReason: outcome === "completed" ? null : failureReason,
+    failureReason:
+      outcome === "blocked" || outcome === "abandoned" ? failureReason : null,
   };
 
   await db.insert(scoutInteractions).values(sanitized);

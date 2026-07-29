@@ -24,14 +24,12 @@ import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
 import { executeScoutActions } from "./ScoutActionRouter";
 import { ROUTES } from "@/lib/routes";
-import type { ScoutAction, ScoutCluster, ScoutMessage } from "./state";
+import type { ScoutAction, ScoutMessage } from "./state";
 import { useSession } from "../contexts/SessionContext";
 import {
   getRecentActivity,
   recordActivity,
   getSeenAdIds,
-  markAdSeen,
-  canShowAnotherSponsored,
   hasSeenFirstAnswer,
   markFirstAnswerSeen,
 } from "../agent/activity";
@@ -54,56 +52,35 @@ import {
   Users2,
   Wrench,
 } from "lucide-react";
-import { getHelpLink } from "./helpSources";
 import { ScoutInputRow } from "./ScoutInputRow";
 import ScoutSearchDock from "./ScoutSearchDock";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
 import { buildScoutContextCards, type ScoutContextCardKind } from "./scoutContextCards";
-import { applyCtasToClusters, type ScoutCtaHint } from "./ctaHelpers";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
 import { canOpenScoutWorkArea } from "./scoutWorkAreas";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
-import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
+import { inferContextRoles } from "./contextRoles";
 import { useScoutOnboarding } from "./useScoutOnboarding";
 import { ClaimConfirmationCard as ClaimConfirmationCardComponent } from "./ClaimConfirmationCard";
 import { buildScoutProvenance } from "./provenance";
-import { enforceResponseQualityContract } from "./responseQuality";
 import type { ClaimType } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { useScoutMode } from "./useScoutMode";
 import { isScoutOnboardingCompleted } from "./scoutOnboardingSession";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
-import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
-import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
-import { sortScoutInfoDump } from "./scoutIntentSorter";
-import { inferScoutIntentDetails } from "./intentDetails";
-import {
-  buildScoutLearningCluster,
-  persistScoutLearningSignalLocally,
-  readScoutLearningSnapshot,
-  type ScoutConfidenceBand,
-} from "./scoutLearningOptions";
-import {
-  buildScoutExperienceClusters,
-  firstSupplierUrl,
-  priceSignalEvidenceSources,
-  type ScoutSupplierProductSnapshot,
-  type ScoutSourceSignalSnapshot,
-} from "./scoutExperience";
-import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
+import { resolveQuickActionIntent } from "./localIntents";
+import { persistScoutLearningSignalLocally } from "./scoutLearningOptions";
+import { type ScoutSourceSignalSnapshot } from "./scoutExperience";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
-import ToneAwareMessage from "./ToneAwareMessage";
 import { ScoutHome } from "./ScoutHome";
-import TrustAwareDecisionCard from "./TrustAwareDecisionCard";
 import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
-import { UnifiedScoutRouterClient, type UnifiedRoutingDecision } from "./unifiedRouterClient";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
@@ -136,12 +113,9 @@ const AUTO_ROUTE_DELAY_MS = 1600;
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
 const SCOUT_EVOLUTION_SURFACES_ENABLED =
   String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
-// Findings and recommended paths
-// Recommended paths appear below
 // Search saved conversations
 // Related to
 // Open related view
-// title: "Recommended paths"
 // cluster.primaryAction
 // ...(Array.isArray(cluster.actions) ? cluster.actions : [])
 // projectId
@@ -205,8 +179,6 @@ const SAVED_SCOUT_SURFACE_FILTERS: Array<{
 ];
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
-
-const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
 
 type ScoutHomeIdDashboardResponse = {
   completionScore?: number;
@@ -634,39 +606,6 @@ function buildHomeIdActionCards(args: {
   }
 
   return cards.slice(0, 6);
-}
-
-function isWeakSuggestionLabel(label: string) {
-  const trimmed = label.trim();
-  return WEAK_SUGGESTION_PREFIXES.some((re) => re.test(trimmed));
-}
-
-function sanitizeSuggestionLabel(label: string) {
-  let out = label.trim();
-  if (!out) return "";
-
-  // Avoid internal jargon that new users won't understand
-  out = out.replace(/dashboards?/gi, "views");
-
-  // Keep chips readable on mobile
-  if (out.length > 80) {
-    out = `${out.slice(0, 77)}...`;
-  }
-
-  return out;
-}
-
-function scoutResponseConfidenceBand(res: {
-  metadata?: {
-    confidenceBand?: "low" | "medium" | "high" | "unknown";
-    resolvedContext?: { confidence?: string } | null;
-  };
-}): ScoutConfidenceBand {
-  const resolved = res.metadata?.resolvedContext?.confidence;
-  if (resolved === "low" || resolved === "medium" || resolved === "high") return resolved;
-  const direct = res.metadata?.confidenceBand;
-  if (direct === "low" || direct === "medium" || direct === "high") return direct;
-  return "unknown";
 }
 
 function containsProfanity(text: string) {
@@ -1368,24 +1307,8 @@ function mergeSavedScoutThreads(
     .slice(0, SCOUT_SAVED_THREADS_LIMIT);
 }
 
-function confidenceLabelToScore(label?: string | null): number {
-  const l = (label || "").toLowerCase();
-  if (l === "high") return 0.9;
-  if (l === "medium") return 0.7;
-  if (l === "low") return 0.4;
-  return 0;
-}
-
 function normalizeForMatch(input: string): string {
   return input
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function normalizeForRepetitionCheck(input: string): string {
-  return String(input || "")
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
@@ -1420,85 +1343,6 @@ function dedupeScoutActions(actions?: ScoutAction[]): ScoutAction[] {
   }
 
   return deduped;
-}
-
-function collectActionLanguageFromClusters(clusters: ScoutCluster[]): Set<string> {
-  const seen = new Set<string>();
-
-  for (const cluster of clusters) {
-    if (cluster.title) {
-      seen.add(normalizeActionKey(cluster.title));
-    }
-    if (cluster.primaryAction?.label) {
-      seen.add(normalizeActionKey(cluster.primaryAction.label));
-    }
-    if (Array.isArray(cluster.actions)) {
-      for (const action of cluster.actions) {
-        if (action.label) {
-          seen.add(normalizeActionKey(action.label));
-        }
-      }
-    }
-  }
-
-  return seen;
-}
-
-function filterDuplicateSuggestions(
-  suggestions: string[],
-  clusters: ScoutCluster[],
-  actions?: ScoutAction[]
-): string[] {
-  const actionLanguage = collectActionLanguageFromClusters(clusters);
-
-  for (const action of actions || []) {
-    if (action.label) {
-      actionLanguage.add(normalizeActionKey(action.label));
-    }
-  }
-
-  const deduped: string[] = [];
-  const seen = new Set<string>();
-
-  for (const suggestion of suggestions) {
-    const key = normalizeActionKey(suggestion);
-    if (!key) continue;
-    if (seen.has(key)) continue;
-    if (actionLanguage.has(key)) continue;
-    seen.add(key);
-    deduped.push(suggestion);
-  }
-
-  return deduped;
-}
-
-async function resolveSupplierProductForScout(
-  message: string
-): Promise<ScoutSupplierProductSnapshot | null> {
-  const url = firstSupplierUrl(message);
-  if (!url) return null;
-
-  try {
-    const data = await apiRequest("/api/procurement/products/resolve", {
-      method: "POST",
-      body: { url },
-      timeoutMs: 2800,
-    });
-    return data?.product || null;
-  } catch {
-    return {
-      sourceUrl: url,
-      host: (() => {
-        try {
-          return new URL(url).hostname;
-        } catch {
-          return "supplier link";
-        }
-      })(),
-      status: "unavailable",
-      message: "Scout could not read product details quickly. Supply Run can still use the link.",
-    };
-  }
 }
 
 const DOCTRINE_SENTENCE_PATTERNS = [
@@ -1707,40 +1551,6 @@ function sanitizeScoutMessage(raw: unknown): string {
   return withoutDoctrine || fallback;
 }
 
-function enforceShortIntentDiscipline(
-  userMessage: string,
-  content: string,
-  intentLabel?: string
-): string {
-  const lower = userMessage.trim().toLowerCase();
-  const isVeryShortPrompt = lower.length > 0 && lower.length <= 120;
-  const startsWithShortWh = /^(what|why|who|where|when)\b/.test(lower);
-
-  const looksShortIntent =
-    isVeryShortPrompt &&
-    (startsWithShortWh ||
-      intentLabel === "short" ||
-      intentLabel === "definition" ||
-      intentLabel === "why");
-
-  if (!looksShortIntent) return content;
-
-  const trimmed = content.trim();
-  if (!trimmed) return trimmed;
-
-  // Keep only the first 1-3 sentences to match the
-  // short-intent contract without changing the core answer.
-  const sentences = trimmed
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-
-  if (sentences.length <= 3) return trimmed;
-
-  const kept = sentences.slice(0, 3).join(" ");
-  return kept.endsWith(".") || kept.endsWith("!") || kept.endsWith("?") ? kept : `${kept}...`;
-}
-
 function objectiveStatusToOnboardingStatus(
   status: Objective["status"]
 ): "pending" | "in_progress" | "completed" | "skipped" {
@@ -1805,7 +1615,6 @@ export default function ScoutOS() {
   });
   const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
-  const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [overridePendingScope, setOverridePendingScope] = useState<string | null>(null);
   const [autoRouteEnabled, setAutoRouteEnabled] = useState<boolean>(() => {
     try {
@@ -1829,21 +1638,6 @@ export default function ScoutOS() {
   const [objectiveOnboardingBundle, setObjectiveOnboardingBundle] = useState<any | null>(null);
   const [watchdogResult, setWatchdogResult] = useState<any | null>(null);
   const [dismissedWatchdogId, setDismissedWatchdogId] = useState<string | null>(null);
-  const [routingDecisionCard, setRoutingDecisionCard] = useState<UnifiedRoutingDecision | null>(
-    null
-  );
-  const [toneMessage, setToneMessage] = useState<null | {
-    message: string;
-    scenario?:
-      | "default"
-      | "technical_fallback"
-      | "confidence_low"
-      | "blocked_action"
-      | "next_step_prompt";
-    toneScore?: number;
-    guardrailFlags?: string[];
-    confidenceBand?: "low" | "medium" | "high";
-  }>(null);
 
   const [dcConfirmOpen, setDcConfirmOpen] = useState(false);
   const [dcDraft, setDcDraft] = useState<null | {
@@ -2574,9 +2368,6 @@ export default function ScoutOS() {
     publishedProfileSlug: canonicalOwnedProfile?.slug || undefined,
   });
 
-  // Local intent handlers — encapsulates the 4 early-return branches in handleSend
-  const { resolveSyncIntent, checkProfileLookup } = useScoutLocalHandlers();
-
   // Enforce pre-Scout gate completion before running onboarding
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -2674,153 +2465,11 @@ export default function ScoutOS() {
     }
   }, [hasExplicitScoutLaunch, isFirstGuestVisit]);
 
-  // Load public config (first intro appendix text) once
-  useEffect(() => {
-    let cancelled = false;
-
-    fetch("/api/public/config", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        const v = typeof data.firstIntroAppendix === "string" ? data.firstIntroAppendix : "";
-        setFirstIntroAppendix(v);
-      })
-      .catch(() => {
-        // If config fails, we simply don't append anything.
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
-    if (!roles || roles.length === 0) return "default";
-
-    const normalized = roles.map((r) => {
-      const raw = String(r || "").toLowerCase();
-      if (raw === "owner" || raw === "head_admin") return "super_admin";
-      return raw;
-    });
-
-    // Super-admins and operators get an admin-focused Scout persona.
-    if (normalized.some((r) => ["admin", "ops_admin", "super_admin"].includes(r))) {
-      return "admin";
-    }
-
-    if (normalized.some((r) => r.startsWith("contractor:") || r === "contractor" || r === "pro")) {
-      return "contractors";
-    }
-    if (normalized.some((r) => r.startsWith("realtor:") || r === "realtor")) {
-      return "marketplace";
-    }
-    return "default";
-  };
-
   const hasAdminAccess = hasAdminUiAccess(user);
   const showEvolutionSurfaces = SCOUT_EVOLUTION_SURFACES_ENABLED && hasAdminAccess;
 
   // We no longer surface the separate "Trending" tab at the bottom; all
   // focus stays on the main Scout thread and input.
-
-  const buildSmartSuggestions = (
-    mode: ScoutMode,
-    userMessage: string,
-    serverSuggestions?: string[],
-    opts?: {
-      isFirstAnswer?: boolean;
-      isGuest?: boolean;
-      intent?: string;
-      resolvedContext?: {
-        stage?: string;
-        blockingReason?: string | null;
-        allowedActions?: string[];
-      } | null;
-      contextRoles?: string[];
-    }
-  ): string[] => {
-    const base: string[] = [];
-    const trimmed = userMessage.trim();
-    const short = trimmed.length > 80 ? `${trimmed.slice(0, 77)}...` : trimmed;
-
-    switch (mode) {
-      case "admin":
-        base.push(
-          "Open my Admin Panel and monitoring tools",
-          "Show recent Finance / Invoicing ledger activity",
-          "Help me send a targeted broadcast announcement from Notification Ops",
-          "Open a floating note to keep this visible"
-        );
-        break;
-      case "contractors":
-        base.push(
-          "Open my jobs",
-          "Create an invoice for this job",
-          "View invoices and payments",
-          "Post a new job",
-          "Open a floating note to keep this visible"
-        );
-        break;
-      case "marketplace":
-        base.push(
-          "Show Exchange listings that match this need near me",
-          "Post a listing",
-          "Manage my listings",
-          "Open a floating note to keep this visible"
-        );
-        break;
-      default:
-        base.push(
-          "Create a local request from this",
-          "Find nearby people or groups who can help",
-          "Open a floating note to keep this visible"
-        );
-        break;
-    }
-
-    // If the inferred context includes HOA board signals, tailor a few options.
-    const roles = (opts?.contextRoles || []).map((r) => r.toLowerCase());
-    if (roles.includes("hoa_board")) {
-      base.splice(
-        0,
-        base.length,
-        "Open HOA dashboard",
-        "Post HOA notice",
-        "Review dues and payments"
-      );
-    }
-
-    if (roles.includes("marketplace_vendor") || roles.includes("vendor")) {
-      base.splice(0, base.length, "Manage my listings", "Post a listing", "View offers");
-    }
-
-    const server = (serverSuggestions ?? [])
-      .filter(Boolean)
-      .map((s) => sanitizeSuggestionLabel(String(s)))
-      .filter((s) => s && !isWeakSuggestionLabel(s));
-    const merged: string[] = [];
-
-    if (isAuthenticated && !hasCompletedSetup(user as any)) {
-      merged.push("Finish my profile setup first");
-    }
-
-    for (const raw of base) {
-      const s = sanitizeSuggestionLabel(raw);
-      if (!s || isWeakSuggestionLabel(s)) continue;
-      if (!merged.includes(s)) merged.push(s);
-      if (merged.length === 3) return merged;
-    }
-
-    for (const s of server) {
-      if (!merged.includes(s)) merged.push(s);
-      if (merged.length === 3) return merged;
-    }
-
-    if (!merged.length && short) {
-      merged.push(`Remember this for later and suggest my next move on: ${short}`);
-    }
-    return merged.slice(0, 3);
-  };
 
   const handleSend = useCallback(
     async (value: string, explicitMode?: ScoutMode, _opts?: { isScriptedIntro?: boolean }) => {
@@ -2854,8 +2503,7 @@ export default function ScoutOS() {
 
       // Context-aware roles: derive ephemeral roles based on message/page/signals
       const contextRoles = getContextRoles(value);
-      const contextMode = deriveModeFromContextRoles(contextRoles as any);
-      const mode: ScoutMode = explicitMode ?? contextMode ?? inferModeFromRoles(rolesForRequest);
+      const mode: ScoutMode = explicitMode ?? "default";
       setActiveMode(mode);
 
       const start = performance.now();
@@ -2892,12 +2540,8 @@ export default function ScoutOS() {
       }
 
       try {
-        // ==================================================================
-        // INTENT DETECTION: Check for local intent patterns before falling
-        // back to the generic Scout server endpoint.
-        // Sync branches (explicit nav, routing explainer, messaging locked)
-        // are handled by useScoutLocalHandlers.
-        // ==================================================================
+        // Telemetry may observe the raw request, but it never changes routing.
+        // The server-owned Scout orchestrator is the only intent authority.
         const lowerMsg = value.toLowerCase();
         const normalized = lowerMsg.replace(/[^a-z0-9\s]/gi, " ");
         if (value.trim().toLowerCase() === LIVE_READINESS_QUICK_START_PROMPT.toLowerCase()) {
@@ -2910,41 +2554,6 @@ export default function ScoutOS() {
               ts: new Date().toISOString(),
             },
           });
-        }
-
-        // ------------------------------------------------------------------
-        // SYNC LOCAL INTENTS (explicit nav, routing explainer, messaging locked)
-        // ------------------------------------------------------------------
-        const syncResult = resolveSyncIntent(value, contextRoles);
-        if (syncResult.kind !== "no_match") {
-          setStatus("ready");
-          applyServerResponse(syncResult.message, []);
-          if (syncResult.kind === "explicit_nav") {
-            queueAutoRoute(syncResult.autoRoute);
-          }
-          if (
-            syncResult.kind === "routing_explainer" ||
-            syncResult.kind === "messaging_locked_explainer"
-          ) {
-            const latencyMs = performance.now() - start;
-            logScoutInsight({ message: value, mode, locality, success: true, latencyMs });
-          }
-          setStatus("idle");
-          return;
-        }
-
-        // ------------------------------------------------------------------
-        // ASYNC LOCAL INTENT: Profile lookup
-        // ------------------------------------------------------------------
-        const profileResult = await checkProfileLookup(value, contextRoles);
-        if (profileResult.kind === "profile_lookup") {
-          setStatus("executing_action");
-          applyServerResponse(profileResult.message, []);
-          if (profileResult.autoRoute) {
-            queueAutoRoute(profileResult.autoRoute);
-          }
-          setStatus("idle");
-          return;
         }
 
         if (!hasLoggedConfusionRef.current) {
@@ -2964,107 +2573,10 @@ export default function ScoutOS() {
           }
         }
 
-        // ==================================================================
-        // FALLBACK: Use existing server flow if no intent matched
-        // ==================================================================
-        // Unified router assist (situation + trust + tone) is production-gated.
-        if (showEvolutionSurfaces) {
-          try {
-            const resolve = await UnifiedScoutRouterClient.resolveIntent(
-              value,
-              {
-                userId:
-                  typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
-                isAuthenticated: Boolean(isAuthenticated),
-                userRole:
-                  typeof (user as any)?.role === "string"
-                    ? String((user as any).role)
-                    : sessionRole || undefined,
-                location: {
-                  county: locality?.county,
-                  state: locality?.state,
-                  region: undefined,
-                },
-                trustLevel: undefined,
-              },
-              {
-                situation: {
-                  activeObjectives: activeObjective
-                    ? [
-                        {
-                          id: activeObjective.id,
-                          title: activeObjective.title,
-                          intentClass: activeObjective.intentClass,
-                          status: activeObjective.status,
-                          progressPct: objectiveStatusToProgress(activeObjective.status),
-                          updatedAt: activeObjective.updatedAt,
-                        },
-                      ]
-                    : [],
-                  recentEvents: state.messages.slice(-6).map((m) => ({
-                    type: m.role === "assistant" ? "action_success" : "message_sent",
-                    timestamp: m.timestamp,
-                  })),
-                  urgencySignals: [
-                    {
-                      source: "direct_user_signal",
-                      level: /urgent|asap|today|now/i.test(value) ? 3 : 2,
-                    },
-                  ],
-                  now: new Date().toISOString(),
-                },
-                trust: {
-                  userId:
-                    typeof (user as any)?.id === "string" ? String((user as any).id) : undefined,
-                  countyFips:
-                    typeof (user as any)?.countyFips === "string"
-                      ? String((user as any).countyFips)
-                      : typeof (user as any)?.county_fips === "string"
-                        ? String((user as any).county_fips)
-                        : undefined,
-                  cvsScore:
-                    typeof (user as any)?.cvsScore === "number"
-                      ? Number((user as any).cvsScore)
-                      : typeof (user as any)?.trustScore === "number"
-                        ? Number((user as any).trustScore)
-                        : null,
-                  verificationStatus:
-                    typeof (user as any)?.verificationStatus === "string"
-                      ? ((user as any).verificationStatus as any)
-                      : "unknown",
-                  riskFlags: [],
-                },
-                tone: {
-                  scenario: "next_step_prompt",
-                  countyLabel: locality?.county,
-                  roleLabel:
-                    typeof (user as any)?.role === "string"
-                      ? String((user as any).role)
-                      : sessionRole || undefined,
-                  includeNextStep: true,
-                },
-              }
-            );
-
-            if (resolve) {
-              setRoutingDecisionCard(resolve);
-            } else {
-              setRoutingDecisionCard(null);
-            }
-          } catch {
-            setRoutingDecisionCard(null);
-          }
-        } else {
-          setRoutingDecisionCard(null);
-        }
-
-        // Once we start building the server payload and hitting /api/scout,
-        // switch to CHECKING_DOCUMENTS to drive the loader animation.
+        // The request now crosses the one server-owned result boundary.
         setStatus("checking_documents");
         const recentActivity = getRecentActivity();
         const shownAdIds = getSeenAdIds();
-        const intentDetails = inferScoutIntentDetails(value, locality);
-        const scoutLearning = readScoutLearningSnapshot(user);
 
         const res = await sendToScout({
           history: state.messages.map((m) => ({ role: m.role, content: m.content })),
@@ -3075,8 +2587,6 @@ export default function ScoutOS() {
           launchContext: scoutLaunch.context || undefined,
           knowledgeMode: "local-first",
           filters: {
-            intentDetails,
-            scoutLearning,
             collectionSurface: "scout-summary-thread",
           },
           roles: rolesForRequest,
@@ -3084,447 +2594,71 @@ export default function ScoutOS() {
           shownAdIds,
         });
 
-        // Backend has responded; we are now preparing the
-        // final Scout answer and actions on the client.
-        // This maps to the READY phase for the progress UI.
+        // The frontend renders the returned contract without reinterpreting it.
         setStatus("ready");
 
-        const isFirstAnswer = !hasSeenFirstAnswer();
-
-        const smartSuggestions = buildSmartSuggestions(mode, value, res.suggestedActions, {
-          isFirstAnswer,
-          isGuest,
-          intent: res.metadata?.intent,
-          resolvedContext: res.metadata?.resolvedContext ?? null,
-          contextRoles,
-        });
-
-        const dedupedServerActions = dedupeScoutActions(res.actions);
-        const confidenceBand = scoutResponseConfidenceBand(res);
-        const sortedIntents = sortScoutInfoDump(value, { confidenceBand });
-        const learningCluster = buildScoutLearningCluster({
-          message: value,
-          confidenceBand,
-          intentDetails,
-          existingLabels: sortedIntents.map((intent) => intent.label),
-        });
-
-        let clusters: ScoutCluster[] = [];
-
-        if (sortedIntents.length > 0) {
-          clusters.push({
-            id: `sorted-summary-${Date.now()}`,
-            title: "Recommended paths",
-            kind: "site",
-            body:
-              sortedIntents.length === 1
-                ? "Scout surfaces the narrowest safe next step for this."
-                : "Scout surfaces the possible paths so you can choose what to do next.",
-            items: sortedIntents.map((intent) => ({
-              id: intent.id,
-              label: intent.label,
-              description: intent.reason,
-            })),
-            actions: sortedIntents
-              .flatMap((intent) => intent.actions)
-              .filter((action, index, all) => {
-                const key = [
-                  action.type,
-                  action.label || "",
-                  action.to || "",
-                  action.path || "",
-                  action.prompt || "",
-                ].join("|");
-                return (
-                  all.findIndex(
-                    (candidate) =>
-                      [
-                        candidate.type,
-                        candidate.label || "",
-                        candidate.to || "",
-                        candidate.path || "",
-                        candidate.prompt || "",
-                      ].join("|") === key
-                  ) === index
-                );
-              })
-              .slice(0, 5),
-          });
-
-          if (
-            learningCluster &&
-            !isMobile &&
-            (confidenceBand === "low" || confidenceBand === "unknown")
-          ) {
-            clusters.push(learningCluster);
-          }
-
-          clusters.push(...sortedIntents.map((intent) => intent.cluster));
-        }
-
-        if (
-          learningCluster &&
-          !isMobile &&
-          !clusters.some((cluster) => cluster.id === learningCluster.id)
-        ) {
-          clusters.push(learningCluster);
-        }
-
-        const supplierProduct = await resolveSupplierProductForScout(value);
-        const experienceClusters = buildScoutExperienceClusters({
-          message: value,
-          confidenceBand,
-          intentDetails,
-          existingLabels: clusters.map((cluster) => cluster.title),
-          supplierProduct,
-          sourceSignals: scoutSourceSignalsQuery.data ?? null,
-        });
-
-        if (experienceClusters.length > 0) {
-          clusters.push(...experienceClusters);
-        }
-
-        // Sponsored/affiliate guardrails:
-        // - never on the first real Scout answer
-        const allowSponsoredClientSide =
-          !isFirstAnswer && hasSeenFirstAnswer() && canShowAnotherSponsored();
-
-        if (allowSponsoredClientSide && res.sponsored?.id) {
-          const bodyLines = [res.sponsored.title, res.sponsored.content].filter(Boolean);
-          const body = bodyLines.join("\n\n");
-          clusters.push({
-            id: `sponsored-${res.sponsored.id}`,
-            title: "Sponsored",
-            kind: "generic",
-            body,
-            primaryAction: res.sponsored.linkUrl
-              ? {
-                  type: "NAVIGATE",
-                  label: res.sponsored.isAffiliate ? "View offer" : "Learn more",
-                  to: res.sponsored.linkUrl,
-                  payload: { adId: res.sponsored.id },
-                }
-              : undefined,
-            // Minimal feedback affordance rendered as secondary actions
-            secondaryActions: [
-              {
-                type: "CALL_TOOL",
-                name: "ads.feedback",
-                args: { adId: res.sponsored.id, rating: "helpful", source: "scout" },
-                label: "Helpful",
-              },
-              {
-                type: "CALL_TOOL",
-                name: "ads.feedback",
-                args: { adId: res.sponsored.id, rating: "not_relevant", source: "scout" },
-                label: "Not relevant",
-              },
-              {
-                type: "CALL_TOOL",
-                name: "ads.feedback",
-                args: { adId: res.sponsored.id, rating: "spam", source: "scout" },
-                label: "Spam",
-              },
-            ],
-          } as any);
-          markAdSeen(res.sponsored.id);
-        }
-
-        // If the backend response reads like a generic template or provides a known
-        // template frame, attach a concrete, pre-filled draft so the user leaves
-        // with something actionable immediately.
-        const looksLikeGenericTemplate =
-          typeof res.message === "string" &&
-          /template\s+for\s+a\s+quote\s+request/i.test(res.message);
-        const hasTemplateFrame =
-          typeof res.frame?.templateId === "string" && res.frame.templateId.trim().length > 0;
-        const prefilledDraft =
-          looksLikeGenericTemplate || hasTemplateFrame ? buildAutoFilledDraft(value) : null;
-
-        if (prefilledDraft) {
-          clusters.push({
-            id: `prefilled-draft-${Date.now()}`,
-            title: "Pre-filled request",
-            kind: "generic",
-            body: prefilledDraft,
-            actions: [
-              {
-                type: "PREFILL_INPUT",
-                label: "Edit and send",
-                payload: { text: prefilledDraft },
-              },
-              {
-                type: "OPEN_FLOATING_NOTE",
-                label: "Open a floating note",
-                payload: { noteId: "quick" },
-              },
-            ],
-          });
-        }
-
-        if (isFirstAnswer) {
-          clusters.push({
-            id: "first-nav-contractors",
-            title: "Find local help",
-            kind: "generic",
-            primaryAction: {
-              type: "NAVIGATE",
-              label: "Open",
-              to: ROUTES.CONTRACTORS,
+        const contractActions = dedupeScoutActions(
+          res.allowed_actions.map((action) => ({
+            type: action.type as ScoutAction["type"],
+            label: action.label,
+            ...(action.target ? { to: action.target, path: action.target } : {}),
+            ...(action.prompt ? { prompt: action.prompt } : {}),
+            payload: {
+              ...(action.payload || {}),
+              ...(action.requires_confirmation ? { requiresApproval: true } : {}),
             },
-          });
-
-          if (isGuest) {
-            clusters.push({
-              id: "first-account-prompt",
-              title: "Save your area and requests",
-              kind: "generic",
-              body: "Create a free account so Scout can remember your area and keep your saved requests synced.",
-              actions: [
-                {
-                  type: "NAVIGATE",
-                  label: "Create account",
-                  to: ROUTES.REGISTER,
-                },
-                { type: "NOOP", label: "Keep exploring with Scout" },
-              ],
-            });
-          }
-        }
-
-        // Attach server-returned actions as explicit user-clickable chips.
-        if (dedupedServerActions.length > 0) {
-          // If the server already gave actions, avoid adding extra "first answer" blocks
-          // that repeat the same navigation intent.
-          clusters = clusters.filter(
-            (c) => c.id !== "first-nav-contractors" && c.id !== "first-account-prompt"
-          );
-          clusters.push({
-            id: `server-actions-${Date.now()}`,
-            title: "Actions",
-            kind: "generic",
-            actions: dedupedServerActions.map((a) => ({
-              ...a,
-              label: a.label || (typeof a.type === "string" ? a.type.replace(/_/g, " ") : "Action"),
-            })),
-          });
-        }
-
-        // Keep Scout's very first answer tight so it never feels
-        // like a wall of text or gets visually "cut off" behind
-        // navigation. This is a hard character cap, tuned for the
-        // current layout. Onboarding answers should feel like a lead-in
-        // to action tiles, not an essay.
-        const MAX_FIRST_MESSAGE_CHARS = 280;
-
-        // CRITICAL: Sanitize the message to remove any internal reasoning leakage
-        const sanitized = sanitizeScoutMessage(res.message);
-
-        const disciplined =
-          typeof sanitized === "string"
-            ? enforceShortIntentDiscipline(value, sanitized, res.metadata?.intent)
-            : sanitized;
-
-        const enrichedContent =
-          prefilledDraft && typeof disciplined === "string"
-            ? `${disciplined}\n\nHere's your pre-filled request (ready to send):\n${prefilledDraft}`
-            : disciplined;
-
-        const finalContent =
-          isFirstAnswer &&
-          typeof enrichedContent === "string" &&
-          enrichedContent.length > MAX_FIRST_MESSAGE_CHARS
-            ? `${enrichedContent.slice(0, MAX_FIRST_MESSAGE_CHARS).trimEnd()}...`
-            : enrichedContent;
-
-        const preliminaryContent =
-          typeof finalContent === "string" && finalContent.trim().length > 0
-            ? finalContent
-            : "I'm here and ready. Choose an action below or ask me for the next step.";
-
-        const filteredSuggestions = filterDuplicateSuggestions(
-          smartSuggestions,
-          clusters,
-          dedupedServerActions
+            primary: action.primary,
+          }))
         );
 
-        const hasActionOptions =
-          dedupedServerActions.length > 0 || (Array.isArray(clusters) && clusters.length > 0);
+        const resolvedContent = sanitizeScoutMessage(res.answer || res.message);
 
-        const resolvedContent = enforceResponseQualityContract({
-          userMessage: value,
-          content: preliminaryContent,
-          hasActionOptions,
-        });
-
-        // Guardrail: if Scout falls into repeated generic fallback language
-        // without actions, force a concrete recovery response with explicit paths.
-        const previousAssistant = [...state.messages]
-          .reverse()
-          .find((m) => m.role === "assistant")?.content;
-        const repeatedResponse =
-          normalizeForRepetitionCheck(previousAssistant || "") !== "" &&
-          normalizeForRepetitionCheck(previousAssistant || "") ===
-            normalizeForRepetitionCheck(resolvedContent);
-        const genericRoutingFallback =
-          /having trouble generating a full answer|seeing heavy demand right now|route you to the right next step|which option should i run first|tradescout can still route the strongest next step|scout surfaces local context|what should i help you with next/i.test(
-            resolvedContent
-          );
-
-        if (!hasActionOptions && (repeatedResponse || genericRoutingFallback)) {
-          const { message: fallbackMessage, actions: fallbackActions } = buildConnectionFallback(
-            {
-              contractorsRoute: "/direct-connect/pros",
-              communityRoute: "/community",
-              exchangeRoute: "/exchange",
-            },
-            value,
-            { contextRoles: getContextRoles(value) }
-          );
-
-          applyServerResponse(fallbackMessage, fallbackActions);
-          setToneMessage(null);
-          setStatus("idle");
-
-          const latencyMs = performance.now() - start;
-          logScoutInsight({
-            message: value,
-            mode,
-            locality,
-            success: true,
-            latencyMs,
-          });
-          return;
-        }
-
-        // Attach CTA hints from server (community posts, trade deals, etc.)
-        if (Array.isArray(res.ctaHints) && res.ctaHints.length > 0) {
-          clusters =
-            applyCtasToClusters(clusters, {
-              hints: res.ctaHints.map((h) => ({
-                type: h.type,
-                id: h.id,
-                ownerUserId: h.ownerUserId ?? undefined,
-                authorId: h.authorId ?? undefined,
-                canDirectConnect: h.canDirectConnect,
-                canMessage: h.canMessage,
-                label: h.label,
-              })) as ScoutCtaHint[],
-            }) || clusters;
-        }
-
-        const priceEvidenceSources = priceSignalEvidenceSources(
-          scoutSourceSignalsQuery.data ?? null,
-          value
-        );
         const provenance: NonNullable<ScoutMessage["provenance"]> = buildScoutProvenance(res) || {};
-        if (priceEvidenceSources.length > 0) {
-          provenance.sourceTitles = Array.from(
-            new Set([...(provenance.sourceTitles || []), ...priceEvidenceSources])
-          ).slice(0, 5);
-        }
+        const primaryNavigation = contractActions.find(
+          (action) =>
+            action.type === "NAVIGATE" &&
+            (typeof action.to === "string" || typeof action.path === "string")
+        );
 
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
           content: resolvedContent,
           timestamp: res.timestamp || new Date().toISOString(),
-          suggestedActions: filteredSuggestions,
-          overrideOption: res.overrideOption,
-          clusters: clusters.length ? clusters : undefined,
-          frame: res.frame,
           contextRoles: getContextRoles(value),
-          navTarget: dedupedServerActions.length
-            ? (() => {
-                const nav = dedupedServerActions.find(
-                  (a) =>
-                    a &&
-                    a.type === "NAVIGATE" &&
-                    (typeof a.to === "string" || typeof a.path === "string")
-                );
-                return (nav?.to as string) || (nav?.path as string) || undefined;
-              })()
-            : undefined,
+          navTarget:
+            (primaryNavigation?.to as string) || (primaryNavigation?.path as string) || undefined,
           provenance,
+          resultContract: {
+            contract_version: res.contract_version,
+            intent: res.intent,
+            ambiguity_options: res.ambiguity_options,
+            entities: res.entities,
+            evidence: res.evidence,
+            answer: res.answer,
+            allowed_actions: res.allowed_actions,
+            working_memory_update: res.working_memory_update,
+          },
         };
 
-        applyServerResponse(msg, dedupedServerActions);
-
-        if (showEvolutionSurfaces) {
-          try {
-            const toneRes = await fetch("/api/scout/tone/build", {
-              method: "POST",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                scenario:
-                  res.metadata?.resolvedContext?.confidence === "low"
-                    ? "confidence_low"
-                    : "next_step_prompt",
-                message: msg.content,
-                countyLabel: locality?.county,
-                roleLabel:
-                  typeof (user as any)?.role === "string"
-                    ? String((user as any).role)
-                    : sessionRole || undefined,
-                confidenceBand:
-                  res.metadata?.resolvedContext?.confidence === "low" ||
-                  res.metadata?.resolvedContext?.confidence === "medium" ||
-                  res.metadata?.resolvedContext?.confidence === "high"
-                    ? res.metadata.resolvedContext.confidence
-                    : "medium",
-                includeNextStep: true,
-                nextStepLabel: msg.navTarget ? "Open next step" : "Continue local summary",
-                nextStepRoute: msg.navTarget || "/scout",
-              }),
-            });
-
-            if (toneRes.ok) {
-              const built = await toneRes.json();
-              setToneMessage({
-                message: String(built?.message || ""),
-                scenario: built?.scenario,
-                toneScore: typeof built?.toneScore === "number" ? built.toneScore : undefined,
-                guardrailFlags: Array.isArray(built?.guardrailFlags)
-                  ? built.guardrailFlags
-                  : undefined,
-                confidenceBand:
-                  res.metadata?.resolvedContext?.confidence === "low" ||
-                  res.metadata?.resolvedContext?.confidence === "medium" ||
-                  res.metadata?.resolvedContext?.confidence === "high"
-                    ? res.metadata.resolvedContext.confidence
-                    : undefined,
-              });
-            } else {
-              setToneMessage(null);
-            }
-          } catch {
-            setToneMessage(null);
-          }
-        } else {
-          setToneMessage(null);
-        }
+        applyServerResponse(msg, contractActions);
 
         // Persist a lightweight "resume" snapshot so other surfaces can offer a
         // single-click local-summary resume affordance without the user having to
         // hunt for the last thread.
         if (user) {
-          const nav = dedupedServerActions.length
-            ? dedupedServerActions.find(
-                (a) =>
-                  a &&
-                  a.type === "NAVIGATE" &&
-                  (typeof a.to === "string" || typeof a.path === "string")
-              )
-            : undefined;
-          const suggestedTo = (nav?.to as string) || (nav?.path as string) || msg.navTarget || null;
+          const suggestedTo =
+            (primaryNavigation?.to as string) ||
+            (primaryNavigation?.path as string) ||
+            msg.navTarget ||
+            null;
           const suggestedLabel =
-            (nav?.label as string) || (suggestedTo ? "Continue" : "Open search");
+            (primaryNavigation?.label as string) || (suggestedTo ? "Continue" : "Open search");
 
           void persistScoutResume({
             resume: {
               prompt: value,
-              intent: res.metadata?.intent || urlIntent || undefined,
+              intent: res.intent,
               suggestedTo,
               suggestedLabel,
               mode,
@@ -3539,81 +2673,8 @@ export default function ScoutOS() {
           });
         }
 
-        // Auto-route: only when Scout provides a NAVIGATE action with high confidence.
-        if (dedupedServerActions.length > 0) {
-          const nav = dedupedServerActions.find(
-            (a) =>
-              a && a.type === "NAVIGATE" && (typeof a.to === "string" || typeof a.path === "string")
-          );
-          const navTo = (nav?.to as string) || (nav?.path as string) || null;
-          const confidence = confidenceLabelToScore(res.metadata?.resolvedContext?.confidence) || 0;
-          const isDeterministicDirectoryRoute =
-            typeof navTo === "string" &&
-            navTo.startsWith("/direct-connect/pros") &&
-            (res.metadata?.behaviorKey === "home_project_routing" ||
-              String(res.metadata?.sourceUsed || "").includes("home_project") ||
-              res.metadata?.llmProvider === "deterministic");
-
-          if (isDeterministicDirectoryRoute && navTo) {
-            queueAutoRoute({
-              to: navTo,
-              label: nav?.label || "Open local pros",
-              confidence: 1,
-              why: "Opening local directory for your request",
-            });
-          } else if (navTo && confidence >= AUTO_ROUTE_MIN_CONFIDENCE) {
-            queueAutoRoute({
-              to: navTo,
-              label: nav?.label || "Next step",
-              confidence,
-              why: "Scout identified a high-confidence next step",
-            });
-          }
-        }
-
         if (!hasSeenFirstAnswer()) {
           markFirstAnswerSeen();
-        }
-
-        // One-time, neutral explanation of why county matters.
-        // This runs only after we have a committed county and the
-        // user has seen at least one full Scout answer. It does not
-        // ask the user to change anything; it simply explains the
-        // system rule once and then marks a local flag.
-        try {
-          const alreadyExplained =
-            typeof window !== "undefined" &&
-            window.localStorage.getItem(COUNTY_EXPLAINED_KEY) === "1";
-
-          const responseUsedFallback =
-            Boolean(res.metadata?.fallbackUsed) || Boolean(res.metadata?.degradationReason);
-
-          if (countyCommitted && !alreadyExplained && !responseUsedFallback) {
-            const explanation: ScoutMessage = {
-              id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-              role: "assistant",
-              content:
-                "Behind the scenes, TradeScout uses your saved home location as the single source of truth for what counts as local. This powers your community feed, marketplace, HOA tools, and leaderboards. You can change it anytime in Settings → Home Location.",
-              timestamp: new Date().toISOString(),
-            };
-
-            applyServerResponse(explanation, []);
-
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem(COUNTY_EXPLAINED_KEY, "1");
-              window.localStorage.setItem(COUNTY_EXPLAINED_AT_KEY, String(Date.now()));
-              window.localStorage.removeItem(COUNTY_EXPLAINED_FOLLOWUP_KEY);
-            }
-
-            recordActivity({
-              type: "county_explained_shown",
-              ts: new Date().toISOString(),
-              path: location,
-              meta: { countyCommitted: true },
-            });
-          }
-        } catch {
-          // If storage is unavailable, silently skip the explanation flag.
         }
 
         // NOTE: do not auto-execute server actions; show them as chips instead.
@@ -3628,17 +2689,16 @@ export default function ScoutOS() {
         });
       } catch (err: any) {
         const latencyMs = performance.now() - start;
-        const { message: fallback, actions: fallbackActions } = buildConnectionFallback(
-          {
-            contractorsRoute: ROUTES.CONTRACTORS ?? "/contractors",
-            communityRoute: ROUTES.COMMUNITY ?? "/community",
-            exchangeRoute: ROUTES.EXCHANGE ?? "/exchange",
-          },
-          value,
-          { contextRoles: getContextRoles(value) }
-        );
-
-        applyServerResponse(fallback, fallbackActions);
+        const fallback: ScoutMessage = {
+          id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+          role: "assistant",
+          content: formatUserFacingErrorMessage(
+            err,
+            "Scout could not complete this request. Nothing was sent or changed. Please try again."
+          ),
+          timestamp: new Date().toISOString(),
+        };
+        applyServerResponse(fallback, []);
         logScoutInsight({
           message: value,
           mode,
@@ -3654,23 +2714,16 @@ export default function ScoutOS() {
     },
     [
       applyServerResponse,
-      buildSmartSuggestions,
-      firstIntroAppendix,
-      isAuthenticated,
       isGuest,
       persistScoutResume,
       locality,
       location,
-      navigate,
       recordUserMessage,
       sessionRole,
       setPrefillKey,
       scoutLaunch.context,
       state.messages,
-      queueAutoRoute,
       refreshObjective,
-      showEvolutionSurfaces,
-      activeObjective,
       user,
       userRoles,
     ]
@@ -4598,71 +3651,6 @@ export default function ScoutOS() {
     [location, navigate, tileContext]
   );
 
-  // Build a concrete, ready-to-send draft using known profile and locality.
-  const buildAutoFilledDraft = useCallback(
-    (userMessage: string): string => {
-      const parts: string[] = [];
-
-      const name =
-        (user as any)?.name || (user as any)?.fullName || (user as any)?.displayName || undefined;
-
-      const county = locality?.county ? String(locality.county) : undefined;
-      const state = locality?.state ? String(locality.state) : undefined;
-      const zip = locality?.zip ? String(locality.zip) : undefined;
-
-      const locLabel = (() => {
-        if (county && state) return `${county}, ${state}`;
-        if (county) return county;
-        if (state) return state;
-        return undefined;
-      })();
-
-      const email = (user as any)?.email || (user as any)?.primaryEmail || undefined;
-      const phone = (user as any)?.phone || (user as any)?.phoneNumber || undefined;
-
-      parts.push("Hello,");
-      if (name || locLabel) {
-        parts.push(
-          [
-            name ? `I'm ${name}` : undefined,
-            locLabel ? `based in ${locLabel}${zip ? ` (${zip})` : ""}` : undefined,
-          ]
-            .filter(Boolean)
-            .join(" ") + "."
-        );
-      }
-
-      const trimmed = userMessage.trim();
-      if (trimmed) {
-        parts.push(`I'm looking for help with: ${trimmed}.`);
-      }
-
-      // If the prompt includes urgency hints, reflect them; otherwise omit.
-      const lower = trimmed.toLowerCase();
-      const urgency =
-        lower.includes("urgent") || lower.includes("asap")
-          ? "This is time-sensitive."
-          : lower.includes("week")
-            ? "Ideally within the next couple of weeks."
-            : lower.includes("month")
-              ? "Ideally within the next month."
-              : undefined;
-      if (urgency) parts.push(urgency);
-
-      if (email || phone) {
-        parts.push(
-          [email ? `Email: ${email}` : undefined, phone ? `Phone: ${phone}` : undefined]
-            .filter(Boolean)
-            .join(" \n")
-        );
-      }
-
-      parts.push("Thank you!");
-      return parts.filter((p) => typeof p === "string" && p.trim().length > 0).join("\n\n");
-    },
-    [user, locality]
-  );
-
   const missionControlItems: Array<{
     id: "nearby" | "people" | "market" | "rules";
     label: string;
@@ -5343,7 +4331,7 @@ export default function ScoutOS() {
                   {!isMobile && (
                     <div className="mt-2 flex items-center justify-between gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                        Recommended paths appear below
+                        Server-provided actions appear with each answer
                       </p>
 
                       <div
@@ -5658,88 +4646,6 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {showEvolutionSurfaces &&
-                  routingDecisionCard?.action &&
-                  routingDecisionCard.metadata?.trust?.trustSignals && (
-                    <TrustAwareDecisionCard
-                      title="Scout found a next step"
-                      summary={routingDecisionCard.reasoning}
-                      primaryAction={routingDecisionCard.action}
-                      alternativeActions={routingDecisionCard.metadata?.alternativeActions}
-                      confidence={routingDecisionCard.confidence}
-                      confidenceBand={routingDecisionCard.metadata?.confidenceBand}
-                      riskLevel={routingDecisionCard.metadata?.riskLevel}
-                      trust={{
-                        trustSignals: {
-                          cvsScore:
-                            typeof routingDecisionCard.metadata?.trust?.trustSignals?.cvsScore ===
-                            "number"
-                              ? routingDecisionCard.metadata.trust.trustSignals.cvsScore
-                              : null,
-                          confidenceLevel:
-                            routingDecisionCard.metadata?.trust?.trustSignals?.confidenceLevel ||
-                            "medium",
-                          confidenceNumeric:
-                            typeof routingDecisionCard.metadata?.trust?.trustSignals
-                              ?.confidenceNumeric === "number"
-                              ? routingDecisionCard.metadata.trust.trustSignals.confidenceNumeric
-                              : 0.64,
-                          verifiedActivityProof:
-                            routingDecisionCard.metadata?.trust?.trustSignals
-                              ?.verifiedActivityProof || "No verified activity proof yet",
-                          verificationStatus:
-                            routingDecisionCard.metadata?.trust?.trustSignals?.verificationStatus ||
-                            "unknown",
-                          riskFlags: Array.isArray(
-                            routingDecisionCard.metadata?.trust?.trustSignals?.riskFlags
-                          )
-                            ? routingDecisionCard.metadata.trust.trustSignals.riskFlags
-                            : [],
-                          trustBandLabel:
-                            routingDecisionCard.metadata?.trust?.trustSignals?.trustBandLabel ||
-                            "Safety check pending",
-                          requiredReview: Boolean(
-                            routingDecisionCard.metadata?.trust?.trustSignals?.requiredReview
-                          ),
-                        },
-                        minRequiredScore:
-                          typeof routingDecisionCard.metadata?.trust?.minRequiredScore === "number"
-                            ? routingDecisionCard.metadata.trust.minRequiredScore
-                            : 0,
-                        trustFilterApplied: Boolean(
-                          routingDecisionCard.metadata?.trust?.trustFilterApplied
-                        ),
-                      }}
-                      onAction={(action) => {
-                        void handleClusterAction(action);
-                      }}
-                      onOpenTrustModel={() => {
-                        if (!maybeOpenWorkAreaForRoute("/trust-model", "Trust model")) {
-                          navigate("/trust-model");
-                        }
-                      }}
-                    />
-                  )}
-
-                {showEvolutionSurfaces && toneMessage?.message && (
-                  <ToneAwareMessage
-                    message={toneMessage.message}
-                    scenario={toneMessage.scenario}
-                    toneScore={toneMessage.toneScore}
-                    guardrailFlags={toneMessage.guardrailFlags}
-                    confidenceBand={toneMessage.confidenceBand}
-                    onUseNextStep={() => {
-                      const target =
-                        routingDecisionCard?.action?.to || routingDecisionCard?.action?.path;
-                      if (typeof target === "string" && target.length > 0) {
-                        if (!maybeOpenWorkAreaForRoute(target, "Tone-aware next step")) {
-                          navigate(target);
-                        }
-                      }
-                    }}
-                  />
-                )}
-
                 {hasUserMessages && (
                   <div
                     className="rounded-xl border px-3 py-2"
@@ -5807,7 +4713,7 @@ export default function ScoutOS() {
                     messages={state.messages}
                     status={state.status}
                     mode={activeMode}
-                    showControllerExtras={false}
+                    showControllerExtras
                     onAction={handleClusterAction}
                     onOverride={handleOverride}
                     overridePendingScope={overridePendingScope}

@@ -15,8 +15,13 @@
  */
 
 import { db } from "../db";
-import { sql, eq, and, desc } from "drizzle-orm";
+import { sql, eq, and, desc, inArray, notLike } from "drizzle-orm";
 import { scoutMemory } from "../../shared/schema";
+import {
+  buildScoutReasoningMemoryContext,
+  type ExplicitScoutMemoryUpdate,
+  type ScoutReasoningMemoryContext,
+} from "../scout/scoutWorkingMemory";
 
 /**
  * Memory entry types
@@ -100,6 +105,95 @@ export interface LearningPointMemory {
  * Scout Memory Service
  */
 export class ScoutMemoryService {
+  /**
+   * Persist only an explicit, user-confirmed preference, decision, correction,
+   * or remember request. These entries are durable and retain source provenance.
+   */
+  static async storeExplicitReasoningMemory(
+    userId: string,
+    update: ExplicitScoutMemoryUpdate
+  ): Promise<void> {
+    const now = new Date().toISOString();
+    const type =
+      update.kind === "preference" || update.kind === "explicit_note"
+        ? MemoryEntryType.USER_PREFERENCE
+        : MemoryEntryType.CONVERSATION_CONTEXT;
+    const key = `explicit_${update.kind}_${update.sourceMessageHash.slice(0, 24)}`;
+    const provenance = {
+      source: "explicit_user_message",
+      scope: "user",
+      recorded_at: now,
+      user_confirmed: true,
+      source_message_hash: update.sourceMessageHash,
+    };
+    const value =
+      type === MemoryEntryType.USER_PREFERENCE
+        ? {
+            memory_kind: update.kind,
+            preference_key: key,
+            preference_value: update.statement,
+            confidence: "high",
+            based_on_interactions: 1,
+            last_updated: now,
+            statement: update.statement,
+            provenance,
+          }
+        : {
+            memory_kind: update.kind,
+            conversation_id: key,
+            user_intent: update.kind,
+            tools_used: [],
+            findings: {},
+            decisions_made: [update.statement],
+            next_suggested_actions: [],
+            statement: update.statement,
+            timestamp: now,
+            provenance,
+          };
+
+    await this.storeMemory(userId, type, key, value, undefined, {
+      source: provenance.source,
+      user_confirmed: true,
+      source_message_hash: update.sourceMessageHash,
+    });
+  }
+
+  /**
+   * Retrieve bounded, provenance-backed preferences and conversation decisions
+   * for synthesis. Response caches and other memory types are excluded.
+   */
+  static async getReasoningMemoryContext(
+    userId: string,
+    options: { maxEntries?: number; maxChars?: number } = {}
+  ): Promise<ScoutReasoningMemoryContext> {
+    try {
+      const maxEntries = Math.max(1, options.maxEntries ?? 12);
+      const rows = await db
+        .select()
+        .from(scoutMemory)
+        .where(
+          and(
+            eq(scoutMemory.userId, userId),
+            inArray(scoutMemory.type, [
+              MemoryEntryType.USER_PREFERENCE,
+              MemoryEntryType.CONVERSATION_CONTEXT,
+            ]),
+            notLike(scoutMemory.key, "response_cache_%")
+          )
+        )
+        .orderBy(desc(scoutMemory.updatedAt), desc(scoutMemory.createdAt))
+        .limit(Math.max(40, maxEntries * 3));
+
+      return buildScoutReasoningMemoryContext(rows, {
+        maxEntries,
+        maxChars: options.maxChars,
+      });
+    } catch (error) {
+      console.error("[Scout Memory] Error building reasoning context:", error);
+      return buildScoutReasoningMemoryContext([], options);
+    }
+  }
+
   /**
    * Store a tool result in memory
    */
@@ -378,7 +472,8 @@ export class ScoutMemoryService {
     type: MemoryEntryType,
     key: string,
     value: Record<string, any>,
-    ttlSeconds?: number
+    ttlSeconds?: number,
+    metadata: Record<string, any> = {}
   ): Promise<void> {
     try {
       await db
@@ -389,12 +484,13 @@ export class ScoutMemoryService {
           key,
           value,
           ttlSeconds,
-          metadata: {},
+          metadata,
         })
         .onConflictDoUpdate({
           target: [scoutMemory.userId, scoutMemory.type, scoutMemory.key],
           set: {
             value,
+            metadata,
             updatedAt: new Date(),
             ...(ttlSeconds && { ttlSeconds }),
           },

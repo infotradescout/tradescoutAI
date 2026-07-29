@@ -35,6 +35,7 @@ logs/
 agent-runtime/logs/
 tmp_www_home.html
 validation-results-*.json
+data/scout-hybrid-index.v1.json
 
 # Local eslint reports
 artifacts/eslint-report.json

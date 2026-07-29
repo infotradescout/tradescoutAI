@@ -104,38 +104,41 @@ describe("ScoutThread evidence strip", () => {
       role: "assistant",
       content: "I prepared your next step.",
       timestamp: new Date().toISOString(),
-      clusters: [
-        {
-          id: "server-actions",
-          title: "Actions",
-          kind: "generic",
-          actions: [
-            {
-              type: "PREFILL_INPUT",
-              label: "Review and send",
-              payload: {
-                target: "direct_connect_request",
-                prefill: {
-                  scope: "roof repair",
-                },
+      resultContract: {
+        contract_version: "scout_result.v1",
+        intent: "provider_search",
+        ambiguity_options: [],
+        entities: [],
+        evidence: [],
+        answer: "I prepared your next step.",
+        allowed_actions: [
+          {
+            action_id: "act_review",
+            type: "PREFILL_INPUT",
+            label: "Review and send",
+            payload: {
+              target: "direct_connect_request",
+              prefill: {
+                scope: "roof repair",
               },
-              primary: true,
             },
-          ],
-        },
-      ],
+            primary: true,
+            requires_confirmation: false,
+          },
+        ],
+        working_memory_update: {},
+      },
     };
 
     const html = renderThread([assistantMessage], false);
 
-    expect(html).toContain("Next steps");
-    expect(html).toContain("scout-cluster-card");
+    expect(html).toContain("Scout result actions");
+    expect(html).toContain("Available actions");
     expect(html).toContain("Review and send");
-    expect(html).toContain("Choose next step");
     expect(html).not.toContain("Search with Scout");
   });
 
-  it("adds casual default actions for local help result cards", () => {
+  it("does not invent default actions for legacy local help cards", () => {
     const assistantMessage: ScoutMessage = {
       id: "a_local_help",
       role: "assistant",
@@ -154,9 +157,9 @@ describe("ScoutThread evidence strip", () => {
     const html = renderThread([assistantMessage], false);
 
     expect(html).toContain("Local help");
-    expect(html).toContain("Create request");
-    expect(html).toContain("Browse local help");
-    expect(html).toContain("Choose next step");
+    expect(html).not.toContain("Create request");
+    expect(html).not.toContain("Browse local help");
+    expect(html).not.toContain("Choose next step");
     expect(html).not.toContain("Search with Scout");
   });
 
@@ -185,7 +188,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Best next step");
   });
 
-  it("collects useful details outside the chat while Scout is working", () => {
+  it("uses a neutral loading state without inferred progress or choices", () => {
     const userMessage: ScoutMessage = {
       id: "u_collect",
       role: "user",
@@ -195,8 +198,10 @@ describe("ScoutThread evidence strip", () => {
 
     const html = renderThread([userMessage], false, { status: "checking_documents" });
 
-    expect(html).toContain("Request context");
-    expect(html).toContain("Add location");
-    expect(html).toContain("Add timing");
+    expect(html).toContain("Scout is working");
+    expect(html).toContain("Nothing will be sent, published, or changed without your approval.");
+    expect(html).not.toContain("Request context");
+    expect(html).not.toContain("Add location");
+    expect(html).not.toContain("Add timing");
   });
 });

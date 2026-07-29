@@ -8,6 +8,10 @@ import { db } from ".././db";
 import { storage } from "../storage";
 import { chooseKnowledgeMode } from "../scout/brandGuard";
 import { webSearch, type WebSearchResult } from "./webSearchService";
+import {
+  observeScoutHybridShadow,
+  searchScoutHybridCutover,
+} from "./scoutHybridShadowService";
 import { businesses, businessCounties, counties } from "../../shared/schema";
 
 // ES module equivalent of __dirname
@@ -222,8 +226,45 @@ function buildSnippet(text: string, terms: string[]): string {
   return text.slice(start, end);
 }
 
-async function searchLocalKnowledgeBase(message: string): Promise<CacheResult> {
+async function searchLocalKnowledgeBase(
+  message: string,
+  countyCode?: string,
+  stateCode?: string
+): Promise<CacheResult> {
   try {
+    const strictJurisdiction = isCodeOrPermitQuery(message.toLowerCase());
+    const locality = {
+      countyFips: /^\d{5}$/.test(String(countyCode || "").trim())
+        ? String(countyCode).trim()
+        : null,
+      state: /^[a-z]{2}$/i.test(String(stateCode || "").trim())
+        ? String(stateCode).trim().toUpperCase()
+        : null,
+    };
+    const hybridQuery = {
+      text: message,
+      kind: "knowledge" as const,
+      locality,
+      strictLocality: strictJurisdiction && Boolean(locality.countyFips || locality.state),
+      requireCountyMatch: strictJurisdiction && Boolean(locality.countyFips),
+      limit: 10,
+    };
+    const cutoverResults = await searchScoutHybridCutover({ query: hybridQuery });
+    if (cutoverResults?.length) {
+      return {
+        source: "manual",
+        data: cutoverResults.slice(0, 3).map((result) => ({
+          file: result.title,
+          snippet: result.snippet,
+          score: result.score,
+          sourceUrl: result.sourceUrl,
+          sourceId: result.id,
+        })),
+        itemCount: Math.min(3, cutoverResults.length),
+        layer: 1,
+      };
+    }
+
     const existingRoots = KNOWLEDGE_ROOT_DIRS.filter((dir) => {
       try {
         return fs.existsSync(dir);
@@ -280,6 +321,10 @@ async function searchLocalKnowledgeBase(message: string): Promise<CacheResult> {
 
     matches.sort((a, b) => b.score - a.score);
     const top = matches.slice(0, 3);
+    void observeScoutHybridShadow({
+      query: hybridQuery,
+      legacyIds: top.map((match) => match.file),
+    });
 
     if (top.length) {
       return {
@@ -325,10 +370,12 @@ export function writeManualCacheFile(filename: string, data: any): void {
 }
 
 /**
- * Append non-sensitive Q&A pairs from Scout conversations to the auto cache.
- * Skips obvious PII (emails, phones, credit cards, SSNs) and dedupes by question text.
+ * Compatibility shim for the retired automatic chat-corpus write path.
+ * Generated Scout answers must not become retrieval evidence.
  */
-export function appendChatKnowledge(entry: {
+export const AUTOMATIC_CHAT_CORPUS_WRITES_ENABLED = false;
+
+export function appendChatKnowledge(_entry: {
   question: string;
   answer: string;
   userId?: string;
@@ -337,68 +384,15 @@ export function appendChatKnowledge(entry: {
   layer?: number;
   sources?: KnowledgeSourceReference[];
   actions?: string[];
-}): void {
-  try {
-    // Guard against sensitive data (simple regex heuristics)
-    const textBlob = `${entry.question} ${entry.answer}`;
-    const hasEmail = /[\w.-]+@[\w.-]+\.[A-Za-z]{2,}/.test(textBlob);
-    const hasPhone = /\+?\d[\d\s().-]{8,}/.test(textBlob);
-    const hasCard = /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/.test(textBlob);
-    const hasSSN = /\b\d{3}-\d{2}-\d{4}\b/.test(textBlob);
-    if (hasEmail || hasPhone || hasCard || hasSSN) {
-      return; // skip storing sensitive-looking content
-    }
-
-    if (!fs.existsSync(AUTO_CACHE_DIR)) {
-      fs.mkdirSync(AUTO_CACHE_DIR, { recursive: true });
-    }
-
-    let corpus: any[] = [];
-    if (fs.existsSync(CHAT_CORPUS_FILE)) {
-      try {
-        const raw = fs.readFileSync(CHAT_CORPUS_FILE, "utf-8");
-        corpus = JSON.parse(raw);
-      } catch {
-        corpus = [];
-      }
-    }
-
-    // Deduplicate by normalized question text
-    const normalizedQuestion = entry.question.trim().toLowerCase();
-    const exists = corpus.some(
-      (item) =>
-        typeof item.question === "string" &&
-        item.question.trim().toLowerCase() === normalizedQuestion
-    );
-    if (exists) return;
-
-    // Store a compact version of the answer to keep the corpus small.
-    const compactAnswer =
-      typeof entry.answer === "string"
-        ? entry.answer.slice(0, 800)
-        : String(entry.answer).slice(0, 800);
-
-    corpus.push({
-      question: entry.question,
-      answer: compactAnswer,
-      layer: entry.layer,
-      sources: entry.sources,
-      actions: entry.actions,
-      countyCode: entry.countyCode,
-      stateCode: entry.stateCode,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Keep the corpus bounded to avoid unbounded growth on disk.
-    const MAX_ENTRIES = 500;
-    if (corpus.length > MAX_ENTRIES) {
-      corpus = corpus.slice(corpus.length - MAX_ENTRIES);
-    }
-
-    fs.writeFileSync(CHAT_CORPUS_FILE, JSON.stringify(corpus, null, 2), "utf-8");
-  } catch (error) {
-    console.error("Error appending chat knowledge:", error);
-  }
+}): { appended: false; reason: "automatic_corpus_writes_disabled" } {
+  // Production hardening: generated answers are never allowed to write
+  // themselves into Scout's global retrieval corpus. A future reviewed
+  // ingestion lane may replace this compatibility function, but it must
+  // require sanitization, provenance, approval, and an explicit authority.
+  return {
+    appended: false,
+    reason: "automatic_corpus_writes_disabled",
+  };
 }
 
 function searchChatCorpus(message: string, countyCode?: string, stateCode?: string): CacheResult {
@@ -990,13 +984,32 @@ export async function resolveKnowledge(
 
   // LAYER 1B: Admin-controlled knowledge base in data/TradeScout Brain (docx/txt/md)
   // This is the canonical source for how TradeScout works (help docs, "TradeScout for Dummies", workflows, FAQs).
-  const knowledgeBaseResult = await searchLocalKnowledgeBase(message);
+  const knowledgeBaseResult = await searchLocalKnowledgeBase(
+    message,
+    countyCode,
+    stateCode
+  );
   if (
     knowledgeBaseResult.source === "manual" &&
     Array.isArray(knowledgeBaseResult.data) &&
     knowledgeBaseResult.data.length > 0
   ) {
-    sources.push("TradeScout Brain (data folder)");
+    const linkedSources = knowledgeBaseResult.data
+      .filter(
+        (item: any) =>
+          typeof item?.sourceUrl === "string" && item.sourceUrl.startsWith("http")
+      )
+      .map((item: any) => ({
+        title: String(item.file || item.sourceId || "TradeScout knowledge"),
+        url: String(item.sourceUrl),
+        type: "reviewed",
+        provider: "TradeScout",
+      }));
+    if (linkedSources.length) {
+      sources.push(...linkedSources);
+    } else {
+      sources.push("TradeScout Brain (data folder)");
+    }
     const formatted = knowledgeBaseResult.data
       .map((item: any) => `SOURCE: ${item.file}\n${item.snippet}`)
       .join("\n\n---\n\n");

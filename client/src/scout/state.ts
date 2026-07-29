@@ -1,5 +1,6 @@
 import { useReducer, useCallback } from "react";
 import type { ScoutResponseFrame } from "./api";
+import type { ScoutResultContractV1 } from "@shared/types/scout";
 
 export type ScoutRole = "user" | "assistant" | "system";
 
@@ -138,6 +139,8 @@ export interface ScoutMessage {
   };
   clusters?: ScoutCluster[];
   frame?: ScoutResponseFrame;
+  // The server is the sole owner of result interpretation and permitted actions.
+  resultContract?: ScoutResultContractV1;
   // Structured agent outputs
   toolCall?: ScoutToolCall;
   toolResult?: ScoutToolResult;
