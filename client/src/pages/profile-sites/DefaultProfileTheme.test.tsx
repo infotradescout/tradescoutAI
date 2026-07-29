@@ -99,25 +99,28 @@ describe("DefaultProfileTheme", () => {
     expect(theme?.style.getPropertyValue("--profile-primary")).toBe("#52c8f5");
     expect(theme?.style.getPropertyValue("--profile-bg")).toBe("#05070a");
     expect(theme?.style.getPropertyValue("--profile-hero-fg")).toBe("#ffffff");
-    expect(container.querySelector('[data-testid="default-profile-hero"]')).not.toBeNull();
+    const hero = container.querySelector('[data-testid="default-profile-hero"]');
+    expect(hero).not.toBeNull();
+    expect(container.querySelector('[data-testid="default-profile-header"]')).not.toBeNull();
     expect(
       container.querySelector('[data-testid="default-profile-hero-identity"] h1')?.textContent
-    ).toBe("Precision Aerial Services");
+    ).toBe("A better view.");
     expect(container.querySelector('img[alt="Aerial property view"]')).not.toBeNull();
-    expect(container.querySelector('img[alt="Wide property view"]')).not.toBeNull();
     expect(container.querySelector('img[alt="Closer property view"]')).not.toBeNull();
+    expect(container.querySelector('img[alt="Wide property view"]')).toBeNull();
     expect(container.textContent).toContain("Precision Aerial Services");
     expect(container.textContent).toContain("Cameron");
     expect(container.textContent).toContain("A better view.");
     expect(container.textContent).toContain("Pensacola, Florida");
     expect(container.textContent).toContain("@PrecisionAerialService");
     expect(container.textContent).toContain("@chillshots");
-    expect(container.textContent).toContain("Watch the work");
+    expect(container.textContent).toContain("Watch reel");
     expect(container.textContent).toContain("Selected work");
-    expect(container.textContent).toContain("Direct Connect with Precision Aerial Services");
+    expect(container.textContent).toContain("Direct Connect");
     expect(container.textContent).not.toContain("Choose what you need.");
     expect(container.textContent).not.toContain("Recent work.");
     expect(container.textContent).not.toContain("Featured");
+    expect(hero?.querySelector('[data-testid^="default-profile-service-"]')).toBeNull();
     expect(container.querySelector("iframe")).toBeNull();
     expect(container.querySelectorAll('[data-testid^="default-profile-service-"]')).toHaveLength(5);
 
@@ -173,7 +176,7 @@ describe("DefaultProfileTheme", () => {
     expect(theme?.style.getPropertyValue("--profile-hero-fg")).toBe("#111418");
     expect(
       container.querySelector('[data-testid="default-profile-hero-identity"] h1')?.textContent
-    ).toBe("North Shore Repair");
+    ).toBe("Repairs done right.");
     expect(container.textContent).not.toContain("New photos");
     expect(container.textContent).not.toContain("coming soon");
     expect(container.textContent).not.toContain("Direct Connect");
