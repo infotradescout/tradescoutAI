@@ -29,6 +29,7 @@ describe("public profile TradeScout handoff", () => {
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+      "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
       "client/src/pages/ProfileSiteView.tsx",
     ]) {
       expect(read(relativePath), relativePath).toContain("<TradeScoutProfileHandoff");

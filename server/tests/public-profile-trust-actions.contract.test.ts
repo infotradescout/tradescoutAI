@@ -84,6 +84,7 @@ describe("canonical public-profile trust actions", () => {
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
+      "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
     ].map(read);
 
     expect(actions).toContain(">Like</span>");
@@ -94,7 +95,7 @@ describe("canonical public-profile trust actions", () => {
     expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
     expect(app).toContain("<Toaster />");
     expect(profileView).toContain('renderProfileTrustActions("light")');
-    expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(4);
+    expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(5);
     themes.forEach((theme) => {
       expect(theme).toContain("trustActions: ReactNode");
       expect(theme).toContain("{trustActions}");

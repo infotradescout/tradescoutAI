@@ -12,6 +12,7 @@ const profileCopySources = [
   "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
   "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
   "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+  "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
   "client/src/pages/ProfileSiteView.tsx",
   "client/src/pages/PublicProfileView.tsx",
   "client/src/pages/BusinessProfileView.tsx",
@@ -51,6 +52,7 @@ describe("public profile copy patterns", () => {
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
       "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+      "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
     ].map((relativePath) => read(relativePath));
     const publicCopy = trustSurfaces.join("\n");
 

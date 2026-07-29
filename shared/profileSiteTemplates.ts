@@ -5,7 +5,7 @@
  *   { type: "siteTemplate", data: { id: ProfileSiteTemplateId } }
  *
  * V1 selectable gallery (anyone can pick and run):
- *   wholesaler | auto-glass | plumbing-company | electrician-solo
+ *   wholesaler | auto-glass | plumbing-company | electrician-solo | videographer
  *
  * `default` is an invisible runtime fallback for untemplated / legacy profiles
  * (not shown in the picker). Expansion roadmap for ~200 business-specific
@@ -33,6 +33,7 @@ export const PROFILE_SITE_TEMPLATE_IDS = [
   "auto-glass",
   "plumbing-company",
   "electrician-solo",
+  "videographer",
   "default",
 ] as const;
 
@@ -44,6 +45,7 @@ export const PROFILE_SITE_TEMPLATE_GALLERY_IDS = [
   "auto-glass",
   "plumbing-company",
   "electrician-solo",
+  "videographer",
 ] as const satisfies ReadonlyArray<Exclude<ProfileSiteTemplateId, "default">>;
 
 export type ProfileSiteTemplateGalleryId = (typeof PROFILE_SITE_TEMPLATE_GALLERY_IDS)[number];
@@ -54,7 +56,7 @@ export type ProfileSiteTemplateMeta = {
   description: string;
   bestFor: string;
   /** Family used to group the future ~200 business-specific templates. */
-  family: "inventory" | "vehicle" | "mechanical-trades" | "electrical" | "generic";
+  family: "inventory" | "vehicle" | "mechanical-trades" | "electrical" | "creative" | "generic";
   selectable: boolean;
 };
 
@@ -90,6 +92,14 @@ export const PROFILE_SITE_TEMPLATES: ProfileSiteTemplateMeta[] = [
       "Lean electrician profile for an independent or small crew — clear services and request path.",
     bestFor: "Solo electricians and small electrical shops",
     family: "electrical",
+    selectable: true,
+  },
+  {
+    id: "videographer",
+    label: "Videographer",
+    description: "Media-first portfolio with services, social links, and Direct Connect.",
+    bestFor: "Videographers, photographers, drone creators, and production professionals",
+    family: "creative",
     selectable: true,
   },
   {
@@ -495,7 +505,10 @@ export function seedBlocksForTemplate(
         type: "hero",
         data: {
           title: name,
-          text: "Tell visitors what you do and why they should connect.",
+          text:
+            templateId === "videographer"
+              ? "Photo and video."
+              : "Tell visitors what you do and why they should connect.",
         },
       },
     ];
@@ -519,6 +532,16 @@ export function seedBlocksForTemplate(
         ...next,
         { type: "inventoryCatalog", data: { categories: [], featuredStoneSlugs: [] } },
       ];
+    }
+  }
+
+  if (templateId === "videographer") {
+    const hasServices = next.some((block) => block?.type === "services");
+    if (!hasServices) {
+      next.push({
+        type: "services",
+        data: { items: ["Photo and video"] },
+      });
     }
   }
 
@@ -564,9 +587,7 @@ export function patchHeroBlock(
         ...(block.data && typeof block.data === "object" ? block.data : {}),
         // Wholesaler themes (incl. ISSA Build) render headerLabel + teaser.
         // Keep title/text aliases so older templates and JSON editors stay compatible.
-        ...(patch.title !== undefined
-          ? { title: patch.title, headerLabel: patch.title }
-          : {}),
+        ...(patch.title !== undefined ? { title: patch.title, headerLabel: patch.title } : {}),
         ...(patch.text !== undefined ? { text: patch.text, teaser: patch.text } : {}),
         ...(patch.imageUrl !== undefined ? { imageUrl: patch.imageUrl } : {}),
       },

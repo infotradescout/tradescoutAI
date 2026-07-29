@@ -27,7 +27,10 @@ import {
   signManageBridgeToken,
   verifyManageBridgeToken,
 } from "../utils/profileManageBridge";
-import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
+import {
+  hasTradeScoutPendingOwnerCustody,
+  isOwnerConfirmedDirectProfile,
+} from "../services/ownerConfirmedDirectProfile";
 import {
   buildHandmadeProductPath,
   listHandmadeProductImageUrls,
@@ -1376,6 +1379,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
+  let directConnectDeliveryCustody: "business" | "tradescout_pending_owner" = "business";
   let hasGatedDirectConnectPhone = false;
   if (business) {
     const [linkedBusiness] = await db
@@ -1384,12 +1388,13 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
         sources: businesses.sources,
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         status: businesses.status,
+        claimStatus: businesses.claimStatus,
         profileData: businesses.profileData,
       })
       .from(businesses)
       .where(eq(businesses.id, profile.businessId!))
       .limit(1);
-    ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
+    const directProfileCandidate = {
       profileSlug: profile.slug,
       // getProfileBySlugPublic only returns published profiles.
       profileStatus: "published",
@@ -1398,7 +1403,14 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       businessOwnerUserId: linkedBusiness?.ownerUserId,
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
-    });
+      businessClaimStatus: linkedBusiness?.claimStatus,
+      ownerProvider: ownerUser.provider,
+      ownerPreferences: ownerUser.preferences,
+    };
+    ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile(directProfileCandidate);
+    directConnectDeliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
+      ? "tradescout_pending_owner"
+      : "business";
     if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) {
       return res.status(404).json({ message: "Profile not found" });
     }
@@ -1436,6 +1448,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
           // number stored for private routing never becomes a bypass.
           call: hasGatedDirectConnectPhone,
           request: Boolean(directConnectOwnerUserId),
+          deliveryCustody: directConnectDeliveryCustody,
         },
         ...(business.tradePartner === true && business.address
           ? {
@@ -1875,6 +1888,7 @@ async function getPublicProfileTrustContext(
         sources: businesses.sources,
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         status: businesses.status,
+        claimStatus: businesses.claimStatus,
       })
       .from(businesses)
       .where(eq(businesses.id, profile.businessId))
@@ -1887,6 +1901,9 @@ async function getPublicProfileTrustContext(
       businessOwnerUserId: linkedBusiness?.ownerUserId,
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
+      businessClaimStatus: linkedBusiness?.claimStatus,
+      ownerProvider: ownerUser.provider,
+      ownerPreferences: ownerUser.preferences,
     });
     if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
   }

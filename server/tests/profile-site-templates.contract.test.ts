@@ -8,6 +8,7 @@ import {
   upsertFeaturedStoneSlugs,
   upsertSiteTemplateBlock,
 } from "@shared/profileSiteTemplates";
+import { suggestTemplateFromBusinessType } from "@shared/profileSelectiveInheritance";
 
 describe("profile site templates", () => {
   it("exposes the v1 selectable gallery only", () => {
@@ -16,6 +17,7 @@ describe("profile site templates", () => {
       "auto-glass",
       "plumbing-company",
       "electrician-solo",
+      "videographer",
     ]);
   });
 
@@ -81,5 +83,28 @@ describe("profile site templates", () => {
       data: { id: "electrician-solo" },
     });
     expect(seeded.some((block) => block.type === "localServiceProfile")).toBe(true);
+  });
+
+  it("seeds videographer with an editable service block", () => {
+    const seeded = seedBlocksForTemplate("videographer", [], {
+      displayName: "Camera Co",
+    });
+
+    expect(seeded).toContainEqual({
+      type: "siteTemplate",
+      data: { id: "videographer" },
+    });
+    expect(seeded).toContainEqual({
+      type: "services",
+      data: { items: ["Photo and video"] },
+    });
+  });
+
+  it("detects videographer lanes without matching unrelated word fragments", () => {
+    expect(suggestTemplateFromBusinessType("Drone videographer")).toBe("videographer");
+    expect(suggestTemplateFromBusinessType("Aerial photography")).toBe("videographer");
+    expect(suggestTemplateFromBusinessType("Media production")).toBe("videographer");
+    expect(suggestTemplateFromBusinessType("Photovoltaic installer")).not.toBe("videographer");
+    expect(suggestTemplateFromBusinessType("Filmstrip supplier")).not.toBe("videographer");
   });
 });

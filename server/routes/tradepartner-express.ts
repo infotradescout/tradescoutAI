@@ -18,7 +18,10 @@ import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
-import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
+import {
+  hasTradeScoutPendingOwnerCustody,
+  isOwnerConfirmedDirectProfile,
+} from "../services/ownerConfirmedDirectProfile";
 import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
@@ -61,6 +64,7 @@ const requestSchema = z
     requestType: z.enum(EXPRESS_REQUEST_TYPES),
     message: z.string().trim().min(10).max(3000),
     stoneName: z.string().trim().max(180).optional(),
+    serviceName: z.string().trim().max(180).optional(),
     /** Stable material slug (e.g. multi-green-onyx). Preferred over display name for source context. */
     itemId: z
       .string()
@@ -84,6 +88,7 @@ type TradePartnerTarget = {
   // a business may want requests routed to a shared inbox instead of
   // whatever address the account owner personally signed in with.
   notificationEmail: string;
+  deliveryCustody: "business" | "tradescout_pending_owner";
 };
 
 function normalizeEmail(value: unknown): string {
@@ -142,9 +147,12 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       businessName: businesses.name,
       businessOwnerUserId: businesses.ownerUserId,
       businessStatus: businesses.status,
+      businessClaimStatus: businesses.claimStatus,
       businessSources: businesses.sources,
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       profileData: businesses.profileData,
+      ownerProvider: users.provider,
+      ownerPreferences: users.preferences,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
       ownerPhone: users.phone,
@@ -157,7 +165,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
 
   const verificationStatus = String(row?.ownerVerificationStatus || "").toLowerCase();
   const ownerDiscoverable = row?.ownerVerifiedBadge === true || verificationStatus === "approved";
-  const ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
+  const directProfileCandidate = {
     profileSlug: row?.profileSlug,
     profileStatus: row?.profileStatus,
     profileOwnerUserId: row?.ownerUserId,
@@ -165,7 +173,15 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     businessOwnerUserId: row?.businessOwnerUserId,
     publicDiscoveryEnabled: row?.publicDiscoveryEnabled,
     businessSources: row?.businessSources,
-  });
+    businessClaimStatus: row?.businessClaimStatus,
+    ownerProvider: row?.ownerProvider,
+    ownerPreferences: row?.ownerPreferences,
+  };
+  const ownerConfirmedDirectProfile =
+    isOwnerConfirmedDirectProfile(directProfileCandidate);
+  const deliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
+    ? "tradescout_pending_owner"
+    : "business";
   const profileData = (row?.profileData || {}) as Record<string, any>;
   const phone = String(profileData.phone || row?.ownerPhone || "").trim();
   const notificationEmail = String(profileData.notificationEmail || "").trim();
@@ -186,6 +202,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     ownerUserId: String(row.ownerUserId),
     phone,
     notificationEmail,
+    deliveryCustody,
   };
 }
 
@@ -378,7 +395,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 businessId: target.businessId,
                 requestType: body.requestType,
                 stoneName: body.stoneName || null,
+                serviceName: body.serviceName || null,
                 itemId: body.itemId || null,
+                deliveryCustody: target.deliveryCustody,
                 contactCheck: "phone_required",
                 membershipOnboarding: requesterWasCreated
                   ? "provisional_account_created"
@@ -396,6 +415,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 connectionMode: "express",
                 businessId: target.businessId,
                 responderUserId: target.ownerUserId,
+                deliveryCustody: target.deliveryCustody,
               },
             },
           ]);
@@ -451,6 +471,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 body.stoneName
                   ? `<p><strong>Stone:</strong> ${escapeHtml(body.stoneName)}</p>`
                   : "",
+                body.serviceName
+                  ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
+                  : "",
                 `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
                 `<p>Contact details stay inside TradeScout until you respond -- open Direct Connect to view the full message and reply.</p>`,
                 `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
@@ -460,6 +483,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               text: [
                 `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
                 body.stoneName ? `Stone: ${body.stoneName}` : null,
+                body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
                 `Open Direct Connect inbox: ${inboxUrl}`,
               ]
@@ -490,6 +514,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         } else if (body.stoneName) {
           requestWorkspaceParams.set("item", body.stoneName);
         }
+        if (body.serviceName) {
+          requestWorkspaceParams.set("service", body.serviceName);
+        }
         const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
         const activation = requesterWasCreated
           ? passwordResetService.createToken(String(requester.id))
@@ -519,21 +546,36 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             // owner uses, once they accept the request.
             const emailResult = await emailService.sendEmail({
               to: requester.email,
-              subject: `Your request was sent to ${target.businessName}`,
+              subject:
+                target.deliveryCustody === "tradescout_pending_owner"
+                  ? `TradeScout received your request for ${target.businessName}`
+                  : `Your request was sent to ${target.businessName}`,
               html: [
-                `<p>Your request was sent directly to ${escapeHtml(target.businessName)}. This is a no-reply confirmation -- ${escapeHtml(target.businessName)} will follow up using the contact info you sent.</p>`,
+                target.deliveryCustody === "tradescout_pending_owner"
+                  ? `<p>TradeScout received your request for ${escapeHtml(target.businessName)}. The owner has not connected this profile yet, so TradeScout is holding the request for owner handoff.</p>`
+                  : `<p>Your request was sent directly to ${escapeHtml(target.businessName)}. This is a no-reply confirmation -- ${escapeHtml(target.businessName)} will follow up using the contact info you sent.</p>`,
                 "<hr />",
                 requesterWasCreated
-                  ? `<p>We also set up a free TradeScout account with your contact details, so you can manage this request, message ${escapeHtml(target.businessName)} directly once they respond, and track the project in one place.</p>`
-                  : `<p>This request is attached to your existing TradeScout account, where you can manage it, message ${escapeHtml(target.businessName)} directly once they respond, and track the project alongside anything else you're working on.</p>`,
+                  ? target.deliveryCustody === "tradescout_pending_owner"
+                    ? "<p>We also set up a free TradeScout account so you can track the request and any owner handoff in one place.</p>"
+                    : `<p>We also set up a free TradeScout account with your contact details, so you can manage this request, message ${escapeHtml(target.businessName)} directly once they respond, and track the project in one place.</p>`
+                  : target.deliveryCustody === "tradescout_pending_owner"
+                    ? "<p>This request is attached to your existing TradeScout account so you can track it and any owner handoff.</p>"
+                    : `<p>This request is attached to your existing TradeScout account, where you can manage it, message ${escapeHtml(target.businessName)} directly once they respond, and track the project alongside anything else you're working on.</p>`,
                 `<p><a href="${activationUrl}">${requesterWasCreated ? "Set up account access" : "Open My Requests"}</a>.</p>`,
                 verificationUrl ? `<p><a href="${verificationUrl}">Verify your email</a>.</p>` : "",
               ].join("\n"),
               text: [
-                `Your request was sent directly to ${target.businessName}. This is a no-reply confirmation -- ${target.businessName} will follow up using the contact info you sent.`,
+                target.deliveryCustody === "tradescout_pending_owner"
+                  ? `TradeScout received your request for ${target.businessName}. The owner has not connected this profile yet, so TradeScout is holding the request for owner handoff.`
+                  : `Your request was sent directly to ${target.businessName}. This is a no-reply confirmation -- ${target.businessName} will follow up using the contact info you sent.`,
                 requesterWasCreated
-                  ? `We also set up a free TradeScout account with your contact details, so you can manage this request, message ${target.businessName} directly, and track the project in one place.`
-                  : `This request is attached to your existing TradeScout account, where you can manage it and message ${target.businessName} directly once they respond.`,
+                  ? target.deliveryCustody === "tradescout_pending_owner"
+                    ? "We also set up a free TradeScout account so you can track the request and any owner handoff in one place."
+                    : `We also set up a free TradeScout account with your contact details, so you can manage this request, message ${target.businessName} directly, and track the project in one place.`
+                  : target.deliveryCustody === "tradescout_pending_owner"
+                    ? "This request is attached to your existing TradeScout account so you can track it and any owner handoff."
+                    : `This request is attached to your existing TradeScout account, where you can manage it and message ${target.businessName} directly once they respond.`,
                 `Open My Requests: ${activationUrl}`,
                 verificationUrl ? `Verify your email: ${verificationUrl}` : null,
               ]
@@ -559,13 +601,15 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           requesterUserId: requester.id,
           source: "tradepartner_profile",
           connectionMode: "express",
+          deliveryCustody: target.deliveryCustody,
           accountCreated: requesterWasCreated,
         });
         return res.status(201).json({
           requestId: created.id,
           status: created.status,
           businessName: target.businessName,
-          delivered: true,
+          delivered: target.deliveryCustody === "business",
+          deliveryCustody: target.deliveryCustody,
           accountCreated: requesterWasCreated,
           onboardingPath,
           onboardingEmailStatus,

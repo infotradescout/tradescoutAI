@@ -94,6 +94,7 @@ import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProv
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
 import { provisionIssaBuildProfile } from "./services/issaBuildProfileProvisioning";
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
+import { provisionPrecisionAerialProfile } from "./services/precisionAerialProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 import {
@@ -267,7 +268,12 @@ app.use(
           "https://www.thetradescout.com",
           "*.sentry.io",
         ],
-        "frame-src": ["'self'", "https://js.stripe.com"],
+        "frame-src": ["'self'", "https://js.stripe.com", "https://www.instagram.com"],
+        "media-src": [
+          "'self'",
+          "https://thetradescout.com",
+          "https://www.thetradescout.com",
+        ],
         "img-src": [
           "'self'",
           "data:",
@@ -1163,6 +1169,7 @@ app.use(landingContractHeaders);
     await provisionProfile("LA Plumbing", provisionLaPlumbingProfile);
     await provisionProfile("ISSA Build", provisionIssaBuildProfile);
     await provisionProfile("ProFab", provisionProFabProfile);
+    await provisionProfile("Precision Aerial", provisionPrecisionAerialProfile);
     await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile);
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {

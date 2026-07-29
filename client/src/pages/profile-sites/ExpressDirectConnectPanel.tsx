@@ -27,6 +27,7 @@ export type ExpressDirectConnectRequestType =
   | "other";
 
 export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service";
+type ExpressDirectConnectDeliveryCustody = "business" | "tradescout_pending_owner";
 
 type ExpressDirectConnectPanelProps = {
   open: boolean;
@@ -41,11 +42,14 @@ type ExpressDirectConnectPanelProps = {
   stayInProfile?: boolean;
   requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
+  /** Selected service from a profile offering. Preserved through Direct Connect. */
+  initialServiceName?: string | null;
   /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
   initialItemId?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
   contactOperatorName?: string | null;
   contactOperatorRole?: string | null;
+  deliveryCustody?: ExpressDirectConnectDeliveryCustody;
 };
 
 type PanelView = "choice" | "request" | "call_started" | "success";
@@ -110,15 +114,18 @@ export default function ExpressDirectConnectPanel({
   stayInProfile = false,
   requestMode = "service",
   initialStoneName,
+  initialServiceName,
   initialItemId,
   initialRequestType,
   contactOperatorName,
   contactOperatorRole,
+  deliveryCustody = "business",
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const config = REQUEST_MODE_CONFIG[requestMode];
   const stableItemId = String(initialItemId || "").trim() || null;
   const displayStoneName = String(initialStoneName || "").trim() || null;
+  const selectedServiceName = String(initialServiceName || "").trim() || null;
   const itemParam = stableItemId || displayStoneName;
   const defaultRequestType =
     initialRequestType || (itemParam ? "request_material" : config.defaultType);
@@ -137,16 +144,20 @@ export default function ExpressDirectConnectPanel({
   const [onboardingEmailStatus, setOnboardingEmailStatus] = useState<
     "sent" | "skipped" | "failed" | "unknown"
   >("unknown");
+  const [requestDeliveryCustody, setRequestDeliveryCustody] =
+    useState<ExpressDirectConnectDeliveryCustody>(deliveryCustody);
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     requestType: defaultRequestType,
-    message: displayStoneName
-      ? `I'm interested in ${displayStoneName}.`
-      : stableItemId
-        ? `I'm interested in ${stableItemId}.`
-        : "",
+    message: selectedServiceName
+      ? `I'm interested in ${selectedServiceName}.`
+      : displayStoneName
+        ? `I'm interested in ${displayStoneName}.`
+        : stableItemId
+          ? `I'm interested in ${stableItemId}.`
+          : "",
     website: "",
   });
 
@@ -177,16 +188,27 @@ export default function ExpressDirectConnectPanel({
     setRequestWorkspacePath("");
     setOnboardingPath("");
     setOnboardingEmailStatus("unknown");
+    setRequestDeliveryCustody(deliveryCustody);
     setForm((current) => ({
       ...current,
       requestType: defaultRequestType,
-      message: displayStoneName
-        ? `I'm interested in ${displayStoneName}.`
-        : stableItemId
-          ? `I'm interested in ${stableItemId}.`
-          : "",
+      message: selectedServiceName
+        ? `I'm interested in ${selectedServiceName}.`
+        : displayStoneName
+          ? `I'm interested in ${displayStoneName}.`
+          : stableItemId
+            ? `I'm interested in ${stableItemId}.`
+            : "",
     }));
-  }, [defaultRequestType, displayStoneName, initialRequestType, open, stableItemId]);
+  }, [
+    defaultRequestType,
+    deliveryCustody,
+    displayStoneName,
+    initialRequestType,
+    open,
+    selectedServiceName,
+    stableItemId,
+  ]);
 
   const requestPath = useMemo(() => {
     if (requestWorkspacePath) return requestWorkspacePath;
@@ -199,8 +221,17 @@ export default function ExpressDirectConnectPanel({
     params.set("profileName", businessName);
     if (itemParam) params.set("item", itemParam);
     if (stableItemId) params.set("itemId", stableItemId);
+    if (selectedServiceName) params.set("service", selectedServiceName);
     return `/direct-connect/engagements?${params.toString()}`;
-  }, [businessName, itemParam, profileSlug, requestId, requestWorkspacePath, stableItemId]);
+  }, [
+    businessName,
+    itemParam,
+    profileSlug,
+    requestId,
+    requestWorkspacePath,
+    selectedServiceName,
+    stableItemId,
+  ]);
   const requestHref = qualifyPublicProfileItemDestination(requestPath, platformBaseHref);
 
   if (!open) return null;
@@ -212,6 +243,7 @@ export default function ExpressDirectConnectPanel({
   });
   if (itemParam) postCallParams.set("item", itemParam);
   if (stableItemId) postCallParams.set("itemId", stableItemId);
+  if (selectedServiceName) postCallParams.set("service", selectedServiceName);
   const postCallSignupHref = qualifyPublicProfileItemDestination(
     `/pre-scout-setup?mode=create&next=${encodeURIComponent(
       `/direct-connect?${postCallParams.toString()}`
@@ -280,6 +312,7 @@ export default function ExpressDirectConnectPanel({
           body: JSON.stringify({
             ...form,
             stoneName: displayStoneName || undefined,
+            serviceName: selectedServiceName || undefined,
             itemId: stableItemId || undefined,
           }),
         }
@@ -304,6 +337,11 @@ export default function ExpressDirectConnectPanel({
         ["sent", "skipped", "failed"].includes(json?.onboardingEmailStatus)
           ? json.onboardingEmailStatus
           : "unknown"
+      );
+      setRequestDeliveryCustody(
+        json?.deliveryCustody === "tradescout_pending_owner"
+          ? "tradescout_pending_owner"
+          : "business"
       );
       setView("success");
     } catch (cause: any) {
@@ -420,9 +458,11 @@ export default function ExpressDirectConnectPanel({
               </div>
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
-                {hasSeparateOperator
-                  ? `Your details stay private unless ${operatorName} accepts what you send.`
-                  : `Your details stay private unless ${businessName} accepts what you send.`}
+                {deliveryCustody === "tradescout_pending_owner"
+                  ? `TradeScout is receiving requests for ${businessName} until the owner connects this profile.`
+                  : hasSeparateOperator
+                    ? `Your details stay private unless ${operatorName} accepts what you send.`
+                    : `Your details stay private unless ${businessName} accepts what you send.`}
               </div>
             </div>
           ) : null}
@@ -431,15 +471,23 @@ export default function ExpressDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900">
-                  {displayStoneName
-                    ? `Ask about ${displayStoneName}`
-                    : stableItemId
-                      ? `Ask about ${stableItemId}`
-                      : config.heading}
+                  {selectedServiceName
+                    ? `Ask about ${selectedServiceName}`
+                    : displayStoneName
+                      ? `Ask about ${displayStoneName}`
+                      : stableItemId
+                        ? `Ask about ${stableItemId}`
+                        : config.heading}
                 </h3>
                 <p className="mt-1 text-sm text-stone-600">
                   Send the details now. You can save the request to a free account afterward.
                 </p>
+                {deliveryCustody === "tradescout_pending_owner" ? (
+                  <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+                    TradeScout will hold this request for owner handoff. The owner has not connected
+                    this profile yet.
+                  </p>
+                ) : null}
               </div>
 
               <label className="block">
@@ -591,9 +639,11 @@ export default function ExpressDirectConnectPanel({
               <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
               <h3 className="text-2xl font-bold text-neutral-900">Request sent</h3>
               <p className="mx-auto mt-2 max-w-md text-stone-600">
-                {hasSeparateOperator
-                  ? `Your ${businessName} request was sent to ${operatorName}.`
-                  : `${businessName} received your project details.`}
+                {requestDeliveryCustody === "tradescout_pending_owner"
+                  ? `TradeScout received your request for ${businessName}. The owner has not connected this profile yet.`
+                  : hasSeparateOperator
+                    ? `Your ${businessName} request was sent to ${operatorName}.`
+                    : `${businessName} received your project details.`}
               </p>
 
               {!hasViewerSession ? (
@@ -604,8 +654,9 @@ export default function ExpressDirectConnectPanel({
                       : "Sign in to manage this request"}
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
-                    See replies from {businessName}, decisions, job progress, and follow-up in one
-                    convenient place.
+                    {requestDeliveryCustody === "tradescout_pending_owner"
+                      ? "Track the request and any owner handoff in one place."
+                      : `See replies from ${businessName}, decisions, job progress, and follow-up in one convenient place.`}
                   </p>
                   {accountCreated && onboardingEmailStatus === "sent" ? (
                     <p className="mt-2 text-xs font-medium text-emerald-700">

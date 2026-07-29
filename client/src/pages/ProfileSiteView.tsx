@@ -30,6 +30,7 @@ import { ShareButton } from "@/components/ShareButton";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
+import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
 import LocalServiceProfileTheme, {
   type PublicCommunityVerification,
 } from "@/pages/profile-sites/LocalServiceProfileTheme";
@@ -454,6 +455,7 @@ type PublicBusinessSubset = {
   expressContactCapabilities?: {
     call?: boolean;
     request?: boolean;
+    deliveryCustody?: "business" | "tradescout_pending_owner";
   };
   address?: string;
   city?: string;
@@ -521,6 +523,7 @@ export default function ProfileSiteView() {
     itemName: string;
     itemId: string;
   } | null>(null);
+  const [expressServiceContext, setExpressServiceContext] = useState<string | null>(null);
   const [manageEditMode, setManageEditMode] = useState(() => {
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).get("edit") === "1";
@@ -1252,10 +1255,13 @@ export default function ProfileSiteView() {
       tone={tone}
     />
   );
-  const aboutText = contentBlocks
-    .filter((block) => block && typeof block === "object")
-    .map((block: any) => {
-      if (block.type === "about" || block.type === "hero") {
+  const readProfileBlockText = (blockType: "about" | "hero") =>
+    contentBlocks
+      .filter(
+        (block: any) =>
+          block && typeof block === "object" && block.type === blockType
+      )
+      .map((block: any) => {
         const data = block?.data && typeof block.data === "object" ? block.data : {};
         const raw =
           typeof data.text === "string"
@@ -1266,10 +1272,11 @@ export default function ProfileSiteView() {
                 ? data.body
                 : "";
         return sanitizePublicDiscoveryText(raw, 4000);
-      }
-      return "";
-    })
-    .find((value) => value.length > 0);
+      })
+      .find((value) => value.length > 0);
+  const explicitAboutText = readProfileBlockText("about");
+  const heroAboutFallback = readProfileBlockText("hero");
+  const aboutText = explicitAboutText || heroAboutFallback;
   const serviceTags = Array.from(
     new Set(
       [
@@ -1279,7 +1286,14 @@ export default function ProfileSiteView() {
           const data = block?.data && typeof block.data === "object" ? block.data : {};
           if (Array.isArray(data.items)) {
             return data.items
-              .map((item: unknown) => String(item || "").trim())
+              .map((item: unknown) => {
+                if (typeof item === "string") return item.trim();
+                if (!item || typeof item !== "object") return "";
+                const source = item as Record<string, unknown>;
+                const candidate =
+                  source.title || source.name || source.label || source.description || source.text;
+                return typeof candidate === "string" ? candidate.trim() : "";
+              })
               .filter((item: string) => item.length > 0);
           }
           if (typeof data.text === "string") {
@@ -1395,11 +1409,19 @@ export default function ProfileSiteView() {
       )
     : [];
   const openInventoryDirectConnect = (itemName: string, itemId: string) => {
+    setExpressServiceContext(null);
     setExpressInventoryContext({ itemName, itemId });
     setExpressPanelOpen(true);
   };
   const openGeneralDirectConnect = () => {
+    setExpressServiceContext(null);
     setExpressInventoryContext(null);
+    setExpressPanelOpen(true);
+  };
+  const openServiceDirectConnect = (serviceName?: string) => {
+    const selectedService = sanitizePublicDiscoveryText(serviceName, 180);
+    setExpressInventoryContext(null);
+    setExpressServiceContext(selectedService || null);
     setExpressPanelOpen(true);
   };
   const templateIndependentInventoryContext =
@@ -1660,6 +1682,66 @@ export default function ProfileSiteView() {
           initialStoneName={expressInventoryContext?.itemName}
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
+        />
+        {manageChromeSpacer}
+        {manageChrome}
+      </>
+    );
+  }
+
+  if (siteTemplate === "videographer") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={pageOgType}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
+        />
+        {templateIndependentInventoryContext}
+        <VideographerProfileTheme
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          headline={publicHeadline}
+          contentBlocks={contentBlocks}
+          services={serviceTags}
+          serviceAreas={serviceAreas}
+          aboutText={aboutText}
+          galleryItems={galleryItems}
+          sharedGallerySlug={sharedGallerySlug}
+          profileShareDestination={profileShareDestination}
+          onDirectConnect={openServiceDirectConnect}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+          trustActions={renderProfileTrustActions("dark")}
+          profileItems={
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
+            ) : null
+          }
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          businessAddress={publicBusinessAddress}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+          initialServiceName={expressServiceContext}
+          initialRequestType={expressServiceContext ? "request_service" : null}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
         />
         {manageChromeSpacer}
         {manageChrome}

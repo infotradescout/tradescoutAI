@@ -339,6 +339,13 @@ export function suggestTemplateFromBusinessType(
   if (/glass|windshield|auto\s*glass/.test(haystack)) return "auto-glass";
   if (/plumb/.test(haystack)) return "plumbing-company";
   if (/electr/.test(haystack)) return "electrician-solo";
+  if (
+    /\b(?:video(?:grapher|graphy)?|photo(?:grapher|graphy)?|film(?:maker|making|ography)?|aerial|drone|media\s+production|content\s+creator)\b/.test(
+      haystack
+    )
+  ) {
+    return "videographer";
+  }
   if (/wholesale|stone|supply|inventory|material/.test(haystack)) return "wholesaler";
   if (/automotive|vehicle/.test(haystack)) return "auto-glass";
   if (/contractor|home_services|trade/.test(haystack)) return "plumbing-company";

@@ -8,6 +8,7 @@ const themeFiles = [
   "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
   "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
   "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
+  "client/src/pages/profile-sites/VideographerProfileTheme.tsx",
 ] as const;
 
 const profileView = fs.readFileSync(

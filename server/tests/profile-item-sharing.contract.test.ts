@@ -23,9 +23,9 @@ describe("profile item sharing contract", () => {
     expect(helmet).toContain("preserveCanonicalQuery");
     expect(helmet).toContain("if (!preserveSearch) parsed.search");
     expect(profileView).toContain("preserveCanonicalQuery={Boolean(itemShareMeta)}");
-    expect(profileView).toContain('galleryItemShareMeta');
-    expect(profileView).toContain('categoryShareMeta');
-    expect(profileView).toContain('const pageOgType = inventoryItemShareMeta');
+    expect(profileView).toContain("galleryItemShareMeta");
+    expect(profileView).toContain("categoryShareMeta");
+    expect(profileView).toContain("const pageOgType = inventoryItemShareMeta");
     expect(profileView).toContain("profileImageUrl: profile.seoMeta?.imageUrl");
     expect(profileView).toContain(
       ": profileSocialPresentation.profileImageUrl || legacyProfileSeoImage"
@@ -62,6 +62,7 @@ describe("profile item sharing contract", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
+    const videographerTheme = read("client/src/pages/profile-sites/VideographerProfileTheme.tsx");
 
     expect(serverEntry).toContain("gallerySlug: req.query.gallery");
     expect(profileHtml).toContain("createProfileGalleryItemShareMetadata");
@@ -76,6 +77,9 @@ describe("profile item sharing contract", () => {
     expect(autoGlassTheme).toContain("buildProfilePublicItemPath({");
     expect(autoGlassTheme).toContain("profile-gallery-${item.slug}");
     expect(autoGlassTheme).toContain("<ShareButton");
+    expect(videographerTheme).toContain("buildProfilePublicItemPath({");
+    expect(videographerTheme).toContain("profile-gallery-${item.slug}");
+    expect(videographerTheme).toContain("<ShareButton");
   });
 
   it("gives icon-only share actions an accessible name", () => {

@@ -18,7 +18,16 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain('String(row.businessStatus) !== "active"');
     expect(routeSource).toContain("!ownerDiscoverable");
     expect(routeSource).toContain("!ownerConfirmedDirectProfile");
-    expect(routeSource).toContain("isOwnerConfirmedDirectProfile({");
+    expect(routeSource).toContain("const directProfileCandidate = {");
+    expect(routeSource).toContain(
+      "isOwnerConfirmedDirectProfile(directProfileCandidate)"
+    );
+    expect(routeSource).toContain(
+      "hasTradeScoutPendingOwnerCustody(directProfileCandidate)"
+    );
+    expect(routeSource).toContain("businessClaimStatus: row?.businessClaimStatus");
+    expect(routeSource).toContain("ownerProvider: row?.ownerProvider");
+    expect(routeSource).toContain("ownerPreferences: row?.ownerPreferences");
   });
 
   it("tailors the form for materials, auto glass, and general services", () => {

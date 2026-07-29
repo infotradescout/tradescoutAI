@@ -31,7 +31,12 @@ export interface ProfileDraft {
   description?: string;
   serviceAreas?: ProfileDraftServiceArea[];
   /** Public profile starting template from onboarding gallery. */
-  siteTemplateId?: "wholesaler" | "auto-glass" | "plumbing-company" | "electrician-solo";
+  siteTemplateId?:
+    | "wholesaler"
+    | "auto-glass"
+    | "plumbing-company"
+    | "electrician-solo"
+    | "videographer";
   /** Optional per-field inheritance overrides (keep_source | keep_target | merge | discard). */
   inheritanceDecisions?: Record<string, string>;
   capturedAt?: string;

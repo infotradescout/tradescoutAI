@@ -181,7 +181,10 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(route).toContain('routingMode: "profile_direct_connect"');
     expect(route).toContain('source: "profile_direct_connect"');
     expect(publicRoute).toContain("isOwnerConfirmedDirectProfile({");
-    expect(expressRoute).toContain("isOwnerConfirmedDirectProfile({");
+    expect(expressRoute).toContain("const directProfileCandidate = {");
+    expect(expressRoute).toContain(
+      "isOwnerConfirmedDirectProfile(directProfileCandidate)"
+    );
     expect(expressRoute).toContain("(!ownerDiscoverable && !ownerConfirmedDirectProfile)");
     expect(publicRoute).toContain("expressContactCapabilities");
     expect(profileView).toContain("allowCall={canExpressCall}");
