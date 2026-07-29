@@ -43,6 +43,15 @@ artifacts/*.json
 artifacts/*.html
 artifacts/*.txt
 
+# Generated visual QA evidence. Files already intentionally tracked remain tracked.
+artifacts/**/*.png
+artifacts/**/*.jpg
+artifacts/**/*.jpeg
+artifacts/**/*.webp
+artifacts/**/*.gif
+artifacts/**/*.mp4
+artifacts/**/*.webm
+
 # Playwright
 .playwright/
 playwright-report/
