@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import mammoth from "mammoth";
+import { GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED } from "./scoutCorpusContainment";
 
-export type ScoutKnowledgeStatus = "ready" | "not_yet_indexed";
+export type ScoutKnowledgeStatus = "ready" | "not_yet_indexed" | "quarantined";
 
 export interface ScoutKnowledgeEntry {
   filePath: string;
@@ -153,6 +154,18 @@ export async function loadScoutKnowledgeBase(
   input: ScoutKnowledgeLoadInput
 ): Promise<ScoutKnowledgeLoadResult> {
   const root = SCOUT_KNOWLEDGE_ROOT;
+
+  if (!GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED) {
+    return {
+      status: "quarantined",
+      root,
+      fileCount: 0,
+      matchedCount: 0,
+      entries: [],
+      note: "Generated Scout knowledge is quarantined pending sanitation and source validation.",
+    };
+  }
+
   const terms = normalizeTerms(input);
   const limit = Math.max(1, Math.min(Number(input.limit || 5), 8));
 
@@ -276,11 +289,22 @@ export function getKnowledgeBaseStatus(): {
   available: boolean;
   root: string;
   fileCount: number;
+  quarantined: boolean;
 } {
+  if (!GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED) {
+    return {
+      available: false,
+      root: SCOUT_KNOWLEDGE_ROOT,
+      fileCount: 0,
+      quarantined: true,
+    };
+  }
+
   const files = existsSafe(SCOUT_KNOWLEDGE_ROOT) ? walkKnowledgeFiles(SCOUT_KNOWLEDGE_ROOT) : [];
   return {
     available: files.length > 0,
     root: SCOUT_KNOWLEDGE_ROOT,
     fileCount: files.length,
+    quarantined: false,
   };
 }

@@ -8,10 +8,12 @@ import { db } from ".././db";
 import { storage } from "../storage";
 import { chooseKnowledgeMode } from "../scout/brandGuard";
 import { webSearch, type WebSearchResult } from "./webSearchService";
+import { observeScoutHybridShadow, searchScoutHybridCutover } from "./scoutHybridShadowService";
 import {
-  observeScoutHybridShadow,
-  searchScoutHybridCutover,
-} from "./scoutHybridShadowService";
+  AUTOMATIC_CHAT_CORPUS_WRITES_ENABLED,
+  GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED,
+  getScoutCorpusContainmentStatus,
+} from "./scoutCorpusContainment";
 import { businesses, businessCounties, counties } from "../../shared/schema";
 
 // ES module equivalent of __dirname
@@ -231,6 +233,10 @@ async function searchLocalKnowledgeBase(
   countyCode?: string,
   stateCode?: string
 ): Promise<CacheResult> {
+  if (!GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED) {
+    return { source: "none", data: null, layer: 0 };
+  }
+
   try {
     const strictJurisdiction = isCodeOrPermitQuery(message.toLowerCase());
     const locality = {
@@ -373,7 +379,7 @@ export function writeManualCacheFile(filename: string, data: any): void {
  * Compatibility shim for the retired automatic chat-corpus write path.
  * Generated Scout answers must not become retrieval evidence.
  */
-export const AUTOMATIC_CHAT_CORPUS_WRITES_ENABLED = false;
+export { AUTOMATIC_CHAT_CORPUS_WRITES_ENABLED };
 
 export function appendChatKnowledge(_entry: {
   question: string;
@@ -396,6 +402,10 @@ export function appendChatKnowledge(_entry: {
 }
 
 function searchChatCorpus(message: string, countyCode?: string, stateCode?: string): CacheResult {
+  if (!GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED) {
+    return { source: "none", data: null, layer: 0 };
+  }
+
   try {
     if (!fs.existsSync(CHAT_CORPUS_FILE)) {
       return { source: "none", data: null, layer: 0 };
@@ -982,13 +992,9 @@ export async function resolveKnowledge(
     }
   }
 
-  // LAYER 1B: Admin-controlled knowledge base in data/TradeScout Brain (docx/txt/md)
-  // This is the canonical source for how TradeScout works (help docs, "TradeScout for Dummies", workflows, FAQs).
-  const knowledgeBaseResult = await searchLocalKnowledgeBase(
-    message,
-    countyCode,
-    stateCode
-  );
+  // LAYER 1B: Generated/unverified disk knowledge. The containment policy
+  // keeps this path empty until reviewed source validation exists.
+  const knowledgeBaseResult = await searchLocalKnowledgeBase(message, countyCode, stateCode);
   if (
     knowledgeBaseResult.source === "manual" &&
     Array.isArray(knowledgeBaseResult.data) &&
@@ -996,8 +1002,7 @@ export async function resolveKnowledge(
   ) {
     const linkedSources = knowledgeBaseResult.data
       .filter(
-        (item: any) =>
-          typeof item?.sourceUrl === "string" && item.sourceUrl.startsWith("http")
+        (item: any) => typeof item?.sourceUrl === "string" && item.sourceUrl.startsWith("http")
       )
       .map((item: any) => ({
         title: String(item.file || item.sourceId || "TradeScout knowledge"),
@@ -1265,18 +1270,21 @@ export async function loadComprehensiveKnowledge(): Promise<string> {
       }
     }
 
-    // 2. Load all files from configured knowledge roots
-    for (const root of KNOWLEDGE_ROOT_DIRS) {
-      if (!fs.existsSync(root)) continue;
-      const rootLabel = path.basename(root);
-      const knowledgeFiles = walkKnowledgeFiles(root);
-      for (const file of knowledgeFiles) {
-        if (chunks.join("").length > maxSize) break;
+    // 2. Generated/unverified roots stay quarantined until a reviewed
+    // sanitation and source-validation workflow is available.
+    if (GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED) {
+      for (const root of KNOWLEDGE_ROOT_DIRS) {
+        if (!fs.existsSync(root)) continue;
+        const rootLabel = path.basename(root);
+        const knowledgeFiles = walkKnowledgeFiles(root);
+        for (const file of knowledgeFiles) {
+          if (chunks.join("").length > maxSize) break;
 
-        const text = await loadKnowledgeText(file);
-        if (text) {
-          const relPath = path.relative(root, file);
-          chunks.push(`\n[KNOWLEDGE BASE: ${rootLabel}/${relPath}]\n${text.slice(0, 2000)}`);
+          const text = await loadKnowledgeText(file);
+          if (text) {
+            const relPath = path.relative(root, file);
+            chunks.push(`\n[KNOWLEDGE BASE: ${rootLabel}/${relPath}]\n${text.slice(0, 2000)}`);
+          }
         }
       }
     }
@@ -1294,6 +1302,7 @@ export function getKnowledgeBaseStatus(): {
   knowledgeBasePresent: boolean;
   manualCachePresent: boolean;
   autoCachePresent: boolean;
+  containment: ReturnType<typeof getScoutCorpusContainmentStatus>;
 } {
   const safeExists = (p: string) => {
     try {
@@ -1308,5 +1317,6 @@ export function getKnowledgeBaseStatus(): {
     knowledgeBasePresent: KNOWLEDGE_ROOT_DIRS.some((dir) => safeExists(dir)),
     manualCachePresent: safeExists(MANUAL_CACHE_DIR),
     autoCachePresent: safeExists(AUTO_CACHE_DIR),
+    containment: getScoutCorpusContainmentStatus(),
   };
 }

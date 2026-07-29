@@ -10,6 +10,7 @@ import {
   type ScoutHybridSearchResult,
   type ScoutHybridSearchIndex,
 } from "./scoutHybridRetrievalService";
+import { GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED } from "./scoutCorpusContainment";
 
 export type ScoutHybridShadowObservation = {
   observedAt: string;
@@ -75,9 +76,7 @@ function createEmbeddingProvider(artifact: ScoutHybridIndexArtifact) {
     return new DeterministicDenseEmbeddingProvider(artifact.embedding.dimensions);
   }
 
-  throw new Error(
-    `Unsupported Scout hybrid embedding provider: ${artifact.embedding.provider}`
-  );
+  throw new Error(`Unsupported Scout hybrid embedding provider: ${artifact.embedding.provider}`);
 }
 
 async function loadRuntimeIndex(): Promise<ScoutHybridSearchIndex | null> {
@@ -97,9 +96,7 @@ async function loadRuntimeIndex(): Promise<ScoutHybridSearchIndex | null> {
     if (!stats.isFile() || stats.size <= 0 || stats.size > MAX_ARTIFACT_BYTES) {
       throw new Error("Scout hybrid index artifact is empty or exceeds the safety bound");
     }
-    const artifact = JSON.parse(
-      fs.readFileSync(indexPath, "utf8")
-    ) as ScoutHybridIndexArtifact;
+    const artifact = JSON.parse(fs.readFileSync(indexPath, "utf8")) as ScoutHybridIndexArtifact;
     const embeddingProvider = createEmbeddingProvider(artifact);
     return createScoutHybridSearchIndex({ artifact, embeddingProvider });
   });
@@ -158,6 +155,10 @@ export async function observeScoutHybridShadow(
 export async function searchScoutHybridCutover(
   input: ShadowSearchInput
 ): Promise<ScoutHybridSearchResult[] | null> {
+  if (!GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED) {
+    return null;
+  }
+
   if (
     !enabled(process.env.SCOUT_HYBRID_SHADOW_ENABLED) ||
     !enabled(process.env.SCOUT_HYBRID_CUTOVER_ENABLED)

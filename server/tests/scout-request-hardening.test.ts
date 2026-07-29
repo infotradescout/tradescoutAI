@@ -12,6 +12,11 @@ import {
   appendChatKnowledge,
   AUTOMATIC_CHAT_CORPUS_WRITES_ENABLED,
 } from "../services/knowledgeService";
+import {
+  GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED,
+  getScoutCorpusContainmentStatus,
+} from "../services/scoutCorpusContainment";
+import { loadScoutKnowledgeBase } from "../services/scoutKnowledgeLoader";
 
 const TEST_LIMITS: ScoutRequestLimits = {
   windowMs: 60_000,
@@ -66,11 +71,7 @@ describe("Scout request hardening", () => {
       validateScoutRequestBounds(
         {
           message: "ok",
-          history: [
-            { content: "one" },
-            { content: "two" },
-            { content: "three" },
-          ],
+          history: [{ content: "one" }, { content: "two" }, { content: "three" }],
         },
         TEST_LIMITS
       )
@@ -188,5 +189,33 @@ describe("Scout request hardening", () => {
     expect(writeSpy).not.toHaveBeenCalled();
     writeSpy.mockRestore();
   });
-});
 
+  it("quarantines generated Scout corpus retrieval without an environment override", async () => {
+    const previous = process.env.SCOUT_GENERATED_CORPUS_RETRIEVAL_ENABLED;
+    process.env.SCOUT_GENERATED_CORPUS_RETRIEVAL_ENABLED = "true";
+
+    try {
+      const result = await loadScoutKnowledgeBase({
+        query: "permit requirements",
+        countyFips: "12033",
+        stateCode: "FL",
+      });
+
+      expect(GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED).toBe(false);
+      expect(getScoutCorpusContainmentStatus()).toEqual({
+        generatedCorpusRetrievalEnabled: false,
+        automaticChatCorpusWritesEnabled: false,
+        reason: "source_validation_and_sanitation_required",
+      });
+      expect(result).toMatchObject({
+        status: "quarantined",
+        fileCount: 0,
+        matchedCount: 0,
+        entries: [],
+      });
+    } finally {
+      if (previous === undefined) delete process.env.SCOUT_GENERATED_CORPUS_RETRIEVAL_ENABLED;
+      else process.env.SCOUT_GENERATED_CORPUS_RETRIEVAL_ENABLED = previous;
+    }
+  });
+});
