@@ -5,6 +5,8 @@ const SEO_ROOT_SUMMARY_PATTERN = /<div id="root">\s*<main data-seo-[\s\S]*?<\/ma
 const BOOT_FALLBACK_PATTERN = /\s*<div id="ts-boot-fallback"[\s\S]*?<\/section>\s*<\/div>\s*/i;
 const NOSCRIPT_FALLBACK_PATTERN =
   /\s*<noscript>\s*<div id="ts-boot-fallback-noscript"[\s\S]*?<\/noscript>\s*/i;
+const CLIENT_MODULE_SCRIPT_PATTERN =
+  /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 
 export function publicSocialMetadataCacheControl(html: string): string | null {
@@ -23,7 +25,10 @@ export function preparePublicSeoHtmlForResponse(
 ): string {
   const upgradedHtml = upgradePublicSocialPreviewHtml(html);
   if (options.retainSeoSummary) {
-    return stripPublicSeoBootPlaceholders(upgradedHtml);
+    return stripPublicSeoBootPlaceholders(upgradedHtml).replace(
+      CLIENT_MODULE_SCRIPT_PATTERN,
+      ""
+    );
   }
 
   return upgradedHtml.replace(SEO_ROOT_SUMMARY_PATTERN, '<div id="root"></div>');
