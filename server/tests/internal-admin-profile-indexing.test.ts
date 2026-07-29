@@ -103,8 +103,15 @@ describe("internal admin public profile indexing", () => {
       path.resolve(process.cwd(), "server/repositories/sitemapRepository.ts"),
       "utf8"
     );
+    const profileRoutes = fs.readFileSync(
+      path.resolve(process.cwd(), "server/routes/profiles.ts"),
+      "utf8"
+    );
 
     expect(repository).toContain("notInArray(profiles.slug, [...INTERNAL_ADMIN_PROFILE_SLUGS])");
+    expect(profileRoutes).toContain(
+      "if (!shouldIndexPublicProfileSlug(target.profileSlug)) return null;"
+    );
   });
 
   it("keeps unrelated published profiles indexable and eligible for host-local sitemaps", async () => {
