@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (relativePath: string) =>
-  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
 
 const exists = (relativePath: string) => fs.existsSync(path.resolve(process.cwd(), relativePath));
 

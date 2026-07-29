@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 function read(relativePath: string): string {
-  return fs.readFileSync(path.resolve(repoRoot, relativePath), "utf8");
+  return fs.readFileSync(path.resolve(repoRoot, relativePath), "utf8").replace(/\r\n/g, "\n");
 }
 
 describe("TradeScout About explainer route", () => {

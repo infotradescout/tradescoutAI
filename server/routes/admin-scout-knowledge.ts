@@ -9,6 +9,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import { readFileSync } from "node:fs";
 import multer from "multer";
 import { requireAdmin } from "../auth";
 import {
@@ -334,7 +335,7 @@ router.post(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const jsonData = require("fs").readFileSync(req.file.path, "utf-8");
+      const jsonData = readFileSync(req.file.path, "utf-8");
       importIndexFromJson(jsonData);
 
       res.json({

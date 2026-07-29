@@ -10,8 +10,12 @@ function fail(name, detail) {
 }
 
 async function fileSizeBytes(filePath) {
-  const stat = await fs.stat(filePath);
-  return stat.size;
+  const source = await fs.readFile(filePath, "utf8");
+  // The ceilings were recorded from Git's canonical LF source. Windows
+  // checkouts may materialize CRLF, which adds one byte per line without
+  // adding architecture. Normalize only line endings before applying the
+  // existing ceiling so real source growth still fails closed.
+  return Buffer.byteLength(source.replace(/\r\n/g, "\n"), "utf8");
 }
 
 function formatBytes(value) {
@@ -40,14 +44,14 @@ async function checkMonolithCaps(repoRoot) {
       checks.push(
         pass(
           `size:${cap.relPath}`,
-          `${formatBytes(size)} <= ${formatBytes(cap.maxBytes)} (${cap.rationale})`
+          `${formatBytes(size)} LF-normalized <= ${formatBytes(cap.maxBytes)} (${cap.rationale})`
         )
       );
     } else {
       checks.push(
         fail(
           `size:${cap.relPath}`,
-          `${formatBytes(size)} > ${formatBytes(cap.maxBytes)} (${cap.rationale})`
+          `${formatBytes(size)} LF-normalized > ${formatBytes(cap.maxBytes)} (${cap.rationale})`
         )
       );
     }

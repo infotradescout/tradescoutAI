@@ -248,12 +248,18 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       root.render(<WholesalerProfileTheme {...props} />);
     });
 
-    click(container.querySelector('button[aria-label="Ask about Test Stone 1"]'));
+    const askButton = container.querySelector<HTMLButtonElement>(
+      'button[aria-label^="Ask about Test Stone "]'
+    );
+    const selectedName = askButton?.getAttribute("aria-label")?.replace(/^Ask about /, "") || "";
+    const selectedStone = inventoryStones.find((stone) => stone.name === selectedName);
+    expect(selectedStone).toBeDefined();
+    click(askButton);
 
     expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
       open: true,
-      initialItemId: "test-stone-1",
-      initialStoneName: "Test Stone 1",
+      initialItemId: selectedStone?.slug,
+      initialStoneName: selectedStone?.name,
       initialRequestType: "request_material",
     });
     expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();

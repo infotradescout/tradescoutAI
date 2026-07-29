@@ -1,9 +1,11 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import pg from "pg";
 import { spawnCommand } from "./lib/subprocess.mjs";
+import { assertDisposableFullSyncTarget } from "./lib/test-db-safety.mjs";
 
 const { Client } = pg;
 
@@ -33,7 +35,13 @@ if (process.env.SKIP_TEST_DB_BOOTSTRAP === "true") {
   process.exit(0);
 }
 
-async function runWithInput(command, args, env = process.env, input = "") {
+async function runWithInput(
+  command,
+  args,
+  env = process.env,
+  input = "",
+  { intervalMs = 1000, maxWrites = 1 } = {}
+) {
   const child = await spawnCommand(command, args, {
     cwd: repoRoot,
     stdio: ["pipe", "inherit", "inherit"],
@@ -43,15 +51,23 @@ async function runWithInput(command, args, env = process.env, input = "") {
   child.stdin.on("error", () => {});
   let inputTimer;
   if (input) {
+    let writes = 0;
     const writeInput = () => {
+      if (writes >= maxWrites) {
+        if (inputTimer) clearInterval(inputTimer);
+        return;
+      }
       try {
-        if (child.stdin.writable) child.stdin.write(input);
+        if (child.stdin.writable) {
+          child.stdin.write(input);
+          writes += 1;
+        }
       } catch {
         // The process may exit while a prompt tick is in flight.
       }
     };
     writeInput();
-    inputTimer = setInterval(writeInput, 1000);
+    if (maxWrites > 1) inputTimer = setInterval(writeInput, intervalMs);
   }
 
   return await new Promise((resolve, reject) => {
@@ -80,6 +96,30 @@ async function tableExists(client, tableName) {
 async function queryIfTableExists(client, tableName, sql) {
   if (await tableExists(client, tableName)) {
     await client.query(sql);
+  }
+}
+
+async function ensureFullSyncBaseSchema(expectedDatabase) {
+  const client = new Client({ connectionString: testDatabaseUrl });
+  await client.connect();
+  try {
+    const identity = await client.query("SELECT current_database() AS database_name");
+    const actualDatabase = String(identity.rows[0]?.database_name || "");
+    if (actualDatabase !== expectedDatabase) {
+      throw new Error(
+        `Connected database identity "${actualDatabase}" does not match the authorized disposable target "${expectedDatabase}".`
+      );
+    }
+    if (await tableExists(client, "users")) return;
+
+    const baselineSql = await readFile(
+      path.join(repoRoot, "migrations", "0000_wild_saracen.sql"),
+      "utf8"
+    );
+    await client.query(baselineSql);
+    console.log("[bootstrap-test-db] Applied the base schema to a fresh test database.");
+  } finally {
+    await client.end();
   }
 }
 
@@ -2106,7 +2146,15 @@ async function main() {
 
   await withBootstrapLock(async () => {
     if (fullSync) {
-      const pushCode = await runWithInput("npx", ["drizzle-kit", "push", "--force"], env, "\r");
+      const target = assertDisposableFullSyncTarget(testDatabaseUrl, process.env);
+      await ensureFullSyncBaseSchema(target.database);
+      const pushCode = await runWithInput(
+        "npx",
+        ["drizzle-kit", "push", "--force"],
+        env,
+        "\r\n",
+        { intervalMs: 100, maxWrites: 2000 }
+      );
       if (pushCode !== 0) {
         console.error("[bootstrap-test-db] drizzle-kit push failed.");
         process.exit(pushCode);

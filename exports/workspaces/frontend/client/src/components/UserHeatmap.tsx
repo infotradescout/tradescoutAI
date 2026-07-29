@@ -352,7 +352,9 @@ function CountyHeatmapMap({
     } catch (err) {
       console.error("Error parsing dropped file data:", err);
     }
-  };t clampZoom = (value: number) => Math.min(8, Math.max(1, value));
+  };
+
+  const clampZoom = (value: number) => Math.min(8, Math.max(1, value));
 
   const clientToSvgPoint = (clientX: number, clientY: number) => {
     const svg = svgRef.current;

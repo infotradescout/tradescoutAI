@@ -167,7 +167,10 @@ export default function OnyxStoneShowcase({
   };
 
   return (
-    <div data-testid="onyx-stone-showcase" className="overflow-hidden bg-[#070605] text-[#f4efe6]">
+    <div
+      data-testid="onyx-stone-showcase"
+      className="overflow-hidden bg-[var(--profile-luxury-ink,#070605)] text-[var(--profile-luxury-text,#f4efe6)]"
+    >
       <section id="collection" className="scroll-mt-24 pt-8 sm:pt-12">
         <div className="mx-auto mb-6 max-w-7xl px-4 sm:mb-8 sm:px-8">
           <p className="text-[10px] font-medium uppercase tracking-[0.36em] text-[var(--brand-accent,#d9a441)]">
@@ -179,7 +182,7 @@ export default function OnyxStoneShowcase({
                 {data.offerings?.title || data.gallery.title}
               </h2>
               {data.offerings?.body || data.gallery.body ? (
-                <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[#b7aa98] sm:text-base">
+                <p className="mt-4 max-w-xl text-sm font-light leading-7 text-[var(--profile-luxury-muted,#b7aa98)] sm:text-base">
                   {data.offerings?.body || data.gallery.body}
                 </p>
               ) : null}
@@ -239,7 +242,7 @@ export default function OnyxStoneShowcase({
               return (
                 <article
                   key={image}
-                  className="group relative h-[82svh] min-h-[540px] w-[96vw] max-w-none flex-none snap-center overflow-hidden bg-[#120f0c] sm:h-[86svh] sm:w-[88vw] lg:w-[82vw]"
+                  className="group relative h-[82svh] min-h-[540px] w-[96vw] max-w-none flex-none snap-center overflow-hidden bg-[var(--profile-luxury-card,#120f0c)] sm:h-[86svh] sm:w-[88vw] lg:w-[82vw]"
                 >
                   <img
                     src={image}
@@ -299,7 +302,7 @@ export default function OnyxStoneShowcase({
             </button>
           </div>
         </div>
-        <div className="mx-auto mt-5 flex max-w-7xl justify-between px-4 text-[10px] uppercase tracking-[0.28em] text-[#8f8374] sm:px-8">
+        <div className="mx-auto mt-5 flex max-w-7xl justify-between px-4 text-[10px] uppercase tracking-[0.28em] text-[var(--profile-luxury-caption,#8f8374)] sm:px-8">
           <p>Lookbook</p>
           <p className="text-[var(--brand-accent,#d9a441)]" aria-live="polite" aria-atomic="true">
             {String(visiblePhoto + 1).padStart(2, "0")} /{" "}
@@ -358,7 +361,7 @@ export default function OnyxStoneShowcase({
           onMouseDown={(event) => event.target === event.currentTarget && closeLightbox()}
         >
           <div
-            className="flex max-h-[96svh] w-full max-w-7xl flex-col overflow-hidden border border-white/10 bg-[#070605]"
+            className="flex max-h-[96svh] w-full max-w-7xl flex-col overflow-hidden border border-white/10 bg-[var(--profile-luxury-ink,#070605)]"
             onTouchStart={(event) =>
               (touchStartX.current = event.changedTouches[0]?.clientX ?? null)
             }
@@ -371,7 +374,7 @@ export default function OnyxStoneShowcase({
           >
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#efd393]">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-[var(--profile-luxury-gold-text,#efd393)]">
                   {activeProduct.name} · {String(photoIndex + 1).padStart(2, "0")} /{" "}
                   {String(activeProduct.images.length).padStart(2, "0")}
                 </p>

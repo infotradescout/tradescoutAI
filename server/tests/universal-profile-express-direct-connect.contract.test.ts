@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const read = (relativePath: string) =>
-  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("universal public-profile Express Direct Connect contract", () => {
   const routeSource = read("server/routes/tradepartner-express.ts");

@@ -48,9 +48,9 @@ describe("CVS boost policy consistency", () => {
     const [query, params] = poolQuery.mock.calls[0];
     expect(query).toContain("PARTITION BY g.entity_id, g.metadata ->> 'grantKey'");
     expect(query).toContain("WHERE g.grant_rank = 1");
-    expect(query).toContain("g.created_at <= $6");
+    expect(query).toContain("(g.created_at AT TIME ZONE 'UTC') <= $6::timestamptz");
     expect(query).toContain("g.expires_at::timestamptz > $6");
-    expect(query).toContain("r.created_at <= $6");
+    expect(query).toContain("(r.created_at AT TIME ZONE 'UTC') <= $6::timestamptz");
     expect(params[5]).toEqual(asOf);
   });
 

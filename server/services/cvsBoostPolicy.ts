@@ -135,7 +135,7 @@ export async function getActiveCvsBoosts(
           AND g.entity_id = $2
           AND g.event_type = $3
           AND g.verification_level = 'system_verified'
-          AND g.created_at <= $6
+          AND (g.created_at AT TIME ZONE 'UTC') <= $6::timestamptz
           AND COALESCE(g.metadata ->> 'grantKey', '') <> ''
       )
       SELECT policy_key, expires_at
@@ -155,7 +155,7 @@ export async function getActiveCvsBoosts(
           WHERE r.entity_type = $1
             AND r.entity_id = g.entity_id
             AND r.event_type = $4
-            AND r.created_at <= $6
+            AND (r.created_at AT TIME ZONE 'UTC') <= $6::timestamptz
             AND r.metadata ->> 'grantKey' = g.grant_key
         )
       ORDER BY created_at ASC, id ASC

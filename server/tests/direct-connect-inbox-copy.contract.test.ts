@@ -1,45 +1,17 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import {
+  buildDirectConnectInboxDisplay,
+  formatDirectConnectInboxTime,
+  getDirectConnectInboxStatusLabel,
+} from "../../client/src/pages/direct-connect/directConnectInboxCopy";
 
-type InboxCopyHelpers = {
-  buildDirectConnectInboxDisplay: typeof import("../../client/src/pages/direct-connect/DirectConnectShell").buildDirectConnectInboxDisplay;
-  formatDirectConnectInboxTime: typeof import("../../client/src/pages/direct-connect/DirectConnectShell").formatDirectConnectInboxTime;
-  getDirectConnectInboxStatusLabel: typeof import("../../client/src/pages/direct-connect/DirectConnectShell").getDirectConnectInboxStatusLabel;
+const helpers = {
+  buildDirectConnectInboxDisplay,
+  formatDirectConnectInboxTime,
+  getDirectConnectInboxStatusLabel,
 };
 
 describe("Direct Connect inbox copy contract", () => {
-  let helpers: InboxCopyHelpers;
-
-  beforeAll(async () => {
-    vi.stubGlobal("window", {
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      location: { href: "", pathname: "/" },
-      localStorage: {
-        getItem: vi.fn(),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-      },
-      sessionStorage: {
-        getItem: vi.fn(),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-      },
-      matchMedia: vi.fn(() => ({
-        matches: false,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    });
-    vi.stubGlobal("document", {
-      createElement: vi.fn(() => ({ style: {} })),
-      documentElement: { style: {} },
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    });
-
-    helpers = await import("../../client/src/pages/direct-connect/DirectConnectShell");
-  });
-
   it("maps assignment statuses to public-safe action-center labels", () => {
     expect(helpers.getDirectConnectInboxStatusLabel("suggested")).toBe("New opportunity");
     expect(helpers.getDirectConnectInboxStatusLabel("invited")).toBe("Invited");
