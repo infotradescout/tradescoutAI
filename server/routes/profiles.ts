@@ -70,6 +70,11 @@ import {
   ISSA_BUILD_LEGACY_PROFILE_SLUG,
   ISSA_BUILD_PROFILE_SLUG,
 } from "../../shared/issaBuildProfile";
+import { notifyIndexNow } from "../services/indexNowService";
+import {
+  collectProfileIndexNowUrls,
+  combineIndexNowChangeUrls,
+} from "../services/indexNowPublicationEvents";
 
 const router = Router();
 
@@ -724,6 +729,18 @@ const profileSectionVisibilitySchema = z
     message: "At least one section setting is required",
   });
 
+async function collectEligibleProfileIndexNowUrls(profile: any): Promise<string[]> {
+  try {
+    const slug = String(profile?.slug || "").trim();
+    if (!slug || String(profile?.status || "") !== "published") return [];
+    const publicContext = await getPublicProfileTrustContext(slug);
+    return collectProfileIndexNowUrls(profile, Boolean(publicContext));
+  } catch (error) {
+    console.warn("[IndexNow] Failed resolving profile publication eligibility:", error);
+    return [];
+  }
+}
+
 router.get("/api/profiles", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -879,11 +896,14 @@ router.patch("/api/profiles/:id/profile-booking", isAuthenticated, async (req, r
       profile.contentBlocks,
       normalized as unknown as Record<string, unknown>
     );
+    const beforeUrls = await collectEligibleProfileIndexNowUrls(profile);
     if (isStaffProfileManager(req)) {
       await storage.updateProfileById(profileId, { contentBlocks } as any);
     } else {
       await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
     }
+    const afterUrls = await collectEligibleProfileIndexNowUrls({ ...profile, contentBlocks });
+    notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
 
     res.json({
       message: "Profile booking settings updated",
@@ -948,11 +968,14 @@ router.patch("/api/profiles/:id/profile-sections", isAuthenticated, async (req, 
       updates,
       legacySections
     );
+    const beforeUrls = await collectEligibleProfileIndexNowUrls(profile);
     if (canManageAnyProfile) {
       await storage.updateProfileById(profileId, { contentBlocks } as any);
     } else {
       await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
     }
+    const afterUrls = await collectEligibleProfileIndexNowUrls({ ...profile, contentBlocks });
+    notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
     return res.json({
       message: "Profile sections updated",
       profileId,
@@ -1050,6 +1073,7 @@ router.patch("/api/profiles/:id/brand-colors", isAuthenticated, async (req, res)
         ? (existingProfileData.brandColors as Record<string, any>)
         : {};
     const brandColors = { ...existingBrandColors, ...updates };
+    const profileUrls = await collectEligibleProfileIndexNowUrls(profile);
     const [updated] = await db
       .update(businesses)
       .set({
@@ -1072,6 +1096,7 @@ router.patch("/api/profiles/:id/brand-colors", isAuthenticated, async (req, res)
           : "Business ownership changed; reload before saving brand colors",
       });
     }
+    notifyIndexNow(profileUrls);
 
     return res.json({ profileId, businessId: updated.id, brandColors });
   } catch (error: any) {
@@ -1138,6 +1163,7 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
       ? await storage.getProfileById(profileId)
       : await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
     // A custom domain is an ownership-bearing routing value, not ordinary SEO
     // copy. It can only be changed by the TXT verification lifecycle in
@@ -1171,6 +1197,8 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
     } else {
       updated = await storage.updateProfileForOwner(userId, profileId, payload);
     }
+    const afterUrls = await collectEligibleProfileIndexNowUrls(updated);
+    notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
 
     res.json(updated);
   } catch (error: any) {
@@ -1196,10 +1224,13 @@ router.put("/api/profiles/:id/publish", isAuthenticated, async (req, res) => {
     const profileId = String(req.params.id);
     const existing = await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
     const updated = await storage.updateProfileForOwner(userId, profileId, {
       status: "published" as any,
     } as any);
+    const afterUrls = await collectEligibleProfileIndexNowUrls(updated);
+    notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
     res.json(updated);
   } catch (error: any) {
     console.error("Error publishing profile:", error);
@@ -1216,10 +1247,12 @@ router.put("/api/profiles/:id/unpublish", isAuthenticated, async (req, res) => {
     const profileId = String(req.params.id);
     const existing = await storage.getProfileByIdForOwner(userId, profileId);
     if (!existing) return res.status(404).json({ message: "Profile not found" });
+    const beforeUrls = await collectEligibleProfileIndexNowUrls(existing);
 
     const updated = await storage.updateProfileForOwner(userId, profileId, {
       status: "draft" as any,
     } as any);
+    notifyIndexNow(beforeUrls);
     res.json(updated);
   } catch (error: any) {
     console.error("Error unpublishing profile:", error);

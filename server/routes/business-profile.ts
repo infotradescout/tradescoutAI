@@ -24,6 +24,11 @@ import type {
 } from "../../shared/businessProfile";
 import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 import { resolveCanonicalBusinessProfileRoute } from "../services/canonicalBusinessProfileRoute";
+import { notifyIndexNow } from "../services/indexNowService";
+import {
+  collectBusinessIndexNowUrls,
+  combineIndexNowChangeUrls,
+} from "../services/indexNowPublicationEvents";
 
 function sanitizePublicCtaConfig(ctaConfig: unknown) {
   const safe = (ctaConfig && typeof ctaConfig === "object" ? ctaConfig : {}) as Record<string, any>;
@@ -410,6 +415,7 @@ export function registerBusinessProfileRoutes(app: Express) {
 
         // Check if user already has a published profile
         const existing = await storage.getBusinessProfileByUserId(userId);
+        const beforeUrls = collectBusinessIndexNowUrls(existing, discoveryUnlocked);
         const requestedBookingConfig = payload.bookingConfig ?? existing?.bookingConfig ?? null;
         const normalizedBookingConfig = requestedBookingConfig
           ? normalizeProfileBookingPrefs(requestedBookingConfig)
@@ -459,6 +465,8 @@ export function registerBusinessProfileRoutes(app: Express) {
         };
 
         const savedProfile = await storage.saveBusinessProfile(profileData);
+        const afterUrls = collectBusinessIndexNowUrls(savedProfile, discoveryUnlocked);
+        notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
 
         // Update user record with slug for easy reference
         await db.update(users).set({ businessSlug: slug }).where(eq(users.id, userId));
@@ -614,6 +622,7 @@ export function registerBusinessProfileRoutes(app: Express) {
       if (!existing) {
         return res.status(404).json({ message: "No published profile to update" });
       }
+      const beforeUrls = collectBusinessIndexNowUrls(existing, discoveryUnlocked);
 
       const updates = req.body as UpdateProfilePayload;
       const nextStateCode =
@@ -697,6 +706,8 @@ export function registerBusinessProfileRoutes(app: Express) {
       };
 
       const saved = await storage.saveBusinessProfile(updatedProfile);
+      const afterUrls = collectBusinessIndexNowUrls(saved, discoveryUnlocked);
+      notifyIndexNow(combineIndexNowChangeUrls(beforeUrls, afterUrls));
 
       res.json({
         success: true,
