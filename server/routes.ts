@@ -149,6 +149,7 @@ import { passwordResetService } from "./services/passwordResetService";
 import { getRelatedBusinessSuggestions } from "./services/relatedBusinessSuggestions";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
+import { notifyIndexNow } from "./services/indexNowService";
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
 import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
@@ -20364,6 +20365,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           } as any);
         }
 
+        notifyIndexNow([`/community/posts/${newPost.id}`, "/community"]);
         res.status(201).json(newPost);
       } catch (error: any) {
         console.error("Error creating community post:", error);
@@ -20844,6 +20846,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           })
           .where(eq(communityPosts.id, id));
 
+        notifyIndexNow([`/community/posts/${id}`, "/community"]);
         res.json({ success: true });
       } catch (error: any) {
         console.error("Error updating community post pin state:", error);
@@ -20877,6 +20880,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           })
           .where(eq(communityPosts.id, id));
 
+        notifyIndexNow([`/community/posts/${id}`, "/community"]);
         res.json({ success: true });
       } catch (error: any) {
         console.error("Error updating community post visibility:", error);
@@ -20906,6 +20910,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         await db.delete(communityPosts).where(eq(communityPosts.id, id));
 
+        notifyIndexNow([`/community/posts/${id}`, "/community"]);
         res.json({ success: true });
       } catch (error: any) {
         console.error("Error deleting community post:", error);
