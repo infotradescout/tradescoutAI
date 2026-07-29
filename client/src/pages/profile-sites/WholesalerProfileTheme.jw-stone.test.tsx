@@ -194,6 +194,9 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       root.render(<WholesalerProfileTheme {...props} />);
     });
 
+    const hero = container.querySelector('[data-testid="wholesaler-profile-hero"]');
+    expect(hero?.className).not.toContain("min-h-[460px]");
+    expect(hero?.className).toContain("md:min-h-[600px]");
     expect(container.querySelector("#inventory-browser")).not.toBeNull();
     expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
     expect(container.querySelector('input[placeholder="Search by stone name"]')).not.toBeNull();
