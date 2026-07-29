@@ -1,0 +1,15 @@
+---
+description: Always show ISSA/UI changes locally before merge or deploy
+alwaysApply: true
+---
+
+# Preview locally before deploy
+
+For any user-facing TradeScout UI change (especially ISSA / lux profile work):
+
+1. **Do not merge or deploy** until the user has seen a local preview.
+2. Run the app locally (`npm run dev` or the project’s standard local server).
+3. Open the affected route (e.g. `/u/issa-build`) and show desktop and/or mobile evidence (browser, screenshots, or both).
+4. Only merge/push to `main` after the user explicitly approves what they saw locally (e.g. “send it”, “merge”, “ship”).
+
+“Looks fine in tests” is not a substitute for local visual preview.
