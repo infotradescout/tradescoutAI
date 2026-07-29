@@ -325,9 +325,9 @@ export default function PrecisionAerialProfile({
           className="overflow-hidden bg-[var(--precision-brand)] text-white"
           data-testid="precision-aerial-hero"
         >
-          <div className="mx-auto grid min-h-[720px] w-full max-w-[1480px] lg:grid-cols-[0.86fr_1.14fr]">
+          <div className="mx-auto grid w-full max-w-[1480px] lg:min-h-[720px] lg:grid-cols-[0.86fr_1.14fr]">
             <div
-              className="flex flex-col justify-center px-5 py-14 sm:px-10 sm:py-20 lg:px-16 xl:px-20"
+              className="flex flex-col justify-center px-5 py-8 sm:px-10 sm:py-20 lg:px-16 xl:px-20"
               data-testid="precision-aerial-hero-identity"
             >
               <div className="flex items-center gap-3">
@@ -335,7 +335,7 @@ export default function PrecisionAerialProfile({
                   <SafeProfileImg
                     src={hero.logoUrl}
                     alt=""
-                    className="h-16 w-16 rounded-full border border-white/20 object-cover shadow-2xl sm:h-20 sm:w-20"
+                    className="h-14 w-14 rounded-full border border-white/20 object-cover shadow-2xl sm:h-20 sm:w-20"
                   />
                 ) : null}
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sky-300 sm:text-xs">
@@ -345,26 +345,26 @@ export default function PrecisionAerialProfile({
                 </span>
               </div>
 
-              <h1 className="mt-10 max-w-2xl text-[4rem] font-black leading-[0.86] tracking-[-0.075em] sm:text-[6.5rem] lg:text-[7.4rem]">
+              <h1 className="mt-6 max-w-2xl text-[3.35rem] font-black leading-[0.86] tracking-[-0.075em] sm:mt-10 sm:text-[6.5rem] lg:text-[7.4rem]">
                 {hero.title || "A better view."}
               </h1>
-              <p className="mt-7 max-w-xl text-lg font-semibold leading-8 text-white/70 sm:text-2xl sm:leading-10">
+              <p className="mt-5 max-w-xl text-base font-semibold leading-7 text-white/70 sm:mt-7 sm:text-2xl sm:leading-10">
                 Property. Progress. Land. Motion. Captured from above with a clear purpose for the
                 project below.
               </p>
 
-              <div className="mt-9 flex flex-wrap gap-3">
+              <div className="mt-7 flex flex-wrap gap-3 sm:mt-9">
                 <button
                   type="button"
                   onClick={() => onDirectConnect()}
-                  className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-ts-orange px-6 text-sm font-black text-white transition hover:bg-ts-orange-dark sm:px-7 sm:text-base"
+                  className="inline-flex min-h-[52px] items-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition hover:bg-ts-orange-dark sm:px-7 sm:text-base"
                 >
                   Start a private project
                   <ArrowRight className="h-4 w-4" />
                 </button>
                 <a
                   href="#work"
-                  className="inline-flex min-h-[52px] items-center rounded-full border border-white/20 px-6 text-sm font-black text-white transition hover:border-white/50 hover:bg-white/5 sm:px-7 sm:text-base"
+                  className="inline-flex min-h-[52px] items-center rounded-full border border-white/20 px-5 text-sm font-black text-white transition hover:border-white/50 hover:bg-white/5 sm:px-7 sm:text-base"
                 >
                   View selected work
                 </a>
@@ -373,7 +373,7 @@ export default function PrecisionAerialProfile({
                     href={featuredWorkUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex min-h-[52px] items-center gap-2 rounded-full border border-sky-300/30 px-6 text-sm font-black text-sky-200 transition hover:border-sky-300/70 hover:bg-sky-300/5"
+                    className="inline-flex min-h-[52px] items-center gap-2 rounded-full border border-sky-300/30 px-5 text-sm font-black text-sky-200 transition hover:border-sky-300/70 hover:bg-sky-300/5 sm:px-6"
                   >
                     <Play className="h-4 w-4 fill-current" />
                     Watch reel
@@ -381,10 +381,9 @@ export default function PrecisionAerialProfile({
                 ) : null}
               </div>
 
-              <p className="mt-8 flex max-w-lg items-start gap-2.5 text-xs font-semibold leading-5 text-white/60">
+              <p className="mt-6 flex max-w-lg items-start gap-2.5 text-xs font-semibold leading-5 text-white/60 sm:mt-8">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-300" />
-                Viewing this profile never exposes your contact details. A connection starts only
-                when you choose to send a private request.
+                Your contact details stay private until you choose to send a connection request.
               </p>
             </div>
 
