@@ -80,11 +80,7 @@ function stableDocumentId(relativePath: string): string {
 function defaultTaxonomy(relativePath: string): string[] {
   return Array.from(
     new Set(
-      tokenizeScoutHybridText(
-        relativePath
-          .replace(/\.[^.]+$/, "")
-          .replace(/[\\/_.-]+/g, " ")
-      )
+      tokenizeScoutHybridText(relativePath.replace(/\.[^.]+$/, "").replace(/[\\/_.-]+/g, " "))
     )
   ).slice(0, 40);
 }
@@ -108,7 +104,9 @@ async function loadKnowledgeDocuments(args: {
       sourceUrl: metadata.sourceUrl || null,
       taxonomy: metadata.taxonomy || defaultTaxonomy(relativePath),
       locality: metadata.locality || null,
-      authority: metadata.authority || "reviewed",
+      // Files are unverified unless a source manifest explicitly records their
+      // reviewed authority. A filename or folder location is not provenance.
+      authority: metadata.authority || "unverified",
       updatedAt: metadata.updatedAt || stats.mtime.toISOString(),
       effectiveFrom: metadata.effectiveFrom || null,
       expiresAt: metadata.expiresAt || null,
@@ -141,9 +139,7 @@ function createProvider(): ScoutDenseEmbeddingProvider {
     if (!hasFlag("--offline-test")) {
       throw new Error("Deterministic embeddings require the explicit --offline-test flag");
     }
-    return new DeterministicDenseEmbeddingProvider(
-      Number.isFinite(dimensions) ? dimensions : 192
-    );
+    return new DeterministicDenseEmbeddingProvider(Number.isFinite(dimensions) ? dimensions : 192);
   }
   if (providerName !== "openai") {
     throw new Error(`Unsupported embedding provider: ${providerName}`);
@@ -159,8 +155,7 @@ function createProvider(): ScoutDenseEmbeddingProvider {
 
 async function run() {
   const knowledgeRoot = path.resolve(
-    cliValue("--knowledge-root") ||
-      path.join(ROOT, "data", "TradeScout Brain", "40_KNOWLEDGE")
+    cliValue("--knowledge-root") || path.join(ROOT, "data", "TradeScout Brain", "40_KNOWLEDGE")
   );
   const manifestPath = path.resolve(
     cliValue("--manifest") || path.join(ROOT, "data", "scout-hybrid-source-manifest.json")
@@ -187,6 +182,9 @@ async function run() {
   fs.writeFileSync(outputPath, `${JSON.stringify(artifact)}\n`, "utf8");
 
   const unlinkedDocuments = artifact.documents.filter((document) => !document.sourceUrl).length;
+  const unverifiedDocuments = artifact.documents.filter(
+    (document) => document.authority === "unverified"
+  ).length;
   console.log(
     JSON.stringify(
       {
@@ -196,7 +194,11 @@ async function run() {
         corpusDigest: artifact.corpusDigest,
         embedding: artifact.embedding,
         unlinkedDocuments,
-        cutoverEligible: unlinkedDocuments === 0 && artifact.embedding.provider !== "deterministic_offline",
+        unverifiedDocuments,
+        cutoverEligible:
+          unlinkedDocuments === 0 &&
+          unverifiedDocuments === 0 &&
+          artifact.embedding.provider !== "deterministic_offline",
       },
       null,
       2
