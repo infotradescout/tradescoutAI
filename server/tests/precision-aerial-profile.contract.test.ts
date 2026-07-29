@@ -367,6 +367,10 @@ describe("Precision Aerial production profile contract", () => {
     expect(profileView).toContain("if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)");
     expect(profileView).toContain("<PrecisionAerialProfile");
     expect(profileView).toContain("onDirectConnect={openServiceDirectConnect}");
+    expect(profileView).toContain(
+      "deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}"
+    );
+    expect(profileView).toContain("stayInProfile");
     expect(profile).toContain("safeFeaturedWorkUrl");
     expect(profile).toContain("href={featuredWorkUrl}");
     expect(profile).not.toContain("<iframe");

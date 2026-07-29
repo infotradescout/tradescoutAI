@@ -1660,6 +1660,8 @@ export default function ProfileSiteView() {
           requestMode="service"
           initialServiceName={expressServiceContext}
           initialRequestType={expressServiceContext ? "request_service" : null}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+          stayInProfile
         />
         {manageChrome}
       </>

@@ -88,7 +88,7 @@ describe("PrecisionAerialProfile", () => {
     container.remove();
   });
 
-  it("renders Cameron's real profile as a media-first TradeScout page before reusable theming", () => {
+  it("renders a company-led profile with a real TradeScout project path before reusable theming", () => {
     act(() => {
       root.render(
         <PrecisionAerialProfile
@@ -121,7 +121,7 @@ describe("PrecisionAerialProfile", () => {
     );
     expect(heroMedia).not.toBeNull();
     expect(heroIdentity).not.toBeNull();
-    expect(heroMedia?.compareDocumentPosition(heroIdentity as Node)).toBe(
+    expect(heroIdentity?.compareDocumentPosition(heroMedia as Node)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
     expect(work).not.toBeNull();
@@ -130,17 +130,21 @@ describe("PrecisionAerialProfile", () => {
       Node.DOCUMENT_POSITION_FOLLOWING
     );
     expect(container.textContent).toContain("Precision Aerial Services");
-    expect(container.textContent).toContain("Cameron");
+    expect(container.textContent?.match(/Cameron/g)).toHaveLength(1);
     expect(container.textContent).toContain("A better view.");
+    expect(container.textContent).toContain("From discovery to a real project.");
+    expect(container.textContent).toContain("Private project brief");
+    expect(container.textContent).toContain("No lead auction, no pay-to-play routing");
     expect(container.textContent).toContain("@PrecisionAerialService");
     expect(container.textContent).toContain("@chillshots");
     expect(container.querySelector('img[alt="Closer aerial property view"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid^="precision-aerial-service-"]')).toHaveLength(
       5
     );
+    expect(container.querySelector('[data-testid="precision-tradescout-brief"]')).not.toBeNull();
     expect(
-      container.querySelector('[data-testid="precision-aerial-service-4"]')?.className
-    ).toContain("sm:col-span-2");
+      container.querySelector('[data-testid="precision-operator-attribution"]')
+    ).not.toBeNull();
     expect(
       container.textContent?.match(
         /TradeScout securely holds requests until this business connects its profile\./g
@@ -180,6 +184,19 @@ describe("PrecisionAerialProfile", () => {
         ?.click();
     });
     expect(onDirectConnect).toHaveBeenLastCalledWith("Roof and property imagery");
+
+    const constructionBriefChoice = Array.from(
+      container.querySelectorAll<HTMLButtonElement>('[role="group"] button')
+    ).find((button) => button.textContent?.includes("Construction progress photos"));
+    act(() => {
+      constructionBriefChoice?.click();
+    });
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="precision-project-brief-submit"]')
+        ?.click();
+    });
+    expect(onDirectConnect).toHaveBeenLastCalledWith("Construction progress photos");
 
     act(() => {
       container
