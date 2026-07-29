@@ -186,9 +186,9 @@ export default function ProfileSiteManageChrome({
       className="fixed inset-x-0 top-0 z-[80] border-b border-white/10 bg-stone-950 text-white shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
       data-testid="profile-site-manage-chrome"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="mr-auto text-xs font-bold uppercase tracking-[0.16em] text-amber-300">
+      <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-col justify-center gap-3 px-3 py-2 sm:px-6">
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <p className="mr-auto shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-amber-300 sm:text-xs sm:tracking-[0.16em]">
             Managing {displayName}
           </p>
           <Button
@@ -196,7 +196,9 @@ export default function ProfileSiteManageChrome({
             size="sm"
             variant={editMode ? "default" : "outline"}
             className={
-              editMode ? "bg-ts-orange hover:bg-ts-orange-dark" : "border-white/20 bg-white/5"
+              editMode
+                ? "shrink-0 bg-ts-orange hover:bg-ts-orange-dark"
+                : "shrink-0 border-white/20 bg-white/5"
             }
             onClick={() => onToggleEdit(!editMode)}
             data-testid="profile-manage-toggle-edit"
@@ -208,7 +210,7 @@ export default function ProfileSiteManageChrome({
               type="button"
               size="sm"
               variant="outline"
-              className="border-white/20 bg-white/5"
+              className="shrink-0 border-white/20 bg-white/5"
               onClick={() => {
                 setLeadPickerOpen((open) => !open);
                 if (!editMode) onToggleEdit(true);
@@ -222,13 +224,18 @@ export default function ProfileSiteManageChrome({
             type="button"
             size="sm"
             variant="outline"
-            className="border-white/20 bg-white/5"
+            className="shrink-0 border-white/20 bg-white/5"
             onClick={() => setShowTemplatePicker((open) => !open)}
             data-testid="profile-manage-change-template"
           >
             Change template
           </Button>
-          <Button asChild size="sm" variant="outline" className="border-white/20 bg-white/5">
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="shrink-0 border-white/20 bg-white/5"
+          >
             {requiresDocumentNavigation(editorHref) ? (
               <a href={editorHref}>Full editor</a>
             ) : (
@@ -241,7 +248,7 @@ export default function ProfileSiteManageChrome({
               size="sm"
               variant="outline"
               disabled={bridging}
-              className="border-white/20 bg-white/5"
+              className="shrink-0 border-white/20 bg-white/5"
               onClick={() => void openOnLiveDomain()}
               data-testid="profile-manage-open-live-domain"
             >

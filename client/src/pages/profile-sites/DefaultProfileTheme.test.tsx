@@ -125,7 +125,7 @@ describe("DefaultProfileTheme", () => {
     expect(container.querySelectorAll('[data-testid^="default-profile-service-"]')).toHaveLength(5);
     expect(
       container.querySelector('[data-testid="default-profile-service-4"]')?.className
-    ).toContain("sm:col-span-2");
+    ).toContain("md:col-span-2");
 
     act(() => {
       container

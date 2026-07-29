@@ -74,16 +74,16 @@ export default function TradeScoutProfileHandoff({
         </p>
         <nav
           aria-label="TradeScout profile quick access"
-          className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-nowrap sm:items-center sm:gap-2"
         >
           {destinations.map(({ href, label, icon: Icon }) => (
             <a
               key={label}
               href={href}
-              className="inline-flex min-h-8 flex-none items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-stone-200 transition hover:bg-white/10 hover:text-sky-200"
+              className="inline-flex min-h-9 min-w-0 items-center justify-center gap-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-1.5 text-[11px] font-bold text-stone-200 transition hover:bg-white/10 hover:text-sky-200 sm:flex-none sm:gap-1.5 sm:px-3 sm:text-xs"
             >
-              <Icon className="h-3.5 w-3.5 flex-none" />
-              {label}
+              <Icon className="h-3.5 w-3.5 flex-none" aria-hidden />
+              <span className="truncate">{label}</span>
             </a>
           ))}
         </nav>

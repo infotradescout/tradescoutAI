@@ -32,6 +32,7 @@ type PublicProfileTrustActionsProps = {
   initialRecommendationCount?: number;
   subjectKind?: "business" | "profile";
   tone?: "light" | "dark";
+  density?: "default" | "compact";
   className?: string;
 };
 
@@ -63,6 +64,7 @@ export function PublicProfileTrustActions({
   initialRecommendationCount = 0,
   subjectKind = "business",
   tone = "dark",
+  density = "default",
   className,
 }: PublicProfileTrustActionsProps) {
   const { toast } = useToast();
@@ -71,6 +73,7 @@ export function PublicProfileTrustActions({
   const [pendingAction, setPendingAction] = useState<ProfileTrustAction | null>(null);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
   const isLight = tone === "light";
+  const isCompact = density === "compact";
 
   useEffect(() => {
     let current = true;
@@ -199,7 +202,8 @@ export function PublicProfileTrustActions({
   const countClass = cn("text-[10px] font-semibold", isLight ? "text-stone-500" : "text-white/50");
   const ownerBlocked = state?.viewerIsOwner === true;
   const recommendationButtonClass = cn(
-    "flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-black transition",
+    "flex w-full items-center justify-center gap-2.5 rounded-xl px-4 text-sm font-black transition",
+    isCompact ? "min-h-11 py-2" : "min-h-14 py-3",
     isLight
       ? "bg-stone-900 text-white hover:bg-stone-800"
       : "border border-ts-orange/40 bg-ts-orange/15 text-ts-orange-light hover:bg-ts-orange/25",
@@ -211,6 +215,7 @@ export function PublicProfileTrustActions({
       <div
         className={cn(
           "rounded-2xl border p-2.5",
+          isCompact && "p-2",
           isLight ? "border-stone-200 bg-white/85 shadow-sm" : "border-white/10 bg-black/20",
           className
         )}
@@ -219,6 +224,7 @@ export function PublicProfileTrustActions({
         <p
           className={cn(
             "px-2 pb-2 pt-0.5 text-[10px] font-black uppercase tracking-[0.18em]",
+            isCompact && "pb-1",
             isLight ? "text-stone-500" : "text-white/55"
           )}
         >
@@ -250,7 +256,11 @@ export function PublicProfileTrustActions({
           ) : null}
         </button>
 
-        <div className="mt-1 grid grid-cols-3 gap-1" role="group" aria-label="Profile actions">
+        <div
+          className={cn("grid grid-cols-3 gap-1", isCompact ? "mt-0.5" : "mt-1")}
+          role="group"
+          aria-label="Profile actions"
+        >
           <button
             type="button"
             className={cn(buttonClass, state?.viewerLiked && activeButtonClass)}

@@ -294,16 +294,16 @@ export default function DefaultProfileTheme({
       {firstDeliverable ? (
         <>
           <header
-            className="relative z-30 border-b border-[var(--profile-line)] bg-[var(--profile-bg)]"
+            className="relative z-30 border-b border-[var(--profile-line)] bg-[var(--profile-bg)]/95 backdrop-blur-xl"
             data-testid="default-profile-header"
           >
-            <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center gap-3 px-4 py-3 sm:min-h-24 sm:px-6 lg:px-8">
+            <div className="mx-auto flex min-h-20 w-full max-w-7xl items-center gap-3 px-3 py-2.5 sm:min-h-24 sm:px-6 lg:px-8">
               <div className="flex min-w-0 items-center gap-3">
                 {showLogo && safeLogoUrl ? (
                   <SafeProfileImg
                     src={safeLogoUrl}
                     alt={`${businessName} logo`}
-                    className="h-12 w-12 shrink-0 rounded-full border border-[var(--profile-line)] object-cover shadow-lg shadow-black/20 sm:h-16 sm:w-16"
+                    className="h-12 w-12 shrink-0 rounded-full border border-[var(--profile-line)] object-cover shadow-lg shadow-black/25 sm:h-16 sm:w-16"
                     onExhausted={() => setLogoFailed(true)}
                   />
                 ) : (
@@ -319,11 +319,11 @@ export default function DefaultProfileTheme({
                   </span>
                 )}
                 <div className="min-w-0">
-                  <p className="text-sm font-black leading-tight tracking-[-0.02em] sm:text-lg">
+                  <p className="truncate text-sm font-black leading-tight tracking-[-0.02em] sm:text-lg">
                     {businessName}
                   </p>
                   {operatorName || locationLabel ? (
-                    <p className="mt-1 hidden min-w-0 items-center gap-1.5 text-xs text-[var(--profile-muted)] sm:flex sm:text-sm">
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 text-[11px] text-[var(--profile-muted)] sm:text-sm">
                       {operatorName ? <span className="truncate">{operatorName}</span> : null}
                       {operatorName && locationLabel ? <span aria-hidden>·</span> : null}
                       {locationLabel ? (
@@ -342,7 +342,7 @@ export default function DefaultProfileTheme({
                   <button
                     type="button"
                     onClick={() => onDirectConnect()}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ts-orange px-4 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:bg-ts-orange-dark sm:min-h-12 sm:px-5"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ts-orange px-4 text-sm font-black text-white shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-ts-orange-dark sm:min-h-12 sm:px-5"
                   >
                     <span className="sm:hidden">Connect</span>
                     <span className="hidden sm:inline">Direct Connect</span>
@@ -354,11 +354,11 @@ export default function DefaultProfileTheme({
           </header>
 
           <section
-            className="relative isolate bg-[var(--profile-bg)]"
+            className="relative isolate overflow-hidden bg-[var(--profile-bg)]"
             data-testid="default-profile-hero"
           >
             <div
-              className="relative aspect-[4/3] w-full overflow-hidden bg-[var(--profile-surface)] sm:aspect-[16/10] lg:h-[calc(100svh-6rem)] lg:min-h-[600px] lg:max-h-[800px] lg:aspect-auto"
+              className="relative mx-auto flex min-h-[540px] w-full max-w-[1600px] items-end overflow-hidden bg-[var(--profile-surface)] sm:min-h-[620px] lg:min-h-[720px]"
               style={
                 showHeroImage
                   ? undefined
@@ -389,7 +389,7 @@ export default function DefaultProfileTheme({
                     <SafeProfileImg
                       src={safeLogoUrl}
                       alt=""
-                      className="h-32 w-32 rounded-full border border-[var(--profile-line)] object-cover shadow-2xl shadow-black/25 sm:h-40 sm:w-40"
+                      className="h-32 w-32 rounded-full border border-[var(--profile-line)] object-cover opacity-35 shadow-2xl shadow-black/25 sm:h-44 sm:w-44"
                       onExhausted={() => setLogoFailed(true)}
                     />
                   ) : (
@@ -408,50 +408,48 @@ export default function DefaultProfileTheme({
               )}
 
               {showHeroImage ? (
-                <div
-                  className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/5 lg:from-black/90 lg:via-black/10"
-                  aria-hidden
-                />
+                <>
+                  <div
+                    className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/35 to-transparent"
+                    aria-hidden
+                  />
+                  <div
+                    className="absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t from-black via-black/55 to-transparent"
+                    aria-hidden
+                  />
+                  <div
+                    className="absolute inset-y-0 left-0 hidden w-2/3 bg-gradient-to-r from-black/45 to-transparent lg:block"
+                    aria-hidden
+                  />
+                </>
               ) : null}
 
-              {safeFeaturedWorkUrl ? (
-                <a
-                  href={safeFeaturedWorkUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="absolute bottom-4 right-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-white/25 bg-black/65 px-4 text-sm font-black text-white shadow-xl shadow-black/25 backdrop-blur-md transition hover:border-white/60 hover:bg-black/80 sm:bottom-6 sm:right-6"
-                  data-testid="default-profile-work-link"
-                >
-                  <Play className="h-4 w-4 fill-current" aria-hidden />
-                  Watch reel
-                </a>
-              ) : null}
-            </div>
-
-            <div className="bg-[var(--profile-bg)] lg:absolute lg:inset-x-0 lg:bottom-0 lg:bg-transparent">
               <div
-                className="mx-auto w-full max-w-7xl px-4 py-8 text-[var(--profile-fg)] sm:px-6 sm:py-10 lg:px-8 lg:pb-14 lg:pt-24 lg:text-[var(--profile-hero-fg)]"
+                className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-8 pt-24 text-white sm:px-6 sm:pb-12 lg:px-8 lg:pb-16"
                 data-testid="default-profile-hero-identity"
               >
-                <div className="flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--profile-muted)] lg:text-[var(--profile-hero-muted)]">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/70 sm:text-xs">
                   {categoryLabel ? <span>{categoryLabel}</span> : null}
                   {categoryLabel && locationLabel ? (
-                    <span className="h-1 w-1 rounded-full bg-[var(--profile-primary)]" aria-hidden />
+                    <span
+                      className="h-1 w-1 rounded-full bg-[var(--profile-primary)]"
+                      aria-hidden
+                    />
                   ) : null}
                   {locationLabel ? <span>{locationLabel}</span> : null}
                 </div>
-                <h1 className="mt-4 max-w-4xl text-5xl font-black leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
+                <h1 className="mt-4 max-w-4xl text-[2.75rem] font-black leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-7xl">
                   {title}
                 </h1>
                 {supportingText &&
                 !samePublicCopy(supportingText, title) &&
                 !samePublicCopy(supportingText, categoryLabel) ? (
-                  <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--profile-muted)] lg:text-lg lg:text-[var(--profile-hero-muted)]">
+                  <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-white/70 lg:text-lg">
                     {supportingText}
                   </p>
                 ) : null}
 
-                <div className="mt-7 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
                   {showContact ? (
                     <button
                       type="button"
@@ -462,40 +460,59 @@ export default function DefaultProfileTheme({
                       Direct Connect
                     </button>
                   ) : null}
-                  {services.length > 0 ? (
+                  {safeFeaturedWorkUrl ? (
                     <a
-                      href="#profile-services"
-                      className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-[var(--profile-line)] bg-[var(--profile-surface)] px-7 text-base font-bold text-[var(--profile-surface-fg)] transition hover:border-[var(--profile-primary)] lg:border-white/25 lg:bg-black/30 lg:text-white lg:backdrop-blur-sm lg:hover:border-white/60 lg:hover:bg-black/45"
+                      href={safeFeaturedWorkUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-14 items-center justify-center gap-2 rounded-full border border-white/30 bg-black/35 px-7 text-base font-black text-white backdrop-blur-md transition hover:-translate-y-0.5 hover:border-white/60 hover:bg-black/55"
+                      data-testid="default-profile-work-link"
                     >
-                      Services
-                      <ArrowRight className="h-4 w-4 rotate-90" aria-hidden />
+                      <Play className="h-4 w-4 fill-current" aria-hidden />
+                      Watch reel
                     </a>
                   ) : null}
                 </div>
 
-                {safeSocials.length > 0 ? (
-                  <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-                    {safeSocials.map((social) => (
-                      <a
-                        key={`${social.label}-${social.href}`}
-                        href={social.href}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 text-sm font-bold text-[var(--profile-muted)] transition hover:text-[var(--profile-fg)] lg:text-[var(--profile-hero-muted)] lg:hover:text-[var(--profile-hero-fg)]"
-                      >
-                        {social.kind === "instagram" ? (
-                          <Instagram className="h-4 w-4" aria-hidden />
-                        ) : (
-                          <ArrowUpRight className="h-4 w-4" aria-hidden />
-                        )}
-                        {social.handle || social.label}
-                      </a>
-                    ))}
-                  </div>
-                ) : null}
+                <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
+                  {services.length > 0 ? (
+                    <a
+                      href="#profile-services"
+                      className="inline-flex items-center gap-2 text-sm font-black text-white/80 transition hover:text-white"
+                    >
+                      View services
+                      <ArrowRight className="h-4 w-4 rotate-90" aria-hidden />
+                    </a>
+                  ) : null}
+                  {safeSocials.length > 0
+                    ? safeSocials.map((social) => (
+                        <a
+                          key={`${social.label}-${social.href}`}
+                          href={social.href}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 text-sm font-bold text-white/65 transition hover:text-white"
+                        >
+                          {social.kind === "instagram" ? (
+                            <Instagram className="h-4 w-4" aria-hidden />
+                          ) : (
+                            <ArrowUpRight className="h-4 w-4" aria-hidden />
+                          )}
+                          {social.handle || social.label}
+                        </a>
+                      ))
+                    : null}
+                </div>
                 {shareAction ? <div className="mt-5 sm:hidden">{shareAction}</div> : null}
               </div>
             </div>
+            <div
+              className="h-1 w-full"
+              style={{
+                background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent}, ${colors.primaryDark})`,
+              }}
+              aria-hidden
+            />
           </section>
         </>
       ) : (
@@ -733,15 +750,13 @@ export default function DefaultProfileTheme({
         >
           <div
             className={`mx-auto w-full px-4 sm:px-6 lg:px-8 ${
-              firstDeliverable
-                ? "max-w-6xl py-10 sm:py-14"
-                : "max-w-7xl py-16 sm:py-20"
+              firstDeliverable ? "max-w-6xl py-12 sm:py-16" : "max-w-7xl py-16 sm:py-20"
             }`}
           >
             <div
               className={`grid gap-8 ${
                 firstDeliverable
-                  ? "lg:grid-cols-[0.75fr_1.25fr] lg:gap-12"
+                  ? "lg:grid-cols-[0.72fr_1.28fr] lg:gap-14"
                   : "lg:grid-cols-[0.65fr_1.35fr] lg:gap-16"
               }`}
             >
@@ -752,32 +767,32 @@ export default function DefaultProfileTheme({
                 <h2 className="mt-4 text-4xl font-black leading-tight tracking-[-0.045em] sm:text-5xl">
                   {firstDeliverable
                     ? categoryLabel
-                      ? `${categoryLabel} services`
-                      : "Available services"
+                      ? `${categoryLabel} for the work in front of you.`
+                      : "Services for the work in front of you."
                     : "Choose what you need."}
                 </h2>
                 <p className="mt-4 max-w-md text-sm leading-relaxed opacity-65 sm:text-base">
                   {firstDeliverable
                     ? showContact
-                      ? "Select a service to include it in your private request."
+                      ? "Choose a service to carry it directly into your private request."
                       : `Services available from ${businessName}.`
                     : "Choose a service to start a private request with the right context already added."}
                 </p>
               </div>
               {firstDeliverable ? (
-                <div className="grid gap-px overflow-hidden rounded-2xl border border-[var(--profile-line)] bg-[var(--profile-line)] sm:grid-cols-2">
+                <div className="grid border-b border-[var(--profile-line)] md:grid-cols-2 md:gap-x-8">
                   {services.slice(0, 12).map((service, index) => {
                     const content = (
                       <>
-                        <span className="text-[11px] font-black tracking-[0.16em] text-[var(--profile-accent-on-surface)]">
+                        <span className="text-[10px] font-black tracking-[0.18em] text-[var(--profile-accent-on-surface)]">
                           {String(index + 1).padStart(2, "0")}
                         </span>
-                        <span className="min-w-0 flex-1 text-base font-black leading-snug text-[var(--profile-surface-fg)] sm:text-lg">
+                        <span className="min-w-0 flex-1 text-lg font-black leading-snug text-[var(--profile-surface-fg)]">
                           {service}
                         </span>
                         {showContact ? (
                           <ArrowRight
-                            className="h-4 w-4 shrink-0 text-[var(--profile-accent-on-surface)] opacity-65 transition group-hover:translate-x-0.5 group-hover:opacity-100"
+                            className="h-5 w-5 shrink-0 text-[var(--profile-accent-on-surface)] opacity-55 transition group-hover:translate-x-1 group-hover:opacity-100"
                             aria-hidden
                           />
                         ) : null}
@@ -785,8 +800,8 @@ export default function DefaultProfileTheme({
                     );
                     const fillsOddDesktopRow =
                       services.length % 2 === 1 && index === services.length - 1;
-                    const className = `group flex min-h-20 items-center gap-4 bg-[var(--profile-surface)] p-4 text-left sm:min-h-24 sm:p-5 ${
-                      fillsOddDesktopRow ? "sm:col-span-2" : ""
+                    const className = `group flex min-h-24 items-center gap-4 border-t border-[var(--profile-line)] py-5 text-left md:min-h-28 ${
+                      fillsOddDesktopRow ? "md:col-span-2" : ""
                     }`;
 
                     return showContact ? (
@@ -794,7 +809,7 @@ export default function DefaultProfileTheme({
                         key={service}
                         type="button"
                         onClick={() => onDirectConnect(service)}
-                        className={`${className} transition hover:bg-[var(--profile-primary-soft)]`}
+                        className={`${className} px-1 transition hover:bg-[var(--profile-primary-soft)] sm:px-3`}
                         data-testid={`default-profile-service-${index}`}
                       >
                         {content}
@@ -843,8 +858,8 @@ export default function DefaultProfileTheme({
 
       {visibleGallery.length > 0 ? (
         <section
-          className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${
-            firstDeliverable ? "py-12 sm:py-16" : "py-16 sm:py-20"
+          className={`mx-auto w-full px-4 sm:px-6 lg:px-8 ${
+            firstDeliverable ? "max-w-6xl py-14 sm:py-20" : "max-w-7xl py-16 sm:py-20"
           }`}
         >
           <div className="flex flex-wrap items-end justify-between gap-5">
@@ -856,17 +871,30 @@ export default function DefaultProfileTheme({
                 {firstDeliverable ? "Selected work" : "Recent work."}
               </h2>
             </div>
-            {instagram ? (
-              <a
-                href={instagram.href}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-black"
-              >
-                {firstDeliverable ? "More on Instagram" : "Instagram"}
-                <ArrowUpRight className="h-4 w-4" aria-hidden />
-              </a>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+              {firstDeliverable && safeFeaturedWorkUrl ? (
+                <a
+                  href={safeFeaturedWorkUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-black"
+                >
+                  <Play className="h-4 w-4 fill-current" aria-hidden />
+                  Watch reel
+                </a>
+              ) : null}
+              {instagram ? (
+                <a
+                  href={instagram.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-black"
+                >
+                  {firstDeliverable ? "More on Instagram" : "Instagram"}
+                  <ArrowUpRight className="h-4 w-4" aria-hidden />
+                </a>
+              ) : null}
+            </div>
           </div>
           <div
             className={
@@ -880,7 +908,9 @@ export default function DefaultProfileTheme({
                 id={`profile-gallery-${item.slug}`}
                 key={item.slug}
                 className={`group overflow-hidden border bg-[var(--profile-surface)] ${
-                  firstDeliverable ? "relative rounded-[2rem]" : "rounded-3xl"
+                  firstDeliverable
+                    ? "relative rounded-2xl shadow-2xl shadow-black/20 sm:rounded-[2rem]"
+                    : "rounded-3xl"
                 } ${
                   item.slug === sharedGallerySlug
                     ? "border-ts-orange ring-2 ring-ts-orange/35"
@@ -890,10 +920,10 @@ export default function DefaultProfileTheme({
                     ? visibleGallery.length === 1
                       ? "md:col-span-12"
                       : visibleGallery.length === 2
-                      ? index === 0
-                        ? "md:col-span-7"
-                        : "md:col-span-5"
-                      : "md:col-span-6"
+                        ? index === 0
+                          ? "md:col-span-7"
+                          : "md:col-span-5"
+                        : "md:col-span-6"
                     : index === 0 && visibleGallery.length > 2
                       ? "md:row-span-2"
                       : ""
@@ -905,7 +935,7 @@ export default function DefaultProfileTheme({
                   loading="lazy"
                   className={
                     firstDeliverable
-                      ? "aspect-[4/3] h-full min-h-[240px] w-full object-cover transition duration-500 group-hover:scale-[1.02] sm:min-h-[360px]"
+                      ? "aspect-[16/11] h-full min-h-[260px] w-full object-cover transition duration-500 group-hover:scale-[1.02] sm:min-h-[440px] sm:aspect-[16/9]"
                       : `w-full object-cover transition duration-500 group-hover:scale-[1.02] ${
                           index === 0 && visibleGallery.length > 2
                             ? "aspect-[4/5] h-full"
@@ -915,12 +945,17 @@ export default function DefaultProfileTheme({
                 />
                 {firstDeliverable ? (
                   <div
-                    className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7"
+                    className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-8"
                     style={{
-                      background: "linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.02))",
+                      background: "linear-gradient(to top, rgba(0,0,0,0.78), rgba(0,0,0,0))",
                     }}
                   >
                     <h3 className="text-xl font-black sm:text-2xl">{item.title}</h3>
+                    {item.description ? (
+                      <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">
+                        {item.description}
+                      </p>
+                    ) : null}
                     {renderGalleryShare ? (
                       <div className="mt-4">{renderGalleryShare(item)}</div>
                     ) : null}
@@ -948,12 +983,14 @@ export default function DefaultProfileTheme({
           data-testid="default-profile-details"
         >
           <div
-            className={`mx-auto grid w-full max-w-7xl gap-10 px-4 sm:px-6 lg:gap-16 lg:px-8 ${
-              firstDeliverable ? "py-12 sm:py-16" : "py-16 sm:py-20"
+            className={`mx-auto grid w-full gap-10 px-4 sm:px-6 lg:gap-16 lg:px-8 ${
+              firstDeliverable ? "max-w-6xl py-14 sm:py-20" : "max-w-7xl py-16 sm:py-20"
             } ${
-              showAbout && aboutText && showServiceAreas && serviceAreas.length > 0
+              firstDeliverable && showAbout && aboutText
                 ? "lg:grid-cols-[1.25fr_0.75fr]"
-                : ""
+                : showAbout && aboutText && showServiceAreas && serviceAreas.length > 0
+                  ? "lg:grid-cols-[1.25fr_0.75fr]"
+                  : ""
             }`}
           >
             {showAbout && aboutText ? (
@@ -964,7 +1001,7 @@ export default function DefaultProfileTheme({
                 {firstDeliverable ? (
                   <>
                     <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.045em] sm:text-5xl">
-                      {operatorName || businessName}
+                      {operatorName ? `Meet ${operatorName}.` : `About ${businessName}.`}
                     </h2>
                     {operatorName ? (
                       <p className="mt-3 text-sm font-black uppercase tracking-[0.16em] text-[var(--profile-accent-on-bg)]">
@@ -976,7 +1013,7 @@ export default function DefaultProfileTheme({
                 <p
                   className={
                     firstDeliverable
-                      ? "mt-6 max-w-3xl text-xl font-bold leading-relaxed tracking-[-0.02em] sm:text-2xl"
+                      ? "mt-6 max-w-3xl text-lg font-semibold leading-relaxed tracking-[-0.015em] text-[var(--profile-muted)] sm:text-xl"
                       : "mt-5 max-w-3xl text-2xl font-bold leading-snug tracking-[-0.025em] sm:text-3xl"
                   }
                 >
@@ -984,7 +1021,100 @@ export default function DefaultProfileTheme({
                 </p>
               </div>
             ) : null}
-            {showServiceAreas && serviceAreas.length > 0 ? (
+            {firstDeliverable ? (
+              <aside className="rounded-[2rem] border border-[var(--profile-line)] bg-[var(--profile-surface)] p-6 text-[var(--profile-surface-fg)] shadow-2xl shadow-black/15 sm:p-8">
+                <div className="flex items-center gap-4">
+                  {showLogo && safeLogoUrl ? (
+                    <SafeProfileImg
+                      src={safeLogoUrl}
+                      alt={`${businessName} logo`}
+                      className="h-20 w-20 shrink-0 rounded-full border border-[var(--profile-line)] object-cover shadow-lg shadow-black/25"
+                      onExhausted={() => setLogoFailed(true)}
+                    />
+                  ) : (
+                    <span
+                      className="grid h-20 w-20 shrink-0 place-items-center rounded-full text-xl font-black"
+                      style={{
+                        color: readableText(colors.primary),
+                        background: colors.primary,
+                      }}
+                      aria-hidden
+                    >
+                      {businessInitials(businessName)}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xl font-black leading-tight tracking-[-0.03em]">
+                      {businessName}
+                    </p>
+                    {operatorName ? (
+                      <p className="mt-1 text-sm font-semibold opacity-65">{operatorName}</p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-7 space-y-3 border-t border-[var(--profile-line)] pt-6 text-sm font-semibold">
+                  {categoryLabel ? (
+                    <p className="flex items-center gap-3">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: colors.primary }}
+                        aria-hidden
+                      />
+                      {categoryLabel}
+                    </p>
+                  ) : null}
+                  {locationLabel ? (
+                    <p className="flex items-center gap-3">
+                      <MapPin
+                        className="h-4 w-4 shrink-0 text-[var(--profile-accent-on-surface)]"
+                        aria-hidden
+                      />
+                      {locationLabel}
+                    </p>
+                  ) : null}
+                </div>
+
+                {showServiceAreas && serviceAreas.length > 0 ? (
+                  <div className="mt-6 border-t border-[var(--profile-line)] pt-6">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] opacity-55">
+                      Service area
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {serviceAreas.slice(0, 12).map((area) => (
+                        <span
+                          key={area}
+                          className="rounded-full border border-[var(--profile-line)] px-3 py-1.5 text-xs font-bold"
+                        >
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {safeSocials.length > 0 ? (
+                  <div className="mt-6 flex flex-wrap gap-x-5 gap-y-3 border-t border-[var(--profile-line)] pt-6">
+                    {safeSocials.map((social) => (
+                      <a
+                        key={`${social.label}-${social.href}`}
+                        href={social.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 text-sm font-black transition hover:text-[var(--profile-accent-on-surface)]"
+                      >
+                        {social.kind === "instagram" ? (
+                          <Instagram className="h-4 w-4" aria-hidden />
+                        ) : (
+                          <ArrowUpRight className="h-4 w-4" aria-hidden />
+                        )}
+                        {social.handle || social.label}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+              </aside>
+            ) : showServiceAreas && serviceAreas.length > 0 ? (
               <div className="rounded-3xl border border-[var(--profile-line)] bg-[var(--profile-primary-soft)] p-6 sm:p-8">
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--profile-muted)]">
                   Service area
@@ -1115,12 +1245,33 @@ export default function DefaultProfileTheme({
         </section>
       ) : null}
 
-      {showContact ? (
+      {showContact && firstDeliverable ? (
         <section
-          className={`mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 ${
-            firstDeliverable ? "py-12 sm:py-16" : "py-16 sm:py-20"
-          }`}
+          className="border-y border-[var(--profile-line)] bg-[var(--profile-surface)] text-[var(--profile-surface-fg)]"
+          data-testid="default-profile-final-connect"
         >
+          <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-14 lg:px-8">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--profile-accent-on-surface)]">
+                Ready when you are
+              </p>
+              <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.05em] sm:text-5xl">
+                Tell {operatorName || businessName} what you need.
+              </h2>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-65">{custodyText}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onDirectConnect()}
+              className="inline-flex min-h-14 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-ts-orange px-8 text-base font-black text-white shadow-xl shadow-black/25 transition hover:-translate-y-0.5 hover:bg-ts-orange-dark sm:w-auto"
+            >
+              Direct Connect
+              <ArrowRight className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
+        </section>
+      ) : showContact ? (
+        <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
           <div
             className="relative overflow-hidden rounded-[2rem] border border-[var(--profile-line)] p-7 sm:p-10 lg:p-14"
             style={{
@@ -1139,12 +1290,10 @@ export default function DefaultProfileTheme({
             <div className="relative flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.2em] opacity-60">
-                  {firstDeliverable ? "Private through TradeScout" : "Start here"}
+                  Start here
                 </p>
                 <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.05em] sm:text-5xl">
-                  {firstDeliverable
-                    ? "Direct Connect"
-                    : `Connect with ${businessName}.`}
+                  Connect with {businessName}.
                 </h2>
                 <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-65">{custodyText}</p>
               </div>
@@ -1162,7 +1311,9 @@ export default function DefaultProfileTheme({
       ) : null}
 
       <section
-        className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8"
+        className={`mx-auto w-full px-4 sm:px-6 lg:px-8 ${
+          firstDeliverable ? "max-w-6xl py-8 sm:py-10" : "max-w-7xl pb-10"
+        }`}
         data-testid="profile-trust-section"
         aria-label="Trust and profile actions"
       >

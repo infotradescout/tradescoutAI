@@ -1247,7 +1247,10 @@ export default function ProfileSiteView() {
     `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/u/${profile.slug}?book=1`)}`,
     platformBaseHref
   );
-  const renderProfileTrustActions = (tone: "light" | "dark") => (
+  const renderProfileTrustActions = (
+    tone: "light" | "dark",
+    density: "default" | "compact" = "default"
+  ) => (
     <PublicProfileTrustActions
       profileSlug={profile.slug}
       profileName={displayName}
@@ -1257,6 +1260,7 @@ export default function ProfileSiteView() {
       initialRecommendationCount={recommendationDirectorySummary.positive}
       subjectKind={business ? "business" : "profile"}
       tone={tone}
+      density={density}
     />
   );
   const readProfileBlockText = (blockType: "about" | "hero") =>
@@ -1792,7 +1796,7 @@ export default function ProfileSiteView() {
           noIndex={categoryNoIndex}
         />
         {templateIndependentInventoryContext}
-      <VideographerProfileTheme
+        <VideographerProfileTheme
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
           businessName={displayName}
@@ -2059,8 +2063,14 @@ export default function ProfileSiteView() {
               />
             ) : null
           }
-          trustActions={renderProfileTrustActions("dark")}
-          lightTrustActions={renderProfileTrustActions("light")}
+          trustActions={renderProfileTrustActions(
+            "dark",
+            defaultPresentationVariant === "first-deliverable" ? "compact" : "default"
+          )}
+          lightTrustActions={renderProfileTrustActions(
+            "light",
+            defaultPresentationVariant === "first-deliverable" ? "compact" : "default"
+          )}
           tradeScoutHandoff={
             <TradeScoutProfileHandoff
               profileSlug={profile.slug}
