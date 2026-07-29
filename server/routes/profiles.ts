@@ -75,6 +75,7 @@ import {
   collectProfileIndexNowUrls,
   combineIndexNowChangeUrls,
 } from "../services/indexNowPublicationEvents";
+import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
 
 const router = Router();
 
@@ -246,6 +247,9 @@ function canonicalPublishedProfileSitemapLoc(
   baseUrl: string,
   target: Pick<PublishedProfileSitemapTarget, "profileSlug" | "customDomain">
 ): string | null {
+  // Keep the runtime sitemap path fail-closed even if a lower-level query or
+  // future repository implementation returns a reserved internal profile.
+  if (!shouldIndexPublicProfileSlug(target.profileSlug)) return null;
   // Custom-domain profiles own a host-local /sitemap.xml and robots.txt.
   // Do not mix another host into TradeScout's platform sitemap URL sets.
   if (target.customDomain) return null;
