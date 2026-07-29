@@ -11,6 +11,7 @@ import {
   messages,
   recommendations,
   contractors,
+  profiles,
   type User,
   type UserDataRequest,
   type DataAccessLog,
@@ -19,6 +20,12 @@ import {
 } from "@shared/schema";
 import { randomBytes } from "crypto";
 import JSZip from "jszip";
+import { notifyIndexNow } from "./services/indexNowService";
+import {
+  collectBusinessIndexNowUrls,
+  collectProfileIndexNowUrls,
+  collectProfileServiceOfferIndexNowUrls,
+} from "./services/indexNowPublicationEvents";
 
 export interface DataExportData {
   profile: any;
@@ -254,6 +261,61 @@ For questions about your data, contact: support@tradescout.com
    */
   async deleteUserData(userId: string, adminId: string): Promise<void> {
     try {
+      const deletionPublicationUrls: string[] = [];
+      try {
+        const [account] = await db
+          .select({
+            businessSlug: users.businessSlug,
+            preferences: users.preferences,
+          })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+        const ownedProfiles = await db
+          .select({
+            slug: profiles.slug,
+            status: profiles.status,
+            contentBlocks: profiles.contentBlocks,
+            seoMeta: profiles.seoMeta,
+          })
+          .from(profiles)
+          .where(eq(profiles.ownerUserId, userId));
+
+        for (const profile of ownedProfiles) {
+          deletionPublicationUrls.push(...collectProfileIndexNowUrls(profile, true));
+        }
+
+        const businessVisibility = String(
+          (account?.preferences as any)?.provisional?.profileDraft?.visibility || ""
+        );
+        deletionPublicationUrls.push(
+          ...collectBusinessIndexNowUrls(
+            { slug: account?.businessSlug, visibility: businessVisibility },
+            true
+          )
+        );
+
+        try {
+          const offers = (await db.execute(sql`
+            SELECT id, offer_type, is_active
+            FROM profile_offers
+            WHERE seller_user_id = ${userId}
+              AND offer_type = 'service'
+              AND is_active = true
+          `)) as any;
+          for (const offer of offers?.rows || []) {
+            deletionPublicationUrls.push(...collectProfileServiceOfferIndexNowUrls(offer, true));
+          }
+        } catch (error) {
+          const message = String((error as any)?.message || error).toLowerCase();
+          if (!message.includes("profile_offers") && (error as any)?.code !== "42P01") {
+            console.warn("[IndexNow] Failed loading service URLs before account deletion:", error);
+          }
+        }
+      } catch (error) {
+        console.warn("[IndexNow] Failed loading public URLs before account deletion:", error);
+      }
+
       // Log the deletion request
       await this.logDataAccess({
         userId,
@@ -295,6 +357,7 @@ For questions about your data, contact: support@tradescout.com
         // Finally, delete the user profile
         await tx.delete(users).where(eq(users.id, userId));
       });
+      notifyIndexNow(deletionPublicationUrls);
     } catch (error) {
       console.error("Error deleting user data:", error);
       throw new Error("Failed to delete user data");

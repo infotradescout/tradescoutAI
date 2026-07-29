@@ -13,6 +13,8 @@ import {
 import { buildProfileServiceOfferDecisionScope } from "../shared/profileOfferShare";
 import { getPublicProfileServiceOffer, toPublicProfileOffer } from "./publicProfileOffer";
 import { hasExposureAuthority } from "./services/exposureAuthority";
+import { notifyIndexNow } from "./services/indexNowService";
+import { collectProfileServiceOfferIndexNowUrls } from "./services/indexNowPublicationEvents";
 
 /**
  * HTTP error with status code - for centralized error handling
@@ -123,6 +125,22 @@ function containsContactLeak(value: string): boolean {
     /\b(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}\b/.test(value) ||
     /\bhttps?:\/\/|\bwww\./i.test(value)
   );
+}
+
+async function notifyProfileServiceOfferPublication(offer: any): Promise<void> {
+  try {
+    const offerType = String(offer?.offer_type ?? offer?.offerType ?? "").trim();
+    if (offerType !== "service") return;
+
+    const isActive = (offer?.is_active ?? offer?.isActive) === true;
+    const publicEligible = isActive
+      ? await hasExposureAuthority(String(offer?.seller_user_id ?? offer?.sellerUserId ?? ""))
+      : true;
+    const publicationOffer = isActive ? offer : { ...offer, is_active: true, isActive: true };
+    notifyIndexNow(collectProfileServiceOfferIndexNowUrls(publicationOffer, publicEligible));
+  } catch (error) {
+    console.warn("[IndexNow] Failed resolving profile service offer publication:", error);
+  }
 }
 
 const DEFAULT_ACCOUNTING_ACCOUNTS = [
@@ -928,6 +946,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         ]
       );
 
+      await notifyProfileServiceOfferPublication(created.rows[0]);
       res.status(201).json({ offer: mapProfileOffer(created.rows[0]) });
     })
   );
@@ -1040,6 +1059,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       );
 
       if (!updated.rows.length) throw new HttpError("PROFILE_OFFER_NOT_FOUND", 404);
+      await notifyProfileServiceOfferPublication(updated.rows[0]);
       res.json({ offer: mapProfileOffer(updated.rows[0]) });
     })
   );
