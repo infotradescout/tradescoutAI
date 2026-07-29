@@ -1,0 +1,109 @@
+import { BoundedTaskQueue } from "../utils/boundedTaskQueue";
+
+const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
+const CANONICAL_ORIGIN = "https://www.thetradescout.com";
+const MAX_URLS_PER_REQUEST = 10_000;
+const KEY_PATTERN = /^[A-Za-z0-9-]{8,128}$/;
+const PRIVATE_PATH_PREFIXES = [
+  "/api",
+  "/admin",
+  "/dashboard",
+  "/messages",
+  "/settings",
+  "/auth",
+  "/scout",
+];
+
+type FetchLike = typeof fetch;
+
+export type IndexNowSubmissionResult = {
+  status: "submitted" | "disabled" | "empty";
+  submittedUrlCount: number;
+};
+
+function configuredKey(): string {
+  return String(process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "").trim();
+}
+
+export function normalizeIndexNowUrls(urls: Iterable<string>): string[] {
+  const unique = new Set<string>();
+
+  for (const value of urls) {
+    if (unique.size >= MAX_URLS_PER_REQUEST) break;
+    try {
+      const url = new URL(String(value || "").trim(), CANONICAL_ORIGIN);
+      if (url.origin !== CANONICAL_ORIGIN) continue;
+      if (
+        PRIVATE_PATH_PREFIXES.some(
+          (prefix) => url.pathname === prefix || url.pathname.startsWith(`${prefix}/`)
+        )
+      ) {
+        continue;
+      }
+      url.hash = "";
+      unique.add(url.toString());
+    } catch {
+      // Ignore malformed publication events rather than failing the whole batch.
+    }
+  }
+
+  return [...unique];
+}
+
+export async function submitIndexNowUrls(
+  urls: Iterable<string>,
+  options: { fetchImpl?: FetchLike; key?: string } = {}
+): Promise<IndexNowSubmissionResult> {
+  const key = String(options.key ?? configuredKey()).trim();
+  if (!KEY_PATTERN.test(key)) {
+    return { status: "disabled", submittedUrlCount: 0 };
+  }
+
+  const urlList = normalizeIndexNowUrls(urls);
+  if (urlList.length === 0) {
+    return { status: "empty", submittedUrlCount: 0 };
+  }
+
+  const fetchImpl = options.fetchImpl || fetch;
+  const response = await fetchImpl(INDEXNOW_ENDPOINT, {
+    method: "POST",
+    headers: { "content-type": "application/json; charset=utf-8" },
+    body: JSON.stringify({
+      host: "www.thetradescout.com",
+      key,
+      keyLocation: `${CANONICAL_ORIGIN}/indexnow-key.txt`,
+      urlList,
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok && response.status !== 202) {
+    throw new Error(`IndexNow submission failed with HTTP ${response.status}`);
+  }
+
+  return { status: "submitted", submittedUrlCount: urlList.length };
+}
+
+const indexNowQueue = new BoundedTaskQueue({
+  maxConcurrent: 1,
+  maxOutstanding: 100,
+  maxRetries: 2,
+  baseBackoffMs: 500,
+  maxBackoffMs: 2_000,
+  shouldRetry: (error) => /HTTP (?:429|5\d\d)\b/.test(String((error as Error)?.message || error)),
+  onFinalError: (error) => {
+    console.warn("[IndexNow] Publication notification failed:", error);
+  },
+});
+
+export function notifyIndexNow(urls: Iterable<string>): boolean {
+  const urlList = normalizeIndexNowUrls(urls);
+  if (urlList.length === 0 || !KEY_PATTERN.test(configuredKey())) return false;
+  return indexNowQueue.enqueue(async () => {
+    await submitIndexNowUrls(urlList);
+  });
+}
+
+export function getIndexNowQueueStatus() {
+  return indexNowQueue.snapshot();
+}
