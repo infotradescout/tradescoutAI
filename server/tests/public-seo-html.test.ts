@@ -57,12 +57,19 @@ describe("public SEO response HTML", () => {
     ["Perplexity-User", "Perplexity-User/1.0"],
     ["MistralAI-User", "MistralAI-User/1.0"],
   ])("retains SSR and removes boot placeholders for %s", (_name, userAgent) => {
-    const html = preparePublicSeoHtmlForUserAgent(seoHtml, userAgent);
+    const html = preparePublicSeoHtmlForUserAgent(
+      seoHtml.replace(
+        "</body>",
+        '<script type="module" crossorigin src="/assets/index-test.js"></script></body>'
+      ),
+      userAgent
+    );
 
     expect(html).toContain('<main data-seo-profile="true">');
     expect(html).toContain("Verified profile");
     expect(html).not.toContain("TradeScout encountered a startup issue");
     expect(html).not.toContain("JavaScript is required");
+    expect(html).not.toContain('src="/assets/index-test.js"');
   });
 
   it("keeps the browser recovery path for an ordinary human user agent", () => {
