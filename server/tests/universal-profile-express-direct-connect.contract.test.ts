@@ -38,7 +38,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
       'if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass")'
     );
     const autoGlassEnd = profileSource.indexOf(
-      "// Legacy specialty shell until a fabrication gallery template ships.",
+      '// Legacy specialty shell until a fabrication gallery template ships.',
       autoGlassStart
     );
     const autoGlassBranch = profileSource.slice(autoGlassStart, autoGlassEnd);
@@ -49,7 +49,10 @@ describe("universal public-profile Express Direct Connect contract", () => {
     const generalDirectConnectStart = profileSource.indexOf(
       "const openGeneralDirectConnect = () => {"
     );
-    const generalDirectConnectEnd = profileSource.indexOf("};", generalDirectConnectStart);
+    const generalDirectConnectEnd = profileSource.indexOf(
+      "};",
+      generalDirectConnectStart
+    );
     const generalDirectConnect = profileSource.slice(
       generalDirectConnectStart,
       generalDirectConnectEnd

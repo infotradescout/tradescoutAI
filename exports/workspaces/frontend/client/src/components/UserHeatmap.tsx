@@ -329,9 +329,7 @@ function CountyHeatmapMap({
       });
       queryClient.invalidateQueries({ queryKey: ["/api/scout/unassigned-files"] });
       if (internalSelectedFips) {
-        queryClient.invalidateQueries({
-          queryKey: [`/api/heatmap/county/${internalSelectedFips}`],
-        });
+        queryClient.invalidateQueries({ queryKey: [`/api/heatmap/county/${internalSelectedFips}`] });
       }
     },
     onError: (error) => {
@@ -466,18 +464,17 @@ function CountyHeatmapMap({
 
             const info = fips ? FIPS_LOOKUP.get(fips) : undefined;
 
-            const isSelected =
-              (selectedFips || internalSelectedFips) &&
-              fips === (selectedFips || internalSelectedFips);
+            const isSelected = (selectedFips || internalSelectedFips) && fips === (selectedFips || internalSelectedFips);
             const isDragOver = dragOverFips && fips === dragOverFips;
 
-            const fillColor = isDragOver
-              ? "var(--ts-blue-muted)" // Highlight when dragging over
-              : lens === "coverage"
-                ? getCoverageFillColor(coverage?.coverageStatus)
-                : hasMetric
-                  ? getCountyFillColor(count)
-                  : "var(--coverage-neutral)"; // neutral when metric not populated
+            const fillColor =
+              isDragOver
+                ? "var(--ts-blue-muted)" // Highlight when dragging over
+                : lens === "coverage"
+                  ? getCoverageFillColor(coverage?.coverageStatus)
+                  : hasMetric
+                    ? getCountyFillColor(count)
+                    : "var(--coverage-neutral)"; // neutral when metric not populated
 
             return (
               <path

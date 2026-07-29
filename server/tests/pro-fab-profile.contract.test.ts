@@ -109,7 +109,10 @@ describe("Pro Fab Specialty Services public profile contract", () => {
     const generalDirectConnectStart = profileView.indexOf(
       "const openGeneralDirectConnect = () => {"
     );
-    const generalDirectConnectEnd = profileView.indexOf("};", generalDirectConnectStart);
+    const generalDirectConnectEnd = profileView.indexOf(
+      "};",
+      generalDirectConnectStart
+    );
     const generalDirectConnect = profileView.slice(
       generalDirectConnectStart,
       generalDirectConnectEnd

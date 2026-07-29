@@ -158,86 +158,101 @@ router.get("/search", requireAdmin, (req: Request, res: Response) => {
  * GET /admin/scout-knowledge/category/:category
  * Get all documents in a category
  */
-router.get("/category/:category", requireAdmin, (req: Request, res: Response) => {
-  try {
-    const { category } = req.params;
-    const { limit = 10 } = req.query;
+router.get(
+  "/category/:category",
+  requireAdmin,
+  (req: Request, res: Response) => {
+    try {
+      const { category } = req.params;
+      const { limit = 10 } = req.query;
 
-    const results = searchByCategory(category as any, parseInt(String(limit), 10));
+      const results = searchByCategory(
+        category as any,
+        parseInt(String(limit), 10)
+      );
 
-    res.json({
-      success: true,
-      category,
-      results: results.map((doc) => ({
-        id: doc.id,
-        title: doc.title,
-        wordCount: doc.wordCount,
-        tags: doc.tags,
-        preview: doc.content.substring(0, 200) + "...",
-      })),
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get category", details: String(error) });
+      res.json({
+        success: true,
+        category,
+        results: results.map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+          wordCount: doc.wordCount,
+          tags: doc.tags,
+          preview: doc.content.substring(0, 200) + "...",
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get category", details: String(error) });
+    }
   }
-});
+);
 
 /**
  * GET /admin/scout-knowledge/tag/:tag
  * Get all documents with a specific tag
  */
-router.get("/tag/:tag", requireAdmin, (req: Request, res: Response) => {
-  try {
-    const { tag } = req.params;
-    const { limit = 10 } = req.query;
+router.get(
+  "/tag/:tag",
+  requireAdmin,
+  (req: Request, res: Response) => {
+    try {
+      const { tag } = req.params;
+      const { limit = 10 } = req.query;
 
-    const results = searchByTag(tag, parseInt(String(limit), 10));
+      const results = searchByTag(tag, parseInt(String(limit), 10));
 
-    res.json({
-      success: true,
-      tag,
-      results: results.map((doc) => ({
-        id: doc.id,
-        title: doc.title,
-        category: doc.category,
-        wordCount: doc.wordCount,
-        preview: doc.content.substring(0, 200) + "...",
-      })),
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get tag", details: String(error) });
+      res.json({
+        success: true,
+        tag,
+        results: results.map((doc) => ({
+          id: doc.id,
+          title: doc.title,
+          category: doc.category,
+          wordCount: doc.wordCount,
+          preview: doc.content.substring(0, 200) + "...",
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get tag", details: String(error) });
+    }
   }
-});
+);
 
 /**
  * GET /admin/scout-knowledge/document/:id
  * Get a full document by ID
  */
-router.get("/document/:id", requireAdmin, (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const doc = getDocument(id);
+router.get(
+  "/document/:id",
+  requireAdmin,
+  (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const doc = getDocument(id);
 
-    if (!doc) {
-      return res.status(404).json({ error: "Document not found" });
+      if (!doc) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      res.json({
+        success: true,
+        document: {
+          id: doc.id,
+          title: doc.title,
+          content: doc.content,
+          category: doc.category,
+          tags: doc.tags,
+          wordCount: doc.wordCount,
+          sourceFile: doc.sourceFile,
+          extractedAt: new Date(doc.extractedAt).toISOString(),
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get document", details: String(error) });
     }
-
-    res.json({
-      success: true,
-      document: {
-        id: doc.id,
-        title: doc.title,
-        content: doc.content,
-        category: doc.category,
-        tags: doc.tags,
-        wordCount: doc.wordCount,
-        sourceFile: doc.sourceFile,
-        extractedAt: new Date(doc.extractedAt).toISOString(),
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to get document", details: String(error) });
   }
-});
+);
 
 /**
  * GET /admin/scout-knowledge/all
@@ -310,22 +325,27 @@ router.get("/export", requireAdmin, (req: Request, res: Response) => {
  * POST /admin/scout-knowledge/import
  * Import index from JSON
  */
-router.post("/import", requireAdmin, upload.single("file"), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+router.post(
+  "/import",
+  requireAdmin,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const jsonData = readFileSync(req.file.path, "utf-8");
+      importIndexFromJson(jsonData);
+
+      res.json({
+        success: true,
+        message: "Knowledge index imported",
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to import index", details: String(error) });
     }
-
-    const jsonData = readFileSync(req.file.path, "utf-8");
-    importIndexFromJson(jsonData);
-
-    res.json({
-      success: true,
-      message: "Knowledge index imported",
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to import index", details: String(error) });
   }
-});
+);
 
 export default router;
