@@ -40,6 +40,47 @@ function injectJsonLd(html: string, jsonLd: object): string {
   return html.replace("</head>", `<script type="application/ld+json">${json}</script>\n</head>`);
 }
 
+function absolutePublicUrl(value: string, origin: string): string {
+  try {
+    return new URL(value, origin).toString();
+  } catch {
+    return value;
+  }
+}
+
+function buildCrawlerPostSummary(args: {
+  publicPost: NonNullable<ReturnType<typeof toPublicCommunityPost>>;
+  canonical: string;
+  imageUrl: string | null;
+  origin: string;
+}): string {
+  const { publicPost, canonical, imageUrl, origin } = args;
+  const heading = publicPost.title?.trim() || `Community post by ${publicPost.author.name}`;
+  const location = [publicPost.cityName, publicPost.stateCode].filter(Boolean).join(", ");
+  const published = publicPost.createdAt?.toISOString();
+  const tags = publicPost.tags
+    .slice(0, 12)
+    .map((tag) => `<li>${escapeHtml(tag)}</li>`)
+    .join("");
+
+  return `<main data-seo-community-post="${escapeHtml(publicPost.id)}">
+    <article>
+      <header>
+        <p><a href="${escapeHtml(origin)}/community">TradeScout Community</a></p>
+        <h1>${escapeHtml(heading)}</h1>
+        <p>By ${escapeHtml(publicPost.author.name)}${publicPost.author.verified ? " — verified member" : ""}${location ? ` · ${escapeHtml(location)}` : ""}${published ? ` · <time datetime="${escapeHtml(published)}">${escapeHtml(publicPost.createdAt!.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }))}</time>` : ""}</p>
+      </header>
+      ${imageUrl ? `<img src="${escapeHtml(absolutePublicUrl(imageUrl, origin))}" alt="${escapeHtml(heading)}" />` : ""}
+      <p>${escapeHtml(publicPost.content)}</p>
+      ${tags ? `<section aria-label="Topics"><h2>Topics</h2><ul>${tags}</ul></section>` : ""}
+      <footer>
+        <p>${publicPost.likeCount} likes · ${publicPost.commentCount} comments · ${publicPost.shareCount} shares</p>
+        <p><a href="${escapeHtml(canonical)}">View this post on TradeScout</a></p>
+      </footer>
+    </article>
+  </main>`;
+}
+
 export async function buildPublicCommunityPostHtml({
   postId,
   origin,
@@ -60,21 +101,49 @@ export async function buildPublicCommunityPostHtml({
   const title = formatTradeScoutTitle(meta.title);
   const imageUrl = meta.imageUrl || `${origin}/tradescout-social-preview.png?v=12`;
   const usesDefaultImage = !meta.imageUrl;
+  const postImageUrl = meta.imageUrl ? absolutePublicUrl(meta.imageUrl, origin) : null;
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "SocialMediaPosting",
+    "@id": `${meta.canonical}#post`,
     headline: meta.title,
     articleBody: publicPost.content,
-    image: meta.imageUrl ? [meta.imageUrl] : undefined,
+    image: postImageUrl ? [postImageUrl] : undefined,
     datePublished: publicPost.createdAt?.toISOString(),
     dateModified: publicPost.updatedAt?.toISOString(),
     author: {
       "@type": "Person",
       name: publicPost.author.name,
     },
+    publisher: {
+      "@type": "Organization",
+      name: "TradeScout",
+      url: origin,
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": meta.canonical,
+    },
     about: [publicPost.category, publicPost.cityName, publicPost.stateCode]
       .filter(Boolean)
       .join(", "),
+    interactionStatistic: [
+      {
+        "@type": "InteractionCounter",
+        interactionType: "https://schema.org/LikeAction",
+        userInteractionCount: publicPost.likeCount,
+      },
+      {
+        "@type": "InteractionCounter",
+        interactionType: "https://schema.org/CommentAction",
+        userInteractionCount: publicPost.commentCount,
+      },
+      {
+        "@type": "InteractionCounter",
+        interactionType: "https://schema.org/ShareAction",
+        userInteractionCount: publicPost.shareCount,
+      },
+    ],
     url: meta.canonical,
   };
 
@@ -181,5 +250,11 @@ export async function buildPublicCommunityPostHtml({
     "</head>",
     '<meta name="tradescout:community-access" content="read-only-global" />\n</head>'
   );
-  return html;
-}
+  html = html.replace(
+    /<div id="root">\s*<\/div>/i,
+    `<div id="root">${buildCrawlerPostSummary({
+      publicPost,
+      canonical: meta.canonical,
+      imageUrl: postImageUrl,
+      origin,
+    })}</div>`
