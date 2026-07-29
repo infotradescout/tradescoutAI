@@ -176,6 +176,7 @@ async function main() {
     TEST_DATABASE_URL: testDatabaseUrl,
     DATABASE_URL: testDatabaseUrl,
     NODE_ENV: "test",
+    RELEASE_GATES: "true",
     SESSION_SECRET: process.env.SESSION_SECRET || "local-release-gates-session-secret",
     SCHEDULER_ENABLED: "false",
     ENABLE_VITE_HMR: "true",

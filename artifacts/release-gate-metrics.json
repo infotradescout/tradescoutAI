@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-04T15:44:13.943Z",
+  "generatedAt": "2026-07-29T12:48:03.173Z",
   "metrics": {
     "account_creation": {
       "passed": 14,
@@ -7,7 +7,7 @@
       "skipped": 0
     },
     "direct_connect": {
-      "passed": 1,
+      "passed": 2,
       "failed": 0,
       "skipped": 0
     },
