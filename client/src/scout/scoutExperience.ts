@@ -687,7 +687,7 @@ export function buildScoutExperienceClusters(args: {
       actions: takeActions(
         [
           { type: "NAVIGATE", label: "Open finance tools", to: "/finances", primary: true },
-          { type: "NAVIGATE", label: "Open finance workspace", to: "/finances" },
+          { type: "NAVIGATE", label: "Review invoices and payments", to: "/finances" },
         ],
         actionBudget
       ),

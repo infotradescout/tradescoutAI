@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import {
   User,
   Users,
+  Settings,
   MessageCircle,
   Bookmark,
   ClipboardList,
@@ -13,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  FileText,
   Wallet,
   ArrowUpRight,
 } from "lucide-react";

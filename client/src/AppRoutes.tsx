@@ -1435,7 +1435,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/crm">
-                <RedirectTo to="/finances" />
+                <RedirectTo to="/finances/clients" />
               </Route>
               <Route path="/marketing/scoutfitters">
                 <ProtectedRoute>
