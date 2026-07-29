@@ -1544,9 +1544,10 @@ export default function WholesalerProfileTheme({
               // Desktop keeps a cinematic stage with cover — never a tall portrait crop.
               "flex flex-col bg-black md:block md:h-[min(70svh,calc(100svh-var(--ts-profile-top-offset,0px)-4.5rem))] md:max-h-[78svh]"
             : brandShowcase
-              ? "flex min-h-[460px] items-end bg-transparent py-8 md:min-h-[600px] md:items-center md:py-20"
+              ? "flex items-end bg-transparent py-8 md:min-h-[600px] md:items-center md:py-20"
               : "flex min-h-[min(690px,calc(100svh-150px))] items-end bg-[var(--brand-primary)] bg-cover bg-center py-8 md:min-h-[500px] md:items-center md:py-20"
         }`}
+        data-testid="wholesaler-profile-hero"
       >
         {!heroVideo && heroImage ? (
           <img
