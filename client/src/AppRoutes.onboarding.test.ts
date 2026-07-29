@@ -1,24 +1,10 @@
-import { beforeAll, describe, expect, it, vi } from "vitest";
-
-let userNeedsOnboarding: typeof import("./AppRoutes").userNeedsOnboarding;
-let getPostLandingRoute: typeof import("./AppRoutes").getPostLandingRoute;
-let getOnboardingEntryRoute: typeof import("./AppRoutes").getOnboardingEntryRoute;
-let userHasProfileBasics: typeof import("./AppRoutes").userHasProfileBasics;
-
-beforeAll(async () => {
-  vi.stubGlobal("window", {
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    location: { pathname: "/", search: "", assign: vi.fn() },
-    history: { replaceState: vi.fn() },
-  });
-
-  const mod = await import("./AppRoutes");
-  userNeedsOnboarding = mod.userNeedsOnboarding;
-  getPostLandingRoute = mod.getPostLandingRoute;
-  getOnboardingEntryRoute = mod.getOnboardingEntryRoute;
-  userHasProfileBasics = mod.userHasProfileBasics;
-});
+import { describe, expect, it } from "vitest";
+import {
+  getOnboardingEntryRoute,
+  getPostLandingRoute,
+  userHasProfileBasics,
+  userNeedsOnboarding,
+} from "./lib/postOnboardingRoute";
 
 describe("AppRoutes onboarding decisions", () => {
   it("routes authenticated users with stale onboarding state back to onboarding", () => {

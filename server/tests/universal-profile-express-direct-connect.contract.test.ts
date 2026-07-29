@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const read = (relativePath: string) =>
-  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
 
 describe("universal public-profile Express Direct Connect contract", () => {
   const routeSource = read("server/routes/tradepartner-express.ts");
@@ -38,7 +38,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
       'if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass")'
     );
     const autoGlassEnd = profileSource.indexOf(
-      '// Legacy specialty shell until a fabrication gallery template ships.',
+      "// Legacy specialty shell until a fabrication gallery template ships.",
       autoGlassStart
     );
     const autoGlassBranch = profileSource.slice(autoGlassStart, autoGlassEnd);
@@ -49,10 +49,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     const generalDirectConnectStart = profileSource.indexOf(
       "const openGeneralDirectConnect = () => {"
     );
-    const generalDirectConnectEnd = profileSource.indexOf(
-      "};",
-      generalDirectConnectStart
-    );
+    const generalDirectConnectEnd = profileSource.indexOf("};", generalDirectConnectStart);
     const generalDirectConnect = profileSource.slice(
       generalDirectConnectStart,
       generalDirectConnectEnd

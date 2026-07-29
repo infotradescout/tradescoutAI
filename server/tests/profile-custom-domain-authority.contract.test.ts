@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 function source(file: string): string {
-  return fs.readFileSync(path.resolve(process.cwd(), file), "utf-8");
+  return fs.readFileSync(path.resolve(process.cwd(), file), "utf-8").replace(/\r\n/g, "\n");
 }
 
 describe("profile custom-domain authority contract", () => {

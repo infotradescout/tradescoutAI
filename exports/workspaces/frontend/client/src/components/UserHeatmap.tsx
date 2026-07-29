@@ -329,7 +329,9 @@ function CountyHeatmapMap({
       });
       queryClient.invalidateQueries({ queryKey: ["/api/scout/unassigned-files"] });
       if (internalSelectedFips) {
-        queryClient.invalidateQueries({ queryKey: [`/api/heatmap/county/${internalSelectedFips}`] });
+        queryClient.invalidateQueries({
+          queryKey: [`/api/heatmap/county/${internalSelectedFips}`],
+        });
       }
     },
     onError: (error) => {
@@ -352,7 +354,9 @@ function CountyHeatmapMap({
     } catch (err) {
       console.error("Error parsing dropped file data:", err);
     }
-  };t clampZoom = (value: number) => Math.min(8, Math.max(1, value));
+  };
+
+  const clampZoom = (value: number) => Math.min(8, Math.max(1, value));
 
   const clientToSvgPoint = (clientX: number, clientY: number) => {
     const svg = svgRef.current;
@@ -462,17 +466,18 @@ function CountyHeatmapMap({
 
             const info = fips ? FIPS_LOOKUP.get(fips) : undefined;
 
-            const isSelected = (selectedFips || internalSelectedFips) && fips === (selectedFips || internalSelectedFips);
+            const isSelected =
+              (selectedFips || internalSelectedFips) &&
+              fips === (selectedFips || internalSelectedFips);
             const isDragOver = dragOverFips && fips === dragOverFips;
 
-            const fillColor =
-              isDragOver
-                ? "var(--ts-blue-muted)" // Highlight when dragging over
-                : lens === "coverage"
-                  ? getCoverageFillColor(coverage?.coverageStatus)
-                  : hasMetric
-                    ? getCountyFillColor(count)
-                    : "var(--coverage-neutral)"; // neutral when metric not populated
+            const fillColor = isDragOver
+              ? "var(--ts-blue-muted)" // Highlight when dragging over
+              : lens === "coverage"
+                ? getCoverageFillColor(coverage?.coverageStatus)
+                : hasMetric
+                  ? getCountyFillColor(count)
+                  : "var(--coverage-neutral)"; // neutral when metric not populated
 
             return (
               <path

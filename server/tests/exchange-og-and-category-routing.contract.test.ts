@@ -19,15 +19,15 @@ const CLIENT_DIR = path.resolve(ROOT, "client/src");
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 function readFile(relPath: string): string {
-  return fs.readFileSync(path.resolve(ROOT, relPath), "utf-8");
+  return fs.readFileSync(path.resolve(ROOT, relPath), "utf-8").replace(/\r\n/g, "\n");
 }
 
 function readServerFile(name: string): string {
-  return fs.readFileSync(path.resolve(SERVER_DIR, name), "utf-8");
+  return fs.readFileSync(path.resolve(SERVER_DIR, name), "utf-8").replace(/\r\n/g, "\n");
 }
 
 function readClientFile(relPath: string): string {
-  return fs.readFileSync(path.resolve(CLIENT_DIR, relPath), "utf-8");
+  return fs.readFileSync(path.resolve(CLIENT_DIR, relPath), "utf-8").replace(/\r\n/g, "\n");
 }
 
 // ─── 1. publicExchangeHtml.ts ─────────────────────────────────────────────────
