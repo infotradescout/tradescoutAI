@@ -32,6 +32,7 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
+import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
 import LocalServiceProfileTheme, {
   type PublicCommunityVerification,
 } from "@/pages/profile-sites/LocalServiceProfileTheme";
@@ -74,6 +75,7 @@ import {
   LA_PLUMBING_PROFILE_SLUG,
   type LocalServiceProfilePresentation,
 } from "@shared/localServiceProfile";
+import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile";
 import {
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
@@ -1602,6 +1604,67 @@ export default function ProfileSiteView() {
         </div>
       </section>
     ) : null;
+
+  if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG) {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={pageOgType}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
+        />
+        {templateIndependentInventoryContext}
+        {manageChromeSpacer}
+        <PrecisionAerialProfile
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          headline={publicHeadline}
+          contentBlocks={contentBlocks}
+          brandColors={business?.brandColors}
+          services={serviceTags}
+          serviceAreas={serviceAreas}
+          aboutText={aboutText}
+          galleryItems={galleryItems}
+          sharedGallerySlug={sharedGallerySlug}
+          profileShareDestination={profileShareDestination}
+          profileShareImage={seoImage}
+          onDirectConnect={openServiceDirectConnect}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
+          trustActions={renderProfileTrustActions("light", "compact")}
+          profileItems={
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
+            ) : null
+          }
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          businessAddress={publicBusinessAddress}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+          initialServiceName={expressServiceContext}
+          initialRequestType={expressServiceContext ? "request_service" : null}
+        />
+        {manageChrome}
+      </>
+    );
+  }
 
   if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass") {
     return (

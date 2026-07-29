@@ -345,7 +345,8 @@ describe("Precision Aerial production profile contract", () => {
 
   it("runs through the non-fatal startup wrapper and uses first-party media without an embed", () => {
     const entry = read("server/index.ts");
-    const theme = read("client/src/pages/profile-sites/DefaultProfileTheme.tsx");
+    const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const profile = read("client/src/pages/profile-sites/PrecisionAerialProfile.tsx");
 
     expect(entry).toContain(
       'import { provisionPrecisionAerialProfile } from "./services/precisionAerialProfileProvisioning"'
@@ -357,9 +358,18 @@ describe("Precision Aerial production profile contract", () => {
     expect(entry).toContain('"https://www.instagram.com"');
     expect(entry).toContain('"media-src": [');
     expect(entry).toContain('"https://www.thetradescout.com"');
-    expect(theme).toContain("safeFeaturedWorkUrl");
-    expect(theme).toContain("href={safeFeaturedWorkUrl}");
-    expect(theme).not.toContain("<iframe");
+    expect(profileView).toContain(
+      'import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile"'
+    );
+    expect(profileView).toContain(
+      'import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile"'
+    );
+    expect(profileView).toContain("if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)");
+    expect(profileView).toContain("<PrecisionAerialProfile");
+    expect(profileView).toContain("onDirectConnect={openServiceDirectConnect}");
+    expect(profile).toContain("safeFeaturedWorkUrl");
+    expect(profile).toContain("href={featuredWorkUrl}");
+    expect(profile).not.toContain("<iframe");
     expect(
       fs.existsSync(
         path.resolve(
@@ -387,7 +397,7 @@ describe("Precision Aerial production profile contract", () => {
     expect(panel).toContain(
       "TradeScout is receiving requests for ${businessName} until the owner connects this profile."
     );
-    expect(read("client/src/pages/profile-sites/DefaultProfileTheme.tsx")).toContain(
+    expect(read("client/src/pages/profile-sites/PrecisionAerialProfile.tsx")).toContain(
       "TradeScout securely holds requests until this business connects its profile."
     );
     expect(publicRoute).toContain("deliveryCustody: directConnectDeliveryCustody");
