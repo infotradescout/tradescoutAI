@@ -2,6 +2,7 @@ import { BoundedTaskQueue } from "../utils/boundedTaskQueue";
 
 const INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow";
 const CANONICAL_ORIGIN = "https://www.thetradescout.com";
+const DEFAULT_INDEXNOW_KEY = "c41a532d2d0f4e5ca37a53bd3d138495";
 const MAX_URLS_PER_REQUEST = 10_000;
 const KEY_PATTERN = /^[A-Za-z0-9-]{8,128}$/;
 const PRIVATE_PATH_PREFIXES = [
@@ -22,7 +23,9 @@ export type IndexNowSubmissionResult = {
 };
 
 function configuredKey(): string {
-  return String(process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "").trim();
+  return String(
+    process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || DEFAULT_INDEXNOW_KEY
+  ).trim();
 }
 
 export function normalizeIndexNowUrls(urls: Iterable<string>): string[] {
