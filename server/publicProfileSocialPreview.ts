@@ -5,7 +5,11 @@ import {
   resolveProfileSocialPresentation,
   type ProfileSocialPreviewItemType,
 } from "@shared/profileSocialPreview";
-import { JW_STONE_PROFILE_SLUG, JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_PROFILE_SLUG,
+  JW_STONE_PROFILE_SOCIAL_LOGO_URL,
+  JW_STONE_SOCIAL_PRESENTATION,
+} from "@shared/jwStonePresentation";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { createProfileInventoryCategoryShareMetadata } from "@shared/profileCategoryShare";
 import { storage } from "./storage";
@@ -223,7 +227,12 @@ export async function resolvePublicProfileSocialPreview(
     locationLabel: publicLocationLabel(businessRecord),
     ctaLabel: presentation.ctaLabel,
     sourceImageUrl,
-    logoUrl: absolutePublicAsset(presentation.logoUrl, assetOrigin),
+    logoUrl: absolutePublicAsset(
+      profileSlug === JW_STONE_PROFILE_SLUG && !resolvedItemType
+        ? JW_STONE_PROFILE_SOCIAL_LOGO_URL
+        : presentation.logoUrl,
+      assetOrigin
+    ),
     accentColor: presentation.accentColor,
     layout: resolvedItemType ? "split" : presentation.cardLayout,
   };

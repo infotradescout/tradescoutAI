@@ -27,7 +27,11 @@ import {
   buildProfileSocialTitle,
   resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
-import { JW_STONE_PROFILE_SLUG, JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_PROFILE_SLUG,
+  JW_STONE_PROFILE_SOCIAL_LOGO_URL,
+  JW_STONE_SOCIAL_PRESENTATION,
+} from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import {
   isInternalAdminProfileSlug,
@@ -880,7 +884,7 @@ function buildMeta(
         !categoryShare &&
         profile.profile.slug === JW_STONE_PROFILE_SLUG &&
         presentation.cardLayout === "brand-hero"
-          ? presentation.cardLayout
+          ? `${presentation.cardLayout}|${JW_STONE_PROFILE_SOCIAL_LOGO_URL}`
           : "",
       ].join("|"),
     }) || sourceImageUrl;

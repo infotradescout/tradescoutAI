@@ -105,7 +105,7 @@ SET
         },
         "social": {
           "brandName": "JW Stone Logistics",
-          "logoUrl": "/images/businesses/jw-stone/logo-social.svg",
+          "logoUrl": "/images/businesses/jw-stone/logo.svg",
           "profileImageUrl": "/images/businesses/jw-stone/video/hero-poster.jpg",
           "accentColor": "#81904a",
           "profileCta": "Explore inventory",
