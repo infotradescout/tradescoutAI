@@ -15,28 +15,21 @@ import { resolvePublicProfileSocialPreview } from "../publicProfileSocialPreview
 
 const BLUE_MARE_SOURCE_IMAGE =
   "https://www.thetradescout.com/images/businesses/jw-stone/inventory-source/1vGOdELy1LIE5i-A8lurdUMnRdjzotBMo.webp";
-const JW_CATEGORY_PREVIEW_CASES = JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map(
-  (config) => {
-    const sourceCategory = JW_STONE_INVENTORY_CATEGORIES.find(
-      (category) => category.categorySlug === config.sourceSlug
-    );
-    const leadStone = sourceCategory?.stones.find(
-      (stone) => stone.slug === config.leadItemSlug
-    );
-    if (!sourceCategory || !leadStone?.images[0]) {
-      throw new Error(`Missing JW category preview fixture for ${config.publicSlug}`);
-    }
-    return {
-      slug: config.publicSlug,
-      name: config.title,
-      itemCount: sourceCategory.stones.length,
-      sourceImageUrl: new URL(
-        leadStone.images[0],
-        "https://www.thetradescout.com"
-      ).toString(),
-    };
+const JW_CATEGORY_PREVIEW_CASES = JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map((config) => {
+  const sourceCategory = JW_STONE_INVENTORY_CATEGORIES.find(
+    (category) => category.categorySlug === config.sourceSlug
+  );
+  const leadStone = sourceCategory?.stones.find((stone) => stone.slug === config.leadItemSlug);
+  if (!sourceCategory || !leadStone?.images[0]) {
+    throw new Error(`Missing JW category preview fixture for ${config.publicSlug}`);
   }
-);
+  return {
+    slug: config.publicSlug,
+    name: config.title,
+    itemCount: sourceCategory.stones.length,
+    sourceImageUrl: new URL(leadStone.images[0], "https://www.thetradescout.com").toString(),
+  };
+});
 
 describe("public profile social preview context", () => {
   beforeEach(() => {
@@ -172,8 +165,106 @@ describe("public profile social preview context", () => {
     expect(profilePreview?.sourceImageUrl).toBe(
       "https://www.thetradescout.com/images/businesses/jw-stone/video/hero-poster.jpg"
     );
+    expect(profilePreview?.context.layout).toBe("brand-hero");
     expect(inventoryPreview?.sourceImageUrl).toBe(BLUE_MARE_SOURCE_IMAGE);
     expect(inventoryPreview?.sourceImageUrl).not.toBe(profilePreview?.sourceImageUrl);
+    expect(inventoryPreview?.context.layout).toBe("split");
+  });
+
+  it("uses a legacy presentation hero instead of treating the wide SEO logo as the profile photo", async () => {
+    storageMocks.getProfileBySlugPublic.mockResolvedValueOnce({
+      id: "profile-jw",
+      slug: "jw-stone",
+      displayName: "JW Stone LLC",
+      headline: "Natural stone inventory",
+      roleContext: "wholesaler",
+      servicesDescription: "Browse current stone inventory.",
+      businessId: "business-jw",
+      updatedAt: "2026-07-28T21:01:33.152Z",
+      seoMeta: {
+        customDomain: "jwstonelogistics.com",
+        imageUrl:
+          "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
+        faviconUrl: "https://www.thetradescout.com/images/businesses/jw-stone/favicon.png",
+      },
+      ctaConfig: {
+        primary: {
+          label: "Request trade pricing",
+          kind: "message",
+        },
+      },
+      contentBlocks: [JW_STONE_PUBLIC_DISCOVERY_BLOCK],
+    });
+
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+    });
+
+    expect(preview?.context).toMatchObject({
+      kind: "profile",
+      sourceImageUrl:
+        "https://www.thetradescout.com/images/businesses/jw-stone/video/hero-poster.jpg",
+      logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
+      layout: "brand-hero",
+    });
+    expect(preview?.sourceImageUrl).not.toContain("logo-social-preview");
+  });
+
+  it("leaves every non-JW profile on its own social presentation", async () => {
+    storageMocks.getProfileBySlugPublic.mockResolvedValueOnce({
+      id: "profile-other",
+      slug: "other-business",
+      displayName: "Other Business",
+      headline: "Its own profile",
+      roleContext: "service provider",
+      servicesDescription: "Its own services.",
+      businessId: "business-other",
+      updatedAt: "2026-07-30T12:00:00.000Z",
+      seoMeta: {
+        imageUrl: "https://www.thetradescout.com/images/businesses/other/seo-card.jpg",
+      },
+      ctaConfig: {
+        primary: {
+          label: "Start a request",
+          kind: "message",
+        },
+      },
+      contentBlocks: [
+        {
+          type: "profilePresentation",
+          data: {
+            social: {
+              brandName: "Other Business",
+              logoUrl: "/images/businesses/other/logo.svg",
+              profileImageUrl: "/images/businesses/other/hero.jpg",
+              accentColor: "#123456",
+              profileCta: "View profile",
+            },
+          },
+        },
+      ],
+    });
+    storageMocks.getBusinessPublicById.mockResolvedValueOnce({
+      id: "business-other",
+      name: "Other Business",
+      categories: ["Service provider"],
+      serviceAreas: ["Tangipahoa Parish"],
+      city: "Hammond",
+      stateCode: "LA",
+    });
+
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "other-business",
+    });
+
+    expect(preview?.context).toMatchObject({
+      brandName: "Other Business",
+      sourceImageUrl: "https://www.thetradescout.com/images/businesses/other/hero.jpg",
+      logoUrl: "https://www.thetradescout.com/images/businesses/other/logo.svg",
+      accentColor: "#123456",
+      layout: "split",
+    });
+    expect(preview?.sourceImageUrl).not.toContain("/jw-stone/");
   });
 
   it.each(JW_CATEGORY_PREVIEW_CASES)(
@@ -207,9 +298,7 @@ describe("public profile social preview context", () => {
 
       const previewUrl = new URL(preview!.previewImageUrl);
       expect(previewUrl.origin).toBe("https://www.thetradescout.com");
-      expect(previewUrl.pathname).toBe(
-        `/images/social/profile/jw-stone/category/${slug}.png`
-      );
+      expect(previewUrl.pathname).toBe(`/images/social/profile/jw-stone/category/${slug}.png`);
       expect(previewUrl.searchParams.get("v")).toMatch(/^4-/);
     }
   );

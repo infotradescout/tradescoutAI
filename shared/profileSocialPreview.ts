@@ -15,6 +15,7 @@ export type ResolvedProfileSocialPresentation = {
   profileImageUrl: string | null;
   accentColor: string;
   ctaLabel: string;
+  cardLayout: "split" | "brand-hero";
 };
 
 export type ProfileSocialPresentationConfig = {
@@ -26,6 +27,7 @@ export type ProfileSocialPresentationConfig = {
   inventoryCta?: unknown;
   galleryCta?: unknown;
   categoryCta?: unknown;
+  cardLayout?: unknown;
 };
 
 type ProfilePresentationBlock = {
@@ -144,9 +146,11 @@ export function resolveProfileSocialPresentation(args: {
   configuredCtaLabel?: unknown;
   itemType?: ProfileSocialPreviewItemType | null;
   contentBlocks?: unknown;
+  defaultConfig?: ProfileSocialPresentationConfig;
 }): ResolvedProfileSocialPresentation {
   const owned = readProfileSocialPresentationConfig(args.contentBlocks);
-  const accentColor = cleanText(owned.accentColor || args.accentColor, 16);
+  const defaults = args.defaultConfig || {};
+  const accentColor = cleanText(owned.accentColor || defaults.accentColor || args.accentColor, 16);
   const ownedCta =
     args.itemType === "inventory"
       ? owned.inventoryCta || owned.profileCta
@@ -154,23 +158,38 @@ export function resolveProfileSocialPresentation(args: {
         ? owned.galleryCta || owned.profileCta
         : args.itemType === "category"
           ? owned.categoryCta || owned.inventoryCta || owned.profileCta
-        : owned.profileCta;
+          : owned.profileCta;
+  const defaultCta =
+    args.itemType === "inventory"
+      ? defaults.inventoryCta || defaults.profileCta
+      : args.itemType === "gallery"
+        ? defaults.galleryCta || defaults.profileCta
+        : args.itemType === "category"
+          ? defaults.categoryCta || defaults.inventoryCta || defaults.profileCta
+          : defaults.profileCta;
+  const requestedLayout = cleanText(owned.cardLayout || defaults.cardLayout, 32);
   return {
     brandName:
       cleanPublicText(owned.brandName, 100) ||
+      cleanPublicText(defaults.brandName, 100) ||
       cleanPublicText(args.brandName, 100) ||
       cleanPublicText(args.fallbackBrandName, 100) ||
       "TradeScout profile",
     logoUrl:
-      normalizeSocialAssetUrl(owned.logoUrl) || normalizeSocialAssetUrl(args.logoUrl),
+      normalizeSocialAssetUrl(owned.logoUrl) ||
+      normalizeSocialAssetUrl(defaults.logoUrl) ||
+      normalizeSocialAssetUrl(args.logoUrl),
     profileImageUrl:
       normalizeSocialAssetUrl(owned.profileImageUrl) ||
+      normalizeSocialAssetUrl(defaults.profileImageUrl) ||
       normalizeSocialAssetUrl(args.profileImageUrl),
     accentColor: /^#[0-9a-f]{6}$/i.test(accentColor) ? accentColor : "#f97316",
     ctaLabel:
       configuredCtaLabel(ownedCta) ||
+      configuredCtaLabel(defaultCta) ||
       configuredCtaLabel(args.configuredCtaLabel) ||
       fallbackCta(args.itemType),
+    cardLayout: requestedLayout === "brand-hero" ? "brand-hero" : "split",
   };
 }
 
@@ -244,7 +263,7 @@ export function buildProfileSocialPreviewImageUrl(args: {
         ? `/images/social/profile/${encodedProfileSlug}/gallery/${encodedItemSlug}.png`
         : itemType === "category"
           ? `/images/social/profile/${encodedProfileSlug}/category/${encodedItemSlug}.png`
-        : `/images/social/profile/${encodedProfileSlug}.png`;
+          : `/images/social/profile/${encodedProfileSlug}.png`;
 
   const url = new URL(path, socialPreviewOrigin(args.pageOrigin));
   const photoValue = Array.isArray(args.photo) ? args.photo[0] : args.photo;
