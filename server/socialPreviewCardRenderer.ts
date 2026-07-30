@@ -17,8 +17,7 @@ const SUPPORTED_RASTER_PUBLIC_ASSET = /\.(?:avif|gif|jpe?g|png|webp)$/i;
 
 export const SOCIAL_PREVIEW_RENDER_CONCURRENCY = 2;
 export const SOCIAL_PREVIEW_RENDER_QUEUE_LIMIT = 8;
-export const SOCIAL_PREVIEW_RENDER_CAPACITY_ERROR_CODE =
-  "SOCIAL_PREVIEW_RENDER_CAPACITY_EXCEEDED";
+export const SOCIAL_PREVIEW_RENDER_CAPACITY_ERROR_CODE = "SOCIAL_PREVIEW_RENDER_CAPACITY_EXCEEDED";
 
 export class SocialPreviewRenderCapacityError extends Error {
   readonly code = SOCIAL_PREVIEW_RENDER_CAPACITY_ERROR_CODE;
@@ -55,6 +54,7 @@ export type SocialPreviewCardContext = {
   sourceImageUrl?: string | null;
   logoUrl?: string | null;
   accentColor?: string | null;
+  layout?: "split" | "brand-hero";
 };
 
 type RenderSocialPreviewOptions = {
@@ -443,8 +443,38 @@ function buildOverlaySvg(context: SocialPreviewCardContext, hasLogo: boolean): B
   </svg>`);
 }
 
-function fallbackImageSvg(accentColor: string): Buffer {
-  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${IMAGE_PANEL_WIDTH}" height="${SOCIAL_PREVIEW_HEIGHT}">
+function brandHeroOverlaySvg(context: SocialPreviewCardContext, hasLogo: boolean): Buffer {
+  const accent = normalizeAccentColor(context.accentColor);
+  const brandName = cleanText(context.brandName, 100);
+  const fallbackBrand = hasLogo
+    ? ""
+    : svgTextLines({
+        lines: wrapText(brandName, 24, 2),
+        x: 96,
+        y: 484,
+        fontSize: 44,
+        lineHeight: 50,
+        color: "#171717",
+        weight: 750,
+      });
+
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${SOCIAL_PREVIEW_WIDTH}" height="${SOCIAL_PREVIEW_HEIGHT}" viewBox="0 0 ${SOCIAL_PREVIEW_WIDTH} ${SOCIAL_PREVIEW_HEIGHT}">
+    <defs>
+      <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#07100c" stop-opacity=".08" />
+        <stop offset="58%" stop-color="#07100c" stop-opacity=".12" />
+        <stop offset="100%" stop-color="#07100c" stop-opacity=".58" />
+      </linearGradient>
+    </defs>
+    <rect width="${SOCIAL_PREVIEW_WIDTH}" height="${SOCIAL_PREVIEW_HEIGHT}" fill="url(#shade)" />
+    <rect x="56" y="414" width="680" height="160" rx="24" fill="#f4f1e9" fill-opacity=".97" />
+    <rect x="56" y="414" width="9" height="160" rx="4.5" fill="${accent}" />
+    ${fallbackBrand}
+  </svg>`);
+}
+
+function fallbackImageSvg(accentColor: string, width = IMAGE_PANEL_WIDTH): Buffer {
+  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${SOCIAL_PREVIEW_HEIGHT}">
     <defs>
       <radialGradient id="a" cx="28%" cy="30%" r="72%">
         <stop offset="0%" stop-color="${accentColor}" stop-opacity=".62" />
@@ -452,7 +482,7 @@ function fallbackImageSvg(accentColor: string): Buffer {
         <stop offset="100%" stop-color="#07100c" />
       </radialGradient>
     </defs>
-    <rect width="${IMAGE_PANEL_WIDTH}" height="${SOCIAL_PREVIEW_HEIGHT}" fill="url(#a)" />
+    <rect width="${width}" height="${SOCIAL_PREVIEW_HEIGHT}" fill="url(#a)" />
     <circle cx="152" cy="136" r="220" fill="none" stroke="#ffffff" stroke-opacity=".08" stroke-width="2" />
     <circle cx="550" cy="510" r="300" fill="none" stroke="#ffffff" stroke-opacity=".06" stroke-width="2" />
   </svg>`);
@@ -465,6 +495,8 @@ async function renderSocialPreviewCardWithinSlot(
   const sharp = await getSharp();
   const publicRoots = options.publicRoots || defaultPublicRoots();
   const accent = normalizeAccentColor(context.accentColor);
+  const isBrandHero = context.layout === "brand-hero";
+  const imageWidth = isBrandHero ? SOCIAL_PREVIEW_WIDTH : IMAGE_PANEL_WIDTH;
   const sourceImageRequested = Boolean(cleanText(context.sourceImageUrl, 2048));
   const [localSourceAsset, localLogoAsset] = await Promise.all([
     readLocalPublicAsset(context.sourceImageUrl, publicRoots, false, MAX_SOURCE_ASSET_BYTES),
@@ -485,7 +517,7 @@ async function renderSocialPreviewCardWithinSlot(
         sequentialRead: true,
       })
         .rotate()
-        .resize(IMAGE_PANEL_WIDTH, SOCIAL_PREVIEW_HEIGHT, {
+        .resize(imageWidth, SOCIAL_PREVIEW_HEIGHT, {
           fit: context.kind === "inventory" || context.kind === "product" ? "contain" : "cover",
           position: "attention",
           background:
@@ -495,10 +527,10 @@ async function renderSocialPreviewCardWithinSlot(
         .toBuffer();
       sourceImageLoaded = true;
     } catch {
-      imagePanel = await sharp(fallbackImageSvg(accent)).png().toBuffer();
+      imagePanel = await sharp(fallbackImageSvg(accent, imageWidth)).png().toBuffer();
     }
   } else {
-    imagePanel = await sharp(fallbackImageSvg(accent)).png().toBuffer();
+    imagePanel = await sharp(fallbackImageSvg(accent, imageWidth)).png().toBuffer();
   }
 
   let preparedLogo: Buffer | null = null;
@@ -508,7 +540,7 @@ async function renderSocialPreviewCardWithinSlot(
         failOn: "warning",
         limitInputPixels: MAX_LOGO_INPUT_PIXELS,
       })
-        .resize(304, 64, {
+        .resize(isBrandHero ? 570 : 304, isBrandHero ? 120 : 64, {
           fit: "contain",
           background: { r: 244, g: 241, b: 233, alpha: 0 },
         })
@@ -521,10 +553,20 @@ async function renderSocialPreviewCardWithinSlot(
 
   const composites: Array<{ input: Buffer; left: number; top: number }> = [
     { input: imagePanel, left: 0, top: 0 },
-    { input: buildOverlaySvg(context, Boolean(preparedLogo)), left: 0, top: 0 },
+    {
+      input: isBrandHero
+        ? brandHeroOverlaySvg(context, Boolean(preparedLogo))
+        : buildOverlaySvg(context, Boolean(preparedLogo)),
+      left: 0,
+      top: 0,
+    },
   ];
   if (preparedLogo) {
-    composites.push({ input: preparedLogo, left: COPY_PANEL_X + 68, top: 54 });
+    composites.push(
+      isBrandHero
+        ? { input: preparedLogo, left: 106, top: 434 }
+        : { input: preparedLogo, left: COPY_PANEL_X + 68, top: 54 }
+    );
   }
 
   const png = await sharp({

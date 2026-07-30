@@ -1,3 +1,5 @@
+import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+
 /**
  * JW Stone's profile-owned presentation data.
  *
@@ -52,14 +54,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       browseCtaEyebrow: "Rhino White · current inventory",
       featuredCollection: {
         label: "JW Stone Picks",
-        slugs: [
-          "blue-dunes",
-          "cristallo",
-          "gold-macaubas",
-          "rhino-white",
-          "taj-mahal",
-          "titanium",
-        ],
+        slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],
       },
     },
     audience: {
@@ -73,8 +68,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
         "Source counts where listed",
       ],
       contextHeading: "Helpful context to include",
-      availabilityNote:
-        "Pricing and current availability are confirmed through Direct Connect.",
+      availabilityNote: "Pricing and current availability are confirmed through Direct Connect.",
     },
     faq: {
       layout: "disclosure",
@@ -110,13 +104,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       ],
     },
     social: {
-      brandName: "JW Stone Logistics",
-      logoUrl: "/images/businesses/jw-stone/logo.svg",
-      profileImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
-      accentColor: "#81904a",
-      profileCta: "Explore inventory",
-      inventoryCta: "View photos · Request pricing",
-      galleryCta: "View project",
+      ...JW_STONE_SOCIAL_PRESENTATION,
     },
   },
 } as const;

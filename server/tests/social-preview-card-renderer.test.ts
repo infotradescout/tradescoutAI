@@ -50,6 +50,28 @@ describe.sequential("social preview card renderer", () => {
     expectSocialPreviewPng(png);
   }, 30_000);
 
+  it("renders the JW Stone profile as a full-bleed brand hero without changing item cards", async () => {
+    const rendered = await renderSocialPreviewCard(
+      {
+        ...blueMareContext,
+        kind: "profile",
+        title: "JW Stone Logistics",
+        sourceImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
+        layout: "brand-hero",
+      },
+      {
+        publicRoots: [PUBLIC_ROOT],
+      }
+    );
+    const split = await renderSocialPreviewCardPng(blueMareContext, {
+      publicRoots: [PUBLIC_ROOT],
+    });
+
+    expectSocialPreviewPng(rendered.png);
+    expect(rendered.sourceImageLoaded).toBe(true);
+    expect(rendered.png).not.toEqual(split);
+  }, 30_000);
+
   it("rasterizes hostile public text safely instead of treating it as SVG markup", async () => {
     const hostileContext: SocialPreviewCardContext = {
       ...blueMareContext,
@@ -110,8 +132,7 @@ describe.sequential("social preview card renderer", () => {
       activeFetches -= 1;
       return new Response(null, { status: 404 });
     });
-    const acceptedCount =
-      SOCIAL_PREVIEW_RENDER_CONCURRENCY + SOCIAL_PREVIEW_RENDER_QUEUE_LIMIT;
+    const acceptedCount = SOCIAL_PREVIEW_RENDER_CONCURRENCY + SOCIAL_PREVIEW_RENDER_QUEUE_LIMIT;
     const acceptedRenders = Array.from({ length: acceptedCount }, (_, index) =>
       renderSocialPreviewCard(
         {
@@ -172,9 +193,7 @@ describe.sequential("social preview card renderer", () => {
         },
         headers: new Headers({
           "content-type": "image/png",
-          "content-length": String(
-            isLogo ? 2 * 1024 * 1024 + 1 : 5 * 1024 * 1024 + 1
-          ),
+          "content-length": String(isLogo ? 2 * 1024 * 1024 + 1 : 5 * 1024 * 1024 + 1),
         }),
       } as unknown as Response;
     });

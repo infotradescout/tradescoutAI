@@ -5,6 +5,7 @@ import {
   resolveProfileSocialPresentation,
   type ProfileSocialPreviewItemType,
 } from "@shared/profileSocialPreview";
+import { JW_STONE_PROFILE_SLUG, JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { createProfileInventoryCategoryShareMetadata } from "@shared/profileCategoryShare";
 import { storage } from "./storage";
@@ -203,6 +204,7 @@ export async function resolvePublicProfileSocialPreview(
     configuredCtaLabel: profileRecord.ctaConfig?.primary?.label,
     itemType: resolvedItemType,
     contentBlocks: profileRecord.contentBlocks,
+    defaultConfig: profileSlug === JW_STONE_PROFILE_SLUG ? JW_STONE_SOCIAL_PRESENTATION : undefined,
   });
   if (resolvedItemType) {
     supportingText = presentation.brandName;
@@ -223,6 +225,7 @@ export async function resolvePublicProfileSocialPreview(
     sourceImageUrl,
     logoUrl: absolutePublicAsset(presentation.logoUrl, assetOrigin),
     accentColor: presentation.accentColor,
+    layout: resolvedItemType ? "split" : presentation.cardLayout,
   };
   const fingerprint = createHash("sha256")
     .update(
