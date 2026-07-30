@@ -5,8 +5,7 @@
  *   { type: "siteTemplate", data: { id: ProfileSiteTemplateId } }
  *
  * V1 selectable gallery (anyone can pick and run):
- *   wholesaler | auto-glass | plumbing-company | electrician-solo |
- *   photographer-drone | videographer
+ *   wholesaler | auto-glass | plumbing-company | electrician-solo | videographer
  *
  * `default` is the canonical launch profile used by onboarding and by profiles
  * that have not purchased or selected a specialized theme. It stays out of the
@@ -34,7 +33,6 @@ export const PROFILE_SITE_TEMPLATE_IDS = [
   "auto-glass",
   "plumbing-company",
   "electrician-solo",
-  "photographer-drone",
   "videographer",
   "default",
 ] as const;
@@ -47,7 +45,6 @@ export const PROFILE_SITE_TEMPLATE_GALLERY_IDS = [
   "auto-glass",
   "plumbing-company",
   "electrician-solo",
-  "photographer-drone",
   "videographer",
 ] as const satisfies ReadonlyArray<Exclude<ProfileSiteTemplateId, "default">>;
 
@@ -95,15 +92,6 @@ export const PROFILE_SITE_TEMPLATES: ProfileSiteTemplateMeta[] = [
       "Lean electrician profile for an independent or small crew — clear services and request path.",
     bestFor: "Solo electricians and small electrical shops",
     family: "electrical",
-    selectable: true,
-  },
-  {
-    id: "photographer-drone",
-    label: "Photographer / drone",
-    description:
-      "Full-bleed photo or video hero, identity, portfolio, services, social proof, and booking.",
-    bestFor: "Photographers, drone operators, and visual production services",
-    family: "creative",
     selectable: true,
   },
   {
@@ -519,7 +507,7 @@ export function seedBlocksForTemplate(
         data: {
           title: name,
           text:
-            templateId === "videographer" || templateId === "photographer-drone"
+            templateId === "videographer"
               ? "Photo and video."
               : "Tell visitors what you do and why they should connect.",
         },
@@ -548,7 +536,7 @@ export function seedBlocksForTemplate(
     }
   }
 
-  if (templateId === "videographer" || templateId === "photographer-drone") {
+  if (templateId === "videographer") {
     const hasServices = next.some((block) => block?.type === "services");
     if (!hasServices) {
       next.push({

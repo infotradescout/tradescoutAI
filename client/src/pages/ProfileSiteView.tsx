@@ -32,7 +32,7 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
-import CreativePortfolioProfileTheme from "@/pages/profile-sites/CreativePortfolioProfileTheme";
+import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
 import LocalServiceProfileTheme, {
   type PublicCommunityVerification,
 } from "@/pages/profile-sites/LocalServiceProfileTheme";
@@ -1603,7 +1603,7 @@ export default function ProfileSiteView() {
       </section>
     ) : null;
 
-  if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG || siteTemplate === "photographer-drone") {
+  if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG) {
     return (
       <>
         <SEOHelmet
@@ -1619,7 +1619,7 @@ export default function ProfileSiteView() {
         />
         {manageChrome}
         {templateIndependentInventoryContext}
-        <CreativePortfolioProfileTheme
+        <PrecisionAerialProfile
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
           businessName={displayName}
