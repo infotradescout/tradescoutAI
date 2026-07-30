@@ -34,11 +34,13 @@ describe("profile hero editor field mapping", () => {
     const patched = patchHeroBlock(seeded, {
       title: "Edited title",
       text: "Edited teaser",
+      videoUrl: "/uploads/example-video",
     });
     const hero = patched.find((block) => block.type === "hero")?.data as Record<string, string>;
     expect(hero.headerLabel).toBe("Edited title");
     expect(hero.teaser).toBe("Edited teaser");
     expect(hero.title).toBe("Edited title");
     expect(hero.text).toBe("Edited teaser");
+    expect(hero.videoUrl).toBe("/uploads/example-video");
   });
 });

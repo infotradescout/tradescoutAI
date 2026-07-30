@@ -11,6 +11,7 @@ import {
   PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
   PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
   PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS,
+  PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { userRoleEnum } from "@shared/schema";
 import {
@@ -22,6 +23,7 @@ import {
   isPrecisionAerialV1SystemSeed,
   isPrecisionAerialV2SystemSeed,
   isPrecisionAerialV3SystemSeed,
+  isPrecisionAerialV4SystemSeed,
   mergePrecisionAerialBusinessProfileData,
   resolvePrecisionAerialProfileSeedFields,
 } from "../services/precisionAerialProfileProvisioning";
@@ -46,9 +48,9 @@ describe("Precision Aerial production profile contract", () => {
       PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "siteTemplate")?.data
     ).toMatchObject({ id: "default" });
     expect(hero?.data.imageUrl).toBe("/images/profiles/precision-aerial/real-estate-aerial-01.jpg");
-    expect(hero?.data.videoUrl).toBe("/images/profiles/precision-aerial/hero-reel.mp4");
+    expect(hero?.data.videoUrl).toBe("/uploads/precision-aerial-services/hero-reel.mp4");
     expect(hero?.data.videoPosterUrl).toBe(
-      "/images/profiles/precision-aerial/hero-reel-poster.jpg"
+      "/uploads/precision-aerial-services/hero-reel-poster.jpg"
     );
     expect(
       PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS.find((block) => block.type === "gallery")
@@ -66,11 +68,11 @@ describe("Precision Aerial production profile contract", () => {
         sourceUrl: "https://www.instagram.com/p/DWHQtuPkUv0/",
       },
       {
-        assetPath: "/images/profiles/precision-aerial/hero-reel.mp4",
+        assetPath: "/uploads/precision-aerial-services/hero-reel.mp4",
         sourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
       },
       {
-        assetPath: "/images/profiles/precision-aerial/hero-reel-poster.jpg",
+        assetPath: "/uploads/precision-aerial-services/hero-reel-poster.jpg",
         sourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
       },
     ]);
@@ -208,6 +210,19 @@ describe("Precision Aerial production profile contract", () => {
     expect(isPrecisionAerialV3SystemSeed(v3Profile, { profileSections: v2Sections })).toBe(true);
     expect(
       resolvePrecisionAerialProfileSeedFields(v3Profile, {
+        profileSections: v2Sections,
+      }).contentBlocks
+    ).toEqual(PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS);
+
+    const v4Profile = {
+      ...v2Profile,
+      headline: "FAA Part 107 aerial photo and video in Pensacola.",
+      contentBlocks: PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS,
+      seoMeta: resolvePrecisionAerialProfileSeedFields(null, {}).seoMeta,
+    };
+    expect(isPrecisionAerialV4SystemSeed(v4Profile, { profileSections: v2Sections })).toBe(true);
+    expect(
+      resolvePrecisionAerialProfileSeedFields(v4Profile, {
         profileSections: v2Sections,
       }).contentBlocks
     ).toEqual(PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS);
@@ -403,6 +418,17 @@ describe("Precision Aerial production profile contract", () => {
     expect(profile).toContain("safeFeaturedWorkUrl");
     expect(profile).toContain("href={featuredWorkUrl}");
     expect(profile).toContain("precision-aerial-hero-video");
+    expect(profile).toContain("uploads|images");
+    expect(read("client/src/components/profile/ProfileSiteManageChrome.tsx")).toContain(
+      "profile-manage-hero-video-upload"
+    );
+    expect(read("client/src/components/profile/ProfileSiteManageChrome.tsx")).toContain(
+      "uploadObject(file)"
+    );
+    expect(read("server/services/precisionAerialProfileProvisioning.ts")).toContain(
+      "ensurePrecisionAerialManagedMedia"
+    );
+    expect(read("server/localStorage.ts")).toContain("uploadPublicFileForKey");
     expect(profile).not.toContain("<iframe");
     expect(
       fs.existsSync(

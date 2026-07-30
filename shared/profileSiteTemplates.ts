@@ -573,7 +573,13 @@ export function readHeroEditorFields(contentBlocks: unknown): {
 
 export function patchHeroBlock(
   contentBlocks: unknown,
-  patch: { title?: string; text?: string; imageUrl?: string }
+  patch: {
+    title?: string;
+    text?: string;
+    imageUrl?: string;
+    videoUrl?: string;
+    videoPosterUrl?: string;
+  }
 ): ProfileContentBlock[] {
   const blocks = Array.isArray(contentBlocks)
     ? (contentBlocks.filter(Boolean) as ProfileContentBlock[])
@@ -591,6 +597,8 @@ export function patchHeroBlock(
         ...(patch.title !== undefined ? { title: patch.title, headerLabel: patch.title } : {}),
         ...(patch.text !== undefined ? { text: patch.text, teaser: patch.text } : {}),
         ...(patch.imageUrl !== undefined ? { imageUrl: patch.imageUrl } : {}),
+        ...(patch.videoUrl !== undefined ? { videoUrl: patch.videoUrl } : {}),
+        ...(patch.videoPosterUrl !== undefined ? { videoPosterUrl: patch.videoPosterUrl } : {}),
       },
     };
   });
@@ -603,6 +611,8 @@ export function patchHeroBlock(
         text: patch.text || "",
         teaser: patch.text || "",
         ...(patch.imageUrl ? { imageUrl: patch.imageUrl } : {}),
+        ...(patch.videoUrl ? { videoUrl: patch.videoUrl } : {}),
+        ...(patch.videoPosterUrl ? { videoPosterUrl: patch.videoPosterUrl } : {}),
       },
     });
   }
