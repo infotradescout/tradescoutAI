@@ -204,7 +204,7 @@ describe("public profile social preview context", () => {
       kind: "profile",
       sourceImageUrl:
         "https://www.thetradescout.com/images/businesses/jw-stone/video/hero-poster.jpg",
-      logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
+      logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social.svg",
       layout: "brand-hero",
     });
     expect(preview?.sourceImageUrl).not.toContain("logo-social-preview");

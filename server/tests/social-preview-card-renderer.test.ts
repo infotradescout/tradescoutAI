@@ -57,6 +57,7 @@ describe.sequential("social preview card renderer", () => {
         kind: "profile",
         title: "JW Stone Logistics",
         sourceImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
+        logoUrl: "/images/businesses/jw-stone/logo-social.svg",
         layout: "brand-hero",
       },
       {

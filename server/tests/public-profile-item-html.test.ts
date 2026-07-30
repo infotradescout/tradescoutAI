@@ -3,6 +3,7 @@ import { listProfileGalleryItems } from "@shared/profileGalleryShare";
 import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
 import { listProfileInventoryItems } from "@shared/profileItemShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
+import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
 
@@ -10,13 +11,7 @@ const jwSocialPresentationBlock = {
   type: "profilePresentation",
   data: {
     social: {
-      brandName: "JW Stone Logistics",
-      logoUrl: "/images/businesses/jw-stone/logo.svg",
-      profileImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
-      accentColor: "#81904a",
-      profileCta: "Explore inventory",
-      inventoryCta: "View photos · Request pricing",
-      galleryCta: "View project",
+      ...JW_STONE_SOCIAL_PRESENTATION,
     },
   },
 };
@@ -211,6 +206,55 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
     expect(html).not.toContain('data-seo-profile-item="inventory"');
+  });
+
+  it("gives a legacy JW root row a new brand-hero cache key without changing other profiles", async () => {
+    const readOgImage = (html: string) =>
+      html.match(/<meta property="og:image" content="([^"]+)"/)?.[1] || "";
+
+    profileRecord.contentBlocks = [jwPublicDiscoveryBlock];
+    const brandHeroHtml = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+    });
+
+    profileRecord.contentBlocks = [
+      {
+        type: "profilePresentation",
+        data: {
+          social: {
+            ...JW_STONE_SOCIAL_PRESENTATION,
+            cardLayout: "split",
+          },
+        },
+      },
+      jwPublicDiscoveryBlock,
+    ];
+    const splitHtml = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+    });
+
+    expect(brandHeroHtml).toContain('property="og:title" content="JW Stone Logistics"');
+    expect(readOgImage(brandHeroHtml!)).not.toBe(readOgImage(splitHtml!));
+
+    profileRecord.slug = "other-business";
+    profileRecord.displayName = "Other Business";
+    profileRecord.seoMeta.title = "Other Business";
+    profileRecord.seoMeta.customDomain = "";
+    profileRecord.contentBlocks = [];
+    businessRecord.name = "Other Business";
+    const otherHtml = await buildPublicProfileHtml({
+      slug: "other-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(otherHtml).toContain('property="og:title" content="Other Business"');
+    expect(otherHtml).not.toContain('property="og:title" content="JW Stone Logistics"');
+    expect(readOgImage(otherHtml!)).toContain("/images/social/profile/other-business.png");
   });
 
   it("versions profile cards by the profile-owned image without changing item cards", async () => {

@@ -27,6 +27,7 @@ import {
   buildProfileSocialTitle,
   resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
+import { JW_STONE_PROFILE_SLUG, JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import {
   isInternalAdminProfileSlug,
@@ -807,6 +808,10 @@ function buildMeta(
     configuredCtaLabel: profile.profile.ctaConfig?.primary?.label,
     itemType: itemShare?.itemType || (categoryShare ? "category" : null),
     contentBlocks: profile.profile.contentBlocks,
+    defaultConfig:
+      !itemShare && !categoryShare && profile.profile.slug === JW_STONE_PROFILE_SLUG
+        ? JW_STONE_SOCIAL_PRESENTATION
+        : undefined,
   });
   const publicBrandName = presentation.brandName;
   const socialTitle = buildProfileSocialTitle({
@@ -871,6 +876,12 @@ function buildMeta(
         itemShare ? "" : presentation.profileImageUrl || "",
         presentation.accentColor,
         presentation.ctaLabel,
+        !itemShare &&
+        !categoryShare &&
+        profile.profile.slug === JW_STONE_PROFILE_SLUG &&
+        presentation.cardLayout === "brand-hero"
+          ? presentation.cardLayout
+          : "",
       ].join("|"),
     }) || sourceImageUrl;
   const faviconUrl = profile.profile.seoMeta?.faviconUrl || legacyProfileImageUrl;
