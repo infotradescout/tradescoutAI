@@ -115,6 +115,17 @@ function normalizedHex(value: unknown, fallback: string): string {
   return /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : fallback;
 }
 
+function normalizedAssetKey(value: string): string {
+  const candidate = value.trim();
+  if (!candidate) return "";
+  try {
+    const parsed = new URL(candidate, "https://profile-assets.local");
+    return `${parsed.hostname.toLowerCase()}${parsed.pathname.replace(/\/+$/, "")}`;
+  } catch {
+    return candidate.split(/[?#]/, 1)[0].replace(/\/+$/, "");
+  }
+}
+
 function replaceOperatorWithBusiness(
   value: string | null | undefined,
   operatorName: string,
@@ -169,12 +180,25 @@ export default function PrecisionAerialProfile({
   profileItems,
 }: Props) {
   const hero = useMemo(() => readHeroData(contentBlocks), [contentBlocks]);
+  const uniqueGalleryItems = useMemo(() => {
+    const seen = new Set<string>();
+    return galleryItems.filter((item) => {
+      const key = normalizedAssetKey(item.imageUrl);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [galleryItems]);
   const featuredItem =
-    galleryItems.find((item) => item.slug === sharedGallerySlug) || galleryItems[0] || null;
+    uniqueGalleryItems.find((item) => item.slug === sharedGallerySlug) ||
+    uniqueGalleryItems[0] ||
+    null;
   const heroImage = hero.imageUrl || featuredItem?.imageUrl || "";
-  const heroFallbacks = galleryItems
-    .map((item) => item.imageUrl)
-    .filter((value) => value && value !== heroImage);
+  const heroImageKey = normalizedAssetKey(heroImage);
+  const portfolioItems = uniqueGalleryItems.filter(
+    (item) => normalizedAssetKey(item.imageUrl) !== heroImageKey
+  );
+  const heroFallbacks = portfolioItems.map((item) => item.imageUrl);
   const locationLabel = hero.locationLabel || serviceAreas[0] || "";
   const featuredWorkUrl = safeFeaturedWorkUrl(hero.featuredWorkUrl);
   const instagramUrl = safeSocialUrl(hero.instagramUrl, ["instagram.com"]);
@@ -256,26 +280,10 @@ export default function PrecisionAerialProfile({
         <div className="mx-auto flex min-h-20 w-full max-w-[1600px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-12">
           <a
             href={profileShareDestination}
-            className="flex min-w-0 items-center gap-3"
+            className="min-w-0 truncate text-sm font-black tracking-[-0.025em] drop-shadow-md sm:text-base"
             aria-label={`${businessName} home`}
           >
-            {hero.logoUrl ? (
-              <SafeProfileImg
-                src={hero.logoUrl}
-                alt={`${businessName} logo`}
-                className="h-11 w-11 shrink-0 rounded-full border border-white/30 object-cover shadow-xl sm:h-12 sm:w-12"
-              />
-            ) : null}
-            <span className="min-w-0">
-              <strong className="block truncate text-sm font-black tracking-[-0.025em] drop-shadow-md sm:text-base">
-                {businessName}
-              </strong>
-              {locationLabel ? (
-                <small className="mt-0.5 block truncate text-[9px] font-bold uppercase tracking-[0.18em] text-white/70 sm:text-[10px]">
-                  {locationLabel}
-                </small>
-              ) : null}
-            </span>
+            {businessName}
           </a>
 
           <nav
@@ -333,27 +341,56 @@ export default function PrecisionAerialProfile({
             <div className="absolute inset-0 bg-[var(--precision-brand-surface)]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/5 to-black/80" />
-          <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[1600px] px-5 pb-9 sm:px-8 sm:pb-14 lg:px-12 lg:pb-16">
+          <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[1600px] px-5 pb-8 sm:px-8 sm:pb-12 lg:px-12 lg:pb-14">
+            <div className="mb-5 flex max-w-fit items-center gap-3 rounded-full border border-white/25 bg-black/30 py-2 pl-2 pr-4 shadow-xl backdrop-blur-md sm:mb-7">
+              {hero.logoUrl ? (
+                <SafeProfileImg
+                  src={hero.logoUrl}
+                  alt={`${businessName} logo`}
+                  className="h-12 w-12 shrink-0 rounded-full border border-white/30 object-cover sm:h-14 sm:w-14"
+                />
+              ) : null}
+              <span className="min-w-0">
+                <strong className="block truncate text-sm font-black tracking-[-0.02em] sm:text-base">
+                  {businessName}
+                </strong>
+                <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] font-bold uppercase tracking-[0.13em] text-white/70 sm:text-[11px]">
+                  {locationLabel ? <span>{locationLabel}</span> : null}
+                  {hero.instagramHandle ? <span>· {hero.instagramHandle}</span> : null}
+                </span>
+              </span>
+            </div>
+
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/75 sm:text-xs">
-              {[headline || "Aerial photography + film", locationLabel].filter(Boolean).join(" · ")}
+              {headline || "Aerial photography + film"}
             </p>
-            <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <h1 className="max-w-5xl text-[3.7rem] font-black leading-[0.86] tracking-[-0.075em] drop-shadow-xl sm:text-[6.8rem] lg:text-[8.5rem]">
+                <h1 className="max-w-5xl text-[3.45rem] font-black leading-[0.88] tracking-[-0.07em] drop-shadow-xl sm:text-[6.5rem] lg:text-[8rem]">
                   {hero.title || "A better view."}
                 </h1>
-                <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-white/85 sm:text-xl sm:leading-8">
+                <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/85 sm:text-xl sm:leading-8">
                   Aerial photography and film for property, construction, land, events, and motion.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3 lg:pb-2">
-                <a
-                  href="#work"
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-slate-950 shadow-lg transition hover:bg-white/90"
+                {portfolioItems.length > 0 ? (
+                  <a
+                    href="#work"
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-slate-950 shadow-lg transition hover:bg-white/90"
+                  >
+                    View portfolio
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => onDirectConnect()}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/40 bg-black/20 px-5 text-sm font-black text-white backdrop-blur-sm transition hover:bg-black/35"
                 >
-                  View portfolio
+                  Book a shoot
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </button>
                 {featuredWorkUrl ? (
                   <a
                     href={featuredWorkUrl}
@@ -370,7 +407,7 @@ export default function PrecisionAerialProfile({
           </div>
         </section>
 
-        {galleryItems.length > 0 ? (
+        {portfolioItems.length > 0 ? (
           <section
             id="work"
             className="scroll-mt-20 bg-neutral-950 text-white"
@@ -401,14 +438,14 @@ export default function PrecisionAerialProfile({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12">
-                {galleryItems.map((item, index) => (
+                {portfolioItems.map((item, index) => (
                   <button
                     key={item.slug}
                     id={`profile-gallery-${item.slug}`}
                     type="button"
                     onClick={() => setActiveItem(item)}
                     className={`group relative block min-h-[320px] overflow-hidden bg-white/5 text-left sm:min-h-[440px] ${
-                      galleryItems.length === 1
+                      portfolioItems.length === 1
                         ? "sm:col-span-2 lg:col-span-12 lg:min-h-[720px]"
                         : index % 5 === 0
                           ? "sm:col-span-2 lg:col-span-8 lg:min-h-[650px]"
@@ -504,25 +541,16 @@ export default function PrecisionAerialProfile({
           data-testid="precision-company"
         >
           <div className="mx-auto grid max-w-[1380px] gap-10 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-[0.62fr_1.38fr] lg:items-center lg:gap-24 lg:px-12">
-            <div className="flex items-center gap-5">
-              {hero.logoUrl ? (
-                <SafeProfileImg
-                  src={hero.logoUrl}
-                  alt={`${businessName} logo`}
-                  className="h-24 w-24 shrink-0 rounded-full border border-white/20 object-cover shadow-2xl sm:h-32 sm:w-32"
-                />
-              ) : null}
-              <span>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/50">
-                  About
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/50">
+                About
+              </p>
+              {locationLabel ? (
+                <p className="mt-3 flex items-center gap-2 text-sm font-bold text-white/75">
+                  <MapPin className="h-4 w-4" />
+                  {locationLabel}
                 </p>
-                {locationLabel ? (
-                  <p className="mt-3 flex items-center gap-2 text-sm font-bold text-white/75">
-                    <MapPin className="h-4 w-4" />
-                    {locationLabel}
-                  </p>
-                ) : null}
-              </span>
+              ) : null}
             </div>
 
             <div>
