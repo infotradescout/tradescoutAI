@@ -108,33 +108,16 @@ export class R2StorageService {
     const ext = this.getExtensionFromContentType(contentType);
     const key = `uploads/${fileId}${ext}`;
 
-    return this.uploadPublicFileForKey(key, buffer, contentType);
-  }
-
-  /**
-   * Store a first-party public asset under the same uploads namespace used by
-   * browser uploads. Intended for deterministic, source-backed seed media.
-   */
-  async uploadPublicFileForKey(key: string, buffer: Buffer, contentType: string): Promise<string> {
-    const normalizedKey = key.replace(/^\/+/, "");
-    if (
-      !normalizedKey.startsWith("uploads/") ||
-      normalizedKey.split("/").some((part) => part === "." || part === "..")
-    ) {
-      throw new Error("Public upload key must stay under uploads/");
-    }
-
     await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucketName,
-        Key: normalizedKey,
+        Key: key,
         Body: buffer,
         ContentType: contentType,
-        CacheControl: "public, max-age=31536000, immutable",
       })
     );
 
-    return `${this.publicUrlBase}/${normalizedKey}`;
+    return `${this.publicUrlBase}/${key}`;
   }
 
   /**

@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { and, eq } from "drizzle-orm";
 import {
   PRECISION_AERIAL_BUSINESS_NAME,
@@ -10,7 +8,6 @@ import {
   PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
   PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
   PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS,
-  PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
@@ -77,19 +74,6 @@ const PRECISION_AERIAL_PROFILE_SEO = {
   description:
     "See aerial real estate, construction, land, and FPV work from FAA Part 107 licensed drone pilot Cameron in Pensacola.",
 } as const;
-
-const PRECISION_AERIAL_MANAGED_MEDIA = [
-  {
-    sourceName: "hero-reel.mp4",
-    uploadKey: "uploads/precision-aerial-services/hero-reel.mp4",
-    contentType: "video/mp4",
-  },
-  {
-    sourceName: "hero-reel-poster.jpg",
-    uploadKey: "uploads/precision-aerial-services/hero-reel-poster.jpg",
-    contentType: "image/jpeg",
-  },
-] as const;
 
 type ExistingProfileSeed = {
   displayName?: unknown;
@@ -182,23 +166,6 @@ export function isPrecisionAerialV3SystemSeed(
   );
 }
 
-export function isPrecisionAerialV4SystemSeed(
-  profile: ExistingProfileSeed | null | undefined,
-  stewardPreferences: unknown
-): boolean {
-  if (!profile) return false;
-  const preferences = asRecord(stewardPreferences);
-  return (
-    profile.displayName === PRECISION_AERIAL_BUSINESS_NAME &&
-    profile.roleContext === "content_creator" &&
-    profile.headline === PRECISION_AERIAL_PROFILE_HEADLINE &&
-    exactJsonMatch(profile.contentBlocks, PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS) &&
-    exactJsonMatch(profile.ctaConfig, PRECISION_AERIAL_PROFILE_CTA) &&
-    exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_PROFILE_SEO) &&
-    exactJsonMatch(preferences.profileSections, DEFAULT_PROFILE_SECTIONS)
-  );
-}
-
 export function resolvePrecisionAerialProfileSeedFields(
   existingProfile: ExistingProfileSeed | null | undefined,
   stewardPreferences: unknown
@@ -207,8 +174,7 @@ export function resolvePrecisionAerialProfileSeedFields(
     !existingProfile ||
     isPrecisionAerialV1SystemSeed(existingProfile, stewardPreferences) ||
     isPrecisionAerialV2SystemSeed(existingProfile, stewardPreferences) ||
-    isPrecisionAerialV3SystemSeed(existingProfile, stewardPreferences) ||
-    isPrecisionAerialV4SystemSeed(existingProfile, stewardPreferences)
+    isPrecisionAerialV3SystemSeed(existingProfile, stewardPreferences)
   ) {
     return {
       displayName: PRECISION_AERIAL_BUSINESS_NAME,
@@ -244,60 +210,6 @@ export function mergePrecisionAerialBusinessProfileData(
       ...existingBrandColors,
     },
   };
-}
-
-async function readPrecisionAerialSeedAsset(sourceName: string): Promise<Buffer> {
-  const candidates = [
-    path.resolve(process.cwd(), "dist/public/images/profiles/precision-aerial", sourceName),
-    path.resolve(process.cwd(), "client/public/images/profiles/precision-aerial", sourceName),
-  ];
-  for (const candidate of candidates) {
-    try {
-      return await fs.readFile(candidate);
-    } catch (error: any) {
-      if (error?.code !== "ENOENT") throw error;
-    }
-  }
-  throw new Error(`Precision Aerial seed media missing: ${sourceName}`);
-}
-
-async function ensurePrecisionAerialManagedMedia(): Promise<void> {
-  const media = await Promise.all(
-    PRECISION_AERIAL_MANAGED_MEDIA.map(async (asset) => ({
-      ...asset,
-      bytes: await readPrecisionAerialSeedAsset(asset.sourceName),
-    }))
-  );
-  const useR2 = Boolean(
-    process.env.R2_ACCOUNT_ID &&
-    process.env.R2_ACCESS_KEY_ID &&
-    process.env.R2_SECRET_ACCESS_KEY &&
-    process.env.R2_BUCKET_NAME
-  );
-
-  if (useR2) {
-    const { R2StorageService } = await import("../localStorage");
-    const storage = new R2StorageService();
-    await Promise.all(
-      media.map((asset) =>
-        storage.uploadPublicFileForKey(asset.uploadKey, asset.bytes, asset.contentType)
-      )
-    );
-    return;
-  }
-
-  const uploadDir = path.resolve(process.env.UPLOAD_DIR || "./public/uploads");
-  await Promise.all(
-    media.map(async (asset) => {
-      const relativePath = asset.uploadKey.replace(/^uploads\//, "");
-      const destination = path.resolve(uploadDir, relativePath);
-      if (!destination.startsWith(`${uploadDir}${path.sep}`)) {
-        throw new Error("Precision Aerial managed media path escaped uploads");
-      }
-      await fs.mkdir(path.dirname(destination), { recursive: true });
-      await fs.writeFile(destination, asset.bytes);
-    })
-  );
 }
 
 function isProtectedOrHumanAccount(user: any): boolean {
@@ -407,12 +319,7 @@ export async function provisionPrecisionAerialProfile(): Promise<void> {
         : {};
     const migrateExactSystemSeed =
       isPrecisionAerialV1SystemSeed(existingProfile, existingPreferences) ||
-      isPrecisionAerialV2SystemSeed(existingProfile, existingPreferences) ||
-      isPrecisionAerialV3SystemSeed(existingProfile, existingPreferences) ||
-      isPrecisionAerialV4SystemSeed(existingProfile, existingPreferences);
-    if (!existingProfile || migrateExactSystemSeed) {
-      await ensurePrecisionAerialManagedMedia();
-    }
+      isPrecisionAerialV2SystemSeed(existingProfile, existingPreferences);
     const existingProfileSections =
       existingPreferences.profileSections &&
       typeof existingPreferences.profileSections === "object" &&

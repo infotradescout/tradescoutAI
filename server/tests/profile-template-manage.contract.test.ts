@@ -51,13 +51,6 @@ describe("profile template manage surface contracts", () => {
     expect(profileView.match(/\{manageChrome\}/g)).toHaveLength(7);
   });
 
-  it("uploads hero video through the normal profile object-storage path", () => {
-    expect(manageChrome).toContain("profile-manage-hero-video-upload");
-    expect(manageChrome).toContain("uploadObject(file)");
-    expect(manageChrome).toContain("normalizeUploadedObjectPublicUrl");
-    expect(manageChrome).toContain("patchHeroBlock(contentBlocks, { videoUrl })");
-  });
-
   it("offers the v1 template gallery in the profile editor", () => {
     expect(editor).toContain("listSelectableProfileSiteTemplates");
     expect(editor).toContain("profile-editor-template-");

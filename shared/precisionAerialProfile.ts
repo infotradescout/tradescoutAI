@@ -22,11 +22,11 @@ export const PRECISION_AERIAL_MEDIA_SOURCES = [
     sourceUrl: "https://www.instagram.com/p/DWHQtuPkUv0/",
   },
   {
-    assetPath: "/uploads/precision-aerial-services/hero-reel.mp4",
+    assetPath: "/images/profiles/precision-aerial/hero-reel.mp4",
     sourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
   },
   {
-    assetPath: "/uploads/precision-aerial-services/hero-reel-poster.jpg",
+    assetPath: "/images/profiles/precision-aerial/hero-reel-poster.jpg",
     sourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
   },
 ] as const;
@@ -179,11 +179,12 @@ export const PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS =
   );
 
 /**
- * Exact system seed that briefly referenced the checked-in source reel
- * directly. It is retained only so provisioning can move that unedited seed
- * into the same managed upload namespace used by owner-uploaded profile media.
+ * Current source-backed profile. Cameron's public TikTok identifies him as a
+ * Pensacola FAA Part 107 licensed drone pilot and lists real estate,
+ * construction, and land work. Thomas confirmed on 2026-07-29 that FPV is
+ * currently available and thermal imaging is upcoming.
  */
-export const PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS =
+export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
   PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS.map((block) => {
     if (block.type === "about") {
       return {
@@ -218,27 +219,6 @@ export const PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS =
             "Land and site aerials",
             "FPV drone video",
           ],
-        },
-      };
-    }
-    return block;
-  });
-
-/**
- * Current source-backed profile. Cameron's public TikTok identifies him as a
- * Pensacola FAA Part 107 licensed drone pilot and lists real estate,
- * construction, and land work. Thomas confirmed on 2026-07-29 that FPV is
- * currently available and thermal imaging is upcoming.
- */
-export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
-  PRECISION_AERIAL_V4_PROFILE_CONTENT_BLOCKS.map((block) => {
-    if (block.type === "hero") {
-      return {
-        ...block,
-        data: {
-          ...block.data,
-          videoUrl: "/uploads/precision-aerial-services/hero-reel.mp4",
-          videoPosterUrl: "/uploads/precision-aerial-services/hero-reel-poster.jpg",
         },
       };
     }

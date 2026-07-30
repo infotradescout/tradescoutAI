@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,7 @@ import {
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { normalizeUploadedObjectPublicUrl, uploadObject } from "@/lib/objectUpload";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
-import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile";
 import {
   listSelectableProfileSiteTemplates,
   patchHeroBlock,
@@ -64,7 +62,6 @@ export default function ProfileSiteManageChrome({
 }: Props) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [uploadingHeroVideo, setUploadingHeroVideo] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
   const [bridging, setBridging] = useState(false);
@@ -97,8 +94,6 @@ export default function ProfileSiteManageChrome({
   );
   const templates = listSelectableProfileSiteTemplates();
   const isJwStone = profileSlug === "jw-stone";
-  const supportsHeroVideo =
-    siteTemplate === "videographer" || profileSlug === PRECISION_AERIAL_PROFILE_SLUG;
   const inventoryStones = useMemo(
     () =>
       isJwStone
@@ -165,61 +160,6 @@ export default function ProfileSiteManageChrome({
 
   const setLeadImage = async (stoneSlug: string, imageUrl: string) => {
     await persistBlocks(upsertInventoryLeadImage(contentBlocks, stoneSlug, imageUrl));
-  };
-
-  const uploadHeroVideo = async (event: ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const selected = input.files?.[0];
-    if (!selected) return;
-    if (selected.size > 20 * 1024 * 1024) {
-      toast({
-        title: "Video is too large",
-        description: "Choose a hero video under 20 MB.",
-        variant: "destructive",
-      });
-      input.value = "";
-      return;
-    }
-    const extension = selected.name.toLowerCase().split(".").pop() || "";
-    const inferredType =
-      extension === "mp4"
-        ? "video/mp4"
-        : extension === "webm"
-          ? "video/webm"
-          : extension === "mov"
-            ? "video/quicktime"
-            : "";
-    if (!selected.type.startsWith("video/") && !inferredType) {
-      toast({
-        title: "Choose a video",
-        description: "Hero media must be an MP4, WebM, or MOV file.",
-        variant: "destructive",
-      });
-      input.value = "";
-      return;
-    }
-
-    setUploadingHeroVideo(true);
-    try {
-      const file =
-        selected.type.startsWith("video/") || !inferredType
-          ? selected
-          : new File([selected], selected.name, { type: inferredType });
-      const uploaded = await uploadObject(file);
-      const videoUrl = normalizeUploadedObjectPublicUrl(uploaded.publicUrl);
-      if (!videoUrl) throw new Error("Uploaded video URL unavailable");
-      await persistBlocks(patchHeroBlock(contentBlocks, { videoUrl }));
-      toast({ title: "Hero video uploaded" });
-    } catch (error: any) {
-      toast({
-        title: "Could not upload hero video",
-        description: formatUserFacingErrorMessage(error, "Please try again."),
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingHeroVideo(false);
-      input.value = "";
-    }
   };
 
   const openOnLiveDomain = async () => {
@@ -438,28 +378,6 @@ export default function ProfileSiteManageChrome({
                 data-testid="profile-manage-hero-text"
               />
             </div>
-            {supportsHeroVideo ? (
-              <div className="space-y-1 md:col-span-2">
-                <Label htmlFor="profile-manage-hero-video" className="text-white/70">
-                  Hero video
-                </Label>
-                <input
-                  id="profile-manage-hero-video"
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  disabled={saving || uploadingHeroVideo}
-                  onChange={(event) => void uploadHeroVideo(event)}
-                  className="block w-full rounded-md border border-white/15 bg-black/40 px-3 py-2 text-sm text-white file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1.5 file:font-semibold file:text-white"
-                  data-testid="profile-manage-hero-video-upload"
-                />
-                <p className="text-xs text-white/55">
-                  MP4, WebM, or MOV up to 20 MB. Stored with this profile's uploaded media.
-                </p>
-                {uploadingHeroVideo ? (
-                  <p className="text-xs font-semibold text-amber-300">Uploading video…</p>
-                ) : null}
-              </div>
-            ) : null}
             {siteTemplate === "wholesaler" ? (
               <div className="space-y-1 md:col-span-2">
                 <Label className="text-white/70">Featured inventory slugs (comma-separated)</Label>

@@ -32,8 +32,8 @@ const contentBlocks = [
       locationLabel: "Pensacola, Florida",
       logoUrl: "/images/profiles/precision-aerial/logo.jpg",
       imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
-      videoUrl: "/uploads/precision-aerial-services/hero-reel.mp4",
-      videoPosterUrl: "/uploads/precision-aerial-services/hero-reel-poster.jpg",
+      videoUrl: "/images/profiles/precision-aerial/hero-reel.mp4",
+      videoPosterUrl: "/images/profiles/precision-aerial/hero-reel-poster.jpg",
       featuredWorkUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
       instagramUrl: "https://www.instagram.com/precisionaerialservice/",
       instagramHandle: "@PrecisionAerialService",
@@ -127,7 +127,7 @@ describe("PrecisionAerialProfile", () => {
     expect((heroMedia as HTMLVideoElement).loop).toBe(true);
     expect((heroMedia as HTMLVideoElement).playsInline).toBe(true);
     expect(heroMedia?.getAttribute("poster")).toBe(
-      "/uploads/precision-aerial-services/hero-reel-poster.jpg"
+      "/images/profiles/precision-aerial/hero-reel-poster.jpg"
     );
     expect(heroIdentity).not.toBeNull();
     expect(heroIdentity?.compareDocumentPosition(heroMedia as Node)).toBe(
