@@ -21,6 +21,14 @@ export const PRECISION_AERIAL_MEDIA_SOURCES = [
     assetPath: "/images/profiles/precision-aerial/real-estate-aerial-02.jpg",
     sourceUrl: "https://www.instagram.com/p/DWHQtuPkUv0/",
   },
+  {
+    assetPath: "/images/profiles/precision-aerial/hero-reel.mp4",
+    sourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
+  },
+  {
+    assetPath: "/images/profiles/precision-aerial/hero-reel-poster.jpg",
+    sourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
+  },
 ] as const;
 
 /**
@@ -156,15 +164,8 @@ export const PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS = [
   },
 ] as const;
 
-/**
- * Cameron's isolated first-deliverable candidate. Public service wording is
- * limited to work demonstrated by the supplied accounts; it does not imply
- * inspection, survey, mapping, thermal, fleet, insurance, or certification
- * verification. The presentation flag is generic profile data, not a slug
- * branch, so the candidate can be reviewed without changing every default
- * profile.
- */
-export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
+/** Exact pre-social-research seed retained only for safe one-time migration. */
+export const PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS =
   PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS.map((block) =>
     block.type === "hero"
       ? {
@@ -176,3 +177,50 @@ export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
         }
       : block
   );
+
+/**
+ * Current source-backed profile. Cameron's public TikTok identifies him as a
+ * Pensacola FAA Part 107 licensed drone pilot and lists real estate,
+ * construction, and land work. Thomas confirmed on 2026-07-29 that FPV is
+ * currently available and thermal imaging is upcoming.
+ */
+export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
+  PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS.map((block) => {
+    if (block.type === "about") {
+      return {
+        ...block,
+        data: {
+          ...block.data,
+          text: "Cameron is a Pensacola-based FAA Part 107 licensed drone pilot creating aerial photo, traditional drone video, and FPV work for real estate, construction progress, and land or site documentation.",
+        },
+      };
+    }
+    if (block.type === "hero") {
+      return {
+        ...block,
+        data: {
+          ...block.data,
+          text: "Aerial photo, video, and FPV for real estate, construction, and land.",
+          upcomingService: "Thermal imaging",
+          videoUrl: "/images/profiles/precision-aerial/hero-reel.mp4",
+          videoPosterUrl: "/images/profiles/precision-aerial/hero-reel-poster.jpg",
+          videoSourceUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
+        },
+      };
+    }
+    if (block.type === "services") {
+      return {
+        ...block,
+        data: {
+          ...block.data,
+          items: [
+            "Real estate aerial photo and video",
+            "Construction progress imagery",
+            "Land and site aerials",
+            "FPV drone video",
+          ],
+        },
+      };
+    }
+    return block;
+  });

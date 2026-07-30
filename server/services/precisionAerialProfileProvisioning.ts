@@ -7,6 +7,7 @@ import {
   PRECISION_AERIAL_STEWARD_PROVIDER,
   PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS,
   PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS,
+  PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS,
 } from "@shared/precisionAerialProfile";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
@@ -47,7 +48,8 @@ const DEFAULT_BRAND_COLORS = {
   surface: "#101820",
 } as const;
 
-const PRECISION_AERIAL_PROFILE_HEADLINE = "Drone photo and video in Pensacola.";
+const PRECISION_AERIAL_LEGACY_PROFILE_HEADLINE = "Drone photo and video in Pensacola.";
+const PRECISION_AERIAL_PROFILE_HEADLINE = "FAA Part 107 aerial photo and video in Pensacola.";
 const PRECISION_AERIAL_PROFILE_CTA = {
   primary: {
     label: "Direct Connect",
@@ -60,12 +62,17 @@ const PRECISION_AERIAL_V1_PROFILE_SEO = {
   description:
     "See aerial photo and video work from Precision Aerial Services in Pensacola and send a request through TradeScout Direct Connect.",
 } as const;
-const PRECISION_AERIAL_PROFILE_SEO = {
+const PRECISION_AERIAL_V2_PROFILE_SEO = {
   ...PRECISION_AERIAL_V1_PROFILE_SEO,
   imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
   imageWidth: 1440,
   imageHeight: 1080,
   faviconUrl: "/images/profiles/precision-aerial/logo.jpg",
+} as const;
+const PRECISION_AERIAL_PROFILE_SEO = {
+  ...PRECISION_AERIAL_V2_PROFILE_SEO,
+  description:
+    "See aerial real estate, construction, land, and FPV work from FAA Part 107 licensed drone pilot Cameron in Pensacola.",
 } as const;
 
 type ExistingProfileSeed = {
@@ -112,7 +119,7 @@ export function isPrecisionAerialV1SystemSeed(
   return (
     profile.displayName === PRECISION_AERIAL_BUSINESS_NAME &&
     profile.roleContext === "content_creator" &&
-    profile.headline === PRECISION_AERIAL_PROFILE_HEADLINE &&
+    profile.headline === PRECISION_AERIAL_LEGACY_PROFILE_HEADLINE &&
     exactJsonMatch(profile.contentBlocks, PRECISION_AERIAL_V1_PROFILE_CONTENT_BLOCKS) &&
     exactJsonMatch(profile.ctaConfig, PRECISION_AERIAL_PROFILE_CTA) &&
     exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_V1_PROFILE_SEO) &&
@@ -134,10 +141,27 @@ export function isPrecisionAerialV2SystemSeed(
   return (
     profile.displayName === PRECISION_AERIAL_BUSINESS_NAME &&
     profile.roleContext === "content_creator" &&
-    profile.headline === PRECISION_AERIAL_PROFILE_HEADLINE &&
+    profile.headline === PRECISION_AERIAL_LEGACY_PROFILE_HEADLINE &&
     exactJsonMatch(profile.contentBlocks, PRECISION_AERIAL_V2_PROFILE_CONTENT_BLOCKS) &&
     exactJsonMatch(profile.ctaConfig, PRECISION_AERIAL_PROFILE_CTA) &&
-    exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_PROFILE_SEO) &&
+    exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_V2_PROFILE_SEO) &&
+    exactJsonMatch(preferences.profileSections, DEFAULT_PROFILE_SECTIONS)
+  );
+}
+
+export function isPrecisionAerialV3SystemSeed(
+  profile: ExistingProfileSeed | null | undefined,
+  stewardPreferences: unknown
+): boolean {
+  if (!profile) return false;
+  const preferences = asRecord(stewardPreferences);
+  return (
+    profile.displayName === PRECISION_AERIAL_BUSINESS_NAME &&
+    profile.roleContext === "content_creator" &&
+    profile.headline === PRECISION_AERIAL_LEGACY_PROFILE_HEADLINE &&
+    exactJsonMatch(profile.contentBlocks, PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS) &&
+    exactJsonMatch(profile.ctaConfig, PRECISION_AERIAL_PROFILE_CTA) &&
+    exactJsonMatch(profile.seoMeta, PRECISION_AERIAL_V2_PROFILE_SEO) &&
     exactJsonMatch(preferences.profileSections, DEFAULT_PROFILE_SECTIONS)
   );
 }
@@ -149,7 +173,8 @@ export function resolvePrecisionAerialProfileSeedFields(
   if (
     !existingProfile ||
     isPrecisionAerialV1SystemSeed(existingProfile, stewardPreferences) ||
-    isPrecisionAerialV2SystemSeed(existingProfile, stewardPreferences)
+    isPrecisionAerialV2SystemSeed(existingProfile, stewardPreferences) ||
+    isPrecisionAerialV3SystemSeed(existingProfile, stewardPreferences)
   ) {
     return {
       displayName: PRECISION_AERIAL_BUSINESS_NAME,

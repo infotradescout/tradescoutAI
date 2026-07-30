@@ -27,16 +27,19 @@ const contentBlocks = [
     type: "hero",
     data: {
       title: "A better view.",
-      text: "Drone photo and video.",
+      text: "Aerial photo, video, and FPV for real estate, construction, and land.",
       operatorName: "Cameron",
       locationLabel: "Pensacola, Florida",
       logoUrl: "/images/profiles/precision-aerial/logo.jpg",
       imageUrl: "/images/profiles/precision-aerial/real-estate-aerial-01.jpg",
+      videoUrl: "/images/profiles/precision-aerial/hero-reel.mp4",
+      videoPosterUrl: "/images/profiles/precision-aerial/hero-reel-poster.jpg",
       featuredWorkUrl: "https://www.instagram.com/reel/DWRwdNLEcDF/",
       instagramUrl: "https://www.instagram.com/precisionaerialservice/",
       instagramHandle: "@PrecisionAerialService",
       tiktokUrl: "https://www.tiktok.com/@chillshots",
       tiktokHandle: "@chillshots",
+      upcomingService: "Thermal imaging",
     },
   },
 ];
@@ -66,10 +69,9 @@ const galleryItems = [
 
 const services = [
   "Real estate aerial photo and video",
-  "Construction progress photos",
-  "Roof and property imagery",
-  "Land and farm aerials",
-  "Boats, vehicles, and events",
+  "Construction progress imagery",
+  "Land and site aerials",
+  "FPV drone video",
 ];
 
 describe("PrecisionAerialProfile", () => {
@@ -94,11 +96,11 @@ describe("PrecisionAerialProfile", () => {
         <PrecisionAerialProfile
           profileSlug="precision-aerial-services"
           businessName="Precision Aerial Services"
-          headline="Drone photo and video in Pensacola."
+          headline="FAA Part 107 aerial photo and video in Pensacola."
           contentBlocks={contentBlocks}
           services={services}
           serviceAreas={["Pensacola, Florida"]}
-          aboutText="Cameron shoots aerial photo and video around Pensacola."
+          aboutText="Cameron is a Pensacola-based FAA Part 107 licensed drone pilot."
           galleryItems={galleryItems}
           profileShareDestination="/u/precision-aerial-services"
           onDirectConnect={onDirectConnect}
@@ -111,8 +113,8 @@ describe("PrecisionAerialProfile", () => {
     const profile = container.querySelector<HTMLElement>(
       '[data-testid="precision-aerial-profile"]'
     );
-    const heroMedia = container.querySelector('[data-testid="precision-aerial-hero-media"]');
-    const heroIdentity = container.querySelector('[data-testid="precision-aerial-hero-identity"]');
+    const heroMedia = container.querySelector('[data-testid="precision-aerial-hero-video"]');
+    const heroIdentity = container.querySelector('[data-testid="precision-aerial-header"]');
     const work = container.querySelector('[data-testid="precision-aerial-work"]');
     const serviceSection = container.querySelector('[data-testid="precision-aerial-services"]');
 
@@ -120,6 +122,13 @@ describe("PrecisionAerialProfile", () => {
       THEMES.midnight["--ts-accent"]
     );
     expect(heroMedia).not.toBeNull();
+    expect((heroMedia as HTMLVideoElement).autoplay).toBe(true);
+    expect((heroMedia as HTMLVideoElement).muted).toBe(true);
+    expect((heroMedia as HTMLVideoElement).loop).toBe(true);
+    expect((heroMedia as HTMLVideoElement).playsInline).toBe(true);
+    expect(heroMedia?.getAttribute("poster")).toBe(
+      "/images/profiles/precision-aerial/hero-reel-poster.jpg"
+    );
     expect(heroIdentity).not.toBeNull();
     expect(heroIdentity?.compareDocumentPosition(heroMedia as Node)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
@@ -132,24 +141,18 @@ describe("PrecisionAerialProfile", () => {
     expect(container.textContent).toContain("Precision Aerial Services");
     expect(container.textContent?.match(/Cameron/g)).toHaveLength(1);
     expect(container.textContent).toContain("A better view.");
-    expect(container.textContent).toContain("From discovery to a real project.");
-    expect(container.textContent).toContain("Private project brief");
-    expect(container.textContent).toContain("No lead auction, no pay-to-play routing");
+    expect(container.textContent).toContain("FAA Part 107");
+    expect(container.textContent).toContain("FPV");
+    expect(container.textContent).toContain("Coming soon");
+    expect(container.textContent).toContain("Thermal imaging");
+    expect(container.textContent).not.toContain("No lead auction");
+    expect(container.textContent).not.toContain("Direct Connect");
     expect(container.textContent).toContain("@PrecisionAerialService");
     expect(container.textContent).toContain("@chillshots");
     expect(container.querySelector('img[alt="Closer aerial property view"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid^="precision-aerial-service-"]')).toHaveLength(
-      5
+      4
     );
-    expect(container.querySelector('[data-testid="precision-tradescout-brief"]')).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="precision-operator-attribution"]')
-    ).not.toBeNull();
-    expect(
-      container.textContent?.match(
-        /TradeScout securely holds requests until this business connects its profile\./g
-      )
-    ).toHaveLength(1);
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
   });
@@ -180,23 +183,23 @@ describe("PrecisionAerialProfile", () => {
 
     act(() => {
       container
-        .querySelector<HTMLButtonElement>('button[aria-label="Request Roof and property imagery"]')
+        .querySelector<HTMLButtonElement>('button[aria-label="Book Land and site aerials"]')
         ?.click();
     });
-    expect(onDirectConnect).toHaveBeenLastCalledWith("Roof and property imagery");
+    expect(onDirectConnect).toHaveBeenLastCalledWith("Land and site aerials");
 
-    const constructionBriefChoice = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('[role="group"] button')
-    ).find((button) => button.textContent?.includes("Construction progress photos"));
     act(() => {
-      constructionBriefChoice?.click();
+      container
+        .querySelector<HTMLButtonElement>('button[aria-label="Book Construction progress imagery"]')
+        ?.click();
     });
+    expect(onDirectConnect).toHaveBeenLastCalledWith("Construction progress imagery");
     act(() => {
       container
         .querySelector<HTMLButtonElement>('[data-testid="precision-project-brief-submit"]')
         ?.click();
     });
-    expect(onDirectConnect).toHaveBeenLastCalledWith("Construction progress photos");
+    expect(onDirectConnect).toHaveBeenLastCalledWith("Construction progress imagery");
 
     act(() => {
       container

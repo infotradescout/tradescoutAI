@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
-import {
-  ArrowRight,
-  ExternalLink,
-  Instagram,
-  MapPin,
-  Play,
-  X,
-} from "lucide-react";
+import { ArrowRight, ExternalLink, Instagram, MapPin, Play, X } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
 import { THEMES } from "@/lib/themes";
 import { SafeProfileImg } from "@/pages/profile-sites/safeProfileImage";
@@ -48,6 +41,8 @@ type Props = {
 
 type HeroData = {
   imageUrl: string;
+  videoUrl: string;
+  videoPosterUrl: string;
   logoUrl: string;
   operatorName: string;
   locationLabel: string;
@@ -56,6 +51,7 @@ type HeroData = {
   instagramHandle: string;
   tiktokUrl: string;
   tiktokHandle: string;
+  upcomingService: string;
   title: string;
   text: string;
 };
@@ -74,6 +70,8 @@ function readHeroData(contentBlocks: unknown): HeroData {
 
   return {
     imageUrl: readString(data, "imageUrl") || readString(data, "heroImageUrl"),
+    videoUrl: readString(data, "videoUrl"),
+    videoPosterUrl: readString(data, "videoPosterUrl"),
     logoUrl: readString(data, "logoUrl"),
     operatorName: readString(data, "operatorName"),
     locationLabel: readString(data, "locationLabel"),
@@ -82,6 +80,7 @@ function readHeroData(contentBlocks: unknown): HeroData {
     instagramHandle: readString(data, "instagramHandle"),
     tiktokUrl: readString(data, "tiktokUrl"),
     tiktokHandle: readString(data, "tiktokHandle"),
+    upcomingService: readString(data, "upcomingService"),
     title: readString(data, "title"),
     text: readString(data, "text") || readString(data, "body"),
   };
@@ -110,6 +109,11 @@ function safeFeaturedWorkUrl(value: string): string {
   ]);
 }
 
+function safeHostedProfileVideo(value: string): string {
+  const candidate = value.trim();
+  return /^\/images\/profiles\/[a-z0-9/_-]+\.mp4$/i.test(candidate) ? candidate : "";
+}
+
 function normalizedHex(value: unknown, fallback: string): string {
   const candidate = typeof value === "string" ? value.trim() : "";
   return /^#[0-9a-f]{6}$/i.test(candidate) ? candidate : fallback;
@@ -124,17 +128,6 @@ function normalizedAssetKey(value: string): string {
   } catch {
     return candidate.split(/[?#]/, 1)[0].replace(/\/+$/, "");
   }
-}
-
-function replaceOperatorWithBusiness(
-  value: string | null | undefined,
-  operatorName: string,
-  businessName: string
-): string {
-  const copy = String(value || "").trim();
-  if (!copy || !operatorName) return copy;
-  const escapedName = operatorName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return copy.replace(new RegExp(`\\b${escapedName}\\b`, "gi"), businessName);
 }
 
 function describeService(service: string): string {
@@ -194,6 +187,7 @@ export default function PrecisionAerialProfile({
     uniqueGalleryItems[0] ||
     null;
   const heroImage = hero.imageUrl || featuredItem?.imageUrl || "";
+  const heroVideo = safeHostedProfileVideo(hero.videoUrl);
   const heroImageKey = normalizedAssetKey(heroImage);
   const portfolioItems = uniqueGalleryItems.filter(
     (item) => normalizedAssetKey(item.imageUrl) !== heroImageKey
@@ -203,7 +197,7 @@ export default function PrecisionAerialProfile({
   const featuredWorkUrl = safeFeaturedWorkUrl(hero.featuredWorkUrl);
   const instagramUrl = safeSocialUrl(hero.instagramUrl, ["instagram.com"]);
   const tiktokUrl = safeSocialUrl(hero.tiktokUrl, ["tiktok.com"]);
-  const companyAbout = replaceOperatorWithBusiness(aboutText, hero.operatorName, businessName);
+  const companyAbout = String(aboutText || "").trim();
   const [selectedService, setSelectedService] = useState(() => services[0] || "");
   const [activeItem, setActiveItem] = useState<ResolvedProfileGalleryItem | null>(
     sharedGallerySlug ? galleryItems.find((item) => item.slug === sharedGallerySlug) || null : null
@@ -356,6 +350,21 @@ export default function PrecisionAerialProfile({
           ) : (
             <div className="absolute inset-0 bg-[var(--precision-brand-surface)]" />
           )}
+          {heroVideo ? (
+            <video
+              src={heroVideo}
+              poster={hero.videoPosterUrl || heroImage || undefined}
+              className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              disablePictureInPicture
+              aria-label={`${businessName} aerial video reel`}
+              data-testid="precision-aerial-hero-video"
+            />
+          ) : null}
           <div className="absolute inset-0 bg-gradient-to-b from-black/58 via-black/5 to-black/88" />
 
           <div className="relative mx-auto w-full max-w-[1600px] px-5 pb-7 pt-36 sm:px-8 sm:pb-12 lg:px-12 lg:pb-14">
@@ -367,7 +376,8 @@ export default function PrecisionAerialProfile({
                 {hero.title || "A better view."}
               </h1>
               <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/82 sm:text-xl sm:leading-8">
-                Aerial photography and film for property, construction, land, events, and motion.
+                {hero.text ||
+                  "Aerial photography and film for real estate, construction, and land."}
               </p>
             </div>
 
@@ -495,7 +505,8 @@ export default function PrecisionAerialProfile({
                   Photography with perspective.
                 </h2>
                 <p className="mt-6 max-w-md text-base leading-7 text-slate-600">
-                  Professional aerial imagery shaped around the property, project, or moment you need to show.
+                  Professional aerial imagery shaped around the property, project, or moment you
+                  need to show.
                 </p>
               </div>
 
@@ -529,6 +540,16 @@ export default function PrecisionAerialProfile({
                     </span>
                   </button>
                 ))}
+                {hero.upcomingService ? (
+                  <div className="flex items-center justify-between gap-4 border-b border-black/15 py-6 text-sm sm:py-8">
+                    <span className="font-black uppercase tracking-[0.16em] text-slate-400">
+                      Coming soon
+                    </span>
+                    <span className="text-right text-lg font-black tracking-[-0.025em] text-slate-700">
+                      {hero.upcomingService}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
           </section>
@@ -562,7 +583,8 @@ export default function PrecisionAerialProfile({
                 </p>
               ) : (
                 <p className="mt-6 max-w-3xl text-lg font-semibold leading-8 text-white/72">
-                  Aerial photography and film created with precision, clarity, and respect for the work below.
+                  Aerial photography and film created with precision, clarity, and respect for the
+                  work below.
                 </p>
               )}
               <div className="mt-7 flex flex-wrap gap-3">

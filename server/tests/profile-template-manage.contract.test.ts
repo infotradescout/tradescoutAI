@@ -22,6 +22,10 @@ const contentAdapters = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/data/profileSiteContentAdapters.ts"),
   "utf8"
 );
+const manageChrome = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/components/profile/ProfileSiteManageChrome.tsx"),
+  "utf8"
+);
 
 describe("profile template manage surface contracts", () => {
   it("returns viewerCanManage and siteTemplate on the public profile payload", () => {
@@ -40,6 +44,13 @@ describe("profile template manage surface contracts", () => {
     expect(profileView).toContain("viewerCanManage");
   });
 
+  it("keeps owner controls in document flow above every profile site", () => {
+    expect(manageChrome).toContain('className="relative z-[80]');
+    expect(manageChrome).not.toContain('className="fixed inset-x-0 top-0');
+    expect(profileView).not.toContain("manageChromeSpacer");
+    expect(profileView.match(/\{manageChrome\}/g)).toHaveLength(7);
+  });
+
   it("offers the v1 template gallery in the profile editor", () => {
     expect(editor).toContain("listSelectableProfileSiteTemplates");
     expect(editor).toContain("profile-editor-template-");
@@ -52,10 +63,6 @@ describe("profile template manage surface contracts", () => {
   });
 
   it("exposes lead-photo picking for JW Stone inventory on the live manage chrome", () => {
-    const manageChrome = fs.readFileSync(
-      path.resolve(process.cwd(), "client/src/components/profile/ProfileSiteManageChrome.tsx"),
-      "utf8"
-    );
     const templates = fs.readFileSync(
       path.resolve(process.cwd(), "shared/profileSiteTemplates.ts"),
       "utf8"

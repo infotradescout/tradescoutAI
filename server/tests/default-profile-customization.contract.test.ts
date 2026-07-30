@@ -91,13 +91,11 @@ describe("default profile customization contract", () => {
     expect(source).toContain("aboutText={defaultAboutText}");
   });
 
-  it("keeps the fixed management bar from covering the default landing page", () => {
+  it("renders the management bar in normal flow above the default landing page", () => {
     const source = read("client/src/pages/ProfileSiteView.tsx");
     const defaultBranch = source.slice(source.lastIndexOf("return ("));
-    expect(defaultBranch.indexOf("{manageChromeSpacer}")).toBeLessThan(
-      defaultBranch.indexOf("<DefaultProfileTheme")
-    );
-    expect(defaultBranch.indexOf("{manageChrome}")).toBeGreaterThan(
+    expect(defaultBranch).not.toContain("manageChromeSpacer");
+    expect(defaultBranch.indexOf("{manageChrome}")).toBeLessThan(
       defaultBranch.indexOf("<DefaultProfileTheme")
     );
   });

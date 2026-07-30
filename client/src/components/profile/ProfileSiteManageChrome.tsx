@@ -183,7 +183,7 @@ export default function ProfileSiteManageChrome({
 
   return (
     <div
-      className="fixed inset-x-0 top-0 z-[80] border-b border-white/10 bg-stone-950 text-white shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+      className="relative z-[80] border-b border-white/10 bg-stone-950 text-white shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
       data-testid="profile-site-manage-chrome"
     >
       <div className="mx-auto flex min-h-14 w-full max-w-6xl flex-col justify-center gap-3 px-3 py-2 sm:px-6">
@@ -403,8 +403,6 @@ export default function ProfileSiteManageChrome({
           </div>
         ) : null}
       </div>
-      {/* Spacer so fixed top chrome does not cover the hero */}
-      <div className="pointer-events-none h-0" aria-hidden />
     </div>
   );
 }

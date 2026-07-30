@@ -1479,7 +1479,7 @@ export default function ProfileSiteView() {
     />
   ) : wantsManageUi ? (
     <div
-      className="fixed inset-x-0 top-0 z-[80] border-b border-amber-400/40 bg-stone-950 px-4 py-3 text-center text-sm text-white"
+      className="relative z-[80] border-b border-amber-400/40 bg-stone-950 px-4 py-3 text-center text-sm text-white"
       data-testid="profile-site-manage-signin"
     >
       Sign in as the business owner or TradeScout admin on this same domain to edit this profile.{" "}
@@ -1488,8 +1488,6 @@ export default function ProfileSiteView() {
       </a>
     </div>
   ) : null;
-  const manageChromeSpacer =
-    viewerCanManage || wantsManageUi ? <div className="h-14" aria-hidden /> : null;
   const pageOgType = inventoryItemShareMeta
     ? "product"
     : galleryItemShareMeta
@@ -1619,8 +1617,8 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
           noIndex={categoryNoIndex}
         />
+        {manageChrome}
         {templateIndependentInventoryContext}
-        {manageChromeSpacer}
         <PrecisionAerialProfile
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
@@ -1663,7 +1661,6 @@ export default function ProfileSiteView() {
           deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
           stayInProfile
         />
-        {manageChrome}
       </>
     );
   }
@@ -1682,6 +1679,7 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(itemShareMeta)}
           noIndex={categoryNoIndex}
         />
+        {manageChrome}
         {templateIndependentInventoryContext}
         <JrsAutoGlassProfileTheme
           profileSlug={profile.slug}
@@ -1719,8 +1717,6 @@ export default function ProfileSiteView() {
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
         />
-        {manageChromeSpacer}
-        {manageChrome}
       </>
     );
   }
@@ -1740,6 +1736,7 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(itemShareMeta)}
           noIndex={categoryNoIndex}
         />
+        {manageChrome}
         {templateIndependentInventoryContext}
         <ProFabProfileTheme
           profileSlug={profile.slug}
@@ -1773,8 +1770,6 @@ export default function ProfileSiteView() {
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
         />
-        {manageChromeSpacer}
-        {manageChrome}
       </>
     );
   }
@@ -1798,6 +1793,7 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
           noIndex={categoryNoIndex}
         />
+        {manageChrome}
         {templateIndependentInventoryContext}
         <LocalServiceProfileTheme
           profileSlug={profile.slug}
@@ -1840,8 +1836,6 @@ export default function ProfileSiteView() {
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
         />
-        {manageChromeSpacer}
-        {manageChrome}
       </>
     );
   }
@@ -1860,6 +1854,7 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
           noIndex={categoryNoIndex}
         />
+        {manageChrome}
         {templateIndependentInventoryContext}
         <VideographerProfileTheme
           profileSlug={profile.slug}
@@ -1900,8 +1895,6 @@ export default function ProfileSiteView() {
           initialRequestType={expressServiceContext ? "request_service" : null}
           deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
         />
-        {manageChromeSpacer}
-        {manageChrome}
       </>
     );
   }
@@ -1920,6 +1913,7 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(itemShareMeta)}
           noIndex={categoryNoIndex}
         />
+        {manageChrome}
         <div
           style={
             {
@@ -1971,8 +1965,6 @@ export default function ProfileSiteView() {
             }
           />
         </div>
-        {manageChromeSpacer}
-        {manageChrome}
       </>
     );
   }
@@ -1990,7 +1982,7 @@ export default function ProfileSiteView() {
         preserveCanonicalQuery={Boolean(itemShareMeta)}
         noIndex={categoryNoIndex}
       />
-      {manageChromeSpacer}
+      {manageChrome}
       {templateIndependentInventoryContext}
       <div
         style={
@@ -2169,7 +2161,6 @@ export default function ProfileSiteView() {
         }
         deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
       />
-      {manageChrome}
     </>
   );
 }
