@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_INVENTORY_CATEGORIES } from "../../client/src/data/jwStoneInventory";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
+import { listProfileGalleryItems } from "../../shared/profileGalleryShare";
 
 const storageMocks = vi.hoisted(() => ({
   getProfileBySlugPublic: vi.fn(),
@@ -169,6 +170,49 @@ describe("public profile social preview context", () => {
     expect(inventoryPreview?.sourceImageUrl).toBe(BLUE_MARE_SOURCE_IMAGE);
     expect(inventoryPreview?.sourceImageUrl).not.toBe(profilePreview?.sourceImageUrl);
     expect(inventoryPreview?.context.layout).toBe("split");
+  });
+
+  it("keeps JW gallery cards on their exact photo, original logo, and split layout", async () => {
+    const galleryBlock = {
+      id: "recent-work",
+      type: "gallery",
+      data: {
+        title: "Recent Work",
+        images: [
+          {
+            id: "blue-stone-patio",
+            url: "/uploads/profiles/blue-stone-patio.jpg",
+            title: "Blue Stone Patio",
+            caption: "A finished local patio installation.",
+            alt: "Finished blue stone patio",
+          },
+        ],
+      },
+    };
+    const profileRecord = await storageMocks.getProfileBySlugPublic();
+    storageMocks.getProfileBySlugPublic.mockResolvedValueOnce({
+      ...profileRecord,
+      contentBlocks: [...profileRecord.contentBlocks, galleryBlock],
+    });
+    const galleryItem = listProfileGalleryItems([galleryBlock])[0];
+
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "gallery",
+      itemSlug: galleryItem.slug,
+    });
+
+    expect(preview?.context).toMatchObject({
+      kind: "gallery",
+      title: "Blue Stone Patio",
+      sourceImageUrl:
+        "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg",
+      logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
+      layout: "split",
+    });
+    expect(preview?.sourceImageUrl).toBe(
+      "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg"
+    );
   });
 
   it("uses a legacy presentation hero instead of treating the wide SEO logo as the profile photo", async () => {
