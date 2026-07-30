@@ -277,13 +277,29 @@ export default function PrecisionAerialProfile({
         className="absolute inset-x-0 top-0 z-30 text-white"
         data-testid="precision-aerial-header"
       >
-        <div className="mx-auto flex min-h-20 w-full max-w-[1600px] items-center gap-3 px-5 py-3 sm:px-8 lg:px-12">
+        <div className="mx-auto flex min-h-[76px] w-full max-w-[1600px] items-center gap-3 px-4 py-3 sm:min-h-20 sm:px-8 lg:px-12">
           <a
             href={profileShareDestination}
-            className="min-w-0 truncate text-sm font-black tracking-[-0.025em] drop-shadow-md sm:text-base"
+            className="flex min-w-0 items-center gap-2.5"
             aria-label={`${businessName} home`}
           >
-            {businessName}
+            {hero.logoUrl ? (
+              <SafeProfileImg
+                src={hero.logoUrl}
+                alt=""
+                className="h-11 w-11 shrink-0 rounded-full border border-white/35 bg-black/25 object-cover shadow-lg sm:h-12 sm:w-12"
+              />
+            ) : null}
+            <span className="min-w-0">
+              <strong className="block truncate text-[13px] font-black tracking-[-0.02em] drop-shadow-md sm:text-sm">
+                {businessName}
+              </strong>
+              {locationLabel || hero.instagramHandle ? (
+                <span className="mt-0.5 block truncate text-[10px] font-bold tracking-[0.08em] text-white/72 drop-shadow-md sm:text-[11px]">
+                  {[locationLabel, hero.instagramHandle].filter(Boolean).join(" · ")}
+                </span>
+              ) : null}
+            </span>
           </a>
 
           <nav
@@ -308,12 +324,12 @@ export default function PrecisionAerialProfile({
               text={`See ${businessName} on TradeScout`}
               imageUrl={profileShareImage || heroImage}
               label="Share"
-              className="hidden min-h-10 rounded-full border-white/30 bg-black/20 px-4 text-white backdrop-blur-sm sm:inline-flex"
+              className="hidden min-h-10 rounded-full border-white/30 bg-black/20 px-4 text-white backdrop-blur-sm lg:inline-flex"
             />
             <button
               type="button"
               onClick={() => onDirectConnect()}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-xs font-black text-slate-950 shadow-lg transition hover:bg-white/90 sm:px-5 sm:text-sm"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-black text-slate-950 shadow-lg transition hover:bg-white/90 sm:px-5 sm:text-sm"
               data-testid="precision-primary-direct-connect"
             >
               <span className="sm:hidden">Book</span>
@@ -326,7 +342,7 @@ export default function PrecisionAerialProfile({
 
       <main>
         <section
-          className="relative min-h-[78svh] overflow-hidden bg-[var(--precision-brand)] text-white sm:min-h-[86svh]"
+          className="relative flex min-h-[calc(100svh-1rem)] max-h-[960px] items-end overflow-hidden bg-[var(--precision-brand)] text-white sm:min-h-[86svh]"
           data-testid="precision-aerial-hero"
         >
           {heroImage ? (
@@ -334,75 +350,58 @@ export default function PrecisionAerialProfile({
               src={heroImage}
               fallbackSrcs={heroFallbacks}
               alt={`${businessName} aerial photography`}
-              className="absolute inset-0 h-full w-full object-cover object-center"
+              className="absolute inset-0 h-full w-full object-cover object-[center_42%] sm:object-center"
               loading="eager"
             />
           ) : (
             <div className="absolute inset-0 bg-[var(--precision-brand-surface)]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/5 to-black/80" />
-          <div className="absolute inset-x-0 bottom-0 mx-auto w-full max-w-[1600px] px-5 pb-8 sm:px-8 sm:pb-12 lg:px-12 lg:pb-14">
-            <div className="mb-5 flex max-w-fit items-center gap-3 rounded-full border border-white/25 bg-black/30 py-2 pl-2 pr-4 shadow-xl backdrop-blur-md sm:mb-7">
-              {hero.logoUrl ? (
-                <SafeProfileImg
-                  src={hero.logoUrl}
-                  alt={`${businessName} logo`}
-                  className="h-12 w-12 shrink-0 rounded-full border border-white/30 object-cover sm:h-14 sm:w-14"
-                />
-              ) : null}
-              <span className="min-w-0">
-                <strong className="block truncate text-sm font-black tracking-[-0.02em] sm:text-base">
-                  {businessName}
-                </strong>
-                <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] font-bold uppercase tracking-[0.13em] text-white/70 sm:text-[11px]">
-                  {locationLabel ? <span>{locationLabel}</span> : null}
-                  {hero.instagramHandle ? <span>· {hero.instagramHandle}</span> : null}
-                </span>
-              </span>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/58 via-black/5 to-black/88" />
+
+          <div className="relative mx-auto w-full max-w-[1600px] px-5 pb-7 pt-36 sm:px-8 sm:pb-12 lg:px-12 lg:pb-14">
+            <div className="max-w-4xl">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/75 sm:text-xs">
+                {headline || "Aerial photography + film"}
+              </p>
+              <h1 className="mt-3 max-w-[12ch] text-[clamp(3rem,11vw,4.75rem)] font-black leading-[0.9] tracking-[-0.065em] drop-shadow-xl lg:max-w-none lg:text-[7.5rem]">
+                {hero.title || "A better view."}
+              </h1>
+              <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/82 sm:text-xl sm:leading-8">
+                Aerial photography and film for property, construction, land, events, and motion.
+              </p>
             </div>
 
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/75 sm:text-xs">
-              {headline || "Aerial photography + film"}
-            </p>
-            <div className="mt-3 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h1 className="max-w-5xl text-[3.45rem] font-black leading-[0.88] tracking-[-0.07em] drop-shadow-xl sm:text-[6.5rem] lg:text-[8rem]">
-                  {hero.title || "A better view."}
-                </h1>
-                <p className="mt-4 max-w-2xl text-base font-semibold leading-7 text-white/85 sm:text-xl sm:leading-8">
-                  Aerial photography and film for property, construction, land, events, and motion.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3 lg:pb-2">
-                {portfolioItems.length > 0 ? (
-                  <a
-                    href="#work"
-                    className="inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-slate-950 shadow-lg transition hover:bg-white/90"
-                  >
-                    View portfolio
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => onDirectConnect()}
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/40 bg-black/20 px-5 text-sm font-black text-white backdrop-blur-sm transition hover:bg-black/35"
+            <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:mt-8 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => onDirectConnect()}
+                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-5 text-sm font-black text-slate-950 shadow-lg transition hover:bg-white/90"
+              >
+                Book a shoot
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              {portfolioItems.length > 0 ? (
+                <a
+                  href="#work"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/40 bg-black/25 px-5 text-sm font-black text-white backdrop-blur-sm transition hover:bg-black/40"
                 >
-                  Book a shoot
+                  View portfolio
                   <ArrowRight className="h-4 w-4" />
-                </button>
-                {featuredWorkUrl ? (
-                  <a
-                    href={featuredWorkUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-12 items-center gap-2 rounded-full border border-white/40 bg-black/20 px-5 text-sm font-black text-white backdrop-blur-sm transition hover:bg-black/35"
-                  >
-                    <Play className="h-4 w-4 fill-current" />
-                    Watch reel
-                  </a>
-                ) : null}
-              </div>
+                </a>
+              ) : null}
+              {featuredWorkUrl ? (
+                <a
+                  href={featuredWorkUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 px-1 text-sm font-black text-white/90 transition hover:text-white sm:ml-1"
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-full border border-white/45 bg-black/20">
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                  </span>
+                  Watch reel
+                </a>
+              ) : null}
             </div>
           </div>
         </section>
