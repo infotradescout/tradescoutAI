@@ -1,4 +1,6 @@
 export const JW_STONE_PROFILE_SLUG = "jw-stone";
+export const JW_STONE_PROFILE_SOCIAL_LOGO_URL =
+  "/images/businesses/jw-stone/logo-social.svg";
 
 export const JW_STONE_SOCIAL_PRESENTATION = {
   brandName: "JW Stone Logistics",

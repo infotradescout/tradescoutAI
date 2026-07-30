@@ -110,7 +110,8 @@ SET
           "accentColor": "#81904a",
           "profileCta": "Explore inventory",
           "inventoryCta": "View photos · Request pricing",
-          "galleryCta": "View project"
+          "galleryCta": "View project",
+          "cardLayout": "brand-hero"
         }
       }'::jsonb
     )
