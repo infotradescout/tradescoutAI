@@ -1,6 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  listSelectableProfileSiteTemplates,
+  readSiteTemplateIdFromBlocks,
+  seedBlocksForTemplate,
+} from "@shared/profileSiteTemplates";
 
 const profilesRoute = fs.readFileSync(
   path.resolve(process.cwd(), "server/routes/profiles.ts"),
@@ -26,6 +31,10 @@ const manageChrome = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/components/profile/ProfileSiteManageChrome.tsx"),
   "utf8"
 );
+const creativePortfolio = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/pages/profile-sites/CreativePortfolioProfileTheme.tsx"),
+  "utf8"
+);
 
 describe("profile template manage surface contracts", () => {
   it("returns viewerCanManage and siteTemplate on the public profile payload", () => {
@@ -40,8 +49,30 @@ describe("profile template manage surface contracts", () => {
     expect(profileView).toContain('siteTemplate === "plumbing-company"');
     expect(profileView).toContain('siteTemplate === "electrician-solo"');
     expect(profileView).toContain('siteTemplate === "wholesaler"');
+    expect(profileView).toContain('siteTemplate === "photographer-drone"');
+    expect(profileView).toContain("CreativePortfolioProfileTheme");
     expect(profileView).toContain("ProfileSiteManageChrome");
     expect(profileView).toContain("viewerCanManage");
+  });
+
+  it("offers the Precision-proven portfolio as a reusable photographer/drone template", () => {
+    expect(
+      listSelectableProfileSiteTemplates().some((template) => template.id === "photographer-drone")
+    ).toBe(true);
+
+    const seeded = seedBlocksForTemplate("photographer-drone", [], {
+      displayName: "Example Creative",
+    });
+    expect(readSiteTemplateIdFromBlocks(seeded)).toBe("photographer-drone");
+    expect(seeded.find((block) => block.type === "hero")?.data).toMatchObject({
+      title: "Example Creative",
+      text: "Photo and video.",
+    });
+    expect(seeded.find((block) => block.type === "services")?.data).toEqual({
+      items: ["Photo and video"],
+    });
+    expect(creativePortfolio).toContain('from "./PrecisionAerialProfile"');
+    expect(manageChrome).toContain('siteTemplate === "photographer-drone"');
   });
 
   it("keeps owner controls in document flow above every profile site", () => {
