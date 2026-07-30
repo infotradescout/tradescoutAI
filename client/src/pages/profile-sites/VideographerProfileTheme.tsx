@@ -84,11 +84,7 @@ function isDirectVideoUrl(value: string): boolean {
     const isTradeScoutMedia =
       url.protocol === "https:" &&
       (url.hostname === "thetradescout.com" || url.hostname.endsWith(".thetradescout.com"));
-    const isManagedUpload = isRelative && url.pathname.startsWith("/uploads/");
-    return (
-      isManagedUpload ||
-      ((isRelative || isTradeScoutMedia) && /\.(?:mp4|webm|ogg|mov)$/i.test(url.pathname))
-    );
+    return (isRelative || isTradeScoutMedia) && /\.(?:mp4|webm|ogg)$/i.test(url.pathname);
   } catch {
     return false;
   }
@@ -506,8 +502,8 @@ export default function VideographerProfileTheme({
                 className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 text-sm leading-6 text-white/70"
                 data-testid="videographer-pending-owner-disclosure"
               >
-                This profile is not yet connected to its owner. TradeScout holds requests until the
-                owner connects it.
+                This profile is not yet connected to its owner. TradeScout holds requests until
+                the owner connects it.
               </p>
             ) : null}
             <div data-testid="profile-trust-section" aria-label="Trust and profile actions">
