@@ -403,14 +403,13 @@ describe("Precision Aerial production profile contract", () => {
     expect(entry).toContain('"media-src": [');
     expect(entry).toContain('"https://www.thetradescout.com"');
     expect(profileView).toContain(
-      'import CreativePortfolioProfileTheme from "@/pages/profile-sites/CreativePortfolioProfileTheme"'
+      'import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile"'
     );
     expect(profileView).toContain(
       'import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile"'
     );
-    expect(profileView).toContain("profile.slug === PRECISION_AERIAL_PROFILE_SLUG");
-    expect(profileView).toContain('siteTemplate === "photographer-drone"');
-    expect(profileView).toContain("<CreativePortfolioProfileTheme");
+    expect(profileView).toContain("if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG)");
+    expect(profileView).toContain("<PrecisionAerialProfile");
     expect(profileView).toContain("onDirectConnect={openServiceDirectConnect}");
     expect(profileView).toContain(
       "deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}"
