@@ -98,9 +98,7 @@ export default function ProfileSiteManageChrome({
   const templates = listSelectableProfileSiteTemplates();
   const isJwStone = profileSlug === "jw-stone";
   const supportsHeroVideo =
-    siteTemplate === "videographer" ||
-    siteTemplate === "photographer-drone" ||
-    profileSlug === PRECISION_AERIAL_PROFILE_SLUG;
+    siteTemplate === "videographer" || profileSlug === PRECISION_AERIAL_PROFILE_SLUG;
   const inventoryStones = useMemo(
     () =>
       isJwStone
