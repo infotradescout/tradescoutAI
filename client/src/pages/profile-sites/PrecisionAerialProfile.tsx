@@ -111,7 +111,7 @@ function safeFeaturedWorkUrl(value: string): string {
 
 function safeHostedProfileVideo(value: string): string {
   const candidate = value.trim();
-  return /^\/(?:uploads|images\/profiles)\/[a-z0-9/_.-]+$/i.test(candidate) ? candidate : "";
+  return /^\/images\/profiles\/[a-z0-9/_-]+\.mp4$/i.test(candidate) ? candidate : "";
 }
 
 function normalizedHex(value: unknown, fallback: string): string {
