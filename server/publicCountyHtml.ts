@@ -7,8 +7,10 @@ import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import {
   buildPublicBusinessSignals,
+  canServePublicBusinessDetail,
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
+  publicBusinessDetailExposureSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
 
@@ -191,6 +193,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
       .where(
         and(
           eq(businesses.status, "active" as any),
+          publicBusinessDetailExposureSqlPredicate(),
           ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
           eq(counties.fips, String((county as any).fipsCode || "")),
           sql`${businesses.updatedAt} >= ${recencyCutoff}`
@@ -250,7 +253,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
       rules,
       now
     );
-    if (!pub.ok) continue;
+    if (!canServePublicBusinessDetail({ publication: pub, tier })) continue;
 
     tradeCounts.set(tradeSlug, (tradeCounts.get(tradeSlug) || 0) + 1);
     const prev = tradeLastmod.get(tradeSlug);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { isSafeNextPath } from "../../client/src/lib/postOnboardingRoute";
 
 const read = (relativePath: string) => {
   const fullPath = path.resolve(process.cwd(), relativePath);
@@ -56,8 +57,6 @@ describe("admin route alias contracts", () => {
   });
 
   it("allows onboarding deep-links for approved legacy admin aliases", () => {
-    const source = read("client/src/lib/postOnboardingRoute.ts");
-
     const requiredSafePrefixes = [
       "/admin/professional-verification",
       "/admin/business-provider-settings",
@@ -83,7 +82,7 @@ describe("admin route alias contracts", () => {
     ];
 
     for (const prefix of requiredSafePrefixes) {
-      expect(source).toContain(`"${prefix}"`);
+      expect(isSafeNextPath(prefix)).toBe(true);
     }
   });
 

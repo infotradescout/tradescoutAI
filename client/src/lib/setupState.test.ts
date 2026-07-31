@@ -6,11 +6,11 @@ describe("hasCompletedSetup", () => {
     expect(hasCompletedSetup({ onboardingCompleted: true, profileVersion: 0 })).toBe(true);
   });
 
-  it("treats current profile version as complete", () => {
-    expect(hasCompletedSetup({ onboardingCompleted: false, profileVersion: 1 })).toBe(true);
+  it("does not infer completion from profile version", () => {
+    expect(hasCompletedSetup({ onboardingCompleted: false, profileVersion: 1 })).toBe(false);
   });
 
-  it("treats canonical county setup as complete for legacy users", () => {
+  it("does not infer completion from canonical county setup", () => {
     expect(
       hasCompletedSetup({
         onboardingCompleted: false,
@@ -18,7 +18,7 @@ describe("hasCompletedSetup", () => {
         stateCode: "AL",
         countyFips: "01097",
       })
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("returns false when no completion signals exist", () => {

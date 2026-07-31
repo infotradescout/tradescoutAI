@@ -1,123 +1,89 @@
 /**
- * postOnboardingRoute.ts
+ * Canonical auth and onboarding routing.
  *
- * Single source of truth for where a user lands after completing (or skipping)
- * the onboarding flow.
- *
- * Priority order:
- *  1. Explicit ?next= deep-link preserved across the funnel  (highest)
- *  2. Business / service-provider users → /offer-services (profile + verification)
- *  3. All other users → /direct-connect                     (default)
- *
- * "Business user" is detected from the presenceType captured in pre-scout-setup
- * (stored in preferences.provisional.profileDraft.presenceType) OR from the
- * user's resolved role/capabilityBundles after onboarding completes.
- *
- * SAFE ROUTES: Only paths that belong to TradeScout are allowed as ?next= values.
- * Anything external or suspicious falls back to the default.
+ * Onboarding has one state transition: an authenticated account either still
+ * needs an outcome or it has completed onboarding. Personal profile fields,
+ * location, business role, verification, and finance modules do not create
+ * separate onboarding lanes.
  */
 
-/** Routes that are considered "safe" deep-link destinations. */
-const SAFE_NEXT_PREFIXES = [
-  "/direct-connect",
-  "/community",
-  "/community-feed",
-  "/contractors",
-  "/offer-services",
-  "/scout",
-  "/marketplace",
-  "/profile",
-  "/directory",
-  "/projects",
-  "/dashboard",
-  "/verification",
-  "/admin/professional-verification",
-  "/admin/business-provider-settings",
-  "/admin/contractors",
-  "/admin/contractor-settings",
-  "/contractor-verification",
-  "/content-moderation",
-  "/admin/dashboard",
-  "/admin-panel",
-  "/admin-dashboard",
-  "/admin-users",
-  "/admin/workspace",
-  "/staff/hardrock-directory",
-  "/staff/share-links",
-  "/staff/inspection-intelligence",
-  "/system-settings",
-  "/support-tickets",
-  "/platform-analytics",
-  "/manage-users",
-  "/payment-processing",
-  "/file-management",
-  "/admin-observability",
-  "/address-verification",
-  "/identity-verification",
-  "/insurance-verification",
-  "/license-verification",
-  "/settings",
-];
-
-import { hasCompletedSetup } from "@/lib/setupState";
-
 export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
-export type OnboardingState = "needs_profile" | "needs_intent" | "complete";
+export type OnboardingState = "needs_outcome" | "complete";
 export type AuthEntryMode = "create" | "signin";
-type BusinessOnboardingModuleId =
-  | "identity_profile"
-  | "service_catalog"
-  | "coverage_availability"
-  | "trust_verification"
-  | "operations_payout";
-type BusinessOnboardingModuleStatus = "not_started" | "in_progress" | "complete";
 
-/** Canonical Direct Connect home surface. */
 export const DIRECT_CONNECT_HOME = "/direct-connect";
-export const DEFAULT_AUTH_COMPLETION_ROUTE = "/onboarding/profile";
-
-/** Default landing surface for regular (non-business) users. */
 export const SCOUT_HOME = "/scout";
-export const DEFAULT_LANDING = DIRECT_CONNECT_HOME;
+export const DEFAULT_AUTH_COMPLETION_ROUTE = "/onboarding";
 
-/** Default landing surface for business / service-provider users. */
-export const BUSINESS_LANDING = "/offer-services?onboarding=business";
-const BUSINESS_MODULE_ROUTE: Record<BusinessOnboardingModuleId, string> = {
-  identity_profile: "/profile",
-  service_catalog: "/offer-services#fixed-price-offers",
-  coverage_availability: "/settings?tab=profile",
-  trust_verification: "/identity-verification",
-  operations_payout: "/finances/records",
-};
-const BUSINESS_MODULE_ALLOWED_PREFIXES: Record<BusinessOnboardingModuleId, string[]> = {
-  identity_profile: ["/profile", "/settings"],
-  service_catalog: ["/offer-services"],
-  coverage_availability: ["/settings", "/profile"],
-  trust_verification: [
-    "/identity-verification",
-    "/address-verification",
-    "/license-verification",
-    "/insurance-verification",
-    "/offer-services",
-  ],
-  operations_payout: ["/finances", "/offer-services"],
-};
+// Keep these stable for navigation surfaces unrelated to the onboarding handoff.
+export const DEFAULT_LANDING = DIRECT_CONNECT_HOME;
+export const BUSINESS_LANDING = "/offer-services";
 
 function withDirectConnectEntry(path: string, entry: DirectConnectEntry = "default"): string {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}entry=${entry}`;
 }
 
-/**
- * Returns true if the given path is a safe, trusted internal destination.
- */
 export function isSafeNextPath(path: string): boolean {
-  if (!path || !path.startsWith("/")) return false;
-  // Reject anything that looks like a protocol or double-slash (open redirect)
-  if (/^\/\/|:\/\//.test(path)) return false;
-  return SAFE_NEXT_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(prefix + "/") || path.startsWith(prefix + "?")
-  );
+  if (!path || path.length > 2_048 || !path.startsWith("/") || path.startsWith("//")) return false;
+  if (/[\\\u0000-\u001f\u007f]/.test(path)) return false;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(path, "https://tradescout.internal");
+  } catch {
+    return false;
+  }
+  if (parsed.origin !== "https://tradescout.internal") return false;
+
+  let decodedPathname = parsed.pathname;
+  try {
+    // Decode twice to catch nested encoded slash/backslash/protocol escapes.
+    decodedPathname = decodeURIComponent(decodeURIComponent(decodedPathname));
+  } catch {
+    return false;
+  }
+  if (
+    decodedPathname.startsWith("//") ||
+    decodedPathname.includes("\\") ||
+    /[?#]/.test(decodedPathname) ||
+    /[\u0000-\u001f\u007f]/.test(decodedPathname) ||
+    /^\/(?:https?:|javascript:|data:|file:)/i.test(decodedPathname)
+  ) {
+    return false;
+  }
+
+  let canonicalPathname: string;
+  try {
+    const canonical = new URL(decodedPathname, "https://tradescout.internal");
+    if (canonical.origin !== "https://tradescout.internal") return false;
+    canonicalPathname = canonical.pathname;
+  } catch {
+    return false;
+  }
+
+  const normalizedPath = canonicalPathname.replace(/\/+$/, "") || "/";
+  const normalizedLower = normalizedPath.toLocaleLowerCase();
+  const isNonPageNamespace =
+    normalizedLower.startsWith("/_") ||
+    ["/api", "/.well-known", "/assets", "/static", "/src", "/node_modules"].some(
+      (prefix) => normalizedLower === prefix || normalizedLower.startsWith(`${prefix}/`)
+    );
+  if (isNonPageNamespace) return false;
+  const createsAuthLoop = [
+    "/pre-scout-setup",
+    "/login",
+    "/register",
+    "/signup",
+    "/create-account",
+    "/onboarding",
+    "/profile-setup",
+    "/logout",
+    "/auth",
+    "/signin",
+    "/sign-in",
+  ].some((prefix) => normalizedLower === prefix || normalizedLower.startsWith(`${prefix}/`));
+  return !createsAuthLoop;
 }
 
 export function buildAuthEntryRoute(options: {
@@ -128,179 +94,102 @@ export function buildAuthEntryRoute(options: {
   const params = new URLSearchParams();
   params.set("mode", options.mode);
 
-  const trimmedNext = String(options.next || "").trim();
-  if (trimmedNext && isSafeNextPath(trimmedNext) && !trimmedNext.startsWith("/pre-scout-setup")) {
-    params.set("next", trimmedNext);
-  } else {
-    params.set("next", DEFAULT_AUTH_COMPLETION_ROUTE);
-  }
+  const next = String(options.next || "").trim();
+  params.set(
+    "next",
+    next && isSafeNextPath(next) && !next.startsWith("/pre-scout-setup")
+      ? next
+      : DEFAULT_AUTH_COMPLETION_ROUTE
+  );
 
   const email = String(options.email || "").trim();
   if (email) params.set("email", email);
-
   return `/pre-scout-setup?${params.toString()}`;
+}
+
+export function resolveOnboardingState(user: unknown): OnboardingState {
+  if (!user || typeof user !== "object") return "needs_outcome";
+  return (user as Record<string, unknown>).onboardingCompleted === true
+    ? "complete"
+    : "needs_outcome";
 }
 
 export function userNeedsOnboarding(user: unknown): boolean {
   return resolveOnboardingState(user) !== "complete";
 }
 
-function hasLocalArea(user: Record<string, any>): boolean {
-  const locationCommitted = user.locationCommitted === true;
-  const stateCode = typeof user.stateCode === "string" ? user.stateCode.trim().toUpperCase() : "";
-  const countyFips = typeof user.countyFips === "string" ? user.countyFips.trim() : "";
-  return locationCommitted && stateCode.length === 2 && /^\d{5}$/.test(countyFips);
+/** Wouter v3 exposes only the pathname; preserve browser query and fragment explicitly. */
+export function getCurrentInternalPath(pathname: unknown): string {
+  const raw = String(pathname || "/");
+  if (/[?#]/.test(raw)) return raw.startsWith("/") ? raw : `/${raw}`;
+  const pathOnly = raw.startsWith("/") ? raw : `/${raw}`;
+  if (typeof window === "undefined" || window.location.pathname !== pathOnly) return pathOnly;
+  return `${pathOnly}${window.location.search}${window.location.hash}`;
 }
 
-function hasSelectedIntent(user: Record<string, any>): boolean {
-  const lane =
-    user?.preferences?.onboarding?.state?.lane ||
-    user?.preferences?.onboardingState?.lane ||
-    user?.preferences?.unifiedOnboarding?.state?.lane ||
-    user?.preferences?.onboarding?.lane;
-  return typeof lane === "string" && lane.trim().length > 0;
-}
-
-function hasBusinessProfileBasics(user: Record<string, any>): boolean {
-  const businessName =
-    (typeof user.businessName === "string" && user.businessName.trim()) ||
-    (typeof user.companyName === "string" && user.companyName.trim()) ||
-    (typeof user?.preferences?.businessProfile?.businessName === "string" &&
-      user.preferences.businessProfile.businessName.trim()) ||
-    (typeof user?.preferences?.provisional?.profileDraft?.businessName === "string" &&
-      user.preferences.provisional.profileDraft.businessName.trim()) ||
-    "";
-
-  const businessType =
-    (typeof user.businessType === "string" && user.businessType.trim()) ||
-    (typeof user?.preferences?.businessProfile?.businessType === "string" &&
-      user.preferences.businessProfile.businessType.trim()) ||
-    (typeof user?.preferences?.provisional?.profileDraft?.businessType === "string" &&
-      user.preferences.provisional.profileDraft.businessType.trim()) ||
-    "";
-
-  return businessName.length > 0 && businessType.length > 0;
-}
-
-export function resolveOnboardingState(user: unknown): OnboardingState {
-  if (!user || typeof user !== "object") return "needs_profile";
-  const record = user as Record<string, any>;
-
-  const explicitCompletion = record.onboardingCompleted === true;
-  if (explicitCompletion) return "complete";
-
-  if (!hasLocalArea(record)) return "needs_profile";
-
-  const locationCommitted = record.locationCommitted === true;
-  const locationShapeComplete = hasCompletedSetup({
-    onboardingCompleted: record.onboardingCompleted,
-    profileVersion: record.profileVersion,
-    locationCommitted,
-    stateCode: locationCommitted ? record.stateCode : null,
-    countyFips: locationCommitted ? record.countyFips : null,
-  });
-  if (!locationShapeComplete) return "needs_profile";
-
-  if (!userHasProfileBasics(user)) return "needs_profile";
-
-  if (isBusinessUser(record, null) && !hasBusinessProfileBasics(record)) {
-    return "needs_profile";
-  }
-
-  return hasSelectedIntent(record) ? "complete" : "needs_intent";
-}
-
+/**
+ * Kept as a compatibility export for callers that display profile completeness.
+ * Account profile fields no longer gate onboarding, so an authenticated user
+ * record is sufficient here.
+ */
 export function userHasProfileBasics(user: unknown): boolean {
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  if (!record) return false;
-
-  const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
-  const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
-  const fullName =
-    typeof record.name === "string"
-      ? record.name.trim()
-      : typeof record.displayName === "string"
-        ? record.displayName.trim()
-        : "";
-  const hasName =
-    (firstName.length > 0 && lastName.length > 0) ||
-    fullName.split(/\s+/).filter(Boolean).length >= 2 ||
-    fullName.length >= 3;
-  const phoneRaw = typeof record.phone === "string" ? record.phone.trim() : "";
-  const phoneDigits = phoneRaw.replace(/\D+/g, "");
-  const stateCode =
-    typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
-  const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
-
-  return (
-    hasName && phoneDigits.length >= 10 && stateCode.length === 2 && /^\d{5}$/.test(countyFips)
-  );
+  return Boolean(user && typeof user === "object");
 }
 
-export function getOnboardingEntryRoute(user: unknown): string {
-  return resolveOnboardingState(user) === "needs_intent"
-    ? "/onboarding/intent"
-    : "/onboarding/profile";
+export function getOnboardingEntryRoute(_user: unknown): string {
+  return DEFAULT_AUTH_COMPLETION_ROUTE;
 }
 
 export function getPostLandingRoute(user: unknown): string {
-  const onboardingState = resolveOnboardingState(user);
-  if (onboardingState !== "complete") return getOnboardingEntryRoute(user);
+  if (userNeedsOnboarding(user)) return DEFAULT_AUTH_COMPLETION_ROUTE;
 
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
-  const isSuperAdmin = role === "super_admin" || role === "admin" || record?.isSuperAdmin === true;
-
-  const rolesValue = record?.roles;
-  const roles: string[] = Array.isArray(rolesValue)
-    ? rolesValue.filter((r: unknown): r is string => typeof r === "string")
+  const record = user as Record<string, unknown>;
+  const role = typeof record?.role === "string" ? record.role : undefined;
+  const roles = Array.isArray(record?.roles)
+    ? record.roles.filter((value): value is string => typeof value === "string")
     : [];
   const isAdmin =
-    Boolean(record?.isAdmin) || roles.some((r) => r === "admin" || r === "super_admin");
+    role === "super_admin" ||
+    role === "admin" ||
+    record?.isSuperAdmin === true ||
+    record?.isAdmin === true ||
+    roles.some((value) => value === "admin" || value === "super_admin");
 
-  if (isSuperAdmin || isAdmin) return "/admin";
-  if (isBusinessUser(record as Record<string, any>, null)) {
-    const businessRoute = getBusinessOnboardingRoute(record as Record<string, any>);
-    if (businessRoute) return businessRoute;
-  }
+  if (isAdmin) return "/admin";
   return resolveDirectConnectLandingRoute({ entry: "auth" });
 }
 
 export function isOnboardingExemptPath(path: string): boolean {
+  const normalized = String(path || "/").replace(/\/+$/, "") || "/";
   return (
-    path.startsWith("/pre-scout-setup") ||
-    path.startsWith("/onboarding/profile") ||
-    path.startsWith("/onboarding/intent") ||
-    path.startsWith("/verify-email") ||
-    path.startsWith("/check-email") ||
-    path.startsWith("/reset-password") ||
-    path.startsWith("/logout") ||
-    path.startsWith("/auth/logout")
+    normalized === "/pre-scout-setup" ||
+    normalized === "/onboarding" ||
+    normalized === "/onboarding/profile" ||
+    normalized === "/onboarding/intent" ||
+    normalized === "/profile-setup" ||
+    normalized === "/verify-email" ||
+    normalized === "/check-email" ||
+    normalized === "/reset-password" ||
+    normalized === "/logout" ||
+    normalized === "/auth/logout"
   );
 }
 
 /**
- * Detects whether the user should be treated as a business / service-provider
- * based on the data available at the time of the call.
- *
- * @param user - The user object from useAuth() (may be partially populated)
- * @param presenceType - The presenceType captured during pre-scout-setup
+ * Business identity still matters elsewhere in the product, but it no longer
+ * decides which onboarding experience a person receives.
  */
 export function isBusinessUser(
   user: Record<string, any> | null | undefined,
   presenceType?: string | null
 ): boolean {
-  // 1. Explicit presenceType from pre-scout-setup form
   if (presenceType === "represent_business") return true;
-
   if (!user) return false;
 
-  // 2. Provisional draft in preferences (set during pre-scout-setup before commit)
-  const provisional = user?.preferences?.provisional;
-  const draftPresence = provisional?.profileDraft?.presenceType;
-  if (draftPresence === "represent_business") return true;
+  if (user?.preferences?.provisional?.profileDraft?.presenceType === "represent_business") {
+    return true;
+  }
 
-  // 3. Resolved role after complete-onboarding
   const businessRoles = new Set([
     "contractor",
     "business_owner",
@@ -317,105 +206,30 @@ export function isBusinessUser(
     "commercial_property",
     "affiliate",
   ]);
-  if (user.role && businessRoles.has(user.role)) return true;
-  if (user.activeRole && businessRoles.has(user.activeRole)) return true;
+  if (businessRoles.has(String(user.role || ""))) return true;
+  if (businessRoles.has(String(user.activeRole || ""))) return true;
 
-  // 4. Capability bundles
-  const bundles: string[] = Array.isArray(user.capabilityBundles) ? user.capabilityBundles : [];
-  if (
-    bundles.includes("service_provider") ||
-    bundles.includes("property_operator") ||
-    bundles.includes("local_seller") ||
-    bundles.includes("organization_admin")
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-export function getFirstIncompleteBusinessModule(
-  user: Record<string, any> | null | undefined
-): BusinessOnboardingModuleId | null {
-  if (!user) return null;
-  const modules = user?.preferences?.businessOnboarding?.modules as
-    | Partial<Record<BusinessOnboardingModuleId, BusinessOnboardingModuleStatus>>
-    | undefined;
-  if (!modules || typeof modules !== "object") return "identity_profile";
-  const moduleOrder: BusinessOnboardingModuleId[] = [
-    "identity_profile",
-    "service_catalog",
-    "coverage_availability",
-    "trust_verification",
-    "operations_payout",
-  ];
-  for (const moduleId of moduleOrder) {
-    const status = String(modules[moduleId] || "not_started");
-    if (status !== "complete") return moduleId;
-  }
-  return null;
-}
-
-export function getBusinessOnboardingRoute(
-  user: Record<string, any> | null | undefined
-): string | null {
-  if (!isBusinessUser(user, null)) return null;
-  const moduleId = getFirstIncompleteBusinessModule(user);
-  if (!moduleId) return BUSINESS_LANDING;
-  let moduleRoute = BUSINESS_MODULE_ROUTE[moduleId];
-  if (moduleId === "trust_verification") {
-    const identityVerified =
-      user?.verifiedBadge === true ||
-      String(user?.verificationStatus || "")
-        .trim()
-        .toLowerCase() === "approved";
-    const addressVerified = user?.addressVerified === true;
-    const licenseVerified = user?.licenseVerified === true;
-    const insuranceVerified = user?.insuranceVerified === true;
-    moduleRoute = !identityVerified
-      ? "/identity-verification"
-      : !addressVerified
-        ? "/address-verification"
-        : !licenseVerified
-          ? "/license-verification"
-          : !insuranceVerified
-            ? "/insurance-verification"
-            : "/offer-services";
-  }
-  const encoded = encodeURIComponent(moduleId);
-  if (moduleRoute.includes("?")) return `${moduleRoute}&onboarding=business&module=${encoded}`;
-  if (moduleRoute.includes("#")) {
-    const [base, hash] = moduleRoute.split("#", 2);
-    return `${base}?onboarding=business&module=${encoded}#${hash}`;
-  }
-  return `${moduleRoute}?onboarding=business&module=${encoded}`;
-}
-
-export function isBusinessOnboardingAllowedPath(
-  path: string,
-  user: Record<string, any> | null | undefined
-): boolean {
-  if (!isBusinessUser(user, null)) return true;
-  const moduleId = getFirstIncompleteBusinessModule(user);
-  if (!moduleId) return true;
-  const normalized =
-    String(path || "/")
-      .split(/[?#]/, 1)[0]
-      .replace(/\/+$/, "") || "/";
-  const allowedPrefixes = BUSINESS_MODULE_ALLOWED_PREFIXES[moduleId] || ["/offer-services"];
-  return allowedPrefixes.some(
-    (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+  const bundles = Array.isArray(user.capabilityBundles) ? user.capabilityBundles : [];
+  return ["service_provider", "property_operator", "local_seller", "organization_admin"].some(
+    (bundle) => bundles.includes(bundle)
   );
 }
 
 /**
- * Compute the correct post-onboarding destination.
- *
- * @param options.nextParam   - The ?next= query param value (from URL or sessionStorage)
- * @param options.user        - The current user object
- * @param options.presenceType - presenceType from the pre-scout-setup form
- * @param options.chosenIntent - The intent the user clicked (community/services/business/tools)
+ * Compatibility helpers: completed business accounts are no longer forced
+ * through identity, verification, finance, or offer-service modules.
  */
+export function getBusinessOnboardingRoute(_user: Record<string, any> | null | undefined): null {
+  return null;
+}
+
+export function isBusinessOnboardingAllowedPath(
+  _path: string,
+  _user: Record<string, any> | null | undefined
+): boolean {
+  return true;
+}
+
 export function resolvePostOnboardingRoute(options: {
   nextParam?: string | null;
   user?: Record<string, any> | null;
@@ -425,46 +239,8 @@ export function resolvePostOnboardingRoute(options: {
   hasOpenDirectConnectRequests?: boolean;
   hasDirectConnectReplies?: boolean;
 }): string {
-  const {
-    nextParam,
-    user,
-    presenceType,
-    chosenIntent,
-    entry = "onboarding",
-    hasOpenDirectConnectRequests,
-    hasDirectConnectReplies,
-  } = options;
-
-  // 1. Honour an explicit, safe deep-link
-  const trimmedNext = (nextParam || "").trim();
-  if (trimmedNext && isSafeNextPath(trimmedNext)) {
-    return trimmedNext;
-  }
-
-  // 2. If the user explicitly chose an intent on the intent screen, respect it
-  //    (but still override with the business landing if they chose "business")
-  const INTENT_ROUTES: Record<string, string> = {
-    community: withDirectConnectEntry("/direct-connect/board", entry),
-    services: resolveDirectConnectLandingRoute({
-      entry,
-      hasOpenRequests: hasOpenDirectConnectRequests,
-      hasReplies: hasDirectConnectReplies,
-    }),
-    business: BUSINESS_LANDING,
-    tools: withDirectConnectEntry("/direct-connect", entry),
-  };
-  if (chosenIntent && INTENT_ROUTES[chosenIntent]) {
-    return INTENT_ROUTES[chosenIntent];
-  }
-
-  // 3. Business users → profile/verification setup
-  if (isBusinessUser(user, presenceType)) {
-    const businessRoute = getBusinessOnboardingRoute(user);
-    return businessRoute || BUSINESS_LANDING;
-  }
-
-  // 4. Default: Direct Connect request flow
-  return resolveDirectConnectLandingRoute({ entry });
+  const next = String(options.nextParam || "").trim();
+  return next && isSafeNextPath(next) ? next : SCOUT_HOME;
 }
 
 export function resolveDirectConnectLandingRoute(
@@ -475,39 +251,22 @@ export function resolveDirectConnectLandingRoute(
   } = {}
 ): string {
   const { entry = "default", hasOpenRequests, hasReplies } = options;
-
-  if (hasReplies) {
-    return withDirectConnectEntry("/direct-connect/inbox", entry);
-  }
-
-  if (hasOpenRequests) {
-    return withDirectConnectEntry("/direct-connect/engagements", entry);
-  }
-
+  if (hasReplies) return withDirectConnectEntry("/direct-connect/inbox", entry);
+  if (hasOpenRequests) return withDirectConnectEntry("/direct-connect/engagements", entry);
   return withDirectConnectEntry(DIRECT_CONNECT_HOME, entry);
 }
 
-// ─── Session-storage helpers for deep-link preservation ──────────────────────
-
 const NEXT_STORAGE_KEY = "ts_onboarding_next";
 
-/**
- * Persist the ?next= value before entering the onboarding funnel so it
- * survives page navigations within the funnel.
- */
 export function storeOnboardingNext(path: string): void {
-  if (isSafeNextPath(path)) {
-    try {
-      sessionStorage.setItem(NEXT_STORAGE_KEY, path);
-    } catch {
-      /* SSR / private browsing */
-    }
+  if (!isSafeNextPath(path)) return;
+  try {
+    sessionStorage.setItem(NEXT_STORAGE_KEY, path);
+  } catch {
+    // SSR/private browsing
   }
 }
 
-/**
- * Retrieve the stored ?next= value and clear it from storage.
- */
 export function consumeOnboardingNext(): string | null {
   try {
     const value = sessionStorage.getItem(NEXT_STORAGE_KEY);

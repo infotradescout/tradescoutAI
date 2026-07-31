@@ -74,6 +74,7 @@ import adminToolNotificationsRouter from "./routes/admin-tool-notifications";
 import { ROLE_PERMISSIONS, type UserRole as SharedUserRole } from "../shared/roles";
 import { COMPREHENSIVE_TRADES } from "../shared/trades-data";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
+import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
 import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
   validateExchangeCategoryListing,
@@ -154,6 +155,8 @@ import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
 import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
+import { publicBusinessDetailExposureSqlPredicate } from "./publicationBusiness";
+import { loadCanonicalPublicMapProfileUrls } from "./repositories/profileRepository";
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import { recordTrustLedgerEvent } from "./services/trustLedgerService";
 import { buildExposureAuthorityMap } from "./services/exposureAuthority";
@@ -2509,21 +2512,10 @@ export async function registerRoutes(app: any) {
     return stateCode.length === 2 && /^\d{5}$/.test(countyFips);
   };
 
-  const shouldBackfillCompletedSetup = (user: any): boolean => {
-    if (!user) return false;
-
-    const profileVersion =
-      typeof (user as any)?.profileVersion === "number" ? Number((user as any).profileVersion) : 0;
-    if (profileVersion >= CURRENT_PROFILE_VERSION && (user as any)?.onboardingCompleted === true) {
-      return false;
-    }
-
-    if ((user as any)?.onboardingCompleted === true) return true;
-    if ((user as any)?.locationCommitted === true) return true;
-    if (hasCanonicalCountySetup(user)) return true;
-
-    return false;
-  };
+  const shouldBackfillCompletedSetup = (user: any): boolean =>
+    (user as any)?.onboardingCompleted === true &&
+    (typeof (user as any)?.profileVersion === "number" ? Number((user as any).profileVersion) : 0) <
+      CURRENT_PROFILE_VERSION;
 
   const getCompletedSetupBackfillPatch = (user: any) => {
     if (!shouldBackfillCompletedSetup(user)) return null;
@@ -2534,9 +2526,6 @@ export async function registerRoutes(app: any) {
 
     if (profileVersion < CURRENT_PROFILE_VERSION) {
       patch.profileVersion = CURRENT_PROFILE_VERSION;
-    }
-    if ((user as any)?.onboardingCompleted !== true) {
-      patch.onboardingCompleted = true;
     }
     if ((user as any)?.locationCommitted !== true && hasCanonicalCountySetup(user)) {
       patch.locationCommitted = true;
@@ -3737,7 +3726,11 @@ export async function registerRoutes(app: any) {
       }
 
       const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
-      const destinationOrigin = await resolveAffiliateOriginForRequest(req, baseOrigin, destination);
+      const destinationOrigin = await resolveAffiliateOriginForRequest(
+        req,
+        baseOrigin,
+        destination
+      );
       const shortLinkOrigin =
         destinationOrigin === baseOrigin ? baseOrigin : resolvePublicOrigin(req);
       const full = new URL(destination, destinationOrigin);
@@ -4093,6 +4086,9 @@ export async function registerRoutes(app: any) {
 
   // NOTE: OAuth routes are registered later (after setupAuth) so we can safely guard
   // registration based on whether the strategies are configured.
+
+  // Register the canonical onboarding owner before retired compatibility handlers.
+  app.use(onboardingRouter);
 
   // Role-based onboarding routes
   app.post("/api/auth/update-role", isAuthenticated, async (req: Request, res: Response) => {
@@ -5244,10 +5240,7 @@ export async function registerRoutes(app: any) {
           ) {
             const user = req.user as any;
             const anyUser: any = user || {};
-            const profileVersion: number =
-              typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-            const needsProfileNormalization =
-              profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
+            const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
             const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
             return res.redirect(redirectTo);
           }
@@ -5282,10 +5275,7 @@ export async function registerRoutes(app: any) {
         maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
-        const profileVersion: number =
-          typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-        const needsProfileNormalization =
-          profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
+        const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
         const oauthNext = readAndClearOAuthNext(req);
         const redirectBase = needsProfileNormalization
           ? "/onboarding/profile"
@@ -5356,10 +5346,7 @@ export async function registerRoutes(app: any) {
           ) {
             const user = req.user as any;
             const anyUser: any = user || {};
-            const profileVersion: number =
-              typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-            const needsProfileNormalization =
-              profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
+            const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
             const redirectTo = needsProfileNormalization ? "/onboarding/profile" : "/";
             return res.redirect(redirectTo);
           }
@@ -5395,10 +5382,7 @@ export async function registerRoutes(app: any) {
         maybeSendEmailVerificationForUser(req, user).catch(() => {});
         const email = typeof user?.email === "string" ? user.email : "";
         const anyUser: any = user || {};
-        const profileVersion: number =
-          typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-        const needsProfileNormalization =
-          profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true;
+        const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);
         const oauthNext = readAndClearOAuthNext(req);
         const redirectBase = needsProfileNormalization
           ? "/onboarding/profile"
@@ -7883,6 +7867,7 @@ export async function registerRoutes(app: any) {
         const updatedPreferences = {
           ...currentPrefs,
           profileVisibility,
+          ...(profileVisibility === "private" ? { publicProfileIds: [] } : {}),
         };
 
         const user = await storage.updateUser(userId, {
@@ -10788,26 +10773,15 @@ export async function registerRoutes(app: any) {
             .limit(Math.min(limit, 2000));
 
           const providerIds = rows.map((row: any) => String(row.providerId));
-          const profileRows = providerIds.length
-            ? await db
-                .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
-                .from(profiles)
-                .where(
-                  and(inArray(profiles.ownerUserId, providerIds), eq(profiles.status, "published"))
-                )
-            : [];
-
-          const canonicalProfileUrlByProviderId = new Map<string, string>();
-          for (const row of profileRows) {
-            if (!canonicalProfileUrlByProviderId.has(row.ownerUserId)) {
-              canonicalProfileUrlByProviderId.set(row.ownerUserId, `/u/${row.slug}`);
-            }
-          }
+          const canonicalProfileUrlByProviderId =
+            await loadCanonicalPublicMapProfileUrls(providerIds);
 
           for (const row of rows) {
             const lat = Number(row.lat);
             const lng = Number(row.lng);
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+            const canonicalProfileUrl = canonicalProfileUrlByProviderId.get(String(row.providerId));
+            if (!canonicalProfileUrl) continue;
 
             const contractorVerified =
               row.verifiedLicensed === true || row.verifiedInsured === true;
@@ -10822,9 +10796,7 @@ export async function registerRoutes(app: any) {
               lng,
               title: row.displayName,
               subtitle: verifiedStatus === "verified" ? "Verified provider" : "Provider",
-              href:
-                canonicalProfileUrlByProviderId.get(String(row.providerId)) ??
-                `/profile/${encodeURIComponent(String(row.providerId))}`,
+              href: canonicalProfileUrl,
               meta: {
                 role: row.role ?? null,
                 verifiedStatus,
@@ -10880,6 +10852,8 @@ export async function registerRoutes(app: any) {
             .where(
               and(
                 eq(businesses.status, "active" as any),
+                eq(businesses.publicDiscoveryEnabled, true as any),
+                publicBusinessDetailExposureSqlPredicate(),
                 sql`${bizLatExpr} is not null`,
                 sql`${bizLngExpr} is not null`,
                 sql`${bizLatExpr} between ${minLat} and ${maxLat}`,
@@ -11073,10 +11047,15 @@ export async function registerRoutes(app: any) {
             contractors.verifiedLicensed,
             contractors.verifiedInsured
           )
-          .limit(limit);
+          .limit(2000);
+
+        const canonicalProfileUrlByProviderId = await loadCanonicalPublicMapProfileUrls(
+          rows.map((row: any) => String(row.providerId))
+        );
 
         const providers = rows
           .map((row: any) => {
+            if (!canonicalProfileUrlByProviderId.has(String(row.providerId))) return null;
             const lat = Number(row.lat);
             const lng = Number(row.lng);
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
@@ -11100,7 +11079,8 @@ export async function registerRoutes(app: any) {
               role: row.role ?? null,
             };
           })
-          .filter((row: any): row is any => row !== null);
+          .filter((row: any): row is any => row !== null)
+          .slice(0, limit);
 
         return {
           providers,
@@ -12882,8 +12862,6 @@ export async function registerRoutes(app: any) {
         // Update user role to contractor
         await storage.updateUser(userId, {
           role: "contractor",
-          onboardingCompleted: true,
-          profileVersion: CURRENT_PROFILE_VERSION,
         });
 
         console.log("New contractor application created:", contractor.id);
@@ -26711,7 +26689,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use(metalsRouter);
 
   // Register contractor signup routes
-  app.use(onboardingRouter);
   app.use(contractorSignupRouter);
 
   // Register Hardrock commercial landing + staff directory routes

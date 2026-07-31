@@ -118,6 +118,7 @@ export interface BusinessProfile {
     error?: string | null;
   } | null;
   verificationStatus?: string | null;
+  verifiedBadge?: boolean;
   addressVerified?: boolean;
   cvsScore?: number | string | null;
   createdAt: string; // ISO timestamp

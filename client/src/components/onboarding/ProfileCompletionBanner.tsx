@@ -8,6 +8,7 @@ import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { isBusinessUser, BUSINESS_LANDING } from "@/lib/postOnboardingRoute";
 import { trackShellEvent } from "@/lib/analytics";
 import { resolveLiveReadiness } from "@shared/liveReadiness";
+import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 
 export type BannerMode =
   | "local_setup"
@@ -32,13 +33,11 @@ export function resolveProfileCompletionBannerMode(params: {
 
   const isSetupRoute =
     path.startsWith("/pre-scout-setup") ||
-    path.startsWith("/onboarding/profile") ||
-    path.startsWith("/onboarding/intent") ||
+    isOnboardingSurfacePath(path) ||
     path.startsWith("/offer-services") ||
     path.startsWith("/profile-settings") ||
     path.startsWith("/settings") ||
     path.startsWith("/profile") ||
-    path.startsWith("/profile-setup") ||
     path.startsWith("/identity-verification") ||
     path.startsWith("/address-verification") ||
     path.startsWith("/license-verification") ||

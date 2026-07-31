@@ -71,7 +71,6 @@ import { buildScoutProvenance } from "./provenance";
 import type { ClaimType } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { useScoutMode } from "./useScoutMode";
-import { isScoutOnboardingCompleted } from "./scoutOnboardingSession";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveQuickActionIntent } from "./localIntents";
@@ -84,7 +83,6 @@ import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
 import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { hasCompletedSetup } from "@/lib/setupState";
 import { trackShellEvent } from "@/lib/analytics";
 import {
   trackScoutHomeIdActionCardClicked,
@@ -96,6 +94,10 @@ import {
 } from "./scoutQuickStartPrompts";
 import { ScoutLaunchContextCard } from "./ScoutLaunchContextCard";
 import { parseScoutLaunchLocation } from "@shared/scoutLaunchContext";
+import {
+  clearOnboardingResultPrompt,
+  readOnboardingResultPrompt,
+} from "@/lib/onboardingResultHandoff";
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
@@ -1584,8 +1586,12 @@ export default function ScoutOS() {
     () => parseScoutLaunchLocation(scoutBrowserLocation),
     [scoutBrowserLocation]
   );
+  const [onboardingOutcomePrompt] = useState(() =>
+    scoutLaunch.context?.source === "onboarding_result" ? readOnboardingResultPrompt() : ""
+  );
   const hasExplicitScoutLaunch = Boolean(scoutLaunch.context || scoutLaunch.prompt);
   const appliedLaunchPromptRef = useRef<string | null>(null);
+  const consumedOutcomeLaunchRef = useRef<string | null>(null);
 
   useEffect(() => {
     const syncBrowserLocation = () => setScoutBrowserLocation(readScoutBrowserLocation(location));
@@ -2368,64 +2374,20 @@ export default function ScoutOS() {
     publishedProfileSlug: canonicalOwnedProfile?.slug || undefined,
   });
 
-  // Enforce pre-Scout gate completion before running onboarding
+  // A lingering Scout query can only enter the universal onboarding owner.
   useEffect(() => {
     if (!isAuthenticated) return;
 
     try {
       const params = new URLSearchParams(location.split("?")[1] || "");
-      const onboardingFlag = params.get("onboarding");
-      const wantsOnboarding = params.get("onboarding") === "true";
-      const provisional = (user as any)?.preferences?.provisional;
-      const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
-      const hasCanonicalLocation = hasCountyContext(locationCtx);
-
-      if (onboardingFlag === "true" && !hasCompletedSetup(user as any)) {
+      if (params.get("onboarding") === "true" && (user as any)?.onboardingCompleted !== true) {
         const next = encodeURIComponent("/scout");
-        navigate(`/onboarding/profile?next=${next}&source=scout_query_onboarding`);
-        return;
-      }
-
-      // Avoid redirect loops: once a user has a canonical location committed, they should not be
-      // forced back into pre-scout setup just because a provisional draft was cleared.
-      if (
-        wantsOnboarding &&
-        !hasCanonicalLocation &&
-        (!profileDraft?.countyFips || !profileDraft.presenceType)
-      ) {
-        navigate("/pre-scout-setup");
+        navigate(`/onboarding?next=${next}&source=scout_query_onboarding`);
       }
     } catch {
       // Ignore malformed URLs; do not block navigation.
     }
-  }, [isAuthenticated, location, locationCtx, navigate, user]);
-
-  // Trigger onboarding flow when ?onboarding=true
-  useEffect(() => {
-    const userId = (user as any)?.id;
-    const provisional = (user as any)?.preferences?.provisional;
-    const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
-    const alreadyCompleted = (user as any)?.onboardingCompleted === true;
-    const hasSessionCompleted = isScoutOnboardingCompleted();
-
-    // Once a user has completed onboarding, never auto-trigger it again
-    // from lingering onboarding query params.
-    if (alreadyCompleted || hasSessionCompleted) return;
-
-    if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
-      return;
-    }
-
-    // Extract intent data
-    const userIntentText =
-      provisional?.userIntent ||
-      buildOnboardingIntentSeed(user as any, profileDraft, locality.county);
-    const provisionalUserTypes = provisional?.userTypes || [];
-    const countyName = profileDraft?.countyName || locality.county || null;
-
-    // Start inference flow
-    onboarding.startOnboardingFlow(userIntentText, provisionalUserTypes, countyName, profileDraft);
-  }, [location, user, locality.county, onboarding]);
+  }, [isAuthenticated, location, navigate, user]);
 
   // Keep an explicit classic-to-Scout handoff as a user-reviewed draft.
   useEffect(() => {
@@ -2962,6 +2924,39 @@ export default function ScoutOS() {
     },
     [handleSend, location]
   );
+
+  // Outcome onboarding is the one launch source that represents an already
+  // confirmed request. Consume it immediately so a non-business user lands on
+  // the result they asked for instead of another form or a prefilled draft.
+  // The signature guard makes refreshes and React re-renders idempotent.
+  useEffect(() => {
+    if (scoutLaunch.context?.source !== "onboarding_result") return;
+    const confirmedPrompt = scoutLaunch.prompt || onboardingOutcomePrompt;
+    if (!confirmedPrompt) return;
+    const outcomeSignature = `${scoutLaunch.signature}:${confirmedPrompt}`;
+    if (consumedOutcomeLaunchRef.current === outcomeSignature) return;
+    if (state.messages.some((message) => message.role === "user")) return;
+    if (shouldPlayIntroDemo) return;
+
+    consumedOutcomeLaunchRef.current = outcomeSignature;
+    clearOnboardingResultPrompt();
+    try {
+      window.localStorage.removeItem("scout:prefill:scout-main");
+    } catch {
+      // fail-soft: the confirmed launch still submits without local storage
+    }
+    setPrefillKey((key) => key + 1);
+    setHasGuestInteracted(true);
+    void handleSend(confirmedPrompt);
+  }, [
+    handleSend,
+    onboardingOutcomePrompt,
+    scoutLaunch.context?.source,
+    scoutLaunch.prompt,
+    scoutLaunch.signature,
+    shouldPlayIntroDemo,
+    state.messages,
+  ]);
 
   const handleCompleteFastWin = useCallback(
     async (objectiveId: string) => {

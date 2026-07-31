@@ -24,26 +24,12 @@ import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine";
 import { trackShellEvent } from "@/lib/analytics";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
+import { resolvePreScoutAuthenticatedRoute, sanitizePreScoutNext } from "@/lib/preScoutAuthHandoff";
 import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
-
-function sanitizePostSetupNext(next: string) {
-  const setupLanding = resolveDirectConnectLandingRoute({ entry: "setup" });
-  if (!next.startsWith("/")) return setupLanding;
-  if (
-    next.startsWith("/login") ||
-    next.startsWith("/create-account") ||
-    next.startsWith("/pre-scout-setup")
-  ) {
-    return setupLanding;
-  }
-  return next;
-}
 
 export default function PreScoutSetup() {
   const { user, isAuthenticated, refetch } = useAuth();
@@ -84,27 +70,12 @@ export default function PreScoutSetup() {
   }
   const apiBaseUrl = getApiBaseUrl();
   const nextParam = (searchParams.get("next") || "").trim();
-  const safeNext = nextParam.startsWith("/") ? nextParam : "";
-  const postSetupNext = sanitizePostSetupNext(safeNext);
+  const safeNext = sanitizePreScoutNext(nextParam);
+  const postSetupNext = safeNext;
   const isDirectConnectDestination = postSetupNext.startsWith("/direct-connect");
   const isAdminDestination = postSetupNext.startsWith("/admin");
   const anyUser: any = user || {};
-  const currentProfileVersion: number =
-    typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
   const onboardingCompleted = anyUser.onboardingCompleted === true;
-  const hasAccountName =
-    typeof anyUser.firstName === "string" &&
-    anyUser.firstName.trim().length > 0 &&
-    typeof anyUser.lastName === "string" &&
-    anyUser.lastName.trim().length > 0;
-  const hasPhone =
-    typeof anyUser.phone === "string" && String(anyUser.phone).replace(/\D+/g, "").length >= 10;
-  const hasCanonicalLocation =
-    typeof anyUser.stateCode === "string" &&
-    anyUser.stateCode.length === 2 &&
-    typeof anyUser.countyFips === "string" &&
-    anyUser.countyFips.length === 5;
-  const hasDay1ProfileBasics = hasAccountName && hasPhone && hasCanonicalLocation;
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const claimSlug = (searchParams.get("claim") || "").trim();
   const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
@@ -156,28 +127,21 @@ export default function PreScoutSetup() {
       ? "Create your account to send this Direct Connect request."
       : "Sign in to send this Direct Connect request."
     : authMode === "create"
-      ? "Create your account, then set your location."
-      : "Sign in, then set your location.";
+      ? "Create your account to continue."
+      : "Sign in to continue.";
   const authStepDescription = isDirectConnectDestination
     ? authMode === "create"
-      ? "Your request draft is safe. Create a free account, set your location, and go straight back to finish sending it."
-      : "Your request draft is safe. Sign in, confirm your location, and go straight back to finish sending it."
+      ? "Your request draft is safe. Create a free account and go straight back to finish sending it."
+      : "Your request draft is safe. Sign in and go straight back to finish sending it."
     : authMode === "create"
-      ? "Start here so Scout can save your progress and keep your local context attached to your account."
-      : "Sign in to pick up where you left off and confirm your location.";
-  const areaStepTitle = isDirectConnectDestination
-    ? "Set your location, then return to your request"
-    : "Set your location";
-  const areaStepDescription = isDirectConnectDestination
-    ? "Pick the county this request should use first. Then we will send you right back to Direct Connect."
-    : "Pick the county you want Scout to use first.";
+      ? "Start here so Scout can save your progress, then tell onboarding the result you want."
+      : "Sign in to pick up where you left off.";
   const authenticatedNextPath = useMemo(() => {
-    if (isAdminDestination) return postSetupNext;
-    if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-      return `/onboarding/profile?next=${encodeURIComponent(postSetupNext)}`;
-    }
-    return postSetupNext;
-  }, [currentProfileVersion, isAdminDestination, onboardingCompleted, postSetupNext]);
+    return resolvePreScoutAuthenticatedRoute({
+      explicitNext: postSetupNext,
+      onboardingCompleted,
+    });
+  }, [onboardingCompleted, postSetupNext]);
   const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
     setCreateError(null);
     setCreateErrorCode(null);
@@ -452,8 +416,8 @@ export default function PreScoutSetup() {
     (mode: AuthMode) => {
       const params = new URLSearchParams();
       params.set("mode", mode);
-      if (safeNext) {
-        params.set("next", safeNext);
+      if (postSetupNext) {
+        params.set("next", postSetupNext);
       }
       if (claimBusinessIdParam) {
         params.set("claimBusinessId", claimBusinessIdParam);
@@ -462,7 +426,7 @@ export default function PreScoutSetup() {
       }
       return `/pre-scout-setup?${params.toString()}`;
     },
-    [safeNext, claimBusinessIdParam, claimSlug]
+    [postSetupNext, claimBusinessIdParam, claimSlug]
   );
 
   const beginOAuth = (provider: "google" | "facebook") => {
@@ -793,15 +757,16 @@ export default function PreScoutSetup() {
         return;
       }
 
-      // After local setup, continue into the guided start choice. If account identity
-      // is incomplete, route through profile normalization first.
-      if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-        const onboardingEntry = hasDay1ProfileBasics ? "/onboarding/intent" : "/onboarding/profile";
-        navigate(`${onboardingEntry}?next=${encodeURIComponent(postSetupNext)}`);
+      // Local setup and outcome onboarding are separate. Only the explicit
+      // completion flag controls whether this user still needs onboarding.
+      if (!onboardingCompleted) {
+        navigate(
+          postSetupNext ? `/onboarding?next=${encodeURIComponent(postSetupNext)}` : "/onboarding"
+        );
         return;
       }
 
-      navigate(postSetupNext);
+      navigate(postSetupNext || "/scout");
     } catch (error: any) {
       toast({
         title: "Couldn't save",
@@ -826,7 +791,7 @@ export default function PreScoutSetup() {
           <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.05fr_minmax(0,1fr)] gap-4 md:gap-6">
             <div className="space-y-3 md:space-y-4">
               <div className="inline-flex items-center rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-ts-orange">
-                Step 1 of 2
+                Account access
               </div>
               <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
                 {authStepTitle}

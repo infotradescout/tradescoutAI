@@ -6,8 +6,10 @@ import { getPublicationRules } from "../publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import {
   buildPublicBusinessSignals,
+  canServePublicBusinessDetail,
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
+  publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
 
 function slugifyCityName(name: string): string {
@@ -84,6 +86,7 @@ export async function runSeoDirectoryScopeSnapshotJob(): Promise<SeoDirectorySco
       and(
         eq(businesses.status, "active" as any),
         eq(businesses.publicDiscoveryEnabled, true as any),
+        publicBusinessDetailExposureSqlPredicate(),
         sql`${businesses.updatedAt} >= ${recencyCutoff}`
       )
     )
@@ -149,7 +152,7 @@ export async function runSeoDirectoryScopeSnapshotJob(): Promise<SeoDirectorySco
       rules,
       now
     );
-    if (!pub.ok) continue;
+    if (!canServePublicBusinessDetail({ publication: pub, tier })) continue;
 
     const countySlug = slugifyCountyName(
       countyName.replace(/\s+County$/i, "").trim() || countyName

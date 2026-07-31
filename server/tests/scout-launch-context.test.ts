@@ -90,6 +90,18 @@ describe("Scout classic-to-conversation launch context", () => {
     expect(launch.context).toBeNull();
   });
 
+  it("recognizes a confirmed onboarding result as an explicit Scout handoff", () => {
+    const launch = parseScoutLaunchLocation(
+      "/scout?source=onboarding_result&prompt=Find%20a%20licensed%20roofer%20near%20me"
+    );
+
+    expect(launch.prompt).toBe("Find a licensed roofer near me");
+    expect(launch.context).toEqual({
+      source: "onboarding_result",
+      contextType: "classic_handoff",
+    });
+  });
+
   it("sanitizes the launch context again at the server boundary", () => {
     const request = normalizeScoutRequest({
       message: "What should I check next?",

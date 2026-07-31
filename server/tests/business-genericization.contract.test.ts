@@ -6,17 +6,12 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("generic business profile and tool contracts", () => {
-  it("keeps the provider setup role generic while preserving legacy compatibility values", () => {
+  it("retires the old role-based profile setup module into universal onboarding", () => {
     const source = read("client/src/pages/profile-setup.tsx");
 
-    expect(source).toContain("I'm a Business");
-    expect(source).toContain("Business Profile Setup");
-    expect(source).toContain("I sell services, products, or local expertise");
-    expect(source).toContain("Publish services or items people can buy");
-    expect(source).toContain('setLocation("/business-dashboard")');
-    expect(source).toContain('"contractor_user"');
-    expect(source).not.toContain("I'm a Contractor");
-    expect(source).not.toContain("Contractor Profile Setup");
+    expect(source).toContain('<Redirect to="/onboarding" replace />');
+    expect(source).not.toContain("setup-profile");
+    expect(source).not.toContain("contractor_user");
   });
 
   it("turns the business owner dashboard into a generic business operations hub", () => {

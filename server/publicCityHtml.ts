@@ -1,8 +1,9 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { businessCounties, businesses, counties } from "@shared/schema";
+import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { publicBusinessDetailExposureSqlPredicate } from "./publicationBusiness";
 
 type PublicCityHtmlOptions = {
   origin: string;
@@ -159,10 +160,12 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
     .from(businesses)
     .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
     .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+    .leftJoin(users, eq(users.id, businesses.ownerUserId))
     .where(
       and(
         eq(businesses.status, "active" as any),
         eq(businesses.publicDiscoveryEnabled, true as any),
+        publicBusinessDetailExposureSqlPredicate(),
         eq(counties.stateCode, stateCode),
         sql`${sqlCitySlugExpr()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`

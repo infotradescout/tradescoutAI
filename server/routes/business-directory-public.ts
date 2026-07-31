@@ -21,8 +21,10 @@ import {
 } from "../../shared/publication";
 import {
   buildPublicBusinessSignals,
+  canServePublicBusinessDetail,
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
+  publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
 
 const router = Router();
@@ -182,7 +184,10 @@ router.get("/api/businesses", async (req, res, next) => {
         return res.status(400).json({ message: "stateCode must be a 2-letter code (e.g., FL)" });
       }
 
-      const whereClauses: any[] = [eq(businesses.status, "active" as any)];
+      const whereClauses: any[] = [
+        eq(businesses.status, "active" as any),
+        publicBusinessDetailExposureSqlPredicate(),
+      ];
       if (countyFips) whereClauses.push(eq(counties.fips, countyFips));
       if (stateCode) whereClauses.push(eq(counties.stateCode, stateCode));
       if (claimed !== "any") whereClauses.push(eq(businesses.claimStatus, claimed));
@@ -262,7 +267,7 @@ router.get("/api/businesses", async (req, res, next) => {
             tier,
           });
           const pub = isPublicAndCrawlableBusiness(signals, rules, now);
-          if (!pub.ok) {
+          if (!canServePublicBusinessDetail({ publication: pub, tier })) {
             continue;
           }
           grouped.set(key, {
@@ -380,8 +385,13 @@ router.get("/api/businesses/:id", async (req, res, next) => {
       rules,
       now
     );
-    if (!first.publicDiscoveryEnabled) {
-      return res.status(404).json({ message: "Business not found" });
+    if (
+      !canServePublicBusinessDetail({
+        publication: pub,
+        tier,
+      })
+    ) {
+      return res.status(410).json({ message: "Listing inactive/out of date" });
     }
 
     res.json({
@@ -485,8 +495,13 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
       rules,
       now
     );
-    if (!first.publicDiscoveryEnabled) {
-      return res.status(404).json({ message: "Business not found" });
+    if (
+      !canServePublicBusinessDetail({
+        publication: pub,
+        tier,
+      })
+    ) {
+      return res.status(410).json({ message: "Listing inactive/out of date" });
     }
 
     res.json({
@@ -840,6 +855,7 @@ router.get("/api/public/seo/best/trade-county", async (req, res) => {
       const whereClauses: any[] = [
         eq(businesses.status, "active" as any),
         eq(businesses.publicDiscoveryEnabled, true as any),
+        publicBusinessDetailExposureSqlPredicate(),
         eq(counties.fips, county.fips),
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
       ];
@@ -897,7 +913,7 @@ router.get("/api/public/seo/best/trade-county", async (req, res) => {
             rules,
             now
           );
-          if (!pub.ok) return null;
+          if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
           return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
         })
         .filter((x): x is { slug: string; name: string } => Boolean(x))
@@ -942,6 +958,7 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
     const whereClauses: any[] = [
       eq(businesses.status, "active" as any),
       eq(businesses.publicDiscoveryEnabled, true as any),
+      publicBusinessDetailExposureSqlPredicate(),
       eq(counties.stateCode, stateCode),
       sql`${sqlCitySlugExpr()} = ${citySlug}`,
       sql`${businesses.updatedAt} >= ${recencyCutoff}`,
@@ -1001,7 +1018,7 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
           rules,
           now
         );
-        if (!pub.ok) return null;
+        if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
         return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
       })
       .filter((x): x is { slug: string; name: string } => Boolean(x))

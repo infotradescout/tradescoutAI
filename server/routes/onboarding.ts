@@ -1,6 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
 import {
+  BusinessIdentityRequiredError,
+  BusinessSelectionRequiredError,
+  BusinessProfileSelectionRequiredError,
+  BusinessOwnershipConflictError,
+  BusinessSuspendedError,
+  completeOutcomeOnboarding,
   completeUnifiedOnboardingStep,
   getUnifiedOnboardingStatus,
   mapLegacyLaneToUnified,
@@ -82,11 +88,68 @@ const completeStepSchema = z.object({
   completeOnboarding: z.boolean().optional(),
 });
 
+const outcomeBusinessEvidenceSchema = z
+  .object({
+    targetBusinessId: z.string().trim().min(1).max(200).optional(),
+    targetProfileId: z.string().trim().min(1).max(200).optional(),
+    name: z.string().max(180).optional(),
+    notes: z.string().max(4_000).optional(),
+    services: z.array(z.string().max(180)).max(50).optional(),
+    links: z.array(z.string().max(2_000)).max(20).optional(),
+    photoUrls: z.array(z.string().max(2_000)).max(12).optional(),
+  })
+  .strict();
+
+export const completeOutcomeOnboardingSchema = z
+  .object({
+    kind: z.enum(["business_profile", "express_result"]),
+    goal: z.string().trim().min(1).max(2_000),
+    next: z.string().max(2_048).optional(),
+    business: outcomeBusinessEvidenceSchema.optional(),
+  })
+  .strict();
+
+export function buildOutcomeSelectionErrorPayload(
+  error:
+    | BusinessIdentityRequiredError
+    | BusinessSelectionRequiredError
+    | BusinessProfileSelectionRequiredError
+) {
+  return {
+    message: error.message,
+    code: error.code,
+    missing: [...error.missing],
+    ...(Array.isArray((error as BusinessSelectionRequiredError).candidates)
+      ? { candidates: (error as BusinessSelectionRequiredError).candidates }
+      : {}),
+  };
+}
+
 function getUserId(req: any): string | null {
   const id = req?.user?.id || req?.user?.claims?.sub;
   const clean = String(id || "").trim();
   return clean || null;
 }
+
+function retireLegacyOnboardingCompletion(req: any, res: any) {
+  if (!getUserId(req)) return res.status(401).json({ message: "Authentication required" });
+  return res.status(410).json({
+    code: "OUTCOME_ONBOARDING_REQUIRED",
+    message: "Complete the universal outcome onboarding flow.",
+    next: "/onboarding",
+  });
+}
+
+router.post(
+  [
+    "/api/auth/complete-onboarding",
+    "/api/user/complete-onboarding",
+    "/api/auth/setup-profile",
+    "/api/auth/skip-onboarding",
+  ],
+  retireLegacyOnboardingCompletion
+);
+router.patch("/api/auth/user", retireLegacyOnboardingCompletion);
 
 function resolveLaneAndAssets(parsedLane: string, parsedAssets?: OnboardingAsset[]) {
   if (onboardingLaneSchema.safeParse(parsedLane).success) {
@@ -196,6 +259,50 @@ router.post("/api/onboarding/complete-step", async (req, res) => {
     }
     console.error("[onboarding.complete-step] error", error);
     return res.status(500).json({ message: "Failed to complete onboarding step" });
+  }
+});
+
+// POST /api/onboarding/complete
+// One outcome-first completion boundary. Business evidence may be sparse; the
+// service asks only for a missing identity when it cannot safely identify a
+// new business. Verification remains an independent system.
+router.post("/api/onboarding/complete", async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    const parsed = completeOutcomeOnboardingSchema.parse(req.body ?? {});
+    const { storage } = await import("../storage");
+    const result = await completeOutcomeOnboarding(storage as any, {
+      userId,
+      kind: parsed.kind,
+      goal: parsed.goal,
+      next: parsed.next,
+      business: parsed.business,
+    });
+    return res.json({ success: true, result });
+  } catch (error) {
+    if (
+      error instanceof BusinessOwnershipConflictError ||
+      error instanceof BusinessSuspendedError
+    ) {
+      return res.status(409).json({ message: error.message, code: error.code });
+    }
+    if (
+      error instanceof BusinessIdentityRequiredError ||
+      error instanceof BusinessSelectionRequiredError ||
+      error instanceof BusinessProfileSelectionRequiredError
+    ) {
+      return res.status(422).json(buildOutcomeSelectionErrorPayload(error));
+    }
+    if (error instanceof z.ZodError) {
+      return res
+        .status(400)
+        .json({ message: "Invalid onboarding completion payload", errors: error.errors });
+    }
+    console.error("[onboarding.complete] error", error);
+    return res.status(500).json({ message: "Failed to complete onboarding" });
   }
 });
 

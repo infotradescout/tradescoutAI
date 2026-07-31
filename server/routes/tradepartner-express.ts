@@ -19,8 +19,8 @@ import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
 import {
+  canExposePublishedProfilePublicly,
   hasTradeScoutPendingOwnerCustody,
-  isOwnerConfirmedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
 import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
@@ -163,8 +163,6 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     .where(eq(profiles.slug, normalizedSlug))
     .limit(1);
 
-  const verificationStatus = String(row?.ownerVerificationStatus || "").toLowerCase();
-  const ownerDiscoverable = row?.ownerVerifiedBadge === true || verificationStatus === "approved";
   const directProfileCandidate = {
     profileSlug: row?.profileSlug,
     profileStatus: row?.profileStatus,
@@ -177,8 +175,6 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     ownerProvider: row?.ownerProvider,
     ownerPreferences: row?.ownerPreferences,
   };
-  const ownerConfirmedDirectProfile =
-    isOwnerConfirmedDirectProfile(directProfileCandidate);
   const deliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
     ? "tradescout_pending_owner"
     : "business";
@@ -187,9 +183,14 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const notificationEmail = String(profileData.notificationEmail || "").trim();
   if (
     !row ||
-    String(row.profileStatus) !== "published" ||
     String(row.businessStatus) !== "active" ||
-    (!ownerDiscoverable && !ownerConfirmedDirectProfile)
+    !canExposePublishedProfilePublicly({
+      profileId: row.profileId,
+      businessId: row.businessId,
+      ...directProfileCandidate,
+      ownerVerifiedBadge: row.ownerVerifiedBadge,
+      ownerVerificationStatus: row.ownerVerificationStatus,
+    })
   ) {
     return null;
   }

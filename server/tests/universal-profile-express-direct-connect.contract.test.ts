@@ -14,17 +14,13 @@ describe("universal public-profile Express Direct Connect contract", () => {
 
   it("supports published active discoverable businesses and the narrow owner-confirmed profile", () => {
     expect(routeSource).not.toContain("profileData.tradePartner !== true");
-    expect(routeSource).toContain('String(row.profileStatus) !== "published"');
     expect(routeSource).toContain('String(row.businessStatus) !== "active"');
-    expect(routeSource).toContain("!ownerDiscoverable");
-    expect(routeSource).toContain("!ownerConfirmedDirectProfile");
     expect(routeSource).toContain("const directProfileCandidate = {");
-    expect(routeSource).toContain(
-      "isOwnerConfirmedDirectProfile(directProfileCandidate)"
-    );
-    expect(routeSource).toContain(
-      "hasTradeScoutPendingOwnerCustody(directProfileCandidate)"
-    );
+    expect(routeSource).toContain("canExposePublishedProfilePublicly({");
+    expect(routeSource).toContain("profileId: row.profileId");
+    expect(routeSource).toContain("ownerVerifiedBadge: row.ownerVerifiedBadge");
+    expect(routeSource).toContain("ownerVerificationStatus: row.ownerVerificationStatus");
+    expect(routeSource).toContain("hasTradeScoutPendingOwnerCustody(directProfileCandidate)");
     expect(routeSource).toContain("businessClaimStatus: row?.businessClaimStatus");
     expect(routeSource).toContain("ownerProvider: row?.ownerProvider");
     expect(routeSource).toContain("ownerPreferences: row?.ownerPreferences");
@@ -47,7 +43,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
       'if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass")'
     );
     const autoGlassEnd = profileSource.indexOf(
-      '// Legacy specialty shell until a fabrication gallery template ships.',
+      "// Legacy specialty shell until a fabrication gallery template ships.",
       autoGlassStart
     );
     const autoGlassBranch = profileSource.slice(autoGlassStart, autoGlassEnd);
@@ -56,10 +52,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     const generalDirectConnectStart = profileSource.indexOf(
       "const openGeneralDirectConnect = () => {"
     );
-    const generalDirectConnectEnd = profileSource.indexOf(
-      "};",
-      generalDirectConnectStart
-    );
+    const generalDirectConnectEnd = profileSource.indexOf("};", generalDirectConnectStart);
     const generalDirectConnect = profileSource.slice(
       generalDirectConnectStart,
       generalDirectConnectEnd
@@ -67,10 +60,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     const serviceDirectConnectStart = profileSource.indexOf(
       "const openServiceDirectConnect = (serviceName?: string) => {"
     );
-    const serviceDirectConnectEnd = profileSource.indexOf(
-      "};",
-      serviceDirectConnectStart
-    );
+    const serviceDirectConnectEnd = profileSource.indexOf("};", serviceDirectConnectStart);
     const serviceDirectConnect = profileSource.slice(
       serviceDirectConnectStart,
       serviceDirectConnectEnd

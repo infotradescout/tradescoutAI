@@ -1,9 +1,29 @@
-import { profiles, users, type InsertProfile, type Profile, type User } from "@shared/schema";
+import {
+  businesses,
+  profiles,
+  users,
+  type InsertProfile,
+  type Profile,
+  type User,
+} from "@shared/schema";
 import { db } from "../db";
-import { and, desc, eq, like, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
+import {
+  ADMIN_MANAGED_PROFILE_SOURCE,
+  canExposeProviderProfileOnPublicMap,
+  canExposePublishedProfilePublicly,
+  JRS_PROFILE_SLUG,
+  OWNER_CONFIRMED_PROFILE_SOURCE,
+  PRO_FAB_PROFILE_SLUG,
+  type PublishedProfileExposureCandidate,
+} from "../services/ownerConfirmedDirectProfile";
+import {
+  PRECISION_AERIAL_PROFILE_SLUG,
+  PRECISION_AERIAL_STEWARD_PROVIDER,
+} from "@shared/precisionAerialProfile";
 
 export type PublicProfileRecord = {
   id: string;
@@ -27,6 +47,56 @@ export type PublicProfileRecord = {
   servicesDescription: string | null;
 };
 
+export type PublicProfileSearchRecord = {
+  id: string;
+  slug: string;
+  displayName: string;
+  headline: string | null;
+  roleContext: any;
+};
+
+export async function loadCanonicalPublicMapProfileUrls(
+  providerIds: string[]
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  if (providerIds.length === 0) return result;
+
+  const rows = await db
+    .select({
+      profileId: profiles.id,
+      ownerUserId: profiles.ownerUserId,
+      slug: profiles.slug,
+      profileStatus: profiles.status,
+      businessId: profiles.businessId,
+      ownerVerifiedBadge: users.verifiedBadge,
+      ownerVerificationStatus: users.verificationStatus,
+      ownerProvider: users.provider,
+      ownerPreferences: users.preferences,
+      businessStatus: businesses.status,
+      businessOwnerUserId: businesses.ownerUserId,
+      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+      businessSources: businesses.sources,
+      businessClaimStatus: businesses.claimStatus,
+    })
+    .from(profiles)
+    .innerJoin(users, eq(profiles.ownerUserId, users.id))
+    .leftJoin(businesses, eq(profiles.businessId, businesses.id))
+    .where(and(inArray(profiles.ownerUserId, providerIds), eq(profiles.status, "published")))
+    .orderBy(desc(profiles.updatedAt));
+
+  for (const row of rows) {
+    const candidate: PublishedProfileExposureCandidate = {
+      ...row,
+      profileSlug: row.slug,
+      profileOwnerUserId: row.ownerUserId,
+    };
+    if (canExposeProviderProfileOnPublicMap(candidate) && !result.has(row.ownerUserId)) {
+      result.set(row.ownerUserId, `/u/${row.slug}`);
+    }
+  }
+  return result;
+}
+
 type ProfileMutation = Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">;
 
 function slugify(input: string): string {
@@ -36,6 +106,47 @@ function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 80);
+}
+
+function publicProfileSearchExposurePredicate() {
+  const ownerConfirmedSource = JSON.stringify([OWNER_CONFIRMED_PROFILE_SOURCE]);
+  const adminManagedSource = JSON.stringify([ADMIN_MANAGED_PROFILE_SOURCE]);
+  return sql`(
+    ${profiles.businessId} IS NULL
+    OR ${users.verifiedBadge} = true
+    OR lower(COALESCE(${users.verificationStatus}, '')) = 'approved'
+    OR (
+      ${businesses.status} = 'active'
+      AND ${businesses.publicDiscoveryEnabled} = false
+      AND ${profiles.ownerUserId} = ${businesses.ownerUserId}
+      AND (
+        (
+          ${profiles.slug} = ${JRS_PROFILE_SLUG}
+          AND COALESCE(${businesses.sources}, '[]'::jsonb) @> ${ownerConfirmedSource}::jsonb
+        )
+        OR (
+          ${profiles.slug} = ${PRO_FAB_PROFILE_SLUG}
+          AND COALESCE(${businesses.sources}, '[]'::jsonb) @> ${adminManagedSource}::jsonb
+        )
+        OR (
+          ${profiles.slug} = ${PRECISION_AERIAL_PROFILE_SLUG}
+          AND COALESCE(${businesses.sources}, '[]'::jsonb) @> ${adminManagedSource}::jsonb
+          AND lower(COALESCE(${businesses.claimStatus}, '')) = 'unclaimed'
+          AND ${users.provider} = ${PRECISION_AERIAL_STEWARD_PROVIDER}
+          AND COALESCE(${users.preferences} -> 'internalProfileSteward' ->> 'profileSlug', '') = ${PRECISION_AERIAL_PROFILE_SLUG}
+          AND COALESCE(${users.preferences} -> 'internalProfileSteward' ->> 'source', '') = ${ADMIN_MANAGED_PROFILE_SOURCE}
+        )
+      )
+    )
+  )`;
+}
+
+function publicProfileVisibilityPredicate() {
+  return sql`(
+    lower(COALESCE(${users.preferences} ->> 'profileVisibility', 'private')) = 'public'
+    OR COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
+       @> jsonb_build_array(CAST(${profiles.id} AS text))
+  )`;
 }
 
 export class ProfileRepository {
@@ -78,7 +189,7 @@ export class ProfileRepository {
     return rows[0];
   }
 
-  async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
+  private async getProfileBySlugPublishedRecord(slug: string): Promise<any | undefined> {
     const rows = await db
       .select({
         id: profiles.id,
@@ -100,20 +211,40 @@ export class ProfileRepository {
         ownerState: users.state,
         ownerRoles: users.roles,
         servicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
+        profileOwnerUserId: profiles.ownerUserId,
+        ownerVerifiedBadge: users.verifiedBadge,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerProvider: users.provider,
+        ownerPreferences: users.preferences,
+        businessStatus: businesses.status,
+        businessOwnerUserId: businesses.ownerUserId,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        businessSources: businesses.sources,
+        businessClaimStatus: businesses.claimStatus,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
-      .where(
-        and(
-          eq(profiles.slug, slug),
-          eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
-        )
-      )
+      .leftJoin(businesses, eq(profiles.businessId, businesses.id))
+      .where(and(eq(profiles.slug, slug), eq(profiles.status, "published" as any)))
       .limit(1);
-    const row = rows[0];
-    if (!row) return undefined;
-    const { legacyProfileBooking, ...publicProfile } = row;
+    return rows[0];
+  }
+
+  private toPublicProfileRecord(row: any): PublicProfileRecord {
+    const {
+      legacyProfileBooking,
+      profileOwnerUserId: _profileOwnerUserId,
+      ownerVerifiedBadge: _ownerVerifiedBadge,
+      ownerVerificationStatus: _ownerVerificationStatus,
+      ownerProvider: _ownerProvider,
+      ownerPreferences: _ownerPreferences,
+      businessStatus: _businessStatus,
+      businessOwnerUserId: _businessOwnerUserId,
+      publicDiscoveryEnabled: _publicDiscoveryEnabled,
+      businessSources: _businessSources,
+      businessClaimStatus: _businessClaimStatus,
+      ...publicProfile
+    } = row;
     return {
       ...publicProfile,
       profileSections:
@@ -125,15 +256,45 @@ export class ProfileRepository {
     };
   }
 
-  async searchProfilesPublic(args: { query: string; limit?: number }): Promise<
-    Array<{
-      id: string;
-      slug: string;
-      displayName: string;
-      headline: string | null;
-      roleContext: any;
-    }>
-  > {
+  /**
+   * Internal published-profile read used only by the authenticated API preview
+   * path, which applies owner/staff authorization after resolving ownership.
+   */
+  async getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined> {
+    const row = await this.getProfileBySlugPublishedRecord(slug);
+    return row ? this.toPublicProfileRecord(row) : undefined;
+  }
+
+  async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
+    const row = await this.getProfileBySlugPublishedRecord(slug);
+    if (!row) return undefined;
+    if (
+      !canExposePublishedProfilePublicly({
+        profileId: row.id,
+        businessId: row.businessId,
+        profileSlug: row.slug,
+        profileStatus: "published",
+        profileOwnerUserId: row.profileOwnerUserId,
+        ownerVerifiedBadge: row.ownerVerifiedBadge,
+        ownerVerificationStatus: row.ownerVerificationStatus,
+        ownerProvider: row.ownerProvider,
+        ownerPreferences: row.ownerPreferences,
+        businessStatus: row.businessStatus,
+        businessOwnerUserId: row.businessOwnerUserId,
+        publicDiscoveryEnabled: row.publicDiscoveryEnabled,
+        businessSources: row.businessSources,
+        businessClaimStatus: row.businessClaimStatus,
+      })
+    ) {
+      return undefined;
+    }
+    return this.toPublicProfileRecord(row);
+  }
+
+  async searchProfilesPublic(args: {
+    query: string;
+    limit?: number;
+  }): Promise<PublicProfileSearchRecord[]> {
     const raw = (args.query || "").trim();
     if (!raw) return [];
 
@@ -150,11 +311,13 @@ export class ProfileRepository {
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .leftJoin(businesses, eq(profiles.businessId, businesses.id))
       .where(
         and(
           eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
-          sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`
+          publicProfileVisibilityPredicate(),
+          sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`,
+          publicProfileSearchExposurePredicate()
         )
       )
       .orderBy(desc(profiles.updatedAt))

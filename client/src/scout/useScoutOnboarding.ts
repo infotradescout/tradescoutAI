@@ -20,11 +20,7 @@ import {
 } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  clearScoutOnboardingSession,
-  isScoutOnboardingCompleted,
-  markScoutOnboardingComplete,
-} from "./scoutOnboardingSession";
+import { clearScoutOnboardingSession, isScoutOnboardingCompleted } from "./scoutOnboardingSession";
 
 function isValidCountyFips(value: unknown): value is string {
   return typeof value === "string" && /^\d{5}$/.test(value.trim());
@@ -221,17 +217,6 @@ export function useScoutOnboarding() {
           throw new Error("Failed to write some claims");
         }
 
-        // Mark onboarding as completed server-side so users don't get re-routed
-        // into onboarding flows in later sessions.
-        await apiRequest("POST", "/api/user/complete-onboarding", {});
-
-        // Mark onboarding as done
-        try {
-          markScoutOnboardingComplete({ claimsConfirmed: true, confirmedClaims });
-        } catch {
-          // ignore
-        }
-
         // Route based on confirmed claims
         const routing = routeFromClaims(confirmedClaims);
         console.log("[ONBOARDING] Routing to:", routing);
@@ -240,7 +225,7 @@ export function useScoutOnboarding() {
 
         // Navigate after a brief moment
         setTimeout(() => {
-          navigate(routing.path);
+          navigate(`/onboarding?next=${encodeURIComponent(routing.path)}`);
         }, 300);
       } catch (error: any) {
         console.error("[ONBOARDING] Claim write failed:", error);
@@ -259,18 +244,9 @@ export function useScoutOnboarding() {
    */
   const skipOnboarding = useCallback(async () => {
     console.log("[ONBOARDING] User skipped onboarding");
-    try {
-      await apiRequest("POST", "/api/user/complete-onboarding", {});
-      markScoutOnboardingComplete({ claimsConfirmed: false, confirmedClaims: [] });
-      setFlowState({ phase: "done", confirmationCard: null, error: null });
-      navigate("/direct-connect/board"); // Neutral fallback
-    } catch {
-      setFlowState((prev) => ({
-        ...prev,
-        phase: "confirming",
-        error: "Couldn't complete setup right now. Please try again.",
-      }));
-    }
+    clearScoutOnboardingSession();
+    setFlowState({ phase: "done", confirmationCard: null, error: null });
+    navigate("/onboarding?next=%2Fdirect-connect%2Fboard");
   }, [navigate]);
 
   /**

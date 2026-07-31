@@ -82,12 +82,11 @@ describe("public profile compatibility contracts", () => {
   it("Provider discovery points prefer canonical public profile URLs when available", () => {
     const routesSource = read("server/routes.ts");
 
+    expect(routesSource).toContain("loadCanonicalPublicMapProfileUrls(providerIds)");
     expect(routesSource).toContain(
-      "const canonicalProfileUrlByProviderId = new Map<string, string>()"
+      "const canonicalProfileUrl = canonicalProfileUrlByProviderId.get("
     );
-    expect(routesSource).toContain(
-      "canonicalProfileUrlByProviderId.get(String(row.providerId)) ??"
-    );
+    expect(routesSource).toContain("if (!canonicalProfileUrl) continue;");
   });
 
   it("legacy contractor profile API and page bridge to canonical business profiles", () => {

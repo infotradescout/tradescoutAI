@@ -14,6 +14,7 @@ describe("unified onboarding contracts", () => {
     expect(source).toContain('router.post("/api/onboarding/start"');
     expect(source).toContain('router.post("/api/onboarding/claim"');
     expect(source).toContain('router.post("/api/onboarding/complete-step"');
+    expect(source).toContain('router.post("/api/onboarding/complete"');
     expect(source).toContain('router.get("/api/onboarding/status"');
   });
 
@@ -35,14 +36,14 @@ describe("unified onboarding contracts", () => {
     expect(source).toContain('"saved_search"');
   });
 
-  it("emits generic onboarding events", () => {
+  it("keeps legacy telemetry without starting verification", () => {
     const source = read("server/services/onboardingService.ts");
 
     expect(source).toContain('"onboarding_started"');
     expect(source).toContain('"role_selected"');
     expect(source).toContain('"claim_submitted"');
     expect(source).toContain('"profile_started"');
-    expect(source).toContain('"verification_started"');
+    expect(source).not.toContain('"verification_started"');
     expect(source).toContain('"setup_step_completed"');
     expect(source).toContain('"onboarding_completed"');
   });

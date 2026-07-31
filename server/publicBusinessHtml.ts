@@ -7,11 +7,13 @@ import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import {
   buildPublicBusinessSignals,
+  canServePublicBusinessDetail,
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
+import { isPubliclyVerifiedProfileOwner } from "./services/ownerConfirmedDirectProfile";
 
 type PublicBusinessHtmlOptions = {
   slug: string;
@@ -170,7 +172,13 @@ export async function buildPublicBusinessHtml({
 
   // First: published business profile (stored in user preferences for now).
   const published = await storage.getBusinessProfileBySlug(safeSlug);
-  if (published?.visibility === "public") {
+  if (
+    published?.visibility === "public" &&
+    isPubliclyVerifiedProfileOwner({
+      ownerVerifiedBadge: published.verifiedBadge,
+      ownerVerificationStatus: published.verificationStatus,
+    })
+  ) {
     const baseMeta = buildBusinessMeta({
       origin,
       slug: safeSlug,
@@ -536,21 +544,21 @@ export async function buildPublicBusinessHtml({
     new Date()
   );
 
-  const isStale = !pub.ok;
+  const isStale = !canServePublicBusinessDetail({ publication: pub, tier });
   const verificationLabel = isStale ? "Inactive listing" : "Directory listing";
   const meta = buildBusinessMeta({
     origin,
     slug: safeSlug,
     name: String((directory as any).name || safeSlug),
-    headline: tagline || null,
+    headline: isStale ? null : tagline || null,
     description: isStale
       ? "You're here early. This listing is being refreshed and will be back soon."
       : description || tagline || null,
-    countyName: countyNames[0] || null,
-    stateCode,
-    categories,
-    serviceAreas: countyNames,
-    services: categories,
+    countyName: isStale ? null : countyNames[0] || null,
+    stateCode: isStale ? null : stateCode,
+    categories: isStale ? [] : categories,
+    serviceAreas: isStale ? [] : countyNames,
+    services: isStale ? [] : categories,
     verificationLabel,
   });
 
@@ -563,7 +571,9 @@ export async function buildPublicBusinessHtml({
     category: categories.length ? categories : undefined,
     areaServed: countyNames.slice(0, 12),
     sameAs:
-      typeof profileData.website === "string" && profileData.website.trim()
+      profileData.publicWebsiteEnabled === true &&
+      typeof profileData.website === "string" &&
+      profileData.website.trim()
         ? [profileData.website.trim()]
         : undefined,
     hasCredential: {

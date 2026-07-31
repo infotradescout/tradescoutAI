@@ -57,6 +57,9 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("itemId: body.itemId || null");
     expect(route).toContain("requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(route).toContain("? ISSA_BUILD_PROFILE_SLUG");
+    expect(route).toContain("canExposePublishedProfilePublicly({");
+    expect(route).toContain("profileId: row.profileId");
+    expect(route).toContain("ownerPreferences: row?.ownerPreferences");
   });
 
   it("reveals the business number only after the profile CTA call decision", () => {

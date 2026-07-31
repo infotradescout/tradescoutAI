@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { and, asc, eq, or, sql } from "drizzle-orm";
 import { db } from "../db";
-import { businessCounties, businesses, counties } from "../../shared/schema";
+import { businessCounties, businesses, counties, users } from "../../shared/schema";
 import { slugifyCountyName } from "../../shared/tradeSeo";
 import { getTradeSeoMatch } from "../../shared/tradeSeo";
+import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 
 const router = Router();
 
@@ -64,9 +65,12 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
       .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true),
+          publicBusinessDetailExposureSqlPredicate(),
           eq(counties.stateCode, stateCode),
           sql`${sqlCitySlugExpr()} = ${citySlug}`
         )
@@ -127,9 +131,12 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
       .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true),
+          publicBusinessDetailExposureSqlPredicate(),
           eq(counties.stateCode, stateCode),
           sql`${sqlCitySlugExpr()} = ${citySlug}`,
           tradeClause

@@ -11,6 +11,7 @@ import {
   marketplaceCategories,
   marketplaceConversations,
   marketplaceListings,
+  profiles,
   trades,
   users,
 } from "@shared/schema";
@@ -140,9 +141,13 @@ if (!hasTestDb) {
       expect(registerRes.status).toBe(200);
 
       const onboardingRes = await agent
-        .post("/api/auth/skip-onboarding")
+        .post("/api/onboarding/complete")
         .set("Content-Type", "application/json")
-        .send({ role: "homeowner" });
+        .send({
+          kind: "express_result",
+          goal: "Review the protected exchange request",
+          next: `/exchange/items/${listing.id}`,
+        });
       expect(onboardingRes.status).toBe(200);
 
       const decisionScope = `marketplace_listing:${listing.id}`;
@@ -184,6 +189,7 @@ if (!hasTestDb) {
       const userId = `map-user-${crypto.randomUUID()}`;
       const contractorId = `map-contractor-${crypto.randomUUID()}`;
       const tradeId = `trade-${crypto.randomUUID()}`;
+      const profileId = `map-profile-${crypto.randomUUID()}`;
 
       await db.insert(users).values({
         id: userId,
@@ -196,6 +202,8 @@ if (!hasTestDb) {
         countyName: "Harris County",
         latitude: "29.7604",
         longitude: "-95.3698",
+        verificationStatus: "approved" as any,
+        preferences: { publicProfileIds: [profileId] },
       } as any);
 
       await db.insert(contractors).values({
@@ -216,6 +224,15 @@ if (!hasTestDb) {
       await db.insert(contractorTrades).values({
         contractorId,
         tradeId,
+      } as any);
+
+      await db.insert(profiles).values({
+        id: profileId,
+        ownerUserId: userId,
+        roleContext: "contractor",
+        slug: `map-provider-${crypto.randomUUID()}`,
+        displayName: "Map HVAC Services",
+        status: "published",
       } as any);
 
       const bbox = "-95.8,29.4,-95.0,30.1";
@@ -254,6 +271,11 @@ if (!hasTestDb) {
         },
       } as any);
 
+      const beforeClaim = await request(app).get(
+        `/api/business-claim/resolve?businessId=${encodeURIComponent(businessId)}`
+      );
+      expect(beforeClaim.status).toBe(200);
+
       const agent = request.agent(app);
       const registerRes = await agent
         .post("/api/auth/register")
@@ -271,6 +293,11 @@ if (!hasTestDb) {
 
       expect(registerRes.status).toBe(200);
       expect(registerRes.body?.claim?.status).toBe("claimed");
+
+      const afterClaim = await request(app).get(
+        `/api/business-claim/resolve?businessId=${encodeURIComponent(businessId)}`
+      );
+      expect(afterClaim.status).toBe(404);
 
       const rows = await db
         .select({

@@ -23,8 +23,9 @@ import { ShareCardHost } from "./components/share/ShareCardHost";
 
 // Only load essential components eagerly
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { isSuperAdminLike } from "./lib/roleChecks";
+import { isOnboardingSurfacePath } from "./lib/onboardingSurface";
+import { hasCompletedSetup } from "./lib/setupState";
 
 // Loading component for lazy-loaded pages
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
@@ -94,7 +95,7 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/login") ||
     pathOnly.startsWith("/register") ||
     pathOnly.startsWith("/pre-scout-setup") ||
-    pathOnly.startsWith("/onboarding/");
+    isOnboardingSurfacePath(pathOnly);
   const isShareRoute = pathOnly.startsWith("/r/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
@@ -165,11 +166,8 @@ const AppLayout = memo(function AppLayout() {
       return [];
     })();
 
-    const profileVersion: number =
-      typeof user?.profileVersion === "number" ? user.profileVersion : 0;
     const isSuperAdminSession = isSuperAdminLike(user?.role);
-    const hasCompletedProfileBasics =
-      isSuperAdminSession || profileVersion >= CURRENT_PROFILE_VERSION;
+    const hasCompletedProfileBasics = isSuperAdminSession || hasCompletedSetup(user);
 
     trackShellEvent({
       type: "identity_session",
@@ -235,12 +233,7 @@ const AppLayout = memo(function AppLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
-    const profileVersion: number =
-      typeof user.profileVersion === "number" ? user.profileVersion : 0;
-    const onboardingCompleted = user.onboardingCompleted === true;
-    const needsOnboarding =
-      profileVersion < CURRENT_PROFILE_VERSION || onboardingCompleted !== true;
-    if (needsOnboarding) return;
+    if (!hasCompletedSetup(user)) return;
 
     if (user.communityFirst && location === "/") {
       setLocation("/community-feed");

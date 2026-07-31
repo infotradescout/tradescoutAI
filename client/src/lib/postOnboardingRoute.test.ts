@@ -1,118 +1,78 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_LANDING,
+  DEFAULT_AUTH_COMPLETION_ROUTE,
+  buildAuthEntryRoute,
+  isOnboardingExemptPath,
+  isSafeNextPath,
   resolveOnboardingState,
-  resolveDirectConnectLandingRoute,
   resolvePostOnboardingRoute,
 } from "./postOnboardingRoute";
 
-describe("post-onboarding product routing", () => {
-  it("defaults regular requesters into Direct Connect as the primary action surface", () => {
-    expect(resolvePostOnboardingRoute({})).toBe("/direct-connect?entry=onboarding");
-    expect(DEFAULT_LANDING).toBe("/direct-connect");
-  });
+describe("universal onboarding continuity", () => {
+  it("preserves exact same-origin resource paths, identifiers, queries, and fragments", () => {
+    const resource = "/exchange/items/item-42?mode=offer&from=feed#details";
+    const profile = "/u/north-shore-repair?edit=1";
+    const scoutResult =
+      "/scout?source=onboarding_result&prompt=compare%20https%3A%2F%2Fexample.com";
 
-  it("preserves explicit safe deep links", () => {
-    expect(resolvePostOnboardingRoute({ nextParam: "/community-feed" })).toBe("/community-feed");
-  });
-
-  it("uses Direct Connect state when activity signals are known", () => {
-    expect(resolveDirectConnectLandingRoute({ entry: "auth", hasReplies: true })).toBe(
-      "/direct-connect/inbox?entry=auth"
-    );
-    expect(resolveDirectConnectLandingRoute({ entry: "setup", hasOpenRequests: true })).toBe(
-      "/direct-connect/engagements?entry=setup"
+    expect(isSafeNextPath(resource)).toBe(true);
+    expect(isSafeNextPath(profile)).toBe(true);
+    expect(isSafeNextPath(scoutResult)).toBe(true);
+    expect(resolvePostOnboardingRoute({ nextParam: resource })).toBe(resource);
+    expect(buildAuthEntryRoute({ mode: "signin", next: profile })).toContain(
+      "next=%2Fu%2Fnorth-shore-repair%3Fedit%3D1"
     );
   });
 
-  it("keeps Direct Connect intent choices inside local requests flow", () => {
-    expect(resolvePostOnboardingRoute({ chosenIntent: "tools" })).toBe(
-      "/direct-connect?entry=onboarding"
-    );
+  it("rejects external, encoded external, backslash, and auth-loop destinations", () => {
+    const unsafe = [
+      "https://evil.example/steal",
+      "//evil.example/steal",
+      "/%2F%2Fevil.example/steal",
+      "/%252F%252Fevil.example/steal",
+      "/\\evil.example/steal",
+      "/javascript:alert(1)",
+      "/%00hidden",
+      "/%252e%252e/login",
+      "/safe/%252e%252e/profile-setup",
+      "/foo/..%252fonboarding",
+      "/onboarding/intent?next=/scout",
+      "/api/auth/logout",
+      "/api/user/complete-onboarding",
+      "/_internal",
+      "/.well-known/test",
+      "/assets/private.json",
+      "/pre-scout-setup?mode=signin",
+      "/login",
+      "/auth/login",
+      `/${"a".repeat(2_049)}`,
+    ];
+
+    unsafe.forEach((path) => expect(isSafeNextPath(path), path).toBe(false));
+    expect(resolvePostOnboardingRoute({ nextParam: unsafe[0] })).toBe("/scout");
   });
 
-  it("uses one canonical onboarding state decision", () => {
-    expect(resolveOnboardingState(null)).toBe("needs_profile");
+  it("uses one outcome state without personal-profile or location prerequisites", () => {
+    expect(resolveOnboardingState(null)).toBe("needs_outcome");
     expect(
       resolveOnboardingState({
-        firstName: "A",
-        lastName: "B",
-        phone: "(555) 111-2222",
-        stateCode: "AL",
-        countyFips: "01097",
-        locationCommitted: true,
         onboardingCompleted: false,
-        profileVersion: 0,
+        firstName: "",
+        phone: "",
+        stateCode: "",
+        countyFips: "",
       })
-    ).toBe("needs_intent");
-    expect(
-      resolveOnboardingState({
-        firstName: "A",
-        lastName: "B",
-        phone: "(555) 111-2222",
-        stateCode: "AL",
-        countyFips: "01097",
-        locationCommitted: true,
-        onboardingCompleted: false,
-        profileVersion: 0,
-        preferences: { onboarding: { state: { lane: "find_help" } } },
-      })
-    ).toBe("complete");
-    expect(resolveOnboardingState({ onboardingCompleted: true, profileVersion: 0 })).toBe(
-      "complete"
-    );
+    ).toBe("needs_outcome");
+    expect(resolveOnboardingState({ onboardingCompleted: true })).toBe("complete");
+    expect(DEFAULT_AUTH_COMPLETION_ROUTE).toBe("/onboarding");
   });
 
-  it("keeps business users in profile state until business basics exist", () => {
-    expect(
-      resolveOnboardingState({
-        firstName: "Casey",
-        lastName: "Lee",
-        phone: "(555) 222-3333",
-        stateCode: "LA",
-        countyFips: "22105",
-        locationCommitted: true,
-        onboardingCompleted: false,
-        profileVersion: 0,
-        preferences: {
-          provisional: { profileDraft: { presenceType: "represent_business" } },
-          onboarding: { state: { lane: "business" } },
-        },
-      })
-    ).toBe("needs_profile");
-
-    expect(
-      resolveOnboardingState({
-        firstName: "Casey",
-        lastName: "Lee",
-        phone: "(555) 222-3333",
-        stateCode: "LA",
-        countyFips: "22105",
-        locationCommitted: true,
-        onboardingCompleted: false,
-        profileVersion: 0,
-        businessName: "Modern Wood LLC",
-        businessType: "painting",
-        preferences: {
-          provisional: { profileDraft: { presenceType: "represent_business" } },
-          onboarding: { state: { lane: "business" } },
-        },
-      })
-    ).toBe("complete");
-  });
-
-  it("requires local area before intent state", () => {
-    expect(
-      resolveOnboardingState({
-        firstName: "Taylor",
-        lastName: "Reed",
-        phone: "(555) 777-8888",
-        stateCode: "LA",
-        countyFips: "22105",
-        locationCommitted: false,
-        onboardingCompleted: false,
-        profileVersion: 0,
-      })
-    ).toBe("needs_profile");
+  it("recognizes only the supported universal onboarding compatibility URLs as exempt", () => {
+    expect(isOnboardingExemptPath("/onboarding")).toBe(true);
+    expect(isOnboardingExemptPath("/onboarding/profile")).toBe(true);
+    expect(isOnboardingExemptPath("/onboarding/intent")).toBe(true);
+    expect(isOnboardingExemptPath("/profile-setup")).toBe(true);
+    expect(isOnboardingExemptPath("/onboarding/unknown-legacy-step")).toBe(false);
+    expect(isOnboardingExemptPath("/scout")).toBe(false);
   });
 });

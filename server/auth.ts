@@ -16,9 +16,9 @@ import {
   userHasBusinessProviderTools,
 } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
-import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { desc, sql } from "drizzle-orm";
 import { isPrivilegedAliasEmail } from "./utils/authorityPolicy";
+import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
 
 function normalizeLegacyRole(role: unknown): UserRole | null {
   if (typeof role !== "string" || role.trim().length === 0) return null;
@@ -468,14 +468,11 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   res.status(401).json({ message: "Authentication required" });
 };
 
-// Onboarding completion guard: blocks "real" participation until profile basics
-// have been normalized onto the current profile schema.
+// Onboarding completion guard: one explicit outcome-completion authority.
 export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
   const user = req.user as User | undefined;
 
   const anyUser: any = user || {};
-  const profileVersion: number =
-    typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
   // Super admins always bypass onboarding gates.
   const normalizedRole = normalizeLegacyRole(anyUser.role);
@@ -487,7 +484,7 @@ export const requireOnboardingComplete: RequestHandler = (req, res, next) => {
     return next();
   }
 
-  if (user && profileVersion >= CURRENT_PROFILE_VERSION) {
+  if (user && isOutcomeOnboardingComplete(anyUser)) {
     return next();
   }
 
