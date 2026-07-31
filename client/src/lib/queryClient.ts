@@ -6,9 +6,16 @@ export class ApiError extends Error {
   status?: number;
   errorId?: string;
   requestId?: string;
+  details?: Record<string, unknown>;
   constructor(
     message: string,
-    opts?: { code?: string; status?: number; requestId?: string; errorId?: string }
+    opts?: {
+      code?: string;
+      status?: number;
+      requestId?: string;
+      errorId?: string;
+      details?: Record<string, unknown>;
+    }
   ) {
     super(message);
     this.name = "ApiError";
@@ -16,6 +23,7 @@ export class ApiError extends Error {
     this.status = opts?.status;
     this.requestId = opts?.requestId;
     this.errorId = opts?.errorId;
+    this.details = opts?.details;
   }
 }
 
@@ -134,9 +142,11 @@ export async function apiRequest(
       let errorCode: string | undefined;
       let requestId: string | undefined = response.headers.get("X-Request-Id") || undefined;
       let errorId: string | undefined;
+      let errorDetails: Record<string, unknown> | undefined;
 
       try {
         const errorJson = JSON.parse(errorText);
+        if (errorJson && typeof errorJson === "object") errorDetails = errorJson;
         errorMessage = errorJson.message || errorMessage;
         errorCode = errorJson.code;
         errorId =
@@ -160,6 +170,7 @@ export async function apiRequest(
           status: response.status,
           requestId,
           errorId,
+          details: errorDetails,
         });
       }
 
@@ -168,6 +179,7 @@ export async function apiRequest(
         status: response.status,
         requestId,
         errorId,
+        details: errorDetails,
       });
     }
 

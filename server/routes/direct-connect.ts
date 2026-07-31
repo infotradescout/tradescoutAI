@@ -21,6 +21,7 @@ import {
   workers,
   userHomes,
   userHomeRecords,
+  users,
 } from "@shared/schema";
 import {
   evaluateContractorEligibility,
@@ -80,6 +81,8 @@ import {
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
 import { resolveAnonymousSessionId } from "../utils/anonymousSession";
+import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -1779,6 +1782,32 @@ async function resolveRequestCountyRecord(requestRow: any) {
   return await storage.getCountyByFips(countyFips);
 }
 
+async function filterContractorsByPublicProfileTrust(contractorRows: any[]) {
+  const userIds = Array.from(
+    new Set(
+      contractorRows
+        .map((contractor: any) => String(contractor.userId || "").trim())
+        .filter(Boolean)
+    )
+  );
+  const publicProfileByUserId = await loadCanonicalPublicMapProfileUrls(userIds);
+  return {
+    eligible: contractorRows.filter((contractor: any) =>
+      publicProfileByUserId.has(String(contractor.userId || "").trim())
+    ),
+    ineligible: contractorRows
+      .filter(
+        (contractor: any) => !publicProfileByUserId.has(String(contractor.userId || "").trim())
+      )
+      .map((contractor: any) => String(contractor.id || "").trim())
+      .filter(Boolean)
+      .map((contractorId) => ({
+        contractorId,
+        reason: "contractor_profile_not_publicly_eligible",
+      })),
+  };
+}
+
 async function filterContractorsEligibleForRequest(contractorRows: any[], requestRow: any) {
   const countyRecord = await resolveRequestCountyRecord(requestRow);
   if (!countyRecord?.id) {
@@ -1796,7 +1825,10 @@ async function filterContractorsEligibleForRequest(contractorRows: any[], reques
     };
   }
 
-  const contractorIds = contractorRows
+  const publicTrustEligibility = await filterContractorsByPublicProfileTrust(contractorRows);
+  const publiclyEligibleContractors = publicTrustEligibility.eligible;
+
+  const contractorIds = publiclyEligibleContractors
     .map((contractor: any) => String(contractor.id || "").trim())
     .filter(Boolean);
   const serviceRows = contractorIds.length
@@ -1811,10 +1843,10 @@ async function filterContractorsEligibleForRequest(contractorRows: any[], reques
         )
     : [];
   const servesCountyIds = new Set(serviceRows.map((row) => String(row.contractorId)));
-  const countyEligible = contractorRows.filter((contractor: any) =>
+  const countyEligible = publiclyEligibleContractors.filter((contractor: any) =>
     servesCountyIds.has(String(contractor.id || "").trim())
   );
-  const countyIneligible = contractorRows
+  const countyIneligible = publiclyEligibleContractors
     .filter((contractor: any) => !servesCountyIds.has(String(contractor.id || "").trim()))
     .map((contractor: any) => String(contractor.id || "").trim())
     .filter(Boolean)
@@ -1827,7 +1859,7 @@ async function filterContractorsEligibleForRequest(contractorRows: any[], reques
 
   return {
     eligible: tradeEligibility.eligible,
-    ineligible: countyIneligible,
+    ineligible: [...publicTrustEligibility.ineligible, ...countyIneligible],
     tradeEligibility,
   };
 }
@@ -1866,6 +1898,29 @@ async function filterBusinessesEligibleForRequest(businessRows: any[], requestRo
   const businessIds = businessRows
     .map((business: any) => String(business.id || "").trim())
     .filter(Boolean);
+  const publiclyEligibleRows = businessIds.length
+    ? await db
+        .select({ businessId: businesses.id })
+        .from(businesses)
+        .leftJoin(users, eq(businesses.ownerUserId, users.id))
+        .where(
+          and(
+            inArray(businesses.id, businessIds),
+            eq(businesses.status, "active" as any),
+            eq(businesses.publicDiscoveryEnabled, true),
+            publicBusinessDetailExposureSqlPredicate()
+          )
+        )
+    : [];
+  const publiclyEligibleIds = new Set(publiclyEligibleRows.map((row) => String(row.businessId)));
+  const publiclyEligibleBusinesses = businessRows.filter((business: any) =>
+    publiclyEligibleIds.has(String(business.id || "").trim())
+  );
+  const publicTrustIneligible = businessRows
+    .filter((business: any) => !publiclyEligibleIds.has(String(business.id || "").trim()))
+    .map((business: any) => String(business.id || "").trim())
+    .filter(Boolean)
+    .map((businessId) => ({ businessId, reason: "business_not_publicly_eligible" }));
   const countyRows = businessIds.length
     ? await db
         .select({ businessId: businessCounties.businessId })
@@ -1879,14 +1934,17 @@ async function filterBusinessesEligibleForRequest(businessRows: any[], requestRo
     : [];
   const servesCountyIds = new Set(countyRows.map((row) => String(row.businessId)));
   return {
-    eligible: businessRows.filter((business: any) =>
+    eligible: publiclyEligibleBusinesses.filter((business: any) =>
       servesCountyIds.has(String(business.id || "").trim())
     ),
-    ineligible: businessRows
-      .filter((business: any) => !servesCountyIds.has(String(business.id || "").trim()))
-      .map((business: any) => String(business.id || "").trim())
-      .filter(Boolean)
-      .map((businessId) => ({ businessId, reason: "outside_request_county" })),
+    ineligible: [
+      ...publicTrustIneligible,
+      ...publiclyEligibleBusinesses
+        .filter((business: any) => !servesCountyIds.has(String(business.id || "").trim()))
+        .map((business: any) => String(business.id || "").trim())
+        .filter(Boolean)
+        .map((businessId) => ({ businessId, reason: "outside_request_county" })),
+    ],
   };
 }
 
@@ -2277,6 +2335,11 @@ export function registerDirectConnectRoutes(app: Express) {
       usedExpandedFallback = true;
     }
 
+    if (!bypassVerificationGate) {
+      const publicTrustEligibility = await filterContractorsByPublicProfileTrust(baseContractors);
+      baseContractors = publicTrustEligibility.eligible;
+    }
+
     // Universal business routing: for open-category requests (employment, odd jobs, etc.),
     // also query active businesses in the county. These bypass the contractor compliance gate.
     // For trade-specific requests, businesses are included as supplementary candidates.
@@ -2422,10 +2485,7 @@ export function registerDirectConnectRoutes(app: Express) {
         : null;
       const reachTier = classifyServiceAreaReach(countyCount);
 
-      const recSignal = normalizeMeasuredCountSignal(
-        contractor.positiveRecommendations,
-        25
-      );
+      const recSignal = normalizeMeasuredCountSignal(contractor.positiveRecommendations, 25);
       const completionSignal = normalizeMeasuredCountSignal(stats?.jobsCompleted, 25);
       const activitySignal = normalizeMeasuredCountSignal(stats?.activeWeeks, 52);
       const verificationScore = computeRequiredVerificationScore(

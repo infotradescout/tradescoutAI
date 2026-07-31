@@ -11,7 +11,12 @@ import {
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
-import { buildPublicBusinessSignals, derivePublicationTier } from "./publicationBusiness";
+import {
+  buildPublicBusinessSignals,
+  canServePublicBusinessDetail,
+  derivePublicationTier,
+  publicBusinessDetailExposureSqlPredicate,
+} from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
 
 type PublicTradeHtmlOptions = {
@@ -434,6 +439,7 @@ export async function buildPublicTradeCountyHtml(
   const whereClauses: any[] = [
     eq(counties.fips, String((county as any).fipsCode || "")),
     eq(businesses.status, "active" as any),
+    publicBusinessDetailExposureSqlPredicate(),
   ];
   if (tradeClause) whereClauses.push(tradeClause);
 
@@ -538,7 +544,7 @@ export async function buildPublicTradeCountyHtml(
         rules,
         now
       );
-      if (!pub.ok) return null;
+      if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
       if (updatedAt < recencyCutoff) return null;
 
       return {

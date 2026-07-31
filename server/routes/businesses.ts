@@ -9,6 +9,7 @@ import { getPublicationRules } from "../publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import {
   buildPublicBusinessSignals,
+  canServePublicBusinessDetail,
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
 } from "../publicationBusiness";
@@ -270,7 +271,12 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
       new Date()
     );
 
-    if (!pub.ok) {
+    if (
+      !canServePublicBusinessDetail({
+        publication: pub,
+        tier,
+      })
+    ) {
       return res.status(410).json({ message: "Listing inactive/out of date" });
     }
 

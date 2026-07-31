@@ -5,7 +5,11 @@ import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { getTradeSeoMatch, normalizeTradeSlug, slugifyCountyName } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
-import { buildPublicBusinessSignals, derivePublicationTier } from "./publicationBusiness";
+import {
+  buildPublicBusinessSignals,
+  derivePublicationTier,
+  publicBusinessDetailExposureSqlPredicate,
+} from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
 
 type PublicBestTradeCountyHtmlOptions = {
@@ -210,6 +214,7 @@ export async function buildPublicBestTradeCountyHtml(
       .where(
         and(
           eq(businesses.status, "active" as any),
+          publicBusinessDetailExposureSqlPredicate(),
           ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
           eq(counties.fips, String((county as any).fipsCode || "")),
           sql`${businesses.updatedAt} >= ${recencyCutoff}`,
@@ -388,6 +393,7 @@ export async function buildPublicBestTradeCityHtml(
     .where(
       and(
         eq(businesses.status, "active" as any),
+        publicBusinessDetailExposureSqlPredicate(),
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.stateCode, stateCode),
         sql`${sqlCitySlugExpr()} = ${citySlug}`,

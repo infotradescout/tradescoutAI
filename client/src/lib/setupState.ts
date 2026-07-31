@@ -1,4 +1,4 @@
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { isOutcomeOnboardingComplete } from "@shared/onboardingCompletion";
 
 type SetupAwareRecord = {
   onboardingCompleted?: boolean | null;
@@ -9,18 +9,5 @@ type SetupAwareRecord = {
 };
 
 export function hasCompletedSetup(record: SetupAwareRecord | null | undefined): boolean {
-  if (!record) return false;
-  if (record.onboardingCompleted === true) return true;
-  if (
-    typeof record.profileVersion === "number" &&
-    Number.isFinite(record.profileVersion) &&
-    record.profileVersion >= CURRENT_PROFILE_VERSION
-  ) {
-    return true;
-  }
-  const stateCode =
-    typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
-  const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
-
-  return stateCode.length === 2 && /^\d{5}$/.test(countyFips);
+  return isOutcomeOnboardingComplete(record);
 }

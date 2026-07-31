@@ -396,6 +396,11 @@ import { UserSecurityRepository } from "./repositories/userSecurityRepository";
 import { SitemapRepository } from "./repositories/sitemapRepository";
 import { BusinessRepository, type PublicBusinessRecord } from "./repositories/businessRepository";
 import { ProfileRepository, type PublicProfileRecord } from "./repositories/profileRepository";
+import { OutcomeOnboardingRepository } from "./repositories/outcomeOnboardingRepository";
+import type {
+  AtomicBusinessOutcomeArgs,
+  AtomicExpressOutcomeArgs,
+} from "./services/onboardingService";
 import {
   eq,
   and,
@@ -585,6 +590,13 @@ export interface IStorage {
   >;
   /** Get the active business for a user (by activeBusinessId or first owned business). */
   getActiveBusinessForUser(userId: string): Promise<Business | undefined>;
+  completeOutcomeBusinessProfile(
+    args: AtomicBusinessOutcomeArgs
+  ): Promise<{ business: Business; profile: Profile }>;
+  preflightOutcomeBusinessProfile(
+    args: Pick<AtomicBusinessOutcomeArgs, "userId" | "evidence">
+  ): Promise<void>;
+  completeOutcomeExpressResult(args: AtomicExpressOutcomeArgs): Promise<void>;
   /**
    * Find active, available workers (helpers) whose home county matches the given FIPS code.
    * Optionally filter by required skills (any overlap is sufficient).
@@ -609,6 +621,7 @@ export interface IStorage {
   getProfileByIdForOwner(ownerUserId: string, profileId: string): Promise<Profile | undefined>;
   /** Return the owner user id for a given profile id, or null if missing. */
   getProfileOwnerUserId(profileId: string): Promise<string | null>;
+  getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
   listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
   listBusinessProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
@@ -1637,6 +1650,7 @@ export class DatabaseStorage implements IStorage {
   private readonly sitemapRepository = new SitemapRepository();
   private readonly businessRepository = new BusinessRepository();
   private readonly profileRepository = new ProfileRepository();
+  private readonly outcomeOnboardingRepository = new OutcomeOnboardingRepository();
 
   private normalizeLegacyAdminUser(user: User | undefined): User | undefined {
     if (!user) return user;
@@ -1715,6 +1729,22 @@ export class DatabaseStorage implements IStorage {
     return this.businessRepository.getActiveBusinessForUser(userId);
   }
 
+  async completeOutcomeBusinessProfile(
+    args: AtomicBusinessOutcomeArgs
+  ): Promise<{ business: Business; profile: Profile }> {
+    return this.outcomeOnboardingRepository.completeBusinessProfile(args);
+  }
+
+  async preflightOutcomeBusinessProfile(
+    args: Pick<AtomicBusinessOutcomeArgs, "userId" | "evidence">
+  ): Promise<void> {
+    return this.outcomeOnboardingRepository.preflightBusinessProfile(args);
+  }
+
+  async completeOutcomeExpressResult(args: AtomicExpressOutcomeArgs): Promise<void> {
+    return this.outcomeOnboardingRepository.completeExpressResult(args);
+  }
+
   async getWorkersByCountyAndSkills(args: {
     countyFips: string;
     skills?: string[];
@@ -1786,6 +1816,10 @@ export class DatabaseStorage implements IStorage {
 
   async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
     return this.profileRepository.getProfileBySlugPublic(slug);
+  }
+
+  async getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined> {
+    return this.profileRepository.getProfileBySlugPublished(slug);
   }
 
   async listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
@@ -13497,6 +13531,7 @@ export class DatabaseStorage implements IStorage {
       customDomain: profileDraft.customDomain || null,
       customDomainVerification: profileDraft.customDomainVerification || null,
       verificationStatus: user.verificationStatus,
+      verifiedBadge: user.verifiedBadge === true,
       addressVerified: user.addressVerified ?? undefined,
       cvsScore: (user as any).cvsScore ?? null,
       createdAt,

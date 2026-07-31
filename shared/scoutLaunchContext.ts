@@ -4,6 +4,7 @@ export const SCOUT_LAUNCH_SOURCES = [
   "county-community-path",
   "homescout_listing",
   "maps",
+  "onboarding_result",
   "scout_resume",
   "trade_city_empty",
   "trade_county_empty",

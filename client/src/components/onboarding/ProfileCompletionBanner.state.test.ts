@@ -56,7 +56,8 @@ describe("resolveProfileCompletionBannerMode", () => {
     expect(mode(readyPerson)).toBeNull();
   });
 
-  it("does not show on setup routes", () => {
-    expect(mode({ firstName: "Taylor" }, "/onboarding/profile")).toBeNull();
-  });
+  it.each(["/onboarding", "/onboarding/profile", "/onboarding/intent", "/profile-setup"])(
+    "does not layer a legacy banner on the universal setup surface: %s",
+    (path) => expect(mode({ firstName: "Taylor" }, path)).toBeNull()
+  );
 });

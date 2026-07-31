@@ -58,6 +58,12 @@ describe("business profile public contracts", () => {
     expect(routeSource).toContain("google_place_id");
     expect(routeSource).toContain("google_place_phone");
     expect(routeSource).toContain("google_place_website");
+    const resolveRoute = routeSource.slice(
+      routeSource.indexOf('app.get("/api/business-claim/resolve"'),
+      routeSource.indexOf('app.post("/api/business-claim/find-or-create"')
+    );
+    expect(resolveRoute).toContain("and b.owner_user_id is null");
+    expect(resolveRoute).toContain("and b.claim_status = 'unclaimed'");
     expect(pageSource).toContain("Claim from Google Maps");
     expect(pageSource).toContain("GooglePlacesBusinessInput");
     expect(pageSource).toContain("searchClaimableBusinesses");

@@ -15,6 +15,7 @@ import { db } from "../db";
 import { and, asc, desc, eq, exists, inArray, isNull, like, ne, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 
 export type PublicBusinessRecord = {
   id: string;
@@ -366,6 +367,8 @@ export class BusinessRepository {
     const limit = Math.min(50, Math.max(1, Number(args.limit ?? 15) || 15));
     const predicates: any[] = [
       eq(businesses.status, "active" as any),
+      eq(businesses.publicDiscoveryEnabled, true),
+      publicBusinessDetailExposureSqlPredicate(),
       exists(
         db
           .select({ one: sql`1` })
@@ -391,6 +394,7 @@ export class BusinessRepository {
         slug: businesses.slug,
       })
       .from(businesses)
+      .leftJoin(users, eq(businesses.ownerUserId, users.id))
       .where(and(...predicates))
       .limit(limit);
     return rows as Array<{

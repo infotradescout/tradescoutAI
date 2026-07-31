@@ -270,6 +270,8 @@ export function registerBusinessClaimRoutes(app: Express) {
         left join counties co on co.id = bc.county_id
         where ${businessId ? sql`b.id = ${businessId}` : sql`b.slug = ${slug}`}
           and b.status <> 'suspended'
+          and b.owner_user_id is null
+          and b.claim_status = 'unclaimed'
         group by b.id, b.name, b.slug, b.type, b.status
         limit 1
       `)) as any;

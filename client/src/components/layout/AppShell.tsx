@@ -48,6 +48,7 @@ import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progress
 import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
 import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
+import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 
 export type NavItem = {
   label: string;
@@ -388,9 +389,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/login") ||
     location.startsWith("/register");
   const isSetupSurface =
-    location.startsWith("/pre-scout-setup") ||
-    location.startsWith("/onboarding/profile") ||
-    location.startsWith("/profile-setup");
+    location.startsWith("/pre-scout-setup") || isOnboardingSurfacePath(location);
   const isPortalSurface =
     location === "/homescout-listings" ||
     location.startsWith("/homescout/") ||

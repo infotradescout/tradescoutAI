@@ -10,26 +10,60 @@ import {
 } from "@shared/schema";
 import { INTERNAL_ADMIN_PROFILE_SLUGS } from "@shared/publicProfileIndexing";
 import { db, pool as neonPool } from "../db";
-import { and, asc, desc, eq, notInArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, notInArray, or, sql } from "drizzle-orm";
+import {
+  canExposePublishedProfilePublicly,
+  type PublishedProfileExposureCandidate,
+} from "../services/ownerConfirmedDirectProfile";
+import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+
+export type ProfileSitemapEligibilityCandidate = Omit<
+  PublishedProfileExposureCandidate,
+  "profileSlug" | "profileStatus"
+> & {
+  slug: unknown;
+};
+
+export function shouldIncludePublicProfileInSitemap(
+  candidate: ProfileSitemapEligibilityCandidate
+): boolean {
+  return canExposePublishedProfilePublicly({
+    ...candidate,
+    profileSlug: candidate.slug,
+    profileStatus: "published",
+  });
+}
 
 export class SitemapRepository {
   async listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
     const rows = await db
       .select({
+        profileId: profiles.id,
         slug: profiles.slug,
         updatedAt: profiles.updatedAt,
+        businessId: profiles.businessId,
+        profileOwnerUserId: profiles.ownerUserId,
+        ownerVerifiedBadge: users.verifiedBadge,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerProvider: users.provider,
+        ownerPreferences: users.preferences,
+        businessStatus: businesses.status,
+        businessOwnerUserId: businesses.ownerUserId,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        businessSources: businesses.sources,
+        businessClaimStatus: businesses.claimStatus,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
+      .leftJoin(businesses, eq(profiles.businessId, businesses.id))
       .where(
         and(
           eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
           notInArray(profiles.slug, [...INTERNAL_ADMIN_PROFILE_SLUGS])
         )
       )
       .orderBy(desc(profiles.updatedAt));
-    return rows.map((row) => ({
+    return rows.filter(shouldIncludePublicProfileInSitemap).map((row) => ({
       slug: row.slug,
       updatedAt: row.updatedAt ?? null,
     }));
@@ -42,7 +76,15 @@ export class SitemapRepository {
         updatedAt: users.updatedAt,
       })
       .from(users)
-      .where(sql`${users.businessSlug} IS NOT NULL`)
+      .where(
+        and(
+          sql`${users.businessSlug} IS NOT NULL`,
+          or(
+            eq(users.verifiedBadge, true),
+            sql`lower(COALESCE(${users.verificationStatus}, '')) = 'approved'`
+          )
+        )
+      )
       .orderBy(desc(users.updatedAt))
       .limit(100_000);
 
@@ -59,10 +101,12 @@ export class SitemapRepository {
       .select({ count: sql<number>`count(DISTINCT ${businesses.id})` })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any)
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate()
         )
       );
     const count = Number((rows[0] as any)?.count ?? 0);
@@ -85,10 +129,12 @@ export class SitemapRepository {
       })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any)
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate()
         )
       )
       .orderBy(asc(businesses.slug))
@@ -110,10 +156,12 @@ export class SitemapRepository {
       .from(counties)
       .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
       .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any)
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate()
         )
       );
     const count = Number((rows[0] as any)?.count ?? 0);
@@ -139,10 +187,12 @@ export class SitemapRepository {
       .from(counties)
       .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
       .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any)
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate()
         )
       )
       .groupBy(counties.fips, counties.name, counties.stateCode)
@@ -177,8 +227,10 @@ export class SitemapRepository {
           from ${businesses}
           inner join ${businessCounties} on ${businessCounties.businessId} = ${businesses.id}
           inner join ${counties} on ${counties.id} = ${businessCounties.countyId}
+          left join ${users} on ${users.id} = ${businesses.ownerUserId}
           where ${businesses.status} = 'active'
             and ${businesses.publicDiscoveryEnabled} = true
+            and ${publicBusinessDetailExposureSqlPredicate()}
             and coalesce(${businesses.profileData} ->> 'city', '') <> ''
           group by ${counties.stateCode}, ${citySlugExpr}
         ) as city_groups`
@@ -208,10 +260,12 @@ export class SitemapRepository {
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
       .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(
         and(
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate(),
           sql`coalesce(${businesses.profileData} ->> 'city', '') <> ''`
         )
       )

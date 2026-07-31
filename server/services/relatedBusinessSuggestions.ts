@@ -1,6 +1,7 @@
 import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "../db";
-import { businesses, businessCounties, counties } from "@shared/schema";
+import { businesses, businessCounties, counties, users } from "@shared/schema";
+import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 
 /**
  * Awareness-only, contact-gated business matching used to surface verified
@@ -64,7 +65,15 @@ export async function getRelatedBusinessSuggestions(args: {
           .from(businesses)
           .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
           .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-          .where(and(eq(businesses.status, "active" as any), eq(counties.fips, countyFips)))
+          .leftJoin(users, eq(users.id, businesses.ownerUserId))
+          .where(
+            and(
+              eq(businesses.status, "active" as any),
+              eq(businesses.publicDiscoveryEnabled, true),
+              publicBusinessDetailExposureSqlPredicate(),
+              eq(counties.fips, countyFips)
+            )
+          )
           .limit(limit)
       : stateCode
         ? await db
@@ -77,9 +86,12 @@ export async function getRelatedBusinessSuggestions(args: {
             .from(businesses)
             .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
             .leftJoin(counties, eq(counties.id, businessCounties.countyId))
+            .leftJoin(users, eq(users.id, businesses.ownerUserId))
             .where(
               and(
                 eq(businesses.status, "active" as any),
+                eq(businesses.publicDiscoveryEnabled, true),
+                publicBusinessDetailExposureSqlPredicate(),
                 or(
                   eq(counties.stateCode, stateCode),
                   sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'state_code', '') = ${stateCode}`
@@ -99,7 +111,7 @@ export async function getRelatedBusinessSuggestions(args: {
         id: row.id,
         name: row.name,
         category: typeof profile.category === "string" ? profile.category : null,
-        profileUrl: `/u/${row.slug}`,
+        profileUrl: `/business/${row.slug}`,
       });
       if (suggestions.length >= limit) break;
     }

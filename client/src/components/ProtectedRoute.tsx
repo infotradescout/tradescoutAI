@@ -5,12 +5,13 @@ import { SkeletonBlock } from "@/components/ui/states";
 import { isAdminTier, isSuperAdminLike as isSuperAdminRoleLike } from "@/lib/roleChecks";
 import {
   buildAuthEntryRoute,
-  getBusinessOnboardingRoute,
+  getCurrentInternalPath,
   getOnboardingEntryRoute,
-  isBusinessOnboardingAllowedPath,
   isOnboardingExemptPath,
+  isSafeNextPath,
   userNeedsOnboarding,
 } from "@/lib/postOnboardingRoute";
+import { isOutcomeOnboardingClaimContinuationPath } from "@/lib/outcomeOnboardingClaimContinuation";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -77,7 +78,7 @@ export function ProtectedRoute({
 
     if (!isAuthenticated) {
       // Preserve the user's intended destination so auth can return them correctly.
-      setLocation(buildAuthEntryRoute({ mode: "signin", next: location || "/" }));
+      setLocation(buildAuthEntryRoute({ mode: "signin", next: getCurrentInternalPath(location) }));
       return;
     }
 
@@ -88,23 +89,27 @@ export function ProtectedRoute({
     const needsOnboarding = userNeedsOnboarding(user);
     const pathOnly = (location || "/").split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
 
-    const isSetupRoute = isOnboardingExemptPath(pathOnly) || location.startsWith("/profile-setup");
-    const businessOnboardingExempt = isBusinessOnboardingAllowedPath(
-      pathOnly,
-      (user as Record<string, any>) || null
+    const isSetupRoute = isOnboardingExemptPath(pathOnly);
+    const isScopedClaimContinuation = isOutcomeOnboardingClaimContinuationPath(
+      getCurrentInternalPath(location)
     );
 
-    if (!isAdmin && !isSuperAdminLike && user && needsOnboarding && !isSetupRoute) {
-      const next = encodeURIComponent(location || "/");
-      setLocation(`${getOnboardingEntryRoute(user)}?next=${next}`);
+    if (
+      !isAdmin &&
+      !isSuperAdminLike &&
+      user &&
+      needsOnboarding &&
+      !isSetupRoute &&
+      !isScopedClaimContinuation
+    ) {
+      const requestedPath = getCurrentInternalPath(location);
+      const entryRoute = getOnboardingEntryRoute(user);
+      setLocation(
+        isSafeNextPath(requestedPath)
+          ? `${entryRoute}?next=${encodeURIComponent(requestedPath)}`
+          : entryRoute
+      );
       return;
-    }
-    if (!isAdmin && !isSuperAdminLike && user && !needsOnboarding && !businessOnboardingExempt) {
-      const businessTarget = getBusinessOnboardingRoute(user as Record<string, any>);
-      if (businessTarget && location !== businessTarget) {
-        setLocation(businessTarget);
-        return;
-      }
     }
 
     // Check access permissions

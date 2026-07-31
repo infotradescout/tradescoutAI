@@ -1,110 +1,82 @@
 import { describe, expect, it } from "vitest";
 import {
+  getBusinessOnboardingRoute,
   getOnboardingEntryRoute,
   getPostLandingRoute,
+  isBusinessOnboardingAllowedPath,
   userHasProfileBasics,
   userNeedsOnboarding,
 } from "./lib/postOnboardingRoute";
 
-describe("AppRoutes onboarding decisions", () => {
-  it("routes authenticated users with stale onboarding state back to onboarding", () => {
-    const user = {
+describe("AppRoutes universal onboarding decisions", () => {
+  it("uses one canonical onboarding route for every incomplete account", () => {
+    const sparseUser = {
       onboardingCompleted: false,
       profileVersion: 0,
       role: "homeowner",
     };
-
-    expect(userNeedsOnboarding(user)).toBe(true);
-    expect(getPostLandingRoute(user)).toBe("/onboarding/profile");
-  });
-
-  it("routes incomplete users with profile basics to the start-choice step", () => {
-    const user = {
-      firstName: "Taylor",
-      lastName: "Reed",
-      phone: "(555) 222-3333",
-      stateCode: "FL",
-      countyFips: "12033",
-      locationCommitted: true,
+    const businessUser = {
       onboardingCompleted: false,
-      profileVersion: 0,
-      role: "homeowner",
+      role: "business_owner",
+      preferences: {
+        provisional: { profileDraft: { presenceType: "represent_business" } },
+      },
     };
 
-    expect(userNeedsOnboarding(user)).toBe(true);
-    expect(userHasProfileBasics(user)).toBe(true);
-    expect(getOnboardingEntryRoute(user)).toBe("/onboarding/intent");
-    expect(getPostLandingRoute(user)).toBe("/onboarding/intent");
+    expect(getOnboardingEntryRoute(sparseUser)).toBe("/onboarding");
+    expect(getOnboardingEntryRoute(businessUser)).toBe("/onboarding");
+    expect(getPostLandingRoute(sparseUser)).toBe("/onboarding");
+    expect(getPostLandingRoute(businessUser)).toBe("/onboarding");
   });
 
-  it("keeps users without account identity in profile setup", () => {
+  it("does not gate onboarding on name, phone, county, or profile version", () => {
     const user = {
+      onboardingCompleted: false,
       firstName: "",
-      lastName: "Reed",
-      stateCode: "FL",
-      countyFips: "12033",
-      onboardingCompleted: false,
-      profileVersion: 0,
-      role: "homeowner",
-    };
-
-    expect(userHasProfileBasics(user)).toBe(false);
-    expect(getOnboardingEntryRoute(user)).toBe("/onboarding/profile");
-  });
-
-  it("keeps users without phone in profile setup", () => {
-    const user = {
-      firstName: "Taylor",
-      lastName: "Reed",
+      lastName: "",
       phone: "",
-      stateCode: "FL",
-      countyFips: "12033",
-      locationCommitted: true,
-      onboardingCompleted: false,
+      stateCode: "",
+      countyFips: "",
       profileVersion: 0,
-      role: "homeowner",
-    };
-
-    expect(userHasProfileBasics(user)).toBe(false);
-    expect(getOnboardingEntryRoute(user)).toBe("/onboarding/profile");
-  });
-
-  it("accepts full name when split first/last fields are not present", () => {
-    const user = {
-      name: "Taylor Reed",
-      phone: "(555) 222-3333",
-      stateCode: "FL",
-      countyFips: "12033",
-      locationCommitted: true,
-      onboardingCompleted: false,
-      profileVersion: 0,
-      role: "homeowner",
     };
 
     expect(userHasProfileBasics(user)).toBe(true);
-    expect(getOnboardingEntryRoute(user)).toBe("/onboarding/intent");
+    expect(userNeedsOnboarding(user)).toBe(true);
+    expect(getOnboardingEntryRoute(user)).toBe("/onboarding");
   });
 
-  it("routes fully onboarded admins to admin", () => {
-    const user = {
+  it("treats completion as the only onboarding state transition", () => {
+    expect(userNeedsOnboarding({ onboardingCompleted: false, profileVersion: 999 })).toBe(true);
+    expect(userNeedsOnboarding({ onboardingCompleted: true, profileVersion: 0 })).toBe(false);
+  });
+
+  it("does not force completed business users through verification or finance modules", () => {
+    const businessUser = {
       onboardingCompleted: true,
-      profileVersion: 999,
+      role: "business_owner",
+      verificationStatus: "pending",
+      preferences: {
+        businessOnboarding: {
+          modules: {
+            trust_verification: "not_started",
+            operations_payout: "not_started",
+          },
+        },
+      },
+    };
+
+    expect(getBusinessOnboardingRoute(businessUser)).toBeNull();
+    expect(isBusinessOnboardingAllowedPath("/scout", businessUser)).toBe(true);
+    expect(getPostLandingRoute(businessUser)).toBe("/direct-connect?entry=auth");
+  });
+
+  it("keeps the admin landing after universal onboarding completes", () => {
+    const admin = {
+      onboardingCompleted: true,
       role: "super_admin",
       isSuperAdmin: true,
     };
 
-    expect(userNeedsOnboarding(user)).toBe(false);
-    expect(getPostLandingRoute(user)).toBe("/admin");
-  });
-
-  it("routes fully onboarded regular users to Direct Connect", () => {
-    const user = {
-      onboardingCompleted: true,
-      profileVersion: 999,
-      role: "homeowner",
-    };
-
-    expect(userNeedsOnboarding(user)).toBe(false);
-    expect(getPostLandingRoute(user)).toBe("/direct-connect?entry=auth");
+    expect(getPostLandingRoute(admin)).toBe("/admin");
   });
 });

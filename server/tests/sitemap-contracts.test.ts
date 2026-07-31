@@ -76,7 +76,8 @@ describe("sitemap contracts", () => {
     expect(source).toContain("canonicalPublishedProfileSitemapLoc");
     expect(source).toContain("canonicalBusinessPresenceSitemapLoc");
     expect(source).toContain("p.status = 'published'");
-    expect(source).toContain("profileVisibility'), 'private') = 'public'");
+    expect(source).toContain("p.id AS profile_id");
+    expect(source).toContain("isPublishedProfileSitemapTargetPublic(row)");
     expect(source).toContain("if (args.linkedProfile?.isPublic)");
     expect(source).toContain("if (target.customDomain) return null");
     expect(source).toContain("return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`");
@@ -133,7 +134,8 @@ describe("sitemap contracts", () => {
 
     expect(serverIndex).toContain("resolveCanonicalBusinessProfileRoute(slug)");
     expect(canonicalRoute).toContain(".innerJoin(users, eq(users.id, profiles.ownerUserId))");
-    expect(canonicalRoute).toContain("profileVisibility'), 'private') = 'public'");
+    expect(canonicalRoute).toContain("canExposePublishedProfilePublicly({");
+    expect(canonicalRoute).toContain("profileId: profiles.id");
     expect(canonicalRoute).toContain("${profiles.updatedAt} DESC NULLS LAST");
     expect(canonicalRoute).toContain("${profiles.createdAt} DESC NULLS LAST");
     expect(canonicalRoute).toContain("asc(profiles.slug)");

@@ -86,8 +86,8 @@ import { buildPublicHomeScoutCountyHtml } from "./publicHomeScoutCountyHtml";
 import { buildPublicContractorPromoHtml } from "./publicContractorPromoHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
-import { affiliateAccounts, profiles, users } from "@shared/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
+import { and, eq, or, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
@@ -110,6 +110,7 @@ import {
 } from "./staticAssetRecovery";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
+import { canExposePublishedProfilePublicly } from "./services/ownerConfirmedDirectProfile";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import {
   buildPublicProfileCanonicalRedirectTarget,
@@ -269,11 +270,7 @@ app.use(
           "*.sentry.io",
         ],
         "frame-src": ["'self'", "https://js.stripe.com", "https://www.instagram.com"],
-        "media-src": [
-          "'self'",
-          "https://thetradescout.com",
-          "https://www.thetradescout.com",
-        ],
+        "media-src": ["'self'", "https://thetradescout.com", "https://www.thetradescout.com"],
         "img-src": [
           "'self'",
           "data:",
@@ -531,14 +528,10 @@ async function renderProfileOnCustomDomain(
     slug,
     origin,
     templateHtml,
-    itemSlug:
-      itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : req.query.stone,
+    itemSlug: itemRequest?.itemType === "inventory" ? itemRequest.itemSlug : req.query.stone,
     itemPhoto:
-      itemRequest?.itemType === "inventory"
-        ? String(itemRequest.imageIndex + 1)
-        : req.query.photo,
-    gallerySlug:
-      itemRequest?.itemType === "gallery" ? itemRequest.itemSlug : req.query.gallery,
+      itemRequest?.itemType === "inventory" ? String(itemRequest.imageIndex + 1) : req.query.photo,
+    gallerySlug: itemRequest?.itemType === "gallery" ? itemRequest.itemSlug : req.query.gallery,
     categorySlug:
       categoryRequest?.kind === "category" ? categoryRequest.categorySlug : req.query.category,
   });
@@ -586,13 +579,11 @@ async function serveCustomDomainProfilePath(
   ownerUserId: string
 ): Promise<boolean> {
   const path = req.path || "/";
-  const isProfilePageRequest =
-    (req.method === "GET" || req.method === "HEAD") &&
-    !isCustomDomainMechanicsPath(path) &&
-    !["/robots.txt", "/sitemap.xml", "/llms.txt"].includes(path);
-  const profileRecord = isProfilePageRequest
-    ? await storage.getProfileBySlugPublic(slug)
-    : undefined;
+  // Domain routing proves control of a host, not public eligibility. Resolve
+  // every custom-domain surface (HTML, robots, sitemap, and llms.txt) through
+  // the same anonymous profile trust boundary before serving anything.
+  const profileRecord = await storage.getProfileBySlugPublic(slug);
+  if (!profileRecord) return false;
   const itemRequest = profileRecord
     ? resolvePublicProfileItemRequest({
         profile: profileRecord,
@@ -637,10 +628,7 @@ async function serveCustomDomainProfilePath(
 
   if (itemRequest.kind === "item") {
     if (itemRequest.source === "legacy-query") {
-      res.redirect(
-        301,
-        customDomainCanonicalRedirectTarget(req, host, itemRequest.canonicalPath)
-      );
+      res.redirect(301, customDomainCanonicalRedirectTarget(req, host, itemRequest.canonicalPath));
       return true;
     }
     await attributeProfileVisit("custom_domain_item");
@@ -658,16 +646,7 @@ async function serveCustomDomainProfilePath(
       return true;
     }
     await attributeProfileVisit("custom_domain_category");
-    if (
-      await renderProfileOnCustomDomain(
-        req,
-        res,
-        host,
-        slug,
-        null,
-        categoryRequest
-      )
-    ) {
+    if (await renderProfileOnCustomDomain(req, res, host, slug, null, categoryRequest)) {
       return true;
     }
     sendPublicPageRenderFailure(res, "Unable to render profile category");
@@ -781,7 +760,11 @@ app.use(async (req, res, next) => {
       .where(
         and(
           eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+          sql`(
+            lower(COALESCE((${users.preferences} ->> 'profileVisibility'), 'private')) = 'public'
+            OR COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
+               @> jsonb_build_array(CAST(${profiles.id} AS text))
+          )`,
           sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${host}`
         )
       )
@@ -805,7 +788,11 @@ app.use(async (req, res, next) => {
             .where(
               and(
                 eq(profiles.status, "published" as any),
-                sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
+                sql`(
+                  lower(COALESCE((${users.preferences} ->> 'profileVisibility'), 'private')) = 'public'
+                  OR COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
+                     @> jsonb_build_array(CAST(${profiles.id} AS text))
+                )`,
                 sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${alternateHost}`
               )
             )
@@ -815,7 +802,10 @@ app.use(async (req, res, next) => {
       aliasProfileDomains.length === 1 ? aliasProfileDomains[0] : undefined;
 
     const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
-    if (profileSlug) {
+    const publicProfileDomain = profileSlug
+      ? await storage.getProfileBySlugPublic(profileSlug)
+      : undefined;
+    if (profileSlug && publicProfileDomain) {
       const ownerUserId = String(profileDomain?.ownerUserId || "");
       markMappedProfileDomainRequest(req, host, profileSlug);
       CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, ownerUserId, at: now });
@@ -830,6 +820,10 @@ app.use(async (req, res, next) => {
       .where(
         and(
           sql`${users.businessSlug} IS NOT NULL`,
+          or(
+            eq(users.verifiedBadge, true),
+            sql`lower(COALESCE(${users.verificationStatus}, '')) = 'approved'`
+          ),
           sql`lower(COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' ->> 'customDomain')), '')) = ${host}`,
           sql`COALESCE(((${users.preferences} -> 'provisional' -> 'profileDraft' -> 'customDomainVerification' ->> 'state')), 'unverified') = 'verified'`
         )
@@ -872,7 +866,10 @@ app.use(async (req, res, next) => {
     const aliasProfileSlug =
       typeof aliasProfileDomain?.slug === "string" ? aliasProfileDomain.slug.trim() : "";
     const aliasCanonicalHost = String(aliasProfileDomain?.configuredHost || "").trim();
-    if (aliasProfileSlug && aliasCanonicalHost) {
+    const publicAliasProfile = aliasProfileSlug
+      ? await storage.getProfileBySlugPublic(aliasProfileSlug)
+      : undefined;
+    if (aliasProfileSlug && aliasCanonicalHost && publicAliasProfile) {
       return redirectToCanonicalCustomDomain(req, res, aliasCanonicalHost);
     }
 
@@ -1501,10 +1498,7 @@ app.use(landingContractHeaders);
                   res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
                   res.setHeader("CDN-Cache-Control", "public, max-age=31536000, immutable");
                   res.setHeader("Surrogate-Control", "public, max-age=31536000, immutable");
-                  res.setHeader(
-                    "X-TradeScout-Asset-Recovery",
-                    "duplicate-prefix-canonical"
-                  );
+                  res.setHeader("X-TradeScout-Asset-Recovery", "duplicate-prefix-canonical");
                   return res.redirect(308, canonicalAssetPath);
                 });
 
@@ -1743,10 +1737,7 @@ app.use(landingContractHeaders);
                   });
                   if (!html) return res.status(404).send("Community group not found");
 
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=60, must-revalidate"
-                  );
+                  res.setHeader("Cache-Control", "public, max-age=60, must-revalidate");
                   res.send(html);
                 } catch (error) {
                   console.error("Error rendering public community group HTML:", error);
@@ -1762,16 +1753,28 @@ app.use(landingContractHeaders);
                   const collection = "stones";
                   const candidates = await db
                     .select({
+                      profileId: profiles.id,
                       slug: profiles.slug,
                       seoMeta: profiles.seoMeta,
                       contentBlocks: profiles.contentBlocks,
+                      businessId: profiles.businessId,
+                      profileOwnerUserId: profiles.ownerUserId,
+                      ownerVerifiedBadge: users.verifiedBadge,
+                      ownerVerificationStatus: users.verificationStatus,
+                      ownerProvider: users.provider,
+                      ownerPreferences: users.preferences,
+                      businessStatus: businesses.status,
+                      businessOwnerUserId: businesses.ownerUserId,
+                      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+                      businessSources: businesses.sources,
+                      businessClaimStatus: businesses.claimStatus,
                     })
                     .from(profiles)
                     .innerJoin(users, eq(profiles.ownerUserId, users.id))
+                    .leftJoin(businesses, eq(profiles.businessId, businesses.id))
                     .where(
                       and(
                         eq(profiles.status, "published" as any),
-                        sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
                         sql`EXISTS (
                           SELECT 1
                           FROM jsonb_array_elements(COALESCE(${profiles.contentBlocks}, '[]'::jsonb)) AS block
@@ -1782,6 +1785,24 @@ app.use(landingContractHeaders);
                     );
 
                   const matches = candidates
+                    .filter((profileRecord) =>
+                      canExposePublishedProfilePublicly({
+                        profileId: profileRecord.profileId,
+                        businessId: profileRecord.businessId,
+                        profileSlug: profileRecord.slug,
+                        profileStatus: "published",
+                        profileOwnerUserId: profileRecord.profileOwnerUserId,
+                        ownerVerifiedBadge: profileRecord.ownerVerifiedBadge,
+                        ownerVerificationStatus: profileRecord.ownerVerificationStatus,
+                        ownerProvider: profileRecord.ownerProvider,
+                        ownerPreferences: profileRecord.ownerPreferences,
+                        businessStatus: profileRecord.businessStatus,
+                        businessOwnerUserId: profileRecord.businessOwnerUserId,
+                        publicDiscoveryEnabled: profileRecord.publicDiscoveryEnabled,
+                        businessSources: profileRecord.businessSources,
+                        businessClaimStatus: profileRecord.businessClaimStatus,
+                      })
+                    )
                     .map((profileRecord) => ({
                       profileRecord,
                       itemRequest: resolvePublicProfileItemRequest({
@@ -1851,10 +1872,7 @@ app.use(landingContractHeaders);
                       pathname: req.path,
                       profileBasePath: requestedBasePath,
                     });
-                    if (
-                      itemRequest.kind !== "item" &&
-                      categoryRequest.kind !== "category"
-                    ) {
+                    if (itemRequest.kind !== "item" && categoryRequest.kind !== "category") {
                       return sendPublicPageNotFound(res, "Profile destination not found");
                     }
 
@@ -1875,10 +1893,7 @@ app.use(landingContractHeaders);
                         referral: req.query.ref,
                       });
                       if (!destination) {
-                        return sendPublicPageNotFound(
-                          res,
-                          "Profile destination not found"
-                        );
+                        return sendPublicPageNotFound(res, "Profile destination not found");
                       }
                       return res.redirect(301, destination);
                     }
@@ -1889,10 +1904,7 @@ app.use(landingContractHeaders);
                         referral: req.query.ref,
                       });
                       if (!destination) {
-                        return sendPublicPageNotFound(
-                          res,
-                          "Profile destination not found"
-                        );
+                        return sendPublicPageNotFound(res, "Profile destination not found");
                       }
                       return res.redirect(301, destination);
                     }
@@ -1902,18 +1914,15 @@ app.use(landingContractHeaders);
                       origin,
                       templateHtml,
                       itemSlug:
-                        itemRequest.kind === "item" &&
-                        itemRequest.itemType === "inventory"
+                        itemRequest.kind === "item" && itemRequest.itemType === "inventory"
                           ? itemRequest.itemSlug
                           : undefined,
                       itemPhoto:
-                        itemRequest.kind === "item" &&
-                        itemRequest.itemType === "inventory"
+                        itemRequest.kind === "item" && itemRequest.itemType === "inventory"
                           ? String(itemRequest.imageIndex + 1)
                           : undefined,
                       gallerySlug:
-                        itemRequest.kind === "item" &&
-                        itemRequest.itemType === "gallery"
+                        itemRequest.kind === "item" && itemRequest.itemType === "gallery"
                           ? itemRequest.itemSlug
                           : undefined,
                       categorySlug:
@@ -1993,18 +2002,11 @@ app.use(landingContractHeaders);
                     return sendPublicPageNotFound(res, "Profile category not found");
                   }
                   const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
-                  if (
-                    itemRequest.kind === "item"
-                  ) {
-                    const itemSuffix = profileItemPathSuffix(
-                      itemRequest,
-                      canonicalProfileBase
-                    );
+                  if (itemRequest.kind === "item") {
+                    const itemSuffix = profileItemPathSuffix(itemRequest, canonicalProfileBase);
                     const destination = buildPublicProfileCanonicalRedirectTarget({
                       origin: customDomain ? `https://${customDomain}` : origin,
-                      canonicalPath: customDomain
-                        ? itemSuffix
-                        : itemRequest.canonicalPath,
+                      canonicalPath: customDomain ? itemSuffix : itemRequest.canonicalPath,
                       referral: req.query.ref,
                     });
                     if (!destination) {
@@ -2012,18 +2014,14 @@ app.use(landingContractHeaders);
                     }
                     return res.redirect(301, destination);
                   }
-                  if (
-                    categoryRequest.kind === "category"
-                  ) {
+                  if (categoryRequest.kind === "category") {
                     const categorySuffix = profileCategoryPathSuffix(
                       categoryRequest,
                       canonicalProfileBase
                     );
                     const destination = buildPublicProfileCanonicalRedirectTarget({
                       origin: customDomain ? `https://${customDomain}` : origin,
-                      canonicalPath: customDomain
-                        ? categorySuffix
-                        : categoryRequest.canonicalPath,
+                      canonicalPath: customDomain ? categorySuffix : categoryRequest.canonicalPath,
                       referral: req.query.ref,
                     });
                     if (!destination) {

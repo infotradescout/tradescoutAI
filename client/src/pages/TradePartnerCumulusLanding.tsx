@@ -11,11 +11,11 @@ import {
   Users2,
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { hasCompletedSetup } from "@/lib/setupState";
 import { share } from "@/utils/share";
 import "./tradepartner-cumulus.css";
 
@@ -492,10 +492,7 @@ function getUserBusinessName(user: Record<string, unknown> | null): string {
 }
 
 function needsOnboarding(user: Record<string, unknown> | null): boolean {
-  if (!user) return true;
-  const onboardingCompleted = user.onboardingCompleted === true;
-  const profileVersion = typeof user.profileVersion === "number" ? user.profileVersion : 0;
-  return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;
+  return !hasCompletedSetup(user);
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {

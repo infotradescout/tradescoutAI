@@ -8,16 +8,16 @@ import { PageLoadingSpinner } from "./components/LoadingSpinner";
 import { hasAdminUiAccess } from "./lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import {
-  getBusinessOnboardingRoute,
+  getCurrentInternalPath,
   getOnboardingEntryRoute as routeGetOnboardingEntryRoute,
   getPostLandingRoute as routeGetPostLandingRoute,
-  isBusinessOnboardingAllowedPath,
   isOnboardingExemptPath,
   isSafeNextPath,
   storeOnboardingNext,
   userHasProfileBasics as routeUserHasProfileBasics,
   userNeedsOnboarding as routeUserNeedsOnboarding,
 } from "@/lib/postOnboardingRoute";
+import { isOutcomeOnboardingClaimContinuationPath } from "@/lib/outcomeOnboardingClaimContinuation";
 import {
   evaluateFeatureUnlocks,
   isFeatureUnlocked,
@@ -95,22 +95,15 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
 
     if (hasAdminUiAccess(user)) return;
 
-    const raw = String(location || "/");
+    const raw = getCurrentInternalPath(location);
     const restIdx = raw.search(/[?#]/);
     const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
-    const businessOnboardingExempt = isBusinessOnboardingAllowedPath(
-      pathOnly,
-      (user as Record<string, any>) || null
-    );
-
     if (!userNeedsOnboarding(user)) {
-      if (businessOnboardingExempt) return;
-      const businessTarget = getBusinessOnboardingRoute(user as Record<string, any>);
-      if (businessTarget && raw !== businessTarget) {
-        navigate(businessTarget);
-      }
       return;
     }
+    // The only non-onboarding continuation allowed for an incomplete account:
+    // a session-scoped exact directory claim created by the outcome endpoint.
+    if (isOutcomeOnboardingClaimContinuationPath(raw)) return;
     if (isOnboardingExemptPath(pathOnly)) return;
 
     const fullPath = raw.startsWith("/") ? raw : `/${raw}`;
@@ -118,9 +111,10 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
     if (isSafeNextPath(fullPath)) {
       storeOnboardingNext(fullPath);
     }
-    const next = encodeURIComponent(fullPath);
     const entryRoute = getOnboardingEntryRoute(user);
-    const target = `${entryRoute}?next=${next}`;
+    const target = isSafeNextPath(fullPath)
+      ? `${entryRoute}?next=${encodeURIComponent(fullPath)}`
+      : entryRoute;
     if (raw !== target) {
       navigate(target);
     }
@@ -258,8 +252,7 @@ const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
 const Landing = PublicLandingPage;
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
-const OnboardingIntent = React.lazy(() => import("./pages/onboarding-intent"));
-const OnboardingProfile = React.lazy(() => import("./pages/onboarding-profile"));
+const Onboarding = React.lazy(() => import("./pages/onboarding"));
 const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 const BusinessDirectoryPage = React.lazy(() => import("./pages/business-directory"));
@@ -863,24 +856,26 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/pre-scout-setup">
                 <LazyPage Component={PreScoutSetup} />
               </Route>
-              {/* Onboarding: profile normalization flow (auth required). */}
+              {/* Onboarding: one outcome-first experience at every compatibility URL. */}
               <Route path="/onboarding/profile">
                 <ProtectedRoute>
-                  <LazyPage Component={OnboardingProfile} />
+                  <LazyPage Component={Onboarding} />
                 </ProtectedRoute>
               </Route>
               <Route path="/onboarding">
                 <ProtectedRoute>
-                  <LazyPage Component={OnboardingIntent} />
+                  <LazyPage Component={Onboarding} />
                 </ProtectedRoute>
               </Route>
               <Route path="/onboarding/intent">
                 <ProtectedRoute>
-                  <LazyPage Component={OnboardingIntent} />
+                  <LazyPage Component={Onboarding} />
                 </ProtectedRoute>
               </Route>
               <Route path="/profile-setup">
-                <RedirectTo to="/onboarding/profile" />
+                <ProtectedRoute>
+                  <LazyPage Component={Onboarding} />
+                </ProtectedRoute>
               </Route>
 
               {/* Legacy auth URLs map directly to mode-specific pre-scout entry. */}

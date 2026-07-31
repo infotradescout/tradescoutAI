@@ -2,6 +2,7 @@ import {
   PRECISION_AERIAL_PROFILE_SLUG,
   PRECISION_AERIAL_STEWARD_PROVIDER,
 } from "@shared/precisionAerialProfile";
+import { isProfileVisibilityPublic as isSharedProfileVisibilityPublic } from "@shared/profileVisibility";
 
 export const JRS_PROFILE_SLUG = "jrs-auto-glass";
 export const OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile";
@@ -14,7 +15,7 @@ const DIRECT_PROFILE_AUTHORITIES: Readonly<Record<string, string>> = {
   [PRECISION_AERIAL_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE,
 };
 
-type OwnerConfirmedDirectProfileCandidate = {
+export type OwnerConfirmedDirectProfileCandidate = {
   profileSlug: unknown;
   profileStatus: unknown;
   profileOwnerUserId: unknown;
@@ -25,6 +26,16 @@ type OwnerConfirmedDirectProfileCandidate = {
   businessClaimStatus?: unknown;
   ownerProvider?: unknown;
   ownerPreferences?: unknown;
+};
+
+export type LinkedBusinessProfileExposureCandidate = OwnerConfirmedDirectProfileCandidate & {
+  businessId: unknown;
+  ownerVerifiedBadge: unknown;
+  ownerVerificationStatus: unknown;
+};
+
+export type PublishedProfileExposureCandidate = LinkedBusinessProfileExposureCandidate & {
+  profileId: unknown;
 };
 
 function recordValue(value: unknown): Record<string, any> {
@@ -100,11 +111,72 @@ export function isOwnerConfirmedDirectProfile(
   const requiredAuthority = DIRECT_PROFILE_AUTHORITIES[profileSlug];
   if (!requiredAuthority) return false;
   const hasProfileSpecificAuthority =
-    profileSlug !== PRECISION_AERIAL_PROFILE_SLUG ||
-    hasExactPrecisionStewardAuthority(candidate);
+    profileSlug !== PRECISION_AERIAL_PROFILE_SLUG || hasExactPrecisionStewardAuthority(candidate);
 
+  return hasProfileSpecificAuthority && hasBaseDirectProfileAuthority(candidate, requiredAuthority);
+}
+
+export function isPubliclyVerifiedProfileOwner(candidate: {
+  ownerVerifiedBadge: unknown;
+  ownerVerificationStatus: unknown;
+}): boolean {
+  const verificationStatus = String(candidate.ownerVerificationStatus || "")
+    .trim()
+    .toLowerCase();
+  return candidate.ownerVerifiedBadge === true || verificationStatus === "approved";
+}
+
+/**
+ * Canonical anonymous-read authority for a published, public-visibility
+ * profile. Community/personal profiles without a business link keep their
+ * existing public behavior. A linked business profile needs either the
+ * owner's established verification signal or the exact, deliberately narrow
+ * direct-profile authority above.
+ */
+export function canExposeLinkedBusinessProfilePublicly(
+  candidate: LinkedBusinessProfileExposureCandidate
+): boolean {
+  if (!String(candidate.businessId || "").trim()) return true;
+  return isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate);
+}
+
+export function isProfileVisibilityPublic(candidate: {
+  profileId: unknown;
+  ownerPreferences?: unknown;
+}): boolean {
+  return isSharedProfileVisibilityPublic({
+    profileId: candidate.profileId,
+    preferences: candidate.ownerPreferences,
+  });
+}
+
+/** Complete anonymous exposure authority: exact profile visibility first,
+ * then the linked-business verification/direct-profile trust gate. */
+export function canExposePublishedProfilePublicly(
+  candidate: PublishedProfileExposureCandidate
+): boolean {
+  if (
+    String(candidate.profileStatus || "")
+      .trim()
+      .toLowerCase() !== "published"
+  ) {
+    return false;
+  }
+  return isProfileVisibilityPublic(candidate) && canExposeLinkedBusinessProfilePublicly(candidate);
+}
+
+/**
+ * A map marker labels its subject as a provider, so an unverified personal
+ * profile is not enough authority even when that profile is intentionally
+ * public. Provider discovery requires the complete public-profile boundary
+ * plus either established owner verification or one of the exact managed
+ * Direct Profile exceptions.
+ */
+export function canExposeProviderProfileOnPublicMap(
+  candidate: PublishedProfileExposureCandidate
+): boolean {
   return (
-    hasProfileSpecificAuthority &&
-    hasBaseDirectProfileAuthority(candidate, requiredAuthority)
+    canExposePublishedProfilePublicly(candidate) &&
+    (isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate))
   );
 }

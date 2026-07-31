@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 
 type TutorialContent = {
   title: string;
@@ -78,7 +79,7 @@ export function shouldSkipPath(path: string): boolean {
     path.startsWith("/register") ||
     path.startsWith("/create-account") ||
     path.startsWith("/pre-scout-setup") ||
-    path.startsWith("/onboarding/") ||
+    isOnboardingSurfacePath(path) ||
     path.startsWith("/privacy") ||
     path.startsWith("/terms") ||
     path.startsWith("/compliance")

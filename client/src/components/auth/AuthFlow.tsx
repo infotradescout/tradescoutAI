@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { getOnboardingEntryRoute } from "@/lib/postOnboardingRoute";
+import { hasCompletedSetup } from "@/lib/setupState";
 
 interface AuthFlowProps {
   onComplete: () => void;
@@ -18,11 +18,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
 
     if (!user) return;
 
-    const anyUser: any = user;
-    const profileVersion: number =
-      typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
-
-    if (profileVersion >= CURRENT_PROFILE_VERSION) {
+    if (hasCompletedSetup(user)) {
       onComplete();
     } else {
       navigate(getOnboardingEntryRoute(user));

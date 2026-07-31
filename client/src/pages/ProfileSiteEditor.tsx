@@ -34,6 +34,7 @@ import {
   upsertSiteTemplateBlock,
   type ProfileSiteTemplateGalleryId,
 } from "@shared/profileSiteTemplates";
+import { isProfileVisibilityPublic } from "@shared/profileVisibility";
 
 type OwnedProfile = {
   id: string;
@@ -200,7 +201,12 @@ export default function ProfileSiteEditor() {
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
   const [profileVisibility, setProfileVisibility] = useState<"public" | "private">(
-    user?.preferences?.profileVisibility === "public" ? "public" : "private"
+    isProfileVisibilityPublic({
+      profileId: (user as any)?.activeProfileId,
+      preferences: user?.preferences,
+    })
+      ? "public"
+      : "private"
   );
   const [servicesDescription, setServicesDescription] = useState("");
   const [profileSections, setProfileSections] = useState<ProfileSections>({});
@@ -422,12 +428,12 @@ export default function ProfileSiteEditor() {
             ? prefsPayload.preferences
             : prefsPayload;
 
-        const visibility =
-          prefs?.profileVisibility === "public" || prefs?.profileVisibility === "private"
-            ? prefs.profileVisibility
-            : user?.preferences?.profileVisibility === "public"
-              ? "public"
-              : "private";
+        const visibility = isProfileVisibilityPublic({
+          profileId: profile?.id,
+          preferences: prefs,
+        })
+          ? "public"
+          : "private";
         setProfileVisibility(visibility);
         setServicesDescription(
           typeof prefs?.servicesDescription === "string" ? prefs.servicesDescription : ""
@@ -489,7 +495,7 @@ export default function ProfileSiteEditor() {
     };
 
     void loadPublicSettings();
-  }, [slug, toast, user?.preferences?.profileVisibility]);
+  }, [profile?.id, slug, toast, user?.preferences]);
 
   useEffect(() => {
     if (matchU || !slug) return;
@@ -1057,9 +1063,7 @@ export default function ProfileSiteEditor() {
     setSavingPublicSettings(true);
     try {
       const colors =
-        colorPreset === "custom"
-          ? customColors
-          : getProfileBrandColorsForPreset(colorPreset);
+        colorPreset === "custom" ? customColors : getProfileBrandColorsForPreset(colorPreset);
       await apiRequest(
         "PATCH",
         `/api/profiles/${encodeURIComponent(profile.id)}/brand-colors`,

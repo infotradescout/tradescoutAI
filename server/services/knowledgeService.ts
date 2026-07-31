@@ -14,7 +14,8 @@ import {
   GENERATED_SCOUT_CORPUS_RETRIEVAL_ENABLED,
   getScoutCorpusContainmentStatus,
 } from "./scoutCorpusContainment";
-import { businesses, businessCounties, counties } from "../../shared/schema";
+import { businesses, businessCounties, counties, users } from "../../shared/schema";
+import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -667,7 +668,15 @@ async function queryWebsite(
             .from(businesses)
             .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
             .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-            .where(and(eq(businesses.status, "active" as any), eq(counties.fips, countyCode)))
+            .leftJoin(users, eq(users.id, businesses.ownerUserId))
+            .where(
+              and(
+                eq(businesses.status, "active" as any),
+                eq(businesses.publicDiscoveryEnabled, true),
+                publicBusinessDetailExposureSqlPredicate(),
+                eq(counties.fips, countyCode)
+              )
+            )
             .limit(15);
           for (const r of countyRows) {
             if (rows.length >= 15) break;
@@ -695,9 +704,12 @@ async function queryWebsite(
             .from(businesses)
             .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
             .leftJoin(counties, eq(counties.id, businessCounties.countyId))
+            .leftJoin(users, eq(users.id, businesses.ownerUserId))
             .where(
               and(
                 eq(businesses.status, "active" as any),
+                eq(businesses.publicDiscoveryEnabled, true),
+                publicBusinessDetailExposureSqlPredicate(),
                 or(
                   eq(counties.stateCode, stateCode),
                   sql`coalesce(${businesses.profileData} -> 'importExtras' ->> 'state_code', '') = ${stateCode}`
@@ -727,7 +739,14 @@ async function queryWebsite(
             profileData: businesses.profileData,
           })
           .from(businesses)
-          .where(eq(businesses.status, "active" as any))
+          .leftJoin(users, eq(users.id, businesses.ownerUserId))
+          .where(
+            and(
+              eq(businesses.status, "active" as any),
+              eq(businesses.publicDiscoveryEnabled, true),
+              publicBusinessDetailExposureSqlPredicate()
+            )
+          )
           .limit(15);
         for (const r of anyRows) {
           if (rows.length >= 15) break;

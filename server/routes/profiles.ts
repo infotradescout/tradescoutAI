@@ -28,8 +28,10 @@ import {
   verifyManageBridgeToken,
 } from "../utils/profileManageBridge";
 import {
+  canExposePublishedProfilePublicly,
   hasTradeScoutPendingOwnerCustody,
   isOwnerConfirmedDirectProfile,
+  isPubliclyVerifiedProfileOwner,
 } from "../services/ownerConfirmedDirectProfile";
 import {
   buildHandmadeProductPath,
@@ -199,6 +201,29 @@ type PublicBusinessPresenceSitemapRow = {
   updatedAt: unknown;
 };
 
+function databaseBoolean(value: unknown): boolean {
+  return value === true || value === "true" || value === "t";
+}
+
+export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>): boolean {
+  return canExposePublishedProfilePublicly({
+    profileId: row.profile_id,
+    businessId: row.business_id,
+    profileSlug: row.profile_slug,
+    profileStatus: "published",
+    profileOwnerUserId: row.profile_owner_user_id,
+    ownerVerifiedBadge: databaseBoolean(row.owner_verified_badge),
+    ownerVerificationStatus: row.owner_verification_status,
+    ownerProvider: row.owner_provider,
+    ownerPreferences: row.owner_preferences,
+    businessStatus: row.business_status,
+    businessOwnerUserId: row.business_owner_user_id,
+    publicDiscoveryEnabled: databaseBoolean(row.public_discovery_enabled),
+    businessSources: row.business_sources,
+    businessClaimStatus: row.business_claim_status,
+  });
+}
+
 function xmlEscape(value: unknown): string {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -289,9 +314,20 @@ async function listPublishedProfileSitemapTargets(
   const businessScope = businessSlugs ? "AND b.slug = ANY($1::text[])" : "";
   const result = await pool.query(
     `SELECT p.slug AS profile_slug,
+            p.id AS profile_id,
+            p.business_id,
+            p.owner_user_id AS profile_owner_user_id,
             b.slug AS business_slug,
             NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
-            COALESCE((u.preferences->>'profileVisibility'), 'private') = 'public' AS is_public,
+            u.verified_badge AS owner_verified_badge,
+            u.verification_status AS owner_verification_status,
+            u.provider AS owner_provider,
+            u.preferences AS owner_preferences,
+            b.status AS business_status,
+            b.owner_user_id AS business_owner_user_id,
+            b.public_discovery_enabled,
+            b.sources AS business_sources,
+            b.claim_status AS business_claim_status,
             p.updated_at
        FROM profiles p
        INNER JOIN users u ON u.id = p.owner_user_id
@@ -312,7 +348,7 @@ async function listPublishedProfileSitemapTargets(
         profileSlug,
         businessSlug: String(row.business_slug || "").trim() || null,
         customDomain: normalizeSitemapCustomDomain(row.custom_domain),
-        isPublic: row.is_public === true || row.is_public === "true" || row.is_public === "t",
+        isPublic: isPublishedProfileSitemapTargetPublic(row),
         updatedAt: row.updated_at ?? null,
       };
     })
@@ -422,6 +458,26 @@ function isStaffProfileManager(req: any): boolean {
       .toLowerCase();
     return normalized === "head_admin" || normalized === "super_admin";
   });
+}
+
+export function canAuthenticatedViewerPreviewProfile(req: any, ownerUserId: string): boolean {
+  const viewerUserId = getAuthedUserId(req);
+  return (
+    Boolean(viewerUserId) &&
+    (viewerUserId === ownerUserId || isSuperAdminRequester(req) || isStaffProfileManager(req))
+  );
+}
+
+export function canServeLinkedBusinessProfileToViewer(args: {
+  ownerUser: any;
+  ownerConfirmedDirectProfile: boolean;
+  authenticatedViewerCanManage: boolean;
+}): boolean {
+  return (
+    isBusinessDiscoverable(args.ownerUser) ||
+    args.ownerConfirmedDirectProfile ||
+    args.authenticatedViewerCanManage
+  );
 }
 
 function sanitizePublicCtaConfig(ctaConfig: unknown) {
@@ -623,10 +679,10 @@ function getCanonicalBaseUrl(req: any): string {
 
 function isBusinessDiscoverable(user: any): boolean {
   if (!user) return false;
-  const verificationStatus = String(user.verificationStatus || "")
-    .trim()
-    .toLowerCase();
-  return user.verifiedBadge === true || verificationStatus === "approved";
+  return isPubliclyVerifiedProfileOwner({
+    ownerVerifiedBadge: user.verifiedBadge,
+    ownerVerificationStatus: user.verificationStatus,
+  });
 }
 
 const contentBlockSchema = z
@@ -802,35 +858,15 @@ router.get("/api/profiles/public-search", async (req, res) => {
     const query = typeof req.query.query === "string" ? req.query.query : "";
     const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
     const results = await storage.searchProfilesPublic({ query, limit });
-    if (!Array.isArray(results) || results.length === 0) {
-      return res.json(results);
-    }
-
-    const filtered: any[] = [];
-    for (const row of results as any[]) {
-      const businessId = String(row?.businessId || "").trim();
-      if (!businessId) {
-        filtered.push(row);
-        continue;
-      }
-
-      const profileOwnerId = String(row?.ownerUserId || row?.userId || "").trim();
-      if (!profileOwnerId) {
-        continue;
-      }
-
-      const [ownerUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, profileOwnerId))
-        .limit(1);
-      if (!isBusinessDiscoverable(ownerUser)) {
-        continue;
-      }
-      filtered.push(row);
-    }
-
-    res.json(filtered);
+    res.json(
+      results.map((row) => ({
+        id: row.id,
+        slug: row.slug,
+        displayName: row.displayName,
+        headline: row.headline,
+        roleContext: row.roleContext,
+      }))
+    );
   } catch (error: any) {
     console.error("Error searching public profiles:", error);
     res.status(500).json({ message: "Failed to search profiles" });
@@ -1350,26 +1386,40 @@ function recordProfileView(profileId: string, req: any): void {
 }
 
 const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
-  const profile = await storage.getProfileBySlugPublic(slug);
-
-  if (!profile) {
-    return res.status(404).json({ message: "Profile not found" });
-  }
-
-  if (req) recordProfileView(profile.id, req);
-
+  const viewerUserId = req ? getAuthedUserId(req) : "";
   const [profileOwner] = await db
-    .select({ ownerUserId: profiles.ownerUserId })
+    .select({ profileId: profiles.id, ownerUserId: profiles.ownerUserId })
     .from(profiles)
-    .where(eq(profiles.id, profile.id))
+    .where(eq(profiles.slug, slug))
     .limit(1);
   const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
   if (!ownerUserId) {
     return res.status(404).json({ message: "Profile not found" });
   }
+  const authenticatedViewerCanManage = Boolean(
+    req && canAuthenticatedViewerPreviewProfile(req, ownerUserId)
+  );
+  // Only a proven owner/staff manager may use the visibility-bypassing
+  // published read. Anonymous and unrelated authenticated viewers always use
+  // the complete profile-scoped visibility + business trust boundary.
+  const profile = authenticatedViewerCanManage
+    ? await storage.getProfileBySlugPublished(slug)
+    : await storage.getProfileBySlugPublic(slug);
+  if (!profile || String(profile.id) !== String(profileOwner?.profileId || "")) {
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(404).json({ message: "Profile not found" });
+  }
+
   const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
   if (!ownerUser) {
     return res.status(404).json({ message: "Profile not found" });
+  }
+
+  if (authenticatedViewerCanManage) {
+    // This response differs from the anonymous trust-gated response. Mark it
+    // private before any downstream work so an intermediary cannot cache an
+    // owner's preview and serve it to the public.
+    res.setHeader("Cache-Control", "private, no-store");
   }
 
   const now = new Date();
@@ -1659,7 +1709,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   let ownerConfirmedDirectProfile = false;
   let directConnectDeliveryCustody: "business" | "tradescout_pending_owner" = "business";
   let hasGatedDirectConnectPhone = false;
-  if (business) {
+  if (profile.businessId) {
     const [linkedBusiness] = await db
       .select({
         ownerUserId: businesses.ownerUserId,
@@ -1689,7 +1739,16 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     directConnectDeliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
       ? "tradescout_pending_owner"
       : "business";
-    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) {
+    if (
+      !canServeLinkedBusinessProfileToViewer({
+        ownerUser,
+        ownerConfirmedDirectProfile,
+        authenticatedViewerCanManage,
+      })
+    ) {
+      // Trust-gated 404s are viewer-sensitive. Prevent negative cache entries
+      // from blocking a later authenticated owner/admin preview.
+      res.setHeader("Cache-Control", "private, no-store");
       return res.status(404).json({ message: "Profile not found" });
     }
     directConnectOwnerUserId = ownerUserId;
@@ -2028,12 +2087,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     }
   }
 
-  const viewerUserId = req ? getAuthedUserId(req) : "";
-  let viewerCanManage =
-    Boolean(viewerUserId) &&
-    (viewerUserId === ownerUserId ||
-      (req ? isSuperAdminRequester(req) : false) ||
-      (req ? isStaffProfileManager(req) : false));
+  let viewerCanManage = authenticatedViewerCanManage;
 
   // The session cookie for thetradescout.com never reaches a business's
   // custom domain (different browser origin), so a manager who is already
@@ -2091,6 +2145,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   } else {
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
   }
+
+  if (req) recordProfileView(profile.id, req);
 
   return res.json({
     profile: {

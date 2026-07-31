@@ -1,9 +1,10 @@
 import { and, asc, eq, or, sql } from "drizzle-orm";
 import { db } from "./db";
-import { businessCounties, businesses, counties } from "@shared/schema";
+import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { getTradeSeoMatch, normalizeTradeSlug } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { publicBusinessDetailExposureSqlPredicate } from "./publicationBusiness";
 
 type PublicTradeCityHtmlOptions = {
   origin: string;
@@ -180,6 +181,7 @@ export async function buildPublicTradeCityHtml(
   const whereClauses: any[] = [
     eq(businesses.status, "active" as any),
     eq(businesses.publicDiscoveryEnabled, true as any),
+    publicBusinessDetailExposureSqlPredicate(),
     eq(counties.stateCode, stateCode),
     sql`${sqlCitySlugExpr()} = ${citySlug}`,
     sql`${businesses.updatedAt} >= ${recencyCutoff}`,
@@ -196,6 +198,7 @@ export async function buildPublicTradeCityHtml(
     .from(businesses)
     .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
     .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+    .leftJoin(users, eq(users.id, businesses.ownerUserId))
     .where(and(...whereClauses))
     .groupBy(counties.fips, counties.name, counties.stateCode)
     .orderBy(asc(counties.name))

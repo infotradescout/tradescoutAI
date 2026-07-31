@@ -8,52 +8,24 @@ const read = (relativePath: string) => {
 };
 
 describe("onboarding flow contracts", () => {
-  it("routes profile normalization into intent confirmation before exiting setup", () => {
+  it("uses one universal outcome owner at every onboarding compatibility URL", () => {
+    const onboardingSource = read("client/src/pages/onboarding.tsx");
     const profileSource = read("client/src/pages/onboarding-profile.tsx");
-
-    // buildIntentRoute now uses storeOnboardingNext + conditional query param
-    expect(profileSource).toContain("buildIntentRoute");
-    expect(profileSource).toContain("navigate(buildIntentRoute(postProfileNext));");
-    expect(profileSource).toContain(
-      "if ((anyUser.onboardingCompleted as boolean | undefined) === true)"
-    );
-    // Deep-link must be persisted into sessionStorage before the intent step
-    expect(profileSource).toContain("storeOnboardingNext");
-    expect(profileSource).toContain("Setting up a business profile");
-    expect(profileSource).toContain("fixed-price offers, verification, and bookkeeping review");
-    expect(profileSource).toContain("Add a profile photo");
-    expect(profileSource).toContain("Recommended");
-    expect(profileSource).toContain("uploadObject(file)");
-    expect(profileSource).toContain("profileImageUrl: profileImageUrl || undefined");
-    expect(profileSource).toContain('data-testid="onboarding-profile-photo-button"');
-    expect(profileSource).toContain("the TradeScout logo appears instead");
-  });
-
-  it("uses unified lane-first onboarding selection from the intent step", () => {
     const intentSource = read("client/src/pages/onboarding-intent.tsx");
 
-    expect(intentSource).toContain('apiRequest("POST", "/api/onboarding/start"');
-    expect(intentSource).toContain('t("onboarding.intentTitle")');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.fixImprove"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.vehicleService"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.findPersonBusiness"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.sellList"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.propertyRealEstate"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.offerServices"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.browseActivity"');
-    expect(intentSource).toContain('labelKey: "onboarding.intent.justLooking"');
-    expect(intentSource).toContain('t("onboarding.assetTitle")');
-    expect(intentSource).toContain('labelKey: "onboarding.assets.home"');
-    expect(intentSource).toContain('labelKey: "onboarding.assets.vehicle"');
-    expect(intentSource).toContain('labelKey: "onboarding.assets.project"');
-    expect(intentSource).toContain('labelKey: "onboarding.assets.business"');
-    expect(intentSource).toContain('labelKey: "onboarding.assets.savedSearch"');
-    expect(intentSource).toContain('t("onboarding.nothingYet")');
-    expect(intentSource).toContain('resolveDirectConnectLandingRoute({ entry: "intent" })');
-    expect(intentSource).toContain("service_provider");
+    expect(profileSource).toContain('export { default } from "./onboarding"');
+    expect(intentSource).toContain('export { default } from "./onboarding"');
+    expect(onboardingSource).toContain('apiRequest("/api/onboarding/complete", {');
+    expect(onboardingSource).toContain('method: "POST"');
+    expect(onboardingSource).toContain('data-testid="onboarding-goal"');
+    expect(onboardingSource).toContain('data-testid="business-switch"');
+    expect(onboardingSource).toContain("uploadObject(file)");
+    expect(onboardingSource).toContain("consumeOnboardingNext");
+    expect(onboardingSource).not.toContain("INTENT_OPTIONS");
+    expect(onboardingSource).not.toContain("ASSET_OPTIONS");
   });
 
-  it("enforces onboarding on authenticated routing until both completion + profile version are satisfied", () => {
+  it("enforces the one explicit completion state while preserving exact continuations", () => {
     const appRoutesSource = read("client/src/AppRoutes.tsx");
     const protectedRouteSource = read("client/src/components/ProtectedRoute.tsx");
     const preScoutSource = read("client/src/pages/pre-scout-setup.tsx");
@@ -69,62 +41,51 @@ describe("onboarding flow contracts", () => {
     expect(appRoutesSource).toContain("if (!userNeedsOnboarding(user)) {");
     expect(appRoutesSource).toContain("<AuthenticatedOnboardingGate />");
     expect(appRoutesSource).toContain('<Route path="/onboarding">');
-    // Deep-link preservation must be wired into the gate
     expect(appRoutesSource).toContain("storeOnboardingNext");
 
     expect(protectedRouteSource).toContain("const needsOnboarding = userNeedsOnboarding(user);");
-    expect(protectedRouteSource).toContain(
-      "setLocation(`${getOnboardingEntryRoute(user)}?next=${next}`);"
-    );
-
-    expect(preScoutSource).toContain(
-      "if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted)"
-    );
+    expect(protectedRouteSource).toContain("isSafeNextPath(requestedPath)");
+    expect(preScoutSource).toContain("if (!onboardingCompleted)");
+    expect(preScoutSource).not.toContain("currentProfileVersion < CURRENT_PROFILE_VERSION");
   });
 
   it("keeps OAuth callback redirects onboarding-aware", () => {
     const routesSource = read("server/routes.ts");
 
     expect(routesSource).toContain(
+      "const needsProfileNormalization = !isOutcomeOnboardingComplete(anyUser);"
+    );
+    expect(routesSource).not.toContain(
       "profileVersion < CURRENT_PROFILE_VERSION || anyUser.onboardingCompleted !== true"
     );
   });
 
-  it("smart post-onboarding routing helper covers all exit paths", () => {
+  it("keeps exact same-origin handoffs and removes business module forcing", () => {
     const helperSource = read("client/src/lib/postOnboardingRoute.ts");
 
     // Must export the main resolver
     expect(helperSource).toContain("export function resolvePostOnboardingRoute");
-    // Must detect business users
-    expect(helperSource).toContain("export function isBusinessUser");
-    // Must have session-storage helpers for deep-link preservation
+    expect(helperSource).toContain("export function isSafeNextPath");
     expect(helperSource).toContain("export function storeOnboardingNext");
     expect(helperSource).toContain("export function consumeOnboardingNext");
     expect(helperSource).toContain("export function getBusinessOnboardingRoute");
-    expect(helperSource).toContain("export function getFirstIncompleteBusinessModule");
-    // Default landings must be defined
     expect(helperSource).toContain("export const DEFAULT_LANDING");
-    expect(helperSource).toContain("export const BUSINESS_LANDING");
-    // Business landing must be offer-services (profile + verification)
-    expect(helperSource).toContain('"/offer-services"');
-    expect(helperSource).toContain('"/address-verification"');
-    expect(helperSource).toContain('"/license-verification"');
-    expect(helperSource).toContain('"/insurance-verification"');
-    // Personal default must be direct-connect
-    expect(helperSource).toContain('"/direct-connect"');
+    expect(helperSource).toContain("return null;");
+    expect(helperSource).not.toContain("BUSINESS_MODULE_ROUTE");
+    expect(helperSource).not.toContain("getFirstIncompleteBusinessModule");
   });
 
-  it("enforces business onboarding module routing in shared auth guards", () => {
+  it("does not force completed businesses through verification or finance guards", () => {
     const appRoutesSource = read("client/src/AppRoutes.tsx");
     const protectedRouteSource = read("client/src/components/ProtectedRoute.tsx");
     const helperSource = read("client/src/lib/postOnboardingRoute.ts");
 
-    expect(appRoutesSource).toContain("getBusinessOnboardingRoute");
-    expect(appRoutesSource).toContain("isBusinessOnboardingAllowedPath");
-    expect(protectedRouteSource).toContain("getBusinessOnboardingRoute");
-    expect(protectedRouteSource).toContain("isBusinessOnboardingAllowedPath");
-    expect(helperSource).toContain("BUSINESS_MODULE_ALLOWED_PREFIXES");
+    expect(appRoutesSource).not.toContain("getBusinessOnboardingRoute");
+    expect(appRoutesSource).not.toContain("isBusinessOnboardingAllowedPath");
+    expect(protectedRouteSource).not.toContain("getBusinessOnboardingRoute");
+    expect(protectedRouteSource).not.toContain("isBusinessOnboardingAllowedPath");
     expect(helperSource).toContain("export function isBusinessOnboardingAllowedPath");
+    expect(helperSource).toContain("return true;");
   });
 
   it("turns offer-services into a provider launch hub instead of only verification", () => {
