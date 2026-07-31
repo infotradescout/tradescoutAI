@@ -1,24 +1,18 @@
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  ThumbsUp,
-  ThumbsDown,
-  MapPin,
-  Calendar,
-  Clock,
-  MessageSquare,
-  CheckCircle,
-  Shield,
-  ExternalLink,
-  Users,
-} from "lucide-react";
+import { MapPin, MessageSquare, CheckCircle, Shield, Users } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
 export type ProviderCardProvider = Contractor & {
   serviceAreas?: string[];
   canonicalBusinessProfileUrl?: string | null;
+  name?: string | null;
+  category?: string | null;
+  roleContext?: string | null;
+  description?: string | null;
+  contentBlocks?: Array<{ type?: string; data?: Record<string, any> }>;
+  seoMeta?: { imageUrl?: string | null; faviconUrl?: string | null } | null;
 };
 
 export interface ProviderCardProps {
@@ -34,14 +28,15 @@ export function ProviderCard({
   compact = false,
   requestOnly = false,
 }: ProviderCardProps) {
-  // Generate company initials for avatar
+  const [, navigate] = useLocation();
+  const businessName = String(contractor.companyName || contractor.name || "Business").trim();
   const companyInitials =
-    contractor.companyName
+    businessName
       ?.split(" ")
       .map((word) => word[0])
       .join("")
       .slice(0, 2)
-      .toUpperCase() || "CC";
+      .toUpperCase() || "B";
 
   const serviceAreas = contractor.serviceAreas || [];
   const city = String((contractor as any).city || "").trim();
@@ -53,17 +48,7 @@ export function ProviderCard({
       ? `${serviceAreas.slice(0, 2).join(", ")}${
           serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ""
         }`
-      : locationSummary || "Local service area pending";
-  const yearsInBusinessLabel = contractor.yearsInBusiness
-    ? `${contractor.yearsInBusiness} years`
-    : "Profile age pending";
-  const responseTimeLabel = contractor.responseTimeSla
-    ? `${contractor.responseTimeSla} hrs response`
-    : "Response signal pending";
-  const recommendationLabel =
-    (contractor.totalRecommendations || 0) > 0
-      ? `${contractor.totalRecommendations} recommendations`
-      : "Recommendations pending";
+      : locationSummary;
   const rawCvs =
     typeof (contractor as any).trustScore === "number"
       ? (contractor as any).trustScore
@@ -75,7 +60,6 @@ export function ProviderCard({
             ? Number((contractor as any).cvsScore)
             : null;
   const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
-  const cvsLabel = cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS calculating";
   const connectionRecommendationCountRaw = (contractor as any).connectionRecommendationCount;
   const connectionRecommendationCount =
     typeof connectionRecommendationCountRaw === "number" &&
@@ -87,194 +71,115 @@ export function ProviderCard({
     contractor.canonicalBusinessProfileUrl.trim().length > 0
       ? contractor.canonicalBusinessProfileUrl.trim()
       : `/business/${encodeURIComponent(contractor.slug)}`;
+  const profileBlocks = Array.isArray(contractor.contentBlocks) ? contractor.contentBlocks : [];
+  const heroBlock = profileBlocks.find((block) => block?.type === "hero")?.data || {};
+  const galleryBlock = profileBlocks.find((block) => block?.type === "gallery")?.data || {};
+  const galleryImages = Array.isArray(galleryBlock.images) ? galleryBlock.images : [];
+  const photos = Array.isArray(contractor.photos) ? contractor.photos : [];
+  const previewImage = [
+    heroBlock.imageUrl,
+    heroBlock.backgroundImageUrl,
+    contractor.seoMeta?.imageUrl,
+    photos[0],
+    typeof galleryImages[0] === "string" ? galleryImages[0] : galleryImages[0]?.url,
+  ].find((value) => typeof value === "string" && value.trim()) as string | undefined;
+  const categoryLabel = String(
+    contractor.category ||
+      contractor.roleContext ||
+      (contractor.isGeneralContractor ? "General contractor" : "")
+  ).trim();
+  const description = String(contractor.description || contractor.about || "").trim();
+  const trustFacts = [
+    contractor.verifiedLicensed ? { label: "Licensed", Icon: CheckCircle } : null,
+    contractor.verifiedInsured ? { label: "Insured", Icon: Shield } : null,
+    cvsScore !== null ? { label: `CVS ${Math.round(cvsScore)}`, Icon: Shield } : null,
+    (contractor.totalRecommendations || 0) > 0
+      ? { label: `${contractor.totalRecommendations} recommendations`, Icon: Users }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; Icon: typeof Shield }>;
+
+  const openProfile = () => navigate(profileHref);
 
   return (
-    <Card className="ts-card" data-testid={`contractor-card`}>
-      <CardContent className={`${compact ? "p-4" : "p-3 md:p-6"}`}>
-        {/* Company Avatar + Trust */}
-        <div className="flex items-start justify-between mb-4">
-          <div
-            className={`${
-              compact ? "w-12 h-12 text-lg" : "w-16 h-16 text-xl"
-            } ts-accent-btn rounded-lg flex items-center justify-center font-bold`}
-          >
+    <Card
+      className="group h-full cursor-pointer overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] transition hover:-translate-y-0.5 hover:border-[color:var(--theme-accent-primary)]/50 hover:shadow-xl"
+      data-testid="contractor-card"
+      role="link"
+      tabIndex={0}
+      aria-label={`View ${businessName} profile`}
+      onClick={openProfile}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") openProfile();
+      }}
+    >
+      <div className="relative aspect-[16/8] overflow-hidden bg-[color:var(--surface-intermediate)]">
+        {previewImage ? (
+          <img
+            src={previewImage}
+            alt=""
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-3xl font-bold text-white/80">
             {companyInitials}
           </div>
-
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1">
-              <ThumbsUp className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-green-400`} />
-              <span className={`text-green-400 font-medium ${compact ? "text-xs" : "text-sm"}`}>
-                {contractor.positiveRecommendations || 0}
+        )}
+        {categoryLabel && (
+          <div className="absolute bottom-3 left-3 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white backdrop-blur">
+            {categoryLabel.replace(/_/g, " ")}
+          </div>
+        )}
+      </div>
+      <CardContent className={`${compact ? "p-4" : "p-5"}`}>
+        <h3
+          className={`${compact ? "text-lg" : "text-xl"} font-semibold text-[color:var(--text-primary)]`}
+        >
+          {businessName}
+        </h3>
+        {serviceAreaLabel && (
+          <p className="mt-1.5 flex items-center text-sm text-[color:var(--text-secondary)]">
+            <MapPin className="mr-1.5 h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+            {serviceAreaLabel}
+          </p>
+        )}
+        {description && (
+          <p className="mt-3 line-clamp-2 text-sm leading-6 text-[color:var(--text-secondary)]">
+            {description}
+          </p>
+        )}
+        {(trustFacts.length > 0 || connectionRecommendationCount !== null) && (
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[color:var(--text-secondary)]">
+            {trustFacts.map(({ label, Icon }) => (
+              <span key={label} className="flex items-center gap-1.5">
+                <Icon className="h-3.5 w-3.5 text-[color:var(--theme-accent-primary)]" />
+                {label}
               </span>
-            </div>
-            {(contractor.negativeRecommendations || 0) > 0 && (
-              <div className="flex items-center space-x-1">
-                <ThumbsDown className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-red-400`} />
-                <span className={`text-red-400 font-medium ${compact ? "text-xs" : "text-sm"}`}>
-                  {contractor.negativeRecommendations}
-                </span>
-              </div>
-            )}
-            <span
-              className={`text-white/70 ${compact ? "text-xs" : "text-sm"}`}
-              data-testid="recommendation-count"
-            >
-              ({contractor.totalRecommendations || 0} total)
-            </span>
-            {connectionRecommendationCount !== null && (
-              <span
-                className={`flex items-center gap-1 text-blue-300 ${compact ? "text-xs" : "text-sm"}`}
-              >
-                <Users className={`${compact ? "h-3 w-3" : "h-4 w-4"}`} />
+            ))}
+            {connectionRecommendationCount !== null && connectionRecommendationCount > 0 && (
+              <span className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-[color:var(--theme-accent-primary)]" />
                 {connectionRecommendationCount} from your connections
               </span>
             )}
           </div>
-        </div>
-
-        {/* Company Name */}
-        <Link href={profileHref}>
-          <h3
-            className={`font-semibold mb-2 transition-colors cursor-pointer text-[color:var(--text-primary)] hover:text-[color:var(--theme-accent-primary)] ${
-              compact ? "text-base" : "text-lg"
-            }`}
-          >
-            {contractor.companyName}
-          </h3>
-        </Link>
-
-        {/* Trade Badges (derived from contractor flags) */}
-        <div className="flex flex-wrap gap-2 mb-3">
-          {contractor.isGeneralContractor && (
-            <Badge
-              variant="outline"
-              className="text-xs ts-accent-text"
-              style={{
-                backgroundColor:
-                  "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                border:
-                  "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)",
-              }}
-            >
-              General contractor
-            </Badge>
-          )}
-          {contractor.isResidentialContractor && (
-            <Badge
-              variant="outline"
-              className="text-xs ts-accent-text"
-              style={{
-                backgroundColor:
-                  "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                border:
-                  "1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent)",
-              }}
-            >
-              Residential
-            </Badge>
-          )}
-        </div>
-
-        {/* Service Areas */}
-        <p className={`text-white/70 mb-4 flex items-center ${compact ? "text-xs" : "text-sm"}`}>
-          <MapPin
-            className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
-            style={{ color: "var(--theme-accent-primary)" }}
-          />
-          {serviceAreaLabel}
-        </p>
-
-        {/* Business Info */}
-        <div
-          className={`flex items-center justify-between text-white/70 mb-4 ${
-            compact ? "text-xs" : "text-sm"
-          }`}
-        >
-          <span className="flex items-center">
-            <Calendar
-              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
-              style={{ color: "var(--theme-accent-primary)" }}
-            />
-            {yearsInBusinessLabel}
-          </span>
-          <span className="flex items-center">
-            <Clock
-              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
-              style={{ color: "var(--theme-accent-primary)" }}
-            />
-            {responseTimeLabel}
-          </span>
-          <span className="flex items-center">
-            <ThumbsUp
-              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
-              style={{ color: "var(--theme-accent-primary)" }}
-            />
-            {recommendationLabel}
-          </span>
-        </div>
-
-        {/* Verification Badges */}
-        <div className="flex items-center space-x-2 mb-4">
-          <Badge
-            variant="outline"
-            className="text-xs text-white border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
-          >
-            {cvsLabel}
-          </Badge>
-          {contractor.verifiedLicensed && (
-            <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Licensed
-            </Badge>
-          )}
-          {contractor.verifiedInsured && (
-            <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs">
-              <Shield className="h-3 w-3 mr-1" />
-              Insured
-            </Badge>
-          )}
-          {contractor.lastVerified && (
-            <Badge className="bg-blue-600 hover:bg-blue-600 text-white text-xs">
-              Verified {new Date(contractor.lastVerified).getFullYear()}
-            </Badge>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        {showCallToAction ? (
-          <div className="flex space-x-2">
-            <Link
-              href={`/direct-connect?intent=hire&targetProviderId=${encodeURIComponent(contractor.id)}&targetName=${encodeURIComponent(contractor.companyName || contractor.slug)}&contractor=${encodeURIComponent(contractor.slug)}`}
-              className={requestOnly ? "w-full" : "flex-1"}
-            >
-              <Button className="w-full ts-accent-btn transition-all duration-300">
-                <MessageSquare className="h-4 w-4 mr-1" />
-                {requestOnly ? "Request Quote" : "Start a Request"}
-              </Button>
-            </Link>
-
-            <Link href={profileHref} className={requestOnly ? "w-full" : "flex-1"}>
-              <Button
-                variant="outline"
-                className="w-full border-white/10 text-white hover:bg-white/10"
-              >
-                <ExternalLink className="h-4 w-4 mr-1" />
-                View Profile
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <Link href={profileHref}>
-            <Button
-              variant="outline"
-              className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
-            >
-              View Full Profile
-              <ExternalLink className="h-4 w-4 ml-2" />
-            </Button>
-          </Link>
         )}
+        {showCallToAction ? (
+          <div className="mt-5">
+            <Button
+              className="w-full ts-accent-btn transition-all duration-300"
+              onClick={(event) => {
+                event.stopPropagation();
+                navigate(
+                  `/direct-connect?intent=connect&targetProviderId=${encodeURIComponent(contractor.id)}&targetName=${encodeURIComponent(businessName)}&contractor=${encodeURIComponent(contractor.slug)}`
+                );
+              }}
+            >
+              <MessageSquare className="h-4 w-4 mr-1" />
+              Connect
+            </Button>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

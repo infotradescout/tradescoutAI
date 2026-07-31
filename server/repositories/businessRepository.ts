@@ -361,6 +361,11 @@ export class BusinessRepository {
       name: string;
       roleContext: string;
       slug: string;
+      profileData: Business["profileData"];
+      profileHeadline: string | null;
+      profileContentBlocks: Profile["contentBlocks"];
+      profileSeoMeta: Profile["seoMeta"];
+      canonicalProfileSlug: string | null;
     }>
   > {
     const limit = Math.min(50, Math.max(1, Number(args.limit ?? 15) || 15));
@@ -389,6 +394,27 @@ export class BusinessRepository {
         name: businesses.name,
         roleContext: businesses.roleContext,
         slug: businesses.slug,
+        profileData: businesses.profileData,
+        profileHeadline: sql<string | null>`(
+          select p.headline from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        profileContentBlocks: sql<Profile["contentBlocks"]>`(
+          select p.content_blocks from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        profileSeoMeta: sql<Profile["seoMeta"]>`(
+          select p.seo_meta from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        canonicalProfileSlug: sql<string | null>`(
+          select p.slug from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
       })
       .from(businesses)
       .where(and(...predicates))
@@ -399,6 +425,11 @@ export class BusinessRepository {
       name: string;
       roleContext: string;
       slug: string;
+      profileData: Business["profileData"];
+      profileHeadline: string | null;
+      profileContentBlocks: Profile["contentBlocks"];
+      profileSeoMeta: Profile["seoMeta"];
+      canonicalProfileSlug: string | null;
     }>;
   }
 
