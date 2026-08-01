@@ -3,6 +3,7 @@ import { upgradePublicSocialPreviewHtml } from "./publicSocialPreviewHtml";
 
 const SEO_ROOT_SUMMARY_PATTERN = /<div id="root">\s*<main data-seo-[\s\S]*?<\/main>\s*<\/div>/i;
 const BOOT_FALLBACK_PATTERN = /\s*<div id="ts-boot-fallback"[\s\S]*?<\/section>\s*<\/div>\s*/i;
+const LANDING_FALLBACK_PATTERN = /\s*<div id="ts-landing-fallback"[\s\S]*?<\/div>\s*/i;
 const NOSCRIPT_FALLBACK_PATTERN =
   /\s*<noscript>\s*<div id="ts-boot-fallback-noscript"[\s\S]*?<\/noscript>\s*/i;
 const CLIENT_MODULE_SCRIPT_PATTERN =
@@ -16,7 +17,10 @@ export function publicSocialMetadataCacheControl(html: string): string | null {
 }
 
 export function stripPublicSeoBootPlaceholders(html: string): string {
-  return html.replace(BOOT_FALLBACK_PATTERN, "").replace(NOSCRIPT_FALLBACK_PATTERN, "");
+  return html
+    .replace(BOOT_FALLBACK_PATTERN, "")
+    .replace(LANDING_FALLBACK_PATTERN, "")
+    .replace(NOSCRIPT_FALLBACK_PATTERN, "");
 }
 
 export function preparePublicSeoHtmlForResponse(
@@ -25,10 +29,7 @@ export function preparePublicSeoHtmlForResponse(
 ): string {
   const upgradedHtml = upgradePublicSocialPreviewHtml(html);
   if (options.retainSeoSummary) {
-    return stripPublicSeoBootPlaceholders(upgradedHtml).replace(
-      CLIENT_MODULE_SCRIPT_PATTERN,
-      ""
-    );
+    return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
   }
 
   return upgradedHtml.replace(SEO_ROOT_SUMMARY_PATTERN, '<div id="root"></div>');

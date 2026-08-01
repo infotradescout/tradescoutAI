@@ -41,7 +41,6 @@ const SUBMITTED_SITEMAP_TARGETS = [
 // Keep this list focused on high-intent, index-worthy pages.
 const STATIC_PUBLIC_ROUTES = [
   { path: '/', priority: 1.0, changefreq: 'daily' },
-  { path: '/landing', priority: 0.9, changefreq: 'daily' },
   { path: '/direct-connect', priority: 0.9, changefreq: 'hourly' },
   { path: '/contractors/apply', priority: 0.8, changefreq: 'weekly' },
   { path: '/community', priority: 0.9, changefreq: 'hourly' },

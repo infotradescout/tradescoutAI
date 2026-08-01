@@ -55,7 +55,7 @@ function normalizeCanonicalPath(requestPath?: string) {
     String(requestPath || "/")
       .split("?")[0]
       .replace(/\/+$/, "") || "/";
-  if (pathOnly === "/" || pathOnly === "/landing" || pathOnly === "/lp") return "/landing";
+  if (pathOnly === "/" || pathOnly === "/landing" || pathOnly === "/lp") return "/";
   if (pathOnly.startsWith("/lp/")) return pathOnly.replace(/^\/lp\//, "/landing/");
   if (pathOnly.startsWith("/landing/")) return pathOnly;
   return "/landing";
@@ -187,14 +187,14 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     <p>Recommendations drive TradeScout. Direct Connect sends one protected request only to businesses the requester chooses, and contact information opens after acceptance.</p>
     <h2>TradeScout, in plain language</h2>
     <ol>
-      <li><a href="/landing#scout">Scout</a> helps people understand a need, compare reasonable paths, and prepare a next step.</li>
-      <li><a href="/landing#connect">Requests and contact</a> stay protected until the requester sends and the business accepts.</li>
-      <li><a href="/landing#businesses">The business home</a> keeps offers, proof, availability, requests, work, and outcomes together.</li>
-      <li><a href="/landing#property">Home and property</a> keep useful records and work history with the property.</li>
-      <li><a href="/landing#money">Money</a> explains how TradeScout stays free without selling leads or trust.</li>
-      <li><a href="/landing#impact">Community</a> turns local participation and completed outcomes into useful context.</li>
-      <li><a href="/landing#trust">CVS</a> reflects verified standing and real performance; payment cannot buy it.</li>
-      <li><a href="/landing#system">Every feature</a> shows the connected tools available to requesters and businesses.</li>
+      <li><a href="/#scout">Scout</a> helps people understand a need, compare reasonable paths, and prepare a next step.</li>
+      <li><a href="/#connect">Requests and contact</a> stay protected until the requester sends and the business accepts.</li>
+      <li><a href="/#businesses">The business home</a> keeps offers, proof, availability, requests, work, and outcomes together.</li>
+      <li><a href="/#property">Home and property</a> keep useful records and work history with the property.</li>
+      <li><a href="/#money">Money</a> explains how TradeScout stays free without selling leads or trust.</li>
+      <li><a href="/#impact">Community</a> turns local participation and completed outcomes into useful context.</li>
+      <li><a href="/#trust">CVS</a> reflects verified standing and real performance; payment cannot buy it.</li>
+      <li><a href="/#system">Every feature</a> shows the connected tools available to requesters and businesses.</li>
     </ol>
     <div data-full-explainer="true">
       ${renderFullExplainer()}

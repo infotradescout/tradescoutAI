@@ -34,6 +34,9 @@ function getPackageChunkName(id: string): string | undefined {
     : modulePath.split("/", 1)[0];
 
   const chunkByPackage: Record<string, string> = {
+    react: "vendor-react",
+    "react-dom": "vendor-react",
+    scheduler: "vendor-react",
     recharts: "vendor-recharts",
     "d3-array": "vendor-d3",
     "d3-color": "vendor-d3",
@@ -102,6 +105,10 @@ export default defineConfig({
     emptyOutDir: true,
     reportCompressedSize: false,
     rollupOptions: {
+      input: {
+        app: path.resolve(__dirname, "client", "index.html"),
+        landing: path.resolve(__dirname, "client", "landing.html"),
+      },
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) {

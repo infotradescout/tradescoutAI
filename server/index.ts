@@ -1589,8 +1589,19 @@ app.use(landingContractHeaders);
                 ["/", "/landing", "/landing/", "/landing/:variant", "/lp", "/lp/", "/lp/:variant"],
                 async (req, res) => {
                   try {
-                    const indexPath = path.join(publicDistPath, "index.html");
-                    const templateHtml = getCachedTemplate(indexPath);
+                    const requestPath = (req.path || "/").replace(/\/+$/, "") || "/";
+                    if (requestPath === "/landing" || requestPath === "/lp") {
+                      return res.redirect(301, `/${requestSearchSuffix(req)}`);
+                    }
+                    if (requestPath.startsWith("/lp/")) {
+                      return res.redirect(
+                        301,
+                        `${requestPath.replace(/^\/lp\//, "/landing/")}${requestSearchSuffix(req)}`
+                      );
+                    }
+
+                    const landingPath = path.join(publicDistPath, "landing.html");
+                    const templateHtml = getCachedTemplate(landingPath);
                     if (!templateHtml) return res.status(404).send("Application files not found");
 
                     const origin = resolvePublicOrigin(req);

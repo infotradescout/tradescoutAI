@@ -84,9 +84,7 @@ describe("TradeScout public entry rendered smoke", () => {
       requestPath: "/lp/local-operating-system",
     });
 
-    expect(lpHtml).toContain(
-      '<link rel="canonical" href="https://www.thetradescout.com/landing" />'
-    );
+    expect(lpHtml).toContain('<link rel="canonical" href="https://www.thetradescout.com/" />');
     expect(lpVariantHtml).toContain(
       '<link rel="canonical" href="https://www.thetradescout.com/landing/local-operating-system" />'
     );

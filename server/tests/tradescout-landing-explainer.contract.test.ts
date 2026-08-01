@@ -115,7 +115,7 @@ describe("TradeScout plain-language landing explainer", () => {
       "#trust",
       "#system",
     ]) {
-      expect(fallbackSource).toContain(`/landing${hash}`);
+      expect(fallbackSource).toContain(`/${hash}`);
     }
     expect(fallbackSource).toContain("Selective Inheritance");
     expect(fallbackSource).toContain("useful, provable information from an outside source");
