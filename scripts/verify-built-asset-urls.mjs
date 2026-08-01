@@ -8,7 +8,10 @@ const repositoryRoot = path.resolve(
 );
 const publicDistPath = path.join(repositoryRoot, "dist", "public");
 const assetsPath = path.join(publicDistPath, "assets");
-const indexPath = path.join(publicDistPath, "index.html");
+const htmlEntryPaths = [
+  path.join(publicDistPath, "index.html"),
+  path.join(publicDistPath, "landing.html"),
+];
 
 function fail(message, details = []) {
   console.error(`[built-asset-urls] ${message}`);
@@ -18,20 +21,22 @@ function fail(message, details = []) {
   process.exit(1);
 }
 
-if (!fs.existsSync(indexPath) || !fs.existsSync(assetsPath)) {
-  fail("Vite output is missing index.html or the assets directory");
+if (htmlEntryPaths.some((entryPath) => !fs.existsSync(entryPath)) || !fs.existsSync(assetsPath)) {
+  fail("Vite output is missing an HTML entry or the assets directory");
 }
 
-const indexHtml = fs.readFileSync(indexPath, "utf8");
-const htmlAssetReferences = [
-  ...indexHtml.matchAll(/\b(?:src|href)=["']([^"']*assets\/[^"']+)["']/g),
-].map((match) => match[1]);
+const htmlAssetReferences = htmlEntryPaths.flatMap((entryPath) => {
+  const html = fs.readFileSync(entryPath, "utf8");
+  return [...html.matchAll(/\b(?:src|href)=["']([^"']*assets\/[^"']+)["']/g)].map(
+    (match) => `${path.basename(entryPath)}: ${match[1]}`
+  );
+});
 
 const nonCanonicalHtmlReferences = htmlAssetReferences.filter(
-  (reference) => !reference.startsWith("/assets/")
+  (reference) => !reference.slice(reference.indexOf(": ") + 2).startsWith("/assets/")
 );
 if (nonCanonicalHtmlReferences.length > 0) {
-  fail("index.html contains non-canonical asset URLs", nonCanonicalHtmlReferences);
+  fail("an HTML entry contains non-canonical asset URLs", nonCanonicalHtmlReferences);
 }
 
 const javascriptFiles = fs

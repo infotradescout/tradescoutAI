@@ -9,6 +9,10 @@ import {
 } from "../publicSeoHtml";
 
 const templateHtml = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
+const landingTemplateHtml = fs.readFileSync(
+  path.resolve(process.cwd(), "client/landing.html"),
+  "utf8"
+);
 const seoHtml = templateHtml.replace(
   '<div id="root"></div>',
   '<div id="root"><main data-seo-profile="true"><h1>Verified profile</h1></main></div>'
@@ -20,7 +24,7 @@ describe("public SEO response HTML", () => {
 
     expect(serverSource).toContain("preparePublicSeoHtmlForUserAgent(");
     expect(serverSource).toContain("existingCacheControl");
-    expect(serverSource).toContain('!\/\\b(?:no-store|private)\\b\/i.test(existingCacheControl)');
+    expect(serverSource).toContain("!\/\\b(?:no-store|private)\\b\/i.test(existingCacheControl)");
     expect(serverSource).toContain('String(req.headers["user-agent"] || "")');
   });
 
@@ -87,6 +91,15 @@ describe("public SEO response HTML", () => {
     const html = '<html><body><main id="content">Ordinary page</main></body></html>';
 
     expect(stripPublicSeoBootPlaceholders(html)).toBe(html);
+  });
+
+  it("removes the lightweight landing recovery placeholder from crawler responses", () => {
+    const html = preparePublicSeoHtmlForResponse(landingTemplateHtml, {
+      retainSeoSummary: true,
+    });
+
+    expect(html).not.toContain('id="ts-landing-fallback"');
+    expect(html).not.toContain('src="/src/landing-main.tsx"');
   });
 
   it("aligns signed-card HTML caching with the short opaque-token lifetime", () => {

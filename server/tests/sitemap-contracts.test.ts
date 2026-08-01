@@ -30,7 +30,6 @@ const restoredPublicDetailSitemapLocs = [
 
 const expectedStaticPublicRoutes = [
   "https://www.thetradescout.com/",
-  "https://www.thetradescout.com/landing",
   "https://www.thetradescout.com/direct-connect",
   "https://www.thetradescout.com/community",
   "https://www.thetradescout.com/how-it-works",
