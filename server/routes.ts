@@ -9072,6 +9072,14 @@ export async function registerRoutes(app: any) {
                 name: b.name || null,
                 roleContext: b.roleContext || null,
                 slug: b.slug || null,
+                category: b.profileData?.category || b.roleContext || null,
+                description: b.profileData?.description || b.profileHeadline || null,
+                services: Array.isArray(b.profileData?.services) ? b.profileData.services : [],
+                contentBlocks: Array.isArray(b.profileContentBlocks) ? b.profileContentBlocks : [],
+                seoMeta: b.profileSeoMeta || null,
+                canonicalBusinessProfileUrl: b.canonicalProfileSlug
+                  ? `/u/${encodeURIComponent(b.canonicalProfileSlug)}`
+                  : `/business/${encodeURIComponent(b.slug)}`,
                 providerType: "business" as const,
                 distanceMiles:
                   viewerLat != null &&
@@ -9093,11 +9101,28 @@ export async function registerRoutes(app: any) {
           }
         }
 
-        // Merge: contractors first, then businesses (dedup by id)
+        // One business may exist in both the contractor and business stores. Prefer the
+        // richer business-profile result and never return the same public identity twice.
+        const providerIdentityKey = (provider: any): string => {
+          const businessId = String(provider.businessId || "")
+            .trim()
+            .toLowerCase();
+          if (businessId) return `business:${businessId}`;
+          const slug = String(provider.slug || "")
+            .trim()
+            .toLowerCase();
+          if (slug) return `slug:${slug}`;
+          const name = String(provider.companyName || provider.name || "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-");
+          return `name:${name}`;
+        };
+
         const seen = new Set<string>();
         const merged: any[] = [];
-        for (const r of [...contractorResults, ...businessResults]) {
-          const key = String(r.id || "");
+        for (const r of [...businessResults, ...contractorResults]) {
+          const key = providerIdentityKey(r);
           if (key && !seen.has(key)) {
             seen.add(key);
             merged.push(r);

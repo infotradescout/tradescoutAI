@@ -15,5 +15,7 @@ describe("canonical provider card", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectPros.tsx");
     expect(source).toContain('import { ProviderCard } from "@/components/contractor-card"');
     expect(source).toContain("<ProviderCard contractor={contractor} compact requestOnly />");
+    expect(source).toContain("providers={visibleProviders}");
+    expect(source).not.toContain("Strongest trust evidence nearby");
   });
 });

@@ -99,12 +99,6 @@ function compareByDistanceThenCvs(a: any, b: any): number {
   return getProviderCvs(b) - getProviderCvs(a);
 }
 
-function compareByCvsThenDistance(a: any, b: any): number {
-  const cvsDiff = getProviderCvs(b) - getProviderCvs(a);
-  if (cvsDiff !== 0) return cvsDiff;
-  return compareByDistanceThenCvs(a, b);
-}
-
 function DirectoryRail({
   title,
   subtitle,
@@ -124,12 +118,9 @@ function DirectoryRail({
           <p className="text-xs text-[color:var(--text-secondary)]">{subtitle}</p>
         </div>
       </div>
-      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {providers.map((contractor) => (
-          <div
-            key={`${title}-${contractor.id}`}
-            className="w-[min(82vw,340px)] shrink-0 snap-start md:w-[360px]"
-          >
+          <div key={contractor.id}>
             <ProviderCard contractor={contractor} compact requestOnly />
           </div>
         ))}
@@ -232,13 +223,7 @@ export default function DirectConnectPros() {
     () => [...((contractors as any[]) || [])].sort(compareByDistanceThenCvs),
     [contractors]
   );
-  const cvsFirstProviders = useMemo(
-    () => [...((contractors as any[]) || [])].sort(compareByCvsThenDistance),
-    [contractors]
-  );
-  const localRail = distanceFirstProviders.slice(0, 14);
-  const trustedRail = cvsFirstProviders.slice(0, 14);
-  const resultRail = searchActive ? distanceFirstProviders.slice(0, 24) : [];
+  const visibleProviders = distanceFirstProviders.slice(0, searchActive ? 24 : 14);
 
   const { data: directoryFallback = [], isLoading: directoryFallbackLoading } = useQuery<
     DirectoryBusinessFallback[]
@@ -574,25 +559,11 @@ export default function DirectConnectPros() {
       )}
 
       {hasResults && (
-        <div className="space-y-5">
-          <DirectoryRail
-            title={searchActive ? "Best nearby matches" : "Closest businesses near you"}
-            subtitle="Distance first, then available trust evidence."
-            providers={searchActive ? resultRail : localRail}
-          />
-          <DirectoryRail
-            title="Strongest trust evidence nearby"
-            subtitle="Available verification and recommendation evidence first, then distance."
-            providers={trustedRail}
-          />
-          {!searchActive && (
-            <DirectoryRail
-              title="Keep browsing"
-              subtitle="More local profiles from the same directory feed."
-              providers={distanceFirstProviders.slice(14, 30)}
-            />
-          )}
-        </div>
+        <DirectoryRail
+          title={searchActive ? "Best nearby matches" : "Businesses near you"}
+          subtitle="Each business appears once, ordered by location fit and available trust evidence."
+          providers={visibleProviders}
+        />
       )}
     </div>
   );

@@ -6,17 +6,11 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
 
 describe("contractor card placeholders", () => {
-  it("uses intentional pending-state copy for incomplete directory profiles", () => {
+  it("omits missing trust facts instead of presenting unfinished placeholders", () => {
     const source = read("client/src/components/contractor-card.tsx");
 
-    expect(source).toContain("Local service area pending");
-    expect(source).toContain("Profile age pending");
-    expect(source).toContain("Response signal pending");
-    expect(source).toContain("Recommendations pending");
-    expect(source).toContain("CVS calculating");
-    expect(source).not.toContain("Service area not specified");
-    expect(source).not.toContain("Years in business n/a");
-    expect(source).not.toContain("Response time n/a");
-    expect(source).not.toContain("CVS Pending");
+    expect(source).not.toMatch(/pending|calculating/i);
+    expect(source).toContain("trustFacts.length > 0");
+    expect(source).toContain("Connect");
   });
 });
