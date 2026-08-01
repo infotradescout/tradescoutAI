@@ -554,6 +554,7 @@ function withProfileItemJsonLd(
   isBusinessProfile: boolean
 ) {
   if (!itemShare) return baseJsonLd;
+  if (itemShare.itemType === "inventory" && !itemShare.hasPublicName) return baseJsonLd;
 
   const baseGraph = Array.isArray(baseJsonLd["@graph"])
     ? baseJsonLd["@graph"]
@@ -654,7 +655,7 @@ function withProfilePublishingProvenance(
 ) {
   const pageUrl = itemShare?.canonical || categoryShare?.canonical || profileUrl;
   const mainEntityId =
-    itemShare?.itemType === "inventory"
+    itemShare?.itemType === "inventory" && itemShare.hasPublicName
       ? `${itemShare.canonical}#product`
       : itemShare?.itemType === "gallery"
         ? `${itemShare.canonical}#image`
@@ -921,11 +922,11 @@ function buildMeta(
     canonical,
     keywords,
     ogType:
-      itemShare?.itemType === "inventory"
+      itemShare?.itemType === "inventory" && itemShare.hasPublicName
         ? "product"
         : itemShare?.itemType === "gallery"
           ? "article"
-          : categoryShare
+          : itemShare?.itemType === "inventory" || categoryShare
             ? "website"
             : "profile",
   };
@@ -1219,8 +1220,9 @@ export async function buildPublicProfileHtml({
         contentBlocks: data.profile.contentBlocks,
       });
       const location = data.profile.slug === "jw-stone" ? " in Pensacola, FL" : "";
+      const linkLabel = item.hasPublicName ? `${item.name}${location}` : "View stone selection";
       return url
-        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(item.name)}${escapeHtml(location)}</a>${item.category ? ` — ${escapeHtml(item.category)}` : ""}</li>`
+        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(linkLabel)}</a>${item.category ? ` — ${escapeHtml(item.category)}` : ""}</li>`
         : "";
     })
     .filter(Boolean)
@@ -1228,12 +1230,16 @@ export async function buildPublicProfileHtml({
   const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
   const itemSummary = itemShare
     ? `<section data-seo-profile-item="${itemShare.itemType}">
-      <h2>${escapeHtml(
-        cleanPublicProfileText(
-          itemShare.itemType === "inventory" ? itemShare.itemName : itemShare.itemTitle,
-          200
-        )
-      )}</h2>
+      ${
+        itemShare.itemType === "inventory" && !itemShare.hasPublicName
+          ? ""
+          : `<h2>${escapeHtml(
+              cleanPublicProfileText(
+                itemShare.itemType === "inventory" ? itemShare.itemName : itemShare.itemTitle,
+                200
+              )
+            )}</h2>`
+      }
       <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(itemShare.imageAlt, 240))}" />
       <p>${escapeHtml(cleanPublicProfileText(itemShare.description, 500))}</p>
     </section>`

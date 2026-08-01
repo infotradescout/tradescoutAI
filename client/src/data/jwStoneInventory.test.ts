@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
 import { JW_STONE_INVENTORY_CATEGORIES, JW_STONE_INVENTORY_SUMMARY } from "./jwStoneInventory";
 
 const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
@@ -61,20 +62,106 @@ describe("JW Stone reconciled inventory", () => {
     });
     expect(stones.find((stone) => stone.slug === "trending-selection-05")).toMatchObject({
       name: "Trending Selection 05",
-      displayName: "Unnamed slab #05",
+      displayName: null,
       nameStatus: "placeholder",
       materialStatus: "unconfirmed",
     });
 
     const materialToConfirm = stones.filter((stone) => stone.materialStatus === "unconfirmed");
-    expect(materialToConfirm.filter((stone) => stone.nameStatus === "source")).toHaveLength(30);
-    expect(materialToConfirm.filter((stone) => stone.nameStatus === "placeholder")).toHaveLength(
-      10
+    const sourceNamed = materialToConfirm.filter((stone) => stone.nameStatus === "source");
+    const syntheticGroups = materialToConfirm.filter((stone) => stone.nameStatus === "placeholder");
+
+    expect(Object.fromEntries(sourceNamed.map((stone) => [stone.slug, stone.displayName]))).toEqual(
+      {
+        "amazonic-green": "Amazonic Green",
+        apollonis: "Apollonis",
+        artemis: "Artemis",
+        "beverly-blue-antigo": "Beverly Blue Antigo",
+        "bianco-palomino": "Bianco Palomino",
+        "black-dunes": "Black Dunes",
+        calacatta: "Calacatta",
+        "calacatta-corchia": "Calacatta Corchia",
+        "calacatta-cremo": "Calacatta Cremo",
+        "calacatta-macchia-vecchia": "Calacatta Macchia Vecchia",
+        "ceara-white": "Ceara White",
+        "chocolate-brown": "Chocolate Brown",
+        "emerald-pearl": "Emerald Pearl",
+        "grand-constantine": "Grand Constantine",
+        "kolkata-vegi-marble": "Kolkata Vegi Marble",
+        "montana-bianco": "Montana Bianco",
+        "mystic-spring": "Mystic Spring",
+        "namib-bianco-select": "Namib Bianco Select",
+        "namib-fantasy": "Namib Fantasy",
+        "new-caledonia": "New Caledonia",
+        perlatus: "Perlatus",
+        "porto-fino": "Porto Fino",
+        "river-white": "River White",
+        "steel-gray": "Steel Gray",
+        "super-white": "Super White",
+        "titanium-black-leathered": "Titanium Black",
+        "toulon-white": "Toulon White",
+        "valle-nevada-luna-pearl": "Valle Nevada (Luna Pearl)",
+        versace: "Versace",
+        "white-silk": "White Silk",
+      }
     );
+    expect(sourceNamed).toHaveLength(30);
+    expect(syntheticGroups).toHaveLength(10);
+    expect(
+      syntheticGroups.map(({ name, displayName, slug, materialStatus }) => ({
+        name,
+        displayName,
+        slug,
+        materialStatus,
+      }))
+    ).toEqual(
+      Array.from({ length: 10 }, (_, index) => {
+        const ordinal = String(index + 1).padStart(2, "0");
+        return {
+          name: `Trending Selection ${ordinal}`,
+          displayName: null,
+          slug: `trending-selection-${ordinal}`,
+          materialStatus: "unconfirmed",
+        };
+      })
+    );
+
+    for (const [slug, exactName] of [
+      ["amazonic-green", "Amazonic Green"],
+      ["steel-gray", "Steel Gray"],
+      ["versace", "Versace"],
+      ["white-silk", "White Silk"],
+    ] as const) {
+      expect(stones.find((stone) => stone.slug === slug)?.displayName).toBe(exactName);
+    }
   });
 
   it("leaves absent finish evidence unconfirmed", () => {
     expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishStatus).toBe("unconfirmed");
     expect(stones.find((stone) => stone.slug === "titanium")?.finishes).toEqual(["Leathered"]);
+  });
+
+  it("suppresses crafted public names for synthetic Direct Connect item ids", () => {
+    expect(
+      resolveJwStonePublicRequestName({
+        profileSlug: "jw-stone",
+        itemId: "trending-selection-05",
+        stoneName: "Unnamed slab #05",
+      })
+    ).toBeNull();
+    expect(
+      resolveJwStonePublicRequestName({
+        profileSlug: "jw-stone",
+        itemId: "trending-selection-05",
+        stoneName: "Amazonic Green",
+      })
+    ).toBeNull();
+    expect(
+      resolveJwStonePublicRequestName({
+        profileSlug: "jw-stone",
+        itemId: "amazonic-green",
+        stoneName: "Amazonic Green",
+      })
+    ).toBe("Amazonic Green");
   });
 });

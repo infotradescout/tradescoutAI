@@ -1,11 +1,10 @@
 export const JW_STONE_PROFILE_SLUG = "jw-stone";
-export const JW_STONE_PROFILE_SOCIAL_LOGO_URL =
-  "/images/businesses/jw-stone/logo-social.svg";
+export const JW_STONE_PROFILE_SOCIAL_LOGO_URL = "/images/businesses/jw-stone/logo-social.svg";
 
 export type JwStoneInventoryNameStatus = "source" | "placeholder";
 
 export type JwStoneInventoryNamePresentation = {
-  displayName: string;
+  displayName: string | null;
   nameStatus: JwStoneInventoryNameStatus;
 };
 
@@ -21,20 +20,43 @@ export function resolveJwStoneInventoryNamePresentation(stone: {
 }): JwStoneInventoryNamePresentation {
   const name = typeof stone.name === "string" ? stone.name.trim() : "";
   const slug = typeof stone.slug === "string" ? stone.slug.trim() : "";
-  const placeholderMatch =
-    slug.match(/^trending-selection-(\d+)$/i) || name.match(/^trending\s+selection\s+(\d+)$/i);
+  const hasSyntheticIdentity =
+    /^trending-selection-\d+$/i.test(slug) ||
+    /^trending\s+selection\s+\d+$/i.test(name) ||
+    /^unnamed\s+slab(?:\s*#\d+)?$/i.test(name);
 
-  if (placeholderMatch) {
+  if (hasSyntheticIdentity) {
     return {
-      displayName: `Unnamed slab #${placeholderMatch[1]}`,
+      displayName: null,
       nameStatus: "placeholder",
     };
   }
 
   return {
-    displayName: name || "Unnamed slab",
+    displayName: name || null,
     nameStatus: name ? "source" : "placeholder",
   };
+}
+
+export function resolveJwStonePublicRequestName(args: {
+  profileSlug?: unknown;
+  itemId?: unknown;
+  stoneName?: unknown;
+}): string | null {
+  const stoneName = typeof args.stoneName === "string" ? args.stoneName.trim() : "";
+  if (
+    String(args.profileSlug || "")
+      .trim()
+      .toLowerCase() !== JW_STONE_PROFILE_SLUG
+  ) {
+    return stoneName || null;
+  }
+
+  const presentation = resolveJwStoneInventoryNamePresentation({
+    name: stoneName,
+    slug: args.itemId,
+  });
+  return presentation.nameStatus === "source" ? presentation.displayName : null;
 }
 
 export const JW_STONE_SOCIAL_PRESENTATION = {

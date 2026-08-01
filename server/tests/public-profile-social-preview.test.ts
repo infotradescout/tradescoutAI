@@ -153,6 +153,30 @@ describe("public profile social preview context", () => {
     expect(visibleContext).not.toContain("Generic request");
   });
 
+  it("keeps a synthetic JW inventory preview nameless while preserving its route and photo", async () => {
+    const preview = await resolvePublicProfileSocialPreview({
+      profileSlug: "jw-stone",
+      itemType: "inventory",
+      itemSlug: "trending-selection-05",
+    });
+
+    expect(preview).not.toBeNull();
+    expect(preview?.context).toMatchObject({
+      kind: "inventory",
+      title: "",
+      eyebrow: "Trending at JW Stone",
+      brandName: "JW Stone Logistics",
+      supportingText: "JW Stone Logistics",
+    });
+    expect(preview?.previewImageUrl).toContain(
+      "/images/social/profile/jw-stone/inventory/trending-selection-05.png"
+    );
+    expect(preview?.sourceImageUrl).toMatch(
+      /^https:\/\/www\.thetradescout\.com\/images\/businesses\/jw-stone\/inventory-source\/.+\.webp$/
+    );
+    expect(JSON.stringify(preview?.context)).not.toMatch(/Unnamed slab|Trending Selection 05/);
+  });
+
   it("uses the profile-owned card image without replacing exact inventory media", async () => {
     const profilePreview = await resolvePublicProfileSocialPreview({
       profileSlug: "jw-stone",
@@ -205,8 +229,7 @@ describe("public profile social preview context", () => {
     expect(preview?.context).toMatchObject({
       kind: "gallery",
       title: "Blue Stone Patio",
-      sourceImageUrl:
-        "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg",
+      sourceImageUrl: "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg",
       logoUrl: "https://www.thetradescout.com/images/businesses/jw-stone/logo.svg",
       layout: "split",
     });

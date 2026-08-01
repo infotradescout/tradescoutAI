@@ -160,6 +160,29 @@ describe("public profile item HTML", () => {
     expect(html).not.toContain('"brand":{"@type":"Organization"');
   });
 
+  it("keeps a synthetic JW stone route public without inventing a public item name", async () => {
+    const html = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+      itemSlug: "trending-selection-05",
+    });
+
+    expect(html).toContain(
+      'link rel="canonical" href="https://jwstonelogistics.com/stones/trending-selection-05"'
+    );
+    expect(html).toContain('property="og:title" content="JW Stone Logistics"');
+    expect(html).toContain('property="og:type" content="website"');
+    expect(html).toContain('data-seo-profile-item="inventory"');
+    expect(html).toContain("request current availability");
+    expect(html).toContain("Stone selection — JW Stone LLC inventory photo");
+    expect(html).not.toContain("Trending Selection 05");
+    expect(html).not.toContain("Unnamed slab");
+    expect(html).not.toContain('"@type":"Product"');
+    expect(html).not.toContain("<h2></h2>");
+    expect(html).toContain('"mainEntity":{"@id":"https://jwstonelogistics.com/#identity"}');
+  });
+
   it("does not turn a person's shared product into an Organization", async () => {
     profileRecord.businessId = "";
     profileRecord.seoMeta.customDomain = "";
@@ -181,12 +204,8 @@ describe("public profile item HTML", () => {
     expect(html).toContain(
       '"mainEntity":{"@id":"https://www.thetradescout.com/u/jw-stone/stones/blue-dunes#product"}'
     );
-    expect(html).toContain(
-      '"publisher":{"@id":"https://www.thetradescout.com/#organization"}'
-    );
-    expect(html).toContain(
-      '"provider":{"@id":"https://www.thetradescout.com/#organization"}'
-    );
+    expect(html).toContain('"publisher":{"@id":"https://www.thetradescout.com/#organization"}');
+    expect(html).toContain('"provider":{"@id":"https://www.thetradescout.com/#organization"}');
   });
 
   it("falls back to the context-aware profile card for an unknown item", async () => {
@@ -532,9 +551,7 @@ describe("public profile item HTML", () => {
     expect(html).toContain(
       `"mainEntity":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass/gallery/${beforeItem.slug}#image"}`
     );
-    expect(html).toContain(
-      '"publisher":{"@id":"https://www.thetradescout.com/#organization"}'
-    );
+    expect(html).toContain('"publisher":{"@id":"https://www.thetradescout.com/#organization"}');
   });
 
   it("builds profile-specific LLM guidance without direct contact or exact-address text", async () => {
@@ -604,9 +621,7 @@ describe("public profile item HTML", () => {
       });
 
       expect(html).not.toBeNull();
-      expect(html).toContain(
-        `property="og:title" content="${category.name} | JW Stone Logistics"`
-      );
+      expect(html).toContain(`property="og:title" content="${category.name} | JW Stone Logistics"`);
       expect(html).toContain(
         `property="og:description" content="Browse current ${category.name} selections from JW Stone Logistics, then request pricing or availability through TradeScout Direct Connect."`
       );
@@ -631,9 +646,7 @@ describe("public profile item HTML", () => {
       expect(html).not.toContain('data-seo-profile-item="inventory"');
 
       for (const itemSlug of category.itemSlugs) {
-        expect(html).toContain(
-          `"url":"https://jwstonelogistics.com/stones/${itemSlug}"`
-        );
+        expect(html).toContain(`"url":"https://jwstonelogistics.com/stones/${itemSlug}"`);
       }
     }
   });
@@ -679,9 +692,7 @@ describe("public profile item HTML", () => {
       ...materialCategories.map(
         (category) => `https://jwstonelogistics.com/materials/${category.slug}`
       ),
-      ...inventoryItems.map(
-        (item) => `https://jwstonelogistics.com/stones/${item.slug}`
-      ),
+      ...inventoryItems.map((item) => `https://jwstonelogistics.com/stones/${item.slug}`),
       `https://jwstonelogistics.com/gallery/${galleryItem.slug}`,
     ];
 

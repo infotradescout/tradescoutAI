@@ -52,6 +52,16 @@ describe("JW Stone public discovery coverage", () => {
     expect(normalizedSlugs).toEqual(rawSlugs);
     expect(rawStones.reduce((total, stone) => total + stone.images.length, 0)).toBe(433);
 
+    const anonymousItems = normalizedItems.filter((stone) => !stone.hasPublicName);
+    expect(anonymousItems.map((stone) => stone.slug)).toEqual(
+      Array.from(
+        { length: 10 },
+        (_, index) => `trending-selection-${String(index + 1).padStart(2, "0")}`
+      )
+    );
+    expect(anonymousItems.every((stone) => stone.name === "")).toBe(true);
+    expect(anonymousItems.reduce((total, stone) => total + stone.images.length, 0)).toBe(73);
+
     let checkedPhotos = 0;
     for (const stone of rawStones) {
       expect(
@@ -81,8 +91,7 @@ describe("JW Stone public discovery coverage", () => {
       ).toBe(origin);
 
       const shareOrder =
-        Array.isArray(stone.shareImageOrder) &&
-        stone.shareImageOrder.length === stone.images.length
+        Array.isArray(stone.shareImageOrder) && stone.shareImageOrder.length === stone.images.length
           ? stone.shareImageOrder
           : stone.images.map((_, index) => index);
 
@@ -123,11 +132,13 @@ describe("JW Stone public discovery coverage", () => {
             : `${tradeScoutProfileUrl}/stones/${stone.slug}?photo=${oneBasedPhoto}`;
 
         expect(resolved).toMatchObject({
+          hasPublicName: !stone.slug.startsWith("trending-selection-"),
           slug: stone.slug,
           imageIndex: expectedDisplayIndex,
           shareImageIndex: shareIndex,
         });
         expect(metadata).toMatchObject({
+          hasPublicName: !stone.slug.startsWith("trending-selection-"),
           itemSlug: stone.slug,
           imageIndex: expectedDisplayIndex,
           shareImageIndex: shareIndex,
@@ -135,6 +146,7 @@ describe("JW Stone public discovery coverage", () => {
           canonical: expectedCanonical,
         });
         expect(tradeScoutMetadata).toMatchObject({
+          hasPublicName: !stone.slug.startsWith("trending-selection-"),
           itemSlug: stone.slug,
           imageIndex: expectedDisplayIndex,
           shareImageIndex: shareIndex,
@@ -157,8 +169,7 @@ describe("JW Stone public discovery coverage", () => {
   it("auto-populates the seven real JW material pages and excludes the placeholder group", () => {
     const categories = listProfileInventoryCategories(inventoryCategories, contentBlocks);
     expect(
-      categories
-        .map(({ slug, sourceSlug, itemCount }) => ({ slug, sourceSlug, itemCount }))
+      categories.map(({ slug, sourceSlug, itemCount }) => ({ slug, sourceSlug, itemCount }))
     ).toEqual([
       { slug: "granite", sourceSlug: "granite", itemCount: 23 },
       { slug: "marble", sourceSlug: "marble", itemCount: 23 },

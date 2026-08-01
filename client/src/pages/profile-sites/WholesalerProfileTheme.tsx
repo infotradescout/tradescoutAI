@@ -89,7 +89,7 @@ type RecommendationDirectorySummary = {
 
 type InventoryStone = {
   name: string;
-  displayName?: string;
+  displayName?: string | null;
   nameStatus?: "source" | "placeholder";
   slug: string;
   images: string[];
@@ -371,11 +371,11 @@ function shuffleStones<T>(stones: T[]): T[] {
 }
 
 // Profiles with evidence-backed name presentation provide displayName and
-// nameStatus independently from materialStatus. Legacy inventories retain the
-// prior fallback until they adopt that explicit distinction.
+// nameStatus independently from materialStatus. Internal identifiers remain
+// available for routing, but an unknown public name stays blank.
 function getStoneDisplayName(stone: {
   name: string;
-  displayName?: string;
+  displayName?: string | null;
   nameStatus?: "source" | "placeholder";
   slug: string;
   materialStatus?: string;
@@ -387,9 +387,10 @@ function getStoneDisplayName(stone: {
     stone.nameStatus === "placeholder" ||
     (!stone.nameStatus && stone.materialStatus === "unconfirmed");
   if (!namePending) return stone.name;
-  const match = stone.name.match(/(\d+)\s*$/) || stone.slug.match(/(\d+)\s*$/);
-  return match ? `Unnamed slab #${match[1]}` : "Unnamed slab";
+  return "";
 }
+
+const UNKNOWN_STONE_AVAILABILITY_COPY = "Call for availability";
 
 function isStoneNamePending(stone: InventoryStone): boolean {
   if (stone.nameStatus) return stone.nameStatus === "placeholder";
@@ -614,10 +615,7 @@ export default function WholesalerProfileTheme({
     presentation.inventory?.pageSize,
     compactInventory ? 12 : 24
   );
-  const inventoryPageStep = positiveInteger(
-    presentation.inventory?.pageStep,
-    inventoryPageSize
-  );
+  const inventoryPageStep = positiveInteger(presentation.inventory?.pageStep, inventoryPageSize);
   const stickyInventoryControls = presentation.inventory?.stickyControls === true;
   const sourceRequestsEnabled = presentation.inventory?.sourceRequests === true;
   const guidedAudience = presentation.audience?.layout === "guided";
@@ -631,13 +629,9 @@ export default function WholesalerProfileTheme({
     recommendationInitialLimit,
     positiveInteger(presentation.recommendations?.maxVisible, 24, 100)
   );
-  const presentationFeaturedSlugs = Array.isArray(
-    presentation.inventory?.featuredCollection?.slugs
-  )
+  const presentationFeaturedSlugs = Array.isArray(presentation.inventory?.featuredCollection?.slugs)
     ? presentation.inventory.featuredCollection.slugs
-        .filter(
-          (value): value is string => typeof value === "string" && value.trim().length > 0
-        )
+        .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
         .map((value) => value.trim())
         .slice(0, 12)
     : [];
@@ -691,11 +685,7 @@ export default function WholesalerProfileTheme({
     actionLabel?: string;
     requestType?: ExpressDirectConnectRequestType;
     review?: string[];
-  }> = Array.isArray(
-    audienceBlock?.data?.items
-  )
-    ? audienceBlock.data.items
-    : [];
+  }> = Array.isArray(audienceBlock?.data?.items) ? audienceBlock.data.items : [];
   const audiencePaths =
     audienceItems.length > 0
       ? audienceItems.map((item, index) => {
@@ -737,8 +727,7 @@ export default function WholesalerProfileTheme({
   const sharedInventoryCategory = publicInventoryCategories.find(
     (category) => category.slug === sharedInventoryCategorySlug
   );
-  const activePageShareDestination =
-    currentPageShareDestination || profileShareDestination;
+  const activePageShareDestination = currentPageShareDestination || profileShareDestination;
   const activePageShareTitle = currentPageShareTitle || displayName;
   const activePageSocialPreviewImageUrl = sharedInventoryCategory
     ? buildProfileSocialPreviewImageUrl({
@@ -936,9 +925,7 @@ export default function WholesalerProfileTheme({
       : selectedCategory?.stones || allInventoryStonesConfirmedFirst;
   const visibleStones = categoryStones.filter((stone) => {
     if (!normalizedInventorySearch) return true;
-    return `${stone.name} ${getStoneDisplayName(stone)}`
-      .toLowerCase()
-      .includes(normalizedInventorySearch);
+    return getStoneDisplayName(stone).toLowerCase().includes(normalizedInventorySearch);
   });
   const displayedStones = visibleStones.slice(0, inventoryVisibleLimit);
   const stoneCategoryBySlug = useMemo(() => {
@@ -971,7 +958,7 @@ export default function WholesalerProfileTheme({
         stone,
         material: stoneCategoryBySlug.get(stone.slug) || "",
         finish: stone.finishes?.[0],
-    }));
+      }));
     if (curated.length > 0) return curated;
     return shuffleStones(allStones.filter((stone) => stone.materialStatus !== "unconfirmed"))
       .slice(0, 3)
@@ -1192,7 +1179,10 @@ export default function WholesalerProfileTheme({
         return;
       }
       img.removeAttribute("src");
-      img.alt = `${getStoneDisplayName(stone)} photo temporarily unavailable`;
+      const stoneDisplayName = getStoneDisplayName(stone);
+      img.alt = stoneDisplayName
+        ? `${stoneDisplayName} photo temporarily unavailable`
+        : "Stone selection photo temporarily unavailable";
       img.style.visibility = "hidden";
     });
 
@@ -1214,6 +1204,11 @@ export default function WholesalerProfileTheme({
     compact = false
   ) => {
     const stoneDisplayName = getStoneDisplayName(stone);
+    const hasPublicStoneName = stoneDisplayName.length > 0;
+    const stoneShareTitle = hasPublicStoneName ? stoneDisplayName : "Current stone selection";
+    const stoneShareText = hasPublicStoneName
+      ? `${stoneDisplayName} from ${displayName}`
+      : `View this stone selection from ${displayName} and request current availability.`;
     const leadShareIndex = profileInventoryShareIndexForDisplay(
       stone.images,
       stone.shareImageOrder,
@@ -1238,12 +1233,16 @@ export default function WholesalerProfileTheme({
               setOpenImageIndex(0);
             }}
             className="block h-full w-full text-left"
-            aria-label={`View details for ${stoneDisplayName}`}
+            aria-label={
+              hasPublicStoneName
+                ? `View details for ${stoneDisplayName}`
+                : "View stone selection details"
+            }
           >
             {stone.images[0] ? (
               <img
                 src={stone.images[0]}
-                alt={stoneDisplayName}
+                alt={hasPublicStoneName ? stoneDisplayName : "Stone selection"}
                 loading={priority === "lazy" ? "lazy" : "eager"}
                 {...(priority === "high"
                   ? ({ fetchpriority: "high" } as Record<string, string>)
@@ -1282,8 +1281,8 @@ export default function WholesalerProfileTheme({
                 contentBlocks,
               }) || profileShareDestination
             }
-            title={stoneDisplayName}
-            text={`${stoneDisplayName} from ${displayName}`}
+            title={stoneShareTitle}
+            text={stoneShareText}
             imageUrl={inventorySocialPreviewImageUrl(stone, leadShareIndex)}
             size="icon"
             label=""
@@ -1311,15 +1310,27 @@ export default function WholesalerProfileTheme({
               {categoryLabel}
             </p>
           ) : null}
-          <p
-            className={`font-extrabold !text-[#241d0f] ${
-              compact
-                ? "line-clamp-2 min-h-8 text-xs leading-tight sm:min-h-0 sm:text-sm"
-                : "text-base"
-            }`}
-          >
-            {stoneDisplayName}
-          </p>
+          {hasPublicStoneName ? (
+            <p
+              data-testid="profile-inventory-name"
+              className={`font-extrabold !text-[#241d0f] ${
+                compact
+                  ? "line-clamp-2 min-h-8 text-xs leading-tight sm:min-h-0 sm:text-sm"
+                  : "text-base"
+              }`}
+            >
+              {stoneDisplayName}
+            </p>
+          ) : (
+            <p
+              data-testid="profile-inventory-availability"
+              className={`font-semibold !text-[#4a4238] ${
+                compact ? "text-[10px] leading-snug sm:text-xs" : "text-sm"
+              }`}
+            >
+              {UNKNOWN_STONE_AVAILABILITY_COPY}
+            </p>
+          )}
           {stone.slabCounts?.length ? (
             <p
               className={`mt-1 font-bold text-[var(--brand-primary)] ${
@@ -1360,7 +1371,11 @@ export default function WholesalerProfileTheme({
           >
             <button
               type="button"
-              aria-label={`View details for ${stoneDisplayName}`}
+              aria-label={
+                hasPublicStoneName
+                  ? `View details for ${stoneDisplayName}`
+                  : "View stone selection details"
+              }
               onClick={() => {
                 setOpenStone(stone);
                 setOpenImageIndex(0);
@@ -1373,15 +1388,27 @@ export default function WholesalerProfileTheme({
             </button>
             <button
               type="button"
-              aria-label={`Ask about ${stoneDisplayName}`}
+              aria-label={
+                hasPublicStoneName
+                  ? `Ask about ${stoneDisplayName}`
+                  : "Ask about availability for this stone selection"
+              }
               onClick={() =>
-                startDirectConnect(stoneDisplayName, "request_material", stone.slug)
+                startDirectConnect(
+                  hasPublicStoneName ? stoneDisplayName : null,
+                  "request_material",
+                  stone.slug
+                )
               }
               className={`min-h-10 rounded-xl border border-[var(--brand-accent)]/40 font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 ${
                 compact ? "px-1 text-[10px] sm:px-3 sm:text-xs" : "px-3 text-xs"
               }`}
             >
-              {compact ? "Ask" : `Ask about ${stoneDisplayName}`}
+              {compact
+                ? "Ask"
+                : hasPublicStoneName
+                  ? `Ask about ${stoneDisplayName}`
+                  : "Ask about availability"}
             </button>
           </div>
         </div>
@@ -1459,8 +1486,7 @@ export default function WholesalerProfileTheme({
                   type="button"
                   onClick={() => startDirectConnect()}
                   aria-label={
-                    presentation.header?.directConnectLabel ||
-                    `Direct Connect with ${displayName}`
+                    presentation.header?.directConnectLabel || `Direct Connect with ${displayName}`
                   }
                   className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-ts-orange/45 bg-ts-orange/5 text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2.5 md:px-5 md:text-sm"
                 >
@@ -1988,12 +2014,14 @@ export default function WholesalerProfileTheme({
                       {activeAudiencePath.body}
                     </p>
                     <div className="-mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:mt-4 md:flex-wrap md:gap-2 md:overflow-visible md:px-0 md:pb-0">
-                      {(presentation.audience?.availableFacts || [
-                        "Stone photos",
-                        "Material categories",
-                        "Confirmed finishes where listed",
-                        "Source counts where listed",
-                      ]).map((fact) => (
+                      {(
+                        presentation.audience?.availableFacts || [
+                          "Stone photos",
+                          "Material categories",
+                          "Confirmed finishes where listed",
+                          "Source counts where listed",
+                        ]
+                      ).map((fact) => (
                         <span
                           key={fact}
                           className="flex-none rounded-full border border-[var(--brand-primary)]/15 bg-white px-2 py-1 text-[10px] font-semibold text-[var(--brand-primary)] md:px-3 md:text-[11px]"
@@ -2007,15 +2035,13 @@ export default function WholesalerProfileTheme({
                     <details className="group rounded-xl border border-[#241d0f]/10 bg-white">
                       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--brand-accent)] [&::-webkit-details-marker]:hidden md:hidden">
                         <span>
-                          {presentation.audience?.contextHeading ||
-                            "Helpful context to include"}
+                          {presentation.audience?.contextHeading || "Helpful context to include"}
                         </span>
                         <ChevronRight className="h-4 w-4 flex-none transition-transform group-open:rotate-90" />
                       </summary>
                       <div className="hidden border-t border-[#241d0f]/10 p-3 group-open:block md:block md:border-0 md:p-4">
                         <p className="hidden text-[11px] font-extrabold uppercase tracking-[0.15em] text-[var(--brand-accent)] md:block">
-                          {presentation.audience?.contextHeading ||
-                            "Helpful context to include"}
+                          {presentation.audience?.contextHeading || "Helpful context to include"}
                         </p>
                         <ul className="space-y-2 text-xs !text-[#4a4238] md:mt-3 md:text-sm">
                           {activeAudiencePath.review.map((detail) => (
@@ -2061,9 +2087,7 @@ export default function WholesalerProfileTheme({
             <section
               id="collection"
               className={`scroll-mt-28 bg-[var(--brand-bg)] ${
-                compactInventory
-                  ? "border-t border-[#241d0f]/10 pt-10 md:pt-14"
-                  : "py-8 md:py-11"
+                compactInventory ? "border-t border-[#241d0f]/10 pt-10 md:pt-14" : "py-8 md:py-11"
               }`}
             >
               <div className="container mx-auto px-4 md:px-6">
@@ -2543,7 +2567,11 @@ export default function WholesalerProfileTheme({
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-6"
               role="dialog"
               aria-modal="true"
-              aria-label={`${openStoneDisplayName} photo gallery`}
+              aria-label={
+                openStoneDisplayName
+                  ? `${openStoneDisplayName} photo gallery`
+                  : "Stone selection photo gallery"
+              }
               onMouseDown={(event) => {
                 if (event.target === event.currentTarget) setOpenStone(null);
               }}
@@ -2551,10 +2579,19 @@ export default function WholesalerProfileTheme({
               <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#0f0d09]">
                 <div className="flex items-start justify-between gap-4 px-5 py-4">
                   <div>
-                    <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
-                      {openStoneDisplayName}
-                    </h3>
-                    {!openStone.hideFinishDetails ? (
+                    {openStoneDisplayName ? (
+                      <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
+                        {openStoneDisplayName}
+                      </h3>
+                    ) : (
+                      <p
+                        data-testid="profile-gallery-availability"
+                        className="text-sm font-semibold text-white/80"
+                      >
+                        {UNKNOWN_STONE_AVAILABILITY_COPY}
+                      </p>
+                    )}
+                    {openStoneDisplayName && !openStone.hideFinishDetails ? (
                       <p className="mt-1 text-xs text-white/60">
                         {openStone.finishes?.length
                           ? `Finish: ${openStone.finishes.join(" · ")}`
@@ -2589,8 +2626,12 @@ export default function WholesalerProfileTheme({
                           contentBlocks,
                         }) || profileShareDestination
                       }
-                      title={openStoneDisplayName}
-                      text={`${openStoneDisplayName} from ${displayName}`}
+                      title={openStoneDisplayName || "Current stone selection"}
+                      text={
+                        openStoneDisplayName
+                          ? `${openStoneDisplayName} from ${displayName}`
+                          : `View this stone selection from ${displayName} and request current availability.`
+                      }
                       imageUrl={inventorySocialPreviewImageUrl(
                         openStone,
                         profileInventoryShareIndexForDisplay(
@@ -2635,7 +2676,11 @@ export default function WholesalerProfileTheme({
                     <img
                       key={`${openStone.slug}-${openImageIndex}`}
                       src={openStone.images[openImageIndex]}
-                      alt={`${openStoneDisplayName} ${openImageIndex + 1}`}
+                      alt={
+                        openStoneDisplayName
+                          ? `${openStoneDisplayName} ${openImageIndex + 1}`
+                          : `Stone selection photo ${openImageIndex + 1}`
+                      }
                       onError={() => {
                         triedLightboxIndexesRef.current.add(openImageIndex);
                         if (triedLightboxIndexesRef.current.size >= openStone.images.length) {
@@ -2720,7 +2765,7 @@ export default function WholesalerProfileTheme({
                   <button
                     type="button"
                     onClick={() => {
-                      const stoneName = openStoneDisplayName;
+                      const stoneName = openStoneDisplayName || null;
                       const stoneSlug = openStone.slug;
                       setOpenStone(null);
                       startDirectConnect(stoneName, "request_material", stoneSlug);
@@ -2778,7 +2823,8 @@ export default function WholesalerProfileTheme({
                   <h2
                     className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}
                   >
-                    {presentation.story?.heading || "Material selected with the final space in mind."}
+                    {presentation.story?.heading ||
+                      "Material selected with the final space in mind."}
                   </h2>
                 </div>
                 <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:gap-4 md:px-0">

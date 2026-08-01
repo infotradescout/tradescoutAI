@@ -116,15 +116,18 @@ const nameIdentityContentBlocks = contentBlocks.map((block) =>
                   materialStatus: "unconfirmed" as const,
                   finishStatus: "unconfirmed" as const,
                 },
-                {
-                  name: "Trending Selection 05",
-                  displayName: "Unnamed slab #05",
-                  nameStatus: "placeholder" as const,
-                  slug: "trending-selection-05",
-                  images: ["/trending-selection-05.jpg"],
-                  materialStatus: "unconfirmed" as const,
-                  finishStatus: "unconfirmed" as const,
-                },
+                ...Array.from({ length: 10 }, (_, index) => {
+                  const ordinal = String(index + 1).padStart(2, "0");
+                  return {
+                    name: `Trending Selection ${ordinal}`,
+                    displayName: null,
+                    nameStatus: "placeholder" as const,
+                    slug: `trending-selection-${ordinal}`,
+                    images: [`/trending-selection-${ordinal}.jpg`],
+                    materialStatus: "unconfirmed" as const,
+                    finishStatus: "unconfirmed" as const,
+                  };
+                }),
               ],
             },
           ],
@@ -314,11 +317,29 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     const amazonDetails = container.querySelector(
       'button[aria-label="View details for Amazonic Green"]'
     );
-    const unnamedDetails = container.querySelector(
-      'button[aria-label="View details for Unnamed slab #05"]'
+    const inventoryCards = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid="profile-inventory-card"]')
+    );
+    const syntheticCards = inventoryCards.filter((card) =>
+      card.querySelector('img[src^="/trending-selection-"]')
+    );
+    const syntheticFiveCard = syntheticCards.find((card) =>
+      card.querySelector('img[src="/trending-selection-05.jpg"]')
+    );
+    const unnamedDetails = syntheticFiveCard?.querySelector(
+      'button[aria-label="View stone selection details"]'
     );
     expect(amazonDetails).not.toBeNull();
     expect(unnamedDetails).not.toBeNull();
+    expect(syntheticCards).toHaveLength(10);
+    expect(
+      syntheticCards.every(
+        (card) =>
+          card.querySelector('[data-testid="profile-inventory-name"]') === null &&
+          card.querySelector('[data-testid="profile-inventory-availability"]')?.textContent ===
+            "Call for availability"
+      )
+    ).toBe(true);
     expect(amazonDetails?.closest("article")?.textContent).toContain(
       "Material & finish pending confirmation"
     );
@@ -326,9 +347,11 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       "Name & finish pending confirmation"
     );
     expect(container.querySelector('button[aria-label="Share Amazonic Green"]')).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Share Unnamed slab #05"]')).not.toBeNull();
+    expect(
+      container.querySelectorAll('button[aria-label="Share Current stone selection"]')
+    ).toHaveLength(10);
     expect(container.textContent).toContain("Amazonic Green");
-    expect(container.textContent).toContain("Unnamed slab #05");
+    expect(container.textContent).not.toContain("Unnamed slab");
     expect(container.textContent).not.toContain("Trending Selection 05");
 
     const search = container.querySelector<HTMLInputElement>(
@@ -337,24 +360,43 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     changeInput(search, "Amazonic Green");
     expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(1);
     expect(container.textContent).toContain("Amazonic Green");
-    expect(container.textContent).not.toContain("Unnamed slab #05");
+    changeInput(search, "Trending Selection 05");
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(0);
+    changeInput(search, "Unnamed slab");
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(0);
     changeInput(search, "");
 
-    click(container.querySelector('button[aria-label="View details for Unnamed slab #05"]'));
-    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
-      "Unnamed slab #05 photo gallery"
+    const reopenedSyntheticFiveCard = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid="profile-inventory-card"]')
+    ).find((card) => card.querySelector('img[src="/trending-selection-05.jpg"]'));
+    click(
+      reopenedSyntheticFiveCard?.querySelector(
+        'button[aria-label="View stone selection details"]'
+      ) || null
     );
-    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("Unnamed slab #05");
+    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
+      "Stone selection photo gallery"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Call for availability"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
+      "Finish not confirmed"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain("Unnamed slab");
     expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
       "Trending Selection 05"
     );
     click(container.querySelector('button[aria-label="Close gallery"]'));
 
-    click(container.querySelector('button[aria-label="Ask about Unnamed slab #05"]'));
+    const syntheticAsk = reopenedSyntheticFiveCard?.querySelector(
+      'button[aria-label="Ask about availability for this stone selection"]'
+    );
+    click(syntheticAsk || null);
     expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
       open: true,
       initialItemId: "trending-selection-05",
-      initialStoneName: "Unnamed slab #05",
+      initialStoneName: null,
       initialRequestType: "request_material",
     });
 

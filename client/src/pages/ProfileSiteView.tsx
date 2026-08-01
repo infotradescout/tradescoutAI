@@ -1096,7 +1096,7 @@ export default function ProfileSiteView() {
     ...(publicCategories.length ? { category: publicCategories.slice(0, 6) } : {}),
     ...(publicServiceAreas.length ? { areaServed: publicServiceAreas.slice(0, 10) } : {}),
   };
-  const entityStructuredData = inventoryItemShareMeta
+  const entityStructuredData = inventoryItemShareMeta?.hasPublicName
     ? {
         "@context": "https://schema.org",
         "@graph": [
@@ -1173,7 +1173,7 @@ export default function ProfileSiteView() {
             ],
           }
         : profileStructuredData;
-  const structuredDataMainEntityId = inventoryItemShareMeta
+  const structuredDataMainEntityId = inventoryItemShareMeta?.hasPublicName
     ? `${inventoryItemShareMeta.canonical}#product`
     : galleryItemShareMeta
       ? `${galleryItemShareMeta.canonical}#image`
@@ -1488,13 +1488,15 @@ export default function ProfileSiteView() {
       </a>
     </div>
   ) : null;
-  const pageOgType = inventoryItemShareMeta
+  const pageOgType = inventoryItemShareMeta?.hasPublicName
     ? "product"
     : galleryItemShareMeta
       ? "article"
       : categoryShareMeta
         ? "website"
-        : "profile";
+        : inventoryItemShareMeta
+          ? "website"
+          : "profile";
   const categoryNoIndex = Boolean(categoryShareMeta && !categoryShareMeta.indexable);
   const publishedInventoryItems = listProfileInventoryItems(inventoryCategories);
   const categoryInventoryItems = categoryShareMeta
@@ -1539,9 +1541,17 @@ export default function ProfileSiteView() {
                       categoryShareMeta?.itemCount === 1 ? "selection" : "selections"
                     }`}
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-white">
-                {inventoryItemShareMeta?.itemName || categoryShareMeta?.categoryName}
-              </h1>
+              {inventoryItemShareMeta ? (
+                inventoryItemShareMeta.hasPublicName ? (
+                  <h1 className="mt-2 text-3xl font-bold text-white">
+                    {inventoryItemShareMeta.itemName}
+                  </h1>
+                ) : null
+              ) : (
+                <h1 className="mt-2 text-3xl font-bold text-white">
+                  {categoryShareMeta?.categoryName}
+                </h1>
+              )}
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/75">
                 {inventoryItemShareMeta?.description || categoryShareMeta?.description}
               </p>
@@ -1550,7 +1560,11 @@ export default function ProfileSiteView() {
               <ShareButton
                 destination={currentPageShareDestination}
                 title={currentPageShareTitle}
-                text={`View ${currentPageShareTitle} from ${displayName}`}
+                text={
+                  inventoryItemShareMeta && !inventoryItemShareMeta.hasPublicName
+                    ? `View this stone selection from ${displayName} and request current availability.`
+                    : `View ${currentPageShareTitle} from ${displayName}`
+                }
                 imageUrl={seoImage}
                 className="border-white/20 text-white"
               />
@@ -1558,16 +1572,20 @@ export default function ProfileSiteView() {
                 type="button"
                 onClick={() =>
                   openInventoryDirectConnect(
-                    inventoryItemShareMeta?.itemName ||
-                      categoryShareMeta?.categoryName ||
-                      "Current inventory",
+                    inventoryItemShareMeta
+                      ? inventoryItemShareMeta.itemName
+                      : categoryShareMeta?.categoryName || "Current inventory",
                     inventoryItemShareMeta?.itemSlug || categoryShareMeta?.categorySlug || ""
                   )
                 }
                 className="bg-ts-orange text-white hover:bg-ts-orange-dark"
               >
                 <MessageCircle className="mr-2 h-4 w-4" />
-                {inventoryItemShareMeta ? "Ask about this item" : "Ask about this category"}
+                {inventoryItemShareMeta
+                  ? inventoryItemShareMeta.hasPublicName
+                    ? "Ask about this item"
+                    : "Ask about availability"
+                  : "Ask about this category"}
               </Button>
             </div>
             {categoryInventoryItems.length > 0 ? (

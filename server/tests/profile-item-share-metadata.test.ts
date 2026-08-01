@@ -106,6 +106,7 @@ describe("profile inventory item sharing", () => {
     ).toEqual([
       {
         name: "Stable Stone",
+        hasPublicName: true,
         slug: "stable-stone",
         category: "Quartzite",
         images: ["/images/full-slab.webp", "/images/detail.webp", "/images/yard.webp"],
@@ -171,7 +172,7 @@ describe("profile inventory item sharing", () => {
     );
   });
 
-  it("uses a public unnamed label for synthetic JW Stone reconciliation groups", () => {
+  it("keeps synthetic JW Stone reconciliation groups publicly nameless", () => {
     const metadata = resolveProfileItemShareMetadata({
       profileSlug: "jw-stone",
       profileName: "JW Stone LLC",
@@ -182,11 +183,15 @@ describe("profile inventory item sharing", () => {
     });
 
     expect(metadata).toMatchObject({
-      itemName: "Unnamed slab #05",
+      itemName: "",
+      hasPublicName: false,
       itemSlug: "trending-selection-05",
-      title: "Unnamed slab #05 at JW Stone LLC",
+      title: "Current stone selection | JW Stone LLC",
       canonical: "https://jwstonelogistics.com/inventory/trending-selection-05",
     });
+    expect(metadata?.description).toContain("request current availability");
+    expect(metadata?.imageAlt).toContain("JW Stone LLC inventory photo");
+    expect(JSON.stringify(metadata)).not.toMatch(/Unnamed slab|Trending Selection 05/);
   });
 
   it("falls back to profile metadata when the requested item is not in that profile inventory", () => {

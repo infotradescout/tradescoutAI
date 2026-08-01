@@ -7,7 +7,7 @@ export type JwStoneMaterialStatus =
 
 export type JwStoneInventoryStone = {
   name: string;
-  displayName: string;
+  displayName: string | null;
   nameStatus: JwStoneInventoryNameStatus;
   slug: string;
   images: string[];

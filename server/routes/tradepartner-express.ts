@@ -26,6 +26,7 @@ import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
+import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -311,6 +312,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (!target) return res.status(404).json({ message: "Profile not found." });
 
         const body = parsed.data;
+        const publicStoneName = resolveJwStonePublicRequestName({
+          profileSlug: target.profileSlug,
+          itemId: body.itemId,
+          stoneName: body.stoneName,
+        });
         const email = normalizeEmail(body.email);
         const { firstName, lastName } = splitName(body.name);
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
@@ -395,7 +401,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 profileId: target.profileId,
                 businessId: target.businessId,
                 requestType: body.requestType,
-                stoneName: body.stoneName || null,
+                stoneName: publicStoneName,
                 serviceName: body.serviceName || null,
                 itemId: body.itemId || null,
                 deliveryCustody: target.deliveryCustody,
@@ -469,8 +475,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               subject: `New request for ${target.businessName}`,
               html: [
                 `<p>${escapeHtml(body.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
-                body.stoneName
-                  ? `<p><strong>Stone:</strong> ${escapeHtml(body.stoneName)}</p>`
+                publicStoneName
+                  ? `<p><strong>Stone:</strong> ${escapeHtml(publicStoneName)}</p>`
                   : "",
                 body.serviceName
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
@@ -483,7 +489,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 .join("\n"),
               text: [
                 `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
-                body.stoneName ? `Stone: ${body.stoneName}` : null,
+                publicStoneName ? `Stone: ${publicStoneName}` : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
                 `Open Direct Connect inbox: ${inboxUrl}`,
@@ -509,11 +515,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           profile: target.profileSlug,
           profileName: target.businessName,
         });
+        if (publicStoneName) {
+          requestWorkspaceParams.set("item", publicStoneName);
+        }
         if (body.itemId) {
-          requestWorkspaceParams.set("item", body.itemId);
           requestWorkspaceParams.set("itemId", body.itemId);
-        } else if (body.stoneName) {
-          requestWorkspaceParams.set("item", body.stoneName);
         }
         if (body.serviceName) {
           requestWorkspaceParams.set("service", body.serviceName);
