@@ -7,6 +7,8 @@ export type JwStoneMaterialStatus =
 
 export type JwStoneInventoryStone = {
   name: string;
+  displayName: string;
+  nameStatus: JwStoneInventoryNameStatus;
   slug: string;
   images: string[];
   /** Stable share ordinal -> presentation image index. */
@@ -98,6 +100,7 @@ const stones = generatedInventory.map(
   } => {
     const { categorySlug, slug, name, images, shareImageOrder, slabCounts, sourceFileIds } =
       generated;
+    const namePresentation = resolveJwStoneInventoryNamePresentation({ name, slug });
     const status = materialStatus(slug, categorySlug);
     const finishes = EXPLICIT_FINISHES[slug];
     const imageFinishes = sourceFileIds?.map(
@@ -106,6 +109,7 @@ const stones = generatedInventory.map(
     return {
       categorySlug,
       name,
+      ...namePresentation,
       slug,
       images,
       shareImageOrder,
@@ -148,3 +152,7 @@ export const JW_STONE_INVENTORY_SUMMARY = {
 };
 import generatedInventory from "./jwStoneInventory.generated.json";
 import imageFinishByDriveId from "./jwStoneImageFinishes.generated.json";
+import {
+  resolveJwStoneInventoryNamePresentation,
+  type JwStoneInventoryNameStatus,
+} from "@shared/jwStonePresentation";

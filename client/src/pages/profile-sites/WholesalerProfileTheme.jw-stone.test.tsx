@@ -95,6 +95,44 @@ const contentBlocks = [
   },
 ];
 
+const nameIdentityContentBlocks = contentBlocks.map((block) =>
+  block.type === "inventoryCatalog"
+    ? {
+        ...block,
+        data: {
+          title: "Full inventory",
+          description: "Browse every named stone.",
+          categories: [
+            {
+              category: "Material to Confirm",
+              categorySlug: "unconfirmed",
+              stones: [
+                {
+                  name: "Amazonic Green",
+                  displayName: "Amazonic Green",
+                  nameStatus: "source" as const,
+                  slug: "amazonic-green",
+                  images: ["/amazonic-green.jpg"],
+                  materialStatus: "unconfirmed" as const,
+                  finishStatus: "unconfirmed" as const,
+                },
+                {
+                  name: "Trending Selection 05",
+                  displayName: "Unnamed slab #05",
+                  nameStatus: "placeholder" as const,
+                  slug: "trending-selection-05",
+                  images: ["/trending-selection-05.jpg"],
+                  materialStatus: "unconfirmed" as const,
+                  finishStatus: "unconfirmed" as const,
+                },
+              ],
+            },
+          ],
+        },
+      }
+    : block
+);
+
 const recommendationsDirectory = Array.from({ length: 4 }, (_, index) => ({
   id: `recommendation-${index + 1}`,
   createdAt: null,
@@ -266,6 +304,67 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       initialRequestType: "request_material",
     });
     expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
+  });
+
+  it("keeps known stone names visible while synthetic groups stay explicitly unnamed", () => {
+    act(() => {
+      root.render(<WholesalerProfileTheme {...props} contentBlocks={nameIdentityContentBlocks} />);
+    });
+
+    const amazonDetails = container.querySelector(
+      'button[aria-label="View details for Amazonic Green"]'
+    );
+    const unnamedDetails = container.querySelector(
+      'button[aria-label="View details for Unnamed slab #05"]'
+    );
+    expect(amazonDetails).not.toBeNull();
+    expect(unnamedDetails).not.toBeNull();
+    expect(amazonDetails?.closest("article")?.textContent).toContain(
+      "Material & finish pending confirmation"
+    );
+    expect(unnamedDetails?.closest("article")?.textContent).toContain(
+      "Name & finish pending confirmation"
+    );
+    expect(container.querySelector('button[aria-label="Share Amazonic Green"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Share Unnamed slab #05"]')).not.toBeNull();
+    expect(container.textContent).toContain("Amazonic Green");
+    expect(container.textContent).toContain("Unnamed slab #05");
+    expect(container.textContent).not.toContain("Trending Selection 05");
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search by stone name"]'
+    );
+    changeInput(search, "Amazonic Green");
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(1);
+    expect(container.textContent).toContain("Amazonic Green");
+    expect(container.textContent).not.toContain("Unnamed slab #05");
+    changeInput(search, "");
+
+    click(container.querySelector('button[aria-label="View details for Unnamed slab #05"]'));
+    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
+      "Unnamed slab #05 photo gallery"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("Unnamed slab #05");
+    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
+      "Trending Selection 05"
+    );
+    click(container.querySelector('button[aria-label="Close gallery"]'));
+
+    click(container.querySelector('button[aria-label="Ask about Unnamed slab #05"]'));
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
+      open: true,
+      initialItemId: "trending-selection-05",
+      initialStoneName: "Unnamed slab #05",
+      initialRequestType: "request_material",
+    });
+
+    click(container.querySelector('button[aria-label="Ask about Amazonic Green"]'));
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
+      open: true,
+      initialItemId: "amazonic-green",
+      initialStoneName: "Amazonic Green",
+      initialRequestType: "request_material",
+    });
   });
 
   it("adapts guidance and Direct Connect intent to the selected customer type", () => {

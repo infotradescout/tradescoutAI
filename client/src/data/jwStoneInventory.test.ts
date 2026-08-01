@@ -52,6 +52,27 @@ describe("JW Stone reconciled inventory", () => {
     );
   });
 
+  it("keeps source names separate from material-classification confidence", () => {
+    expect(stones.find((stone) => stone.slug === "amazonic-green")).toMatchObject({
+      name: "Amazonic Green",
+      displayName: "Amazonic Green",
+      nameStatus: "source",
+      materialStatus: "unconfirmed",
+    });
+    expect(stones.find((stone) => stone.slug === "trending-selection-05")).toMatchObject({
+      name: "Trending Selection 05",
+      displayName: "Unnamed slab #05",
+      nameStatus: "placeholder",
+      materialStatus: "unconfirmed",
+    });
+
+    const materialToConfirm = stones.filter((stone) => stone.materialStatus === "unconfirmed");
+    expect(materialToConfirm.filter((stone) => stone.nameStatus === "source")).toHaveLength(30);
+    expect(materialToConfirm.filter((stone) => stone.nameStatus === "placeholder")).toHaveLength(
+      10
+    );
+  });
+
   it("leaves absent finish evidence unconfirmed", () => {
     expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishStatus).toBe("unconfirmed");
     expect(stones.find((stone) => stone.slug === "titanium")?.finishes).toEqual(["Leathered"]);

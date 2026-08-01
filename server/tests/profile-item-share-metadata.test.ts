@@ -171,6 +171,24 @@ describe("profile inventory item sharing", () => {
     );
   });
 
+  it("uses a public unnamed label for synthetic JW Stone reconciliation groups", () => {
+    const metadata = resolveProfileItemShareMetadata({
+      profileSlug: "jw-stone",
+      profileName: "JW Stone LLC",
+      profileUrl: "https://jwstonelogistics.com/",
+      assetOrigin: "https://jwstonelogistics.com/",
+      contentBlocks: [],
+      itemSlug: "trending-selection-05",
+    });
+
+    expect(metadata).toMatchObject({
+      itemName: "Unnamed slab #05",
+      itemSlug: "trending-selection-05",
+      title: "Unnamed slab #05 at JW Stone LLC",
+      canonical: "https://jwstonelogistics.com/inventory/trending-selection-05",
+    });
+  });
+
   it("falls back to profile metadata when the requested item is not in that profile inventory", () => {
     expect(
       resolveProfileItemShareMetadata({

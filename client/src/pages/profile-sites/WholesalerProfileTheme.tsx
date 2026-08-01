@@ -89,6 +89,8 @@ type RecommendationDirectorySummary = {
 
 type InventoryStone = {
   name: string;
+  displayName?: string;
+  nameStatus?: "source" | "placeholder";
   slug: string;
   images: string[];
   shareImageOrder?: number[];
@@ -368,18 +370,37 @@ function shuffleStones<T>(stones: T[]): T[] {
   return shuffled;
 }
 
-// An unconfirmed slab's data name (e.g. "Trending Selection 05") is an
-// internal catalog label, not a real product name -- showing it as-is reads
-// as a made-up marketing name for stone we don't actually know anything
-// about yet. Say plainly that it's unidentified.
+// Profiles with evidence-backed name presentation provide displayName and
+// nameStatus independently from materialStatus. Legacy inventories retain the
+// prior fallback until they adopt that explicit distinction.
 function getStoneDisplayName(stone: {
   name: string;
+  displayName?: string;
+  nameStatus?: "source" | "placeholder";
   slug: string;
   materialStatus?: string;
 }): string {
-  if (stone.materialStatus !== "unconfirmed") return stone.name;
+  const explicitDisplayName = stone.displayName?.trim();
+  if (explicitDisplayName) return explicitDisplayName;
+  if (stone.nameStatus === "source") return stone.name;
+  const namePending =
+    stone.nameStatus === "placeholder" ||
+    (!stone.nameStatus && stone.materialStatus === "unconfirmed");
+  if (!namePending) return stone.name;
   const match = stone.name.match(/(\d+)\s*$/) || stone.slug.match(/(\d+)\s*$/);
   return match ? `Unnamed slab #${match[1]}` : "Unnamed slab";
+}
+
+function isStoneNamePending(stone: InventoryStone): boolean {
+  if (stone.nameStatus) return stone.nameStatus === "placeholder";
+  return stone.materialStatus === "unconfirmed";
+}
+
+function stoneConfirmationLabel(stone: InventoryStone): string {
+  if (isStoneNamePending(stone)) return "Name & finish pending confirmation";
+  return stone.finishStatus === "unconfirmed"
+    ? "Material & finish pending confirmation"
+    : "Material pending confirmation";
 }
 
 // Horizontal, scroll-snapped rows keep the page short and let visitors jump
@@ -762,6 +783,7 @@ export default function WholesalerProfileTheme({
   const [recommendationsExpanded, setRecommendationsExpanded] = useState(false);
   const pendingInventoryScrollRef = useRef(false);
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
+  const openStoneDisplayName = openStone ? getStoneDisplayName(openStone) : "";
   const [openImageIndex, setOpenImageIndex] = useState(0);
   const [premiumSharedItem, setPremiumSharedItem] = useState<{
     slug: string;
@@ -912,9 +934,12 @@ export default function WholesalerProfileTheme({
             featuredCollectionSlugSet.has(stone.slug) && stone.materialStatus !== "unconfirmed"
         )
       : selectedCategory?.stones || allInventoryStonesConfirmedFirst;
-  const visibleStones = categoryStones.filter((stone) =>
-    normalizedInventorySearch ? stone.name.toLowerCase().includes(normalizedInventorySearch) : true
-  );
+  const visibleStones = categoryStones.filter((stone) => {
+    if (!normalizedInventorySearch) return true;
+    return `${stone.name} ${getStoneDisplayName(stone)}`
+      .toLowerCase()
+      .includes(normalizedInventorySearch);
+  });
   const displayedStones = visibleStones.slice(0, inventoryVisibleLimit);
   const stoneCategoryBySlug = useMemo(() => {
     const map = new Map<string, string>();
@@ -1167,7 +1192,7 @@ export default function WholesalerProfileTheme({
         return;
       }
       img.removeAttribute("src");
-      img.alt = `${stone.name} photo temporarily unavailable`;
+      img.alt = `${getStoneDisplayName(stone)} photo temporarily unavailable`;
       img.style.visibility = "hidden";
     });
 
@@ -1325,7 +1350,7 @@ export default function WholesalerProfileTheme({
                 compact ? "hidden sm:inline-flex" : "inline-flex"
               }`}
             >
-              Name & finish pending confirmation
+              {stoneConfirmationLabel(stone)}
             </span>
           ) : null}
           <div
@@ -2518,7 +2543,7 @@ export default function WholesalerProfileTheme({
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-6"
               role="dialog"
               aria-modal="true"
-              aria-label={`${openStone.name} photo gallery`}
+              aria-label={`${openStoneDisplayName} photo gallery`}
               onMouseDown={(event) => {
                 if (event.target === event.currentTarget) setOpenStone(null);
               }}
@@ -2527,7 +2552,7 @@ export default function WholesalerProfileTheme({
                 <div className="flex items-start justify-between gap-4 px-5 py-4">
                   <div>
                     <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
-                      {openStone.name}
+                      {openStoneDisplayName}
                     </h3>
                     {!openStone.hideFinishDetails ? (
                       <p className="mt-1 text-xs text-white/60">
@@ -2564,8 +2589,8 @@ export default function WholesalerProfileTheme({
                           contentBlocks,
                         }) || profileShareDestination
                       }
-                      title={openStone.name}
-                      text={`${openStone.name} from ${displayName}`}
+                      title={openStoneDisplayName}
+                      text={`${openStoneDisplayName} from ${displayName}`}
                       imageUrl={inventorySocialPreviewImageUrl(
                         openStone,
                         profileInventoryShareIndexForDisplay(
@@ -2610,7 +2635,7 @@ export default function WholesalerProfileTheme({
                     <img
                       key={`${openStone.slug}-${openImageIndex}`}
                       src={openStone.images[openImageIndex]}
-                      alt={`${openStone.name} ${openImageIndex + 1}`}
+                      alt={`${openStoneDisplayName} ${openImageIndex + 1}`}
                       onError={() => {
                         triedLightboxIndexesRef.current.add(openImageIndex);
                         if (triedLightboxIndexesRef.current.size >= openStone.images.length) {
@@ -2695,7 +2720,7 @@ export default function WholesalerProfileTheme({
                   <button
                     type="button"
                     onClick={() => {
-                      const stoneName = openStone.name;
+                      const stoneName = openStoneDisplayName;
                       const stoneSlug = openStone.slug;
                       setOpenStone(null);
                       startDirectConnect(stoneName, "request_material", stoneSlug);
@@ -2851,11 +2876,11 @@ export default function WholesalerProfileTheme({
                             setOpenImageIndex(0);
                           }}
                           className="block h-full w-full"
-                          aria-label={`View details for ${stone.name}`}
+                          aria-label={`View details for ${getStoneDisplayName(stone)}`}
                         >
                           <img
                             src={stone.images[0]}
-                            alt={stone.name}
+                            alt={getStoneDisplayName(stone)}
                             loading={index === 0 ? "eager" : "lazy"}
                             className="h-full w-full bg-stone-200 object-contain p-1 transition-transform duration-300 hover:scale-[1.02]"
                           />
@@ -2874,8 +2899,8 @@ export default function WholesalerProfileTheme({
                               contentBlocks,
                             }) || profileShareDestination
                           }
-                          title={stone.name}
-                          text={`${stone.name} at ${displayName}`}
+                          title={getStoneDisplayName(stone)}
+                          text={`${getStoneDisplayName(stone)} at ${displayName}`}
                           imageUrl={inventorySocialPreviewImageUrl(
                             stone,
                             profileInventoryShareIndexForDisplay(
@@ -2896,7 +2921,7 @@ export default function WholesalerProfileTheme({
                       </div>
                       <div className="px-5 pb-3 pt-4">
                         <h3 className={`text-xl font-bold !text-[#241d0f] ${DISPLAY_FONT}`}>
-                          {stone.name}
+                          {getStoneDisplayName(stone)}
                         </h3>
                         <p className="mt-1 text-sm !text-[#4a4238]">
                           {stone.finishes?.length
@@ -2918,11 +2943,15 @@ export default function WholesalerProfileTheme({
                         <button
                           type="button"
                           onClick={() =>
-                            startDirectConnect(stone.name, "request_material", stone.slug)
+                            startDirectConnect(
+                              getStoneDisplayName(stone),
+                              "request_material",
+                              stone.slug
+                            )
                           }
                           className="w-full rounded-xl border border-[var(--brand-accent)]/40 px-4 py-3 text-sm font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                         >
-                          Ask about {stone.name}
+                          Ask about {getStoneDisplayName(stone)}
                         </button>
                       </div>
                     </article>

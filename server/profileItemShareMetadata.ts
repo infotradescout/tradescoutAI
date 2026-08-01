@@ -3,6 +3,7 @@ import {
   createProfileInventoryItemShareMetadata,
   type ProfileInventoryItemShareMetadata,
 } from "@shared/profileItemShare";
+import { resolveJwStoneInventoryNamePresentation } from "@shared/jwStonePresentation";
 
 const JW_STONE_PROFILE_SLUG = "jw-stone";
 
@@ -44,7 +45,10 @@ const jwStoneInventoryCategories = (() => {
       categorySlug,
       stones: [],
     };
-    existing.stones.push(stone);
+    existing.stones.push({
+      ...stone,
+      name: resolveJwStoneInventoryNamePresentation(stone).displayName,
+    });
     categories.set(categorySlug, existing);
   }
 
