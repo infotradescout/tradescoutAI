@@ -8,6 +8,12 @@ Branch: `codex/jw-stone-2-0-current-main`
 
 Base revision: `999481b602c2f99499c69a0c90b3840d4af0a158`
 
+Published implementation revision: `410bad0c7fee70c0438cebb749ded572dee392f0`
+
+Published implementation tree: `150fb95093ffdf7dba1771e793c452a10ab0778a`
+
+Draft pull request: `https://github.com/infotradescout/tradescoutAI/pull/260`
+
 Environment: isolated feature worktree; production, `main`, DNS, database schema, and the current JW profile untouched
 
 ## Planned versus actual
@@ -66,4 +72,6 @@ Expected screenshot directory after that gate succeeds: `artifacts/screenshots/j
 
 ## Release boundary
 
-The tested code is committed locally and the normal HTTPS push was rejected because this workspace has no Git username credential. Publication will use the connected GitHub account to create a new branch and held draft PR. The existing prototype branch remains untouched. This build does not authorize a merge, deployment, production migration, DNS change, or existing-profile replacement.
+The normal HTTPS push was rejected because this workspace has no Git username credential. The connected GitHub account then created `codex/jw-stone-2-0-current-main` at `410bad0c7fee70c0438cebb749ded572dee392f0` and opened mergeable draft PR #260. The published tree `150fb95093ffdf7dba1771e793c452a10ab0778a` exactly matched the final local tree at publication time. The PR remains open, unmerged, and explicitly held for rendered browser proof.
+
+The existing prototype branch remains untouched. This build does not authorize a merge, deployment, production migration, DNS change, or existing-profile replacement.

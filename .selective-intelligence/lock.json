@@ -95,7 +95,7 @@
     {
       "path": "builds/jw-stone-marketplace/evidence.md",
       "version": "1.0.0",
-      "sha256": "37e341edd17efeed8dd8ef449c10abe711f6cd4561467f72aaa886ff42552f35"
+      "sha256": "18cedd25bbf4ffe0de70dcef8c89de2cd46901be6e2266ff5aed4c1bf6c74069"
     }
   ],
   "requirements": [
@@ -463,9 +463,9 @@
     "scope": "Definition review of the existing scalar mutation boundary and the proposed bounded JW Stone multi-selection handoff",
     "revision": "999481b602c2f99499c69a0c90b3840d4af0a158"
   },
-  "sealed_at": "2026-08-02T18:33:58+00:00",
+  "sealed_at": "2026-08-02T18:38:01+00:00",
   "semantic_digest": "aa3b49a36e19df2b643e04dd38023d6b454c22c122c0eca84b33a1ab3d9e091b",
-  "control_digest": "588e6990bf1b6536642625ac9160f6a6afd8d3760ac898686be2a68f1e8db3d9",
+  "control_digest": "491b3ddcee37efe2a526a37fcd73e31eec455637d1097304b4ee1b51f9f298ed",
   "seal_history": [
     {
       "sealed_at": "2026-08-02T17:44:59+00:00",
@@ -615,6 +615,68 @@
         "decisions-changes.md": "68c6e0491bd5f456b097eb47c31e6ebfd8b59e40427e149946201d58b1638ec0",
         "builds/jw-stone-marketplace/contract.md": "33f7016cfa4df6ef0ffe2d4a4617e97b517442bb9eb472c1ea6d0f9d3afb6830",
         "builds/jw-stone-marketplace/evidence.md": "37e341edd17efeed8dd8ef449c10abe711f6cd4561467f72aaa886ff42552f35"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-02T18:37:34+00:00",
+      "amendment": null,
+      "transition": "build",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.0.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "partial",
+      "invalidated_requirements": [],
+      "semantic_digest": "aa3b49a36e19df2b643e04dd38023d6b454c22c122c0eca84b33a1ab3d9e091b",
+      "artifact_digests": {
+        "intent-contract.md": "5eb296c3850fcfd192d18a59944b8bbe9038de1c9f2af21a5af4aa5249a94b61",
+        "scope-release.md": "6721cb937e2c825625c2cfcb46dbdcaf354fb9e22841b5d1f0cf372f74bae270",
+        "experience-surfaces.md": "b9e196e58af3385bbbd8c72a3f921b570910a9f43bafd400eb429e6b96ab3855",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "2a32cf054452d732a26cfc617725ab899b53d9be5360726391ace16b51776963",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "21834e8254594aa9d45eafe575a597f1d5ea4b413105d366c5bb07c30c596228",
+        "traceability.md": "6a8464dcde51f8c208446b2106715dc55b84035a138ef4843efee5434609f2fb",
+        "decisions-changes.md": "68c6e0491bd5f456b097eb47c31e6ebfd8b59e40427e149946201d58b1638ec0",
+        "builds/jw-stone-marketplace/contract.md": "33f7016cfa4df6ef0ffe2d4a4617e97b517442bb9eb472c1ea6d0f9d3afb6830",
+        "builds/jw-stone-marketplace/evidence.md": "37e341edd17efeed8dd8ef449c10abe711f6cd4561467f72aaa886ff42552f35"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-02T18:38:01+00:00",
+      "amendment": null,
+      "transition": "as-built",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.0.0",
+      "build_status": "interrupted",
+      "as_built_verdict": "partial",
+      "invalidated_requirements": [],
+      "semantic_digest": "aa3b49a36e19df2b643e04dd38023d6b454c22c122c0eca84b33a1ab3d9e091b",
+      "artifact_digests": {
+        "intent-contract.md": "5eb296c3850fcfd192d18a59944b8bbe9038de1c9f2af21a5af4aa5249a94b61",
+        "scope-release.md": "6721cb937e2c825625c2cfcb46dbdcaf354fb9e22841b5d1f0cf372f74bae270",
+        "experience-surfaces.md": "b9e196e58af3385bbbd8c72a3f921b570910a9f43bafd400eb429e6b96ab3855",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "2a32cf054452d732a26cfc617725ab899b53d9be5360726391ace16b51776963",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "21834e8254594aa9d45eafe575a597f1d5ea4b413105d366c5bb07c30c596228",
+        "traceability.md": "6a8464dcde51f8c208446b2106715dc55b84035a138ef4843efee5434609f2fb",
+        "decisions-changes.md": "68c6e0491bd5f456b097eb47c31e6ebfd8b59e40427e149946201d58b1638ec0",
+        "builds/jw-stone-marketplace/contract.md": "33f7016cfa4df6ef0ffe2d4a4617e97b517442bb9eb472c1ea6d0f9d3afb6830",
+        "builds/jw-stone-marketplace/evidence.md": "18cedd25bbf4ffe0de70dcef8c89de2cd46901be6e2266ff5aed4c1bf6c74069"
       },
       "decision_authorities": {
         "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
