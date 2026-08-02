@@ -1259,6 +1259,7 @@ export default function ProfileSiteView() {
       profileShareDestination={profileShareDestination}
       signInHref={profileActionSignInHref}
       hasViewerSession={hasViewerSession}
+      platformBaseHref={platformBaseHref}
       initialRecommendationCount={recommendationDirectorySummary.positive}
       subjectKind={business ? "business" : "profile"}
       tone={tone}

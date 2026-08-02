@@ -73,6 +73,12 @@ describe("canonical public-profile trust actions", () => {
       "getPublicProfileContractorBinding(ownerUserId, profile.businessId)"
     );
     expect(trustContext).not.toContain("getContractorByUserId");
+
+    const jwBindingMigration = read("migrations/0112_jw_stone_contractor_business_binding.sql");
+    expect(jwBindingMigration).toContain("WHERE slug = 'jw-stone'");
+    expect(jwBindingMigration).toContain("HAVING count(*) = 1");
+    expect(jwBindingMigration).toContain("AND c.business_id IS NULL");
+    expect(jwBindingMigration).not.toContain("company_name");
   });
 
   it("renders Like, Recommend, Favorite, and Share in every canonical profile theme", () => {
@@ -92,6 +98,9 @@ describe("canonical public-profile trust actions", () => {
     expect(actions).toContain(">Recommend</span>");
     expect(actions).toContain(">Favorite</span>");
     expect(actions).toContain('label="Share"');
+    expect(actions).toContain("trustAction=${action}");
+    expect(actions).toContain('requestedAction === "favorite"');
+    expect(profileView).toContain("platformBaseHref={platformBaseHref}");
     expect(actions).not.toMatch(/\bStar(s|Icon)?\b/);
     expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
     expect(app).toContain("<Toaster />");

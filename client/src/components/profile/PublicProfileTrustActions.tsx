@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bookmark, HeartHandshake, Loader2, ThumbsUp } from "lucide-react";
 import { RecommendationForm } from "@/components/RecommendationForm";
 import { ShareButton } from "@/components/ShareButton";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 import { cn } from "@/lib/utils";
 
 type ProfileTrustAction = "like" | "favorite";
@@ -29,6 +30,7 @@ type PublicProfileTrustActionsProps = {
   profileShareDestination: string;
   signInHref: string;
   hasViewerSession: boolean;
+  platformBaseHref?: string;
   initialRecommendationCount?: number;
   subjectKind?: "business" | "profile";
   tone?: "light" | "dark";
@@ -61,6 +63,7 @@ export function PublicProfileTrustActions({
   profileShareDestination,
   signInHref,
   hasViewerSession,
+  platformBaseHref = "",
   initialRecommendationCount = 0,
   subjectKind = "business",
   tone = "dark",
@@ -72,6 +75,7 @@ export function PublicProfileTrustActions({
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<ProfileTrustAction | null>(null);
   const [recommendationOpen, setRecommendationOpen] = useState(false);
+  const resumedActionRef = useRef(false);
   const isLight = tone === "light";
   const isCompact = density === "compact";
 
@@ -94,8 +98,28 @@ export function PublicProfileTrustActions({
     };
   }, [profileSlug]);
 
-  const sendToSignIn = () => {
-    if (typeof window !== "undefined") window.location.assign(signInHref);
+  const sendToSignIn = (resumeAction?: "favorite" | "recommend") => {
+    if (typeof window === "undefined") return;
+    if (!resumeAction) {
+      window.location.assign(signInHref);
+      return;
+    }
+    const destination = new URL(signInHref, window.location.origin);
+    destination.searchParams.set(
+      "next",
+      `/u/${encodeURIComponent(profileSlug)}?trustAction=${resumeAction}`
+    );
+    window.location.assign(destination.toString());
+  };
+
+  const continueOnTradeScout = (action: "favorite" | "recommend") => {
+    if (!platformBaseHref || typeof window === "undefined") return false;
+    const destination = qualifyPublicProfileItemDestination(
+      `/u/${encodeURIComponent(profileSlug)}?trustAction=${action}`,
+      platformBaseHref
+    );
+    window.location.assign(destination);
+    return true;
   };
 
   const resolveCurrentState = async () => {
@@ -106,8 +130,9 @@ export function PublicProfileTrustActions({
   };
 
   const toggleAction = async (action: ProfileTrustAction) => {
+    if (action === "favorite" && continueOnTradeScout("favorite")) return;
     if (!hasViewerSession) {
-      sendToSignIn();
+      sendToSignIn(action === "favorite" ? "favorite" : undefined);
       return;
     }
     if (pendingAction) return;
@@ -155,8 +180,9 @@ export function PublicProfileTrustActions({
   };
 
   const openRecommendation = async () => {
+    if (continueOnTradeScout("recommend")) return;
     if (!hasViewerSession) {
-      sendToSignIn();
+      sendToSignIn("recommend");
       return;
     }
 
@@ -185,6 +211,18 @@ export function PublicProfileTrustActions({
       });
     }
   };
+
+  useEffect(() => {
+    if (platformBaseHref || resumedActionRef.current || typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    const requestedAction = url.searchParams.get("trustAction");
+    if (requestedAction !== "favorite" && requestedAction !== "recommend") return;
+    resumedActionRef.current = true;
+    url.searchParams.delete("trustAction");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    if (requestedAction === "favorite") void toggleAction("favorite");
+    else void openRecommendation();
+  }, [platformBaseHref, profileSlug, hasViewerSession]);
 
   const likeCount = state?.likeCount || 0;
   const favoriteCount = state?.favoriteCount || 0;
