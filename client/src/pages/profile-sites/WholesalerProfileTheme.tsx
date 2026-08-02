@@ -1950,7 +1950,8 @@ export default function WholesalerProfileTheme({
                 <div
                   role="tablist"
                   aria-label={`${displayName} customer types`}
-                  className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-4 md:px-0"
+                  className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+                  data-testid="profile-audience-tabs"
                 >
                   {audiencePaths.map((path, index) => {
                     const Icon = path.icon;
@@ -1982,7 +1983,7 @@ export default function WholesalerProfileTheme({
                           setActiveAudienceIndex(nextIndex);
                           document.getElementById(`audience-tab-${nextIndex}`)?.focus();
                         }}
-                        className={`flex min-h-11 min-w-[172px] snap-start items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-bold transition-colors md:min-w-0 ${
+                        className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold leading-tight transition-colors sm:text-xs ${
                           selected
                             ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
                             : "border-[var(--brand-primary)]/15 bg-[var(--brand-surface)] text-[var(--brand-primary)] hover:border-[var(--brand-accent)]/50"
@@ -1999,7 +2000,7 @@ export default function WholesalerProfileTheme({
                   id="audience-panel"
                   role="tabpanel"
                   aria-labelledby={`audience-tab-${activeAudienceIndex}`}
-                  className="mt-2 grid gap-3 rounded-2xl border border-[var(--brand-primary)]/15 bg-[var(--brand-surface)] p-4 shadow-sm md:mt-3 md:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)] md:gap-5 md:p-6"
+                  className="mt-3 grid gap-4 rounded-2xl border border-[var(--brand-primary)]/15 bg-[var(--brand-surface)] p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)] md:gap-5 md:p-6"
                 >
                   <div>
                     <div className="flex items-center gap-3">
@@ -2013,7 +2014,7 @@ export default function WholesalerProfileTheme({
                     <p className="mt-2 max-w-2xl text-xs leading-relaxed !text-[#4a4238] md:mt-3 md:text-sm">
                       {activeAudiencePath.body}
                     </p>
-                    <div className="-mx-1 mt-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:mt-4 md:flex-wrap md:gap-2 md:overflow-visible md:px-0 md:pb-0">
+                    <div className="mt-3 flex flex-wrap gap-1.5 md:mt-4 md:gap-2">
                       {(
                         presentation.audience?.availableFacts || [
                           "Stone photos",
@@ -2060,18 +2061,18 @@ export default function WholesalerProfileTheme({
                         </p>
                       </div>
                     </details>
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-1 lg:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
                       <button
                         type="button"
                         onClick={openFullInventory}
-                        className="min-h-11 rounded-xl border border-[var(--brand-primary)]/20 px-2 text-[10px] font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5 md:px-4 md:text-xs"
+                        className="min-h-11 rounded-xl border border-[var(--brand-primary)]/20 bg-white px-4 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5"
                       >
                         Browse all {allInventoryStones.length} stones
                       </button>
                       <button
                         type="button"
                         onClick={() => startDirectConnect(null, activeAudiencePath.requestType)}
-                        className="min-h-11 rounded-xl border border-[var(--brand-accent)]/45 px-2 text-[10px] font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 md:px-4 md:text-xs"
+                        className="min-h-12 rounded-xl border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-4 text-xs font-extrabold text-white shadow-sm transition hover:brightness-95"
                       >
                         {activeAudiencePath.actionLabel}
                       </button>

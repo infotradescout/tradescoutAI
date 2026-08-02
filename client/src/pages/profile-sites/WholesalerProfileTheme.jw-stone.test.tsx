@@ -415,7 +415,10 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     });
 
     const chooser = container.querySelector('[data-testid="profile-audience-chooser"]');
+    const tabs = container.querySelector('[data-testid="profile-audience-tabs"]');
     expect(chooser).not.toBeNull();
+    expect(tabs?.className).toContain("grid-cols-2");
+    expect(tabs?.className).not.toContain("overflow-x-auto");
     expect(chooser?.querySelectorAll('[role="tab"]')).toHaveLength(4);
     expect(chooser?.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
     expect(chooser?.textContent).toContain("Fabricators");
