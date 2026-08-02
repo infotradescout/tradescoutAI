@@ -34,6 +34,10 @@ import {
   isPubliclyVerifiedProfileOwner,
 } from "../services/ownerConfirmedDirectProfile";
 import {
+  isExactPublicProfileContractorBindingCandidate,
+  JW_STONE_RECOMMENDATION_COMPATIBILITY,
+} from "../services/publicProfileContractorBinding";
+import {
   buildHandmadeProductPath,
   listHandmadeProductImageUrls,
 } from "../../shared/handmadeProductShare";
@@ -1350,13 +1354,19 @@ async function getPublicProfileContractorBinding(
     return null;
   }
 
-  const matches = await db
+  const candidates = await db
     .select({
       id: contractors.id,
       userId: contractors.userId,
       businessId: contractors.businessId,
       companyName: contractors.companyName,
       slug: contractors.slug,
+      isActive: contractors.isActive,
+      verifiedLicensed: contractors.verifiedLicensed,
+      verifiedInsured: contractors.verifiedInsured,
+      isGeneralContractor: contractors.isGeneralContractor,
+      isResidentialContractor: contractors.isResidentialContractor,
+      acceptsSubcontractWork: contractors.acceptsSubcontractWork,
     })
     .from(contractors)
     .innerJoin(
@@ -1381,10 +1391,34 @@ async function getPublicProfileContractorBinding(
       and(
         eq(contractors.businessId, normalizedBusinessId),
         eq(contractors.slug, normalizedProfileSlug),
-        or(isNull(contractors.userId), eq(contractors.userId, normalizedOwnerUserId))
+        or(
+          eq(contractors.userId, normalizedOwnerUserId),
+          and(
+            eq(
+              contractors.id,
+              JW_STONE_RECOMMENDATION_COMPATIBILITY.contractorId
+            ),
+            isNull(contractors.userId),
+            eq(contractors.isActive, false),
+            eq(contractors.verifiedLicensed, false),
+            eq(contractors.verifiedInsured, false),
+            eq(contractors.isGeneralContractor, false),
+            eq(contractors.isResidentialContractor, false),
+            eq(contractors.acceptsSubcontractWork, false)
+          )
+        )
       )
     )
     .limit(2);
+
+  const matches = candidates.filter((candidate) =>
+    isExactPublicProfileContractorBindingCandidate(candidate, {
+      profileId: normalizedProfileId,
+      profileSlug: normalizedProfileSlug,
+      ownerUserId: normalizedOwnerUserId,
+      businessId: normalizedBusinessId,
+    })
+  );
 
   // Recommendations still use a legacy contractor foreign key. The adapter
   // must identify exactly one row matching this published profile, its active

@@ -25,19 +25,27 @@ WITH canonical_jw_stone AS (
     AND b.status = 'active'
 )
 INSERT INTO contractors (
+  id,
   business_id,
   company_name,
   slug,
   verified_licensed,
   verified_insured,
+  is_general_contractor,
+  is_residential_contractor,
+  accepts_subcontract_work,
   is_active,
   created_at,
   updated_at
 )
 SELECT
+  'bb6a45da-7730-4870-85d4-5cb0b8e0f5d6',
   jw.business_id,
   jw.company_name,
   jw.slug,
+  FALSE,
+  FALSE,
+  FALSE,
   FALSE,
   FALSE,
   FALSE,
@@ -48,7 +56,8 @@ WHERE (SELECT count(*) FROM canonical_jw_stone) = 1
   AND NOT EXISTS (
     SELECT 1
     FROM contractors c
-    WHERE c.slug = jw.slug
+    WHERE c.id = 'bb6a45da-7730-4870-85d4-5cb0b8e0f5d6'
+       OR c.slug = jw.slug
        OR c.business_id = jw.business_id
   )
 ON CONFLICT (slug) DO NOTHING;
