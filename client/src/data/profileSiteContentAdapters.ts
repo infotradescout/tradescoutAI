@@ -1,5 +1,6 @@
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import {
+  JW_STONE_AUDIENCE_BLOCK,
   JW_STONE_PROFILE_PRESENTATION_BLOCK,
   JW_STONE_PUBLIC_DISCOVERY_BLOCK,
 } from "@/data/jwStoneProfilePresentation";
@@ -23,7 +24,28 @@ type ProfileSiteContentAdapter = (blocks: ProfileContentBlock[]) => ProfileConte
 const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
   const leadImageBySlug = readInventoryLeadImageBySlug(blocks);
   const discoveryDefaults = JW_STONE_PUBLIC_DISCOVERY_BLOCK.data;
+  const presentationDefaults = JW_STONE_PROFILE_PRESENTATION_BLOCK.data;
   const withDiscoveryDefaults = blocks.map((block) => {
+    if (block?.type === "profilePresentation") {
+      const data =
+        block.data && typeof block.data === "object" && !Array.isArray(block.data)
+          ? block.data
+          : {};
+      const footer =
+        data.footer && typeof data.footer === "object" && !Array.isArray(data.footer)
+          ? (data.footer as Record<string, unknown>)
+          : {};
+      return {
+        ...block,
+        data: {
+          ...data,
+          footer: {
+            ...presentationDefaults.footer,
+            ...footer,
+          },
+        },
+      };
+    }
     if (block?.type !== "publicDiscovery") return block;
     const data =
       block.data && typeof block.data === "object" && !Array.isArray(block.data)
@@ -48,13 +70,16 @@ const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
     };
   });
   return [
-    ...withDiscoveryDefaults.filter((block) => block?.type !== "inventoryCatalog"),
+    ...withDiscoveryDefaults.filter(
+      (block) => block?.type !== "audience" && block?.type !== "inventoryCatalog"
+    ),
     ...(withDiscoveryDefaults.some((block) => block?.type === "profilePresentation")
       ? []
       : [{ ...JW_STONE_PROFILE_PRESENTATION_BLOCK } as ProfileContentBlock]),
     ...(withDiscoveryDefaults.some((block) => block?.type === "publicDiscovery")
       ? []
       : [{ ...JW_STONE_PUBLIC_DISCOVERY_BLOCK } as ProfileContentBlock]),
+    { ...JW_STONE_AUDIENCE_BLOCK } as ProfileContentBlock,
     {
       type: "inventoryCatalog",
       data: {

@@ -303,6 +303,7 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("initialPhotoIndex={premiumSharedItem?.imageIndex}");
     expect(theme).toContain("<PremiumProductProfileSections");
     expect(theme).toContain("<TradeScoutProfileHandoff");
+    expect(theme).toContain("Powered by TradeScout");
     expect(theme).toContain('data-testid="wholesaler-brand-footer"');
     expect(theme).toContain('data-testid="profile-trust-section"');
     expect(theme).toContain('data-testid="luxury-material-house-unavailable"');
@@ -498,7 +499,7 @@ describe("ISSA Build public profile contract", () => {
     expect(profileCopy).not.toContain("JW Stone");
     expect(profileCopy).not.toMatch(/co-?locat|same lot|share(?:s|d)? space/i);
     expect(profileCopy).not.toMatch(/850-|issaichev|@gmail\.com|password/i);
-    expect(theme).toContain("text={`${stoneDisplayName} from ${displayName}`}");
+    expect(theme).toContain("text={`${getStoneDisplayName(stone)} at ${displayName}`}");
     expect(theme).toContain("{ctaHeading}");
     expect(theme).toContain("contactOperatorName={contactOperatorName || undefined}");
     expect(panel).toContain("hasSeparateOperator");

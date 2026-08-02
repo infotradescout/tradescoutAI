@@ -24,7 +24,7 @@ describe("public profile TradeScout handoff", () => {
     expect(handoffSource).not.toContain("ts-orange");
   });
 
-  it("appears on every paid public-profile theme and the generic profile", () => {
+  it("appears on the profile themes that retain the expanded ecosystem footer", () => {
     for (const relativePath of [
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
@@ -39,6 +39,15 @@ describe("public profile TradeScout handoff", () => {
     expect(read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx")).not.toContain(
       "<TradeScoutProfileHandoff"
     );
+    const wholesalerSource = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    expect(wholesalerSource).toContain('tradeScoutMode === "powered-only"');
+    expect(wholesalerSource).toContain("!poweredOnlyTradeScoutFooter");
+    expect(wholesalerSource).toContain("Powered by TradeScout");
+    expect(wholesalerSource).toContain(
+      'qualifyPublicProfileItemDestination("/", platformBaseHref)'
+    );
+    const jwPresentationSource = read("client/src/data/jwStoneProfilePresentation.ts");
+    expect(jwPresentationSource).toContain('tradeScoutMode: "powered-only"');
   });
 
   it("renders as a single-row site footer (not a wrapping mid-page chip row)", () => {

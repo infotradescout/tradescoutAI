@@ -29,6 +29,13 @@ export type ExpressDirectConnectRequestType =
 export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service";
 type ExpressDirectConnectDeliveryCustody = "business" | "tradescout_pending_owner";
 
+export type ExpressDirectConnectAudienceContext = {
+  /** Human-facing customer path selected before opening Direct Connect. */
+  label: string;
+  /** Short explanation of what matters for that path. */
+  summary?: string | null;
+};
+
 type ExpressDirectConnectPanelProps = {
   open: boolean;
   onClose: () => void;
@@ -47,6 +54,8 @@ type ExpressDirectConnectPanelProps = {
   /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
   initialItemId?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
+  /** Selected audience path. Shown in the panel and preserved in the private request message. */
+  initialAudienceContext?: ExpressDirectConnectAudienceContext | null;
   contactOperatorName?: string | null;
   contactOperatorRole?: string | null;
   deliveryCustody?: ExpressDirectConnectDeliveryCustody;
@@ -117,6 +126,7 @@ export default function ExpressDirectConnectPanel({
   initialServiceName,
   initialItemId,
   initialRequestType,
+  initialAudienceContext,
   contactOperatorName,
   contactOperatorRole,
   deliveryCustody = "business",
@@ -126,6 +136,30 @@ export default function ExpressDirectConnectPanel({
   const stableItemId = String(initialItemId || "").trim() || null;
   const displayStoneName = String(initialStoneName || "").trim() || null;
   const selectedServiceName = String(initialServiceName || "").trim() || null;
+  const audienceContext = useMemo(() => {
+    const label = String(initialAudienceContext?.label || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120);
+    if (!label) return null;
+    const summary = String(initialAudienceContext?.summary || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 600);
+    return { label, summary: summary || null };
+  }, [initialAudienceContext?.label, initialAudienceContext?.summary]);
+  const audienceContextPrefix = useMemo(
+    () =>
+      audienceContext
+        ? [
+            `Project path: ${audienceContext.label}`,
+            audienceContext.summary ? `Selected context: ${audienceContext.summary}` : null,
+          ]
+            .filter(Boolean)
+            .join("\n")
+        : "",
+    [audienceContext]
+  );
   // `item` is human-facing Direct Connect context. Keep an anonymous
   // selection's stable slug only in `itemId` so it never becomes public copy.
   const itemParam = displayStoneName;
@@ -313,6 +347,9 @@ export default function ExpressDirectConnectPanel({
           credentials: "include",
           body: JSON.stringify({
             ...form,
+            message: audienceContextPrefix
+              ? `${audienceContextPrefix}\n\n${form.message.trim()}`
+              : form.message,
             stoneName: displayStoneName || undefined,
             serviceName: selectedServiceName || undefined,
             itemId: stableItemId || undefined,
@@ -418,6 +455,22 @@ export default function ExpressDirectConnectPanel({
                   <span>{businessAddress}</span>
                 </address>
               ) : null}
+              {audienceContext ? (
+                <div
+                  className="mb-5 rounded-xl border border-ts-orange/20 bg-ts-orange/5 px-4 py-3 text-left"
+                  data-testid="express-audience-context"
+                >
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-ts-orange-dark">
+                    Selected project path
+                  </p>
+                  <p className="mt-1 font-bold text-neutral-900">{audienceContext.label}</p>
+                  {audienceContext.summary ? (
+                    <p className="mt-1 text-sm leading-relaxed text-stone-700">
+                      {audienceContext.summary}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -489,6 +542,25 @@ export default function ExpressDirectConnectPanel({
                     TradeScout will hold this request for owner handoff. The owner has not connected
                     this profile yet.
                   </p>
+                ) : null}
+                {audienceContext ? (
+                  <div
+                    className="mt-3 rounded-xl border border-ts-orange/20 bg-ts-orange/5 px-4 py-3"
+                    data-testid="express-audience-context"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-ts-orange-dark">
+                      Selected project path
+                    </p>
+                    <p className="mt-1 font-bold text-neutral-900">{audienceContext.label}</p>
+                    {audienceContext.summary ? (
+                      <p className="mt-1 text-sm leading-relaxed text-stone-700">
+                        {audienceContext.summary}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 text-xs font-medium text-stone-600">
+                      This context will stay attached to your private request.
+                    </p>
+                  </div>
                 ) : null}
               </div>
 

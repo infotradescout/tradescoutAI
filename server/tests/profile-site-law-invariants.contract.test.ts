@@ -30,7 +30,7 @@ describe("profile site law invariants", () => {
     const source = fs.readFileSync(path.resolve(process.cwd(), relPath), "utf8");
     expect(source).toContain("trustActions");
     expect(source).toContain('data-testid="profile-trust-section"');
-    expect(source).toMatch(/TradeScoutProfileHandoff|tradeScoutHandoff/);
+    expect(source).toMatch(/TradeScoutProfileHandoff|tradeScoutHandoff|Powered by TradeScout/);
     expect(source).toMatch(/Direct Connect|startDirectConnect|onDirectConnect/);
     expect(source).not.toMatch(/href=["']tel:/);
     expect(source).not.toMatch(/href=["']mailto:/);

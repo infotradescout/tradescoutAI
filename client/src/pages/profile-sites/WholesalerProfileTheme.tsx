@@ -12,7 +12,6 @@ import {
   ThumbsUp,
   Gem,
   Wrench,
-  Building2,
   Compass,
   Home,
   Search,
@@ -20,12 +19,16 @@ import {
   X,
 } from "lucide-react";
 import ExpressDirectConnectPanel, {
+  type ExpressDirectConnectAudienceContext,
   type ExpressDirectConnectRequestType,
 } from "./ExpressDirectConnectPanel";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import PremiumProductProfileSections from "./PremiumProductProfileSections";
 import { ShareButton } from "@/components/ShareButton";
-import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
+import {
+  qualifyPublicProfileItemDestination,
+  requiresDocumentNavigation,
+} from "@/lib/publicProfileItemDestination";
 import {
   normalizeProfileInventoryItemSlug,
   normalizeProfileInventoryPhotoIndex,
@@ -145,6 +148,9 @@ type ProfilePresentationConfig = {
     ctaHeading?: string;
     footerText?: string;
   };
+  footer?: {
+    tradeScoutMode?: "expanded" | "powered-only";
+  };
   media?: {
     fallbackLogoUrl?: string;
     fallbackLogoAlt?: string;
@@ -246,72 +252,81 @@ const DEFAULT_BRAND_COLORS: Required<WholesalerBrandColors> = {
 const AUDIENCE_PATH_TEMPLATES = [
   {
     icon: Wrench,
-    label: "Fabricators",
+    label: "Builders & Fabricators",
     body: (displayName: string) =>
-      `Review named stone, confirmed finishes where listed, and source bundle counts, then ask ${displayName} about current bundle matching and production timing.`,
+      `Plan coordinated bundles around material, finish, volume, production timing, and delivery needs with ${displayName}.`,
     requestType: "ask_about_bundle",
-    actionLabel: "Ask about a bundle",
-    review: (displayName: string) => [
+    actionLabel: "Plan a bundle",
+    contactContext: (_displayName: string) =>
+      "I'm a builder or fabricator looking for help with a stone bundle.",
+    review: (_displayName: string) => [
       "Material, finish, and stone photos",
-      "Bundle or source-count context when listed",
-      `Production and delivery timing for ${displayName} to confirm`,
-    ],
-  },
-  {
-    icon: Building2,
-    label: "Builders & Developers",
-    body: (displayName: string) =>
-      `Share project volume, location, and timing so ${displayName} can review material consistency, current supply, and delivery needs.`,
-    requestType: "match_project",
-    actionLabel: "Match a development",
-    review: (displayName: string) => [
-      "Project location and phase",
-      "Volume and consistency needs",
-      `Desired delivery timing for ${displayName} to review`,
+      "Bundle size, source counts, and consistency needs",
+      "Production and delivery timing",
     ],
   },
   {
     icon: Compass,
     label: "Architects & Designers",
-    body: () =>
-      "Compare stone imagery, category, and confirmed finish details, then request current availability and specification support for a selected project.",
+    body: (_displayName: string) =>
+      "Explore stone that is trending, consistently popular, or genuinely rare, then narrow by movement, finish, and application.",
     requestType: "match_project",
-    actionLabel: "Review a specification",
-    review: () => [
-      "Application and specification needs",
-      "Movement, color, and confirmed finish details",
-      "Selection timeline and current availability request",
+    actionLabel: "Explore standout stone",
+    contactContext: (_displayName: string) =>
+      "I'm an architect or designer looking for trending, popular, or rare stone for a project.",
+    review: (_displayName: string) => [
+      "Trending, popular, or rare direction",
+      "Application, movement, color, and finish",
+      "Specification timeline and current availability",
     ],
   },
   {
     icon: Home,
     label: "Homeowners",
-    body: (displayName: string) =>
-      `Start with a room, inspiration, or selected stone, then ask ${displayName} to review current availability, order requirements, and the next selection step.`,
+    body: (_displayName: string) =>
+      "Start with color, then compare the stones, movement, and finishes that fit your room and project.",
     requestType: "match_project",
-    actionLabel: "Match my project",
-    review: () => [
-      "Room or application",
-      "Inspiration, dimensions, or a selected stone",
-      "Fabricator and project timing, if known",
+    actionLabel: "Find my color",
+    contactContext: (_displayName: string) =>
+      "I'm a homeowner starting my stone search with a color direction.",
+    review: (_displayName: string) => [
+      "Color direction or inspiration",
+      "Room, application, and preferred movement",
+      "Dimensions, fabricator, and timing if known",
+    ],
+  },
+  {
+    icon: Package,
+    label: "Distributors",
+    body: (_displayName: string) =>
+      "Ask about container sourcing, material mix, volume, destination, and timing for your market.",
+    requestType: "request_material",
+    actionLabel: "Ask about containers",
+    contactContext: (_displayName: string) =>
+      "I'm a distributor interested in container sourcing options.",
+    review: (_displayName: string) => [
+      "Container volume and material mix",
+      "Destination market and delivery needs",
+      "Target categories, colors, and timing",
     ],
   },
 ] as const;
 
 function audiencePathConfig(title: unknown, fallbackIndex: number, displayName: string) {
   const label = String(title || "").toLowerCase();
-  const template = label.includes("fabricator")
+  const template = label.includes("fabricator") || label.includes("builder")
     ? AUDIENCE_PATH_TEMPLATES[0]
-    : label.includes("builder") || label.includes("developer")
+    : label.includes("architect") || label.includes("designer")
       ? AUDIENCE_PATH_TEMPLATES[1]
-      : label.includes("architect") || label.includes("designer")
+      : label.includes("homeowner")
         ? AUDIENCE_PATH_TEMPLATES[2]
-        : label.includes("homeowner")
+        : label.includes("distributor")
           ? AUDIENCE_PATH_TEMPLATES[3]
           : AUDIENCE_PATH_TEMPLATES[fallbackIndex % AUDIENCE_PATH_TEMPLATES.length];
   return {
     ...template,
     body: template.body(displayName),
+    contactContext: template.contactContext(displayName),
     review: template.review(displayName),
   };
 }
@@ -482,7 +497,6 @@ export default function WholesalerProfileTheme({
   sharedInventoryCategorySlug,
   platformBaseHref = "",
   sharedGallerySlug,
-  tradeScoutReturnHref,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -502,6 +516,8 @@ export default function WholesalerProfileTheme({
     typeof presentation.header.logoUrl === "string" &&
     presentation.header.logoUrl.trim().length > 0;
   const preserveHeroMedia = presentation.hero?.preserveMedia === true;
+  const poweredOnlyTradeScoutFooter =
+    presentation.footer?.tradeScoutMode === "powered-only";
   const socialPreviewPageOrigin =
     typeof window !== "undefined" ? window.location.origin : "https://www.thetradescout.com";
   const profileSocialPreviewImageUrl =
@@ -686,17 +702,45 @@ export default function WholesalerProfileTheme({
         }))
       : DEFAULT_DIFFERENTIATORS;
   const audienceItems: Array<{
+    key?: string;
     title?: string;
+    priority?: string;
     body?: string;
     actionLabel?: string;
     requestType?: ExpressDirectConnectRequestType;
+    contactContext?: string;
     review?: string[];
   }> = Array.isArray(audienceBlock?.data?.items) ? audienceBlock.data.items : [];
+  const rawSourcingPrompt =
+    audienceBlock?.data?.sourcingPrompt &&
+    typeof audienceBlock.data.sourcingPrompt === "object" &&
+    !Array.isArray(audienceBlock.data.sourcingPrompt)
+      ? (audienceBlock.data.sourcingPrompt as Record<string, unknown>)
+      : null;
+  const sourcingPrompt = {
+    title:
+      (typeof rawSourcingPrompt?.title === "string" && rawSourcingPrompt.title.trim()) ||
+      "Don't see what you're looking for?",
+    body:
+      (typeof rawSourcingPrompt?.body === "string" && rawSourcingPrompt.body.trim()) ||
+      `${displayName} can source stone beyond the current site inventory. Share the material, color, quantity, or project details and the team can look for options.`,
+    actionLabel:
+      (typeof rawSourcingPrompt?.actionLabel === "string" &&
+        rawSourcingPrompt.actionLabel.trim()) ||
+      "Ask us to source it",
+    requestType: configuredRequestType(rawSourcingPrompt?.requestType, "request_material"),
+    contactContext:
+      (typeof rawSourcingPrompt?.contactContext === "string" &&
+        rawSourcingPrompt.contactContext.trim()) ||
+      "I don't see what I'm looking for in the current inventory and would like help sourcing it.",
+  };
   const audiencePaths =
     audienceItems.length > 0
       ? audienceItems.map((item, index) => {
           const config = audiencePathConfig(item.title, index, displayName);
           const storedBody = typeof item.body === "string" ? item.body.trim() : "";
+          const storedContactContext =
+            typeof item.contactContext === "string" ? item.contactContext.trim() : "";
           const storedReview = Array.isArray(item.review)
             ? item.review.filter(
                 (value): value is string => typeof value === "string" && value.trim().length > 0
@@ -705,18 +749,20 @@ export default function WholesalerProfileTheme({
           return {
             ...config,
             label: item.title || config.label,
-            body: storedBody ? `${storedBody} ${config.body}` : config.body,
+            body: storedBody || config.body,
             actionLabel:
               typeof item.actionLabel === "string" && item.actionLabel.trim()
                 ? item.actionLabel.trim()
                 : config.actionLabel,
             requestType: configuredRequestType(item.requestType, config.requestType),
+            contactContext: storedContactContext || config.contactContext,
             review: storedReview.length > 0 ? storedReview : config.review,
           };
         })
       : AUDIENCE_PATH_TEMPLATES.map((template) => ({
           ...template,
           body: template.body(displayName),
+          contactContext: template.contactContext(displayName),
           review: template.review(displayName),
         }));
   // Real, named inventory grouped by material category -- no pricing here by
@@ -775,6 +821,7 @@ export default function WholesalerProfileTheme({
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryVisibleLimit, setInventoryVisibleLimit] = useState(inventoryPageSize);
   const [activeAudienceIndex, setActiveAudienceIndex] = useState(0);
+  const [hasSelectedAudience, setHasSelectedAudience] = useState(false);
   const [recommendationsExpanded, setRecommendationsExpanded] = useState(false);
   const pendingInventoryScrollRef = useRef(false);
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
@@ -816,6 +863,8 @@ export default function WholesalerProfileTheme({
   const [expressItemId, setExpressItemId] = useState<string | null>(null);
   const [expressRequestType, setExpressRequestType] =
     useState<ExpressDirectConnectRequestType | null>(null);
+  const [expressAudienceContext, setExpressAudienceContext] =
+    useState<ExpressDirectConnectAudienceContext | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
   const premiumInventoryStones = inventoryCatalogFromContent.flatMap((category) => category.stones);
@@ -983,6 +1032,22 @@ export default function WholesalerProfileTheme({
     audiencePaths[Math.min(activeAudienceIndex, audiencePaths.length - 1)] ||
     audiencePathConfig("", 0, displayName);
   const ActiveAudienceIcon = activeAudiencePath.icon;
+  const activeAudienceContext: ExpressDirectConnectAudienceContext = {
+    label: activeAudiencePath.label,
+    summary: activeAudiencePath.contactContext,
+  };
+  const selectedAudienceContext = hasSelectedAudience ? activeAudienceContext : null;
+  const sourcingAudienceContext: ExpressDirectConnectAudienceContext = hasSelectedAudience
+    ? {
+        label: activeAudiencePath.label,
+        summary: [activeAudiencePath.contactContext, sourcingPrompt.contactContext]
+          .filter(Boolean)
+          .join(" "),
+      }
+    : {
+        label: "Sourcing request",
+        summary: sourcingPrompt.contactContext,
+      };
   const configuredHeroImage = presentation.hero?.inventoryItemSlug
     ? inventoryCatalog
         .flatMap((category) => category.stones)
@@ -1030,6 +1095,10 @@ export default function WholesalerProfileTheme({
   const inventoryBrowseCtaEyebrow =
     presentation.inventory?.browseCtaEyebrow?.trim() || inventoryTitle;
   const audienceTitle = blockString(audienceBlock, "title") || "Who We Work With";
+  const audienceIntro =
+    blockString(audienceBlock, "intro") ||
+    presentation.audience?.intro ||
+    "Choose the path that fits you. The inventory stays the same; the questions and next step adapt to your project.";
   const ctaHeading =
     blockString(ctaBlock, "heading") ||
     presentation.copy?.ctaHeading?.trim() ||
@@ -1061,12 +1130,16 @@ export default function WholesalerProfileTheme({
   const startDirectConnect = (
     stoneName?: string | null,
     requestType?: ExpressDirectConnectRequestType | null,
-    itemId?: string | null
+    itemId?: string | null,
+    audienceContext?: ExpressDirectConnectAudienceContext | null
   ) => {
     if (useExpressDirectConnect) {
       setExpressStoneName(stoneName || null);
       setExpressItemId(itemId || null);
       setExpressRequestType(requestType || (stoneName || itemId ? "request_material" : null));
+      setExpressAudienceContext(
+        audienceContext === undefined ? selectedAudienceContext : audienceContext
+      );
       setExpressPanelOpen(true);
       return;
     }
@@ -1440,21 +1513,21 @@ export default function WholesalerProfileTheme({
         <div
           className={`container mx-auto items-center px-3 md:px-8 ${
             centeredBrandHeader
-              ? "grid h-14 grid-cols-[88px_minmax(0,1fr)_88px] gap-1 md:h-[72px] md:grid-cols-[1fr_auto_1fr]"
+              ? "grid h-14 grid-cols-[96px_minmax(0,1fr)_96px] gap-1 md:h-[72px] md:grid-cols-[1fr_auto_1fr]"
               : "flex justify-between gap-3 py-2 md:py-3"
           }`}
         >
           {centeredBrandHeader ? (
             <>
               {isProfileHome ? (
-                <span className="inline-flex h-10 w-10 justify-self-start" aria-hidden="true" />
+                <span className="inline-flex h-11 w-11 justify-self-start" aria-hidden="true" />
               ) : (
                 <button
                   type="button"
                   onClick={goBackWithinProfile}
                   aria-label={presentation.header?.backLabel || `Back within ${displayName}`}
                   title={presentation.header?.backLabel || `Back within ${displayName}`}
-                  className="inline-flex h-10 w-10 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                  className="inline-flex h-11 w-11 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -1486,7 +1559,7 @@ export default function WholesalerProfileTheme({
                   imageUrl={activePageSocialPreviewImageUrl}
                   size="icon"
                   label=""
-                  className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
+                  className="!h-11 !w-11 rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
                 />
                 <button
                   type="button"
@@ -1494,7 +1567,7 @@ export default function WholesalerProfileTheme({
                   aria-label={
                     presentation.header?.directConnectLabel || `Direct Connect with ${displayName}`
                   }
-                  className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-ts-orange/45 bg-ts-orange/5 text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2.5 md:px-5 md:text-sm"
+                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-ts-orange/45 bg-ts-orange/5 text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2.5 md:px-5 md:text-sm"
                 >
                   <MessageCircle className="h-4 w-4 sm:hidden" />
                   <span className="hidden text-xs font-bold sm:inline md:text-sm">
@@ -1952,8 +2025,7 @@ export default function WholesalerProfileTheme({
                     {audienceTitle}
                   </h2>
                   <p className="mt-2 text-xs leading-relaxed !text-[#4a4238] sm:text-sm">
-                    {presentation.audience?.intro ||
-                      "Choose the path that fits you. The inventory stays the same; the questions and next step adapt to your project."}
+                    {audienceIntro}
                   </p>
                 </div>
 
@@ -1975,7 +2047,10 @@ export default function WholesalerProfileTheme({
                         aria-selected={selected}
                         aria-controls="audience-panel"
                         tabIndex={selected ? 0 : -1}
-                        onClick={() => setActiveAudienceIndex(index)}
+                        onClick={() => {
+                          setActiveAudienceIndex(index);
+                          setHasSelectedAudience(true);
+                        }}
                         onKeyDown={(event) => {
                           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
                             return;
@@ -1991,6 +2066,7 @@ export default function WholesalerProfileTheme({
                                     audiencePaths.length) %
                                   audiencePaths.length;
                           setActiveAudienceIndex(nextIndex);
+                          setHasSelectedAudience(true);
                           document.getElementById(`audience-tab-${nextIndex}`)?.focus();
                         }}
                         className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold leading-tight transition-colors sm:text-xs ${
@@ -2049,7 +2125,15 @@ export default function WholesalerProfileTheme({
                     >
                       <button
                         type="button"
-                        onClick={() => startDirectConnect(null, activeAudiencePath.requestType)}
+                        onClick={() => {
+                          setHasSelectedAudience(true);
+                          startDirectConnect(
+                            null,
+                            activeAudiencePath.requestType,
+                            null,
+                            activeAudienceContext
+                          );
+                        }}
                         className="min-h-12 rounded-xl border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-4 text-xs font-extrabold text-white shadow-sm transition hover:brightness-95"
                       >
                         {activeAudiencePath.actionLabel}
@@ -2092,6 +2176,33 @@ export default function WholesalerProfileTheme({
                     </details>
                   </div>
                 </article>
+                <aside
+                  className="mt-3 flex flex-col gap-3 rounded-2xl border border-[var(--brand-accent)]/35 bg-[#f8f5ed] p-4 sm:flex-row sm:items-center sm:justify-between"
+                  data-testid="profile-sourcing-prompt"
+                >
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-extrabold !text-[#241d0f]">
+                      {sourcingPrompt.title}
+                    </h3>
+                    <p className="mt-1 max-w-3xl text-xs leading-relaxed !text-[#4a4238] sm:text-sm">
+                      {sourcingPrompt.body}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      startDirectConnect(
+                        null,
+                        sourcingPrompt.requestType,
+                        null,
+                        sourcingAudienceContext
+                      )
+                    }
+                    className="min-h-11 flex-none rounded-xl bg-[var(--brand-accent)] px-4 text-xs font-extrabold text-white shadow-sm transition hover:brightness-95"
+                  >
+                    {sourcingPrompt.actionLabel}
+                  </button>
+                </aside>
               </div>
             </section>
           ) : null}
@@ -2311,7 +2422,7 @@ export default function WholesalerProfileTheme({
                         <button
                           type="button"
                           onClick={showFeaturedInventory}
-                          className="mt-3 inline-flex min-h-9 items-center rounded-full border border-[var(--brand-primary)]/20 bg-white px-3 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)] md:mt-0"
+                          className="mt-3 inline-flex min-h-11 items-center rounded-full border border-[var(--brand-primary)]/20 bg-white px-3 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)] md:mt-0"
                         >
                           Show featured view
                         </button>
@@ -2888,8 +2999,13 @@ export default function WholesalerProfileTheme({
                           <p className="text-sm text-[#241d0f]/70">{path.body}</p>
                           <button
                             type="button"
-                            onClick={() => startDirectConnect()}
-                            className="mt-5 min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-4 text-xs font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
+                            onClick={() =>
+                              startDirectConnect(null, path.requestType, null, {
+                                label: path.label,
+                                summary: path.contactContext,
+                              })
+                            }
+                            className="mt-5 min-h-11 rounded-xl border border-[var(--brand-accent)]/40 px-4 text-xs font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                           >
                             Direct Connect
                           </button>
@@ -3243,19 +3359,29 @@ export default function WholesalerProfileTheme({
         </>
       )}
 
-      {/* Shared TradeScout theme chrome — always outside premium lookbook content. */}
       <footer className="bg-[#241d0f] py-10 text-white/70" data-testid="wholesaler-brand-footer">
         <div className="container mx-auto px-4 text-center text-sm md:px-6">
           <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
           <p>{footerText}</p>
+          {poweredOnlyTradeScoutFooter ? (
+            <a
+              href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
+              className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/20 px-4 text-xs font-bold text-white transition hover:border-white/40 hover:bg-white/10"
+            >
+              Powered by TradeScout
+            </a>
+          ) : null}
         </div>
       </footer>
 
-      <TradeScoutProfileHandoff
-        profileSlug={profileSlug}
-        profileName={displayName}
-        platformBaseHref={platformBaseHref}
-      />
+      {!poweredOnlyTradeScoutFooter ? (
+        <TradeScoutProfileHandoff
+          profileSlug={profileSlug}
+          profileName={displayName}
+          platformBaseHref={platformBaseHref}
+        />
+      ) : null}
+
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}
@@ -3270,6 +3396,7 @@ export default function WholesalerProfileTheme({
         initialStoneName={expressStoneName}
         initialItemId={expressItemId}
         initialRequestType={expressRequestType}
+        initialAudienceContext={expressAudienceContext}
         contactOperatorName={contactOperatorName || undefined}
         contactOperatorRole={contactOperatorRole || undefined}
       />

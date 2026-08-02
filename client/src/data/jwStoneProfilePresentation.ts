@@ -38,6 +38,9 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       footerText:
         "Quarry-direct sourcing. Your contact details stay private until you choose to connect.",
     },
+    footer: {
+      tradeScoutMode: "powered-only",
+    },
     media: {
       fallbackLogoUrl: "/images/businesses/jw-stone/logo.svg",
       fallbackLogoAlt: "JW Stone",
@@ -106,6 +109,92 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
     social: {
       ...JW_STONE_SOCIAL_PRESENTATION,
     },
+  },
+} as const;
+
+/**
+ * JW Stone's four customer paths and the context each path carries into
+ * Direct Connect. This stays separate from the shared wholesaler renderer so
+ * another supplier can provide its own audiences and buying priorities.
+ */
+export const JW_STONE_AUDIENCE_BLOCK = {
+  type: "audience",
+  data: {
+    title: "Who We Work With",
+    intro:
+      "Choose the path that fits your project. JW Stone sources beyond the inventory shown here, and your selection carries into Direct Connect.",
+    sourcingPrompt: {
+      title: "Don't see what you're looking for?",
+      body:
+        "JW Stone can source stone beyond the current site inventory. Share the material, color, quantity, or project details and the team can look for options.",
+      actionLabel: "Ask JW Stone to source it",
+      requestType: "request_material",
+      contactContext:
+        "I don't see what I'm looking for in the current inventory and would like help sourcing it.",
+    },
+    items: [
+      {
+        key: "builders_fabricators",
+        title: "Builders & Fabricators",
+        priority: "bundles",
+        body:
+          "Plan coordinated bundles around material, finish, volume, production timing, and delivery needs.",
+        actionLabel: "Plan a bundle",
+        requestType: "ask_about_bundle",
+        contactContext: "I'm a builder or fabricator looking for help with a stone bundle.",
+        review: [
+          "Material, finish, and stone photos",
+          "Bundle size, source counts, and consistency needs",
+          "Production and delivery timing",
+        ],
+      },
+      {
+        key: "architects_designers",
+        title: "Architects & Designers",
+        priority: "trending_popular_rare",
+        body:
+          "Explore stone that is trending, consistently popular, or genuinely rare, then narrow by movement, finish, and application.",
+        actionLabel: "Explore standout stone",
+        requestType: "match_project",
+        contactContext:
+          "I'm an architect or designer looking for trending, popular, or rare stone for a project.",
+        review: [
+          "Trending, popular, or rare direction",
+          "Application, movement, color, and finish",
+          "Specification timeline and current availability",
+        ],
+      },
+      {
+        key: "homeowners",
+        title: "Homeowners",
+        priority: "color",
+        body:
+          "Start with color, then compare the stones, movement, and finishes that fit your room and project.",
+        actionLabel: "Find my color",
+        requestType: "match_project",
+        contactContext: "I'm a homeowner starting my stone search with a color direction.",
+        review: [
+          "Color direction or inspiration",
+          "Room, application, and preferred movement",
+          "Dimensions, fabricator, and timing if known",
+        ],
+      },
+      {
+        key: "distributors",
+        title: "Distributors",
+        priority: "containers",
+        body:
+          "Ask about container sourcing, material mix, volume, destination, and timing for your market.",
+        actionLabel: "Ask about containers",
+        requestType: "request_material",
+        contactContext: "I'm a distributor interested in JW Stone's container sourcing options.",
+        review: [
+          "Container volume and material mix",
+          "Destination market and delivery needs",
+          "Target categories, colors, and timing",
+        ],
+      },
+    ],
   },
 } as const;
 

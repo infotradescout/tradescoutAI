@@ -3,7 +3,10 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "@/data/jwStoneProfilePresentation";
+import {
+  JW_STONE_AUDIENCE_BLOCK,
+  JW_STONE_PROFILE_PRESENTATION_BLOCK,
+} from "@/data/jwStoneProfilePresentation";
 import WholesalerProfileTheme from "./WholesalerProfileTheme";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -21,8 +24,8 @@ vi.mock("wouter", () => ({
 }));
 
 vi.mock("@/components/ShareButton", () => ({
-  ShareButton: ({ title }: { title?: string }) => (
-    <button type="button" aria-label={`Share ${title || "profile"}`}>
+  ShareButton: ({ title, className }: { title?: string; className?: string }) => (
+    <button type="button" aria-label={`Share ${title || "profile"}`} className={className}>
       Share
     </button>
   ),
@@ -38,10 +41,6 @@ vi.mock("./ExpressDirectConnectPanel", () => ({
       />
     ) : null;
   },
-}));
-
-vi.mock("./TradeScoutProfileHandoff", () => ({
-  default: () => <div data-testid="tradescout-handoff" />,
 }));
 
 const inventoryStones = Array.from({ length: 14 }, (_, index) => ({
@@ -73,17 +72,7 @@ const contentBlocks = [
       ],
     },
   },
-  {
-    type: "audience",
-    data: {
-      items: [
-        { title: "Homeowners", body: "Homeowner project guidance." },
-        { title: "Fabricators", body: "Fabricator project guidance." },
-        { title: "Architects & Designers", body: "Design project guidance." },
-        { title: "Builders & Developers", body: "Development project guidance." },
-      ],
-    },
-  },
+  JW_STONE_AUDIENCE_BLOCK,
   {
     type: "faq",
     data: {
@@ -241,7 +230,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     const logo = header?.querySelector('img[alt="JW Stone — Premium Wholesale Stone Distributor"]');
     expect(hero?.className).not.toContain("min-h-[460px]");
     expect(hero?.className).toContain("md:min-h-[600px]");
-    expect(headerLayout?.className).toContain("grid-cols-[88px_minmax(0,1fr)_88px]");
+    expect(headerLayout?.className).toContain("grid-cols-[96px_minmax(0,1fr)_96px]");
     expect(logo?.className).toContain("w-[148px]");
     expect(container.querySelector("#inventory-browser")).not.toBeNull();
     expect(container.querySelector('button[aria-label="Back within JW Stone"]')).toBeNull();
@@ -428,39 +417,43 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(actions?.nextElementSibling?.tagName).toBe("DETAILS");
     expect(
       Array.from(actions?.querySelectorAll("button") || []).map((button) => button.textContent)
-    ).toEqual(["Match my project", "Browse 14 stones"]);
+    ).toEqual(["Plan a bundle", "Browse 14 stones"]);
     expect(chooser?.querySelectorAll('[role="tab"]')).toHaveLength(4);
     expect(chooser?.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
-    expect(chooser?.textContent).toContain("Fabricators");
+    expect(chooser?.textContent).toContain("Builders & Fabricators");
+    expect(chooser?.textContent).toContain(
+      "JW Stone sources beyond the inventory shown here"
+    );
 
     const audienceCases = [
       {
         tab: "Homeowners",
-        storedGuidance: "Homeowner project guidance.",
-        richerGuidance: "Start with a room, inspiration, or selected stone",
-        action: "Match my project",
+        guidance: "Start with color",
+        action: "Find my color",
         requestType: "match_project",
+        context: "I'm a homeowner starting my stone search with a color direction.",
       },
       {
-        tab: "Fabricators",
-        storedGuidance: "Fabricator project guidance.",
-        richerGuidance: "Review named stone, confirmed finishes where listed",
-        action: "Ask about a bundle",
+        tab: "Builders & Fabricators",
+        guidance: "Plan coordinated bundles",
+        action: "Plan a bundle",
         requestType: "ask_about_bundle",
+        context: "I'm a builder or fabricator looking for help with a stone bundle.",
       },
       {
         tab: "Architects & Designers",
-        storedGuidance: "Design project guidance.",
-        richerGuidance: "Compare stone imagery, category, and confirmed finish details",
-        action: "Review a specification",
+        guidance: "trending, consistently popular, or genuinely rare",
+        action: "Explore standout stone",
         requestType: "match_project",
+        context:
+          "I'm an architect or designer looking for trending, popular, or rare stone for a project.",
       },
       {
-        tab: "Builders & Developers",
-        storedGuidance: "Development project guidance.",
-        richerGuidance: "Share project volume, location, and timing",
-        action: "Match a development",
-        requestType: "match_project",
+        tab: "Distributors",
+        guidance: "container sourcing",
+        action: "Ask about containers",
+        requestType: "request_material",
+        context: "I'm a distributor interested in JW Stone's container sourcing options.",
       },
     ];
 
@@ -470,8 +463,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       );
       click(tab || null);
       expect(tab?.getAttribute("aria-selected")).toBe("true");
-      expect(chooser?.textContent).toContain(audienceCase.storedGuidance);
-      expect(chooser?.textContent).toContain(audienceCase.richerGuidance);
+      expect(chooser?.textContent).toContain(audienceCase.guidance);
 
       const action = Array.from(chooser?.querySelectorAll("button") || []).find(
         (button) => button.textContent === audienceCase.action
@@ -479,10 +471,72 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
       click(action || null);
       const lastPanelProps = expressPanelProps.mock.calls.at(-1)?.[0];
       expect(lastPanelProps?.initialRequestType).toBe(audienceCase.requestType);
+      expect(lastPanelProps?.initialAudienceContext).toEqual({
+        label: audienceCase.tab,
+        summary: audienceCase.context,
+      });
     }
+
+    click(container.querySelector('button[aria-label="Direct Connect with JW Stone"]'));
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]?.initialAudienceContext).toMatchObject({
+      label: "Distributors",
+    });
+    click(container.querySelector("#connect button"));
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]?.initialAudienceContext).toMatchObject({
+      label: "Distributors",
+    });
+
+    const sourcingPrompt = chooser?.querySelector('[data-testid="profile-sourcing-prompt"]');
+    expect(sourcingPrompt?.textContent).toContain("Don't see what you're looking for?");
+    expect(sourcingPrompt?.textContent).toContain(
+      "JW Stone can source stone beyond the current site inventory"
+    );
+    click(
+      Array.from(sourcingPrompt?.querySelectorAll("button") || []).find(
+        (button) => button.textContent === "Ask JW Stone to source it"
+      ) || null
+    );
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
+      initialRequestType: "request_material",
+      initialAudienceContext: {
+        label: "Distributors",
+      },
+    });
 
     expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
     expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
+    expect(
+      container.querySelector('button[aria-label="Back within JW Stone"]')?.className
+    ).toContain("h-11 w-11");
+    expect(
+      container
+        .querySelector('[data-testid="profile-brand-header"]')
+        ?.querySelector('button[aria-label^="Share "]')?.className
+    ).toContain("!h-11 !w-11");
+    expect(
+      container.querySelector('button[aria-label="Direct Connect with JW Stone"]')?.className
+    ).toContain("h-11 w-11");
+  });
+
+  it("keeps only a Powered by TradeScout link in the JW footer", () => {
+    act(() => {
+      root.render(
+        <WholesalerProfileTheme
+          {...props}
+          platformBaseHref="https://www.thetradescout.com"
+        />
+      );
+    });
+
+    const footer = container.querySelector('[data-testid="wholesaler-brand-footer"]');
+    const poweredLink = footer?.querySelector('a[href="https://www.thetradescout.com/"]');
+    expect(poweredLink?.textContent).toBe("Powered by TradeScout");
+    expect(container.querySelector('[data-testid="profile-tradescout-handoff"]')).toBeNull();
+    for (const removedCta of ["Scout", "Community", "Exchange", "HomeID"]) {
+      expect(Array.from(footer?.querySelectorAll("a") || []).some((link) => link.textContent === removedCta)).toBe(
+        false
+      );
+    }
   });
 
   it("keeps confirmed profile facts aligned without orphan separator characters", () => {
@@ -571,6 +625,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(container.querySelector("#inventory-browser")).not.toBeNull();
     expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
     expect(container.querySelector('[data-testid="profile-audience-chooser"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="profile-tradescout-handoff"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid="profile-faq-item"]')).toHaveLength(2);
     expect(container.textContent).toContain("Recommendation 3");
     expect(container.textContent).not.toContain("Recommendation 4");
@@ -599,6 +654,7 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
 
     expect(container.querySelector("#inventory-browser")).toBeNull();
     expect(container.querySelector('[data-testid="profile-audience-chooser"]')).toBeNull();
+    expect(container.querySelector('[data-testid="profile-tradescout-handoff"]')).not.toBeNull();
     expect(container.querySelectorAll("details")).toHaveLength(0);
     expect(container.textContent).toContain("Ask through Direct Connect.");
     expect(container.textContent).toContain("Recommendation 4");

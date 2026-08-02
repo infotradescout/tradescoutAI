@@ -3,6 +3,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
+  JW_STONE_AUDIENCE_BLOCK,
   JW_STONE_PROFILE_PRESENTATION_BLOCK,
   JW_STONE_PUBLIC_DISCOVERY_BLOCK,
 } from "../../client/src/data/jwStoneProfilePresentation";
@@ -102,25 +103,35 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("xl:grid-cols-5");
   });
 
-  it("adapts the customer path without removing any of the four established audiences", () => {
+  it("adapts the customer path to the four JW Stone buying priorities", () => {
     expect(presentation.audience.layout).toBe("guided");
+    expect(presentation.footer.tradeScoutMode).toBe("powered-only");
+    const audience = JW_STONE_AUDIENCE_BLOCK.data;
+    expect(audience.items.map((item) => [item.title, item.priority])).toEqual([
+      ["Builders & Fabricators", "bundles"],
+      ["Architects & Designers", "trending_popular_rare"],
+      ["Homeowners", "color"],
+      ["Distributors", "containers"],
+    ]);
+    expect(audience.intro).toContain("sources beyond the inventory shown here");
     expect(source).toContain('data-testid="profile-audience-chooser"');
     expect(source).toContain('role="tablist"');
     expect(source).toContain('role="tabpanel"');
-    expect(source).toContain("Fabricators");
-    expect(source).toContain("Builders & Developers");
+    expect(source).toContain("Builders & Fabricators");
     expect(source).toContain("Architects & Designers");
     expect(source).toContain("Homeowners");
-    expect(source).toContain(
-      "Review named stone, confirmed finishes where listed, and source bundle counts"
-    );
-    expect(source).toContain(
-      "Share project volume, location, and timing so ${displayName} can review material consistency"
-    );
-    expect(source).toContain("Compare stone imagery, category, and confirmed finish details");
-    expect(source).toContain("Start with a room, inspiration, or selected stone");
+    expect(source).toContain("Distributors");
+    expect(source).toContain("Plan coordinated bundles");
+    expect(source).toContain("trending, consistently popular, or genuinely rare");
+    expect(source).toContain("Start with color");
+    expect(source).toContain("container sourcing");
     expect(source).toContain('requestType: "ask_about_bundle"');
-    expect(source.match(/requestType: "match_project"/g)).toHaveLength(3);
+    expect(source.match(/requestType: "match_project"/g)).toHaveLength(2);
+    expect(source).toContain('data-testid="profile-sourcing-prompt"');
+    expect(audience.sourcingPrompt.title).toBe("Don't see what you're looking for?");
+    expect(audience.sourcingPrompt.body).toContain(
+      "source stone beyond the current site inventory"
+    );
     expect(presentation.audience.availabilityNote).toBe(
       "Pricing and current availability are confirmed through Direct Connect."
     );
@@ -144,7 +155,8 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('id="why-us"');
     expect(source).toContain('id="materials"');
     expect(source).toContain('id="connect"');
-    expect(source).toContain("TradeScoutProfileHandoff");
+    expect(source).toContain("Powered by TradeScout");
+    expect(source).toContain("!poweredOnlyTradeScoutFooter");
   });
 
   it("presents a premium featured row of random picks refreshed every visit, without fashion-copy language or pricing", () => {
@@ -198,7 +210,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
   });
 
-  it("unwinds JW Stone states in-profile; TradeScout exit stays in the site footer only", () => {
+  it("unwinds JW Stone states in-profile; the only TradeScout exit is the powered-by link", () => {
     expect(presentation.header.backLabel).toBe("Back within JW Stone");
     expect(source).toContain("presentation.header?.backLabel");
     expect(source).toContain("const goBackWithinProfile = () =>");
@@ -212,7 +224,10 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain('"Close JW Stone and return to TradeScout"');
     expect(source).not.toContain("window.history.back()");
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
-    expect(source).toContain("TradeScoutProfileHandoff");
+    expect(source).toContain('qualifyPublicProfileItemDestination("/", platformBaseHref)');
+    expect(source).toContain("Powered by TradeScout");
+    expect(presentation.footer.tradeScoutMode).toBe("powered-only");
+    expect(source).toContain("!poweredOnlyTradeScoutFooter");
   });
 
   it("keeps every Direct Connect entry action orange and honestly, contextually labeled", () => {
@@ -227,13 +242,19 @@ describe("JW Stone profile presentation contract", () => {
     expect(expressSource).toContain("text-ts-orange-dark");
     expect(expressSource).toContain("Fill out the form");
     expect(expressSource).toContain("Direct Connect");
+    expect(expressSource).toContain("This context will stay attached to your private request.");
+    expect(source).toContain("initialAudienceContext={expressAudienceContext}");
   });
 
   it("keeps the JW Stone brand centered between profile navigation controls", () => {
     expect(presentation.header.layout).toBe("centered-brand");
     expect(presentation.header.logoUrl).toBe("/images/businesses/jw-stone/logo.svg");
     expect(presentation.header.homeLabel).toBe("JW Stone home");
-    expect(source).toContain("grid-cols-[88px_minmax(0,1fr)_88px]");
+    expect(source).toContain("grid-cols-[96px_minmax(0,1fr)_96px]");
+    expect(source).toContain('className="inline-flex h-11 w-11 items-center');
+    expect(source).toContain('className="!h-11 !w-11 rounded-full');
+    expect(source).toContain('className="inline-flex h-11 w-11 flex-shrink-0');
+    expect(source).toContain('className="mt-3 inline-flex min-h-11 items-center');
     expect(source).toContain("grid-cols-[1fr_auto_1fr]");
     expect(source).toContain("presentation.header?.homeLabel");
     expect(source).toContain('className="h-auto w-[148px] max-w-full sm:w-[172px] md:w-[204px]"');
@@ -243,10 +264,12 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("hidden h-10 gap-4 px-3 pb-2 text-[11px] font-bold sm:flex");
   });
 
-  it("keeps the persisted migration aligned and only appends when the block is absent", () => {
+  it("keeps persisted presentation data aligned while hydrating newer JW defaults at runtime", () => {
     const migratedData = migrationSource.match(/'data', '([\s\S]*?)'::jsonb/)?.[1];
     expect(migratedData).toBeTruthy();
-    expect(JSON.parse(migratedData || "{}")).toEqual(presentation);
+    const { footer: runtimeFooter, ...persistedPresentation } = presentation;
+    expect(JSON.parse(migratedData || "{}")).toEqual(persistedPresentation);
+    expect(runtimeFooter.tradeScoutMode).toBe("powered-only");
     expect(migrationSource).toContain("'type', 'profilePresentation'");
     expect(migrationSource).toContain('"brandName": "JW Stone Logistics"');
     expect(presentation.social.profileImageUrl).toBe(
