@@ -1,5 +1,6 @@
 import { Images } from "lucide-react";
 import type { JwStone2InventoryItem } from "@/features/jw-stone-2/types";
+import { sourceCountLabel } from "./StoneFacts";
 
 type TrendingSelectionProps = {
   items: readonly JwStone2InventoryItem[];
@@ -38,6 +39,7 @@ export function TrendingSelection({ items, onOpenGallery }: TrendingSelectionPro
             <div>
               <p>Trending Selection</p>
               <h3>Call for availability</h3>
+              {sourceCountLabel(item) ? <span>{sourceCountLabel(item)}</span> : null}
               <button type="button" onClick={() => onOpenGallery(item)}>
                 View photographs
               </button>

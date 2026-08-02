@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { createPortal } from "react-dom";
 import { Bookmark, ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
 import type { JwStone2InventoryItem } from "@/features/jw-stone-2/types";
-import { StoneFacts } from "./StoneFacts";
+import { sourceCountLabel, StoneFacts } from "./StoneFacts";
 
 type StoneDetailsDialogProps = {
   item: JwStone2InventoryItem | null;
@@ -85,6 +85,7 @@ export function StoneDetailsDialog({
   const previousImage = () =>
     setActiveImage((current) => (current - 1 + item.images.length) % item.images.length);
   const finishForImage = item.imageFinishes?.[activeImage]?.filter(Boolean).join(" / ");
+  const recordedQuantity = sourceCountLabel(item);
 
   const handleTouchStart = (event: TouchEvent) => {
     touchStartRef.current = event.changedTouches[0]?.clientX ?? null;
@@ -166,6 +167,14 @@ export function StoneDetailsDialog({
             <p className="jw2-image-finish">This photograph: {finishForImage}</p>
           ) : null}
           {item.isNamed ? <StoneFacts item={item} includeColor /> : null}
+          {!item.isNamed && recordedQuantity ? (
+            <dl className="jw2-facts jw2-facts--compact">
+              <div className="jw2-fact">
+                <dt>Recorded quantity</dt>
+                <dd>{recordedQuantity}</dd>
+              </div>
+            </dl>
+          ) : null}
           {item.isNamed ? (
             <div className="jw2-dialog-actions">
               <button

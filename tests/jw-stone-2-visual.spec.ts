@@ -119,6 +119,7 @@ test("desktop flagship journey and workspace evidence", async ({ page }) => {
   await expect(page.locator(".jw2-trending")).toBeVisible();
   await expect(page.locator(".jw2-trending")).not.toContainText(/trending-selection-\d+/i);
   await expect(page.locator(".jw2-trending")).not.toContainText(/Unnamed slab/i);
+  await expect(page.locator(".jw2-trending")).toContainText(/\d+ slabs recorded/i);
   await page.locator(".jw2-trending").scrollIntoViewIfNeeded();
   await screenshot(page, "08-desktop-trending-selection.png");
   await page.locator(".jw2-trending-image").first().click();

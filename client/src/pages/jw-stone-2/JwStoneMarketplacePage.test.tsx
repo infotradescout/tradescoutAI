@@ -167,6 +167,7 @@ describe("JW Stone 2.0 marketplace journey", () => {
     expect(JW_STONE_2_ANONYMOUS_STONES).toHaveLength(10);
     expect(container.querySelector(".jw2-trending")).not.toBeNull();
     expect(container.textContent).toContain("Call for availability");
+    expect(container.textContent).toMatch(/\d+ slabs recorded/i);
     expect(container.textContent).not.toMatch(/trending-selection-\d+/i);
     expect(container.querySelector(".jw2-trending [aria-label^='Save']")).toBeNull();
     expect(container.querySelector(".jw2-trending [aria-label*='Ask']")).toBeNull();
