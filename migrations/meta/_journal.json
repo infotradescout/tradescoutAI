@@ -813,6 +813,13 @@
       "when": 1785261720000,
       "tag": "0112_nullable_direct_connect_candidate_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1785262720000,
+      "tag": "0112_jw_stone_contractor_business_binding",
+      "breakpoints": false
     }
   ]
 }

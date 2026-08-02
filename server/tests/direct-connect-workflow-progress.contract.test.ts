@@ -3,6 +3,10 @@ import fs from "fs";
 import path from "path";
 
 const routePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
+const jobLifecycleRoutePath = path.resolve(
+  process.cwd(),
+  "server/routes/direct-connect/job-lifecycle.ts"
+);
 const servicePath = path.resolve(
   process.cwd(),
   "server/services/directConnectDispatchLedgerService.ts"
@@ -12,16 +16,18 @@ function read(filePath: string) {
   return fs.readFileSync(filePath, "utf8");
 }
 
+const readRouteSources = () => [read(routePath), read(jobLifecycleRoutePath)].join("\n");
+
 describe("direct-connect workflow progress contract", () => {
   it("adds explicit work start endpoint", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/start-work"');
     expect(source).toContain("Work start requires an accepted estimate.");
     expect(source).toContain('eventType: "work_started"');
   });
 
   it("adds checkpoint endpoints with requester response path", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/checkpoints"');
     expect(source).toContain(
       '"/api/direct-connect/jobs/:jobWorkspaceId/checkpoints/:checkpointId"'
@@ -38,7 +44,7 @@ describe("direct-connect workflow progress contract", () => {
   });
 
   it("adds change-order endpoints with requester decision path", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/change-orders"');
     expect(source).toContain(
       '"/api/direct-connect/jobs/:jobWorkspaceId/change-orders/:changeOrderId"'
@@ -55,7 +61,7 @@ describe("direct-connect workflow progress contract", () => {
   });
 
   it("does not auto-start work from schedule or deposit", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     const scheduleRespondBlock = source.slice(
       source.indexOf(
         '"/api/direct-connect/jobs/:jobWorkspaceId/schedule-proposals/:scheduleProposalId/respond"'
@@ -74,7 +80,7 @@ describe("direct-connect workflow progress contract", () => {
   });
 
   it("does not auto-create invoice records from work progress module", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     const progressBlock = source.slice(
       source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/start-work"'),
       source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond"')
@@ -96,7 +102,7 @@ describe("direct-connect workflow progress contract", () => {
   });
 
   it("exposes work/checkpoint/change-order summaries on requester and contractor surfaces", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain("latestWorkStatus");
     expect(source).toContain("checkpointCount");
     expect(source).toContain("openCheckpointCount");
@@ -107,7 +113,7 @@ describe("direct-connect workflow progress contract", () => {
   });
 
   it("does not include lead-selling or paid placement language", () => {
-    const source = `${read(routePath)}\n${read(servicePath)}`.toLowerCase();
+    const source = `${readRouteSources()}\n${read(servicePath)}`.toLowerCase();
     expect(source).not.toContain("lead selling");
     expect(source).not.toContain("buy lead");
     expect(source).not.toContain("featured placement");

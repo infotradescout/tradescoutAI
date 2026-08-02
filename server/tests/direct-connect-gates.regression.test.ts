@@ -244,7 +244,12 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain('pros: "Businesses"');
     expect(directConnectShellFile).toContain('board: "Board"');
     expect(directoryFile).toContain("Nearby Directory");
-    expect(directoryFile).toContain("Closest businesses near you");
+    expect(directoryFile).toContain(
+      'title={searchActive ? "Best nearby matches" : "Businesses near you"}'
+    );
+    expect(directoryFile).toContain(
+      "Each business appears once, ordered by location fit and available trust evidence."
+    );
     expect(directoryFile).toContain("No local businesses found for that search yet.");
   });
 

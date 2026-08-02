@@ -127,7 +127,7 @@ describe("Community app surface UX contract", () => {
   });
 
   it("demotes generated welcome posts without emitting positional ORDER BY zero", () => {
-    const storage = read("server/storage.ts");
+    const storage = read("server/storage/repositories/social-and-leaderboards.ts");
 
     expect(storage).toContain("ARRAY['welcome']::text[]");
     expect(storage).toContain("ARRAY['new_neighbor']::text[]");

@@ -130,7 +130,7 @@ describe("procurement engine contract", () => {
     const route = read("server/routes/procurement.ts");
     const resolver = read("server/services/supplierProductResolver.ts");
     const page = read("client/src/pages/procurement/ProcurementPages.tsx");
-    const schema = read("shared/schema.ts");
+    const schema = read("shared/schema/procurement.ts");
 
     expect(route).toContain('app.post("/api/procurement/products/resolve"');
     expect(route).toContain("resolveSupplierProduct");

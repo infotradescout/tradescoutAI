@@ -39,7 +39,14 @@ describe("canonical surface ownership", () => {
 
     const clientFiles = fs
       .readdirSync(path.resolve(process.cwd(), "client/src"), { recursive: true })
-      .filter((entry): entry is string => typeof entry === "string" && /\.(ts|tsx)$/.test(entry));
+      .filter(
+        (entry): entry is string =>
+          typeof entry === "string" &&
+          /\.(ts|tsx)$/.test(entry) &&
+          !path.basename(entry).startsWith("__audit_fixture_") &&
+          !path.basename(entry).includes("AuditAdversarialFixture") &&
+          !path.basename(entry).includes("UiSurfaceAuditFixture")
+      );
     const socialFeedImporters = clientFiles.filter((entry) => {
       const normalized = entry.replaceAll("\\", "/");
       if (

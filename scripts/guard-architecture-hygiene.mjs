@@ -27,13 +27,23 @@ async function checkMonolithCaps(repoRoot) {
   const caps = [
     {
       relPath: "server/routes.ts",
-      maxBytes: 1020207,
+      maxBytes: 1003469,
       rationale: "Must not grow while route extraction is in progress",
     },
     {
+      relPath: "server/routes/direct-connect.ts",
+      maxBytes: 406831,
+      rationale: "Must not grow while Direct Connect route extraction is in progress",
+    },
+    {
       relPath: "server/storage.ts",
-      maxBytes: 452837,
+      maxBytes: 286722,
       rationale: "Must not grow while repository split is in progress",
+    },
+    {
+      relPath: "shared/schema.ts",
+      maxBytes: 419904,
+      rationale: "Must not grow while schema domain extraction is in progress",
     },
   ];
 

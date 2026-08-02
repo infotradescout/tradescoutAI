@@ -52,7 +52,7 @@ describe("security regressions", () => {
   });
 
   it("does not register duplicate professional verification routes", () => {
-    const routes = readRepoFile("server/routes.ts");
+    const routes = readRepoFile("server/routes/professional-network.ts");
     expect(countMatches(routes, /\/api\/admin\/professional\/pending/g)).toBe(1);
     expect(countMatches(routes, /\/api\/admin\/realtor\/verify\/:profileId/g)).toBe(1);
     expect(countMatches(routes, /\/api\/admin\/car-salesman\/verify\/:profileId/g)).toBe(1);

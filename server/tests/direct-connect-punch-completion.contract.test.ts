@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 
-const routePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
+const routePath = path.resolve(process.cwd(), "server/routes/direct-connect/job-lifecycle.ts");
+const rootRoutePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
 const servicePath = path.resolve(
   process.cwd(),
   "server/services/directConnectDispatchLedgerService.ts"
@@ -12,9 +13,11 @@ function read(filePath: string) {
   return fs.readFileSync(filePath, "utf8");
 }
 
+const readRouteSources = () => [read(rootRoutePath), read(routePath)].join("\n");
+
 describe("direct-connect punch list and completion gate contract", () => {
   it("adds ready-for-punchout endpoint and gating", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/ready-for-punchout"');
     expect(source).toContain("Punchout requires an accepted estimate.");
     expect(source).toContain("Punchout requires work to be started.");
@@ -22,7 +25,7 @@ describe("direct-connect punch list and completion gate contract", () => {
   });
 
   it("adds punch list item endpoints", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/punch-list-items"');
     expect(source).toContain(
       '"/api/direct-connect/jobs/:jobWorkspaceId/punch-list-items/:punchItemId"'
@@ -39,7 +42,7 @@ describe("direct-connect punch list and completion gate contract", () => {
   });
 
   it("adds completion request endpoints with unresolved punch-item gate", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/completion-request"');
     expect(source).toContain(
       '"/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond"'
@@ -54,7 +57,7 @@ describe("direct-connect punch list and completion gate contract", () => {
   });
 
   it("does not auto-create invoice or receipt in punch/completion module", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     const block = source.slice(
       source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/ready-for-punchout"'),
       source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond"')
@@ -82,7 +85,7 @@ describe("direct-connect punch list and completion gate contract", () => {
   });
 
   it("exposes punch and completion summary fields on detail/list surfaces", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain("latestPunchListStatus");
     expect(source).toContain("punchItemCount");
     expect(source).toContain("openPunchItemCount");

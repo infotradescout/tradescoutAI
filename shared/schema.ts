@@ -21,433 +21,83 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+import {
+  addressVerificationStatusEnum,
+  botUiFailureTypeEnum,
+  businessStatusEnum,
+  businessTypeEnum,
+  contactPermissionStatusEnum,
+  countyEntityStatusEnum,
+  countyEntityTypeEnum,
+  countyNoteCategoryEnum,
+  identityDocumentTypeEnum,
+  identityVerificationStatusEnum,
+  invitationStatusEnum,
+  invitationTypeEnum,
+  missionControlActionStatusEnum,
+  missionControlDecisionActionEnum,
+  missionControlSourceEnum,
+  observationConfidenceEnum,
+  observationHealthStatusEnum,
+  observationSourceTypeEnum,
+  observationSubjectTypeEnum,
+  postTypeEnum,
+  privacyLevelEnum,
+  profileBusinessTypeEnum,
+  profileStatusEnum,
+  profileVisibilityEnum,
+  reactionTypeEnum,
+  reportReasonEnum,
+  scoutInteractionFailureReasonEnum,
+  scoutInteractionIntentEnum,
+  scoutInteractionOutcomeEnum,
+  scoutInteractionUserRoleEnum,
+  scoutMemoryTypeEnum,
+  sellerTypeEnum,
+  storyLengthEnum,
+  storyTemplateCategoryEnum,
+  storyToneEnum,
+  tradeCategoryEnum,
+  userIntentEnum,
+  userRoleEnum,
+  verificationStatusEnum,
+} from "./schema/core";
+import { createNotificationSchema } from "./schema/notifications";
+import { createProcurementSchema } from "./schema/procurement";
 
-// Session storage table for Replit Auth
-export const sessions = pgTable(
-  "sessions",
-  {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
-  },
-  (table) => [index("IDX_session_expire").on(table.expire)]
-);
-
-// User roles enum - 27 comprehensive user types
-export const userRoleEnum = pgEnum("user_role", [
-  // Property Owners & Managers (5)
-  "homeowner", // 1. Single-family homeowner
-  "renter", // 2. Tenant/Renter
-  "landlord", // 3. Property owner who rents out
-  "property_manager", // 4. Professional property manager
-  "hoa_member", // 5. HOA community member
-
-  // Business & Commercial (4)
-  "business_owner", // 6. Local business owner
-  "commercial_property", // 7. Commercial property owner/manager
-  "franchise_owner", // 8. Franchise business owner
-  "startup_founder", // 9. Startup/Entrepreneur
-
-  // Service Providers & Contractors (6)
-  "contractor", // 10. Licensed contractor
-  "handyman", // 11. General handyman/helper
-  "service_provider", // 12. Service professional (cleaner, landscaper, etc.)
-  "specialty_tradesperson", // 13. Plumber, electrician, HVAC, etc.
-  "designer", // 14. Interior designer, architect
-  "inspector", // 15. Home inspector, appraiser
-
-  // Real Estate & Finance (4)
-  "realtor", // 16. Real estate agent
-  "mortgage_broker", // 17. Mortgage/loan specialist
-  "insurance_agent", // 18. Insurance professional
-  "title_company", // 19. Title/escrow services
-
-  // Automotive (2)
-  "car_dealer", // 20. Vehicle dealer/salesperson
-  "auto_service", // 21. Auto repair, detailing, etc.
-
-  // Community & Admin (3)
-  "hoa_board", // 22. HOA board member/administrator
-  "community_builder", // 23. Community builder program participant
-  "nonprofit_org", // 24. Non-profit organization
-
-  // Platform & Special (3)
-  "affiliate", // 25. Affiliate marketer
-  "content_creator", // 26. Blogger, influencer, reviewer
-  "admin", // 27. Platform administrator
-  "content_seo",
-  "analytics_specialist",
-  "marketing_specialist",
-
-  // Admin roles (ascending hierarchy)
-  "moderator", // Basic moderation powers
-  "ops_admin", // Operations and platform management
-  "super_admin", // Ultimate platform authority (admin management included)
-  "head_admin", // LEGACY: normalized to super_admin at runtime
-]);
-
-// Story template categories for professional story generation
-export const storyTemplateCategoryEnum = pgEnum("story_template_category", [
-  "background",
-  "skills",
-  "values",
-  "approach",
-  "innovation",
-  "impact",
-]);
-
-// Story tone enum for narrative style
-export const storyToneEnum = pgEnum("story_tone", [
-  "professional",
-  "friendly",
-  "inspiring",
-  "authoritative",
-]);
-
-// Story length enum
-export const storyLengthEnum = pgEnum("story_length", ["short", "medium", "long"]);
-
-// Trade categories enum for contractor specializations
-export const tradeCategoryEnum = pgEnum("trade_category", [
-  // Construction & General
-  "general_contractor",
-  "construction_manager",
-  "project_manager",
-
-  // Structural & Foundation
-  "concrete_contractor",
-  "foundation_specialist",
-  "masonry_contractor",
-  "structural_engineer",
-
-  // Building Envelope
-  "roofing_contractor",
-  "siding_contractor",
-  "window_installer",
-  "door_installer",
-  "insulation_contractor",
-
-  // Electrical & Technology
-  "electrician",
-  "low_voltage_technician",
-  "solar_installer",
-  "security_system_installer",
-  "smart_home_specialist",
-
-  // Plumbing & HVAC
-  "plumber",
-  "hvac_contractor",
-  "refrigeration_technician",
-  "water_heater_specialist",
-  "septic_contractor",
-
-  // Interior Finishing
-  "flooring_contractor",
-  "tile_contractor",
-  "carpet_installer",
-  "painter",
-  "drywall_contractor",
-  "cabinet_maker",
-  "countertop_installer",
-
-  // Kitchen & Bath
-  "kitchen_remodeler",
-  "bathroom_remodeler",
-  "appliance_installer",
-
-  // Outdoor & Landscaping
-  "landscaper",
-  "hardscape_contractor",
-  "pool_contractor",
-  "fence_contractor",
-  "deck_builder",
-  "outdoor_lighting",
-
-  // Specialty Services
-  "home_inspector",
-  "mold_remediation",
-  "water_damage_restoration",
-  "pest_control",
-  "cleaning_service",
-  "handyman",
-  "maintenance_contractor",
-
-  // General & Retail Small Business (non-trade)
-  "salon_barbershop",
-  "spa_wellness",
-  "bakery_cafe",
-  "restaurant_food_service",
-  "retail_shop",
-  "boutique_apparel",
-  "florist",
-  "pet_grooming_services",
-  "childcare_provider",
-  "tutor_education_services",
-  "photographer_videographer",
-  "event_planner",
-  "auto_repair_service",
-  "laundry_dry_cleaning",
-  "fitness_instructor",
-  "bookkeeping_accounting",
-  "marketing_creative_services",
-  "general_small_business",
-]);
-
-// Permission levels enum
-export const permissionLevelEnum = pgEnum("permission_level", [
-  "none",
-  "read",
-  "write",
-  "admin",
-  "owner",
-]);
-
-// Social post types enum
-export const postTypeEnum = pgEnum("post_type", [
-  "general",
-  "announcement",
-  "question",
-  "recommendation",
-  "for_sale",
-  "lost_found",
-  "safety_alert",
-  "event",
-  "service_request",
-  "neighborhood_news",
-]);
-
-// Reaction types enum
-export const reactionTypeEnum = pgEnum("reaction_type", [
-  "like",
-  "love",
-  "laugh",
-  "wow",
-  "sad",
-  "angry",
-  "helpful",
-  "thanks",
-]);
-
-// Privacy levels enum
-export const privacyLevelEnum = pgEnum("privacy_level", [
-  "public",
-  "neighborhood",
-  "friends",
-  "private",
-]);
-
-// Report reasons enum
-export const reportReasonEnum = pgEnum("report_reason", [
-  "spam",
-  "harassment",
-  "hate_speech",
-  "violence",
-  "misinformation",
-  "inappropriate_content",
-  "scam",
-  "other",
-]);
-
-// Contact permission status enum
-export const contactPermissionStatusEnum = pgEnum("contact_permission_status", [
-  "pending",
-  "accepted",
-  "declined",
-  "blocked",
-]);
-
-// County-level entity and note categories for geographic storage layer
-export const countyNoteCategoryEnum = pgEnum("county_note_category", [
-  "affiliate",
-  "employee",
-  "partner",
-  "operations",
-  "risk",
-  "general",
-]);
-
-export const countyEntityTypeEnum = pgEnum("county_entity_type", [
-  "affiliate",
-  "employee",
-  "partner",
-  "territory_manager",
-  "vendor",
-]);
-
-export const countyEntityStatusEnum = pgEnum("county_entity_status", [
-  "active",
-  "inactive",
-  "pending",
-]);
-
-// Canonical observation model enums (Phase 0A)
-export const observationSubjectTypeEnum = pgEnum("observation_subject_type", [
-  "property",
-  "business",
-  "road",
-  "area",
-  "org",
-  "person_unknown",
-  "other",
-]);
-
-export const observationSourceTypeEnum = pgEnum("observation_source_type", [
-  "permit",
-  "inspection",
-  "enforcement",
-  "agenda",
-  "ordinance",
-  "sensor",
-  "listing",
-  "other",
-]);
-
-export const observationConfidenceEnum = pgEnum("observation_confidence", ["official", "inferred"]);
-
-export const observationHealthStatusEnum = pgEnum("observation_health_status", [
-  "healthy",
-  "degraded",
-  "failing",
-  "idle",
-]);
-
-// Mission Control + Scout enums
-export const botUiFailureTypeEnum = pgEnum("bot_ui_failure_type", [
-  "broken",
-  "stub",
-  "confusing",
-  "misleading",
-  "permission_block",
-]);
-
-export const scoutInteractionIntentEnum = pgEnum("scout_interaction_intent", [
-  "hire",
-  "advise",
-  "collaborate",
-  "unknown",
-]);
-
-export const scoutInteractionOutcomeEnum = pgEnum("scout_interaction_outcome", [
-  "completed",
-  "handed_off",
-  "blocked",
-  "abandoned",
-]);
-
-export const scoutInteractionFailureReasonEnum = pgEnum("scout_interaction_failure_reason", [
-  "missing_data",
-  "no_route",
-  "ui_dead_end",
-  "permission",
-  "unclear_copy",
-]);
-
-export const scoutInteractionUserRoleEnum = pgEnum("scout_interaction_user_role", [
-  "homeowner",
-  "contractor",
-  "admin",
-]);
-
-export const scoutMemoryTypeEnum = pgEnum("scout_memory_type", [
-  "tool_result",
-  "user_preference",
-  "conversation_context",
-  "learning_point",
-  "proactive_suggestion",
-]);
-
-export const missionControlSourceEnum = pgEnum("mission_control_source", [
-  "bot_ui",
-  "scout",
-  "error_report",
-]);
-
-export const missionControlActionStatusEnum = pgEnum("mission_control_action_status", [
-  "open",
-  "done",
-  "deferred",
-]);
-
-export const missionControlDecisionActionEnum = pgEnum("mission_control_decision_action", [
-  "done",
-  "defer",
-]);
-
-// Invitation status enum
-export const invitationStatusEnum = pgEnum("invitation_status", [
-  "pending",
-  "accepted",
-  "declined",
-  "expired",
-]);
-
-// Invitation type enum
-export const invitationTypeEnum = pgEnum("invitation_type", [
-  "email",
-  "referral_code",
-  "direct_link",
-]);
-
-// Address verification status enum
-export const addressVerificationStatusEnum = pgEnum("address_verification_status", [
-  "pending",
-  "submitted",
-  "approved",
-  "rejected",
-  "expired",
-]);
-
-export const identityVerificationStatusEnum = pgEnum("identity_verification_status", [
-  "pending",
-  "submitted",
-  "approved",
-  "rejected",
-  "expired",
-]);
-
-export const identityDocumentTypeEnum = pgEnum("identity_document_type", [
-  "drivers_license",
-  "passport",
-  "state_id",
-]);
-
-// Professional verification status enum
-export const verificationStatusEnum = pgEnum("verification_status", [
-  "pending",
-  "under_review",
-  "approved",
-  "rejected",
-  "expired",
-  "suspended",
-]);
-
-// User intent enum (person or business)
-export const userIntentEnum = pgEnum("user_intent", ["person", "business"]);
-
-// Profile business type enum (for business profiles)
-export const profileBusinessTypeEnum = pgEnum("profile_business_type", [
-  "service_provider",
-  "seller",
-]);
-
-// Profile visibility enum
-export const profileVisibilityEnum = pgEnum("profile_visibility", ["private", "discoverable"]);
-
-// Seller type enum
-export const sellerTypeEnum = pgEnum("seller_type", ["physical", "online", "hybrid"]);
-
-// Business entity enums
-export const businessTypeEnum = pgEnum("business_type", [
-  "contractor",
-  "community",
-  "vendor",
-  "other",
-]);
-
-export const businessStatusEnum = pgEnum("business_status", ["draft", "active", "suspended"]);
-
-// Profile website layer enums
-export const profileStatusEnum = pgEnum("profile_status", ["draft", "published"]);
+export * from "./schema/core";
+export type {
+  InsertPartnerWebhookEvent,
+  InsertProcurementDeliveryProof,
+  InsertProcurementFulfillmentEvent,
+  InsertProcurementMessage,
+  InsertProcurementOrder,
+  InsertProcurementOrderFile,
+  InsertProcurementOrderItem,
+  InsertProcurementOrderSource,
+  InsertProcurementPaymentAuthorization,
+  InsertProcurementQuote,
+  InsertProcurementQuoteLine,
+  InsertProcurementSupplierQuote,
+  InsertProcurementWorkspace,
+  InsertProcurementWorkspaceBranding,
+  InsertProcurementWorkspaceMember,
+  PartnerWebhookEvent,
+  ProcurementDeliveryProof,
+  ProcurementFulfillmentEvent,
+  ProcurementMessage,
+  ProcurementOrder,
+  ProcurementOrderFile,
+  ProcurementOrderItem,
+  ProcurementOrderSource,
+  ProcurementPaymentAuthorization,
+  ProcurementQuote,
+  ProcurementQuoteLine,
+  ProcurementSupplierQuote,
+  ProcurementWorkspace,
+  ProcurementWorkspaceBranding,
+  ProcurementWorkspaceMember,
+} from "./schema/procurement";
 
 // Users table
 export const users = pgTable("users", {
@@ -10626,384 +10276,39 @@ export * from "./tutorial-schema";
 // ===========================================
 
 // Notification types enum
-export const notificationTypeEnum = pgEnum("notification_type", [
-  // Personal notifications
-  "birthday",
-  "anniversary",
-  "milestone",
-  "welcome",
-  "reminder",
+const {
+  notificationTypeEnum,
+  notificationPriorityEnum,
+  deliveryMethodEnum,
+  notifications,
+  notificationPreferences,
+  pushSubscriptions,
+  userPersonalEvents,
+  notificationDeliveryLog,
+  notificationTemplates,
+  notificationJobs,
+  insertNotificationSchema,
+  insertNotificationPreferencesSchema,
+  insertUserPersonalEventSchema,
+  insertNotificationTemplateSchema,
+} = createNotificationSchema(() => users.id);
 
-  // Activity notifications
-  "new_message",
-  "new_project_request",
-  "new_application",
-  "project_update",
-  "payment_received",
-  "review_received",
-  "favorite_added",
-
-  // System notifications
-  "system_update",
-  "maintenance",
-  "security_alert",
-  "verification_required",
-  "document_expiring",
-  "subscription_reminder",
-
-  // Social notifications
-  "new_follower",
-  "post_liked",
-  "comment_received",
-  "mention",
-  "community_invitation",
-
-  // Direct Connect notifications
-  "dc_provider_accepted",
-  "dc_provider_declined",
-  "dc_provider_interested",
-  "dc_request_completed",
-  "direct_connect_beta_request",
-  // Marketing notifications
-  "promotional",
-  "feature_announcement",
-  "tips_and_advice",
-  "market_update",
-  "seasonal_promotion",
-]);
-
-// Notification priority enum
-export const notificationPriorityEnum = pgEnum("notification_priority", [
-  "low",
-  "normal",
-  "high",
-  "urgent",
-  "critical",
-]);
-
-// Notification delivery method enum
-export const deliveryMethodEnum = pgEnum("delivery_method", [
-  "in_app",
-  "email",
-  "sms",
-  "push",
-  "webhook",
-]);
-
-// Main notifications table
-export const notifications = pgTable(
-  "notifications",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    type: notificationTypeEnum("type").notNull(),
-    priority: notificationPriorityEnum("priority").default("normal"),
-
-    // Content
-    title: varchar("title").notNull(),
-    message: text("message").notNull(),
-    actionUrl: varchar("action_url"), // URL to navigate to when clicked
-    actionText: varchar("action_text"), // Button text for action
-
-    // Rich content
-    iconName: varchar("icon_name"), // Lucide icon name
-    iconColor: varchar("icon_color").default("blue"), // Icon color theme
-    imageUrl: varchar("image_url"),
-    metadata: jsonb("metadata").$type<Record<string, any>>(), // Additional data
-
-    // Delivery and status
-    deliveryMethods: jsonb("delivery_methods")
-      .$type<string[]>()
-      .default(sql`'["in_app"]'`),
-    isRead: boolean("is_read").default(false),
-    readAt: timestamp("read_at"),
-    isArchived: boolean("is_archived").default(false),
-    archivedAt: timestamp("archived_at"),
-
-    // Scheduling
-    scheduledFor: timestamp("scheduled_for"), // For delayed notifications
-    expiresAt: timestamp("expires_at"), // When notification becomes irrelevant
-
-    // Grouping and batching
-    groupId: varchar("group_id"), // For grouping similar notifications
-    batchId: varchar("batch_id"), // For batch sending
-
-    // Tracking
-    sentAt: timestamp("sent_at"),
-    deliveredAt: timestamp("delivered_at"),
-    clickedAt: timestamp("clicked_at"),
-
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [
-    index("idx_notifications_user").on(table.userId),
-    index("idx_notifications_type").on(table.type),
-    index("idx_notifications_scheduled").on(table.scheduledFor),
-    index("idx_notifications_unread").on(table.userId, table.isRead),
-    index("idx_notifications_group").on(table.groupId),
-  ]
-);
-
-// User notification preferences
-export const notificationPreferences = pgTable(
-  "notification_preferences",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-
-    // General preferences
-    enableNotifications: boolean("enable_notifications").default(true),
-    enableEmailNotifications: boolean("enable_email_notifications").default(true),
-    enableSmsNotifications: boolean("enable_sms_notifications").default(false),
-    enablePushNotifications: boolean("enable_push_notifications").default(true),
-
-    // Notification type preferences (jsonb for flexibility)
-    typePreferences: jsonb("type_preferences")
-      .$type<
-        Record<
-          string,
-          {
-            enabled: boolean;
-            delivery_methods: string[];
-            frequency?: "instant" | "hourly" | "daily" | "weekly";
-          }
-        >
-      >()
-      .default(sql`'{}'`),
-
-    // Time preferences
-    quietHoursStart: varchar("quiet_hours_start").default("22:00"), // 10 PM
-    quietHoursEnd: varchar("quiet_hours_end").default("08:00"), // 8 AM
-    timezone: varchar("timezone").default("America/New_York"),
-
-    // Batching preferences
-    batchDailyDigest: boolean("batch_daily_digest").default(false),
-    batchWeeklyDigest: boolean("batch_weekly_digest").default(false),
-    digestTime: varchar("digest_time").default("09:00"), // 9 AM
-
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [index("idx_notification_preferences_user").on(table.userId)]
-);
-
-// Web push subscriptions for browser/device notifications
-export const pushSubscriptions = pgTable(
-  "push_subscriptions",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    endpoint: text("endpoint").notNull(),
-    keys: jsonb("keys").$type<{ p256dh: string; auth: string }>().notNull(),
-    userAgent: text("user_agent"),
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [
-    index("idx_push_subscriptions_user").on(table.userId),
-    uniqueIndex("uidx_push_subscriptions_endpoint").on(table.endpoint),
-  ]
-);
-
-// User personal events for birthday and anniversary notifications
-export const userPersonalEvents = pgTable(
-  "user_personal_events",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-
-    // Event details
-    eventType: varchar("event_type").notNull(), // 'birthday', 'work_anniversary', 'business_anniversary', 'custom'
-    eventName: varchar("event_name"), // Custom name for the event
-    eventDate: varchar("event_date").notNull(), // MM-DD format for recurring events
-    eventYear: integer("event_year"), // Optional year for non-recurring events
-
-    // Notification settings
-    enableNotifications: boolean("enable_notifications").default(true),
-    notifyDaysBefore: jsonb("notify_days_before")
-      .$type<number[]>()
-      .default(sql`'[0, 1, 7]'`), // Day of, 1 day before, 1 week before
-    customMessage: text("custom_message"),
-
-    // Privacy
-    isPublic: boolean("is_public").default(false), // Whether others can see this event
-    shareWithTeam: boolean("share_with_team").default(false), // Share with team/company
-
-    // Metadata
-    metadata: jsonb("metadata").$type<Record<string, any>>(),
-
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [
-    index("idx_user_personal_events_user").on(table.userId),
-    index("idx_user_personal_events_date").on(table.eventDate),
-  ]
-);
-
-// Notification delivery log for tracking and analytics
-export const notificationDeliveryLog = pgTable(
-  "notification_delivery_log",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-    notificationId: varchar("notification_id")
-      .notNull()
-      .references(() => notifications.id, { onDelete: "cascade" }),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-
-    // Delivery details
-    deliveryMethod: deliveryMethodEnum("delivery_method").notNull(),
-    status: varchar("status").notNull(), // 'pending', 'sent', 'delivered', 'failed', 'bounced'
-
-    // Contact info used
-    contactInfo: varchar("contact_info"), // Email address or phone number used
-
-    // External service details
-    externalId: varchar("external_id"), // ID from external service (SendGrid, Twilio, etc.)
-    externalResponse: jsonb("external_response").$type<Record<string, any>>(),
-
-    // Error tracking
-    errorCode: varchar("error_code"),
-    errorMessage: text("error_message"),
-    retryCount: integer("retry_count").default(0),
-    nextRetryAt: timestamp("next_retry_at"),
-
-    // Timestamps
-    sentAt: timestamp("sent_at"),
-    deliveredAt: timestamp("delivered_at"),
-    failedAt: timestamp("failed_at"),
-
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [
-    index("idx_notification_delivery_notification").on(table.notificationId),
-    index("idx_notification_delivery_user").on(table.userId),
-    index("idx_notification_delivery_status").on(table.status),
-    index("idx_notification_delivery_retry").on(table.nextRetryAt),
-  ]
-);
-
-// Notification templates for consistent messaging
-export const notificationTemplates = pgTable(
-  "notification_templates",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-
-    // Template identification
-    type: notificationTypeEnum("type").notNull(),
-    name: varchar("name").notNull(),
-    description: text("description"),
-
-    // Template content
-    titleTemplate: varchar("title_template").notNull(),
-    messageTemplate: text("message_template").notNull(),
-    emailSubjectTemplate: varchar("email_subject_template"),
-    emailBodyTemplate: text("email_body_template"),
-    smsTemplate: text("sms_template"),
-
-    // Template variables
-    templateVariables: jsonb("template_variables").$type<string[]>(), // List of available variables
-
-    // Appearance
-    iconName: varchar("icon_name"),
-    iconColor: varchar("icon_color").default("blue"),
-    priority: notificationPriorityEnum("priority").default("normal"),
-
-    // Settings
-    defaultDeliveryMethods: jsonb("default_delivery_methods")
-      .$type<string[]>()
-      .default(sql`'["in_app"]'`),
-    expiresAfterHours: integer("expires_after_hours").default(168), // 1 week default
-
-    // Status
-    isActive: boolean("is_active").default(true),
-    isDefault: boolean("is_default").default(false), // Default template for this type
-
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [
-    index("idx_notification_templates_type").on(table.type),
-    index("idx_notification_templates_active").on(table.isActive),
-  ]
-);
-
-// Scheduled notification jobs for batch processing
-export const notificationJobs = pgTable(
-  "notification_jobs",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()`),
-
-    // Job details
-    jobType: varchar("job_type").notNull(), // 'birthday_batch', 'weekly_digest', 'reminder_batch', etc.
-    scheduledFor: timestamp("scheduled_for").notNull(),
-
-    // Target criteria
-    targetUserIds: jsonb("target_user_ids").$type<string[]>(),
-    targetFilters: jsonb("target_filters").$type<Record<string, any>>(), // Dynamic user filtering
-
-    // Notification details
-    notificationType: notificationTypeEnum("notification_type").notNull(),
-    templateId: varchar("template_id").references(() => notificationTemplates.id),
-    templateData: jsonb("template_data").$type<Record<string, any>>(),
-
-    // Processing status
-    status: varchar("status").default("pending"), // 'pending', 'running', 'completed', 'failed', 'cancelled'
-    startedAt: timestamp("started_at"),
-    completedAt: timestamp("completed_at"),
-
-    // Results
-    targetCount: integer("target_count").default(0),
-    successCount: integer("success_count").default(0),
-    failureCount: integer("failure_count").default(0),
-    errorLog: jsonb("error_log").$type<
-      Array<{
-        userId: string;
-        error: string;
-        timestamp: string;
-      }>
-    >(),
-
-    // Retry logic
-    maxRetries: integer("max_retries").default(3),
-    retryCount: integer("retry_count").default(0),
-    nextRetryAt: timestamp("next_retry_at"),
-
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => [
-    index("idx_notification_jobs_scheduled").on(table.scheduledFor),
-    index("idx_notification_jobs_status").on(table.status),
-    index("idx_notification_jobs_type").on(table.jobType),
-  ]
-);
+export {
+  notificationTypeEnum,
+  notificationPriorityEnum,
+  deliveryMethodEnum,
+  notifications,
+  notificationPreferences,
+  pushSubscriptions,
+  userPersonalEvents,
+  notificationDeliveryLog,
+  notificationTemplates,
+  notificationJobs,
+  insertNotificationSchema,
+  insertNotificationPreferencesSchema,
+  insertUserPersonalEventSchema,
+  insertNotificationTemplateSchema,
+};
 
 // Relations for notification system
 export const notificationsRelations = relations(notifications, ({ one, many }) => ({
@@ -11045,40 +10350,6 @@ export const notificationJobsRelations = relations(notificationJobs, ({ one }) =
     references: [notificationTemplates.id],
   }),
 }));
-
-// Insert schemas for notification system
-export const insertNotificationSchema = createInsertSchema(notifications).omit({
-  id: true,
-  isRead: true,
-  readAt: true,
-  isArchived: true,
-  archivedAt: true,
-  sentAt: true,
-  deliveredAt: true,
-  clickedAt: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit(
-  {
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  }
-);
-
-export const insertUserPersonalEventSchema = createInsertSchema(userPersonalEvents).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertNotificationTemplateSchema = createInsertSchema(notificationTemplates).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
 
 // Types for notification system
 export type Notification = typeof notifications.$inferSelect;
@@ -12200,440 +11471,41 @@ export const scoutOnboardingSessions = pgTable(
 export type ScoutOnboardingSession = typeof scoutOnboardingSessions.$inferSelect;
 export type InsertScoutOnboardingSession = typeof scoutOnboardingSessions.$inferInsert;
 
-// ─── TradeScout Procurement Engine ───────────────────────────────────────────
-// Brand-neutral ordering infrastructure powering TradeScout Supply Run, Grunt
-// Direct Ordering, and future utility partners. It is intentionally separate
-// from visibility, ranking, lead selling, and trust/CVS scoring tables.
-export const procurementWorkspaces = pgTable(
-  "procurement_workspaces",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    slug: varchar("slug", { length: 120 }).notNull().unique(),
-    name: varchar("name", { length: 160 }).notNull(),
-    workspaceType: varchar("workspace_type", { length: 80 }).notNull(),
-    status: varchar("status", { length: 40 }).notNull().default("active"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [
-    uniqueIndex("idx_procurement_workspaces_slug").on(table.slug),
-    index("idx_procurement_workspaces_type").on(table.workspaceType),
-  ]
-);
+const {
+  procurementWorkspaces,
+  procurementWorkspaceMembers,
+  procurementWorkspaceBranding,
+  procurementOrderSources,
+  procurementOrders,
+  procurementOrderItems,
+  procurementOrderFiles,
+  procurementSupplierQuotes,
+  procurementQuotes,
+  procurementQuoteLines,
+  procurementFulfillmentEvents,
+  procurementMessages,
+  procurementDeliveryProofs,
+  procurementPaymentAuthorizations,
+  partnerWebhookEvents,
+} = createProcurementSchema(() => users.id);
 
-export const procurementWorkspaceMembers = pgTable(
-  "procurement_workspace_members",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    workspaceId: varchar("workspace_id")
-      .notNull()
-      .references(() => procurementWorkspaces.id, { onDelete: "cascade" }),
-    userId: varchar("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    role: varchar("role", { length: 60 }).notNull().default("member"),
-    status: varchar("status", { length: 40 }).notNull().default("active"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [
-    uniqueIndex("idx_procurement_workspace_members_unique").on(table.workspaceId, table.userId),
-    index("idx_procurement_workspace_members_user").on(table.userId, table.status),
-  ]
-);
-
-export const procurementWorkspaceBranding = pgTable(
-  "procurement_workspace_branding",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    workspaceId: varchar("workspace_id")
-      .notNull()
-      .unique()
-      .references(() => procurementWorkspaces.id, { onDelete: "cascade" }),
-    publicName: varchar("public_name", { length: 160 }).notNull(),
-    tagline: text("tagline"),
-    primaryColor: varchar("primary_color", { length: 32 }),
-    logoObjectKey: text("logo_object_key"),
-    supportEmail: varchar("support_email", { length: 220 }),
-    supportPhone: varchar("support_phone", { length: 80 }),
-    settings: jsonb("settings")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_workspace_branding_workspace").on(table.workspaceId)]
-);
-
-export const procurementOrderSources = pgTable(
-  "procurement_order_sources",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    workspaceId: varchar("workspace_id")
-      .notNull()
-      .references(() => procurementWorkspaces.id, { onDelete: "cascade" }),
-    sourceChannel: varchar("source_channel", { length: 80 }).notNull(),
-    displayName: varchar("display_name", { length: 160 }).notNull(),
-    status: varchar("status", { length: 40 }).notNull().default("active"),
-    settings: jsonb("settings")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [
-    uniqueIndex("idx_procurement_order_sources_unique").on(table.workspaceId, table.sourceChannel),
-    index("idx_procurement_order_sources_channel").on(table.sourceChannel),
-  ]
-);
-
-export const procurementOrders = pgTable(
-  "procurement_orders",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderNumber: varchar("order_number", { length: 40 }).notNull().unique(),
-    originWorkspaceId: varchar("origin_workspace_id")
-      .notNull()
-      .references(() => procurementWorkspaces.id, { onDelete: "restrict" }),
-    fulfillmentWorkspaceId: varchar("fulfillment_workspace_id").references(
-      () => procurementWorkspaces.id,
-      { onDelete: "set null" }
-    ),
-    sourceChannel: varchar("source_channel", { length: 80 }).notNull(),
-    userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
-    customerName: varchar("customer_name", { length: 180 }),
-    customerEmail: varchar("customer_email", { length: 220 }),
-    customerPhone: varchar("customer_phone", { length: 80 }),
-    countyId: varchar("county_id", { length: 80 }),
-    jobId: varchar("job_id", { length: 120 }),
-    contractorProfileId: varchar("contractor_profile_id", { length: 120 }),
-    homeownerProfileId: varchar("homeowner_profile_id", { length: 120 }),
-    status: varchar("status", { length: 40 }).notNull().default("submitted"),
-    orderType: varchar("order_type", { length: 40 }).notNull(),
-    urgency: varchar("urgency", { length: 40 }).notNull(),
-    preferredSupplierName: text("preferred_supplier_name"),
-    preferredSupplierAddress: text("preferred_supplier_address"),
-    pickupAddress: text("pickup_address"),
-    deliveryAddress: text("delivery_address").notNull(),
-    deliveryLat: numeric("delivery_lat", { precision: 10, scale: 7 }),
-    deliveryLng: numeric("delivery_lng", { precision: 10, scale: 7 }),
-    vehicleType: varchar("vehicle_type", { length: 40 }).notNull().default("unsure"),
-    needsPurchase: boolean("needs_purchase").notNull().default(true),
-    customerAlreadyPaid: boolean("customer_already_paid").notNull().default(false),
-    budgetLimitCents: integer("budget_limit_cents"),
-    estimatedMaterialTotalCents: integer("estimated_material_total_cents"),
-    estimatedDeliveryFeeCents: integer("estimated_delivery_fee_cents"),
-    estimatedServiceFeeCents: integer("estimated_service_fee_cents"),
-    approvedTotalCents: integer("approved_total_cents"),
-    actualMaterialTotalCents: integer("actual_material_total_cents"),
-    actualDeliveryFeeCents: integer("actual_delivery_fee_cents"),
-    actualServiceFeeCents: integer("actual_service_fee_cents"),
-    finalTotalCents: integer("final_total_cents"),
-    partnerOrderId: varchar("partner_order_id", { length: 160 }),
-    partnerEta: timestamp("partner_eta"),
-    publicAccessToken: varchar("public_access_token", { length: 120 }),
-    notes: text("notes"),
-    internalNotes: text("internal_notes"),
-    metadata: jsonb("metadata")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-    submittedAt: timestamp("submitted_at"),
-    approvedAt: timestamp("approved_at"),
-    completedAt: timestamp("completed_at"),
-    cancelledAt: timestamp("cancelled_at"),
-  },
-  (table) => [
-    index("idx_procurement_orders_user").on(table.userId),
-    index("idx_procurement_orders_origin").on(table.originWorkspaceId, table.sourceChannel),
-    index("idx_procurement_orders_fulfillment").on(table.fulfillmentWorkspaceId, table.status),
-    index("idx_procurement_orders_status").on(table.status),
-    index("idx_procurement_orders_created_at").on(table.createdAt),
-    uniqueIndex("idx_procurement_orders_public_access_token").on(table.publicAccessToken),
-  ]
-);
-
-export const procurementOrderItems = pgTable(
-  "procurement_order_items",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    itemName: varchar("item_name", { length: 220 }).notNull(),
-    description: text("description"),
-    quantity: numeric("quantity", { precision: 12, scale: 2 }).notNull().default("1"),
-    unit: varchar("unit", { length: 60 }),
-    brandPreference: varchar("brand_preference", { length: 220 }),
-    sku: varchar("sku", { length: 160 }),
-    url: text("url"),
-    photoUrl: text("photo_url"),
-    mustMatchExactly: boolean("must_match_exactly").notNull().default(false),
-    substitutionAllowed: boolean("substitution_allowed").notNull().default(true),
-    estimatedUnitPriceCents: integer("estimated_unit_price_cents"),
-    approvedUnitPriceCents: integer("approved_unit_price_cents"),
-    actualUnitPriceCents: integer("actual_unit_price_cents"),
-    supplierSnapshot: jsonb("supplier_snapshot"),
-    status: varchar("status", { length: 40 }).notNull().default("requested"),
-    sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_order_items_order").on(table.orderId)]
-);
-
-export const procurementOrderFiles = pgTable(
-  "procurement_order_files",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    uploadedByUserId: varchar("uploaded_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    objectKey: text("object_key").notNull(),
-    fileName: varchar("file_name", { length: 260 }).notNull(),
-    fileType: varchar("file_type", { length: 120 }),
-    fileSize: integer("file_size"),
-    filePurpose: varchar("file_purpose", { length: 80 }).notNull().default("source"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_order_files_order").on(table.orderId)]
-);
-
-export const procurementSupplierQuotes = pgTable(
-  "procurement_supplier_quotes",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    supplierName: varchar("supplier_name", { length: 220 }).notNull(),
-    supplierEmail: varchar("supplier_email", { length: 220 }),
-    supplierPhone: varchar("supplier_phone", { length: 80 }),
-    supplierAddress: text("supplier_address"),
-    requestToken: varchar("request_token", { length: 120 }).notNull().unique(),
-    status: varchar("status", { length: 40 }).notNull().default("requested"),
-    requestedByUserId: varchar("requested_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    requestedAt: timestamp("requested_at").notNull().defaultNow(),
-    respondedAt: timestamp("responded_at"),
-    materialTotalCents: integer("material_total_cents"),
-    pickupReadyAt: timestamp("pickup_ready_at"),
-    expiresAt: timestamp("expires_at"),
-    availabilitySummary: text("availability_summary"),
-    supplierNotes: text("supplier_notes"),
-    responsePayload: jsonb("response_payload")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_procurement_supplier_quotes_order").on(table.orderId, table.status),
-    uniqueIndex("idx_procurement_supplier_quotes_token").on(table.requestToken),
-  ]
-);
-
-export const procurementQuotes = pgTable(
-  "procurement_quotes",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    status: varchar("status", { length: 40 }).notNull().default("draft"),
-    notes: text("notes"),
-    totalAmountCents: integer("total_amount_cents").notNull().default(0),
-    sentAt: timestamp("sent_at"),
-    approvedAt: timestamp("approved_at"),
-    createdByUserId: varchar("created_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_quotes_order").on(table.orderId)]
-);
-
-export const procurementQuoteLines = pgTable(
-  "procurement_quote_lines",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    quoteId: varchar("quote_id")
-      .notNull()
-      .references(() => procurementQuotes.id, { onDelete: "cascade" }),
-    lineType: varchar("line_type", { length: 80 }).notNull(),
-    label: varchar("label", { length: 160 }).notNull(),
-    amountCents: integer("amount_cents").notNull().default(0),
-    notes: text("notes"),
-    sortOrder: integer("sort_order").notNull().default(0),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_quote_lines_quote").on(table.quoteId)]
-);
-
-export const procurementFulfillmentEvents = pgTable(
-  "procurement_fulfillment_events",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    actorUserId: varchar("actor_user_id").references(() => users.id, { onDelete: "set null" }),
-    actorType: varchar("actor_type", { length: 60 }).notNull().default("system"),
-    status: varchar("status", { length: 40 }).notNull(),
-    message: text("message").notNull(),
-    metadata: jsonb("metadata")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_procurement_events_order").on(table.orderId),
-    index("idx_procurement_events_created_at").on(table.createdAt),
-  ]
-);
-
-export const procurementMessages = pgTable(
-  "procurement_messages",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    senderUserId: varchar("sender_user_id").references(() => users.id, { onDelete: "set null" }),
-    senderType: varchar("sender_type", { length: 60 }).notNull().default("user"),
-    body: text("body").notNull(),
-    visibility: varchar("visibility", { length: 40 }).notNull().default("internal"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_messages_order").on(table.orderId)]
-);
-
-export const procurementDeliveryProofs = pgTable(
-  "procurement_delivery_proofs",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    uploadedByUserId: varchar("uploaded_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    proofType: varchar("proof_type", { length: 60 }).notNull(),
-    objectKey: text("object_key").notNull(),
-    fileName: varchar("file_name", { length: 260 }),
-    note: text("note"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_delivery_proofs_order").on(table.orderId)]
-);
-
-export const procurementPaymentAuthorizations = pgTable(
-  "procurement_payment_authorizations",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    orderId: varchar("order_id")
-      .notNull()
-      .references(() => procurementOrders.id, { onDelete: "cascade" }),
-    provider: varchar("provider", { length: 80 }).notNull().default("manual"),
-    providerReference: varchar("provider_reference", { length: 220 }),
-    status: varchar("status", { length: 60 }).notNull().default("manual_pending"),
-    authorizedAmountCents: integer("authorized_amount_cents"),
-    capturedAmountCents: integer("captured_amount_cents"),
-    metadata: jsonb("metadata")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-    updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  },
-  (table) => [index("idx_procurement_payment_authorizations_order").on(table.orderId)]
-);
-
-export const partnerWebhookEvents = pgTable(
-  "partner_webhook_events",
-  {
-    id: varchar("id")
-      .primaryKey()
-      .default(sql`gen_random_uuid()::text`),
-    partnerSlug: varchar("partner_slug", { length: 120 }).notNull(),
-    orderId: varchar("order_id").references(() => procurementOrders.id, { onDelete: "set null" }),
-    eventType: varchar("event_type", { length: 120 }).notNull(),
-    payload: jsonb("payload")
-      .notNull()
-      .default(sql`'{}'::jsonb`),
-    processedAt: timestamp("processed_at"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_partner_webhook_events_partner").on(table.partnerSlug),
-    index("idx_partner_webhook_events_order").on(table.orderId),
-  ]
-);
-
-export type ProcurementWorkspace = typeof procurementWorkspaces.$inferSelect;
-export type InsertProcurementWorkspace = typeof procurementWorkspaces.$inferInsert;
-export type ProcurementWorkspaceMember = typeof procurementWorkspaceMembers.$inferSelect;
-export type InsertProcurementWorkspaceMember = typeof procurementWorkspaceMembers.$inferInsert;
-export type ProcurementWorkspaceBranding = typeof procurementWorkspaceBranding.$inferSelect;
-export type InsertProcurementWorkspaceBranding = typeof procurementWorkspaceBranding.$inferInsert;
-export type ProcurementOrderSource = typeof procurementOrderSources.$inferSelect;
-export type InsertProcurementOrderSource = typeof procurementOrderSources.$inferInsert;
-export type ProcurementOrder = typeof procurementOrders.$inferSelect;
-export type InsertProcurementOrder = typeof procurementOrders.$inferInsert;
-export type ProcurementOrderItem = typeof procurementOrderItems.$inferSelect;
-export type InsertProcurementOrderItem = typeof procurementOrderItems.$inferInsert;
-export type ProcurementSupplierQuote = typeof procurementSupplierQuotes.$inferSelect;
-export type InsertProcurementSupplierQuote = typeof procurementSupplierQuotes.$inferInsert;
-export type ProcurementOrderFile = typeof procurementOrderFiles.$inferSelect;
-export type InsertProcurementOrderFile = typeof procurementOrderFiles.$inferInsert;
-export type ProcurementQuote = typeof procurementQuotes.$inferSelect;
-export type InsertProcurementQuote = typeof procurementQuotes.$inferInsert;
-export type ProcurementQuoteLine = typeof procurementQuoteLines.$inferSelect;
-export type InsertProcurementQuoteLine = typeof procurementQuoteLines.$inferInsert;
-export type ProcurementFulfillmentEvent = typeof procurementFulfillmentEvents.$inferSelect;
-export type InsertProcurementFulfillmentEvent = typeof procurementFulfillmentEvents.$inferInsert;
-export type ProcurementMessage = typeof procurementMessages.$inferSelect;
-export type InsertProcurementMessage = typeof procurementMessages.$inferInsert;
-export type ProcurementDeliveryProof = typeof procurementDeliveryProofs.$inferSelect;
-export type InsertProcurementDeliveryProof = typeof procurementDeliveryProofs.$inferInsert;
-export type ProcurementPaymentAuthorization = typeof procurementPaymentAuthorizations.$inferSelect;
-export type InsertProcurementPaymentAuthorization =
-  typeof procurementPaymentAuthorizations.$inferInsert;
-export type PartnerWebhookEvent = typeof partnerWebhookEvents.$inferSelect;
-export type InsertPartnerWebhookEvent = typeof partnerWebhookEvents.$inferInsert;
+export {
+  procurementWorkspaces,
+  procurementWorkspaceMembers,
+  procurementWorkspaceBranding,
+  procurementOrderSources,
+  procurementOrders,
+  procurementOrderItems,
+  procurementOrderFiles,
+  procurementSupplierQuotes,
+  procurementQuotes,
+  procurementQuoteLines,
+  procurementFulfillmentEvents,
+  procurementMessages,
+  procurementDeliveryProofs,
+  procurementPaymentAuthorizations,
+  partnerWebhookEvents,
+};
 
 // Zod schemas
 // export const insertToolProposalSchema = createInsertSchema(toolProposals).omit({

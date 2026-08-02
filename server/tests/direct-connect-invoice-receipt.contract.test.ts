@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 
-const routePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
+const routePath = path.resolve(process.cwd(), "server/routes/direct-connect/job-lifecycle.ts");
+const rootRoutePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
 const servicePath = path.resolve(
   process.cwd(),
   "server/services/directConnectDispatchLedgerService.ts"
@@ -12,9 +13,11 @@ function read(filePath: string) {
   return fs.readFileSync(filePath, "utf8");
 }
 
+const readRouteSources = () => [read(rootRoutePath), read(routePath)].join("\n");
+
 describe("direct-connect invoice and receipt contract", () => {
   it("adds invoice endpoints with completion-confirmed gating", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/invoices"');
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/invoices/:invoiceId"');
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/invoices/:invoiceId/send"');
@@ -31,7 +34,7 @@ describe("direct-connect invoice and receipt contract", () => {
   });
 
   it("adds receipt record endpoints and keeps them as records, not processor payments", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/receipts"');
     expect(source).toContain('"/api/direct-connect/jobs/:jobWorkspaceId/receipts/:receiptId"');
     expect(source).toContain("Receipt records require confirmed completion.");
@@ -63,7 +66,7 @@ describe("direct-connect invoice and receipt contract", () => {
   });
 
   it("exposes invoice/receipt summary fields on requester and contractor surfaces", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source).toContain("latestInvoiceStatus");
     expect(source).toContain("invoiceCount");
     expect(source).toContain("activeInvoiceId");
@@ -73,7 +76,7 @@ describe("direct-connect invoice and receipt contract", () => {
   });
 
   it("does not add lead-selling or paid-placement language", () => {
-    const source = read(routePath);
+    const source = readRouteSources();
     expect(source.toLowerCase()).not.toContain("lead-selling");
     expect(source.toLowerCase()).not.toContain("buy lead");
     expect(source.toLowerCase()).not.toContain("boosted placement");

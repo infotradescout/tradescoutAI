@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 
-const routePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
+const routePath = path.resolve(process.cwd(), "server/routes/direct-connect/job-lifecycle.ts");
+const rootRoutePath = path.resolve(process.cwd(), "server/routes/direct-connect.ts");
 
 function readRoute() {
-  return fs.readFileSync(routePath, "utf8");
+  return [rootRoutePath, routePath].map((filePath) => fs.readFileSync(filePath, "utf8")).join("\n");
 }
 
 describe("direct-connect estimate contract", () => {

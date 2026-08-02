@@ -84,16 +84,17 @@ describe("Gap 2 – Completion notification to accepted providers", () => {
 
 describe("Gap 1 – Schema: provider_self_selected event type", () => {
   const schema = read("shared/schema.ts");
+  const notificationSchema = read("shared/schema/notifications.ts");
 
   it("includes provider_self_selected in workRequestEvents type enum", () => {
     expect(schema).toContain('"provider_self_selected"');
   });
 
   it("includes DC notification types in notificationTypeEnum", () => {
-    expect(schema).toContain('"dc_provider_accepted"');
-    expect(schema).toContain('"dc_provider_declined"');
-    expect(schema).toContain('"dc_provider_interested"');
-    expect(schema).toContain('"dc_request_completed"');
+    expect(notificationSchema).toContain('"dc_provider_accepted"');
+    expect(notificationSchema).toContain('"dc_provider_declined"');
+    expect(notificationSchema).toContain('"dc_provider_interested"');
+    expect(notificationSchema).toContain('"dc_request_completed"');
   });
 
   it("includes routingMode in scoreSnapshot type", () => {

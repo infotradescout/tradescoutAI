@@ -68,7 +68,7 @@ describe("canonical profile item parity", () => {
     }
   });
 
-  it("uses every durable item route and exact-image helper without adding contact actions", () => {
+  it("uses every durable item route and exact-image helper without adding contact actions or process copy", () => {
     const items = read("client/src/components/profile/PublicProfileItems.tsx");
 
     expect(items).toContain("buildProfileServiceOfferPath(offer.id)");
@@ -83,9 +83,9 @@ describe("canonical profile item parity", () => {
     expect(items).toContain("<ShareButton");
     expect(items).not.toContain("Send Message");
     expect(items).not.toContain("Start Job");
-    expect(items).toContain("See something you like?");
-    expect(items).toContain("Your contact details stay");
-    expect(items).toContain("private until you choose to connect.");
+    expect(items).not.toContain("See something you like?");
+    expect(items).not.toContain("Your contact details stay");
+    expect(items).not.toContain("private until you choose to connect.");
     expect(items).not.toContain("Contact, job routing, and transactions continue through");
   });
 

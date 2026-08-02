@@ -164,7 +164,9 @@ describe("anonymous public-profile HTML trust boundary", () => {
   });
 
   it("gates every custom-domain mechanics path before HTML, robots, sitemap, or llms handling", () => {
-    const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
+    const source = fs
+      .readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8")
+      .replace(/\r\n/g, "\n");
     const customDomainHandler = source.slice(
       source.indexOf("async function serveCustomDomainProfilePath"),
       source.indexOf(

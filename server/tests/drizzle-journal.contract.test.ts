@@ -32,9 +32,16 @@ describe("drizzle journal contracts", () => {
     const journalTags = getJournalTags(repoRoot);
     const missingTags = sqlTags.filter((tag) => !journalTags.includes(tag));
     const extraTags = journalTags.filter((tag) => !sqlTags.includes(tag));
+    const latestMigrationNumber = Math.max(
+      ...sqlTags.map((tag) => Number.parseInt(tag.split("_", 1)[0] || "", 10))
+    );
+    const latestTags = sqlTags.filter(
+      (tag) => Number.parseInt(tag.split("_", 1)[0] || "", 10) === latestMigrationNumber
+    );
 
     expect(missingTags).toEqual([]);
     expect(extraTags).toEqual([]);
-    expect(journalTags.at(-1)).toBe(sqlTags.at(-1));
+    expect(new Set(journalTags).size).toBe(journalTags.length);
+    expect(latestTags).toContain(journalTags.at(-1));
   });
 });

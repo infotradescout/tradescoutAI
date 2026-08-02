@@ -47,7 +47,10 @@ describe("direct connect assignment integrity contracts", () => {
   });
 
   it("blocks unauthorized/non-eligible providers from request access and action paths", () => {
-    const source = read("server/routes/direct-connect.ts");
+    const source = [
+      read("server/routes/direct-connect.ts"),
+      read("server/routes/direct-connect/job-lifecycle.ts"),
+    ].join("\n");
     expect(source).toContain("canResponderUserAccessRequest");
     expect(source).toContain('message: "Assignment not found"');
     expect(source).toContain('message: "Only the eligible business can start work."');

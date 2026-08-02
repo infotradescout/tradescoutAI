@@ -12,10 +12,12 @@ import * as path from "path";
 const HOA_FILE = path.resolve(__dirname, "../routes/hoa.ts");
 const AUTHORITY_FILE = path.resolve(__dirname, "../routes/authority-operations.ts");
 const STORAGE_FILE = path.resolve(__dirname, "../storage.ts");
+const STORAGE_CONTRACT_FILE = path.resolve(__dirname, "../storage/contracts.ts");
 
 const hoaContent = fs.readFileSync(HOA_FILE, "utf8");
 const authorityContent = fs.readFileSync(AUTHORITY_FILE, "utf8");
 const storageContent = fs.readFileSync(STORAGE_FILE, "utf8");
+const storageContractContent = fs.readFileSync(STORAGE_CONTRACT_FILE, "utf8");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOA 501 endpoint fixes
@@ -42,11 +44,9 @@ describe("HOA 501 endpoint fixes", () => {
 
   it("IStorage interface declares all four HOA method signatures", () => {
     // Find the IStorage interface block
-    const ifaceIdx = storageContent.indexOf("interface IStorage {");
+    const ifaceIdx = storageContractContent.indexOf("interface IStorage {");
     expect(ifaceIdx).toBeGreaterThan(-1);
-    // The interface closes before DatabaseStorage implements it
-    const implIdx = storageContent.indexOf("export class DatabaseStorage implements IStorage {");
-    const ifaceBlock = storageContent.slice(ifaceIdx, implIdx);
+    const ifaceBlock = storageContractContent.slice(ifaceIdx);
 
     expect(ifaceBlock).toContain("recordHoaFeeCollection(");
     expect(ifaceBlock).toContain("createHOABoardTransferVote(");
