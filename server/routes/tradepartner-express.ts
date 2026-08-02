@@ -27,6 +27,10 @@ import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_DIRECT_CONNECT_SELECTION_LIMIT,
+  sanitizeJwStoneDirectConnectSelections,
+} from "@shared/jwStoneDirectConnect";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -72,6 +76,22 @@ const requestSchema = z
       .trim()
       .max(120)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+      .optional(),
+    stoneSelections: z
+      .array(
+        z
+          .object({
+            itemId: z
+              .string()
+              .trim()
+              .max(120)
+              .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+            stoneName: z.string().trim().min(1).max(180),
+          })
+          .strict()
+      )
+      .min(2)
+      .max(JW_STONE_DIRECT_CONNECT_SELECTION_LIMIT)
       .optional(),
     // Quiet bot trap. Real browsers never populate this hidden field.
     website: z.string().max(0).optional(),
@@ -312,11 +332,25 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (!target) return res.status(404).json({ message: "Profile not found." });
 
         const body = parsed.data;
+        if (body.stoneSelections && (body.itemId || body.stoneName)) {
+          return res.status(400).json({
+            message: "Use either one stone or a saved-stone selection, not both.",
+          });
+        }
         const publicStoneName = resolveJwStonePublicRequestName({
           profileSlug: target.profileSlug,
           itemId: body.itemId,
           stoneName: body.stoneName,
         });
+        const publicStoneSelections = sanitizeJwStoneDirectConnectSelections({
+          profileSlug: target.profileSlug,
+          selections: body.stoneSelections,
+        });
+        if (body.stoneSelections && publicStoneSelections.length < 2) {
+          return res.status(400).json({
+            message: "Choose at least two named stones for a saved-selection request.",
+          });
+        }
         const email = normalizeEmail(body.email);
         const { firstName, lastName } = splitName(body.name);
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
@@ -402,6 +436,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 businessId: target.businessId,
                 requestType: body.requestType,
                 stoneName: publicStoneName,
+                ...(publicStoneSelections.length ? { stoneSelections: publicStoneSelections } : {}),
                 serviceName: body.serviceName || null,
                 itemId: body.itemId || null,
                 deliveryCustody: target.deliveryCustody,
@@ -478,6 +513,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 publicStoneName
                   ? `<p><strong>Stone:</strong> ${escapeHtml(publicStoneName)}</p>`
                   : "",
+                publicStoneSelections.length
+                  ? `<p><strong>Saved stones:</strong></p><ul>${publicStoneSelections
+                      .map((selection) => `<li>${escapeHtml(selection.stoneName)}</li>`)
+                      .join("")}</ul>`
+                  : "",
                 body.serviceName
                   ? `<p><strong>Service:</strong> ${escapeHtml(body.serviceName)}</p>`
                   : "",
@@ -490,6 +530,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               text: [
                 `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
                 publicStoneName ? `Stone: ${publicStoneName}` : null,
+                publicStoneSelections.length
+                  ? `Saved stones:\n${publicStoneSelections
+                      .map((selection) => `- ${selection.stoneName}`)
+                      .join("\n")}`
+                  : null,
                 body.serviceName ? `Service: ${body.serviceName}` : null,
                 `Request type: ${requestTitle(body.requestType, target.businessName)}`,
                 `Open Direct Connect inbox: ${inboxUrl}`,
@@ -523,6 +568,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         }
         if (body.serviceName) {
           requestWorkspaceParams.set("service", body.serviceName);
+        }
+        if (publicStoneSelections.length) {
+          requestWorkspaceParams.set("selectionCount", String(publicStoneSelections.length));
         }
         const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
         const activation = requesterWasCreated

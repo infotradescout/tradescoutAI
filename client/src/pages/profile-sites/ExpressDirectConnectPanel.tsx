@@ -5,6 +5,8 @@ import {
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
 import { ArrowLeft, CheckCircle2, Loader2, MessageCircle, Phone, MapPin, X } from "lucide-react";
+import type { DirectConnectMaterialTarget } from "./directConnectMaterial";
+import { sanitizeJwStoneDirectConnectSelections } from "@shared/jwStoneDirectConnect";
 
 export type ExpressDirectConnectRequestType =
   | "request_material"
@@ -37,6 +39,10 @@ type ExpressDirectConnectPanelProps = {
   initialServiceName?: string | null;
   /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
   initialItemId?: string | null;
+  /** Optional bounded named-stone context. Existing scalar callers remain unchanged. */
+  initialStoneSelections?: readonly DirectConnectMaterialTarget[] | null;
+  /** Deliberate callers may open the request form directly; opening still performs no mutation. */
+  initialView?: "choice" | "request";
   initialRequestType?: ExpressDirectConnectRequestType | null;
   contactOperatorName?: string | null;
   contactOperatorRole?: string | null;
@@ -107,6 +113,8 @@ export default function ExpressDirectConnectPanel({
   initialStoneName,
   initialServiceName,
   initialItemId,
+  initialStoneSelections,
+  initialView = "choice",
   initialRequestType,
   contactOperatorName,
   contactOperatorRole,
@@ -114,18 +122,35 @@ export default function ExpressDirectConnectPanel({
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const config = REQUEST_MODE_CONFIG[requestMode];
-  const stableItemId = String(initialItemId || "").trim() || null;
-  const displayStoneName = String(initialStoneName || "").trim() || null;
+  const safeStoneSelections = useMemo(
+    () =>
+      sanitizeJwStoneDirectConnectSelections({
+        profileSlug,
+        selections: (initialStoneSelections || []).map((selection) => ({
+          itemId: selection.itemId,
+          stoneName: selection.itemName,
+        })),
+      }),
+    [initialStoneSelections, profileSlug]
+  );
+  const multiStoneSelections = safeStoneSelections.length > 1 ? safeStoneSelections : [];
+  const singleSelection = safeStoneSelections.length === 1 ? safeStoneSelections[0] : null;
+  const stableItemId = String(initialItemId || singleSelection?.itemId || "").trim() || null;
+  const displayStoneName =
+    String(initialStoneName || singleSelection?.stoneName || "").trim() || null;
   const selectedServiceName = String(initialServiceName || "").trim() || null;
   // `item` is human-facing Direct Connect context. Keep an anonymous
   // selection's stable slug only in `itemId` so it never becomes public copy.
   const itemParam = displayStoneName;
   const defaultRequestType =
-    initialRequestType || (stableItemId || itemParam ? "request_material" : config.defaultType);
+    initialRequestType ||
+    (stableItemId || itemParam || multiStoneSelections.length
+      ? "request_material"
+      : config.defaultType);
   const operatorName = String(contactOperatorName || "").trim() || businessName;
   const operatorRole = String(contactOperatorRole || "").trim();
   const hasSeparateOperator = operatorName.toLowerCase() !== businessName.toLowerCase();
-  const [view, setView] = useState<PanelView>("choice");
+  const [view, setView] = useState<PanelView>(initialView);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [callPhone, setCallPhone] = useState("");
@@ -148,9 +173,11 @@ export default function ExpressDirectConnectPanel({
       ? `I'm interested in ${selectedServiceName}.`
       : displayStoneName
         ? `I'm interested in ${displayStoneName}.`
-        : stableItemId
-          ? "I'm interested in this stone selection."
-          : "",
+        : multiStoneSelections.length
+          ? `I'm interested in these ${multiStoneSelections.length} saved stone selections.`
+          : stableItemId
+            ? "I'm interested in this stone selection."
+            : "",
     website: "",
   });
 
@@ -171,7 +198,7 @@ export default function ExpressDirectConnectPanel({
 
   useEffect(() => {
     if (!open) return;
-    setView("choice");
+    setView(initialView);
     setBusy(false);
     setError("");
     setCallPhone("");
@@ -189,15 +216,19 @@ export default function ExpressDirectConnectPanel({
         ? `I'm interested in ${selectedServiceName}.`
         : displayStoneName
           ? `I'm interested in ${displayStoneName}.`
-          : stableItemId
-            ? "I'm interested in this stone selection."
-            : "",
+          : multiStoneSelections.length
+            ? `I'm interested in these ${multiStoneSelections.length} saved stone selections.`
+            : stableItemId
+              ? "I'm interested in this stone selection."
+              : "",
     }));
   }, [
     defaultRequestType,
     deliveryCustody,
     displayStoneName,
     initialRequestType,
+    initialView,
+    multiStoneSelections.length,
     open,
     selectedServiceName,
     stableItemId,
@@ -296,6 +327,17 @@ export default function ExpressDirectConnectPanel({
     setBusy(true);
     setError("");
     try {
+      const materialContext = multiStoneSelections.length
+        ? {
+            stoneName: undefined,
+            itemId: undefined,
+            stoneSelections: multiStoneSelections,
+          }
+        : {
+            stoneName: displayStoneName || undefined,
+            itemId: stableItemId || undefined,
+            stoneSelections: undefined,
+          };
       const response = await fetch(
         `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request`,
         {
@@ -304,9 +346,8 @@ export default function ExpressDirectConnectPanel({
           credentials: "include",
           body: JSON.stringify({
             ...form,
-            stoneName: displayStoneName || undefined,
+            ...materialContext,
             serviceName: selectedServiceName || undefined,
-            itemId: stableItemId || undefined,
           }),
         }
       );
@@ -456,12 +497,29 @@ export default function ExpressDirectConnectPanel({
                 <h3 className="text-2xl font-bold text-neutral-900">
                   {selectedServiceName
                     ? `Ask about ${selectedServiceName}`
-                    : displayStoneName
-                      ? `Ask about ${displayStoneName}`
-                      : stableItemId
-                        ? "Ask about this stone selection"
-                        : config.heading}
+                    : multiStoneSelections.length
+                      ? `Ask about ${multiStoneSelections.length} saved stones`
+                      : displayStoneName
+                        ? `Ask about ${displayStoneName}`
+                        : stableItemId
+                          ? "Ask about this stone selection"
+                          : config.heading}
                 </h3>
+                {multiStoneSelections.length ? (
+                  <ul
+                    className="mt-3 grid gap-1 text-sm text-stone-600 sm:grid-cols-2"
+                    aria-label="Selected stones"
+                  >
+                    {multiStoneSelections.slice(0, 8).map((selection) => (
+                      <li key={selection.itemId} className="truncate">
+                        {selection.stoneName}
+                      </li>
+                    ))}
+                    {multiStoneSelections.length > 8 ? (
+                      <li>And {multiStoneSelections.length - 8} more</li>
+                    ) : null}
+                  </ul>
+                ) : null}
               </div>
 
               <label className="block">

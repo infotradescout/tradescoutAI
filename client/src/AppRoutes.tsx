@@ -167,6 +167,7 @@ const ProgressiveFeatureGate = memo(function ProgressiveFeatureGate({
 });
 
 const PublicLandingPage = React.lazy(() => import("./pages/TradeScoutLandingPage"));
+const JWStoneMarketplace = React.lazy(() => import("./pages/JWStoneMarketplace"));
 
 // Root landing router: show public users the landing surface, authenticated users their appropriate dashboard
 const RootLanding = memo(function RootLanding() {
@@ -587,6 +588,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute,
   isPublicRootLanding,
   isShareRoute,
+  isJwStoneMarketplaceRoute,
   isStandaloneProfileRoute,
   isCustomDomainProfileRoute,
 }: {
@@ -595,6 +597,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute: boolean;
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
+  isJwStoneMarketplaceRoute: boolean;
   isStandaloneProfileRoute: boolean;
   isCustomDomainProfileRoute: boolean;
 }) {
@@ -608,6 +611,11 @@ export const AppRoutes = memo(function AppRoutes({
         // while their profile chunk downloads.
         <LazyPage
           Component={ProfileSiteView}
+          fallback={<PageLoadingSpinner message="Loading…" />}
+        />
+      ) : isJwStoneMarketplaceRoute ? (
+        <LazyPage
+          Component={JWStoneMarketplace}
           fallback={<PageLoadingSpinner message="Loading…" />}
         />
       ) : isLiteScoutRoute ? (
