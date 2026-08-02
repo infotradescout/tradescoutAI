@@ -23,6 +23,7 @@ import {
 import { StateCountySelector } from "@/components/state-county-selector";
 import { Link } from "wouter";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
+import { DirectoryListingLink } from "./DirectoryListingLink";
 
 const BUSINESS_AVATAR_PALETTE = [
   "bg-sky-500/20 text-sky-200",
@@ -482,11 +483,7 @@ export default function DirectConnectPros() {
                       </div>
                     </div>
                     <div className="shrink-0">
-                      <Link href={`/business/${encodeURIComponent(business.slug)}`}>
-                        <Button size="sm" variant="outline">
-                          View listing
-                        </Button>
-                      </Link>
+                      <DirectoryListingLink slug={business.slug} businessName={business.name} />
                     </div>
                   </div>
                 </div>
@@ -544,11 +541,7 @@ export default function DirectConnectPros() {
                       </div>
                     </div>
                     <div className="shrink-0">
-                      <Link href={`/business/${encodeURIComponent(business.slug)}`}>
-                        <Button size="sm" variant="outline">
-                          View listing
-                        </Button>
-                      </Link>
+                      <DirectoryListingLink slug={business.slug} businessName={business.name} />
                     </div>
                   </div>
                 </div>

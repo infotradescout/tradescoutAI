@@ -96,7 +96,7 @@ export function ProviderCard({
       : null,
   ].filter(Boolean) as Array<{ label: string; Icon: typeof Shield }>;
   const connectParams = new URLSearchParams({
-    intent: "connect",
+    intent: "hire",
     targetProviderId: String(contractor.id),
     targetName: businessName,
   });

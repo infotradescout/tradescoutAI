@@ -2,6 +2,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Router } from "wouter";
 import { ProviderCard, type ProviderCardProvider } from "./contractor-card";
+import { DirectoryListingLink } from "@/pages/direct-connect/DirectoryListingLink";
+import {
+  getDirectConnectIntent,
+  parseDirectConnectEntryContext,
+} from "@/pages/direct-connect/directConnectEntryContext";
+import { resolveDirectConnectDispatchSelection } from "@/pages/direct-connect/directConnectDispatchSelection";
 
 function renderCard(
   contractor: ProviderCardProvider,
@@ -12,6 +18,12 @@ function renderCard(
       <ProviderCard contractor={contractor} compact action={action} />
     </Router>
   );
+}
+
+function readConnectHref(html: string): string {
+  const href = html.match(/href="(\/direct-connect\?[^\"]+)"/)?.[1];
+  if (!href) throw new Error("Expected a rendered Direct Connect href");
+  return href.replaceAll("&amp;", "&");
 }
 
 describe("ProviderCard", () => {
@@ -39,6 +51,21 @@ describe("ProviderCard", () => {
     expect(html).not.toContain('role="link"');
   });
 
+  it("carries the generated Connect href through canonical intent parsing and chooser selection", () => {
+    const connectHref = readConnectHref(renderCard(provider));
+    const entryContext = parseDirectConnectEntryContext(connectHref);
+
+    expect(getDirectConnectIntent(connectHref)).toBe("fix_improve");
+    expect(entryContext.targetProviderId).toBe(provider.id);
+    expect(
+      resolveDirectConnectDispatchSelection({
+        dispatchMode: "direct_pick",
+        topCountIds: ["another-provider"],
+        prefillTargetProviderId: entryContext.targetProviderId,
+      })
+    ).toEqual([provider.id]);
+  });
+
   it("does not expose the internal numeric CVS composite", () => {
     const html = renderCard(provider);
 
@@ -61,6 +88,21 @@ describe("ProviderCard", () => {
     const html = renderCard(provider, "profile");
 
     expect(html).toContain("View profile");
-    expect(html).not.toContain("intent=connect");
+    expect(html).not.toContain("/direct-connect?");
+  });
+});
+
+describe("DirectoryListingLink", () => {
+  it("renders one named anchor without a nested button", () => {
+    const html = renderToStaticMarkup(
+      <Router ssrPath="/direct-connect/businesses">
+        <DirectoryListingLink slug="acme-and-sons" businessName="Acme & Sons" />
+      </Router>
+    );
+
+    expect(html).toContain('href="/business/acme-and-sons"');
+    expect(html).toContain('aria-label="View Acme &amp; Sons listing"');
+    expect(html).not.toContain("<button");
+    expect(html.match(/<a\b/g)).toHaveLength(1);
   });
 });

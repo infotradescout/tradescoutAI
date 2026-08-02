@@ -27,4 +27,22 @@ describe("canonical provider card", () => {
     expect(source).not.toContain("onKeyDown");
     expect(source).not.toContain("requestOnly");
   });
+
+  it("wires the selected provider into the chooser-preservation policy", () => {
+    const cardSource = read("client/src/components/contractor-card.tsx");
+    const shellSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+
+    expect(cardSource).toContain('intent: "hire"');
+    expect(shellSource).toContain("resolveDirectConnectDispatchSelection({");
+    expect(shellSource).toContain("prefillTargetProviderId,");
+  });
+
+  it("uses one semantic listing link in both fallback directory branches", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectPros.tsx");
+
+    expect(source.match(/<DirectoryListingLink slug=\{business\.slug\}/g)).toHaveLength(2);
+    expect(source).not.toMatch(
+      /<Link href=\{`\/business\/\$\{encodeURIComponent\(business\.slug\)\}`\}>\s*<Button/
+    );
+  });
 });
