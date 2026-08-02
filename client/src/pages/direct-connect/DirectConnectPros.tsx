@@ -121,7 +121,7 @@ function DirectoryRail({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {providers.map((contractor) => (
           <div key={contractor.id}>
-            <ProviderCard contractor={contractor} compact requestOnly />
+            <ProviderCard contractor={contractor} compact action="connect" />
           </div>
         ))}
       </div>
