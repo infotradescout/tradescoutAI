@@ -666,6 +666,12 @@ export default function WholesalerProfileTheme({
   // Only confirmed facts belong here -- this is rendered as verified trust
   // signal, not marketing copy, so it must come from data, not a default.
   const trustFacts = blockItems(trustBlock);
+  const profileFacts =
+    trustFacts.length > 0
+      ? trustFacts
+      : serviceAreas.length > 0
+        ? [`Serving ${serviceAreas.slice(0, 4).join(", ")}`]
+        : [];
   const differentiatorItems: Array<{ title?: string; body?: string }> = Array.isArray(
     differentiatorsBlock?.data?.items
   )
@@ -1145,10 +1151,9 @@ export default function WholesalerProfileTheme({
     });
   };
 
-  // Nothing to go "back" from at the top-level home state -- the back
-  // button would just no-op scroll to top. Only meaningful once the
-  // visitor has actually drilled into something.
-  const isProfileHome = !expressPanelOpen && !openStone && !inventoryExpanded;
+  // The catalog is an in-page home section, including when it opens by
+  // default. Back becomes meaningful only after opening a panel or item.
+  const isProfileHome = !expressPanelOpen && !openStone;
 
   const goBackWithinProfile = () => {
     if (expressPanelOpen) {
@@ -1425,6 +1430,7 @@ export default function WholesalerProfileTheme({
       style={themeVars}
     >
       <header
+        data-testid="profile-brand-header"
         className={`${
           centeredBrandHeader
             ? "fixed inset-x-0 top-0 z-40 shadow-md"
@@ -1434,7 +1440,7 @@ export default function WholesalerProfileTheme({
         <div
           className={`container mx-auto items-center px-3 md:px-8 ${
             centeredBrandHeader
-              ? "grid h-14 grid-cols-[44px_1fr_auto] gap-1 md:h-[72px] md:grid-cols-[1fr_auto_1fr]"
+              ? "grid h-14 grid-cols-[88px_minmax(0,1fr)_88px] gap-1 md:h-[72px] md:grid-cols-[1fr_auto_1fr]"
               : "flex justify-between gap-3 py-2 md:py-3"
           }`}
         >
@@ -1469,7 +1475,7 @@ export default function WholesalerProfileTheme({
                 <img
                   src={presentation.header?.logoUrl}
                   alt={presentation.header?.logoAlt || displayName}
-                  className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"
+                  className="h-auto w-[148px] max-w-full sm:w-[172px] md:w-[204px]"
                 />
               </button>
               <div className="flex items-center justify-self-end gap-2">
@@ -1902,25 +1908,29 @@ export default function WholesalerProfileTheme({
       ) : (
         <>
           {/* Company info strip -- confirmed facts only, sourced from the "trust" content block */}
-          {trustFacts.length > 0 || serviceAreas.length > 0 ? (
-            <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
-              <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-2 gap-y-2 px-4 text-sm font-semibold !text-stone-900 md:px-6">
-                {trustFacts.map((fact, i) => (
-                  <span key={i} className="inline-flex items-center">
-                    {i > 0 ? (
-                      <span className="mx-3 text-[var(--brand-primary)]/25" aria-hidden="true">
-                        &bull;
-                      </span>
-                    ) : null}
-                    {fact}
+          {profileFacts.length > 0 ? (
+            <section
+              className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-4 sm:py-5"
+              data-testid="profile-fact-strip"
+            >
+              <div className="container mx-auto grid max-w-2xl grid-cols-2 gap-x-4 gap-y-2 px-4 text-xs font-semibold !text-stone-900 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-6 sm:text-sm md:px-6">
+                {profileFacts.map((fact, index) => (
+                  <span
+                    key={`${fact}-${index}`}
+                    className="inline-flex min-w-0 items-start gap-2 text-left sm:items-center"
+                    data-testid="profile-fact"
+                  >
+                    {trustFacts.length === 0 && index === 0 ? (
+                      <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[var(--brand-accent)] sm:mt-0 sm:h-4 sm:w-4" />
+                    ) : (
+                      <span
+                        className="mt-[0.4rem] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[var(--brand-accent)] sm:mt-0"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span>{fact}</span>
                   </span>
                 ))}
-                {trustFacts.length === 0 && serviceAreas.length > 0 ? (
-                  <span className="inline-flex items-center gap-2">
-                    <MapPin className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
-                    Serving {serviceAreas.slice(0, 4).join(", ")}
-                  </span>
-                ) : null}
               </div>
             </section>
           ) : null}
@@ -1928,7 +1938,7 @@ export default function WholesalerProfileTheme({
           {guidedAudience ? (
             <section
               id="audience"
-              className="scroll-mt-28 border-b border-[#241d0f]/10 bg-white py-6 md:py-10"
+              className="scroll-mt-28 border-b border-[#241d0f]/10 bg-white py-5 md:py-10"
               data-testid="profile-audience-chooser"
             >
               <div className="container mx-auto px-4 md:px-6">
@@ -1986,7 +1996,7 @@ export default function WholesalerProfileTheme({
                         className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-[11px] font-bold leading-tight transition-colors sm:text-xs ${
                           selected
                             ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
-                            : "border-[var(--brand-primary)]/15 bg-[var(--brand-surface)] text-[var(--brand-primary)] hover:border-[var(--brand-accent)]/50"
+                            : "border-[#241d0f]/15 bg-[#f8f5ed] text-[var(--brand-primary)] hover:border-[var(--brand-accent)]/50 hover:bg-white"
                         }`}
                       >
                         <Icon className="h-4 w-4 flex-shrink-0" />
@@ -2033,6 +2043,25 @@ export default function WholesalerProfileTheme({
                     </div>
                   </div>
                   <div className="space-y-3">
+                    <div
+                      className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2"
+                      data-testid="profile-audience-actions"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => startDirectConnect(null, activeAudiencePath.requestType)}
+                        className="min-h-12 rounded-xl border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-4 text-xs font-extrabold text-white shadow-sm transition hover:brightness-95"
+                      >
+                        {activeAudiencePath.actionLabel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openFullInventory}
+                        className="min-h-11 rounded-xl border border-[#241d0f]/20 bg-white px-4 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5"
+                      >
+                        Browse {allInventoryStones.length} stones
+                      </button>
+                    </div>
                     <details className="group rounded-xl border border-[#241d0f]/10 bg-white">
                       <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--brand-accent)] [&::-webkit-details-marker]:hidden md:hidden">
                         <span>
@@ -2061,22 +2090,6 @@ export default function WholesalerProfileTheme({
                         </p>
                       </div>
                     </details>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
-                      <button
-                        type="button"
-                        onClick={openFullInventory}
-                        className="min-h-11 rounded-xl border border-[var(--brand-primary)]/20 bg-white px-4 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5"
-                      >
-                        Browse all {allInventoryStones.length} stones
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => startDirectConnect(null, activeAudiencePath.requestType)}
-                        className="min-h-12 rounded-xl border border-[var(--brand-accent)] bg-[var(--brand-accent)] px-4 text-xs font-extrabold text-white shadow-sm transition hover:brightness-95"
-                      >
-                        {activeAudiencePath.actionLabel}
-                      </button>
-                    </div>
                   </div>
                 </article>
               </div>
@@ -2088,7 +2101,7 @@ export default function WholesalerProfileTheme({
             <section
               id="collection"
               className={`scroll-mt-28 bg-[var(--brand-bg)] ${
-                compactInventory ? "border-t border-[#241d0f]/10 pt-10 md:pt-14" : "py-8 md:py-11"
+                compactInventory ? "border-t border-[#241d0f]/10 pt-7 md:pt-12" : "py-8 md:py-11"
               }`}
             >
               <div className="container mx-auto px-4 md:px-6">
@@ -2274,8 +2287,9 @@ export default function WholesalerProfileTheme({
                 ) : (
                   <div id="inventory-browser" className="scroll-mt-28 pb-10 md:pb-14">
                     <div
-                      className="mb-6 flex flex-wrap items-end justify-between gap-3"
+                      className="mb-4 md:flex md:items-end md:justify-between md:gap-3"
                       data-public-inventory-category={sharedInventoryCategory?.slug}
+                      data-testid="profile-inventory-heading"
                     >
                       <div>
                         <h2
@@ -2297,7 +2311,7 @@ export default function WholesalerProfileTheme({
                         <button
                           type="button"
                           onClick={showFeaturedInventory}
-                          className="min-h-10 rounded-xl border border-[var(--brand-primary)]/15 px-4 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                          className="mt-3 inline-flex min-h-9 items-center rounded-full border border-[var(--brand-primary)]/20 bg-white px-3 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)] md:mt-0"
                         >
                           Show featured view
                         </button>

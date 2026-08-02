@@ -236,10 +236,15 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     });
 
     const hero = container.querySelector('[data-testid="wholesaler-profile-hero"]');
+    const header = container.querySelector('[data-testid="profile-brand-header"]');
+    const headerLayout = header?.firstElementChild;
+    const logo = header?.querySelector('img[alt="JW Stone — Premium Wholesale Stone Distributor"]');
     expect(hero?.className).not.toContain("min-h-[460px]");
     expect(hero?.className).toContain("md:min-h-[600px]");
+    expect(headerLayout?.className).toContain("grid-cols-[88px_minmax(0,1fr)_88px]");
+    expect(logo?.className).toContain("w-[148px]");
     expect(container.querySelector("#inventory-browser")).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Back within JW Stone"]')).toBeNull();
     expect(container.querySelector('input[placeholder="Search by stone name"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
     expect(
@@ -416,9 +421,14 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
 
     const chooser = container.querySelector('[data-testid="profile-audience-chooser"]');
     const tabs = container.querySelector('[data-testid="profile-audience-tabs"]');
+    const actions = container.querySelector('[data-testid="profile-audience-actions"]');
     expect(chooser).not.toBeNull();
     expect(tabs?.className).toContain("grid-cols-2");
     expect(tabs?.className).not.toContain("overflow-x-auto");
+    expect(actions?.nextElementSibling?.tagName).toBe("DETAILS");
+    expect(
+      Array.from(actions?.querySelectorAll("button") || []).map((button) => button.textContent)
+    ).toEqual(["Match my project", "Browse 14 stones"]);
     expect(chooser?.querySelectorAll('[role="tab"]')).toHaveLength(4);
     expect(chooser?.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
     expect(chooser?.textContent).toContain("Fabricators");
@@ -472,6 +482,31 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     }
 
     expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
+  });
+
+  it("keeps confirmed profile facts aligned without orphan separator characters", () => {
+    const trustFacts = [
+      "Pensacola, FL",
+      "Established 2017",
+      "Quarry-direct sourcing",
+      "Domestic delivery",
+    ];
+
+    act(() => {
+      root.render(
+        <WholesalerProfileTheme
+          {...props}
+          contentBlocks={[...contentBlocks, { type: "trust", data: { items: trustFacts } }]}
+        />
+      );
+    });
+
+    const factStrip = container.querySelector('[data-testid="profile-fact-strip"]');
+    expect(factStrip?.firstElementChild?.className).toContain("grid-cols-2");
+    expect(factStrip?.querySelectorAll('[data-testid="profile-fact"]')).toHaveLength(4);
+    expect(factStrip?.textContent).not.toContain("•");
+    for (const fact of trustFacts) expect(factStrip?.textContent).toContain(fact);
   });
 
   it("reveals the complete inventory in-place and keeps search actionable", () => {

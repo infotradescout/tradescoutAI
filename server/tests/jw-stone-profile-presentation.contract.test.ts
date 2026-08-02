@@ -233,9 +233,10 @@ describe("JW Stone profile presentation contract", () => {
     expect(presentation.header.layout).toBe("centered-brand");
     expect(presentation.header.logoUrl).toBe("/images/businesses/jw-stone/logo.svg");
     expect(presentation.header.homeLabel).toBe("JW Stone home");
+    expect(source).toContain("grid-cols-[88px_minmax(0,1fr)_88px]");
     expect(source).toContain("grid-cols-[1fr_auto_1fr]");
     expect(source).toContain("presentation.header?.homeLabel");
-    expect(source).toContain('className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"');
+    expect(source).toContain('className="h-auto w-[148px] max-w-full sm:w-[172px] md:w-[204px]"');
     expect(source).toContain("justify-self-start");
     expect(source).toContain("justify-self-end");
     expect(source).toContain('centeredBrandHeader ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""');
