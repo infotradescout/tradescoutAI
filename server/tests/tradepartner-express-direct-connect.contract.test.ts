@@ -46,6 +46,10 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(theme).toContain("startDirectConnectFromTarget");
     expect(theme).toContain("resolveDirectConnectMaterial");
     expect(panel).toContain("itemId: stableItemId || undefined");
+    expect(panel).toContain(
+      "initialStoneSelections?: readonly ExpressDirectConnectStoneSelection[]"
+    );
+    expect(panel).toContain("namedStoneSelections.length > 0 ? namedStoneSelections : undefined");
     expect(panel).toContain('params.set("item", itemParam)');
     expect(route).toContain("sourceRefId: target.profileId");
     expect(route).toContain('source: "tradepartner_profile"');
@@ -56,8 +60,14 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("resolveJwStonePublicRequestName({");
     expect(route).toContain("stoneName: publicStoneName");
     expect(route).toContain("itemId: body.itemId || null");
+    expect(route).toContain(
+      "stoneSelections: z.array(stoneSelectionSchema).min(1).max(24).optional()"
+    );
+    expect(route).toContain("validateExpressStoneSelections({");
+    expect(route).toContain("? { stoneSelections: canonicalStoneSelections }");
     expect(route).toContain('requestWorkspaceParams.set("item", publicStoneName)');
     expect(route).not.toContain('requestWorkspaceParams.set("item", body.itemId)');
+    expect(route).not.toContain('requestWorkspaceParams.set("stoneSelections"');
     expect(route).toContain("requestedSlug === ISSA_BUILD_LEGACY_PROFILE_SLUG");
     expect(route).toContain("? ISSA_BUILD_PROFILE_SLUG");
     expect(route).toContain("canExposePublishedProfilePublicly({");

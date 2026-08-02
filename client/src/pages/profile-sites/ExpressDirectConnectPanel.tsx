@@ -4,6 +4,7 @@ import {
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
+import { resolveJwStoneInventoryNamePresentation } from "@shared/jwStonePresentation";
 import { ArrowLeft, CheckCircle2, Loader2, MessageCircle, Phone, MapPin, X } from "lucide-react";
 
 export type ExpressDirectConnectRequestType =
@@ -20,6 +21,62 @@ export type ExpressDirectConnectRequestType =
 export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service";
 type ExpressDirectConnectDeliveryCustody = "business" | "tradescout_pending_owner";
 
+export type ExpressDirectConnectStoneSelection = {
+  itemId: string;
+  stoneName: string;
+};
+
+const MAX_INITIAL_STONE_SELECTIONS = 24;
+const STABLE_STONE_ITEM_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ANONYMOUS_STONE_LABEL = /^(?:anonymous|placeholder|unknown|untitled|n[/]?a)$/i;
+
+function normalizeInitialStoneSelections(
+  selections: readonly ExpressDirectConnectStoneSelection[] | null | undefined
+): ExpressDirectConnectStoneSelection[] {
+  if (!Array.isArray(selections)) return [];
+
+  const normalized: ExpressDirectConnectStoneSelection[] = [];
+  const seenItemIds = new Set<string>();
+  for (const selection of selections) {
+    if (normalized.length >= MAX_INITIAL_STONE_SELECTIONS) break;
+    const itemId = String(selection?.itemId || "").trim();
+    const stoneName = String(selection?.stoneName || "").trim();
+    if (
+      !itemId ||
+      itemId.length > 120 ||
+      !STABLE_STONE_ITEM_ID.test(itemId) ||
+      !stoneName ||
+      stoneName.length > 180 ||
+      seenItemIds.has(itemId)
+    ) {
+      continue;
+    }
+    seenItemIds.add(itemId);
+    normalized.push({ itemId, stoneName });
+  }
+  return normalized;
+}
+
+function hasSafePublicStoneName(selection: ExpressDirectConnectStoneSelection) {
+  const presentation = resolveJwStoneInventoryNamePresentation({
+    slug: selection.itemId,
+    name: selection.stoneName,
+  });
+  return (
+    presentation.nameStatus === "source" &&
+    Boolean(presentation.displayName) &&
+    !ANONYMOUS_STONE_LABEL.test(presentation.displayName || "")
+  );
+}
+
+function pluralStoneRequestMessage(selections: readonly ExpressDirectConnectStoneSelection[]) {
+  if (selections.length === 0) return "";
+  if (selections.length === 1) return `I'm interested in ${selections[0].stoneName}.`;
+  return `I'm interested in these stone selections: ${selections
+    .map((selection) => selection.stoneName)
+    .join(", ")}.`;
+}
+
 type ExpressDirectConnectPanelProps = {
   open: boolean;
   onClose: () => void;
@@ -33,6 +90,8 @@ type ExpressDirectConnectPanelProps = {
   stayInProfile?: boolean;
   requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
+  /** Named selections from a private wishlist handoff. Stable IDs remain out of public URLs. */
+  initialStoneSelections?: readonly ExpressDirectConnectStoneSelection[] | null;
   /** Selected service from a profile offering. Preserved through Direct Connect. */
   initialServiceName?: string | null;
   /** Stable material slug (e.g. multi-green-onyx). Prefer over display name in URLs/source context. */
@@ -105,6 +164,7 @@ export default function ExpressDirectConnectPanel({
   stayInProfile = false,
   requestMode = "service",
   initialStoneName,
+  initialStoneSelections,
   initialServiceName,
   initialItemId,
   initialRequestType,
@@ -117,11 +177,34 @@ export default function ExpressDirectConnectPanel({
   const stableItemId = String(initialItemId || "").trim() || null;
   const displayStoneName = String(initialStoneName || "").trim() || null;
   const selectedServiceName = String(initialServiceName || "").trim() || null;
+  const stoneSelectionContext = useMemo(() => {
+    const submitted = normalizeInitialStoneSelections(initialStoneSelections);
+    const named = submitted.filter(hasSafePublicStoneName);
+    return {
+      submitted,
+      named,
+      hasRejectedSelection:
+        (Array.isArray(initialStoneSelections) ? initialStoneSelections.length : 0) !==
+          submitted.length || named.length !== submitted.length,
+    };
+  }, [initialStoneSelections]);
+  const namedStoneSelections = stoneSelectionContext.named;
+  const submittedStoneSelections = stoneSelectionContext.submitted;
+  const namedStoneSelectionsMessage = pluralStoneRequestMessage(namedStoneSelections);
+  const anonymousStoneSelectionsMessage =
+    submittedStoneSelections.length === 1
+      ? "I'm interested in this stone selection."
+      : submittedStoneSelections.length > 1
+        ? "I'm interested in these stone selections."
+        : "";
   // `item` is human-facing Direct Connect context. Keep an anonymous
   // selection's stable slug only in `itemId` so it never becomes public copy.
   const itemParam = displayStoneName;
   const defaultRequestType =
-    initialRequestType || (stableItemId || itemParam ? "request_material" : config.defaultType);
+    initialRequestType ||
+    (stableItemId || itemParam || submittedStoneSelections.length > 0
+      ? "request_material"
+      : config.defaultType);
   const operatorName = String(contactOperatorName || "").trim() || businessName;
   const operatorRole = String(contactOperatorRole || "").trim();
   const hasSeparateOperator = operatorName.toLowerCase() !== businessName.toLowerCase();
@@ -146,11 +229,15 @@ export default function ExpressDirectConnectPanel({
     requestType: defaultRequestType,
     message: selectedServiceName
       ? `I'm interested in ${selectedServiceName}.`
-      : displayStoneName
-        ? `I'm interested in ${displayStoneName}.`
-        : stableItemId
-          ? "I'm interested in this stone selection."
-          : "",
+      : namedStoneSelectionsMessage
+        ? namedStoneSelectionsMessage
+        : anonymousStoneSelectionsMessage
+          ? anonymousStoneSelectionsMessage
+          : displayStoneName
+            ? `I'm interested in ${displayStoneName}.`
+            : stableItemId
+              ? "I'm interested in this stone selection."
+              : "",
     website: "",
   });
 
@@ -187,17 +274,23 @@ export default function ExpressDirectConnectPanel({
       requestType: defaultRequestType,
       message: selectedServiceName
         ? `I'm interested in ${selectedServiceName}.`
-        : displayStoneName
-          ? `I'm interested in ${displayStoneName}.`
-          : stableItemId
-            ? "I'm interested in this stone selection."
-            : "",
+        : namedStoneSelectionsMessage
+          ? namedStoneSelectionsMessage
+          : anonymousStoneSelectionsMessage
+            ? anonymousStoneSelectionsMessage
+            : displayStoneName
+              ? `I'm interested in ${displayStoneName}.`
+              : stableItemId
+                ? "I'm interested in this stone selection."
+                : "",
     }));
   }, [
     defaultRequestType,
     deliveryCustody,
     displayStoneName,
     initialRequestType,
+    anonymousStoneSelectionsMessage,
+    namedStoneSelectionsMessage,
     open,
     selectedServiceName,
     stableItemId,
@@ -296,6 +389,9 @@ export default function ExpressDirectConnectPanel({
     setBusy(true);
     setError("");
     try {
+      if (stoneSelectionContext.hasRejectedSelection) {
+        throw new Error("One or more stone selections are unavailable.");
+      }
       const response = await fetch(
         `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request`,
         {
@@ -305,6 +401,7 @@ export default function ExpressDirectConnectPanel({
           body: JSON.stringify({
             ...form,
             stoneName: displayStoneName || undefined,
+            stoneSelections: namedStoneSelections.length > 0 ? namedStoneSelections : undefined,
             serviceName: selectedServiceName || undefined,
             itemId: stableItemId || undefined,
           }),
@@ -456,11 +553,13 @@ export default function ExpressDirectConnectPanel({
                 <h3 className="text-2xl font-bold text-neutral-900">
                   {selectedServiceName
                     ? `Ask about ${selectedServiceName}`
-                    : displayStoneName
-                      ? `Ask about ${displayStoneName}`
-                      : stableItemId
-                        ? "Ask about this stone selection"
-                        : config.heading}
+                    : submittedStoneSelections.length > 0
+                      ? `Ask about ${submittedStoneSelections.length} stone selection${submittedStoneSelections.length === 1 ? "" : "s"}`
+                      : displayStoneName
+                        ? `Ask about ${displayStoneName}`
+                        : stableItemId
+                          ? "Ask about this stone selection"
+                          : config.heading}
                 </h3>
               </div>
 

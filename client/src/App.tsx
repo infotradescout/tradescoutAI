@@ -90,6 +90,7 @@ const AppLayout = memo(function AppLayout() {
     pathOnly === "/lp" ||
     pathOnly.startsWith("/lp/");
   const isPublicCampaignRoute = pathOnly === "/trade-up-for-trade-schools";
+  const isJwStoneExperienceRoute = pathOnly === "/jw-stone";
   const isAuthSurface =
     pathOnly.startsWith("/create-account") ||
     pathOnly.startsWith("/login") ||
@@ -268,6 +269,7 @@ const AppLayout = memo(function AppLayout() {
               isShareRoute={isShareRoute}
               isStandaloneProfileRoute={isStandaloneProfileRoute}
               isCustomDomainProfileRoute={isCustomDomainProfileRoute}
+              isJwStoneExperienceRoute={isJwStoneExperienceRoute}
             />
           </ErrorBoundary>
         </main>
@@ -276,21 +278,21 @@ const AppLayout = memo(function AppLayout() {
       {/* Global components - CONTENT ONLY, NO NAV (AppShell owns all navigation) */}
 
       {/* Preferred Source Prompt - earned at 5 completed actions */}
-      {isAuthenticated && user?.id && (
+      {!isJwStoneExperienceRoute && isAuthenticated && user?.id && (
         <Suspense fallback={null}>
           <PreferredSourcePrompt userId={user.id} onClose={() => {}} />
         </Suspense>
       )}
 
       {/* Hold-to-Explain (ships dark behind flag) */}
-      {FEATURE_HOLD_TO_EXPLAIN && (
+      {!isJwStoneExperienceRoute && FEATURE_HOLD_TO_EXPLAIN && (
         <Suspense fallback={null}>
           <HoldToExplainProvider />
         </Suspense>
       )}
 
       {/* One-time Hold explainer (ships dark behind flag) */}
-      {FEATURE_HOLD_INTRO_TUTORIAL && (
+      {!isJwStoneExperienceRoute && FEATURE_HOLD_INTRO_TUTORIAL && (
         <Suspense fallback={null}>
           <HoldIntroTutorial />
         </Suspense>
@@ -301,6 +303,7 @@ const AppLayout = memo(function AppLayout() {
         !isLandingRoute &&
         !isPublicProfileRoute &&
         !isCustomDomainProfileRoute &&
+        !isJwStoneExperienceRoute &&
         !isPublicCampaignRoute &&
         !isShareRoute &&
         !FEATURE_EDUCATION_REPLACEMENT && (
@@ -316,7 +319,8 @@ const AppLayout = memo(function AppLayout() {
         !isLandingRoute &&
         !isShareRoute &&
         !isPublicProfileRoute &&
-        !isCustomDomainProfileRoute && (
+        !isCustomDomainProfileRoute &&
+        !isJwStoneExperienceRoute && (
           <div className="hidden md:block">
             <Suspense fallback={null}>
               <ProfileCompletionBanner />
@@ -325,11 +329,15 @@ const AppLayout = memo(function AppLayout() {
         )}
 
       {/* Per-page first-visit tutorial popup (user-aware and easy-language). */}
-      {!isLandingRoute && !isShareRoute && !isPublicProfileRoute && !isCustomDomainProfileRoute && (
-        <Suspense fallback={null}>
-          <PageFirstVisitTutorial />
-        </Suspense>
-      )}
+      {!isLandingRoute &&
+        !isShareRoute &&
+        !isPublicProfileRoute &&
+        !isCustomDomainProfileRoute &&
+        !isJwStoneExperienceRoute && (
+          <Suspense fallback={null}>
+            <PageFirstVisitTutorial />
+          </Suspense>
+        )}
 
       {isAuthenticated &&
         !isLandingRoute &&
@@ -338,16 +346,19 @@ const AppLayout = memo(function AppLayout() {
         !isAuthSurface &&
         !isDirectConnectSurface &&
         !isPublicProfileRoute &&
-        !isCustomDomainProfileRoute && (
+        !isCustomDomainProfileRoute &&
+        !isJwStoneExperienceRoute && (
           <Suspense fallback={null}>
             <PWAInstallPrompt enabled />
           </Suspense>
         )}
 
-      {/* Bug report tool - always available */}
-      <Suspense fallback={null}>
-        <SimpleBugReportTool />
-      </Suspense>
+      {/* Keep the flagship JW experience free of platform overlays. */}
+      {!isJwStoneExperienceRoute && (
+        <Suspense fallback={null}>
+          <SimpleBugReportTool />
+        </Suspense>
+      )}
     </SimpleMobileGestures>
   );
 });

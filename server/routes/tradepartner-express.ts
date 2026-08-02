@@ -27,6 +27,7 @@ import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
+import { validateExpressStoneSelections } from "../jwStoneExpressSelections";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
@@ -49,6 +50,19 @@ const revealSchema = z.object({
   decision: z.literal("call"),
 });
 
+const stableStoneItemIdSchema = z
+  .string()
+  .trim()
+  .max(120)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+const stoneSelectionSchema = z
+  .object({
+    itemId: stableStoneItemIdSchema,
+    stoneName: z.string().trim().min(1).max(180),
+  })
+  .strict();
+
 const requestSchema = z
   .object({
     name: z.string().trim().min(2).max(120),
@@ -65,14 +79,10 @@ const requestSchema = z
     requestType: z.enum(EXPRESS_REQUEST_TYPES),
     message: z.string().trim().min(10).max(3000),
     stoneName: z.string().trim().max(180).optional(),
+    stoneSelections: z.array(stoneSelectionSchema).min(1).max(24).optional(),
     serviceName: z.string().trim().max(180).optional(),
     /** Stable material slug (e.g. multi-green-onyx). Preferred over display name for source context. */
-    itemId: z
-      .string()
-      .trim()
-      .max(120)
-      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-      .optional(),
+    itemId: stableStoneItemIdSchema.optional(),
     // Quiet bot trap. Real browsers never populate this hidden field.
     website: z.string().max(0).optional(),
   })
@@ -317,6 +327,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           itemId: body.itemId,
           stoneName: body.stoneName,
         });
+        const stoneSelectionValidation = validateExpressStoneSelections({
+          profileSlug: target.profileSlug,
+          stoneSelections: body.stoneSelections,
+        });
+        if (!stoneSelectionValidation.success) {
+          return res.status(400).json({ message: "One or more stone selections are unavailable." });
+        }
+        const canonicalStoneSelections = stoneSelectionValidation.selections;
         const email = normalizeEmail(body.email);
         const { firstName, lastName } = splitName(body.name);
         const viewerId = String(req.user?.id || req.user?.claims?.sub || "").trim();
@@ -402,6 +420,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 businessId: target.businessId,
                 requestType: body.requestType,
                 stoneName: publicStoneName,
+                ...(canonicalStoneSelections.length > 0
+                  ? { stoneSelections: canonicalStoneSelections }
+                  : {}),
                 serviceName: body.serviceName || null,
                 itemId: body.itemId || null,
                 deliveryCustody: target.deliveryCustody,

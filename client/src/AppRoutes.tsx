@@ -383,6 +383,9 @@ const PublicProfileView = React.lazy(() => import("./pages/PublicProfileView"));
 const BusinessProfileView = React.lazy(() => import("./pages/BusinessProfileView"));
 const BusinessProfileEditor = React.lazy(() => import("./pages/BusinessProfileEditor"));
 const ProfileSiteView = React.lazy(() => import("./pages/ProfileSiteView"));
+const JwStoneMarketplacePage = React.lazy(
+  () => import("./pages/jw-stone-2/JwStoneMarketplacePage")
+);
 const ProfileSiteEditor = React.lazy(() => import("./pages/ProfileSiteEditor"));
 const Help = React.lazy(() => import("./pages/help"));
 const HowTradeScoutWorks = React.lazy(() => import("./pages/how-tradescout-works"));
@@ -589,6 +592,7 @@ export const AppRoutes = memo(function AppRoutes({
   isShareRoute,
   isStandaloneProfileRoute,
   isCustomDomainProfileRoute,
+  isJwStoneExperienceRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
@@ -597,6 +601,7 @@ export const AppRoutes = memo(function AppRoutes({
   isShareRoute: boolean;
   isStandaloneProfileRoute: boolean;
   isCustomDomainProfileRoute: boolean;
+  isJwStoneExperienceRoute: boolean;
 }) {
   return (
     <>
@@ -610,6 +615,18 @@ export const AppRoutes = memo(function AppRoutes({
           Component={ProfileSiteView}
           fallback={<PageLoadingSpinner message="Loading…" />}
         />
+      ) : isJwStoneExperienceRoute ? (
+        <Switch>
+          <Route path="/jw-stone">
+            <LazyPage
+              Component={JwStoneMarketplacePage}
+              fallback={<PageLoadingSpinner message="Preparing the stone collection…" />}
+            />
+          </Route>
+          <Route path=":rest*">
+            <LazyPage Component={NotFound} />
+          </Route>
+        </Switch>
       ) : isLiteScoutRoute ? (
         <Switch>
           <Route path="/_scout-lite">

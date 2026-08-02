@@ -118,5 +118,125 @@ describe("Express Direct Connect anonymous inventory context", () => {
       message: "I'm interested in this stone selection.",
     });
     expect(requestBody).not.toHaveProperty("stoneName");
+    expect(requestBody).not.toHaveProperty("stoneSelections");
+  });
+
+  it("submits named multi-selection context without exposing anonymous labels", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        requestId: "request-2",
+        onboardingEmailStatus: "skipped",
+        deliveryCustody: "business",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="jw-stone"
+          businessName="JW Stone"
+          hasViewerSession={false}
+          allowCall={false}
+          requestMode="materials"
+          initialStoneSelections={[
+            { itemId: "galaxy-white", stoneName: "Galaxy White" },
+            { itemId: "white-springs", stoneName: "White Springs" },
+          ]}
+        />
+      );
+    });
+
+    expect(container.textContent).not.toContain("Trending Selection 05");
+    expect(container.textContent).not.toContain("Anonymous");
+
+    const formChoice = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Fill out the form")
+    );
+    click(formChoice || null);
+
+    expect(container.querySelector("h3")?.textContent).toBe("Ask about 2 stone selections");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "I'm interested in these stone selections: Galaxy White, White Springs."
+    );
+
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "555-555-1212");
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const requestBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body || "{}"));
+    expect(requestBody.stoneSelections).toEqual([
+      { itemId: "galaxy-white", stoneName: "Galaxy White" },
+      { itemId: "white-springs", stoneName: "White Springs" },
+    ]);
+    expect(requestBody).not.toHaveProperty("itemId");
+    expect(requestBody).not.toHaveProperty("stoneName");
+  });
+
+  it("blocks anonymous selections without putting their labels into Direct Connect", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="jw-stone"
+          businessName="JW Stone"
+          hasViewerSession={false}
+          allowCall={false}
+          requestMode="materials"
+          initialStoneSelections={[
+            { itemId: "trending-selection-05", stoneName: "Trending Selection 05" },
+            { itemId: "picasso", stoneName: "Anonymous" },
+          ]}
+        />
+      );
+    });
+
+    expect(container.textContent).not.toContain("Trending Selection 05");
+    expect(container.textContent).not.toContain("Anonymous");
+    const formChoice = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Fill out the form")
+    );
+    click(formChoice || null);
+
+    expect(container.querySelector("h3")?.textContent).toBe("Ask about 2 stone selections");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "I'm interested in these stone selections."
+    );
+    expect(container.textContent).not.toContain("Trending Selection 05");
+    expect(container.textContent).not.toContain("Anonymous");
+
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "555-555-1212");
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("One or more stone selections are unavailable.");
+    expect(container.textContent).not.toContain("Trending Selection 05");
+    expect(container.textContent).not.toContain("Anonymous");
   });
 });

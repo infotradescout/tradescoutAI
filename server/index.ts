@@ -77,6 +77,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import { buildPublicJwStoneMarketplaceHtml } from "./publicJwStoneMarketplaceHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
@@ -1625,6 +1626,21 @@ app.use(landingContractHeaders);
                   }
                 }
               );
+
+              // JW Stone 2.0 is a separate public experience. Keep this exact
+              // platform route ahead of static SPA serving; the custom-domain
+              // profile middleware above retains authority over customer hosts.
+              app.get("/jw-stone", (_req, res) => {
+                const indexPath = path.join(publicDistPath, "index.html");
+                const templateHtml = getCachedTemplate(indexPath);
+                if (!templateHtml) {
+                  return res.status(503).send("JW Stone is temporarily unavailable");
+                }
+
+                const html = buildPublicJwStoneMarketplaceHtml(templateHtml);
+                res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+                return res.send(html);
+              });
 
               // 2) Serve other static files (index.html, icons, etc.)
               app.use(
