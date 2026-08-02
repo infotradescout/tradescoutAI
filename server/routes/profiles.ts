@@ -6,7 +6,7 @@ import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryS
 import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
-import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import {
   businessVerifications,
   businesses,
@@ -1332,12 +1332,23 @@ type PublicProfileContractorBinding = {
 };
 
 async function getPublicProfileContractorBinding(
+  profileId: string,
+  profileSlug: string,
   ownerUserId: string,
   businessId: string | null | undefined
 ): Promise<PublicProfileContractorBinding | null> {
+  const normalizedProfileId = String(profileId || "").trim();
+  const normalizedProfileSlug = String(profileSlug || "").trim();
   const normalizedOwnerUserId = String(ownerUserId || "").trim();
   const normalizedBusinessId = String(businessId || "").trim();
-  if (!normalizedOwnerUserId || !normalizedBusinessId) return null;
+  if (
+    !normalizedProfileId ||
+    !normalizedProfileSlug ||
+    !normalizedOwnerUserId ||
+    !normalizedBusinessId
+  ) {
+    return null;
+  }
 
   const matches = await db
     .select({
@@ -1348,17 +1359,40 @@ async function getPublicProfileContractorBinding(
       slug: contractors.slug,
     })
     .from(contractors)
+    .innerJoin(
+      businesses,
+      and(
+        eq(businesses.id, normalizedBusinessId),
+        eq(businesses.ownerUserId, normalizedOwnerUserId),
+        eq(businesses.status, "active")
+      )
+    )
+    .innerJoin(
+      profiles,
+      and(
+        eq(profiles.id, normalizedProfileId),
+        eq(profiles.slug, normalizedProfileSlug),
+        eq(profiles.ownerUserId, normalizedOwnerUserId),
+        eq(profiles.businessId, normalizedBusinessId),
+        eq(profiles.status, "published")
+      )
+    )
     .where(
       and(
-        eq(contractors.userId, normalizedOwnerUserId),
-        eq(contractors.businessId, normalizedBusinessId)
+        eq(contractors.businessId, normalizedBusinessId),
+        eq(contractors.slug, normalizedProfileSlug),
+        or(isNull(contractors.userId), eq(contractors.userId, normalizedOwnerUserId))
       )
     )
     .limit(2);
 
-  // A provider action must identify exactly one contractor row for this
-  // profile's linked business. Never fall back to another company owned by the
-  // same account, and fail closed if legacy data contains duplicate bindings.
+  // Recommendations still use a legacy contractor foreign key. The adapter
+  // must identify exactly one row matching this published profile, its active
+  // business, their shared owner, and the canonical profile slug. A dedicated
+  // business adapter may intentionally have no contractor user identity; a
+  // row attributed to another user is never accepted. Never fall back to
+  // another company owned by the same account, and fail closed if legacy data
+  // contains duplicate or conflicting bindings.
   return matches.length === 1 ? matches[0] : null;
 }
 
@@ -1839,6 +1873,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   try {
     const hasLinkedBusiness = Boolean(profile.businessId);
     const ownerContractor = await getPublicProfileContractorBinding(
+      profile.id,
+      profile.slug,
       ownerUserId,
       profile.businessId
     );
@@ -2239,7 +2275,12 @@ async function getPublicProfileTrustContext(
     if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
   }
 
-  const contractor = await getPublicProfileContractorBinding(ownerUserId, profile.businessId);
+  const contractor = await getPublicProfileContractorBinding(
+    profile.id,
+    profile.slug,
+    ownerUserId,
+    profile.businessId
+  );
   return {
     profileId: String(profile.id),
     profileSlug: String(profile.slug),
