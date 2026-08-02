@@ -7,6 +7,8 @@ const MAX_PROFILE_INVENTORY_ITEMS = 500;
 
 type RawInventoryStone = {
   name?: unknown;
+  displayName?: unknown;
+  nameStatus?: unknown;
   slug?: unknown;
   images?: unknown;
   shareImageOrder?: unknown;
@@ -20,6 +22,7 @@ type RawInventoryCategory = {
 
 export type ResolvedProfileInventoryItem = {
   name: string;
+  hasPublicName: boolean;
   slug: string;
   category: string | null;
   images: string[];
@@ -30,6 +33,7 @@ export type ResolvedProfileInventoryItem = {
 export type ProfileInventoryItemShareMetadata = {
   itemType: "inventory";
   itemName: string;
+  hasPublicName: boolean;
   itemSlug: string;
   category: string | null;
   imageIndex: number;
@@ -117,6 +121,20 @@ function normalizeShareImageOrder(value: unknown, imageCount: number): number[] 
     : Array.from({ length: imageCount }, (_, index) => index);
 }
 
+function resolvePublicInventoryItemName(
+  rawStone: RawInventoryStone
+): { name: string; hasPublicName: boolean } | null {
+  const nameStatus = firstQueryValue(rawStone.nameStatus).toLowerCase();
+  if (nameStatus === "placeholder") {
+    return { name: "", hasPublicName: false };
+  }
+
+  const displayName = firstQueryValue(rawStone.displayName);
+  const sourceName = firstQueryValue(rawStone.name);
+  const name = displayName || sourceName;
+  return name ? { name, hasPublicName: true } : null;
+}
+
 /**
  * Maps a presentation-order photo back to its stable share-order ordinal.
  * Profiles without a separate share order keep the existing index behavior.
@@ -154,9 +172,9 @@ export function resolveProfileInventoryItem(
       const slug = normalizeProfileInventoryItemSlug(rawStone.slug);
       if (slug !== requestedSlug) continue;
 
-      const name = firstQueryValue(rawStone.name);
+      const publicName = resolvePublicInventoryItemName(rawStone);
       const images = normalizePublicImages(rawStone.images);
-      if (!name || images.length === 0) return null;
+      if (!publicName || images.length === 0) return null;
       const shareImageOrder = normalizeShareImageOrder(rawStone.shareImageOrder, images.length);
       const shareImageIndex = normalizeProfileInventoryPhotoIndex(
         photoValue,
@@ -165,7 +183,7 @@ export function resolveProfileInventoryItem(
       const displayImageIndex = shareImageOrder[shareImageIndex] ?? 0;
 
       return {
-        name,
+        ...publicName,
         slug,
         category: category || null,
         images,
@@ -191,16 +209,16 @@ export function listProfileInventoryItems(categories: unknown): ResolvedProfileI
 
     for (const rawStone of rawCategory.stones as RawInventoryStone[]) {
       if (!rawStone || typeof rawStone !== "object") continue;
-      const name = firstQueryValue(rawStone.name);
+      const publicName = resolvePublicInventoryItemName(rawStone);
       const slug = normalizeProfileInventoryItemSlug(rawStone.slug);
       const images = normalizePublicImages(rawStone.images);
-      if (!name || !slug || images.length === 0 || items.some((item) => item.slug === slug)) {
+      if (!publicName || !slug || images.length === 0 || items.some((item) => item.slug === slug)) {
         continue;
       }
 
       const shareImageOrder = normalizeShareImageOrder(rawStone.shareImageOrder, images.length);
       items.push({
-        name,
+        ...publicName,
         slug,
         category: category || null,
         images,
@@ -237,13 +255,34 @@ export function createProfileInventoryItemShareMetadata(args: {
       contentBlocks: args.publicRouteContentBlocks,
     });
     if (!canonical) return null;
-    const categoryDetail = item.category ? ` (${item.category})` : "";
+    const categoryDetail = item.category && item.hasPublicName ? ` (${item.category})` : "";
     const itemIsProfile =
+      item.hasPublicName &&
       item.name.localeCompare(profileName, undefined, { sensitivity: "base" }) === 0;
+
+    if (!item.hasPublicName) {
+      return {
+        itemType: "inventory",
+        itemName: "",
+        hasPublicName: false,
+        itemSlug: item.slug,
+        category: item.category,
+        imageIndex: item.imageIndex,
+        shareImageIndex: item.shareImageIndex,
+        title: `Current stone selection | ${profileName}`,
+        description: capDescription(
+          `View this stone selection in ${profileName}'s current inventory. See this photo and request current availability through protected TradeScout Direct Connect.`
+        ),
+        imageUrl,
+        imageAlt: `Stone selection — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
+        canonical,
+      };
+    }
 
     return {
       itemType: "inventory",
       itemName: item.name,
+      hasPublicName: true,
       itemSlug: item.slug,
       category: item.category,
       imageIndex: item.imageIndex,

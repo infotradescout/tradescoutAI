@@ -126,9 +126,11 @@ export default function ExpressDirectConnectPanel({
   const stableItemId = String(initialItemId || "").trim() || null;
   const displayStoneName = String(initialStoneName || "").trim() || null;
   const selectedServiceName = String(initialServiceName || "").trim() || null;
-  const itemParam = stableItemId || displayStoneName;
+  // `item` is human-facing Direct Connect context. Keep an anonymous
+  // selection's stable slug only in `itemId` so it never becomes public copy.
+  const itemParam = displayStoneName;
   const defaultRequestType =
-    initialRequestType || (itemParam ? "request_material" : config.defaultType);
+    initialRequestType || (stableItemId || itemParam ? "request_material" : config.defaultType);
   const operatorName = String(contactOperatorName || "").trim() || businessName;
   const operatorRole = String(contactOperatorRole || "").trim();
   const hasSeparateOperator = operatorName.toLowerCase() !== businessName.toLowerCase();
@@ -156,7 +158,7 @@ export default function ExpressDirectConnectPanel({
       : displayStoneName
         ? `I'm interested in ${displayStoneName}.`
         : stableItemId
-          ? `I'm interested in ${stableItemId}.`
+          ? "I'm interested in this stone selection."
           : "",
     website: "",
   });
@@ -197,7 +199,7 @@ export default function ExpressDirectConnectPanel({
         : displayStoneName
           ? `I'm interested in ${displayStoneName}.`
           : stableItemId
-            ? `I'm interested in ${stableItemId}.`
+            ? "I'm interested in this stone selection."
             : "",
     }));
   }, [
@@ -476,7 +478,7 @@ export default function ExpressDirectConnectPanel({
                     : displayStoneName
                       ? `Ask about ${displayStoneName}`
                       : stableItemId
-                        ? `Ask about ${stableItemId}`
+                        ? "Ask about this stone selection"
                         : config.heading}
                 </h3>
                 <p className="mt-1 text-sm text-stone-600">

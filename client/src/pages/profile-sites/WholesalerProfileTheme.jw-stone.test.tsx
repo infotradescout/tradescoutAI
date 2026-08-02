@@ -95,6 +95,47 @@ const contentBlocks = [
   },
 ];
 
+const nameIdentityContentBlocks = contentBlocks.map((block) =>
+  block.type === "inventoryCatalog"
+    ? {
+        ...block,
+        data: {
+          title: "Full inventory",
+          description: "Browse every named stone.",
+          categories: [
+            {
+              category: "Material to Confirm",
+              categorySlug: "unconfirmed",
+              stones: [
+                {
+                  name: "Amazonic Green",
+                  displayName: "Amazonic Green",
+                  nameStatus: "source" as const,
+                  slug: "amazonic-green",
+                  images: ["/amazonic-green.jpg"],
+                  materialStatus: "unconfirmed" as const,
+                  finishStatus: "unconfirmed" as const,
+                },
+                ...Array.from({ length: 10 }, (_, index) => {
+                  const ordinal = String(index + 1).padStart(2, "0");
+                  return {
+                    name: `Trending Selection ${ordinal}`,
+                    displayName: null,
+                    nameStatus: "placeholder" as const,
+                    slug: `trending-selection-${ordinal}`,
+                    images: [`/trending-selection-${ordinal}.jpg`],
+                    materialStatus: "unconfirmed" as const,
+                    finishStatus: "unconfirmed" as const,
+                  };
+                }),
+              ],
+            },
+          ],
+        },
+      }
+    : block
+);
+
 const recommendationsDirectory = Array.from({ length: 4 }, (_, index) => ({
   id: `recommendation-${index + 1}`,
   createdAt: null,
@@ -268,13 +309,116 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
   });
 
+  it("keeps known stone names visible while synthetic groups stay explicitly unnamed", () => {
+    act(() => {
+      root.render(<WholesalerProfileTheme {...props} contentBlocks={nameIdentityContentBlocks} />);
+    });
+
+    const amazonDetails = container.querySelector(
+      'button[aria-label="View details for Amazonic Green"]'
+    );
+    const inventoryCards = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid="profile-inventory-card"]')
+    );
+    const syntheticCards = inventoryCards.filter((card) =>
+      card.querySelector('img[src^="/trending-selection-"]')
+    );
+    const syntheticFiveCard = syntheticCards.find((card) =>
+      card.querySelector('img[src="/trending-selection-05.jpg"]')
+    );
+    const unnamedDetails = syntheticFiveCard?.querySelector(
+      'button[aria-label="View stone selection details"]'
+    );
+    expect(amazonDetails).not.toBeNull();
+    expect(unnamedDetails).not.toBeNull();
+    expect(syntheticCards).toHaveLength(10);
+    expect(
+      syntheticCards.every(
+        (card) =>
+          card.querySelector('[data-testid="profile-inventory-name"]') === null &&
+          card.querySelector('[data-testid="profile-inventory-availability"]')?.textContent ===
+            "Call for availability"
+      )
+    ).toBe(true);
+    expect(amazonDetails?.closest("article")?.textContent).toContain(
+      "Material & finish pending confirmation"
+    );
+    expect(unnamedDetails?.closest("article")?.textContent).toContain(
+      "Name & finish pending confirmation"
+    );
+    expect(container.querySelector('button[aria-label="Share Amazonic Green"]')).not.toBeNull();
+    expect(
+      container.querySelectorAll('button[aria-label="Share Current stone selection"]')
+    ).toHaveLength(10);
+    expect(container.textContent).toContain("Amazonic Green");
+    expect(container.textContent).not.toContain("Unnamed slab");
+    expect(container.textContent).not.toContain("Trending Selection 05");
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search by stone name"]'
+    );
+    changeInput(search, "Amazonic Green");
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(1);
+    expect(container.textContent).toContain("Amazonic Green");
+    changeInput(search, "Trending Selection 05");
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(0);
+    changeInput(search, "Unnamed slab");
+    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(0);
+    changeInput(search, "");
+
+    const reopenedSyntheticFiveCard = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid="profile-inventory-card"]')
+    ).find((card) => card.querySelector('img[src="/trending-selection-05.jpg"]'));
+    click(
+      reopenedSyntheticFiveCard?.querySelector(
+        'button[aria-label="View stone selection details"]'
+      ) || null
+    );
+    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
+      "Stone selection photo gallery"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Call for availability"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
+      "Finish not confirmed"
+    );
+    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain("Unnamed slab");
+    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
+      "Trending Selection 05"
+    );
+    click(container.querySelector('button[aria-label="Close gallery"]'));
+
+    const syntheticAsk = reopenedSyntheticFiveCard?.querySelector(
+      'button[aria-label="Ask about availability for this stone selection"]'
+    );
+    click(syntheticAsk || null);
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
+      open: true,
+      initialItemId: "trending-selection-05",
+      initialStoneName: null,
+      initialRequestType: "request_material",
+    });
+
+    click(container.querySelector('button[aria-label="Ask about Amazonic Green"]'));
+    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
+      open: true,
+      initialItemId: "amazonic-green",
+      initialStoneName: "Amazonic Green",
+      initialRequestType: "request_material",
+    });
+  });
+
   it("adapts guidance and Direct Connect intent to the selected customer type", () => {
     act(() => {
       root.render(<WholesalerProfileTheme {...props} />);
     });
 
     const chooser = container.querySelector('[data-testid="profile-audience-chooser"]');
+    const tabs = container.querySelector('[data-testid="profile-audience-tabs"]');
     expect(chooser).not.toBeNull();
+    expect(tabs?.className).toContain("grid-cols-2");
+    expect(tabs?.className).not.toContain("overflow-x-auto");
     expect(chooser?.querySelectorAll('[role="tab"]')).toHaveLength(4);
     expect(chooser?.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
     expect(chooser?.textContent).toContain("Fabricators");
