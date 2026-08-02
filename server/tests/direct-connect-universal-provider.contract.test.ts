@@ -17,6 +17,13 @@ function readRepoFile(relativePath: string): string {
   return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
 }
 
+function readProviderSearchRoute(): string {
+  const extractedPath = path.join(repoRoot, "server/routes/provider-search.ts");
+  if (fs.existsSync(extractedPath)) return fs.readFileSync(extractedPath, "utf8");
+  const routes = readRepoFile("server/routes.ts");
+  return routes.slice(routes.indexOf('"/api/business-providers/search"'));
+}
+
 // ---------------------------------------------------------------------------
 // 1. DB migration: responder_user_id column
 // ---------------------------------------------------------------------------
@@ -273,42 +280,32 @@ describe("Universal provider search — /api/business-providers/search", () => {
   });
 
   it("business-providers/search merges contractors and businesses", () => {
-    const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 12000);
+    const section = readProviderSearchRoute();
     expect(section).toContain("contractorResults");
     expect(section).toContain("businessResults");
     expect(section).toContain("merged");
   });
 
   it("business-providers/search deduplicates results by id", () => {
-    const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 12000);
+    const section = readProviderSearchRoute();
     expect(section).toContain("seen");
   });
 
   it("business-providers/search annotates results with providerType", () => {
-    const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 12000);
+    const section = readProviderSearchRoute();
     expect(section).toContain('"contractor"');
     expect(section).toContain('"business"');
   });
 
   it("business-providers/search computes distanceMiles using viewer + provider coordinates", () => {
-    const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 12000);
+    const section = readProviderSearchRoute();
     expect(section).toContain("distanceMiles");
     expect(section).toContain("haversineDistanceMiles");
     expect(section).toContain("homeLocation");
   });
 
   it("business-providers/search supports distance and recommended sort modes", () => {
-    const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 12000);
+    const section = readProviderSearchRoute();
     expect(section).toContain('sortMode === "distance"');
     expect(section).toContain('sortMode === "recommended"');
   });

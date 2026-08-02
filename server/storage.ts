@@ -527,6 +527,7 @@ export interface IStorage {
   // Contractor operations
   getContractors(filters?: {
     countyId?: string;
+    stateCode?: string;
     tradeIds?: string[];
     query?: string;
     sortBy?: "recommended" | "rating" | "years" | "verified";
@@ -577,6 +578,19 @@ export interface IStorage {
    */
   getProvidersByCountyAndCategory(args: {
     countyId: string;
+    roleContexts?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>
+  >;
+  getProvidersByStateAndCategory(args: {
+    stateCode: string;
     roleContexts?: string[];
     limit?: number;
   }): Promise<
@@ -1725,6 +1739,23 @@ export class DatabaseStorage implements IStorage {
     return this.businessRepository.getProvidersByCountyAndCategory(args);
   }
 
+  async getProvidersByStateAndCategory(args: {
+    stateCode: string;
+    roleContexts?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>
+  > {
+    // State scope is still derived from canonical business-to-county assignments.
+    return this.businessRepository.getProvidersByStateAndCategory(args);
+  }
+
   async getActiveBusinessForUser(userId: string): Promise<Business | undefined> {
     return this.businessRepository.getActiveBusinessForUser(userId);
   }
@@ -2296,6 +2327,7 @@ export class DatabaseStorage implements IStorage {
   // Contractor operations
   async getContractors(filters?: {
     countyId?: string;
+    stateCode?: string;
     tradeIds?: string[];
     query?: string;
     sortBy?: "recommended" | "rating" | "years" | "verified";
@@ -2324,6 +2356,24 @@ export class DatabaseStorage implements IStorage {
               and(
                 eq(contractorCounties.contractorId, contractors.id),
                 eq(contractorCounties.countyId, filters.countyId)
+              )
+            )
+            .limit(1)
+        )
+      );
+    } else if (filters?.stateCode) {
+      const stateCode = String(filters.stateCode).trim().toUpperCase();
+      if (!/^[A-Z]{2}$/.test(stateCode)) return [];
+      predicates.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(contractorCounties)
+            .innerJoin(counties, eq(contractorCounties.countyId, counties.id))
+            .where(
+              and(
+                eq(contractorCounties.contractorId, contractors.id),
+                eq(counties.stateCode, stateCode)
               )
             )
             .limit(1)

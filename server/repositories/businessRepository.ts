@@ -437,6 +437,98 @@ export class BusinessRepository {
     }>;
   }
 
+  async getProvidersByStateAndCategory(args: {
+    stateCode: string;
+    roleContexts?: string[];
+    limit?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+      profileData: Business["profileData"];
+      profileHeadline: string | null;
+      profileContentBlocks: Profile["contentBlocks"];
+      profileSeoMeta: Profile["seoMeta"];
+      canonicalProfileSlug: string | null;
+    }>
+  > {
+    const stateCode = normalizePublicStateCode(args.stateCode);
+    if (!stateCode) return [];
+
+    const limit = Math.min(50, Math.max(1, Number(args.limit ?? 15) || 15));
+    const predicates: any[] = [
+      eq(businesses.status, "active" as any),
+      eq(businesses.publicDiscoveryEnabled, true),
+      publicBusinessDetailExposureSqlPredicate(),
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(businessCounties)
+          .innerJoin(counties, eq(businessCounties.countyId, counties.id))
+          .where(
+            and(
+              eq(businessCounties.businessId, businesses.id),
+              eq(counties.stateCode, stateCode)
+            )
+          )
+          .limit(1)
+      ),
+    ];
+    if (args.roleContexts?.length) {
+      predicates.push(inArray(businesses.roleContext as any, args.roleContexts as any));
+    }
+
+    const rows = await db
+      .select({
+        businessId: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        name: businesses.name,
+        roleContext: businesses.roleContext,
+        slug: businesses.slug,
+        profileData: businesses.profileData,
+        profileHeadline: sql<string | null>`(
+          select p.headline from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        profileContentBlocks: sql<Profile["contentBlocks"]>`(
+          select p.content_blocks from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        profileSeoMeta: sql<Profile["seoMeta"]>`(
+          select p.seo_meta from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        canonicalProfileSlug: sql<string | null>`(
+          select p.slug from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+      })
+      .from(businesses)
+      .leftJoin(users, eq(businesses.ownerUserId, users.id))
+      .where(and(...predicates))
+      .limit(limit);
+
+    return rows as Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+      profileData: Business["profileData"];
+      profileHeadline: string | null;
+      profileContentBlocks: Profile["contentBlocks"];
+      profileSeoMeta: Profile["seoMeta"];
+      canonicalProfileSlug: string | null;
+    }>;
+  }
+
   async getActiveBusinessForUser(userId: string): Promise<Business | undefined> {
     const userRows = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     const user = userRows[0] as User | undefined;
