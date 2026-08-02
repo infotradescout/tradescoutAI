@@ -7,7 +7,7 @@ const read = (relativePath: string) =>
 
 describe("tradepartner public campaigns list contract", () => {
   it("registers public campaigns list route before partner slug route", () => {
-    const routesSource = read("server/routes.ts");
+    const routesSource = read("server/routes/commercial-promotions.ts");
 
     expect(routesSource).toContain(
       'app.get("/api/tradepartner-campaigns", listTradePartnerCampaignsPublicHandler as any);'

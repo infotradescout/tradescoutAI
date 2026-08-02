@@ -39,6 +39,10 @@ import { registerBusinessContactRoutes } from "./routes/business-contact";
 import { registerTradePartnerExpressRoutes } from "./routes/tradepartner-express";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
+import { registerTutorialRoutes } from "./routes/tutorials";
+import { registerContractorLeaderboardRoutes } from "./routes/contractor-leaderboards";
+import { registerCommercialPromotionRoutes } from "./routes/commercial-promotions";
+import { registerStoryRoutes } from "./routes/stories";
 import { registerAdminBusinessCountyEnrichmentRoutes } from "./routes/admin-business-county-enrichment";
 import { registerContractorPromoRoutes } from "./routes/contractor-promos";
 import { registerAnalyticsRoutes } from "./routes/analytics-routes";
@@ -199,7 +203,6 @@ import {
   affiliateAttributionConversions,
   affiliateShareLinks,
   affiliateTrafficEvents,
-  generatedStories,
   leads,
   quotes,
   conversations,
@@ -226,7 +229,6 @@ import {
   listingImportStaging,
   insertRealtorProfileSchema,
   insertCarSalesmanProfileSchema,
-  insertGeneratedStorySchema,
   insertLeadSchema,
   insertMarketplaceCategorySchema,
   insertMarketplaceListingSchema,
@@ -818,9 +820,7 @@ function scoutConversationSurfaceWhere(surface: ScoutConversationSurfaceFilter) 
   return sql`${scoutConversations.metadata}->'relatedTo'->>'kind' = ${surface}`;
 }
 import { paymentService } from "./payment-service";
-import { tutorialStorage } from "./tutorialStorage";
 import { DataManagementService } from "./data-management";
-import { StoryGenerationService } from "./story-generation-service";
 import { communityBuilderPaymentService } from "./community-builder-payment-service";
 import { platformSupportPaymentService } from "./platform-support-payment-service";
 import { antiScrapeShield } from "./middleware/antiScrape";
@@ -12179,47 +12179,7 @@ export async function registerRoutes(app: any) {
     }
   });
 
-  // Contractor leaderboards
-  app.get("/api/leaderboard/monthly", async (req: any, res: any) => {
-    try {
-      const month = req.query.month ? Number(req.query.month) : new Date().getMonth() + 1;
-      const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
-      const limit = req.query.limit ? Number(req.query.limit) : 20;
-      const state = req.query.state as string;
-      const county = req.query.county as string;
-
-      const leaderboard = await storage.getMonthlyLeaderboard(month, year, limit, state, county);
-      res.json(leaderboard);
-    } catch (error: any) {
-      console.error("Error fetching monthly leaderboard:", error);
-      res.status(500).json({ message: "Failed to fetch monthly leaderboard" });
-    }
-  });
-
-  app.get("/api/leaderboard/lifetime", async (req: any, res: any) => {
-    try {
-      const limit = req.query.limit ? Number(req.query.limit) : 20;
-      const state = req.query.state as string;
-      const county = req.query.county as string;
-
-      const leaderboard = await storage.getLifetimeLeaderboard(limit, state, county);
-      res.json(leaderboard);
-    } catch (error: any) {
-      console.error("Error fetching lifetime leaderboard:", error);
-      res.status(500).json({ message: "Failed to fetch lifetime leaderboard" });
-    }
-  });
-
-  app.get("/api/leaderboard/contractor/:contractorId", async (req: any, res: any) => {
-    try {
-      const { contractorId } = req.params;
-      const stats = await storage.getContractorLeaderboardPosition(contractorId);
-      res.json(stats);
-    } catch (error: any) {
-      console.error("Error fetching contractor leaderboard position:", error);
-      res.status(500).json({ message: "Failed to fetch contractor position" });
-    }
-  });
+  registerContractorLeaderboardRoutes(app, storage);
 
   // States API for geographic filtering
   // NOTE: /api/states and /api/counties are defined earlier with
@@ -22667,225 +22627,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   );
 
-  // Initialize WebSocket server
-  // Tutorial Management Routes
-  app.get("/api/tutorials/user-progress", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const progress = await tutorialStorage.getUserTutorialProgress(userId);
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error fetching tutorial progress:", error);
-      res.status(500).json({ message: "Failed to fetch tutorial progress" });
-    }
-  });
-
-  app.get("/api/tutorials/recommended", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const userRole = req.user?.role || "homeowner";
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const recommended = await tutorialStorage.getRecommendedTutorialsForUser(userId, userRole);
-      res.json(recommended);
-    } catch (error: any) {
-      console.error("Error fetching recommended tutorials:", error);
-      res.status(500).json({ message: "Failed to fetch recommended tutorials" });
-    }
-  });
-
-  app.get("/api/tutorials/:tutorialId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { tutorialId } = req.params;
-      const tutorial = await tutorialStorage.getTutorialById(tutorialId);
-
-      if (!tutorial) {
-        return res.status(404).json({ message: "Tutorial not found" });
-      }
-
-      res.json(tutorial);
-    } catch (error: any) {
-      console.error("Error fetching tutorial:", error);
-      res.status(500).json({ message: "Failed to fetch tutorial" });
-    }
-  });
-
-  app.post("/api/tutorials/:tutorialId/start", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { tutorialId } = req.params;
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const tutorial = await tutorialStorage.getTutorialById(tutorialId);
-      if (!tutorial) {
-        return res.status(404).json({ message: "Tutorial not found" });
-      }
-
-      // Record analytics
-      await tutorialStorage.recordTutorialAnalytics({
-        userId,
-        tutorialId,
-        stepId: tutorial.steps[0]?.id || "start",
-        action: "started",
-        userAgent: req.headers["user-agent"],
-        viewport: req.body.viewport,
-      });
-
-      // Create or update progress
-      const progress = await tutorialStorage.createOrUpdateTutorialProgress({
-        userId,
-        tutorialId,
-        tutorialType: tutorial.type as "onboarding" | "feature",
-        stepIndex: "0",
-        isCompleted: false,
-        isSkipped: false,
-      });
-
-      res.json({ progress, tutorial });
-    } catch (error: any) {
-      console.error("Error starting tutorial:", error);
-      res.status(500).json({ message: "Failed to start tutorial" });
-    }
-  });
-
-  app.put("/api/tutorials/:tutorialId/progress", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { tutorialId } = req.params;
-      const { stepIndex, action, timeSpent, metadata } = req.body;
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const tutorial = await tutorialStorage.getTutorialById(tutorialId);
-      if (!tutorial) {
-        return res.status(404).json({ message: "Tutorial not found" });
-      }
-
-      // Record analytics
-      await tutorialStorage.recordTutorialAnalytics({
-        userId,
-        tutorialId,
-        stepId: tutorial.steps[parseInt(stepIndex)]?.id || stepIndex,
-        action,
-        timeSpent: timeSpent?.toString(),
-        userAgent: req.headers["user-agent"],
-        viewport: req.body.viewport,
-        metadata,
-      });
-
-      // Update progress
-      const progress = await tutorialStorage.createOrUpdateTutorialProgress({
-        userId,
-        tutorialId,
-        tutorialType: tutorial.type as "onboarding" | "feature",
-        stepIndex,
-        isCompleted: action === "completed",
-        isSkipped: action === "skipped",
-        metadata,
-        ...(action === "completed" || action === "skipped" ? { completedAt: new Date() } : {}),
-      });
-
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error updating tutorial progress:", error);
-      res.status(500).json({ message: "Failed to update tutorial progress" });
-    }
-  });
-
-  app.post("/api/tutorials/:tutorialId/complete", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { tutorialId } = req.params;
-      const { finalStepIndex } = req.body;
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const progress = await tutorialStorage.markTutorialCompleted(
-        userId,
-        tutorialId,
-        finalStepIndex
-      );
-
-      // Record completion analytics
-      await tutorialStorage.recordTutorialAnalytics({
-        userId,
-        tutorialId,
-        stepId: "completion",
-        action: "completed",
-        userAgent: req.headers["user-agent"],
-        viewport: req.body.viewport,
-      });
-
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error completing tutorial:", error);
-      res.status(500).json({ message: "Failed to complete tutorial" });
-    }
-  });
-
-  app.post("/api/tutorials/:tutorialId/skip", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { tutorialId } = req.params;
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const progress = await tutorialStorage.markTutorialSkipped(userId, tutorialId);
-
-      // Record skip analytics
-      await tutorialStorage.recordTutorialAnalytics({
-        userId,
-        tutorialId,
-        stepId: "skip",
-        action: "skipped",
-        userAgent: req.headers["user-agent"],
-        viewport: req.body.viewport,
-      });
-
-      res.json(progress);
-    } catch (error: any) {
-      console.error("Error skipping tutorial:", error);
-      res.status(500).json({ message: "Failed to skip tutorial" });
-    }
-  });
-
-  app.get("/api/tutorials/check/:featureId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const { featureId } = req.params;
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      const shouldShow = await tutorialStorage.shouldShowTutorial(userId, featureId);
-      const tutorial = shouldShow ? await tutorialStorage.getTutorialById(featureId) : null;
-
-      res.json({ shouldShow, tutorial });
-    } catch (error: any) {
-      console.error("Error checking tutorial:", error);
-      res.status(500).json({ message: "Failed to check tutorial" });
-    }
-  });
-
-  // Initialize default tutorials on server start
-  // tutorialStorage.initializeDefaultTutorials().catch(console.error); // Disabled for deployment
+  registerTutorialRoutes(app);
 
   const httpServer = createServer(app);
   // Initialize WebSocket manager for real-time communication
@@ -26847,96 +26589,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
-  // Phase 1: Daily Deals System Routes
-  const {
-    getDailyDeals,
-    createDailyDeal,
-    trackDealEngagement,
-    getUserAffiliate,
-    getAffiliateDashboard,
-    updateDailyDeal,
-    deleteDailyDeal,
-    getFeaturedDeals,
-  } = await import("./routes/dailyDeals");
-
-  // Public daily deals endpoints
-  app.get("/api/daily-deals", getDailyDeals);
-  app.get("/api/deals/featured", getFeaturedDeals);
-
-  // Protected daily deals endpoints
-  app.post("/api/daily-deals", isAuthenticated, createDailyDeal);
-  app.put("/api/daily-deals/:id", isAuthenticated, updateDailyDeal);
-  app.delete("/api/daily-deals/:id", isAuthenticated, deleteDailyDeal);
-
-  // Deal engagement tracking
-  app.post("/api/deal-engagements", trackDealEngagement);
-
-  // Affiliate system endpoints (daily deals performance)
-  app.get("/api/user/affiliate", isAuthenticated, getUserAffiliate);
-  app.get("/api/affiliate/performance", isAuthenticated, getAffiliateDashboard as any);
-
-  const {
-    listPromotionsHandler,
-    createPromotionHandler,
-    updatePromotionHandler,
-    deletePromotionHandler,
-  } = await import("./routes/promotions");
-
-  // Promotions admin endpoints (super admin only)
-  app.get("/api/admin/promotions", isAuthenticated, isSuperAdmin, listPromotionsHandler as any);
-  app.post("/api/admin/promotions", isAuthenticated, isSuperAdmin, createPromotionHandler as any);
-  app.put(
-    "/api/admin/promotions/:id",
-    isAuthenticated,
-    isSuperAdmin,
-    updatePromotionHandler as any
-  );
-  app.delete(
-    "/api/admin/promotions/:id",
-    isAuthenticated,
-    isSuperAdmin,
-    deletePromotionHandler as any
-  );
-
-  const {
-    listTradePartnerCampaignsPublicHandler,
-    getTradePartnerCampaignPublicHandler,
-    listTradePartnerCampaignsAdminHandler,
-    getTradePartnerCampaignAdminHandler,
-    upsertTradePartnerCampaignAdminHandler,
-  } = await import("./routes/tradepartner-campaigns");
-
-  // TradePartner campaign system (public + super-admin controls)
-  app.get("/api/tradepartner-campaigns", listTradePartnerCampaignsPublicHandler as any);
-  app.get("/api/tradepartner-campaigns/:partnerSlug", getTradePartnerCampaignPublicHandler as any);
-  app.get(
-    "/api/admin/tradepartner-campaigns",
-    isAuthenticated,
-    isSuperAdmin,
-    listTradePartnerCampaignsAdminHandler as any
-  );
-  app.get(
-    "/api/admin/tradepartner-campaigns/:partnerSlug",
-    isAuthenticated,
-    isSuperAdmin,
-    getTradePartnerCampaignAdminHandler as any
-  );
-  app.put(
-    "/api/admin/tradepartner-campaigns/:partnerSlug",
-    isAuthenticated,
-    isSuperAdmin,
-    upsertTradePartnerCampaignAdminHandler as any
-  );
-
-  // Phase 2: Boost System Routes for Realtors & Dealers
-  const { getAvailableBoosts, purchaseBoost, getUserBoosts, getBoostAnalytics, cancelBoost } =
-    await import("./routes/boosts");
-
-  app.get("/api/boosts/available", isAuthenticated, getAvailableBoosts);
-  app.post("/api/boosts/purchase", isAuthenticated, purchaseBoost);
-  app.get("/api/boosts/user", isAuthenticated, getUserBoosts);
-  app.get("/api/boosts/:boostId/analytics", isAuthenticated, getBoostAnalytics);
-  app.delete("/api/boosts/:boostId", isAuthenticated, cancelBoost);
+  await registerCommercialPromotionRoutes(app, { isAuthenticated, isSuperAdmin });
 
   // Phase 3: Groups & Social Features Routes
   const {
@@ -27106,109 +26759,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/nationwide/affiliate-performance", getAffiliatePerformance);
   app.post("/api/nationwide/request-activation", isAuthenticated, requestCountyActivation);
 
-  // ========================================
-  // PROFESSIONAL STORY GENERATION ROUTES
-  // ========================================
-
-  // Generate a professional story
-  app.post("/api/stories/generate", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || req.user?.claims?.sub;
-      const { templateId, userInputs } = req.body;
-
-      if (!templateId) {
-        return res.status(400).json({ message: "Template ID is required" });
-      }
-
-      // Generate story using the service
-      const generatedStory = await StoryGenerationService.generateStory({
-        templateId,
-        userInputs: userInputs || {},
-        userId,
-      });
-
-      // Track the story generation event
-      // LocalityTracker call removed
-
-      res.status(201).json(generatedStory);
-    } catch (error: any) {
-      console.error("Error generating story:", error);
-      res.status(500).json({ message: "Failed to generate story" });
-    }
-  });
-
-  // Save a generated story
-  app.post("/api/stories", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || req.user?.claims?.sub;
-      const storyData = { ...req.body, userId };
-
-      // Validate input data
-      const parsedStory = insertGeneratedStorySchema.safeParse(storyData);
-      if (!parsedStory.success) {
-        return res.status(400).json({
-          message: "Invalid story payload",
-          issues: parsedStory.error.issues,
-        });
-      }
-
-      const validatedStory = parsedStory.data;
-
-      // Save story to database
-      const [savedStory] = await db.insert(generatedStories).values(validatedStory).returning();
-
-      // Log the save event
-      await storage.logEvent("story_saved", {
-        storyId: savedStory.id,
-        userId,
-        templateId: savedStory.templateId,
-      });
-
-      res.status(201).json(savedStory);
-    } catch (error: any) {
-      console.error("Error saving story:", error);
-      res.status(500).json({ message: "Failed to save story" });
-    }
-  });
-
-  // Get user's stories
-  app.get("/api/stories", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const userId = (req.user as any)?.id || req.user?.claims?.sub;
-      const { page = 1, limit = 10, public_only } = req.query;
-
-      const offset = (parseInt(page) - 1) * parseInt(limit);
-
-      const whereClause =
-        public_only === "true"
-          ? and(eq(generatedStories.userId, userId), eq(generatedStories.isPublic, true))
-          : eq(generatedStories.userId, userId);
-
-      const stories = await db
-        .select()
-        .from(generatedStories)
-        .where(whereClause)
-        .orderBy(desc(generatedStories.createdAt))
-        .limit(parseInt(limit))
-        .offset(offset);
-
-      res.json(stories);
-    } catch (error: any) {
-      console.error("Error fetching stories:", error);
-      res.status(500).json({ message: "Failed to fetch stories" });
-    }
-  });
-
-  // Get story templates
-  app.get("/api/stories/templates", async (req: any, res: any) => {
-    try {
-      const templates = StoryGenerationService.getTemplates();
-      res.json(templates);
-    } catch (error: any) {
-      console.error("Error fetching templates:", error);
-      res.status(500).json({ message: "Failed to fetch templates" });
-    }
-  });
+  registerStoryRoutes(app);
 
   // Dashboard data endpoint - personalized user dashboard data
   app.get("/api/dashboard", isAuthenticated, async (req: any, res: any) => {

@@ -27,7 +27,7 @@ async function checkMonolithCaps(repoRoot) {
   const caps = [
     {
       relPath: "server/routes.ts",
-      maxBytes: 1034875,
+      maxBytes: 1020207,
       rationale: "Must not grow while route extraction is in progress",
     },
     {
