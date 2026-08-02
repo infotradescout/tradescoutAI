@@ -53,6 +53,18 @@ describe("provider search jurisdiction boundary", () => {
     expect(providerRoute).toContain("stateCode: requestedStateCode");
     expect(providerRoute).toContain("getProvidersByCountyAndCategory({");
   });
+
+  it("fails closed on unknown trades and passes canonical trade scope to businesses", () => {
+    expect(providerRoute).toContain("if (!tradeRecord) return res.json([])");
+    expect(providerRoute).toContain(
+      "canonicalTradeSlug = String(tradeRecord.slug || trade).trim()"
+    );
+    expect(providerRoute.match(/tradeSlug: canonicalTradeSlug/g)).toHaveLength(2);
+  });
+
+  it("uses state to disambiguate duplicate county names", () => {
+    expect(providerRoute).toContain("stateCode: requestedScope.requestedStateCode || undefined");
+  });
 });
 
 describe("provider search state storage contracts", () => {
@@ -86,6 +98,9 @@ describe("provider search state storage contracts", () => {
     expect(method.indexOf("publicBusinessDetailExposureSqlPredicate()")).toBeLessThan(
       method.indexOf(".limit(limit)")
     );
+    expect(method).toContain("applyPublicProviderBusinessSearchPredicates(predicates, args)");
+    expect(method).toContain(".orderBy(asc(businesses.name), asc(businesses.id))");
+    expect(method).toContain(".offset(offset)");
   });
 });
 
@@ -94,6 +109,14 @@ describe("provider search public/contact boundary", () => {
     expect(providerRoute).toMatch(/sanitizeContractorPublic\((?:c|contractor)\)/);
     expect(providerRoute).not.toMatch(/email:\s*c\./);
     expect(providerRoute).not.toMatch(/phone:\s*c\./);
+  });
+
+  it("requires canonical public-profile authority before returning a contractor", () => {
+    expect(providerRoute).toContain("loadCanonicalPublicMapProfileUrls(");
+    expect(providerRoute).toContain("canonicalProfileUrlByUserId.has(");
+    expect(providerRoute.indexOf("canonicalProfileUrlByUserId.has(")).toBeLessThan(
+      providerRoute.indexOf("const contractorResults")
+    );
   });
 
   it("continues through Direct Connect rather than exposing direct contact actions", () => {

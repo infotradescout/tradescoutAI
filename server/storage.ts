@@ -579,7 +579,10 @@ export interface IStorage {
   getProvidersByCountyAndCategory(args: {
     countyId: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;
@@ -592,7 +595,10 @@ export interface IStorage {
   getProvidersByStateAndCategory(args: {
     stateCode: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;
@@ -1725,7 +1731,10 @@ export class DatabaseStorage implements IStorage {
   async getProvidersByCountyAndCategory(args: {
     countyId: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;
@@ -1742,7 +1751,10 @@ export class DatabaseStorage implements IStorage {
   async getProvidersByStateAndCategory(args: {
     stateCode: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;

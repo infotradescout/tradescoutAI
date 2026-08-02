@@ -3,6 +3,7 @@ import { inArray } from "drizzle-orm";
 import { users } from "@shared/schema";
 import { db } from "../db";
 import { storage } from "../storage";
+import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { parseProviderSearchScope } from "../services/providerSearchScope";
 
 function toFiniteNumber(value: unknown): number | undefined {
@@ -46,8 +47,11 @@ export function registerProviderSearchRoutes(
   app.get(paths, searchLimiter, async (req: any, res: any) => {
     try {
       const { county, state, trade, query, sort, limit = 30, offset = 0 } = req.query;
-      const parsedLimit = Math.min(parseInt(String(limit)) || 30, 100);
-      const parsedOffset = parseInt(String(offset)) || 0;
+      const rawLimit = Number.parseInt(String(limit), 10);
+      const rawOffset = Number.parseInt(String(offset), 10);
+      const parsedLimit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 30;
+      const parsedOffset =
+        Number.isFinite(rawOffset) && rawOffset > 0 ? Math.min(rawOffset, 5_000) : 0;
 
       const requestedScope = parseProviderSearchScope({ county, state });
       if (requestedScope.kind === "invalid") {
@@ -95,6 +99,7 @@ export function registerProviderSearchRoutes(
       if (requestedScope.kind === "county") {
         countyRecord = await storage.findCountyByNameOrFips({
           query: requestedScope.countyQuery,
+          stateCode: requestedScope.requestedStateCode || undefined,
         });
         if (!countyRecord) return res.json([]);
         if (
@@ -117,19 +122,29 @@ export function registerProviderSearchRoutes(
       const contractorFilters: any = { limit: parsedLimit, offset: parsedOffset };
       if (countyRecord) contractorFilters.countyId = countyRecord.id;
       else contractorFilters.stateCode = requestedStateCode;
-      if (trade) {
-        const tradeRecord = await storage.getTradeBySlug(String(trade));
-        if (tradeRecord) contractorFilters.tradeIds = [tradeRecord.id];
+      let canonicalTradeSlug: string | undefined;
+      if (trade !== undefined && trade !== null) {
+        if (typeof trade !== "string" || !trade.trim()) {
+          return res.status(400).json({ message: "trade must be a non-empty slug" });
+        }
+        const tradeRecord = await storage.getTradeBySlug(trade.trim());
+        if (!tradeRecord) return res.json([]);
+        contractorFilters.tradeIds = [tradeRecord.id];
+        canonicalTradeSlug = String(tradeRecord.slug || trade).trim();
       }
-      if (typeof query === "string" && query.trim()) {
-        contractorFilters.query = query.trim();
-      }
+      const normalizedQuery = typeof query === "string" ? query.trim() : "";
+      if (normalizedQuery) contractorFilters.query = normalizedQuery;
 
       const contractors = await storage.getContractors(contractorFilters);
       const contractorUserIds = contractors
         .map((contractor: any) => (typeof contractor.userId === "string" ? contractor.userId : ""))
         .filter((id: string) => id.length > 0);
       const uniqueContractorUserIds = Array.from(new Set(contractorUserIds));
+      const canonicalProfileUrlByUserId =
+        await loadCanonicalPublicMapProfileUrls(uniqueContractorUserIds);
+      const publiclyEligibleContractors = contractors.filter((contractor: any) =>
+        canonicalProfileUrlByUserId.has(String(contractor.userId || "").trim())
+      );
       const contractorLocationByUserId = new Map<string, { lat: number; lng: number }>();
 
       if (uniqueContractorUserIds.length > 0) {
@@ -146,7 +161,7 @@ export function registerProviderSearchRoutes(
         }
       }
 
-      const contractorResults = contractors.map((contractor: any) => {
+      const contractorResults = publiclyEligibleContractors.map((contractor: any) => {
         const sanitized = sanitizeContractorPublic(contractor) as any;
         const providerLocation =
           typeof contractor.userId === "string"
@@ -166,10 +181,19 @@ export function registerProviderSearchRoutes(
 
       const countyId = String(countyRecord?.id || "").trim();
       const businesses = countyId
-        ? await storage.getProvidersByCountyAndCategory({ countyId, limit: parsedLimit })
+        ? await storage.getProvidersByCountyAndCategory({
+            countyId,
+            tradeSlug: canonicalTradeSlug,
+            query: normalizedQuery || undefined,
+            limit: parsedLimit,
+            offset: parsedOffset,
+          })
         : await storage.getProvidersByStateAndCategory({
             stateCode: requestedStateCode,
+            tradeSlug: canonicalTradeSlug,
+            query: normalizedQuery || undefined,
             limit: parsedLimit,
+            offset: parsedOffset,
           });
       const ownerUserIds = Array.from(
         new Set(
@@ -196,45 +220,36 @@ export function registerProviderSearchRoutes(
         }
       }
 
-      const normalizedQuery = typeof query === "string" ? query.trim().toLowerCase() : "";
-      const businessResults = businesses
-        .filter((business: any) => {
-          if (!normalizedQuery) return true;
-          return String(business.name || "")
-            .toLowerCase()
-            .includes(normalizedQuery);
-        })
-        .slice(parsedOffset, parsedOffset + parsedLimit)
-        .map((business: any) => {
-          const ownerLocation = business.ownerUserId
-            ? businessOwnerLocationByUserId.get(String(business.ownerUserId))
-            : undefined;
-          return {
-            id: business.businessId,
-            businessId: business.businessId,
-            companyName: business.name || null,
-            name: business.name || null,
-            roleContext: business.roleContext || null,
-            slug: business.slug || null,
-            category: business.profileData?.category || business.roleContext || null,
-            description: business.profileData?.description || business.profileHeadline || null,
-            services: Array.isArray(business.profileData?.services)
-              ? business.profileData.services
-              : [],
-            contentBlocks: Array.isArray(business.profileContentBlocks)
-              ? business.profileContentBlocks
-              : [],
-            seoMeta: business.profileSeoMeta || null,
-            canonicalBusinessProfileUrl: business.canonicalProfileSlug
-              ? `/u/${encodeURIComponent(business.canonicalProfileSlug)}`
-              : `/business/${encodeURIComponent(business.slug)}`,
-            providerType: "business" as const,
-            distanceMiles:
-              viewerLat != null && viewerLng != null && ownerLocation
-                ? haversineDistanceMiles(viewerLat, viewerLng, ownerLocation.lat, ownerLocation.lng)
-                : null,
-          };
-        });
+      const businessResults = businesses.map((business: any) => {
+        const ownerLocation = business.ownerUserId
+          ? businessOwnerLocationByUserId.get(String(business.ownerUserId))
+          : undefined;
+        return {
+          id: business.businessId,
+          businessId: business.businessId,
+          companyName: business.name || null,
+          name: business.name || null,
+          roleContext: business.roleContext || null,
+          slug: business.slug || null,
+          category: business.profileData?.category || business.roleContext || null,
+          description: business.profileData?.description || business.profileHeadline || null,
+          services: Array.isArray(business.profileData?.services)
+            ? business.profileData.services
+            : [],
+          contentBlocks: Array.isArray(business.profileContentBlocks)
+            ? business.profileContentBlocks
+            : [],
+          seoMeta: business.profileSeoMeta || null,
+          canonicalBusinessProfileUrl: business.canonicalProfileSlug
+            ? `/u/${encodeURIComponent(business.canonicalProfileSlug)}`
+            : `/business/${encodeURIComponent(business.slug)}`,
+          providerType: "business" as const,
+          distanceMiles:
+            viewerLat != null && viewerLng != null && ownerLocation
+              ? haversineDistanceMiles(viewerLat, viewerLng, ownerLocation.lat, ownerLocation.lng)
+              : null,
+        };
+      });
 
       // Prefer the richer business profile when the same public identity exists
       // in both legacy contractor and first-class business storage.
