@@ -817,9 +817,9 @@
     {
       "idx": 116,
       "version": "7",
-      "when": 1785262720000,
-      "tag": "0112_jw_stone_contractor_business_binding",
-      "breakpoints": false
+      "when": 1785635100000,
+      "tag": "0113_jw_stone_recommendation_compatibility_target",
+      "breakpoints": true
     }
   ]
 }

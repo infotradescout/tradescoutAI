@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
+import { readMigrationFiles } from "drizzle-orm/migrator";
 import { describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(__dirname, "../..");
@@ -47,8 +49,25 @@ describe("canonical public-profile trust actions", () => {
       routes.indexOf("let publicProfileOffers")
     );
 
-    expect(binding).toContain("eq(contractors.userId, normalizedOwnerUserId)");
+    expect(binding).toContain("eq(profiles.id, normalizedProfileId)");
+    expect(binding).toContain("eq(profiles.slug, normalizedProfileSlug)");
+    expect(binding).toContain("eq(profiles.ownerUserId, normalizedOwnerUserId)");
+    expect(binding).toContain("eq(profiles.businessId, normalizedBusinessId)");
+    expect(binding).toContain('eq(profiles.status, "published")');
+    expect(binding).toContain("eq(businesses.ownerUserId, normalizedOwnerUserId)");
+    expect(binding).toContain('eq(businesses.status, "active")');
     expect(binding).toContain("eq(contractors.businessId, normalizedBusinessId)");
+    expect(binding).toContain("eq(contractors.slug, normalizedProfileSlug)");
+    expect(binding).toContain("isNull(contractors.userId)");
+    expect(binding).toContain("eq(contractors.userId, normalizedOwnerUserId)");
+    expect(binding).toContain("JW_STONE_RECOMMENDATION_COMPATIBILITY.contractorId");
+    expect(binding).toContain("eq(contractors.isActive, false)");
+    expect(binding).toContain("eq(contractors.verifiedLicensed, false)");
+    expect(binding).toContain("eq(contractors.verifiedInsured, false)");
+    expect(binding).toContain("eq(contractors.isGeneralContractor, false)");
+    expect(binding).toContain("eq(contractors.isResidentialContractor, false)");
+    expect(binding).toContain("eq(contractors.acceptsSubcontractWork, false)");
+    expect(binding).toContain("isExactPublicProfileContractorBindingCandidate");
     expect(binding).toContain("return matches.length === 1 ? matches[0] : null");
     expect(directory).toContain("getPublicProfileContractorBinding(");
     expect(directory).toContain("eq(recommendations.contractorId, ownerContractor.id)");
@@ -69,16 +88,57 @@ describe("canonical public-profile trust actions", () => {
       routes.indexOf("async function readPublicProfileTrustActions")
     );
 
-    expect(trustContext).toContain(
-      "getPublicProfileContractorBinding(ownerUserId, profile.businessId)"
-    );
+    expect(trustContext).toContain("profile.id,");
+    expect(trustContext).toContain("profile.slug,");
+    expect(trustContext).toContain("ownerUserId,");
+    expect(trustContext).toContain("profile.businessId");
     expect(trustContext).not.toContain("getContractorByUserId");
 
-    const jwBindingMigration = read("migrations/0112_jw_stone_contractor_business_binding.sql");
-    expect(jwBindingMigration).toContain("WHERE slug = 'jw-stone'");
-    expect(jwBindingMigration).toContain("HAVING count(*) = 1");
-    expect(jwBindingMigration).toContain("AND c.business_id IS NULL");
-    expect(jwBindingMigration).not.toContain("company_name");
+    expect(
+      fs.existsSync(path.join(repoRoot, "migrations/0112_jw_stone_contractor_business_binding.sql"))
+    ).toBe(false);
+
+    const jwCompatibilityMigration = read(
+      "migrations/0113_jw_stone_recommendation_compatibility_target.sql"
+    );
+    const migrationJournal = read("migrations/meta/_journal.json");
+    expect(jwCompatibilityMigration).toContain("p.id = '8802a941-f082-45c6-b0d3-da6c484d79da'");
+    expect(jwCompatibilityMigration).toContain(
+      "p.owner_user_id = 'd61a5be3-d0ba-402b-afe3-47f994787c00'"
+    );
+    expect(jwCompatibilityMigration).toContain(
+      "p.business_id = '3cbfd44b-59c5-4d08-8106-1a58b7746966'"
+    );
+    expect(jwCompatibilityMigration).toContain("b.owner_user_id = p.owner_user_id");
+    expect(jwCompatibilityMigration).toContain("p.status = 'published'");
+    expect(jwCompatibilityMigration).toContain("b.status = 'active'");
+    expect(jwCompatibilityMigration).toContain("'bb6a45da-7730-4870-85d4-5cb0b8e0f5d6'");
+    expect(jwCompatibilityMigration).toContain(
+      "WHERE c.id = 'bb6a45da-7730-4870-85d4-5cb0b8e0f5d6'"
+    );
+    expect(jwCompatibilityMigration).toContain("OR c.slug = jw.slug");
+    expect(jwCompatibilityMigration).toContain("OR c.business_id = jw.business_id");
+    expect(jwCompatibilityMigration).not.toMatch(/INSERT INTO contractors \(\s*user_id,/);
+    expect(jwCompatibilityMigration).toContain("is_general_contractor");
+    expect(jwCompatibilityMigration).toContain("is_residential_contractor");
+    expect(jwCompatibilityMigration).toContain("accepts_subcontract_work");
+    expect(jwCompatibilityMigration).toMatch(/FALSE,\s+FALSE,\s+FALSE,\s+FALSE,\s+FALSE,\s+FALSE,/);
+    expect(jwCompatibilityMigration).toContain("ON CONFLICT (slug) DO NOTHING");
+    expect(jwCompatibilityMigration).not.toMatch(
+      /\b(?:insert\s+into|update)\s+(?:trust_snapshots|county_entities|county_metrics)\b/i
+    );
+    expect(migrationJournal).toContain(
+      '"tag": "0113_jw_stone_recommendation_compatibility_target"'
+    );
+    const scheduledMigrationHashes = new Set(
+      readMigrationFiles({ migrationsFolder: path.join(repoRoot, "migrations") }).map(
+        (migration) => migration.hash
+      )
+    );
+    const compatibilityMigrationHash = createHash("sha256")
+      .update(jwCompatibilityMigration)
+      .digest("hex");
+    expect(scheduledMigrationHashes.has(compatibilityMigrationHash)).toBe(true);
   });
 
   it("renders Like, Recommend, Favorite, and Share in every canonical profile theme", () => {

@@ -27,7 +27,10 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
-import { runRuntimeMigrations } from "./runtimeMigrations";
+import {
+  HistoricalMigrationReplayRefusedError,
+  runRuntimeMigrations,
+} from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
@@ -1083,6 +1086,7 @@ app.use(landingContractHeaders);
           log: (msg) => log(msg, "RuntimeMigrations"),
         });
       } catch (err) {
+        if (err instanceof HistoricalMigrationReplayRefusedError) throw err;
         console.error("[RuntimeMigrations] Failed (non-fatal):", err);
       }
     } else {

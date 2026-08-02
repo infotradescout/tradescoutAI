@@ -8,6 +8,12 @@
 ALTER TABLE post_comments
   DROP CONSTRAINT IF EXISTS post_comments_post_id_social_posts_id_fk;
 
+-- Fresh journal installs already have this target FK from migration 0000,
+-- with the pre-fix delete behavior. Replace it idempotently before adding the
+-- corrected cascading constraint.
+ALTER TABLE post_comments
+  DROP CONSTRAINT IF EXISTS post_comments_post_id_community_posts_id_fk;
+
 ALTER TABLE post_comments
   ADD CONSTRAINT post_comments_post_id_community_posts_id_fk
   FOREIGN KEY (post_id) REFERENCES community_posts(id) ON DELETE CASCADE;
