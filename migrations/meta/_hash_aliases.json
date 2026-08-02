@@ -1,0 +1,39 @@
+{
+  "0006_extend_documents_types.sql": [
+    "e3676658579e4d0593c2d4dc987d6ec5b767b912087acdb05bf24a8b5d5124ff",
+    "ad98bbb5871b997fad9873e45903b6b0bcad48d87b8e8eaf3783dcd60f713857"
+  ],
+  "0013_social_post_saves.sql": [
+    "1516232815b6ccd2103e435d42168befefb75752a739035d211ee54eb2ed99f8"
+  ],
+  "0020_contractor_starter_claims.sql": [
+    "068c7277475baf9c7e03d8d4eaf6aca90b6ee10509c67d0ab3e250b191ed33dd"
+  ],
+  "0021_mission_control_indexes.sql": [
+    "5e1ab12fea165eaff9037aa524ce6c25bdf8d11382ca9df62a14d30c1c0bf751"
+  ],
+  "0030_users_affiliate_lifetime_referral.sql": [
+    "9e3b269af3c5a1f741d2e0b11f65157fe1c24c3b51c6c219a61953db5cb5db0f"
+  ],
+  "0044_hoa_fee_payments.sql": [
+    "ab07e0c464aacd0cf5326b261146d05e406c9d03e4aae194328d7ee79557b1c6"
+  ],
+  "0062_scout_memory.sql": [
+    "958d35f1c2609424e4b962e8456980d266c8e068fa79328292a4bafcc070b432"
+  ],
+  "0071_super_admin_is_highest.sql": [
+    "5ec21a38d06206eb5cb1284b1d8ad9da0e60feaa69a1471248e27398946cccd1"
+  ],
+  "0077_affiliate_accounts_uniqueness.sql": [
+    "6b19a0d4a7a356078ffebf5e460c092aadb0f7c98fad9fbdf32b88c3c33f9de4"
+  ],
+  "0100_expand_trade_category_small_business.sql": [
+    "d9abea2badee5f1bf3f02ceae0c5a02677c0a9db5a8efb668638482160f8be23"
+  ],
+  "0106_notification_type_direct_connect_beta_request.sql": [
+    "15f32e248cb8612a7dfb2c465126cf11ac739ed5953144ec2625d39e96d76ffc"
+  ],
+  "0108_post_comments_community_posts_fk.sql": [
+    "8619cfc4303519387a52541aa4be70458cfa3cb3315b0b91089a43b06b3df79d"
+  ]
+}

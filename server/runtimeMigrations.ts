@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { pool } from "./db";
+import { classifyMigrationHashDisposition } from "./runtimeMigrationPolicy";
 
 const RUNTIME_MIGRATION_FILENAME_PATTERN = /^\d{4}.*\.sql$/i;
 
@@ -10,7 +11,24 @@ type MigrationFile = {
   fullPath: string;
   sql: string;
   hash: string;
+  predecessorHashes: string[];
 };
+
+type MigrationHashAliases = Record<string, string[]>;
+
+type RecordedMigration = {
+  hash: string;
+  createdAt: number | null;
+};
+
+export class HistoricalMigrationReplayRefusedError extends Error {
+  constructor(filename: string) {
+    super(
+      `[RuntimeMigrations] Refusing to replay repaired historical migration ${filename}: no current or recorded predecessor hash was found.`
+    );
+    this.name = "HistoricalMigrationReplayRefusedError";
+  }
+}
 
 function sha256(text: string): string {
   return crypto.createHash("sha256").update(text).digest("hex");
@@ -63,8 +81,29 @@ function getRepoRoot(): string {
   return process.cwd();
 }
 
+function loadMigrationHashAliases(migrationsDir: string): MigrationHashAliases {
+  const aliasesPath = path.join(migrationsDir, "meta", "_hash_aliases.json");
+  if (!fs.existsSync(aliasesPath)) return {};
+
+  const parsed = JSON.parse(fs.readFileSync(aliasesPath, "utf8")) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(`Invalid migration hash aliases file: ${aliasesPath}`);
+  }
+
+  const aliases: MigrationHashAliases = {};
+  for (const [filename, values] of Object.entries(parsed)) {
+    if (!Array.isArray(values) || values.some((value) => typeof value !== "string")) {
+      throw new Error(`Invalid predecessor hashes for migration ${filename}`);
+    }
+    aliases[filename] = [...new Set(values)];
+  }
+  return aliases;
+}
+
 function loadSqlMigrations(migrationsDir: string): MigrationFile[] {
   if (!fs.existsSync(migrationsDir)) return [];
+
+  const hashAliases = loadMigrationHashAliases(migrationsDir);
 
   const entries = fs.readdirSync(migrationsDir, { withFileTypes: true });
   const sqlFiles = entries
@@ -79,7 +118,8 @@ function loadSqlMigrations(migrationsDir: string): MigrationFile[] {
     const fullPath = path.join(migrationsDir, filename);
     const sql = fs.readFileSync(fullPath, "utf8");
     const hash = sha256(sql);
-    migrations.push({ filename, fullPath, sql, hash });
+    const predecessorHashes = hashAliases[filename] ?? [];
+    migrations.push({ filename, fullPath, sql, hash, predecessorHashes });
   }
   return migrations;
 }
@@ -95,16 +135,32 @@ async function ensureDrizzleMigrationsTable() {
   `);
 }
 
-async function hasMigration(hash: string): Promise<boolean> {
-  const result = await pool.query<{ exists: boolean }>(
-    "select exists(select 1 from drizzle.__drizzle_migrations where hash = $1) as exists",
-    [hash]
+async function migrationLedgerCount(): Promise<number> {
+  const result = await pool.query<{ count: number }>(
+    "select count(*)::int as count from drizzle.__drizzle_migrations"
   );
-  return Boolean(result.rows?.[0]?.exists);
+  return Number(result.rows?.[0]?.count ?? 0);
 }
 
-async function recordMigration(hash: string) {
-  const createdAt = Date.now();
+async function findRecordedMigration(hashes: string[]): Promise<RecordedMigration | null> {
+  const result = await pool.query<{ hash: string; created_at: string | number | null }>(
+    `select hash, created_at
+     from drizzle.__drizzle_migrations
+     where hash = any($1::text[])
+     order by case when hash = $2 then 0 else 1 end
+     limit 1`,
+    [hashes, hashes[0]]
+  );
+  const row = result.rows?.[0];
+  if (!row) return null;
+  const createdAt = row.created_at == null ? null : Number(row.created_at);
+  return {
+    hash: row.hash,
+    createdAt: Number.isFinite(createdAt) ? createdAt : null,
+  };
+}
+
+async function recordMigration(hash: string, createdAt = Date.now()) {
   await pool.query(
     `
       insert into drizzle.__drizzle_migrations (hash, created_at)
@@ -181,12 +237,35 @@ export async function runRuntimeMigrations(options?: { log?: (msg: string) => vo
 
   await ensureGenRandomUuid();
   await ensureDrizzleMigrationsTable();
+  const preexistingDatabase =
+    (await migrationLedgerCount()) > 0 || (await schemaLooksInitialized());
 
   let applied = 0;
   let adopted = 0;
   for (const migration of migrations) {
-    const already = await hasMigration(migration.hash);
-    if (already) continue;
+    const recordedMigration = await findRecordedMigration([
+      migration.hash,
+      ...migration.predecessorHashes,
+    ]);
+    const disposition = classifyMigrationHashDisposition({
+      currentHash: migration.hash,
+      predecessorHashes: migration.predecessorHashes,
+      recordedHash: recordedMigration?.hash ?? null,
+      preexistingDatabase,
+    });
+    if (disposition === "current") continue;
+    if (disposition === "adopt") {
+      log(
+        `[RuntimeMigrations] ${migration.filename} has a recorded predecessor hash; adopting the repaired hash without replaying historical SQL.`
+      );
+      await recordMigration(migration.hash, recordedMigration?.createdAt ?? Date.now());
+      adopted += 1;
+      continue;
+    }
+
+    if (disposition === "refuse") {
+      throw new HistoricalMigrationReplayRefusedError(migration.filename);
+    }
 
     log(`[RuntimeMigrations] Applying ${migration.filename}...`);
     const client = await pool.connect();

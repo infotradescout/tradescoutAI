@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -28,5 +29,46 @@ describe("runtime migration contracts", () => {
     expect(source).toContain("function requiresNonTransactionalExecution");
     expect(source).toContain("index\\s+concurrently");
     expect(source).toContain("requires non-transactional execution; applying outside BEGIN/COMMIT");
+  });
+
+  it("adopts explicitly recorded predecessor hashes without replaying repaired history", () => {
+    const source = read("server/runtimeMigrations.ts");
+    const aliases = JSON.parse(read("migrations/meta/_hash_aliases.json")) as Record<
+      string,
+      string[]
+    >;
+
+    expect(source).toContain("migration.predecessorHashes");
+    expect(source).toContain("adopting the repaired hash without replaying historical SQL");
+    expect(source).toContain(
+      "await recordMigration(migration.hash, recordedMigration?.createdAt ?? Date.now())"
+    );
+    expect(source).toContain("(await migrationLedgerCount()) > 0 || (await schemaLooksInitialized())");
+    expect(source).toContain("Refusing to replay repaired historical migration");
+    expect(Object.keys(aliases).length).toBeGreaterThan(0);
+
+    for (const [filename, predecessorHashes] of Object.entries(aliases)) {
+      const migrationPath = path.resolve(process.cwd(), "migrations", filename);
+      expect(fs.existsSync(migrationPath), filename).toBe(true);
+      const currentHash = crypto
+        .createHash("sha256")
+        .update(fs.readFileSync(migrationPath, "utf8"))
+        .digest("hex");
+
+      expect(new Set(predecessorHashes).size, filename).toBe(predecessorHashes.length);
+      expect(predecessorHashes, filename).not.toContain(currentHash);
+      for (const predecessorHash of predecessorHashes) {
+        expect(predecessorHash, filename).toMatch(/^[a-f0-9]{64}$/);
+      }
+    }
+  });
+
+  it("makes an unknown repaired-history state fatal during application startup", () => {
+    const runtimeSource = read("server/runtimeMigrations.ts");
+    const startupSource = read("server/index.ts");
+
+    expect(runtimeSource).toContain("class HistoricalMigrationReplayRefusedError");
+    expect(startupSource).toContain("err instanceof HistoricalMigrationReplayRefusedError");
+    expect(startupSource).toContain("throw err;");
   });
 });

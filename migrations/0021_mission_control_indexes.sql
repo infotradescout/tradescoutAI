@@ -1,6 +1,12 @@
--- Mission Control optional hardening: compound indexes for impact sorting
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bot_ui_findings_route_created_at
-  ON bot_ui_findings (route, created_at DESC);
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_scout_interactions_intent_created_at
-  ON scout_interactions (intent, created_at DESC);
+-- Transaction-safe compatibility marker.
+--
+-- Migration 0019 already creates the single-column indexes used by current
+-- Mission Control queries. Historical databases may also contain the old
+-- compound indexes; they remain valid and are intentionally left in place.
+-- Fresh databases do not need those unused compound indexes. In particular,
+-- concurrent index creation cannot run inside Drizzle's migration transaction.
+DO $$
+BEGIN
+  RAISE NOTICE 'Mission Control compound-index compatibility marker applied';
+END
+$$;
