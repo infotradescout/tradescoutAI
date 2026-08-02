@@ -260,7 +260,7 @@ describe("VideographerProfileTheme", () => {
     expect(container.textContent).not.toContain("Portfolio media has not been added yet.");
   });
 
-  it("discloses TradeScout custody while the operator has not connected the profile", () => {
+  it("does not expose pending-owner custody language on the public profile", () => {
     act(() => {
       root.render(
         <VideographerProfileTheme
@@ -279,8 +279,9 @@ describe("VideographerProfileTheme", () => {
     });
 
     expect(
-      container.querySelector('[data-testid="videographer-pending-owner-disclosure"]')?.textContent
-    ).toContain("TradeScout holds requests until the owner connects it.");
+      container.querySelector('[data-testid="videographer-pending-owner-disclosure"]')
+    ).toBeNull();
+    expect(container.textContent).not.toContain("TradeScout holds requests");
   });
 
   it("renders a clean identity-first hero when media is absent", () => {

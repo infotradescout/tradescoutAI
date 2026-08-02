@@ -148,7 +148,7 @@ export default function JrsAutoGlassProfileTheme({
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-400">
-            Tell JR&apos;s what happened. Your contact details stay private.
+            Tell JR&apos;s what happened.
           </p>
           <div
             className="mt-4"
@@ -308,9 +308,6 @@ export default function JrsAutoGlassProfileTheme({
             Direct Connect
             <ChevronRight className="h-4 w-4" />
           </button>
-          <p className="mt-3 text-center text-xs leading-5 text-zinc-400">
-            JR&apos;s won&apos;t see your contact details unless they accept the request.
-          </p>
         </section>
 
         <TradeScoutProfileHandoff

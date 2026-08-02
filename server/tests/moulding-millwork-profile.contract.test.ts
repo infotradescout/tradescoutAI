@@ -84,6 +84,7 @@ describe("Moulding & Millwork Supply public profile contract", () => {
 
   it("publishes only sourced facts: no fabricated ratings, reviews, or guaranteed pricing/inventory", () => {
     const publicCopy = JSON.stringify(MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS).toLowerCase();
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
 
     expect(publicCopy).not.toContain("star rating");
     expect(publicCopy).not.toMatch(/customer review/);
@@ -92,6 +93,9 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     expect(publicCopy).not.toContain("insured");
     expect(publicCopy).toContain("450+ moulding profiles stocked");
     expect(publicCopy).toContain("harahan, la");
+    expect(publicCopy).toContain("open monday–friday, 6:30 am–4:00 pm");
+    expect(publicCopy).not.toContain("contact details stay private");
+    expect(theme).toContain("operatingHoursText");
   });
 
   it("uses real catalog photos from the business's own site for the inventory blocks", () => {

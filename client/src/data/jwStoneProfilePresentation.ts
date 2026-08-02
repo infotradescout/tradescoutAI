@@ -35,8 +35,6 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
     copy: {
       inventoryTitle: "Current Inventory",
       ctaHeading: "Tell JW Stone what you need",
-      footerText:
-        "Quarry-direct sourcing. Your contact details stay private until you choose to connect.",
     },
     media: {
       fallbackLogoUrl: "/images/businesses/jw-stone/logo.svg",
@@ -59,8 +57,6 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
     },
     audience: {
       layout: "guided",
-      intro:
-        "Choose the path that fits you. The inventory stays the same; the questions and next step adapt to your project.",
       availableFacts: [
         "Stone photos",
         "Material categories",
@@ -68,7 +64,6 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
         "Source counts where listed",
       ],
       contextHeading: "Helpful context to include",
-      availabilityNote: "Pricing and current availability are confirmed through Direct Connect.",
     },
     faq: {
       layout: "disclosure",

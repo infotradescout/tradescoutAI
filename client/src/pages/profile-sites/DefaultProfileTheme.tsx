@@ -198,7 +198,6 @@ export default function DefaultProfileTheme({
   showServiceAreas = true,
   showRecommendations = true,
   showContact = true,
-  deliveryCustody,
   onDirectConnect,
   shareAction,
   renderGalleryShare,
@@ -257,12 +256,6 @@ export default function DefaultProfileTheme({
       : safeGallery.length > 1
         ? safeGallery
         : [];
-  const custodyText =
-    deliveryCustody === "tradescout_pending_owner"
-      ? "TradeScout securely holds requests until this business connects its profile."
-      : profileKind === "business"
-        ? "Your details stay private until the business responds."
-        : "Your details stay private until they respond.";
   const instagram = safeSocials.find((social) => social.kind === "instagram");
   const [logoFailed, setLogoFailed] = useState(false);
   const [heroImageFailed, setHeroImageFailed] = useState(false);
@@ -630,11 +623,6 @@ export default function DefaultProfileTheme({
                     </a>
                   ) : null}
                 </div>
-                {showContact ? (
-                  <p className="mt-4 max-w-md text-xs leading-relaxed text-[var(--profile-muted)]">
-                    {custodyText}
-                  </p>
-                ) : null}
                 {safeSocials.length > 0 ? (
                   <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
                     {safeSocials.map((social) => (
@@ -771,13 +759,11 @@ export default function DefaultProfileTheme({
                       : "Services for the work in front of you."
                     : "Choose what you need."}
                 </h2>
-                <p className="mt-4 max-w-md text-sm leading-relaxed opacity-65 sm:text-base">
-                  {firstDeliverable
-                    ? showContact
-                      ? "Choose a service to carry it directly into your private request."
-                      : `Services available from ${businessName}.`
-                    : "Choose a service to start a private request with the right context already added."}
-                </p>
+                {firstDeliverable && !showContact ? (
+                  <p className="mt-4 max-w-md text-sm leading-relaxed opacity-65 sm:text-base">
+                    Services available from {businessName}.
+                  </p>
+                ) : null}
               </div>
               {firstDeliverable ? (
                 <div className="grid border-b border-[var(--profile-line)] md:grid-cols-2 md:gap-x-8">
@@ -1258,7 +1244,6 @@ export default function DefaultProfileTheme({
               <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.05em] sm:text-5xl">
                 Tell {operatorName || businessName} what you need.
               </h2>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-65">{custodyText}</p>
             </div>
             <button
               type="button"
@@ -1295,7 +1280,6 @@ export default function DefaultProfileTheme({
                 <h2 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-[-0.05em] sm:text-5xl">
                   Connect with {businessName}.
                 </h2>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed opacity-65">{custodyText}</p>
               </div>
               <button
                 type="button"

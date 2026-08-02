@@ -72,16 +72,9 @@ function resolvePublicImageUrl(value: unknown, origin: string): string | null {
 }
 
 function composeProfileDescription(contractor: PublicContractorProfileRecord): string {
-  const protection = "Contact stays protected through TradeScout Direct Connect.";
   const source =
-    String(contractor.about || "").trim() ||
-    `View project work and public trust signals for ${contractor.companyName}.`;
-  const availableLength = Math.max(0, 160 - protection.length - 1);
-  const lead =
-    source.length <= availableLength
-      ? source
-      : `${source.slice(0, Math.max(0, availableLength - 1)).trimEnd()}…`;
-  return `${lead} ${protection}`;
+    String(contractor.about || "").trim() || `View project work for ${contractor.companyName}.`;
+  return source.length <= 160 ? source : `${source.slice(0, 159).trimEnd()}…`;
 }
 
 function injectJsonLd(html: string, jsonLd: object): string {

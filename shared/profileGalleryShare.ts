@@ -238,15 +238,11 @@ export function createProfileGalleryItemShareMetadata(args: {
     });
     if (!canonical) return null;
 
-    const protection = "Your contact details stay private until you choose to connect.";
     const lead = capForShare(
       `View ${item.title} from ${profileName}.`,
-      MAX_SHARE_DESCRIPTION_LENGTH - protection.length - 1
+      MAX_SHARE_DESCRIPTION_LENGTH
     );
-    const detailBudget = Math.max(
-      0,
-      MAX_SHARE_DESCRIPTION_LENGTH - lead.length - protection.length - 2
-    );
+    const detailBudget = Math.max(0, MAX_SHARE_DESCRIPTION_LENGTH - lead.length - 1);
     const detail = capForShare(item.description, detailBudget);
 
     return {
@@ -254,7 +250,7 @@ export function createProfileGalleryItemShareMetadata(args: {
       itemTitle: item.title,
       itemSlug: item.slug,
       title: `${item.title} | ${profileName}`,
-      description: [lead, detail, protection].filter(Boolean).join(" "),
+      description: [lead, detail].filter(Boolean).join(" "),
       imageUrl,
       imageAlt: item.imageAlt,
       canonical,

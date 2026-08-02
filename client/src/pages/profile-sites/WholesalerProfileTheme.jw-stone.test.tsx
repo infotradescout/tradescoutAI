@@ -250,8 +250,11 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     const platformFooter = container.querySelector('[data-testid="wholesaler-brand-footer"]');
     const platformLink = platformFooter?.querySelector<HTMLAnchorElement>("a");
     expect(platformFooter?.querySelectorAll("a")).toHaveLength(1);
+    expect(platformFooter?.querySelectorAll("p")).toHaveLength(1);
     expect(platformLink?.textContent?.trim()).toBe("Powered by TradeScout");
     expect(platformLink?.getAttribute("href")).toBe("/");
+    expect(platformFooter?.textContent).not.toContain("Quarry-direct sourcing");
+    expect(platformFooter?.textContent).not.toContain("contact details");
     expect(container.querySelector('[data-testid="profile-tradescout-handoff"]')).toBeNull();
 
     act(() => {

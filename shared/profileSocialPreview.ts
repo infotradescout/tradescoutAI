@@ -227,10 +227,7 @@ export function buildProfileSocialDescription(args: {
     );
   }
   if (itemName && args.itemType === "gallery") {
-    return cleanText(
-      `View ${itemName} from ${brandName}, then send a private request through TradeScout Direct Connect.`,
-      160
-    );
+    return cleanText(`View ${itemName} from ${brandName}.`, 160);
   }
   if (itemName && args.itemType === "category") {
     return cleanText(

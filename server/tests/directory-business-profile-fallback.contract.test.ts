@@ -28,7 +28,7 @@ describe("directory business profile fallback", () => {
     expect(routeSource).toContain('source: "google_import"');
     expect(viewSource).toContain("googleRating");
     expect(viewSource).toContain("googleReviewCount");
-    expect(viewSource).toContain("Google-imported fields queued for enrichment");
+    expect(viewSource).not.toContain("Google-imported fields queued for enrichment");
     expect(viewSource).toContain("Call after decision card");
   });
 });

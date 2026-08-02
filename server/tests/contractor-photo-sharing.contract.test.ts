@@ -51,7 +51,7 @@ describe("contractor project photo sharing contract", () => {
     expect(page).toContain("/pre-scout-setup?mode=signin&next=");
     expect(page).toContain("Direct Connect");
     expect(page).toContain("Sign In");
-    expect(page).toContain("Contact is protected to prevent spam.");
-    expect(page).toContain("Start a request to route work through TradeScout's trust policy.");
+    expect(page).not.toContain("Contact is protected to prevent spam.");
+    expect(page).not.toContain("route work through TradeScout's trust policy");
   });
 });

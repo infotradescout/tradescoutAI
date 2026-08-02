@@ -90,12 +90,10 @@ export function createContractorPhotoShareMetadata(args: {
     canonicalUrl.search = buildContractorPhotoShareSearch(item.slug);
     canonicalUrl.hash = "";
 
-    const protection = "Your contact details stay private until you choose to connect.";
-    const lead = capForShare(
+    const description = capForShare(
       `View ${item.title} from ${contractorName}.`,
-      MAX_SHARE_DESCRIPTION_LENGTH - protection.length - 1
+      MAX_SHARE_DESCRIPTION_LENGTH
     );
-    const description = `${lead} ${protection}`;
 
     return {
       itemType: "contractor-photo",

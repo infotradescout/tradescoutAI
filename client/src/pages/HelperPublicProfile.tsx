@@ -136,7 +136,7 @@ export default function HelperPublicProfile() {
   const profileCanonical = `${window.location.origin}/helpers/${encodeURIComponent(id)}`;
   const profileDescription =
     String(profile.bio || "").trim() ||
-    `View ${fullName}'s skills, experience, availability, and portfolio. Contact stays protected through TradeScout Direct Connect.`;
+    `View ${fullName}'s skills, experience, availability, and portfolio.`;
   const structuredData = portfolioShareMeta
     ? {
         "@context": "https://schema.org",

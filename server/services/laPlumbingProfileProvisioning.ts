@@ -466,8 +466,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       },
       seoMeta: {
         title: "LA Plumbing Solutions | Hammond, Louisiana",
-        description:
-          "See residential and commercial work from LA Plumbing Solutions, then make a private request through TradeScout Direct Connect.",
+        description: "See residential and commercial work from LA Plumbing Solutions.",
         imageUrl:
           "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/social-preview.jpg",
         imageWidth: 1200,

@@ -225,8 +225,7 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       },
       seoMeta: {
         title: "JR's Auto Glass | Ponchatoula Mobile Auto Glass",
-        description:
-          "See recent work from JR's Auto Glass in Ponchatoula, then send a private request for mobile auto glass or windshield replacement.",
+        description: "See recent work from JR's Auto Glass in Ponchatoula.",
         imageUrl:
           "https://www.thetradescout.com/images/businesses/jrs-auto-glass/social-preview.jpg",
         imageWidth: 1200,

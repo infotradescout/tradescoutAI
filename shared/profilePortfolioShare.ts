@@ -86,14 +86,10 @@ function capForShare(value: string, limit: number): string {
 }
 
 function composeShareDescription(item: ResolvedProfilePortfolioItem, profileName: string): string {
-  const lead = `View ${item.title} by ${profileName}.`;
-  const protection = "Your contact details stay private until you choose to connect.";
-  const availableDetailLength = Math.max(
-    0,
-    MAX_SHARE_DESCRIPTION_LENGTH - lead.length - protection.length - 2
-  );
+  const lead = capForShare(`View ${item.title} by ${profileName}.`, MAX_SHARE_DESCRIPTION_LENGTH);
+  const availableDetailLength = Math.max(0, MAX_SHARE_DESCRIPTION_LENGTH - lead.length - 1);
   const detail = capForShare(item.description, availableDetailLength);
-  return [lead, detail, protection].filter(Boolean).join(" ");
+  return [lead, detail].filter(Boolean).join(" ");
 }
 
 export function normalizeProfilePortfolioItemSlug(value: unknown): string | null {

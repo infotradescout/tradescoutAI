@@ -12,7 +12,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   MessageSquare,
-  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { RecommendationForm } from "@/components/RecommendationForm";
@@ -153,7 +152,7 @@ export default function ContractorProfile() {
     { name: contractor.companyName, url: `/contractors/${slug}` },
   ];
 
-  const profileDescription = `Review ${contractor.companyName} as a local provider on TradeScout, including available verification, work history, and community recommendation evidence${contractor.yearsInBusiness ? ` from ${contractor.yearsInBusiness} years in business` : ""}. Contact stays gated through TradeScout.`;
+  const profileDescription = `Review ${contractor.companyName} as a local provider on TradeScout, including available verification, work history, and community recommendation evidence${contractor.yearsInBusiness ? ` from ${contractor.yearsInBusiness} years in business` : ""}.`;
   const contractorStructuredData = photoShareMeta
     ? {
         "@context": "https://schema.org",
@@ -305,16 +304,6 @@ export default function ContractorProfile() {
                   className="border-white/20 text-white hover:bg-white/10"
                   label="Share profile"
                 />
-                <div className="rounded-lg border border-white/10 bg-tsCard/60 px-4 py-3 text-xs text-white/70">
-                  <div className="flex items-center gap-2 text-white/70">
-                    <ShieldCheck className="h-4 w-4 text-ts-orange" />
-                    <span>Contact is protected to prevent spam.</span>
-                  </div>
-                  <p className="mt-1 text-white/60">
-                    Start a request to route work through TradeScout's trust policy.
-                  </p>
-                </div>
-
                 {isAuthenticated ? (
                   <Button
                     className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300"

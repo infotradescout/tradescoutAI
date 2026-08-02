@@ -267,7 +267,6 @@ export function createContractorPromoShareMetadata(args: {
   if (!slug || !detailPath || !title || !providerName) return null;
 
   try {
-    const protection = "Your contact details stay private until you choose to connect.";
     const description = sanitizePublicListingText(publicPromo.description, 500);
     const offerDetails = sanitizePublicListingText(publicPromo.offerDetails, 800);
     const discountLabel = sanitizePublicListingText(publicPromo.discountLabel, 80);
@@ -276,7 +275,7 @@ export function createContractorPromoShareMetadata(args: {
       offerDetails ||
       `${discountLabel || "Special offer"} from ${providerName}.`
     )
-      .slice(0, Math.max(0, 220 - protection.length - 1))
+      .slice(0, 220)
       .trim();
     const imageReference =
       normalizePublicImageReference(publicPromo.imageUrl) ||
@@ -297,7 +296,7 @@ export function createContractorPromoShareMetadata(args: {
     return {
       slug,
       title,
-      description: `${lead} ${protection}`.trim(),
+      description: lead,
       canonical: new URL(detailPath, args.origin).toString(),
       imageUrl,
       imageAlt:

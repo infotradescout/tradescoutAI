@@ -52,7 +52,10 @@ describe("profile inventory item sharing", () => {
       imageUrl: "https://example.com/images/sample-two.webp",
       canonical: "https://example.com/inventory/sample-stone?photo=2",
     });
-    expect(metadata?.description).toContain("protected TradeScout Direct Connect");
+    expect(metadata?.description).toBe(
+      "View Sample Stone (Quartzite) in Example Supply's current inventory. See this photo."
+    );
+    expect(metadata?.description).not.toContain("protected");
   });
 
   it("keeps exact-photo URLs stable when presentation order changes", () => {
@@ -189,7 +192,8 @@ describe("profile inventory item sharing", () => {
       title: "Current stone selection | JW Stone LLC",
       canonical: "https://jwstonelogistics.com/inventory/trending-selection-05",
     });
-    expect(metadata?.description).toContain("request current availability");
+    expect(metadata?.description).toContain("See this photo.");
+    expect(metadata?.description).not.toContain("request current availability");
     expect(metadata?.imageAlt).toContain("JW Stone LLC inventory photo");
     expect(JSON.stringify(metadata)).not.toMatch(/Unnamed slab|Trending Selection 05/);
   });

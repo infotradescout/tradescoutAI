@@ -41,3 +41,20 @@ export function sanitizePublicDiscoveryText(value: unknown, maxLength = 4000): s
     .trim()
     .slice(0, safeMaxLength);
 }
+
+export function sanitizePublicProfileText(value: unknown, maxLength = 4000): string {
+  const safeMaxLength = Math.max(0, Math.min(20_000, Number(maxLength) || 0));
+  return sanitizePublicDiscoveryText(value, safeMaxLength)
+    .replace(/\s*(?:,\s*)?then\s+(?:send|make|start)\s+(?:a\s+)?private request[^.]*\.?/gi, ".")
+    .replace(/\s+(?:and|or)\s+(?:send|make|start)\s+(?:a\s+)?private request[^.]*\.?/gi, ".")
+    .replace(
+      /\b(?:your contact details|your contact|your details|form details|contact information)\s+(?:stay|stays)\s+private[^.]*\.?/gi,
+      ""
+    )
+    .replace(/\bTradeScout (?:securely )?holds requests[^.]*\.?/gi, "")
+    .replace(/\s+([.,;:!?])/g, "$1")
+    .replace(/\.{2,}/g, ".")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, safeMaxLength);
+}

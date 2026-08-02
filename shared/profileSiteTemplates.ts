@@ -402,21 +402,18 @@ function electricianSoloPresentationSeed(displayName: string) {
       },
     ],
     aboutTitle: "About the electrician",
-    aboutBody:
-      "Share licensing, years in the trade, and how you work with homeowners and builders.",
+    aboutBody: "",
     aboutEyebrow: "About",
     serviceAreas: [],
     serviceAreaDescription: "Counties and cities you cover.",
     galleryEyebrow: "Recent work",
     galleryTitle: "Jobs worth showing",
-    galleryDescription: "Before/after or finished installs.",
+    galleryDescription: "",
     galleryShareText: `See electrical work from ${displayName}`,
     credentialLabel: "Credentials",
-    credentials: [{ label: "License", value: "Add your license number" }],
-    credentialDisclosure: "License details are claims-first until verified in context.",
+    credentials: [],
     requestTitle: "Request electrical help",
-    requestDescription:
-      "Describe the issue, address, and timing. Contact stays gated until you connect.",
+    requestDescription: "",
     brand: {
       primary: "#f59e0b",
       primaryDark: "#b45309",
@@ -460,19 +457,18 @@ function plumbingCompanyPresentationSeed(displayName: string) {
       },
     ],
     aboutTitle: "Our company",
-    aboutBody: "Tell customers who you are, where you work, and how you show up on the job.",
+    aboutBody: "",
     aboutEyebrow: "About",
     serviceAreas: [],
     serviceAreaDescription: "Cities and counties you cover.",
     galleryEyebrow: "Work",
     galleryTitle: "Recent plumbing work",
-    galleryDescription: "Show finished jobs and jobsite professionalism.",
+    galleryDescription: "",
     galleryShareText: `See plumbing work from ${displayName}`,
     credentialLabel: "Credentials",
-    credentials: [{ label: "License", value: "Add your license number" }],
-    credentialDisclosure: "License details are claims-first until verified in context.",
+    credentials: [],
     requestTitle: "Request plumbing service",
-    requestDescription: "Send the issue, address, and timing through Direct Connect.",
+    requestDescription: "",
     brand: {
       primary: "#0ea5e9",
       primaryDark: "#0369a1",
@@ -507,10 +503,7 @@ export function seedBlocksForTemplate(
         type: "hero",
         data: {
           title: name,
-          text:
-            templateId === "videographer"
-              ? "Photo and video."
-              : "Tell visitors what you do and why they should connect.",
+          ...(templateId === "videographer" ? { text: "Photo and video." } : {}),
         },
       },
     ];

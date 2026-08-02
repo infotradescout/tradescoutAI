@@ -83,7 +83,7 @@ import {
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
-import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
   buildProfileSocialDescription,
   buildProfileSocialPreviewImageUrl,
@@ -239,11 +239,11 @@ function ProfileArrivalState({
                 ? "This page took a quick pit stop."
                 : "This public profile is not available."}
             </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-white/68 sm:text-lg">
-              {isRetry
-                ? "The profile is still here; it just did not finish loading. Your link is fine, so give it another try."
-                : "The profile may be unpublished, private, moved, or no longer available. No private account details are exposed here."}
-            </p>
+            {!isRetry ? (
+              <p className="mt-6 max-w-2xl text-base leading-7 text-white/68 sm:text-lg">
+                The profile may be unpublished, private, moved, or no longer available.
+              </p>
+            ) : null}
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               {isRetry ? (
@@ -336,24 +336,20 @@ function ProfileArrivalState({
 
               <div className="space-y-3">
                 {(isRetry
-                  ? ["Loading interrupted", "Trying again may recover", "Private details protected"]
-                  : [
-                      "No public profile at this address",
-                      "Private account details stay protected",
-                      "Browse available public spaces",
-                    ]
+                  ? ["Loading interrupted", "Trying again may recover"]
+                  : ["No public profile at this address", "Browse available public spaces"]
                 ).map((label, index) => (
                   <div
                     key={label}
                     className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 ${
-                      index === 2
+                      index === 1
                         ? "border-ts-orange/25 bg-ts-orange/[0.08]"
                         : "border-white/8 bg-white/[0.035]"
                     }`}
                   >
                     <span
                       className={`h-2.5 w-2.5 rounded-full ${
-                        index === 2
+                        index === 1
                           ? "bg-ts-orange shadow-[0_0_18px_rgba(249,115,22,.8)]"
                           : "bg-emerald-400"
                       }`}
@@ -362,19 +358,9 @@ function ProfileArrivalState({
                   </div>
                 ))}
               </div>
-
-              <p className="mt-7 text-sm leading-6 text-white/48">
-                {isRetry
-                  ? "A temporary load failure does not expose private profile data."
-                  : "This page does not reveal whether a private account exists."}
-              </p>
             </div>
           </div>
         </section>
-
-        <footer className="py-5 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
-          Connection Without Compromise
-        </footer>
       </div>
     </main>
   );
@@ -963,7 +949,7 @@ export default function ProfileSiteView() {
       profile.seoMeta.description.trim().length > 0
       ? profile.seoMeta.description
       : publicHeadline ||
-          `${displayName} on TradeScout. See services, recent work, and local offers, then send a private request when you're ready.`,
+          `${displayName} on TradeScout. See services, recent work, and local offers.`,
     1000
   );
   const itemSocialName = inventoryItemShareMeta?.itemName || galleryItemShareMeta?.itemTitle || "";

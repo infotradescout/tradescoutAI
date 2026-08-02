@@ -114,7 +114,6 @@ function buildBusinessMeta(args: {
     args.services?.length ? `Services: ${args.services.slice(0, 6).join(", ")}.` : "",
     args.serviceAreas?.length ? `Service areas: ${args.serviceAreas.slice(0, 6).join(", ")}.` : "",
     args.verificationLabel ? `Verification: ${args.verificationLabel}.` : "",
-    "Your contact details stay private until you choose to connect.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -404,11 +403,13 @@ export async function buildPublicBusinessHtml({
       if (type === "faq")
         return `<section data-block-type=\"faq\">${title}${body}${secondary}</section>`;
       if (type === "proof")
-        return `<section data-block-type=\"proof\">${title}${body}${secondary}<p>Trust signal published on TradeScout.</p></section>`;
+        return `<section data-block-type=\"proof\">${title}${body}${secondary}</section>`;
       if (type === "cta")
-        return `<section data-block-type=\"cta\">${title}${body}<p>${escapeHtml(String(block?.ctaLabel || "Contact through TradeScout Direct Connect."))}</p></section>`;
+        return `<section data-block-type=\"cta\">${title}${body}${
+          block?.ctaLabel ? `<p>${escapeHtml(String(block.ctaLabel))}</p>` : ""
+        }</section>`;
       if (type === "gallery")
-        return `<section data-block-type=\"gallery\">${title}${body}${block?.imageUrl ? `<p>Featured image available.</p>` : ""}</section>`;
+        return `<section data-block-type=\"gallery\">${title}${body}</section>`;
       if (type === "hero") return `<section data-block-type=\"hero\">${title}${body}</section>`;
       return `<section data-block-type=\"text\">${title}${body}</section>`;
     };
@@ -430,22 +431,12 @@ export async function buildPublicBusinessHtml({
           ? `Bookings enabled. Paid booking deposit: $${Number(published.bookingConfig?.bookingPriceUsd || 0).toFixed(2)}.`
           : "Bookings enabled."
         : "Bookings not enabled.";
-    const websiteReadySummary =
-      published.customDomainVerification?.state === "verified"
-        ? "This public TradeScout business page has a connected custom domain and can function as the business website."
-        : "This public TradeScout business page is website-ready by default and can be connected to a custom domain.";
     const trustSummary = [
-      published.verificationStatus
-        ? `Verification: ${published.verificationStatus}.`
-        : "Verification details available on TradeScout.",
-      published.addressVerified
-        ? "Address verified on TradeScout."
-        : "Address verification can improve trust on this page.",
-      Array.isArray(published.services) && published.services.length > 0
-        ? `Services are listed directly on this business page.`
-        : "Business services can be added directly on this page.",
-    ].join(" ");
-
+      published.verificationStatus ? `Verification: ${published.verificationStatus}.` : "",
+      published.addressVerified ? "Address verified on TradeScout." : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
     const summary = `
 <main data-seo-business="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
@@ -455,14 +446,12 @@ export async function buildPublicBusinessHtml({
     <p>${escapeHtml(meta.description)}</p>
     ${servicesSummary.length > 0 ? `<p><strong>Services:</strong> ${escapeHtml(servicesSummary.join(", "))}</p>` : ""}
     ${(published.serviceAreas || []).length > 0 ? `<p><strong>Service areas:</strong> ${escapeHtml((published.serviceAreas || []).slice(0, 8).join(", "))}</p>` : ""}
-    <p>${escapeHtml(websiteReadySummary)}</p>
-    <p>${escapeHtml(trustSummary)}</p>
+    ${trustSummary ? `<p>${escapeHtml(trustSummary)}</p>` : ""}
     ${cityHref ? `<p><a href="${cityHref}">Browse ${escapeHtml(String(published.city || ""))}</a></p>` : ""}
     ${countyHref ? `<p><a href="${countyHref}">Browse ${escapeHtml(String(published.countyName || ""))}</a></p>` : ""}
     ${contentBlocks.length > 0 ? contentBlocks.map((block: any) => renderSeoContentBlock(block)).join("") : ""}
     <p>${escapeHtml(bookingSummary)}</p>
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
-    <p>Your contact details stay private until you choose to connect.</p>
   </article>
 </main>`;
 
@@ -703,7 +692,6 @@ export async function buildPublicBusinessHtml({
         : ""
     }
     <p><strong>Verification:</strong> ${escapeHtml(verificationLabel)}</p>
-    <p>Your contact details stay private until you choose to connect.</p>
   </article>
 </main>`;
 

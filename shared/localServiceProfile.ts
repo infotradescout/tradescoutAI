@@ -50,13 +50,13 @@ export type LocalServiceProfilePresentation = {
   galleryShareText: string;
   credentialLabel: string;
   credentials: Array<{ label: string; value: string }>;
-  credentialDisclosure: string;
+  credentialDisclosure?: string;
   verificationHistoryNote?: string;
   hoursLabel?: string;
   financingTitle?: string;
   financingDescription?: string;
   requestTitle: string;
-  requestDescription: string;
+  requestDescription?: string;
   brand: {
     primary: string;
     primaryDark: string;
@@ -212,15 +212,13 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   ],
   credentialDisclosure:
     "TradeScout has reviewed this profile and its required provider credentials. Credential numbers are also published by LA Plumbing Solutions.",
-  verificationHistoryNote:
-    "Score changes shown here begin with TradeScout's recorded snapshot history for this profile.",
   hoursLabel: "Monday–Friday · 7:00am–4:00pm",
   financingTitle: "Flexible project financing is available.",
   financingDescription:
     "Qualifying customers can explore monthly payment options for larger repairs, replacements, renovations, and construction work. Ask LA Plumbing through Direct Connect for the current options.",
   requestTitle: "Call now or send LA Plumbing the job details.",
   requestDescription:
-    "Choose Call for a direct conversation, or fill out the form with the property, problem, timing, and photos. Form details stay private unless LA Plumbing accepts.",
+    "Choose Call for a direct conversation, or fill out the form with the property, problem, timing, and photos.",
   brand: {
     primary: "#1ba9dc",
     primaryDark: "#0878a6",

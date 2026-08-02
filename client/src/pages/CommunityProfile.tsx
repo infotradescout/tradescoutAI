@@ -52,7 +52,7 @@ function formatTimeAgo(dateString: string) {
 
 export default function CommunityProfile() {
   const [, params] = useRoute("/community/u/:userId");
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -171,12 +171,6 @@ export default function CommunityProfile() {
               ? `${wallPosts.length} community post${wallPosts.length === 1 ? "" : "s"}`
               : "No posts yet"}
           </span>
-          {user && user.id === userId && (
-            <span className="text-white/60">
-              This is your community-facing profile. Your professional site lives on your public
-              profile.
-            </span>
-          )}
         </CardContent>
       </Card>
 

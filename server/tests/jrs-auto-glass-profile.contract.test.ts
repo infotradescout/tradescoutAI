@@ -122,7 +122,7 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).not.toContain("PublicProfileProductCard");
     expect(theme).not.toContain("You&apos;re here early");
     expect(theme).toContain("0 customer recommendations have been published.");
-    expect(theme).toContain("Your contact details stay private");
+    expect(theme).not.toContain("Your contact details stay private");
     expect(theme).not.toContain("TradeScout Business CV");
     expect(theme).not.toContain("Recommendations and completed activity");
     expect(theme).not.toContain("Contact information remains protected");

@@ -29,8 +29,8 @@ describe("profile service offer sharing", () => {
       canonical: "https://www.thetradescout.com/services/service-123",
       imageUrl: "https://www.thetradescout.com/uploads/services/stone-consultation.webp",
     });
-    expect(metadata?.description).toContain(
-      "Your contact details stay private until you choose to connect."
+    expect(metadata?.description).toBe(
+      "Review stone options and measurements before the project starts."
     );
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(buildProfileServiceOfferPath("service-123")).toBe("/services/service-123");

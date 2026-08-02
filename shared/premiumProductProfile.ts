@@ -96,7 +96,7 @@ export type LuxuryMaterialHouseData = {
     body: string;
     prompt: string;
     fields: string[];
-    note: string;
+    note?: string;
   };
 };
 
@@ -141,7 +141,7 @@ export type PremiumProductProfileData = {
     title: string;
     body: string;
     steps: string[];
-    note: string;
+    note?: string;
   };
   closing: {
     eyebrow: string;
@@ -227,7 +227,7 @@ function isLuxuryMaterialHouseData(value: unknown): value is LuxuryMaterialHouse
     isString(consultation.prompt) &&
     Array.isArray(consultation.fields) &&
     consultation.fields.every(isString) &&
-    isString(consultation.note)
+    (consultation.note === undefined || isString(consultation.note))
   );
 }
 
@@ -316,7 +316,7 @@ export function isPremiumProductProfileData(value: unknown): value is PremiumPro
     isString(brief.body) &&
     Array.isArray(brief.steps) &&
     brief.steps.every(isString) &&
-    isString(brief.note) &&
+    (brief.note === undefined || isString(brief.note)) &&
     isRecord(closing) &&
     isString(closing.eyebrow) &&
     isString(closing.title) &&

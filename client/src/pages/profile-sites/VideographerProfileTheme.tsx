@@ -167,7 +167,6 @@ export default function VideographerProfileTheme({
   sharedGallerySlug = null,
   profileShareDestination,
   onDirectConnect,
-  deliveryCustody = "business",
   trustActions,
   profileItems,
 }: Props) {
@@ -497,15 +496,6 @@ export default function VideographerProfileTheme({
           </div>
 
           <div className="space-y-5">
-            {deliveryCustody === "tradescout_pending_owner" ? (
-              <p
-                className="rounded-2xl border border-white/15 bg-white/[0.04] p-4 text-sm leading-6 text-white/70"
-                data-testid="videographer-pending-owner-disclosure"
-              >
-                This profile is not yet connected to its owner. TradeScout holds requests until
-                the owner connects it.
-              </p>
-            ) : null}
             <div data-testid="profile-trust-section" aria-label="Trust and profile actions">
               {trustActions}
             </div>

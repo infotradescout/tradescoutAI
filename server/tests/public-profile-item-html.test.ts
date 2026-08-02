@@ -112,7 +112,9 @@ describe("public profile item HTML", () => {
     });
 
     expect(html).toContain("This public profile is not available.");
-    expect(html).toContain("No private account details are exposed here.");
+    expect(html).not.toContain("No private account details are exposed here.");
+    expect(html).not.toContain("Private account details stay protected");
+    expect(html).not.toContain("private account exists");
     expect(html).toContain("Browse the Community");
     expect(html).toContain("Open Scout");
     expect(html).toContain("Report this link");
@@ -174,7 +176,8 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:title" content="JW Stone Logistics"');
     expect(html).toContain('property="og:type" content="website"');
     expect(html).toContain('data-seo-profile-item="inventory"');
-    expect(html).toContain("request current availability");
+    expect(html).toContain("See this photo.");
+    expect(html).not.toContain("request current availability");
     expect(html).toContain("Stone selection — JW Stone LLC inventory photo");
     expect(html).not.toContain("Trending Selection 05");
     expect(html).not.toContain("Unnamed slab");
@@ -478,7 +481,7 @@ describe("public profile item HTML", () => {
 
     expect(html).toContain('property="og:title" content="Blue Stone Patio | JW Stone Logistics"');
     expect(html).toContain(
-      'property="og:description" content="View Blue Stone Patio from JW Stone Logistics, then send a private request through TradeScout Direct Connect."'
+      'property="og:description" content="View Blue Stone Patio from JW Stone Logistics."'
     );
     expect(html).toMatch(
       new RegExp(

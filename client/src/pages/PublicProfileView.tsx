@@ -443,7 +443,6 @@ export default function PublicProfileView() {
       <div className="bg-app flex flex-col items-center justify-center text-center px-4 py-24">
         <Eye className="h-12 w-12 text-muted mx-auto mb-4" />
         <h2 className="text-2xl font-bold text-primary mb-2">Profile Not Found</h2>
-        <p className="text-muted">This profile is private or doesn't exist.</p>
       </div>
     );
   }
@@ -591,10 +590,6 @@ export default function PublicProfileView() {
 
       toast({
         title: offer.offerType === "service" ? "Job flow created" : "Purchase recorded",
-        description:
-          offer.offerType === "service"
-            ? "TradeScout created a guided work request and seller accounting review."
-            : "TradeScout created receipt, fulfillment, and seller accounting review records.",
       });
       if (offer.offerType === "item" && data?.purchase?.id) {
         navigate(`/profile-purchases/${encodeURIComponent(String(data.purchase.id))}`);
@@ -861,9 +856,6 @@ export default function PublicProfileView() {
                       <DialogContent className="max-w-lg">
                         <DialogHeader>
                           <DialogTitle>Badges</DialogTitle>
-                          <DialogDescription>
-                            Contribution and trust signals this profile has earned.
-                          </DialogDescription>
                         </DialogHeader>
                         <div className="mt-4 space-y-3">
                           <UserBadges
@@ -875,9 +867,6 @@ export default function PublicProfileView() {
                             maxVisible={64}
                             showLabels
                           />
-                          <p className="text-xs text-white/60">
-                            Badges are awarded for real activity in the community and job tools.
-                          </p>
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -999,7 +988,7 @@ export default function PublicProfileView() {
 
           {/* Content sections based on user types and activity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {showAbout && (
+            {showAbout && bio && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1011,15 +1000,7 @@ export default function PublicProfileView() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {bio ? (
-                    <p className="text-sm whitespace-pre-wrap">{bio}</p>
-                  ) : (
-                    <p className="text-sm">
-                      This is a TradeScout community member. Their profile serves as their
-                      professional website, customized based on their roles and activity on the
-                      platform.
-                    </p>
-                  )}
+                  <p className="text-sm whitespace-pre-wrap">{bio}</p>
                 </CardContent>
               </Card>
             )}
@@ -1273,9 +1254,9 @@ export default function PublicProfileView() {
                                             destination={offerDetailPath}
                                             title={offer.title}
                                             text={
-                                              offer.offerType === "service"
-                                                ? `View ${offer.title} and start through TradeScout's protected request flow`
-                                                : `View ${offer.title} on TradeScout Exchange`
+                                              offer.offerType === "item"
+                                                ? `View ${offer.title} on TradeScout Exchange`
+                                                : undefined
                                             }
                                           />
                                         </>
@@ -1371,10 +1352,6 @@ export default function PublicProfileView() {
                     </span>
                     <span className="text-sm opacity-80">public recommendations</span>
                   </div>
-                  <p className="text-xs opacity-70">
-                    Recommendations are recorded inside TradeScout and are visible on this public
-                    profile.
-                  </p>
                 </CardContent>
               </Card>
             )}
@@ -1458,9 +1435,6 @@ export default function PublicProfileView() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="text-sm">
-                    Booking requests are handled through TradeScout to keep communication protected.
-                  </div>
                   {calendarVisibility === "public" && bookingSlots.length > 0 && (
                     <div className="space-y-2">
                       <div className="text-xs uppercase tracking-wide opacity-70 flex items-center gap-1">
@@ -1564,9 +1538,6 @@ export default function PublicProfileView() {
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Review purchase</DialogTitle>
-                <DialogDescription>
-                  TradeScout will create receipt, fulfillment, and seller accounting review records.
-                </DialogDescription>
               </DialogHeader>
               {purchaseDialogOffer ? (
                 <div className="space-y-4">

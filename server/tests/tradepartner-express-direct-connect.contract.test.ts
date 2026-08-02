@@ -135,6 +135,6 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(panel).toContain("Manage this in TradeScout");
     expect(panel).toContain("Finish setup and manage this request");
     expect(panel).toContain("Manage my request");
-    expect(panel).toContain("job notes, replies");
+    expect(panel).not.toContain("job notes, replies");
   });
 });

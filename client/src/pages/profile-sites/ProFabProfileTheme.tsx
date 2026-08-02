@@ -172,7 +172,7 @@ export default function ProFabProfileTheme({
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-400">
-            Send project details while your contact information stays private.
+            Send project details.
           </p>
         </section>
 
@@ -302,9 +302,6 @@ export default function ProFabProfileTheme({
             Direct Connect with Pro Fab
             <ChevronRight className="h-4 w-4" />
           </button>
-          <p className="mt-3 text-center text-xs leading-5 text-zinc-400">
-            Pro Fab will not see your contact details unless the request is accepted.
-          </p>
         </section>
 
         <TradeScoutProfileHandoff

@@ -135,14 +135,9 @@ describe("DefaultProfileTheme", () => {
         ?.click();
     });
     expect(onDirectConnect).toHaveBeenCalledWith("Roof and property imagery");
-    expect(container.textContent).toContain(
-      "TradeScout securely holds requests until this business connects its profile."
-    );
-    expect(
-      container.textContent?.match(
-        /TradeScout securely holds requests until this business connects its profile\./g
-      )
-    ).toHaveLength(1);
+    expect(container.textContent).not.toContain("TradeScout securely holds requests");
+    expect(container.textContent).not.toContain("Your details stay private");
+    expect(container.textContent).not.toContain("private request");
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
     expect(container.textContent).toContain("Powered by TradeScout");

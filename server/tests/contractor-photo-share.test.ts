@@ -52,9 +52,7 @@ describe("contractor project photo sharing", () => {
         canonical: `https://www.thetradescout.com/contractors/river-city-masonry?gallery=${item.slug}`,
       })
     );
-    expect(metadata?.description).toContain(
-      "Your contact details stay private until you choose to connect."
-    );
+    expect(metadata?.description).toBe("View Project photo 1 from River City Masonry.");
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(buildContractorPhotoShareSearch(item.slug)).toBe(`?gallery=${item.slug}`);
   });

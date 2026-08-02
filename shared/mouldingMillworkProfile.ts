@@ -104,7 +104,7 @@ export const MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS = [
     type: "inventoryCatalog",
     data: {
       title: "Explore the moulding collection",
-      description: "Open any profile to see the available photos or start a private request.",
+      description: "Open any profile to see the available photos.",
       categories: [
         {
           category: "Moulding Profiles",
@@ -144,8 +144,7 @@ export const MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS = [
       heading: "Tell Moulding & Millwork Supply what you need",
       description: "Ask about a moulding profile, a door or window, or start a project quote.",
       requestExamples: ["Moulding profile", "Door or window", "Project quote", "Plan review"],
-      footerText:
-        "Open Monday–Friday, 6:30 AM–4:00 PM. Your contact details stay private until they accept your request.",
+      footerText: "Open Monday–Friday, 6:30 AM–4:00 PM.",
     },
   },
 ] as const;

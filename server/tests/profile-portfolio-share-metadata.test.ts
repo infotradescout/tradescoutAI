@@ -40,7 +40,7 @@ describe("profile portfolio item sharing", () => {
     expect(normalizeProfilePortfolioItemSlug("../../admin")).toBeNull();
   });
 
-  it("uses the portfolio photo and keeps contact protection in social metadata", () => {
+  it("uses the portfolio photo and factual social metadata", () => {
     const slug = buildProfilePortfolioItemSlug(patioProject);
     const metadata = createProfilePortfolioItemShareMetadata({
       profileName: "Taylor Helper",
@@ -58,9 +58,7 @@ describe("profile portfolio item sharing", () => {
       imageUrl: "https://www.thetradescout.com/uploads/portfolio/stone-patio.webp",
       canonical: `https://www.thetradescout.com/helpers/helper-1?portfolio=${slug}`,
     });
-    expect(metadata?.description).toContain(
-      "Your contact details stay private until you choose to connect."
-    );
+    expect(metadata?.description).not.toContain("contact details");
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
   });
 });

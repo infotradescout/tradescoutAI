@@ -130,7 +130,7 @@ function normalizedAssetKey(value: string): string {
   }
 }
 
-function describeService(service: string): string {
+function describeService(service: string): string | null {
   const normalized = service.toLowerCase();
   if (normalized.includes("real estate")) {
     return "Show the property, its setting, and its scale through aerial stills and motion.";
@@ -151,7 +151,7 @@ function describeService(service: string): string {
   ) {
     return "Add movement, environment, and an aerial point of view to the story.";
   }
-  return "Add this capability to a private brief with the location, timing, and outcome you need.";
+  return null;
 }
 
 export default function PrecisionAerialProfile({
@@ -530,9 +530,11 @@ export default function PrecisionAerialProfile({
                       <strong className="block text-xl font-black tracking-[-0.035em] text-slate-950 sm:text-2xl">
                         {service}
                       </strong>
-                      <span className="mt-1 block max-w-2xl text-sm leading-6 text-slate-500">
-                        {describeService(service)}
-                      </span>
+                      {describeService(service) ? (
+                        <span className="mt-1 block max-w-2xl text-sm leading-6 text-slate-500">
+                          {describeService(service)}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-black/15 px-4 text-xs font-black text-slate-900 transition group-hover:border-slate-950">
                       Book

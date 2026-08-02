@@ -490,10 +490,12 @@ function EditorialProductProfileSections({
                 </div>
               ))}
             </div>
-            <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-stone-600">
-              <Check className="mt-0.5 h-4 w-4 flex-none" />
-              {data.brief.note}
-            </p>
+            {data.brief.note ? (
+              <p className="mt-5 flex items-start gap-2 text-xs leading-5 text-stone-600">
+                <Check className="mt-0.5 h-4 w-4 flex-none" />
+                {data.brief.note}
+              </p>
+            ) : null}
           </div>
         </div>
       </section>

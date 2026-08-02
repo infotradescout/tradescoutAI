@@ -271,7 +271,7 @@ export function createProfileInventoryItemShareMetadata(args: {
         shareImageIndex: item.shareImageIndex,
         title: `Current stone selection | ${profileName}`,
         description: capDescription(
-          `View this stone selection in ${profileName}'s current inventory. See this photo and request current availability through protected TradeScout Direct Connect.`
+          `View this stone selection in ${profileName}'s current inventory. See this photo.`
         ),
         imageUrl,
         imageAlt: `Stone selection — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
@@ -290,8 +290,8 @@ export function createProfileInventoryItemShareMetadata(args: {
       title: itemIsProfile ? `${item.name} | TradeScout` : `${item.name} at ${profileName}`,
       description: capDescription(
         itemIsProfile
-          ? `View ${item.name}${categoryDetail}, explore the material photos, and ask about availability through protected TradeScout Direct Connect.`
-          : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo and ask about availability through protected TradeScout Direct Connect.`
+          ? `View ${item.name}${categoryDetail} and explore the material photos.`
+          : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo.`
       ),
       imageUrl,
       imageAlt: itemIsProfile

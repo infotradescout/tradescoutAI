@@ -30,14 +30,20 @@ describe("business profile gallery sharing contract", () => {
     expect(publicHtml).toContain("galleryJsonLd");
   });
 
-  it("keeps private profiles out of public SSR and retains protected contact", () => {
+  it("keeps private profiles out of public SSR without privacy narration", () => {
     const publicHtml = read("server/publicBusinessHtml.ts");
     const businessRoute = read("server/routes/business-profile.ts");
 
     expect(publicHtml).toContain('published?.visibility === "public"');
-    expect(publicHtml).toContain("Your contact details stay private until you choose to connect.");
+    expect(publicHtml).not.toContain(
+      "Your contact details stay private until you choose to connect."
+    );
     expect(publicHtml).toContain("You're here early. This listing is being refreshed");
     expect(publicHtml).not.toContain("Contact is protected through TradeScout Direct Connect.");
+    expect(publicHtml).toContain("Paid booking deposit:");
+    expect(publicHtml).toContain("Address verified on TradeScout.");
+    expect(publicHtml).toContain("published.verificationStatus");
+    expect(publicHtml).not.toContain("website-ready by default");
     expect(businessRoute).toContain('profile.visibility !== "public"');
     expect(businessRoute).toContain("sanitizePublicContentBlocks");
   });

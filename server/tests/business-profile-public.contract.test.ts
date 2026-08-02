@@ -39,7 +39,7 @@ describe("business profile public contracts", () => {
     expect(source).toContain("renderContentBlock(block, idx)");
     expect(source).toContain("Claim with Google Maps");
     expect(source).toContain('claimParams.set("businessId"');
-    expect(source).toContain("bp-direct-connect-flow");
+    expect(source).not.toContain("bp-direct-connect-flow");
     expect(source).toContain("showListingsSection");
     expect(source).toContain("profile.marketplaceListings");
     expect(source).toContain("listing.detailPath");

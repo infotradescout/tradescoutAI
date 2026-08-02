@@ -108,17 +108,16 @@ export function createProfileServiceOfferShareMetadata(args: {
   try {
     const rawTitle = cleanString(args.offer.title) || "TradeScout service";
     const title = capText(rawTitle, MAX_SERVICE_SHARE_TITLE_LENGTH);
-    const protection = "Your contact details stay private until you choose to connect.";
     const lead = capText(
       cleanString(args.offer.description) || `View ${title}.`,
-      MAX_SERVICE_SHARE_DESCRIPTION_LENGTH - protection.length - 1
+      MAX_SERVICE_SHARE_DESCRIPTION_LENGTH
     );
     const imageReference = listProfileOfferImageUrls(args.offer.metadata)[0] || null;
 
     return {
       offerId,
       title,
-      description: `${lead} ${protection}`,
+      description: lead,
       canonical: new URL(path, args.origin).toString(),
       imageUrl: imageReference ? new URL(imageReference, args.origin).toString() : null,
       imageAlt: `${title} service image`,

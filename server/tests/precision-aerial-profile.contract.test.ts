@@ -427,7 +427,7 @@ describe("Precision Aerial production profile contract", () => {
     ).toBe(true);
   });
 
-  it("discloses TradeScout custody before and after a pre-owner request", () => {
+  it("preserves custody routing without exposing it as public-profile copy", () => {
     const expressRoute = read("server/routes/tradepartner-express.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
     const publicRoute = read("server/routes/profiles.ts");
@@ -435,15 +435,8 @@ describe("Precision Aerial production profile contract", () => {
     expect(expressRoute).toContain('deliveryCustody: "business" | "tradescout_pending_owner"');
     expect(expressRoute).toContain('delivered: target.deliveryCustody === "business"');
     expect(expressRoute).toContain("TradeScout received your request for ${target.businessName}");
-    expect(panel).toContain(
-      "TradeScout is receiving requests for ${businessName} until the owner connects this profile."
-    );
-    expect(panel).toContain(
-      "TradeScout received your request for ${businessName}. The owner has not connected this profile yet."
-    );
-    expect(panel).toContain(
-      "TradeScout is receiving requests for ${businessName} until the owner connects this profile."
-    );
+    expect(panel).not.toContain("TradeScout is receiving requests for");
+    expect(panel).not.toContain("The owner has not connected this profile yet.");
     expect(read("client/src/pages/profile-sites/PrecisionAerialProfile.tsx")).not.toContain(
       "TradeScout securely holds requests until this business connects its profile."
     );

@@ -90,13 +90,15 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(jrSource).not.toContain("requestHref");
   });
 
-  it("always opens the call-or-form choice and marks unavailable calling as coming soon", () => {
+  it("always opens the call-or-form choice without roadmap copy", () => {
     expect(profileSource).toContain("const canExpressCall =");
     expect(profileSource).toContain("allowCall={canExpressCall}");
     expect(panelSource).toContain('setView("choice")');
     expect(panelSource).toContain('view === "choice"');
     expect(panelSource).toContain("disabled={busy || !allowCall}");
     expect(panelSource).toContain("Calling is coming soon");
+    expect(panelSource).toContain("Requests are saved until {businessName} connects.");
+    expect(panelSource).not.toContain("TradeScout is receiving requests for");
   });
 
   it("commits the request before onboarding and does not depend on email delivery", () => {

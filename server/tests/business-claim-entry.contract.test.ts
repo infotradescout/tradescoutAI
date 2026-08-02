@@ -59,13 +59,9 @@ describe("business claim/profile entry contracts", () => {
   it("keeps business profile entry paths compatible beside Direct Connect", () => {
     expect(businessProfileView).toContain("const directConnectUrl = `/direct-connect?");
     expect(businessProfileView).toContain("const claimUrl = `/claim-my-business?");
-    expect(businessProfileView).toContain(
-      'value: "Keep the business and county context together."'
-    );
+    expect(businessProfileView).not.toContain("Keep the business and county context together");
     expect(businessProfileView).toContain("Claim or connect");
-    expect(businessProfileView).toContain(
-      "Direct Connect keeps job context, fit review, and contact in one flow."
-    );
+    expect(businessProfileView).not.toContain("job context, fit review, and contact in one flow");
     expect(businessProfileView).toContain("Claim with Google Maps");
   });
 

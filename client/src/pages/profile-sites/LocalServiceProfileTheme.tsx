@@ -167,9 +167,6 @@ export default function LocalServiceProfileTheme({
   const profileBadges = Array.isArray(communityVerification?.badges)
     ? communityVerification.badges
     : [];
-  const verificationHistoryNote = (
-    presentation as LocalServiceProfilePresentation & { verificationHistoryNote?: string }
-  ).verificationHistoryNote;
   const activeGalleryItem =
     activeGalleryIndex === null ? null : galleryItems[activeGalleryIndex] || null;
 
@@ -307,10 +304,6 @@ export default function LocalServiceProfileTheme({
                 className="min-h-13 rounded-full border-white/20 bg-black/30 px-6 text-white hover:bg-white/10 hover:text-white"
               />
             </div>
-            <p className="mt-3 max-w-2xl text-xs leading-5 text-white/60">
-              Call or send the job details privately. Contact information stays protected unless the
-              connection is accepted.
-            </p>
           </div>
 
           <aside className="rounded-3xl border border-white/15 bg-[#061821]/92 p-5 shadow-2xl shadow-black/35 backdrop-blur-xl sm:p-6 lg:mb-0">
@@ -385,12 +378,6 @@ export default function LocalServiceProfileTheme({
                       </span>
                     ))}
                   </div>
-                ) : null}
-
-                {verificationHistoryNote ? (
-                  <p className="mt-3 rounded-xl border border-amber-300/15 bg-amber-200/5 px-3 py-2 text-[11px] leading-5 text-amber-100/85">
-                    {verificationHistoryNote}
-                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -532,15 +519,7 @@ export default function LocalServiceProfileTheme({
                 );
               })}
             </div>
-          ) : (
-            <div className="mt-10 rounded-2xl border border-dashed border-white/15 bg-white/[0.035] p-6">
-              <p className="font-bold text-white">Completed work is being prepared.</p>
-              <p className="mt-1 text-sm leading-6 text-slate-400">
-                This profile will update as project photos are published. Direct Connect is
-                available now.
-              </p>
-            </div>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -753,11 +732,11 @@ export default function LocalServiceProfileTheme({
                 </div>
               ))}
             </div>
-            <p className="mt-5 text-xs leading-5 text-slate-500">
-              {isVerified
-                ? presentation.credentialDisclosure
-                : "Credential review is in progress. This profile will update when the review is complete."}
-            </p>
+            {isVerified && presentation.credentialDisclosure ? (
+              <p className="mt-5 text-xs leading-5 text-slate-500">
+                {presentation.credentialDisclosure}
+              </p>
+            ) : null}
           </article>
 
           <div className="grid gap-5">
@@ -826,9 +805,11 @@ export default function LocalServiceProfileTheme({
             <h2 className="mt-3 text-4xl font-black leading-[0.98] tracking-[-0.05em] sm:text-6xl">
               {presentation.requestTitle}
             </h2>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-200">
-              {presentation.requestDescription}
-            </p>
+            {presentation.requestDescription ? (
+              <p className="mt-5 max-w-2xl text-base leading-8 text-slate-200">
+                {presentation.requestDescription}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={onDirectConnect}
@@ -845,9 +826,6 @@ export default function LocalServiceProfileTheme({
         className="border-t border-white/10 px-4 py-7 text-center sm:px-6"
         data-testid="local-service-brand-footer"
       >
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
-          {businessName} on TradeScout · Connection Without Compromise
-        </p>
         <a
           href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
           className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"

@@ -5,7 +5,6 @@ import {
   MapPin,
   MessageSquare,
   PackageOpen,
-  ShieldCheck,
   ShoppingBag,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -294,7 +293,7 @@ export function PublicProfileItems({
                       <ShareButton
                         destination={destination}
                         title={offer.title}
-                        text={`See ${offer.title} and make a private request`}
+                        text={`See ${offer.title}`}
                         className="border-white/20 text-white"
                       />
                     </div>
@@ -560,14 +559,6 @@ export function PublicProfileItems({
           </CardContent>
         </Card>
       ) : null}
-
-      <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-tsCard/70 p-4 text-sm text-white/70">
-        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-ts-orange" />
-        <p>
-          See something you like? Open it to learn more or send a request. Your contact details stay
-          private until you choose to connect.
-        </p>
-      </div>
     </div>
   );
 }

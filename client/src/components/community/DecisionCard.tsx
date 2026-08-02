@@ -8,8 +8,8 @@ type ScoutAction = "COMPLY" | "DEFER" | "BLOCK";
 
 interface DecisionContext {
   targetName: string;
-  targetRole: string;
-  communitySignal: string;
+  targetRole?: string;
+  communitySignal?: string;
   absenceNote?: string;
 }
 
@@ -18,7 +18,7 @@ interface DecisionCardProps {
   context: DecisionContext;
   scoutAction: ScoutAction;
   riskFraming: string[];
-  guidance: string;
+  guidance?: string;
   explanation: string;
   onProceed: () => void;
   onAskScout: () => void;
@@ -106,8 +106,10 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
         <h3 className="text-base font-semibold text-white">Before you {actionVerb}</h3>
         <div className="space-y-1 text-sm text-white/70">
           <p className="font-medium text-white">{context.targetName}</p>
-          <p className="text-white/60">{context.targetRole}</p>
-          <p className="text-white/60">{context.communitySignal}</p>
+          {context.targetRole ? <p className="text-white/60">{context.targetRole}</p> : null}
+          {context.communitySignal ? (
+            <p className="text-white/60">{context.communitySignal}</p>
+          ) : null}
           {context.absenceNote && <p className="text-white/60 italic">{context.absenceNote}</p>}
         </div>
       </div>
@@ -125,16 +127,18 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
         </div>
       )}
 
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-white/80">What happens next</h3>
-        <div className="flex items-start gap-3">
-          {getGuidanceIcon()}
-          <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium text-white/70">{getGuidanceText()}</p>
-            <p className="text-sm text-white/60">{guidance}</p>
+      {guidance ? (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-white/80">What happens next</h3>
+          <div className="flex items-start gap-3">
+            {getGuidanceIcon()}
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium text-white/70">{getGuidanceText()}</p>
+              <p className="text-sm text-white/60">{guidance}</p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="space-y-2 pt-2 border-t border-white/10">
         <h3 className="text-sm font-medium text-white/80">Choose what to do</h3>

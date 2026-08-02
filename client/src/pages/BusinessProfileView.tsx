@@ -32,7 +32,6 @@ import {
   BadgeCheck,
   Building2,
   BriefcaseBusiness,
-  CheckCircle2,
   Compass,
   Edit,
   FileCheck2,
@@ -56,7 +55,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { apiRequest } from "@/lib/queryClient";
 import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
-import { matchFlowCopy, stripCountySuffix } from "@/lib/userFacingCopy";
+import { stripCountySuffix } from "@/lib/userFacingCopy";
 import {
   buildProfileGalleryShareSearch,
   createProfileGalleryItemShareMetadata,
@@ -333,7 +332,7 @@ export default function BusinessProfileView() {
       ? `${serviceList.slice(0, 2).join(" + ")} in ${localArea}.`
       : profile.description
         ? `${profile.name} serves ${localArea}.`
-        : `${profile.name} is building its TradeScout profile in ${localArea}.`);
+        : "");
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
   const verificationTone = (() => {
@@ -368,13 +367,11 @@ export default function BusinessProfileView() {
     addressVerified
       ? "Address verification is complete."
       : "Address verification is still pending.",
-    profile.customDomainVerification?.state === "verified"
-      ? "A custom domain is connected."
-      : "Custom domain can be added by the owner.",
+    profile.customDomainVerification?.state === "verified" ? "A custom domain is connected." : null,
     listings.length > 0
       ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.`
       : "No active listings yet.",
-  ];
+  ].filter((item): item is string => Boolean(item));
   const showListingsSection = visibleSections.marketplaceListings && listings.length > 0;
 
   function renderContentBlock(block: any, idx: number) {
@@ -585,7 +582,6 @@ export default function BusinessProfileView() {
     Number.isFinite(Number((profile as any).googleReviewCount))
       ? Number((profile as any).googleReviewCount)
       : null;
-  const directoryPublication = (profile as any).directoryPublication || null;
   const importedAddress = [profile.address, profile.zipCode].filter(Boolean).join(" ");
   const directConnectParams = new URLSearchParams({
     prefill_businessName: profile.name,
@@ -604,23 +600,6 @@ export default function BusinessProfileView() {
   if (profile.stateCode) claimParams.set("stateCode", profile.stateCode);
   const claimUrl = `/claim-my-business?${claimParams.toString()}`;
   const handleDirectConnect = () => setLocation(directConnectUrl);
-  const contactFlow = [
-    {
-      label: "Request",
-      value: "Describe the work once.",
-      icon: MessageSquare,
-    },
-    {
-      label: "Fit",
-      value: "Keep the business and county context together.",
-      icon: CheckCircle2,
-    },
-    {
-      label: "Contact",
-      value: "Open contact only after the path is confirmed.",
-      icon: ShieldCheck,
-    },
-  ];
   const profilePulse = [
     {
       label: "Work",
@@ -639,11 +618,6 @@ export default function BusinessProfileView() {
       label: "Status",
       value: showUnclaimedBadge ? "Claimable" : verificationLabel,
       icon: FileCheck2,
-    },
-    {
-      label: "Source",
-      value: profileSource === "directory" ? "Imported" : "Published",
-      icon: Search,
     },
   ];
   const businessStructuredData = createLocalBusinessStructuredData({
@@ -703,11 +677,6 @@ export default function BusinessProfileView() {
                   {googleReviewCount === 1 ? "" : "s"}
                 </Badge>
               ) : null}
-              {profileSource === "directory" && directoryPublication?.crawlable === false ? (
-                <Badge variant="outline" className="border-white/15 bg-white/5 text-white/80">
-                  Directory shell
-                </Badge>
-              ) : null}
             </div>
 
             <h1
@@ -727,14 +696,13 @@ export default function BusinessProfileView() {
                   event.currentTarget.src = "/images/tradescout/categories/general-contractor.svg";
                 }}
               />
-              <div className="text-xs text-white/70">
-                Placeholder image shown until this profile adds real media.
-              </div>
             </div>
 
-            <p className="mt-3 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
-              {businessPromise}
-            </p>
+            {businessPromise ? (
+              <p className="mt-3 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
+                {businessPromise}
+              </p>
+            ) : null}
 
             <div className="mt-5 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               {importedAddress ? (
@@ -795,26 +763,15 @@ export default function BusinessProfileView() {
                   {item}
                 </Badge>
               ))}
-              {profileSource === "directory" ? (
-                <Badge variant="secondary" className="bg-white/8 text-white">
-                  Google-imported fields queued for enrichment
-                </Badge>
-              ) : null}
             </div>
           </div>
 
           <aside className="border-t border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-5 lg:border-l lg:border-t-0">
             <div className="space-y-4">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/48">
-                  Lead action
-                </div>
                 <div className="mt-1 text-lg font-semibold text-white">
                   {showClaimCta ? "Claim or connect" : "Direct Connect"}
                 </div>
-                <p className="mt-1 text-sm leading-6 text-white/62">
-                  Direct Connect keeps job context, fit review, and contact in one flow.
-                </p>
               </div>
 
               {isOwner ? (
@@ -919,26 +876,6 @@ export default function BusinessProfileView() {
           </aside>
         </div>
       </section>
-
-      <div
-        className="ts-panel mb-5 grid gap-2 p-3 sm:grid-cols-3"
-        data-testid="bp-direct-connect-flow"
-      >
-        {contactFlow.map(({ label, value, icon: Icon }) => (
-          <div
-            key={label}
-            className="flex gap-3 rounded-[var(--ts-radius-control)] border border-[color:var(--border-subtle)] bg-black/20 p-3"
-          >
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ts-orange" />
-            <div className="min-w-0">
-              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
-                {label}
-              </div>
-              <div className="mt-1 text-sm leading-5 text-white/76">{value}</div>
-            </div>
-          </div>
-        ))}
-      </div>
 
       {hasDescription && !visibleSections.about ? (
         <div className="ts-panel mb-6 p-5">
@@ -1109,33 +1046,6 @@ export default function BusinessProfileView() {
         </div>
       ) : null}
 
-      {!hasCustomHero ? (
-        <Card className="mb-6 border-dashed" style={themeStyle}>
-          <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
-            <div>
-              <div className="text-sm font-medium">Public profile</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Name, location, services, listings, and profile details live in one place.
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium">Domain</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {profile.customDomainVerification?.state === "verified"
-                  ? "Connected."
-                  : "Ready when the owner connects one."}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium">Contact</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                Direct Connect keeps the request, decision card, and reply path together.
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
       <Accordion
         type="single"
         collapsible
@@ -1223,10 +1133,6 @@ export default function BusinessProfileView() {
           <CardContent className="pt-6">
             <div className="text-center max-w-2xl mx-auto">
               <h3 className="text-xl font-semibold mb-2">Start with {profile.name}</h3>
-              <p className="text-muted-foreground mb-2">
-                Send the job context through Direct Connect. The contact step stays gated until the
-                fit is confirmed.
-              </p>
               <p className="text-sm text-muted-foreground mb-4">{locationLabel || localArea}</p>
               <div className="flex flex-col items-center gap-2">
                 <Button size="lg" data-testid="bp-contact-cta" onClick={handleDirectConnect}>
@@ -1283,18 +1189,13 @@ export default function BusinessProfileView() {
             action="call_business"
             context={{
               targetName: profile.name,
-              targetRole: "Directory business (unclaimed)",
-              communitySignal: "Confirm the fit before you call.",
-              absenceNote:
-                "This business is not on TradeScout yet — your verified account can still call.",
+              targetRole: "",
+              communitySignal: "",
             }}
             scoutAction="COMPLY"
-            riskFraming={[
-              "Contact is logged and rate-limited to reduce spam and scraping.",
-              "If the number is wrong, report it and use Direct Connect instead.",
-            ]}
-            guidance={`Your account is verified. ${matchFlowCopy()}`}
-            explanation="Describe what you need → confirm the fit → reach out"
+            riskFraming={[]}
+            guidance=""
+            explanation=""
             onAskScout={() => {
               const params = new URLSearchParams({
                 intent: "hire",

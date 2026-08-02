@@ -20,7 +20,7 @@ import {
   listProfileInventoryCategories,
   type ProfileInventoryCategoryShareMetadata,
 } from "@shared/profileCategoryShare";
-import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
+import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
   buildProfileSocialDescription,
   buildProfileSocialPreviewImageUrl,
@@ -263,19 +263,6 @@ export async function buildPublicProfileLlmsText({
     lines.push("", "## Service areas", ...serviceAreas.map((value) => `- ${value}`));
   }
 
-  lines.push(
-    "",
-    "## Ownership and publishing",
-    `- This profile is owned by ${displayName} and published through TradeScout.`,
-    "- TradeScout provides publishing and Direct Connect technology; it is not the business or owner of the profile's listed items.",
-    "",
-    "## Reader guidance",
-    "- Treat this host as the canonical public source for this profile.",
-    "- Use only the public facts listed here or on the canonical page.",
-    "- Contact and account details are intentionally not exposed in this document.",
-    "- Start any private request through the profile's visible TradeScout workflow."
-  );
-
   return `${lines.join("\n")}\n`;
 }
 
@@ -391,8 +378,7 @@ export function buildPublicProfileEarlyHtml({
   templateHtml,
 }: PublicProfileEarlyHtmlOptions): string {
   const title = formatTradeScoutTitle("Public profile unavailable");
-  const description =
-    "This public TradeScout profile is not available. Private account details remain protected.";
+  const description = "This public TradeScout profile is not available.";
   const canonical = `${origin}/u/${encodeURIComponent(slug)}`;
   const tradeScoutHome = `${origin}/`;
   const scoutUrl = `${origin}/scout`;
@@ -455,7 +441,6 @@ export function buildPublicProfileEarlyHtml({
         <p class="ts-early-badge"><span aria-hidden="true">&#10022;</span> Profile unavailable</p>
         <p class="ts-early-name">TradeScout public profile</p>
         <h1>This public profile is not available.</h1>
-        <p class="ts-early-lede">The profile may be unpublished, private, moved, or no longer available. No private account details are exposed here.</p>
         <div class="ts-early-actions">
           <a class="ts-early-button primary" href="${escapeHtml(communityUrl)}">Browse the Community &rarr;</a>
           <a class="ts-early-button secondary" href="${escapeHtml(scoutUrl)}">Open Scout</a>
@@ -470,13 +455,10 @@ export function buildPublicProfileEarlyHtml({
             <span class="ts-early-spark" aria-hidden="true">&#10022;</span>
           </div>
           <div class="ts-early-step"><span class="ts-early-dot"></span>No public profile at this address</div>
-          <div class="ts-early-step"><span class="ts-early-dot"></span>Private account details stay protected</div>
           <div class="ts-early-step next"><span class="ts-early-dot"></span>Browse available public spaces</div>
-          <p class="ts-early-note">This page does not reveal whether a private account exists.</p>
         </div>
       </div>
     </section>
-    <footer class="ts-early-footer">Connection Without Compromise</footer>
   </div>
 </main>
 <script>
@@ -1268,7 +1250,6 @@ export async function buildPublicProfileHtml({
     ${inventoryLinks ? `<section><h2>Featured stone inventory</h2><ul>${inventoryLinks}</ul></section>` : ""}
     ${bookingSummary ? `<p>${escapeHtml(bookingSummary)}</p>` : ""}
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
-    <p>Send a private request when you are ready. Contact details stay private until both sides choose to connect.</p>
   </article>
 </main>`;
 

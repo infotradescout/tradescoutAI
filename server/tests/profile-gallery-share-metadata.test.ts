@@ -82,14 +82,13 @@ describe("profile gallery item sharing metadata", () => {
         canonical: `https://www.thetradescout.com/u/river-city-masonry/gallery/${item.slug}`,
       })
     );
-    expect(metadata?.description).toContain(
-      "Your contact details stay private until you choose to connect."
-    );
+    expect(metadata?.description).toContain("View Blue Stone Patio from River City Masonry.");
+    expect(metadata?.description).not.toContain("contact details");
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(buildProfileGalleryShareSearch(item.slug)).toBe(`?gallery=${item.slug}`);
   });
 
-  it("keeps the protected-contact statement inside the social description limit", () => {
+  it("keeps long factual descriptions inside the social description limit", () => {
     const longBlocks = [
       {
         type: "gallery",
@@ -114,9 +113,7 @@ describe("profile gallery item sharing metadata", () => {
     });
 
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
-    expect(metadata?.description).toMatch(
-      /Your contact details stay private until you choose to connect\.$/
-    );
+    expect(metadata?.description).not.toContain("contact details");
   });
 
   it("preserves custom-domain roots and rejects unsafe or unknown item selectors", () => {

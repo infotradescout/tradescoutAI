@@ -180,7 +180,8 @@ describe("ISSA Build public profile contract", () => {
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
     expect(theme).toContain("font-editorial");
-    expect(theme).toContain("Start a private consultation");
+    expect(theme).toContain("Start a consultation");
+    expect(theme).not.toContain("Start a private consultation");
     expect(theme).toContain("View installed work");
   });
 
@@ -279,7 +280,7 @@ describe("ISSA Build public profile contract", () => {
     expect(house.consultation.body).toBe(
       "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting."
     );
-    expect(house.consultation.note).toBe("Your contact stays private until we accept.");
+    expect(house.consultation).not.toHaveProperty("note");
     expect(house.consultation.fields).toEqual([
       "Selected material",
       "Room / application",

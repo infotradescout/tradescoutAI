@@ -234,8 +234,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       },
       seoMeta: {
         title: "Moulding & Millwork Supply | Harahan, Louisiana",
-        description:
-          "See moulding, doors, windows, and millwork from Moulding & Millwork Supply, then make a private request through TradeScout Direct Connect.",
+        description: "See moulding, doors, windows, and millwork from Moulding & Millwork Supply.",
       },
       status: "published" as const,
       updatedAt: now,

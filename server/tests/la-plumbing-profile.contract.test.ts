@@ -79,7 +79,7 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(sourceRecord).toContain("No external rating/review score was imported");
     expect(sourceRecord).toContain("internal matching, deduplication");
     expect(presentation).not.toContain("Pristine Plumbing");
-    expect(presentation).toContain(
+    expect(presentation).not.toContain(
       "Score changes shown here begin with TradeScout's recorded snapshot history"
     );
     expect(presentation).not.toContain("Historical jobs, reviews, and recommendations");
@@ -167,10 +167,14 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(profileView).toContain("source=profile_site");
     expect(profileView).toContain("allowCall={canExpressCall}");
     expect(provisioning).toContain("LA_PLUMBING_ROUTING_PHONE");
-    expect(presentation).toContain("Form details stay private");
+    expect(presentation).not.toContain("Form details stay private");
+    expect(presentation).toContain("property, problem, timing, and photos");
+    expect(presentation).toContain("TradeScout has reviewed this profile");
     expect(theme).not.toContain("tel:");
     expect(theme).not.toContain("mailto:");
-    expect(theme).toContain("Call or send the job details privately");
+    expect(theme).not.toContain("Call or send the job details privately");
+    expect(theme).toContain("presentation.requestDescription");
+    expect(theme).toContain("presentation.credentialDisclosure");
   });
 
   it("supports sharing each completed-work photo with its own preview target", () => {

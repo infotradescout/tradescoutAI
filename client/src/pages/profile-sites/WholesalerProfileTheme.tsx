@@ -50,6 +50,7 @@ import {
 import { resolveDirectConnectMaterial, type DirectConnectTarget } from "./directConnectMaterial";
 import { createFallbackImageHandlers, isDecodedFrameBlack } from "./safeProfileImage";
 import { buildProfileSocialPreviewImageUrl } from "@shared/profileSocialPreview";
+import { sanitizePublicProfileText } from "@shared/publicListingSafety";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -1016,9 +1017,8 @@ export default function WholesalerProfileTheme({
     blockString(inventoryCatalogBlock, "title") ||
     presentation.copy?.inventoryTitle?.trim() ||
     "Explore the collection";
-  const inventoryDescription =
-    blockString(inventoryCatalogBlock, "description") ||
-    "Open any material to see the available photos or start a private request.";
+  const storedInventoryDescription = blockString(inventoryCatalogBlock, "description");
+  const inventoryDescription = sanitizePublicProfileText(storedInventoryDescription);
   const inventoryBrowseCtaImage =
     presentation.inventory?.browseCtaImage?.trim() ||
     featuredStones[0]?.stone.images[0] ||
@@ -1035,10 +1035,11 @@ export default function WholesalerProfileTheme({
     "Ask about the material, match it to a project, or plan the next step.";
   const contactOperatorName = blockString(ctaBlock, "contactOperatorName");
   const contactOperatorRole = blockString(ctaBlock, "contactOperatorRole");
-  const footerText =
-    blockString(ctaBlock, "footerText") ||
-    presentation.copy?.footerText?.trim() ||
-    "Explore the material, then use Direct Connect when you are ready. Your contact details stay private until the recipient accepts your request.";
+  const storedFooterFact =
+    blockString(ctaBlock, "footerText") || presentation.copy?.footerText?.trim() || "";
+  const operatingHoursText = /\b(?:open|hours?)\b/i.test(storedFooterFact)
+    ? sanitizePublicProfileText(storedFooterFact, 240)
+    : "";
   const configuredRequestExamples = Array.isArray(ctaBlock?.data?.requestExamples)
     ? ctaBlock.data.requestExamples.filter(
         (value: unknown): value is string => typeof value === "string" && value.trim().length > 0
@@ -1774,7 +1775,7 @@ export default function WholesalerProfileTheme({
                     onClick={() => startDirectConnect()}
                     className="inline-flex min-h-12 items-center justify-center gap-2 border border-[var(--brand-accent)]/70 bg-[var(--brand-accent)] px-7 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#17100b] transition hover:bg-[var(--brand-accent)]/90"
                   >
-                    Start a private consultation
+                    Start a consultation
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <button
@@ -1961,10 +1962,6 @@ export default function WholesalerProfileTheme({
                   >
                     {audienceTitle}
                   </h2>
-                  <p className="mt-2 text-xs leading-relaxed !text-[#4a4238] sm:text-sm">
-                    {presentation.audience?.intro ||
-                      "Choose the path that fits you. The inventory stays the same; the questions and next step adapt to your project."}
-                  </p>
                 </div>
 
                 <div
@@ -2075,10 +2072,6 @@ export default function WholesalerProfileTheme({
                             </li>
                           ))}
                         </ul>
-                        <p className="mt-3 text-xs font-medium !text-[#4a4238] md:mt-4">
-                          {presentation.audience?.availabilityNote ||
-                            "Pricing and current availability are confirmed through Direct Connect."}
-                        </p>
                       </div>
                     </details>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
@@ -2123,9 +2116,6 @@ export default function WholesalerProfileTheme({
                       >
                         Stone worth building around.
                       </h2>
-                      <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed !text-[#4a4238] md:text-base">
-                        Three picks from the current collection -- reload to see more.
-                      </p>
                     </div>
                     <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0">
                       {featuredStones.map((offer, offerIndex) => {
@@ -2266,9 +2256,11 @@ export default function WholesalerProfileTheme({
                         >
                           {inventoryTitle}
                         </h2>
-                        <p className="mt-2 text-sm leading-relaxed !text-[#4a4238] md:text-base">
-                          {inventoryDescription}
-                        </p>
+                        {inventoryDescription ? (
+                          <p className="mt-2 text-sm leading-relaxed !text-[#4a4238] md:text-base">
+                            {inventoryDescription}
+                          </p>
+                        ) : null}
                       </div>
                       {allInventoryStones.length === 1 ? (
                         <div className={SCROLL_ROW}>
@@ -2303,9 +2295,11 @@ export default function WholesalerProfileTheme({
                         >
                           {sharedInventoryCategory?.name || inventoryTitle}
                         </h2>
-                        <p className="max-w-3xl text-sm !text-[#4a4238]">
-                          {sharedInventoryCategory?.summary || inventoryDescription}
-                        </p>
+                        {sharedInventoryCategory?.summary || inventoryDescription ? (
+                          <p className="max-w-3xl text-sm !text-[#4a4238]">
+                            {sharedInventoryCategory?.summary || inventoryDescription}
+                          </p>
+                        ) : null}
                         {sharedInventoryCategory ? (
                           <p className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--brand-primary)]/65">
                             {sharedInventoryCategory.itemCount} current{" "}
@@ -3224,6 +3218,11 @@ export default function WholesalerProfileTheme({
                 {ctaHeading}
               </h2>
               <p className="mx-auto mb-8 max-w-xl text-white/80">{ctaDescription}</p>
+              {operatingHoursText ? (
+                <p className="mx-auto mb-8 max-w-xl text-sm font-semibold text-white/80">
+                  {operatingHoursText}
+                </p>
+              ) : null}
               <div className="mx-auto mb-10 flex max-w-2xl flex-wrap items-center justify-center gap-3">
                 {requestExamples.map((example) => (
                   <span
@@ -3253,7 +3252,6 @@ export default function WholesalerProfileTheme({
       <footer className="bg-[#241d0f] py-10 text-white/70" data-testid="wholesaler-brand-footer">
         <div className="container mx-auto px-4 text-center text-sm md:px-6">
           <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
-          <p>{footerText}</p>
           <a
             href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
             className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md px-2 font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"

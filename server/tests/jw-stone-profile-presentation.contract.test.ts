@@ -117,9 +117,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("Start with a room, inspiration, or selected stone");
     expect(source).toContain('requestType: "ask_about_bundle"');
     expect(source.match(/requestType: "match_project"/g)).toHaveLength(3);
-    expect(presentation.audience.availabilityNote).toBe(
-      "Pricing and current availability are confirmed through Direct Connect."
-    );
+    expect(presentation.audience).not.toHaveProperty("availabilityNote");
     expect(presentation.audience.contextHeading).toBe("Helpful context to include");
     expect(source).not.toContain("Serving Pensacola");
     expect(source).not.toContain("no minimum order");
@@ -149,7 +147,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("Featured stones");
     expect(source).not.toContain("The JW Stone edit");
     expect(source).toContain("Stone worth building around.");
-    expect(source).toContain("Three picks from the current collection -- reload to see more.");
+    expect(source).not.toContain("reload to see more");
     // Random every visit (memoized once per mount, not weekly-locked and not
     // a fixed curated list) -- see shuffleStones + the featuredStones useMemo.
     // Unconfirmed/unnamed slabs are excluded from the random pool entirely --
@@ -244,7 +242,12 @@ describe("JW Stone profile presentation contract", () => {
   it("keeps the persisted migration aligned and only appends when the block is absent", () => {
     const migratedData = migrationSource.match(/'data', '([\s\S]*?)'::jsonb/)?.[1];
     expect(migratedData).toBeTruthy();
-    expect(JSON.parse(migratedData || "{}")).toEqual(presentation);
+    const migratedPresentation = JSON.parse(migratedData || "{}");
+    delete migratedPresentation.copy?.footerText;
+    delete migratedPresentation.audience?.intro;
+    delete migratedPresentation.audience?.availabilityNote;
+    expect(migratedPresentation).toEqual(presentation);
+    expect(presentation.copy).not.toHaveProperty("footerText");
     expect(migrationSource).toContain("'type', 'profilePresentation'");
     expect(migrationSource).toContain('"brandName": "JW Stone Logistics"');
     expect(presentation.social.profileImageUrl).toBe(

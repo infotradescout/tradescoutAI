@@ -229,7 +229,6 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
             "Timing",
             "Backlighting intent",
           ],
-          note: "Your contact stays private until we accept.",
         },
       },
       contrast: {
@@ -279,7 +278,6 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
           "Timing",
           "Backlighting intent",
         ],
-        note: "Your contact stays private until we accept.",
       },
       // Schema-retained; Lux collapses closing into consultation.
       closing: {
@@ -340,7 +338,6 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
       description:
         "Tell us the space, dimensions, location, schedule, and whether you are considering backlighting.",
       requestExamples: ["Discuss your project", "Ask about backlighting", "Something else"],
-      footerText: "Your contact stays private until we accept.",
     },
   },
 ] as const;

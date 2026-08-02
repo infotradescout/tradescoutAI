@@ -4,16 +4,7 @@ import {
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Loader2,
-  MessageCircle,
-  Phone,
-  MapPin,
-  ShieldCheck,
-  X,
-} from "lucide-react";
+import { ArrowLeft, CheckCircle2, Loader2, MessageCircle, Phone, MapPin, X } from "lucide-react";
 
 export type ExpressDirectConnectRequestType =
   | "request_material"
@@ -322,11 +313,9 @@ export default function ExpressDirectConnectPanel({
       const json = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(
-          response.status === 404
-            ? "This profile is still getting ready. Please check back soon."
-            : response.status === 400
-              ? "Add your name, email, phone number, and a few details about what you need."
-              : "We couldn’t send that yet. Your details are still here—please try again."
+          response.status === 400
+            ? "Add your name, email, phone number, and a few details about what you need."
+            : "We couldn’t send that yet."
         );
       }
       setAccountCreated(json?.accountCreated === true);
@@ -347,9 +336,7 @@ export default function ExpressDirectConnectPanel({
       );
       setView("success");
     } catch (cause: any) {
-      setError(
-        cause?.message || "We couldn’t send that yet. Your details are still here—please try again."
-      );
+      setError(cause?.message || "We couldn’t send that yet.");
     } finally {
       setBusy(false);
     }
@@ -452,20 +439,14 @@ export default function ExpressDirectConnectPanel({
                   <MessageCircle className="h-6 w-6 text-ts-orange" />
                   <span>
                     <strong className="block text-lg">Fill out the form</strong>
-                    <span className="text-sm font-medium text-stone-600">
-                      Send the job details privately
-                    </span>
                   </span>
                 </button>
               </div>
-              <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
-                {deliveryCustody === "tradescout_pending_owner"
-                  ? `TradeScout is receiving requests for ${businessName} until the owner connects this profile.`
-                  : hasSeparateOperator
-                    ? `Your details stay private unless ${operatorName} accepts what you send.`
-                    : `Your details stay private unless ${businessName} accepts what you send.`}
-              </div>
+              {deliveryCustody === "tradescout_pending_owner" ? (
+                <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
+                  Requests are saved until {businessName} connects.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
@@ -481,15 +462,6 @@ export default function ExpressDirectConnectPanel({
                         ? "Ask about this stone selection"
                         : config.heading}
                 </h3>
-                <p className="mt-1 text-sm text-stone-600">
-                  Send the details now. You can save the request to a free account afterward.
-                </p>
-                {deliveryCustody === "tradescout_pending_owner" ? (
-                  <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-950">
-                    TradeScout will hold this request for owner handoff. The owner has not connected
-                    this profile yet.
-                  </p>
-                ) : null}
               </div>
 
               <label className="block">
@@ -603,10 +575,6 @@ export default function ExpressDirectConnectPanel({
               {!hasViewerSession ? (
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">Keep this connection organized.</p>
-                  <p className="mt-1 text-sm text-stone-600">
-                    Create a free TradeScout account to keep {businessName}, job notes, replies,
-                    progress, and follow-up together.
-                  </p>
                   {requiresDocumentNavigation(postCallSignupHref) ? (
                     <a
                       href={postCallSignupHref}
@@ -639,14 +607,18 @@ export default function ExpressDirectConnectPanel({
           {view === "success" ? (
             <div className="text-center">
               <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
-              <h3 className="text-2xl font-bold text-neutral-900">Request sent</h3>
-              <p className="mx-auto mt-2 max-w-md text-stone-600">
+              <h3 className="text-2xl font-bold text-neutral-900">
                 {requestDeliveryCustody === "tradescout_pending_owner"
-                  ? `TradeScout received your request for ${businessName}. The owner has not connected this profile yet.`
-                  : hasSeparateOperator
+                  ? "Request saved"
+                  : "Request sent"}
+              </h3>
+              {requestDeliveryCustody !== "tradescout_pending_owner" ? (
+                <p className="mx-auto mt-2 max-w-md text-stone-600">
+                  {hasSeparateOperator
                     ? `Your ${businessName} request was sent to ${operatorName}.`
                     : `${businessName} received your project details.`}
-              </p>
+                </p>
+              ) : null}
 
               {!hasViewerSession ? (
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
@@ -655,11 +627,12 @@ export default function ExpressDirectConnectPanel({
                       ? "Finish setup and manage this request"
                       : "Sign in to manage this request"}
                   </p>
-                  <p className="mt-1 text-sm text-stone-600">
-                    {requestDeliveryCustody === "tradescout_pending_owner"
-                      ? "Track the request and any owner handoff in one place."
-                      : `See replies from ${businessName}, decisions, job progress, and follow-up in one convenient place.`}
-                  </p>
+                  {requestDeliveryCustody !== "tradescout_pending_owner" ? (
+                    <p className="mt-1 text-sm text-stone-600">
+                      See replies from {businessName}, decisions, job progress, and follow-up in one
+                      convenient place.
+                    </p>
+                  ) : null}
                   {accountCreated && onboardingEmailStatus === "sent" ? (
                     <p className="mt-2 text-xs font-medium text-emerald-700">
                       A setup email was sent. You can also continue here now.
