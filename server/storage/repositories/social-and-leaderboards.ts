@@ -2,6 +2,8 @@
 import {
   users,
   contractors,
+  contractorCounties,
+  contractorTrades,
   recommendations,
   counties,
   communityPosts,
@@ -14,6 +16,7 @@ import {
   contractorLeaderboardStats,
   workRequests,
   type User,
+  type Contractor,
   type Recommendation,
   type County,
   type Message,
@@ -33,6 +36,7 @@ import {
   eq,
   exists,
   gt,
+  ilike,
   inArray,
   like,
   notInArray,
@@ -44,6 +48,130 @@ import { db } from "../../db";
 import { MarketplaceAndHomeScoutStorageRepository } from "./marketplace-and-homescout";
 
 export class SocialAndLeaderboardStorageRepository extends MarketplaceAndHomeScoutStorageRepository {
+  async getContractors(filters?: {
+    countyId?: string;
+    stateCode?: string;
+    tradeIds?: string[];
+    query?: string;
+    sortBy?: "recommended" | "rating" | "years" | "verified";
+    limit?: number;
+    offset?: number;
+  }): Promise<Contractor[]> {
+    const offset = Math.max(0, Number(filters?.offset ?? 0) || 0);
+    const limitRequested = Number(filters?.limit ?? 20) || 20;
+    const limit = Math.min(100, Math.max(0, limitRequested));
+    if (limit === 0) return [];
+
+    const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
+    const hasNameQuery = Boolean(filters?.query && String(filters.query).trim());
+    const predicates: (SQL | undefined)[] = [eq(contractors.isActive, true)];
+
+    if (filters?.countyId) {
+      predicates.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(contractorCounties)
+            .where(
+              and(
+                eq(contractorCounties.contractorId, contractors.id),
+                eq(contractorCounties.countyId, filters.countyId)
+              )
+            )
+            .limit(1)
+        )
+      );
+    } else if (filters?.stateCode) {
+      const stateCode = String(filters.stateCode).trim().toUpperCase();
+      if (!/^[A-Z]{2}$/.test(stateCode)) return [];
+      predicates.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(contractorCounties)
+            .innerJoin(counties, eq(contractorCounties.countyId, counties.id))
+            .where(
+              and(
+                eq(contractorCounties.contractorId, contractors.id),
+                eq(counties.stateCode, stateCode)
+              )
+            )
+            .limit(1)
+        )
+      );
+    }
+
+    if (filters?.tradeIds?.length) {
+      predicates.push(
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(contractorTrades)
+            .where(
+              and(
+                eq(contractorTrades.contractorId, contractors.id),
+                inArray(contractorTrades.tradeId, filters.tradeIds)
+              )
+            )
+            .limit(1)
+        )
+      );
+    }
+
+    if (hasNameQuery) {
+      const raw = String(filters?.query || "").trim();
+      const pattern = `%${escapeLike(raw)}%`;
+      predicates.push(
+        or(ilike(contractors.companyName, pattern), ilike(contractors.slug, pattern))
+      );
+    }
+
+    let query = db
+      .select()
+      .from(contractors)
+      .where(and(...predicates))
+      .limit(limit)
+      .offset(offset);
+
+    switch (filters?.sortBy) {
+      case "verified":
+        query = query.orderBy(
+          sql`${contractors.lastVerified} desc nulls last`,
+          desc(contractors.recommendationScore),
+          desc(contractors.totalRecommendations),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+      case "years":
+        query = query.orderBy(
+          sql`${contractors.yearsInBusiness} desc nulls last`,
+          desc(contractors.recommendationScore),
+          desc(contractors.totalRecommendations),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+      case "rating":
+        query = query.orderBy(
+          desc(contractors.recommendationPercentage),
+          desc(contractors.totalRecommendations),
+          desc(contractors.recommendationScore),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+      case "recommended":
+      default:
+        query = query.orderBy(
+          desc(contractors.recommendationScore),
+          desc(contractors.totalRecommendations),
+          desc(contractors.recommendationPercentage),
+          asc(contractors.companyName)
+        ) as any;
+        break;
+    }
+
+    return await query;
+  }
+
   // Social Features Operations
   async createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
     const [newPost] = await db.insert(communityPosts).values(post).returning();

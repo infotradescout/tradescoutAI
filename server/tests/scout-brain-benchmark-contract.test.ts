@@ -4,6 +4,14 @@ import {
   buildScoutBrainBenchmarkCorpus,
 } from "../../scripts/lib/scout-brain-benchmark-fixture";
 
+function groupBy<T>(items: T[], keyFor: (item: T) => string): Record<string, T[]> {
+  return items.reduce<Record<string, T[]>>((groups, item) => {
+    const key = keyFor(item);
+    (groups[key] ??= []).push(item);
+    return groups;
+  }, {});
+}
+
 describe("Scout Brain benchmark contract", () => {
   it("contains exactly 150 unique representative cases", () => {
     const cases = buildScoutBrainBenchmarkCases();
@@ -21,8 +29,8 @@ describe("Scout Brain benchmark contract", () => {
 
   it("keeps the intended benchmark distribution explicit", () => {
     const cases = buildScoutBrainBenchmarkCases();
-    const byFamily = Object.groupBy(cases, (item) => item.family);
-    const byIntent = Object.groupBy(cases, (item) => item.expectedIntent);
+    const byFamily = groupBy(cases, (item) => item.family);
+    const byIntent = groupBy(cases, (item) => item.expectedIntent);
 
     expect(byFamily.provider).toHaveLength(60);
     expect(byFamily.code).toHaveLength(45);

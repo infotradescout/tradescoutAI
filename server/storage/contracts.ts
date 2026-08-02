@@ -293,6 +293,7 @@ export interface IStorage {
   // Contractor operations
   getContractors(filters?: {
     countyId?: string;
+    stateCode?: string;
     tradeIds?: string[];
     query?: string;
     sortBy?: "recommended" | "rating" | "years" | "verified";
@@ -344,7 +345,26 @@ export interface IStorage {
   getProvidersByCountyAndCategory(args: {
     countyId: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>
+  >;
+  getProvidersByStateAndCategory(args: {
+    stateCode: string;
+    roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
+    limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;

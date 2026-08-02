@@ -21,6 +21,23 @@ describe("onboarding business Direct Connect trust boundary", () => {
     );
   });
 
+  it("applies the same public trust gates to state business search", () => {
+    const repository = read("server/repositories/businessRepository.ts");
+    const method = repository.slice(
+      repository.indexOf("async getProvidersByStateAndCategory"),
+      repository.indexOf("async getActiveBusinessForUser")
+    );
+
+    expect(method).toContain('eq(businesses.status, "active" as any)');
+    expect(method).toContain("eq(businesses.publicDiscoveryEnabled, true)");
+    expect(method).toContain("publicBusinessDetailExposureSqlPredicate()");
+    expect(method).toContain(".from(businessCounties)");
+    expect(method).toContain(".innerJoin(counties");
+    expect(method.indexOf("publicBusinessDetailExposureSqlPredicate()")).toBeLessThan(
+      method.indexOf(".limit(limit)")
+    );
+  });
+
   it("rechecks raw business ids before automatic or direct assignment", () => {
     const route = read("server/routes/direct-connect.ts");
     const eligibility = route.slice(

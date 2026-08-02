@@ -14,6 +14,10 @@ const DC_SHELL = fs.readFileSync(
 const DC_ROUTES = fs.readFileSync(path.resolve(__dirname, "../routes/direct-connect.ts"), "utf8");
 
 const ROUTES_TS = fs.readFileSync(path.resolve(__dirname, "../routes.ts"), "utf8");
+const PROVIDER_SEARCH_ROUTE_PATH = path.resolve(__dirname, "../routes/provider-search.ts");
+const PROVIDER_SEARCH_ROUTE = fs.existsSync(PROVIDER_SEARCH_ROUTE_PATH)
+  ? fs.readFileSync(PROVIDER_SEARCH_ROUTE_PATH, "utf8")
+  : ROUTES_TS.slice(ROUTES_TS.indexOf('"/api/business-providers/search"'));
 
 const SCOUT_ACTION_ROUTER = fs.readFileSync(
   path.resolve(__dirname, "../../client/src/scout/ScoutActionRouter.ts"),
@@ -201,28 +205,20 @@ describe("/api/business-providers/search universal endpoint", () => {
   });
 
   it("queries contractors table", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
-    expect(routeBody).toContain("contractors");
+    expect(PROVIDER_SEARCH_ROUTE).toContain("contractors");
   });
 
   it("queries businesses via getProvidersByCountyAndCategory", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
-    expect(routeBody).toContain("getProvidersByCountyAndCategory");
+    expect(PROVIDER_SEARCH_ROUTE).toContain("getProvidersByCountyAndCategory");
   });
 
   it("deduplicates results with a seen Set", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
-    expect(routeBody).toContain("seen");
-    expect(routeBody).toContain("new Set");
+    expect(PROVIDER_SEARCH_ROUTE).toContain("seen");
+    expect(PROVIDER_SEARCH_ROUTE).toContain("new Set");
   });
 
   it("annotates each result with providerType", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
-    expect(routeBody).toContain("providerType");
+    expect(PROVIDER_SEARCH_ROUTE).toContain("providerType");
   });
 
   it("DirectConnectPros uses /api/business-providers/search", () => {

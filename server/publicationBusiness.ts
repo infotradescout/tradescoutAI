@@ -28,10 +28,27 @@ export function publicBusinessDetailExposureSqlPredicate() {
     sql`${businesses.ownerUserId} IS NULL`,
     sql`lower(COALESCE(${businesses.claimStatus}, '')) = 'unclaimed'`,
     and(
-      sql`lower(COALESCE(${users.verificationStatus}, '')) = 'approved'`,
+      sql`lower(COALESCE(CAST(${users.verificationStatus} AS text), '')) = 'approved'`,
       eq(users.addressVerified, true)
     )
   );
+}
+
+/** Canonical trade/category predicate for public business discovery. The
+ * profileData document is the current public category/services source, so all
+ * provider-search callers share the same bounded SEO trade vocabulary. */
+export function publicBusinessTradeSqlPredicate(tradeRaw: unknown) {
+  const match = getTradeSeoMatch(tradeRaw);
+  if (!match) return null;
+
+  const patterns = match.keywords
+    .map((keyword) => String(keyword || "").trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((keyword) => `%${keyword.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
+
+  if (!patterns.length) return null;
+  return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
 }
 
 export function deriveTradeSlugFromProfileData(profileData: any): string | null {
