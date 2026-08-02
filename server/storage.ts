@@ -13,7 +13,6 @@ import {
   acceleratorMemberships,
   pricingData,
   events,
-  contractorTrades,
   contractorCounties,
   leadAssignments,
   conversations,
@@ -338,7 +337,6 @@ import {
   gte,
   lte,
   notInArray,
-  exists,
   count,
   sum,
   type SQL,
@@ -453,7 +451,10 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   async getProvidersByCountyAndCategory(args: {
     countyId: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;
@@ -465,6 +466,26 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
   > {
     // businesses + countyId query lives in BusinessRepository.
     return this.businessRepository.getProvidersByCountyAndCategory(args);
+  }
+
+  async getProvidersByStateAndCategory(args: {
+    stateCode: string;
+    roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+    }>
+  > {
+    // State scope is derived from canonical business-to-county assignments.
+    return this.businessRepository.getProvidersByStateAndCategory(args);
   }
 
   async getActiveBusinessForUser(userId: string): Promise<Business | undefined> {
@@ -1025,116 +1046,6 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
       })
       .returning();
     return user;
-  }
-
-  // Contractor operations
-  async getContractors(filters?: {
-    countyId?: string;
-    tradeIds?: string[];
-    query?: string;
-    sortBy?: "recommended" | "rating" | "years" | "verified";
-    limit?: number;
-    offset?: number;
-  }): Promise<Contractor[]> {
-    const offset = Math.max(0, Number(filters?.offset ?? 0) || 0);
-    const limitRequested = Number(filters?.limit ?? 20) || 20;
-    const limit = Math.min(100, Math.max(0, limitRequested));
-    if (limit === 0) {
-      return [];
-    }
-
-    const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
-
-    const hasNameQuery = Boolean(filters?.query && String(filters.query).trim());
-    const predicates: (SQL | undefined)[] = [eq(contractors.isActive, true)];
-
-    if (filters?.countyId) {
-      predicates.push(
-        exists(
-          db
-            .select({ one: sql`1` })
-            .from(contractorCounties)
-            .where(
-              and(
-                eq(contractorCounties.contractorId, contractors.id),
-                eq(contractorCounties.countyId, filters.countyId)
-              )
-            )
-            .limit(1)
-        )
-      );
-    }
-
-    if (filters?.tradeIds?.length) {
-      predicates.push(
-        exists(
-          db
-            .select({ one: sql`1` })
-            .from(contractorTrades)
-            .where(
-              and(
-                eq(contractorTrades.contractorId, contractors.id),
-                inArray(contractorTrades.tradeId, filters.tradeIds)
-              )
-            )
-            .limit(1)
-        )
-      );
-    }
-
-    if (hasNameQuery) {
-      const raw = String(filters?.query || "").trim();
-      const pattern = `%${escapeLike(raw)}%`;
-      predicates.push(
-        or(ilike(contractors.companyName, pattern), ilike(contractors.slug, pattern))
-      );
-    }
-
-    let q = db
-      .select()
-      .from(contractors)
-      .where(and(...predicates))
-      .limit(limit)
-      .offset(offset);
-
-    // Sorting must be DB-backed for scale; keep this deterministic.
-    switch (filters?.sortBy) {
-      case "verified":
-        q = q.orderBy(
-          sql`${contractors.lastVerified} desc nulls last`,
-          desc(contractors.recommendationScore),
-          desc(contractors.totalRecommendations),
-          asc(contractors.companyName)
-        ) as any;
-        break;
-      case "years":
-        q = q.orderBy(
-          sql`${contractors.yearsInBusiness} desc nulls last`,
-          desc(contractors.recommendationScore),
-          desc(contractors.totalRecommendations),
-          asc(contractors.companyName)
-        ) as any;
-        break;
-      case "rating":
-        q = q.orderBy(
-          desc(contractors.recommendationPercentage),
-          desc(contractors.totalRecommendations),
-          desc(contractors.recommendationScore),
-          asc(contractors.companyName)
-        ) as any;
-        break;
-      case "recommended":
-      default:
-        q = q.orderBy(
-          desc(contractors.recommendationScore),
-          desc(contractors.totalRecommendations),
-          desc(contractors.recommendationPercentage),
-          asc(contractors.companyName)
-        ) as any;
-        break;
-    }
-
-    return await q;
   }
 
   // Service area summary per contractor (used for reach tier classification)

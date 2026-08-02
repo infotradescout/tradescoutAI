@@ -27,6 +27,7 @@ describe("storage contract extraction", () => {
       "getMarketplaceListings",
       "upsertHomeScoutListingFromSource",
       "createCommunityPost",
+      "getContractors",
       "getMonthlyLeaderboard",
       "createCrmContact",
       "getDailyDeals",
@@ -40,6 +41,7 @@ describe("storage contract extraction", () => {
 
     expect(storageSource).not.toContain("async getMarketplaceListings(");
     expect(storageSource).not.toContain("async createCommunityPost(");
+    expect(storageSource).not.toContain("async getContractors(");
     expect(storageSource).not.toContain("async getMonthlyLeaderboard(");
     expect(storageSource).not.toContain("async createCrmContact(");
     expect(read("server/storage/repositories/marketplace-and-homescout.ts")).toContain(
@@ -47,6 +49,9 @@ describe("storage contract extraction", () => {
     );
     expect(read("server/storage/repositories/social-and-leaderboards.ts")).toContain(
       "async createCommunityPost("
+    );
+    expect(read("server/storage/repositories/social-and-leaderboards.ts")).toContain(
+      "async getContractors("
     );
     expect(read("server/storage/repositories/crm-and-deals.ts")).toContain(
       "async createCrmContact("

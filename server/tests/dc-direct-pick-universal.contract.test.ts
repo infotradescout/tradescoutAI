@@ -13,6 +13,10 @@ import path from "path";
 
 const DC_ROUTES = fs.readFileSync(path.resolve(__dirname, "../routes/direct-connect.ts"), "utf8");
 const ROUTES_TS = fs.readFileSync(path.resolve(__dirname, "../routes.ts"), "utf8");
+const PROVIDER_SEARCH_ROUTE_PATH = path.resolve(__dirname, "../routes/provider-search.ts");
+const PROVIDER_SEARCH_ROUTE = fs.existsSync(PROVIDER_SEARCH_ROUTE_PATH)
+  ? fs.readFileSync(PROVIDER_SEARCH_ROUTE_PATH, "utf8")
+  : ROUTES_TS.slice(ROUTES_TS.indexOf('"/api/business-providers/search"'));
 const DC_SHELL = fs.readFileSync(
   path.resolve(__dirname, "../../client/src/pages/direct-connect/DirectConnectShell.tsx"),
   "utf8"
@@ -21,21 +25,21 @@ const DC_SHELL = fs.readFileSync(
 // ─── /api/providers/search — business result shape ───────────────────────────
 describe("/api/providers/search — business result shape", () => {
   it("maps business name to companyName field", () => {
-    expect(ROUTES_TS).toContain("companyName: b.name || null");
+    expect(PROVIDER_SEARCH_ROUTE).toMatch(/companyName:\s*(?:b|business)\.name \|\| null/);
   });
 
   it("includes name field as well for backward compat", () => {
-    expect(ROUTES_TS).toContain("name: b.name || null");
+    expect(PROVIDER_SEARCH_ROUTE).toMatch(/name:\s*(?:b|business)\.name \|\| null/);
   });
 
   it("includes providerType: business for business results", () => {
     // Check the business results mapping block
-    const bizMapIdx = ROUTES_TS.indexOf('providerType: "business" as const');
+    const bizMapIdx = PROVIDER_SEARCH_ROUTE.indexOf('providerType: "business" as const');
     expect(bizMapIdx).toBeGreaterThan(-1);
   });
 
   it("includes providerType: contractor for contractor results", () => {
-    expect(ROUTES_TS).toContain('providerType: "contractor" as const');
+    expect(PROVIDER_SEARCH_ROUTE).toContain('providerType: "contractor" as const');
   });
 });
 

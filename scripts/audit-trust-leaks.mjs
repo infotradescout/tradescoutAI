@@ -45,6 +45,9 @@ function walk(dir, out = []) {
       walk(full, out);
       continue;
     }
+    // Test assertions describe production copy but are not themselves user-facing.
+    // Keep this audit scoped to files that can ship copy to customers.
+    if (/\.(?:test|spec)\.[^.]+$/.test(entry.name)) continue;
     if (allowedExtensions.has(path.extname(entry.name))) out.push(full);
   }
   return out;

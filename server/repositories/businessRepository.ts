@@ -12,10 +12,13 @@ import {
   type User,
 } from "@shared/schema";
 import { db } from "../db";
-import { and, asc, desc, eq, exists, inArray, isNull, like, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, ilike, inArray, isNull, like, ne, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
-import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import {
+  publicBusinessDetailExposureSqlPredicate,
+  publicBusinessTradeSqlPredicate,
+} from "../publicationBusiness";
 
 export type PublicBusinessRecord = {
   id: string;
@@ -116,6 +119,50 @@ function normalizePublicStateCode(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const raw = value.trim();
   return raw && /^[a-z]{2}$/i.test(raw) ? raw.toUpperCase() : undefined;
+}
+
+type PublicProviderBusinessSearchArgs = {
+  roleContexts?: string[];
+  tradeSlug?: string;
+  query?: string;
+  limit?: number;
+  offset?: number;
+};
+
+function normalizeProviderSearchLimit(value: unknown): number {
+  const parsed = Number(value ?? 15);
+  return Number.isFinite(parsed) ? Math.min(100, Math.max(1, Math.trunc(parsed))) : 15;
+}
+
+function normalizeProviderSearchOffset(value: unknown): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? Math.min(5_000, Math.max(0, Math.trunc(parsed))) : 0;
+}
+
+function applyPublicProviderBusinessSearchPredicates(
+  predicates: any[],
+  args: PublicProviderBusinessSearchArgs
+): boolean {
+  if (args.roleContexts?.length) {
+    predicates.push(inArray(businesses.roleContext as any, args.roleContexts as any));
+  }
+
+  const query = String(args.query || "")
+    .trim()
+    .slice(0, 200);
+  if (query) {
+    const escapedQuery = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    predicates.push(ilike(businesses.name, `%${escapedQuery}%`));
+  }
+
+  const tradeSlug = String(args.tradeSlug || "").trim();
+  if (tradeSlug) {
+    const tradePredicate = publicBusinessTradeSqlPredicate(tradeSlug);
+    if (!tradePredicate) return false;
+    predicates.push(tradePredicate);
+  }
+
+  return true;
 }
 
 export function buildPublicBusinessPresentationFields(
@@ -354,7 +401,10 @@ export class BusinessRepository {
   async getProvidersByCountyAndCategory(args: {
     countyId: string;
     roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
     limit?: number;
+    offset?: number;
   }): Promise<
     Array<{
       businessId: string;
@@ -369,7 +419,8 @@ export class BusinessRepository {
       canonicalProfileSlug: string | null;
     }>
   > {
-    const limit = Math.min(50, Math.max(1, Number(args.limit ?? 15) || 15));
+    const limit = normalizeProviderSearchLimit(args.limit);
+    const offset = normalizeProviderSearchOffset(args.offset);
     const predicates: any[] = [
       eq(businesses.status, "active" as any),
       eq(businesses.publicDiscoveryEnabled, true),
@@ -387,9 +438,7 @@ export class BusinessRepository {
           .limit(1)
       ),
     ];
-    if (args.roleContexts?.length) {
-      predicates.push(inArray(businesses.roleContext as any, args.roleContexts as any));
-    }
+    if (!applyPublicProviderBusinessSearchPredicates(predicates, args)) return [];
     const rows = await db
       .select({
         businessId: businesses.id,
@@ -422,7 +471,102 @@ export class BusinessRepository {
       .from(businesses)
       .leftJoin(users, eq(businesses.ownerUserId, users.id))
       .where(and(...predicates))
-      .limit(limit);
+      .orderBy(asc(businesses.name), asc(businesses.id))
+      .limit(limit)
+      .offset(offset);
+    return rows as Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+      profileData: Business["profileData"];
+      profileHeadline: string | null;
+      profileContentBlocks: Profile["contentBlocks"];
+      profileSeoMeta: Profile["seoMeta"];
+      canonicalProfileSlug: string | null;
+    }>;
+  }
+
+  async getProvidersByStateAndCategory(args: {
+    stateCode: string;
+    roleContexts?: string[];
+    tradeSlug?: string;
+    query?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<
+    Array<{
+      businessId: string;
+      ownerUserId: string | null;
+      name: string;
+      roleContext: string;
+      slug: string;
+      profileData: Business["profileData"];
+      profileHeadline: string | null;
+      profileContentBlocks: Profile["contentBlocks"];
+      profileSeoMeta: Profile["seoMeta"];
+      canonicalProfileSlug: string | null;
+    }>
+  > {
+    const stateCode = normalizePublicStateCode(args.stateCode);
+    if (!stateCode) return [];
+
+    const limit = normalizeProviderSearchLimit(args.limit);
+    const offset = normalizeProviderSearchOffset(args.offset);
+    const predicates: any[] = [
+      eq(businesses.status, "active" as any),
+      eq(businesses.publicDiscoveryEnabled, true),
+      publicBusinessDetailExposureSqlPredicate(),
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(businessCounties)
+          .innerJoin(counties, eq(businessCounties.countyId, counties.id))
+          .where(
+            and(eq(businessCounties.businessId, businesses.id), eq(counties.stateCode, stateCode))
+          )
+          .limit(1)
+      ),
+    ];
+    if (!applyPublicProviderBusinessSearchPredicates(predicates, args)) return [];
+
+    const rows = await db
+      .select({
+        businessId: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        name: businesses.name,
+        roleContext: businesses.roleContext,
+        slug: businesses.slug,
+        profileData: businesses.profileData,
+        profileHeadline: sql<string | null>`(
+          select p.headline from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        profileContentBlocks: sql<Profile["contentBlocks"]>`(
+          select p.content_blocks from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        profileSeoMeta: sql<Profile["seoMeta"]>`(
+          select p.seo_meta from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+        canonicalProfileSlug: sql<string | null>`(
+          select p.slug from profiles p
+          where p.business_id = ${businesses.id} and p.status = 'published'
+          order by p.updated_at desc limit 1
+        )`,
+      })
+      .from(businesses)
+      .leftJoin(users, eq(businesses.ownerUserId, users.id))
+      .where(and(...predicates))
+      .orderBy(asc(businesses.name), asc(businesses.id))
+      .limit(limit)
+      .offset(offset);
+
     return rows as Array<{
       businessId: string;
       ownerUserId: string | null;
