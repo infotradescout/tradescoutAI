@@ -19,6 +19,7 @@ import { RecommendationForm } from "@/components/RecommendationForm";
 import type { Contractor, Recommendation } from "@shared/schema";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { ShareButton } from "@/components/ShareButton";
+import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
   buildContractorPhotoShareSearch,
   createContractorPhotoShareMetadata,
@@ -554,6 +555,10 @@ export default function ContractorProfile() {
           </div>
         </div>
       </main>
+      <TradeScoutProfileHandoff
+        profileSlug={String(slug || contractor.id)}
+        profileName={contractor.companyName}
+      />
     </>
   );
 }

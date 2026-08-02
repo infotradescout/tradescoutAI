@@ -21,8 +21,24 @@ vi.mock("wouter", () => ({
 }));
 
 vi.mock("@/components/ShareButton", () => ({
-  ShareButton: ({ title }: { title?: string }) => (
-    <button type="button" aria-label={`Share ${title || "profile"}`}>
+  ShareButton: ({
+    title,
+    className,
+    size,
+    destination,
+  }: {
+    title?: string;
+    className?: string;
+    size?: string;
+    destination?: string;
+  }) => (
+    <button
+      type="button"
+      aria-label={`Share ${title || "profile"}`}
+      className={className}
+      data-size={size}
+      data-destination={destination}
+    >
       Share
     </button>
   ),
@@ -38,10 +54,6 @@ vi.mock("./ExpressDirectConnectPanel", () => ({
       />
     ) : null;
   },
-}));
-
-vi.mock("./TradeScoutProfileHandoff", () => ({
-  default: () => <div data-testid="tradescout-handoff" />,
 }));
 
 const inventoryStones = Array.from({ length: 14 }, (_, index) => ({
@@ -230,6 +242,31 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     container.remove();
   });
 
+  it("keeps one Powered by TradeScout link in the branded footer across hosts", () => {
+    act(() => {
+      root.render(<WholesalerProfileTheme {...props} />);
+    });
+
+    const platformFooter = container.querySelector('[data-testid="wholesaler-brand-footer"]');
+    const platformLink = platformFooter?.querySelector<HTMLAnchorElement>("a");
+    expect(platformFooter?.querySelectorAll("a")).toHaveLength(1);
+    expect(platformLink?.textContent?.trim()).toBe("Powered by TradeScout");
+    expect(platformLink?.getAttribute("href")).toBe("/");
+    expect(container.querySelector('[data-testid="profile-tradescout-handoff"]')).toBeNull();
+
+    act(() => {
+      root.render(
+        <WholesalerProfileTheme {...props} platformBaseHref="https://www.thetradescout.com/" />
+      );
+    });
+
+    const customDomainLink = container.querySelector<HTMLAnchorElement>(
+      '[data-testid="wholesaler-brand-footer"] a'
+    );
+    expect(customDomainLink?.textContent?.trim()).toBe("Powered by TradeScout");
+    expect(customDomainLink?.getAttribute("href")).toBe("https://www.thetradescout.com/");
+  });
+
   it("opens the compact full inventory immediately and preserves all long-form content", () => {
     act(() => {
       root.render(<WholesalerProfileTheme {...props} />);
@@ -242,6 +279,45 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
     expect(container.querySelector('input[placeholder="Search by stone name"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
+    const compactCard = container.querySelector<HTMLElement>(
+      '[data-testid="profile-inventory-card"]'
+    );
+    const compactMedia = compactCard?.querySelector<HTMLElement>(
+      '[data-testid="profile-inventory-card-media"]'
+    );
+    const compactImage = compactMedia?.querySelector<HTMLImageElement>("img");
+    const compactStatus = compactMedia?.querySelector<HTMLElement>(
+      '[data-testid="profile-inventory-card-status"]'
+    );
+    const compactShare = compactMedia?.querySelector<HTMLButtonElement>(
+      'button[aria-label^="Share "]'
+    );
+    const compactActions = compactCard?.querySelector<HTMLElement>(
+      '[data-testid="profile-inventory-card-actions"]'
+    );
+    const compactDetails = Array.from(compactActions?.querySelectorAll("button") || []).find(
+      (button) => button.textContent?.trim() === "Details"
+    );
+    const compactAsk = Array.from(compactActions?.querySelectorAll("button") || []).find(
+      (button) => button.textContent?.trim() === "Ask"
+    );
+
+    expect(compactMedia?.className).toContain("aspect-[8/5]");
+    expect(compactMedia?.className).toContain("sm:h-40");
+    expect(compactMedia?.className).not.toContain("h-24 xs:h-28 sm:h-40");
+    expect(compactImage?.className).toContain("object-contain");
+    expect(compactImage?.className).toContain("p-0 sm:p-1");
+    expect(compactStatus?.className).toContain("px-1.5 py-0.5 text-[7px]");
+    expect(compactShare?.className).toContain("h-8 w-8");
+    expect(compactShare?.className).toContain("after:-inset-1");
+    expect(compactShare?.getAttribute("data-size")).toBe("icon");
+    expect(compactShare?.getAttribute("data-destination")).toContain("/inventory/");
+    expect(compactDetails?.className).toContain("min-h-9 rounded-lg");
+    expect(compactDetails?.className).toContain("text-[9px]");
+    expect(compactAsk?.className).toContain("min-h-9 rounded-lg");
+    expect(compactAsk?.className).toContain("text-[9px]");
+    expect(compactDetails?.getAttribute("aria-label")).toMatch(/^View details for /);
+    expect(compactAsk?.getAttribute("aria-label")).toMatch(/^Ask about /);
     expect(
       container.querySelectorAll('[data-testid="profile-featured-product-card"]')
     ).toHaveLength(0);

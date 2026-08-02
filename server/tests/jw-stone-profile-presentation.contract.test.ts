@@ -58,9 +58,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(presentation.hero.inventoryItemSlug).toBe("amazonic-green");
     expect(presentation.hero.eyebrow).toBe("Amazonic Green · current inventory");
     expect(presentation.hero.videoUrl).toBe("/images/businesses/jw-stone/video/hero.mp4");
-    expect(presentation.hero.posterUrl).toBe(
-      "/images/businesses/jw-stone/video/hero-poster.jpg"
-    );
+    expect(presentation.hero.posterUrl).toBe("/images/businesses/jw-stone/video/hero-poster.jpg");
     expect(presentation.hero.preserveMedia).toBe(true);
     expect(source).toContain('heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"');
     expect(source).toContain('window.matchMedia("(prefers-reduced-motion: reduce)")');
@@ -80,9 +78,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("useState(inventoryOpenByDefault)");
     expect(source).toContain("useState(inventoryPageSize)");
     expect(source).toContain("Browse full inventory");
-    expect(presentation.inventory.browseCtaEyebrow).toBe(
-      "Rhino White · current inventory"
-    );
+    expect(presentation.inventory.browseCtaEyebrow).toBe("Rhino White · current inventory");
     expect(source).toContain("inventoryBrowseCtaImage");
     expect(source).toContain("rgba(7,15,18,0.66)_0%");
     const ctaImage = source.indexOf("{inventoryBrowseCtaImage ?");
@@ -144,7 +140,9 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('id="why-us"');
     expect(source).toContain('id="materials"');
     expect(source).toContain('id="connect"');
-    expect(source).toContain("TradeScoutProfileHandoff");
+    expect(source).toContain('data-testid="wholesaler-brand-footer"');
+    expect(source).toContain("Powered by TradeScout");
+    expect(source).toContain('qualifyPublicProfileItemDestination("/", platformBaseHref)');
   });
 
   it("presents a premium featured row of random picks refreshed every visit, without fashion-copy language or pricing", () => {
@@ -212,7 +210,8 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain('"Close JW Stone and return to TradeScout"');
     expect(source).not.toContain("window.history.back()");
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
-    expect(source).toContain("TradeScoutProfileHandoff");
+    expect(source).toContain("Powered by TradeScout");
+    expect(source).not.toContain("TradeScoutProfileHandoff");
   });
 
   it("keeps every Direct Connect entry action orange and honestly, contextually labeled", () => {
@@ -260,9 +259,7 @@ describe("JW Stone profile presentation contract", () => {
     for (const slug of presentation.inventory.featuredCollection.slugs) {
       expect(migrationSource).toContain(`"${slug}"`);
     }
-    expect(migrationSource).toContain(
-      "WHERE block ->> 'type' = 'profilePresentation'"
-    );
+    expect(migrationSource).toContain("WHERE block ->> 'type' = 'profilePresentation'");
   });
 
   it("stores item and material routes as profile-owned discovery data", () => {
@@ -286,15 +283,11 @@ describe("JW Stone profile presentation contract", () => {
     expect(discoveryMigrationSource).toContain("'categories', 'materials'");
     expect(discoveryMigrationSource).toContain('"publicSlug": "engineered-quartz"');
     expect(discoveryMigrationSource).toContain("WHERE profile.slug = 'jw-stone'");
-    expect(discoveryMigrationSource).toContain(
-      "'categories', defaults.categories"
-    );
+    expect(discoveryMigrationSource).toContain("'categories', defaults.categories");
     expect(discoveryMigrationSource).toContain(
       "WHERE existing.block ->> 'type' IS DISTINCT FROM 'publicDiscovery'"
     );
-    expect(discoveryMigrationSource).toContain(
-      "jsonb_agg(entry.block ORDER BY entry.sort_key)"
-    );
+    expect(discoveryMigrationSource).toContain("jsonb_agg(entry.block ORDER BY entry.sort_key)");
     expect(discoveryMigrationSource).toContain(
       "rebuilt.content_blocks IS DISTINCT FROM rebuilt.next_content_blocks"
     );

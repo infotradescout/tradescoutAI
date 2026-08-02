@@ -175,9 +175,7 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("ISSA_BUILD_HERO_VIDEO");
     expect(theme).toContain("ISSA_BUILD_HERO_POSTER");
     expect(theme).not.toContain("/images/businesses/jw-stone/video/hero.mp4");
-    expect(jwPresentation).toContain(
-      'videoUrl: "/images/businesses/jw-stone/video/hero.mp4"'
-    );
+    expect(jwPresentation).toContain('videoUrl: "/images/businesses/jw-stone/video/hero.mp4"');
     expect(theme).toContain(
       'premiumProductData && !isIssaBuild ? "object-contain" : "object-cover"'
     );
@@ -302,7 +300,9 @@ describe("ISSA Build public profile contract", () => {
     expect(theme).toContain("initialProductSlug={premiumSharedItem?.slug}");
     expect(theme).toContain("initialPhotoIndex={premiumSharedItem?.imageIndex}");
     expect(theme).toContain("<PremiumProductProfileSections");
-    expect(theme).toContain("<TradeScoutProfileHandoff");
+    expect(theme).toContain("Powered by TradeScout");
+    expect(theme).not.toContain("<TradeScoutProfileHandoff");
+    expect(theme).toContain("<ExpressDirectConnectPanel");
     expect(theme).toContain('data-testid="wholesaler-brand-footer"');
     expect(theme).toContain('data-testid="profile-trust-section"');
     expect(theme).toContain('data-testid="luxury-material-house-unavailable"');
@@ -312,9 +312,12 @@ describe("ISSA Build public profile contract", () => {
     expect(theme.indexOf("<PremiumProductProfileSections")).toBeLessThan(
       theme.indexOf('data-testid="wholesaler-brand-footer"')
     );
-    expect(theme.indexOf('data-testid="wholesaler-brand-footer"')).toBeLessThan(
-      theme.indexOf("<TradeScoutProfileHandoff")
-    );
+    const footerStart = theme.indexOf('data-testid="wholesaler-brand-footer"');
+    const poweredLink = theme.indexOf("Powered by TradeScout");
+    const footerEnd = theme.indexOf("</footer>", footerStart);
+    expect(poweredLink).toBeGreaterThan(footerStart);
+    expect(poweredLink).toBeLessThan(footerEnd);
+    expect(footerEnd).toBeLessThan(theme.indexOf("<ExpressDirectConnectPanel"));
     expect(theme).toContain("isLuxPresentation(premiumProductData?.presentation)");
     expect(theme).toContain('["Showcase", "showcase"]');
     expect(theme).toContain('["Consult", "consult"]');
@@ -498,7 +501,7 @@ describe("ISSA Build public profile contract", () => {
     expect(profileCopy).not.toContain("JW Stone");
     expect(profileCopy).not.toMatch(/co-?locat|same lot|share(?:s|d)? space/i);
     expect(profileCopy).not.toMatch(/850-|issaichev|@gmail\.com|password/i);
-    expect(theme).toContain("text={`${stoneDisplayName} from ${displayName}`}");
+    expect(theme).toContain("text={`${stoneDisplayName} at ${displayName}`}");
     expect(theme).toContain("{ctaHeading}");
     expect(theme).toContain("contactOperatorName={contactOperatorName || undefined}");
     expect(panel).toContain("hasSeparateOperator");

@@ -17,7 +17,7 @@ vi.mock("@/components/ShareButton", () => ({
 }));
 
 vi.mock("./TradeScoutProfileHandoff", () => ({
-  default: () => <footer data-testid="tradescout-handoff">TradeScout</footer>,
+  default: () => <footer data-testid="tradescout-handoff">Powered by TradeScout</footer>,
 }));
 
 const onDirectConnect = vi.fn();
@@ -122,9 +122,7 @@ describe("VideographerProfileTheme", () => {
     expect(
       container.querySelector('[data-testid="videographer-instagram-consent"]')
     ).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="videographer-instagram-embed"]')
-    ).toBeNull();
+    expect(container.querySelector('[data-testid="videographer-instagram-embed"]')).toBeNull();
     act(() => {
       Array.from(container.querySelectorAll<HTMLButtonElement>("button"))
         .find((button) => button.textContent?.includes("Play featured reel"))
@@ -136,6 +134,7 @@ describe("VideographerProfileTheme", () => {
     ).toBe("https://www.instagram.com/reel/DWRwdNLEcDF/embed/");
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
+    expect(container.textContent).toContain("Powered by TradeScout");
   });
 
   it("opens Direct Connect from the primary action and portfolio images in a dialog", () => {
@@ -256,9 +255,7 @@ describe("VideographerProfileTheme", () => {
     const embed = container.querySelector<HTMLIFrameElement>(
       '[data-testid="videographer-instagram-embed"]'
     );
-    expect(embed?.getAttribute("src")).toBe(
-      "https://www.instagram.com/reel/DWRwdNLEcDF/embed/"
-    );
+    expect(embed?.getAttribute("src")).toBe("https://www.instagram.com/reel/DWRwdNLEcDF/embed/");
     expect(container.querySelector("#work")).toBeNull();
     expect(container.textContent).not.toContain("Portfolio media has not been added yet.");
   });
@@ -282,8 +279,7 @@ describe("VideographerProfileTheme", () => {
     });
 
     expect(
-      container.querySelector('[data-testid="videographer-pending-owner-disclosure"]')
-        ?.textContent
+      container.querySelector('[data-testid="videographer-pending-owner-disclosure"]')?.textContent
     ).toContain("TradeScout holds requests until the owner connects it.");
   });
 
@@ -341,7 +337,9 @@ describe("VideographerProfileTheme", () => {
     });
 
     act(() => {
-      container.querySelector<HTMLButtonElement>('#services button[aria-label^="Request "]')?.click();
+      container
+        .querySelector<HTMLButtonElement>('#services button[aria-label^="Request "]')
+        ?.click();
     });
 
     expect(onDirectConnect).toHaveBeenCalledTimes(1);

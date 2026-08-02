@@ -13,6 +13,7 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { createProfileServiceOfferDecisionAuthority } from "@/lib/profileOfferAuthority";
 import { ShareButton } from "@/components/ShareButton";
 import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
+import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
   buildProfileOfferExchangePath,
   buildProfileServiceOfferPath,
@@ -1705,6 +1706,10 @@ export default function PublicProfileView() {
             </DialogContent>
           </Dialog>
         </ThemeScope>
+        <TradeScoutProfileHandoff
+          profileSlug={profile.canonicalProfileSlug || profile.id}
+          profileName={displayName}
+        />
       </div>
     </div>
   );

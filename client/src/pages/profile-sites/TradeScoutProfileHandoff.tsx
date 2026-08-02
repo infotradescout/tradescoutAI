@@ -1,11 +1,4 @@
-import { Compass, House, ShoppingBag, Users, type LucideIcon } from "lucide-react";
-import { appendPublicProfileContinuation } from "@/lib/publicProfileContinuation";
-
-type TradeScoutDestination = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-};
+import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 
 type Props = {
   profileSlug: string;
@@ -15,78 +8,21 @@ type Props = {
   className?: string;
 };
 
-export default function TradeScoutProfileHandoff({
-  profileSlug,
-  profileName,
-  itemName,
-  platformBaseHref = "",
-  className = "",
-}: Props) {
-  const context = { profileSlug, profileName, ...(itemName ? { itemName } : {}) };
-  const contextLabel = itemName || profileName;
-  const addPlatformBase = (href: string) =>
-    platformBaseHref && href.startsWith("/")
-      ? `${platformBaseHref.replace(/\/$/, "")}${href}`
-      : href;
-  const contextualHref = (href: string) =>
-    addPlatformBase(appendPublicProfileContinuation(href, context));
-
-  const scoutPrompt = itemName
-    ? `I am looking at ${itemName} on ${profileName}'s TradeScout profile. Help me decide what to ask and what the best next step is.`
-    : `I am looking at ${profileName}'s TradeScout profile. Help me decide what to ask and what the best next step is.`;
-  const scoutParams = new URLSearchParams({
-    source: "business_profile_call",
-    businessSlug: profileSlug,
-    prompt: scoutPrompt,
-  });
-  const destinations: TradeScoutDestination[] = [
-    {
-      href: contextualHref(`/scout?${scoutParams.toString()}`),
-      label: "Scout",
-      icon: Compass,
-    },
-    {
-      href: contextualHref("/community-feed"),
-      label: "Community",
-      icon: Users,
-    },
-    {
-      href: contextualHref("/exchange"),
-      label: "Exchange",
-      icon: ShoppingBag,
-    },
-    {
-      href: contextualHref("/homes"),
-      label: "HomeID",
-      icon: House,
-    },
-  ];
-
+export default function TradeScoutProfileHandoff({ platformBaseHref = "", className = "" }: Props) {
   return (
     <footer
-      aria-label={`TradeScout site footer from ${contextLabel}`}
+      aria-label="TradeScout site footer"
       className={`mt-auto border-t border-white/10 bg-stone-950 px-4 py-5 text-white sm:px-6 ${className}`}
       data-testid="profile-tradescout-handoff"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
-        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300">
-          TradeScout · Connection Without Compromise
-        </p>
-        <nav
-          aria-label="TradeScout profile quick access"
-          className="grid grid-cols-4 gap-1.5 sm:flex sm:flex-nowrap sm:items-center sm:gap-2"
+      <div className="mx-auto flex w-full max-w-6xl justify-center">
+        <a
+          href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
+          className="inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          data-testid="profile-tradescout-powered-link"
         >
-          {destinations.map(({ href, label, icon: Icon }) => (
-            <a
-              key={label}
-              href={href}
-              className="inline-flex min-h-9 min-w-0 items-center justify-center gap-1 rounded-full border border-white/10 bg-white/5 px-1.5 py-1.5 text-[11px] font-bold text-stone-200 transition hover:bg-white/10 hover:text-sky-200 sm:flex-none sm:gap-1.5 sm:px-3 sm:text-xs"
-            >
-              <Icon className="h-3.5 w-3.5 flex-none" aria-hidden />
-              <span className="truncate">{label}</span>
-            </a>
-          ))}
-        </nav>
+          Powered by TradeScout
+        </a>
       </div>
     </footer>
   );

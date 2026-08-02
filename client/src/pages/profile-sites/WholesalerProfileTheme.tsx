@@ -22,10 +22,12 @@ import {
 import ExpressDirectConnectPanel, {
   type ExpressDirectConnectRequestType,
 } from "./ExpressDirectConnectPanel";
-import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import PremiumProductProfileSections from "./PremiumProductProfileSections";
 import { ShareButton } from "@/components/ShareButton";
-import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
+import {
+  qualifyPublicProfileItemDestination,
+  requiresDocumentNavigation,
+} from "@/lib/publicProfileItemDestination";
 import {
   normalizeProfileInventoryItemSlug,
   normalizeProfileInventoryPhotoIndex,
@@ -1218,13 +1220,14 @@ export default function WholesalerProfileTheme({
     return (
       <article
         key={stone.slug}
-        className={`group flex flex-col overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg ${wrapperClassName}`}
+        className={`group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg ${wrapperClassName}`}
         data-testid="profile-inventory-card"
       >
         <div
           className={`relative overflow-hidden bg-stone-200 ${
-            compact ? "h-24 xs:h-28 sm:h-40" : "h-52"
+            compact ? "min-h-24 aspect-[8/5] sm:h-40 sm:min-h-0 sm:aspect-auto" : "h-52"
           }`}
+          data-testid="profile-inventory-card-media"
         >
           <button
             type="button"
@@ -1232,7 +1235,7 @@ export default function WholesalerProfileTheme({
               setOpenStone(stone);
               setOpenImageIndex(0);
             }}
-            className="block h-full w-full text-left"
+            className="block h-full w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-accent)]"
             aria-label={
               hasPublicStoneName
                 ? `View details for ${stoneDisplayName}`
@@ -1250,7 +1253,9 @@ export default function WholesalerProfileTheme({
                 data-fallback-index="0"
                 onError={handleStoneImageError(stone)}
                 onLoad={handleStoneImageLoad(stone)}
-                className="h-full w-full bg-stone-200 object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
+                className={`h-full w-full bg-stone-200 object-contain transition-transform duration-300 group-hover:scale-[1.02] ${
+                  compact ? "p-0 sm:p-1" : "p-1"
+                }`}
               />
             ) : (
               <span className="flex h-full items-center justify-center px-5 text-sm font-semibold text-stone-600">
@@ -1259,9 +1264,12 @@ export default function WholesalerProfileTheme({
             )}
           </button>
           <span
-            className={`pointer-events-none absolute rounded-full border border-white/35 bg-black/65 font-bold uppercase tracking-wide text-white backdrop-blur-sm ${
-              compact ? "left-2 top-2 px-2 py-1 text-[8px]" : "left-3 top-3 px-2.5 py-1 text-[10px]"
+            className={`pointer-events-none absolute rounded-full border border-white/35 bg-black/65 font-bold uppercase text-white backdrop-blur-sm ${
+              compact
+                ? "left-1.5 top-1.5 px-1.5 py-0.5 text-[7px] tracking-[0.04em] sm:left-2 sm:top-2 sm:text-[8px]"
+                : "left-3 top-3 px-2.5 py-1 text-[10px] tracking-wide"
             }`}
+            data-testid="profile-inventory-card-status"
           >
             {stone.materialStatus === "unconfirmed"
               ? compact
@@ -1286,25 +1294,32 @@ export default function WholesalerProfileTheme({
             imageUrl={inventorySocialPreviewImageUrl(stone, leadShareIndex)}
             size="icon"
             label=""
-            className={`absolute rounded-full border-white/25 bg-black/70 text-white hover:bg-black ${
-              compact ? "right-2 top-2" : "right-3 top-3"
+            className={`absolute rounded-full border-white/25 bg-black/70 p-0 text-white hover:bg-black focus-visible:ring-inset ${
+              compact
+                ? "right-1.5 top-1.5 h-8 w-8 [&_svg]:!h-3.5 [&_svg]:!w-3.5 after:absolute after:-inset-1 after:rounded-full after:content-[''] sm:right-2 sm:top-2 sm:h-9 sm:w-9"
+                : "right-3 top-3"
             }`}
           />
           {stone.images.length > 1 ? (
             <span
-              className={`pointer-events-none absolute rounded-full bg-black/65 px-2.5 py-1 font-semibold text-white ${
-                compact ? "bottom-2 right-2 text-[9px]" : "bottom-3 right-3 text-[11px]"
+              className={`pointer-events-none absolute rounded-full bg-black/65 font-semibold text-white ${
+                compact
+                  ? "bottom-1.5 right-1.5 px-1.5 py-0.5 text-[8px] leading-none sm:bottom-2 sm:right-2 sm:text-[9px]"
+                  : "bottom-3 right-3 px-2.5 py-1 text-[11px]"
               }`}
+              data-testid="profile-inventory-card-photo-count"
             >
               {stone.images.length} photos
             </span>
           ) : null}
         </div>
-        <div className={`flex flex-1 flex-col ${compact ? "p-2 sm:p-3" : "p-4"}`}>
+        <div
+          className={`flex min-w-0 flex-1 flex-col ${compact ? "px-2 pb-2 pt-1.5 sm:p-3" : "p-4"}`}
+        >
           {categoryLabel ? (
             <p
               className={`truncate font-bold uppercase tracking-wide text-[var(--brand-primary)]/60 ${
-                compact ? "text-[9px] sm:text-[11px]" : "text-[11px]"
+                compact ? "text-[8px] sm:text-[10px]" : "text-[11px]"
               }`}
             >
               {categoryLabel}
@@ -1315,7 +1330,7 @@ export default function WholesalerProfileTheme({
               data-testid="profile-inventory-name"
               className={`font-extrabold !text-[#241d0f] ${
                 compact
-                  ? "line-clamp-2 min-h-8 text-xs leading-tight sm:min-h-0 sm:text-sm"
+                  ? "line-clamp-2 min-h-7 text-xs leading-tight sm:min-h-0 sm:text-sm"
                   : "text-base"
               }`}
             >
@@ -1366,8 +1381,9 @@ export default function WholesalerProfileTheme({
           ) : null}
           <div
             className={`grid grid-cols-2 ${
-              compact ? "mt-auto gap-1.5 pt-2 sm:gap-2 sm:pt-3" : "mt-4 gap-2"
+              compact ? "mt-auto gap-1 pt-1.5 sm:gap-2 sm:pt-3" : "mt-4 gap-2"
             }`}
+            data-testid="profile-inventory-card-actions"
           >
             <button
               type="button"
@@ -1380,8 +1396,10 @@ export default function WholesalerProfileTheme({
                 setOpenStone(stone);
                 setOpenImageIndex(0);
               }}
-              className={`min-h-10 rounded-xl border border-[var(--brand-primary)]/20 font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5 ${
-                compact ? "px-1 text-[10px] sm:px-3 sm:text-xs" : "px-3 text-xs"
+              className={`border border-[var(--brand-primary)]/20 font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-primary)] ${
+                compact
+                  ? "relative min-h-9 rounded-lg px-1 text-[9px] leading-none after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-[''] sm:min-h-10 sm:px-3 sm:text-[11px]"
+                  : "min-h-10 rounded-xl px-3 text-xs"
               }`}
             >
               {compact ? "Details" : "View details"}
@@ -1400,8 +1418,10 @@ export default function WholesalerProfileTheme({
                   stone.slug
                 )
               }
-              className={`min-h-10 rounded-xl border border-[var(--brand-accent)]/40 font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 ${
-                compact ? "px-1 text-[10px] sm:px-3 sm:text-xs" : "px-3 text-xs"
+              className={`border border-[var(--brand-accent)]/40 font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-accent)] ${
+                compact
+                  ? "relative min-h-9 rounded-lg px-1 text-[9px] leading-none after:absolute after:inset-x-0 after:-inset-y-0.5 after:content-[''] sm:min-h-10 sm:px-3 sm:text-[11px]"
+                  : "min-h-10 rounded-xl px-3 text-xs"
               }`}
             >
               {compact
@@ -3234,14 +3254,15 @@ export default function WholesalerProfileTheme({
         <div className="container mx-auto px-4 text-center text-sm md:px-6">
           <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
           <p>{footerText}</p>
+          <a
+            href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
+            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md px-2 font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            Powered by TradeScout
+          </a>
         </div>
       </footer>
 
-      <TradeScoutProfileHandoff
-        profileSlug={profileSlug}
-        profileName={displayName}
-        platformBaseHref={platformBaseHref}
-      />
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}

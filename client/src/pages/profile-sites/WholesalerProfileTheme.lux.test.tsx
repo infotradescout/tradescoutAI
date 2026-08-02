@@ -31,10 +31,6 @@ vi.mock("./ExpressDirectConnectPanel", () => ({
   default: () => null,
 }));
 
-vi.mock("./TradeScoutProfileHandoff", () => ({
-  default: () => null,
-}));
-
 const FORBIDDEN_INVENTORY_CHROME = [
   "profile-inventory-card",
   "jw-stone-inventory-card",
@@ -109,12 +105,12 @@ describe("WholesalerProfileTheme lux fail-closed", () => {
 
   it("renders luxury house and never inventory chrome when inventoryCatalog is missing", () => {
     const contentBlocks: Array<{ type: string; data: Record<string, unknown> }> =
-      ISSA_BUILD_PROFILE_CONTENT_BLOCKS.filter(
-        (block) => block.type !== "inventoryCatalog"
-      ).map((block) => ({
-        type: block.type,
-        data: { ...(block.data as Record<string, unknown>) },
-      }));
+      ISSA_BUILD_PROFILE_CONTENT_BLOCKS.filter((block) => block.type !== "inventoryCatalog").map(
+        (block) => ({
+          type: block.type,
+          data: { ...(block.data as Record<string, unknown>) },
+        })
+      );
 
     expect(contentBlocks.some((block) => block.type === "inventoryCatalog")).toBe(false);
     expect(contentBlocks.some((block) => block.type === "premiumProduct")).toBe(true);
@@ -127,6 +123,11 @@ describe("WholesalerProfileTheme lux fail-closed", () => {
       container.querySelector('[data-testid="luxury-material-house-showcase"]')
     ).not.toBeNull();
     expect(container.querySelector('[data-testid="luxury-material-house-unavailable"]')).toBeNull();
+    const footer = container.querySelector('[data-testid="wholesaler-brand-footer"]');
+    const poweredLink = footer?.querySelector<HTMLAnchorElement>("a");
+    expect(footer?.querySelectorAll("a")).toHaveLength(1);
+    expect(poweredLink?.textContent?.trim()).toBe("Powered by TradeScout");
+    expect(poweredLink?.getAttribute("href")).toBe("/");
 
     const text = (container.textContent || "").toLowerCase();
     const html = container.innerHTML.toLowerCase();

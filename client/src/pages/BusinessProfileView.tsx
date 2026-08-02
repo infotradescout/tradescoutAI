@@ -48,6 +48,7 @@ import type { BusinessProfile } from "@/../../shared/businessProfile";
 import type { PublicBusinessListingCard } from "@shared/publicBusinessListing";
 import { recordActivity } from "@/agent/activity";
 import { useAuth } from "@/hooks/useAuth";
+import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import { SEOHelmet, createLocalBusinessStructuredData } from "@/components/SEOHelmet";
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "@/components/community/DecisionCard";
@@ -1456,6 +1457,7 @@ export default function BusinessProfileView() {
           </a>
         </div>
       )}
+      <TradeScoutProfileHandoff profileSlug={profile.slug} profileName={profile.name} />
     </div>
   );
 }

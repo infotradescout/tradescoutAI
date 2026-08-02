@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { Page } from "@/components/layout/PagePrimitives";
+import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 
 interface CommunityPostAuthor {
   id: string;
@@ -128,109 +129,113 @@ export default function CommunityProfile() {
 
   return (
     <Page className="max-w-4xl">
-        {/* Header */}
-        <Card
-          className="border"
-          style={{
-            backgroundColor: "var(--surface-card)",
-            borderColor: "var(--surface-frame-border)",
-          }}
-        >
-          <CardHeader className="flex flex-row items-start gap-4">
-            <Avatar className="h-14 w-14 ring-2 ring-ts-orange/70">
-              <AvatarImage src={author?.avatar || undefined} />
-              <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
-                {author?.name?.[0] || "U"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 space-y-1">
-              <CardTitle className="text-xl text-white">
-                {author?.name || "TradeScout community member"}
-              </CardTitle>
-              {author?.role && (
-                <p className="text-xs uppercase tracking-[0.16em] text-white/60">{author.role}</p>
-              )}
-              <p className="text-sm text-white/70">
-                Local activity, questions, and recommendations shared in the community feed.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Button
-                asChild
-                variant="outline"
-                className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
-              >
-                <Link href={publicProfileHref}>View public profile</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="flex justify-between text-xs text-white/60">
-            <span>
-              {wallPosts.length > 0
-                ? `${wallPosts.length} community post${wallPosts.length === 1 ? "" : "s"}`
-                : "No posts yet"}
+      {/* Header */}
+      <Card
+        className="border"
+        style={{
+          backgroundColor: "var(--surface-card)",
+          borderColor: "var(--surface-frame-border)",
+        }}
+      >
+        <CardHeader className="flex flex-row items-start gap-4">
+          <Avatar className="h-14 w-14 ring-2 ring-ts-orange/70">
+            <AvatarImage src={author?.avatar || undefined} />
+            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-orange-600 text-white font-semibold">
+              {author?.name?.[0] || "U"}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 space-y-1">
+            <CardTitle className="text-xl text-white">
+              {author?.name || "TradeScout community member"}
+            </CardTitle>
+            {author?.role && (
+              <p className="text-xs uppercase tracking-[0.16em] text-white/60">{author.role}</p>
+            )}
+            <p className="text-sm text-white/70">
+              Local activity, questions, and recommendations shared in the community feed.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Button
+              asChild
+              variant="outline"
+              className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
+            >
+              <Link href={publicProfileHref}>View public profile</Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex justify-between text-xs text-white/60">
+          <span>
+            {wallPosts.length > 0
+              ? `${wallPosts.length} community post${wallPosts.length === 1 ? "" : "s"}`
+              : "No posts yet"}
+          </span>
+          {user && user.id === userId && (
+            <span className="text-white/60">
+              This is your community-facing profile. Your professional site lives on your public
+              profile.
             </span>
-            {user && user.id === userId && (
-              <span className="text-white/60">
-                This is your community-facing profile. Your professional site lives on your public
-                profile.
-              </span>
-            )}
-          </CardContent>
-        </Card>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Wall of posts */}
-        <Card
-          className="border"
-          style={{
-            backgroundColor: "var(--surface-card)",
-            borderColor: "var(--surface-frame-border)",
-          }}
-        >
-          <CardHeader>
-            <CardTitle className="text-base text-white">Community wall</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="py-10 text-center text-white/60">Loading posts…</div>
-            ) : wallPosts.length === 0 ? (
-              <div className="py-10 text-center text-white/60">No posts from this member yet.</div>
-            ) : (
-              <div className="space-y-4">
-                {wallPosts.map((post) => (
-                  <CommunityPostCard
-                    key={post.id}
-                    post={{
-                      id: post.id,
-                      title: post.title,
-                      content: post.content,
-                      author: post.author
-                        ? {
-                            id: post.author.id,
-                            name: post.author.name,
-                            avatar: post.author.avatar,
-                            role: post.author.role || undefined,
-                            verified: post.author.verified,
-                            badges: (post.author as any).badges,
-                          }
-                        : undefined,
-                      category: post.category,
-                      pinned: post.pinned,
-                      trending: post.trending,
-                      location: post.location,
-                      createdAt: post.createdAt,
-                      upvotes: post.upvotes,
-                      comments: post.comments,
-                      tags: post.tags,
-                    }}
-                    onLike={handleLike}
-                    formatTimeAgo={formatTimeAgo}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Wall of posts */}
+      <Card
+        className="border"
+        style={{
+          backgroundColor: "var(--surface-card)",
+          borderColor: "var(--surface-frame-border)",
+        }}
+      >
+        <CardHeader>
+          <CardTitle className="text-base text-white">Community wall</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="py-10 text-center text-white/60">Loading posts…</div>
+          ) : wallPosts.length === 0 ? (
+            <div className="py-10 text-center text-white/60">No posts from this member yet.</div>
+          ) : (
+            <div className="space-y-4">
+              {wallPosts.map((post) => (
+                <CommunityPostCard
+                  key={post.id}
+                  post={{
+                    id: post.id,
+                    title: post.title,
+                    content: post.content,
+                    author: post.author
+                      ? {
+                          id: post.author.id,
+                          name: post.author.name,
+                          avatar: post.author.avatar,
+                          role: post.author.role || undefined,
+                          verified: post.author.verified,
+                          badges: (post.author as any).badges,
+                        }
+                      : undefined,
+                    category: post.category,
+                    pinned: post.pinned,
+                    trending: post.trending,
+                    location: post.location,
+                    createdAt: post.createdAt,
+                    upvotes: post.upvotes,
+                    comments: post.comments,
+                    tags: post.tags,
+                  }}
+                  onLike={handleLike}
+                  formatTimeAgo={formatTimeAgo}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <TradeScoutProfileHandoff
+        profileSlug={userId}
+        profileName={author?.name || "TradeScout community member"}
+      />
     </Page>
   );
 }

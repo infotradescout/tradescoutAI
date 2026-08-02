@@ -29,10 +29,10 @@ describe("public profile product-card contract", () => {
     expect(stone).toContain("buildProfilePublicItemPath({");
     expect(stone).toContain('itemType: "inventory"');
     expect(stone).toContain("View details");
-    expect(stone).toContain(
-      'startDirectConnect(stone.name, "request_material", stone.slug)'
+    expect(stone).toMatch(
+      /startDirectConnect\(\s*getStoneDisplayName\(stone\),\s*"request_material",\s*stone\.slug/
     );
-    expect(stone).toContain("Ask about {stone.name}");
+    expect(stone).toContain("Ask about {getStoneDisplayName(stone)}");
   });
 
   it("keeps JR's before-and-after proof separate from product inventory", () => {
@@ -77,13 +77,11 @@ describe("public profile Direct Connect entry contract", () => {
     // actually carries something specific forward (a stone name, a search
     // term). General entry points with no attached context stay "Direct
     // Connect" rather than being given a label that overpromises specificity.
-    expect(stone).toContain(
-      'startDirectConnect(stone.name, "request_material", stone.slug)'
+    expect(stone).toMatch(
+      /startDirectConnect\(\s*getStoneDisplayName\(stone\),\s*"request_material",\s*stone\.slug/
     );
-    expect(stone).toContain("Ask about {stone.name}");
-    expect(stone).toContain(
-      'startDirectConnect(stoneName, "request_material", stoneSlug)'
-    );
+    expect(stone).toContain("Ask about {getStoneDisplayName(stone)}");
+    expect(stone).toContain('startDirectConnect(stoneName, "request_material", stoneSlug)');
     expect(stone).toContain("Ask about this stone");
     expect(stone).toContain("startDirectConnect(inventorySearch.trim()");
     expect(stone).toContain("Request this stone");

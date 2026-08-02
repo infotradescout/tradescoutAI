@@ -90,7 +90,9 @@ describe("DefaultProfileTheme", () => {
           deliveryCustody="tradescout_pending_owner"
           onDirectConnect={onDirectConnect}
           trustActions={<div data-testid="trust-actions">Trust</div>}
-          tradeScoutHandoff={<footer data-testid="tradescout-handoff">TradeScout</footer>}
+          tradeScoutHandoff={
+            <footer data-testid="tradescout-handoff">Powered by TradeScout</footer>
+          }
         />
       );
     });
@@ -143,6 +145,7 @@ describe("DefaultProfileTheme", () => {
     ).toHaveLength(1);
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
+    expect(container.textContent).toContain("Powered by TradeScout");
   });
 
   it("uses a deliberate brand-led state when a business has no media", () => {
@@ -169,7 +172,9 @@ describe("DefaultProfileTheme", () => {
           onDirectConnect={onDirectConnect}
           trustActions={<div data-testid="dark-trust-actions">Dark trust</div>}
           lightTrustActions={<div data-testid="light-trust-actions">Light trust</div>}
-          tradeScoutHandoff={<footer data-testid="tradescout-handoff">TradeScout</footer>}
+          tradeScoutHandoff={
+            <footer data-testid="tradescout-handoff">Powered by TradeScout</footer>
+          }
         />
       );
     });
@@ -187,6 +192,7 @@ describe("DefaultProfileTheme", () => {
     expect(container.querySelector('[data-testid="dark-trust-actions"]')).toBeNull();
     expect(container.querySelector('[data-testid="light-trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
+    expect(container.textContent).toContain("Powered by TradeScout");
   });
 
   it("changes palette, content, media, and enabled sections using props only", () => {
@@ -213,7 +219,9 @@ describe("DefaultProfileTheme", () => {
           showRecommendations={false}
           onDirectConnect={onDirectConnect}
           trustActions={<div data-testid="trust-actions">Trust</div>}
-          tradeScoutHandoff={<footer data-testid="tradescout-handoff">TradeScout</footer>}
+          tradeScoutHandoff={
+            <footer data-testid="tradescout-handoff">Powered by TradeScout</footer>
+          }
         />
       );
     });
@@ -245,7 +253,7 @@ describe("DefaultProfileTheme", () => {
           showContact={false}
           onDirectConnect={onDirectConnect}
           trustActions={<div>Trust</div>}
-          tradeScoutHandoff={<footer>TradeScout</footer>}
+          tradeScoutHandoff={<footer>Powered by TradeScout</footer>}
         />
       );
     });
@@ -272,7 +280,7 @@ describe("DefaultProfileTheme", () => {
           showContact={false}
           onDirectConnect={onDirectConnect}
           trustActions={<div>Trust</div>}
-          tradeScoutHandoff={<footer>TradeScout</footer>}
+          tradeScoutHandoff={<footer>Powered by TradeScout</footer>}
         />
       );
     });
@@ -307,7 +315,7 @@ describe("DefaultProfileTheme", () => {
           showContact={false}
           onDirectConnect={onDirectConnect}
           trustActions={<div>Trust</div>}
-          tradeScoutHandoff={<footer>TradeScout</footer>}
+          tradeScoutHandoff={<footer>Powered by TradeScout</footer>}
         />
       );
     });
@@ -338,7 +346,7 @@ describe("DefaultProfileTheme", () => {
           showContact={false}
           onDirectConnect={onDirectConnect}
           trustActions={<div>Trust</div>}
-          tradeScoutHandoff={<footer>TradeScout</footer>}
+          tradeScoutHandoff={<footer>Powered by TradeScout</footer>}
         />
       );
     });

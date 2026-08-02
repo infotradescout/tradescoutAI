@@ -46,8 +46,9 @@ Defaults are applied automatically on first public-profile materialization; the 
 - Claims-first: template pick is preference + layout seed, not verification.
 - Assist, don’t replace: humans confirm identity and merge choices.
 - Refuse waste: do not regenerate copy that already exists on account/business.
-- **Every** resulting public profile still ships: trust section, TradeScout footer
-  handoff, and Direct Connect–only contact (no public tel/mailto). See
+- **Every** resulting public profile still ships: trust section, one qualified
+  `Powered by TradeScout` footer link, and Direct Connect–only contact (no public
+  tel/mailto). See
   `PROFILE_SITE_LAW_INVARIANTS` in `shared/profileSiteTemplates.ts`.
 
 ## Surfaces

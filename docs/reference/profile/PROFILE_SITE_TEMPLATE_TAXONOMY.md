@@ -43,7 +43,7 @@ These are not optional theme chrome. Every selectable and default renderer must 
 | Invariant | Required surface |
 |-----------|------------------|
 | Trust section | `trustActions` / `PublicProfileTrustActions` always rendered |
-| TradeScout footer | `TradeScoutProfileHandoff` at the absolute bottom (Scout / Community / Exchange / HomeID) |
+| TradeScout footer | One qualified `Powered by TradeScout` link at the bottom of every public profile; themes with an existing branded footer place it inside that footer |
 | Contact path | Direct Connect only (`ExpressDirectConnectPanel` / `startDirectConnect`) — no public `tel:` / `mailto:` / raw phone-email CTAs |
 
 Ship checklist item 6 already requires Direct Connect stay gated; items above are contract-tested in `profile-site-law-invariants.contract.test.ts`.
@@ -91,7 +91,7 @@ Examples: `plumbing-company`, `electrician-solo`, `hvac-residential`, `roofing-c
 2. Add seed presentation (or inventory) in the same module or a sibling seed file.
 3. Map id → renderer in `ProfileSiteView` (reuse a family shell whenever possible).
 4. Expose editable slots in editor + live chrome.
-5. **Law chrome:** trust section + `TradeScoutProfileHandoff` footer + Direct Connect–only contact (pass `profile-site-law-invariants` contract).
+5. **Law chrome:** trust section + one qualified `Powered by TradeScout` footer link + Direct Connect–only contact (pass `profile-site-law-invariants` contract).
 6. Contract: resolution, seed, and one happy-path save.
 7. One county path proof (publish → public view → Direct Connect still gated).
 

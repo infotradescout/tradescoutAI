@@ -13,7 +13,8 @@
  *
  * HARD LAW (every template / renderer, no exceptions):
  * - Trust section is always present (PublicProfileTrustActions)
- * - TradeScout site footer handoff is always present (TradeScoutProfileHandoff)
+ * - TradeScout site footer identity is always present through one qualified
+ *   Powered by TradeScout link
  * - All contact / request / call entry goes through Direct Connect
  *   (ExpressDirectConnectPanel / startDirectConnect) — never public tel:/mailto:
  * - Visibility ≠ access; Intent → Decision Card → Contact stays gated

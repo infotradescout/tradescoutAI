@@ -18,7 +18,7 @@ vi.mock("@/components/ShareButton", () => ({
 }));
 
 vi.mock("./TradeScoutProfileHandoff", () => ({
-  default: () => <footer data-testid="tradescout-handoff">TradeScout</footer>,
+  default: () => <footer data-testid="tradescout-handoff">Powered by TradeScout</footer>,
 }));
 
 const onDirectConnect = vi.fn();
@@ -155,6 +155,7 @@ describe("PrecisionAerialProfile", () => {
     );
     expect(container.querySelector('[data-testid="trust-actions"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="tradescout-handoff"]')).not.toBeNull();
+    expect(container.textContent).toContain("Powered by TradeScout");
   });
 
   it("preserves primary and service-specific Direct Connect and gallery sharing", () => {

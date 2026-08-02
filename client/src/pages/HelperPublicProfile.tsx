@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { ShareButton } from "@/components/ShareButton";
+import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
   buildProfilePortfolioItemSlug,
   buildProfilePortfolioShareSearch,
@@ -506,6 +507,7 @@ export default function HelperPublicProfile() {
             )}
         </div>
       </div>
+      <TradeScoutProfileHandoff profileSlug={id} profileName={fullName} />
     </Page>
   );
 }

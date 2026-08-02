@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
-import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
+import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 import { type ResolvedProfileGalleryItem } from "@shared/profileGalleryShare";
 import { buildProfilePublicItemPath } from "@shared/profilePublicItemRoute";
 import type {
@@ -841,17 +841,19 @@ export default function LocalServiceProfileTheme({
         </div>
       </section>
 
-      <TradeScoutProfileHandoff
-        profileSlug={profileSlug}
-        profileName={businessName}
-        platformBaseHref={platformBaseHref}
-        className="border-t border-white/10"
-      />
-
-      <footer className="border-t border-white/10 px-4 py-7 text-center sm:px-6">
+      <footer
+        className="border-t border-white/10 px-4 py-7 text-center sm:px-6"
+        data-testid="local-service-brand-footer"
+      >
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
           {businessName} on TradeScout · Connection Without Compromise
         </p>
+        <a
+          href={qualifyPublicProfileItemDestination("/", platformBaseHref)}
+          className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm font-semibold text-white underline decoration-white/40 underline-offset-4 transition-colors hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          Powered by TradeScout
+        </a>
       </footer>
 
       {activeGalleryItem && activeGalleryIndex !== null ? (

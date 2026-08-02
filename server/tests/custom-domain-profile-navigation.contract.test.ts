@@ -9,8 +9,10 @@ describe("custom-domain public Profile navigation contract", () => {
   const profileView = read("client/src/pages/ProfileSiteView.tsx");
   const bookingDialog = read("client/src/components/profile/ProfileBookingRequestDialog.tsx");
   const expressPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+  const profileFooter = read("client/src/pages/profile-sites/TradeScoutProfileHandoff.tsx");
   const manageChrome = read("client/src/components/profile/ProfileSiteManageChrome.tsx");
   const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+  const localServiceTheme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
   const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
 
   it("qualifies existing platform-owned Profile actions against the platform origin", () => {
@@ -23,6 +25,11 @@ describe("custom-domain public Profile navigation contract", () => {
     expect(profileView).toContain("const subjectHref = entry.contractor?.slug");
     expect(profileView).toContain("subjectHref,");
     expect(profileView).toContain("platformBaseHref={platformBaseHref}");
+    expect(wholesalerTheme).toContain('qualifyPublicProfileItemDestination("/", platformBaseHref)');
+    expect(profileFooter).toContain('qualifyPublicProfileItemDestination("/", platformBaseHref)');
+    expect(localServiceTheme).toContain(
+      'qualifyPublicProfileItemDestination("/", platformBaseHref)'
+    );
   });
 
   it("uses document navigation after an existing action becomes cross-host", () => {
