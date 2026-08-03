@@ -114,7 +114,7 @@ function publicProfileSearchExposurePredicate() {
   return sql`(
     ${profiles.businessId} IS NULL
     OR ${users.verifiedBadge} = true
-    OR lower(COALESCE(${users.verificationStatus}, '')) = 'approved'
+    OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
     OR (
       ${businesses.status} = 'active'
       AND ${businesses.publicDiscoveryEnabled} = false
