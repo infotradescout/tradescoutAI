@@ -1,0 +1,233 @@
+.jw2-dialog-backdrop,
+.jw2-drawer-backdrop {
+  --jw2-ink: #171713;
+  --jw2-soft-ink: #55544d;
+  --jw2-paper: #f5f2ea;
+  --jw2-white: #fffefa;
+  --jw2-line: rgba(23, 23, 19, 0.16);
+  --jw2-accent: #80754c;
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: rgba(10, 10, 8, 0.72);
+  color: var(--jw2-ink);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.jw2-dialog-backdrop *,
+.jw2-drawer-backdrop * {
+  box-sizing: border-box;
+}
+
+.jw2-dialog-backdrop button:focus-visible,
+.jw2-drawer-backdrop button:focus-visible {
+  outline: 3px solid #9e8c48;
+  outline-offset: 3px;
+}
+
+.jw2-dialog {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.65fr);
+  width: min(1320px, calc(100vw - 56px));
+  height: min(840px, calc(100vh - 56px));
+  overflow: hidden;
+  transform: translate(-50%, -50%);
+  background: var(--jw2-white);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.34);
+}
+
+.jw2-dialog-close {
+  position: absolute;
+  z-index: 3;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: rgba(23, 23, 19, 0.84);
+  color: var(--jw2-white);
+  cursor: pointer;
+}
+
+.jw2-dialog-gallery {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #1e1e1a;
+  touch-action: pan-y;
+}
+
+.jw2-dialog-gallery > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.jw2-gallery-arrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 254, 250, 0.9);
+  color: var(--jw2-ink);
+  cursor: pointer;
+}
+
+.jw2-gallery-arrow--previous {
+  left: 14px;
+}
+
+.jw2-gallery-arrow--next {
+  right: 14px;
+}
+
+.jw2-gallery-count {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 6px 9px;
+  background: rgba(23, 23, 19, 0.84);
+  color: var(--jw2-white);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.jw2-dialog-details {
+  min-width: 0;
+  overflow-y: auto;
+  padding: clamp(42px, 5vw, 72px) clamp(24px, 4vw, 52px) 30px;
+  background: var(--jw2-paper);
+}
+
+.jw2-dialog-details .jw2-eyebrow,
+.jw2-drawer-header .jw2-eyebrow {
+  margin: 0;
+  color: var(--jw2-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.jw2-dialog-details h2 {
+  margin: 12px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(36px, 4.5vw, 62px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.jw2-image-finish,
+.jw2-dialog-source-count,
+.jw2-anonymous-note {
+  margin: 16px 0 0;
+  color: var(--jw2-soft-ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.jw2-dialog-details .jw2-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 28px 0 0;
+  border-top: 1px solid var(--jw2-line);
+}
+
+.jw2-dialog-details .jw2-fact {
+  padding: 14px 8px 14px 0;
+  border-bottom: 1px solid var(--jw2-line);
+}
+
+.jw2-dialog-details .jw2-fact dt {
+  color: var(--jw2-soft-ink);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.jw2-dialog-details .jw2-fact dd {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.jw2-dialog-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.jw2-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 15px;
+  border: 1px solid var(--jw2-ink);
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.jw2-button--dark {
+  background: var(--jw2-ink);
+  color: var(--jw2-white);
+}
+
+.jw2-button--light {
+  background: transparent;
+  color: var(--jw2-ink);
+}
+
+.jw2-button--saved {
+  border-color: var(--jw2-accent);
+  background: #e8e1cc;
+  color: #5f552f;
+}
+
+.jw2-dialog-thumbnails {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 28px;
+}
+
+.jw2-dialog-thumbnails button {
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 0;
+  border: 2px solid transparent;
+  background: #ded9cd;
+  cursor: pointer;
+}
+
+.jw2-dialog-thumbnails button.is-active {
+  border-color: var(--jw2-ink);
+}
+
+.jw2-dialog-thumbnails img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

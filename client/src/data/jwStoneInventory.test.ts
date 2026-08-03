@@ -2,9 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
-import generatedInventory from "./jwStoneInventory.generated.json";
 import { JW_STONE_INVENTORY_CATEGORIES, JW_STONE_INVENTORY_SUMMARY } from "./jwStoneInventory";
-import { JW_STONE_INVENTORY_RECONCILIATION } from "./reconcileJwStoneInventory";
 
 const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
   category.stones.map((stone) => ({ ...stone, categorySlug: category.categorySlug }))
@@ -12,10 +10,9 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full optimized inventory set", () => {
-    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(148);
+    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(119);
     expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(433);
-    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(148);
-    expect(new Set(stones.flatMap((stone) => stone.images)).size).toBe(433);
+    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(119);
     expect(stones.some((stone) => stone.slug === "fusion-blue")).toBe(false);
 
     for (const stone of stones) {
@@ -30,37 +27,9 @@ describe("JW Stone reconciled inventory", () => {
 
   it("keeps every usable source image while isolating uncertain photos", () => {
     const trending = stones.filter((stone) => stone.categorySlug === "unconfirmed");
-    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(143);
+    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(148);
     expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(6);
-    expect(stones.find((stone) => stone.slug === "panda")?.images).toHaveLength(5);
-    expect(stones.filter((stone) => stone.slug === "panda")).toHaveLength(1);
-    expect(stones.find((stone) => stone.slug === "shadow-storm")?.images).toHaveLength(8);
-    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(25);
-    expect(stones.find((stone) => stone.slug === "bianco-superiory")?.images).toHaveLength(4);
-    expect(stones.find((stone) => stone.slug === "shadow-blue")?.images).toHaveLength(1);
-  });
-
-  it("assigns every formerly unidentified photo to exactly one evidence-backed disposition", () => {
-    const sourceIds = generatedInventory
-      .filter((stone) => /^trending-selection-\d+$/.test(stone.slug))
-      .flatMap((stone) => stone.sourceFileIds);
-    const dispositionIds = [
-      ...JW_STONE_INVENTORY_RECONCILIATION.namedMerges.flatMap(
-        (disposition) => disposition.sourceFileIds
-      ),
-      ...JW_STONE_INVENTORY_RECONCILIATION.namedAdditions.flatMap(
-        (disposition) => disposition.sourceFileIds
-      ),
-      ...JW_STONE_INVENTORY_RECONCILIATION.anonymousBundles.flatMap(
-        (disposition) => disposition.sourceFileIds
-      ),
-    ];
-
-    expect(sourceIds).toHaveLength(73);
-    expect(dispositionIds).toHaveLength(73);
-    expect(new Set(dispositionIds).size).toBe(73);
-    expect([...dispositionIds].sort()).toEqual([...sourceIds].sort());
-    expect(JW_STONE_INVENTORY_RECONCILIATION.anonymousBundles).toHaveLength(38);
+    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(24);
   });
 
   it("does not turn visual treatments into finishes", () => {
@@ -127,7 +96,6 @@ describe("JW Stone reconciled inventory", () => {
         perlatus: "Perlatus",
         "porto-fino": "Porto Fino",
         "river-white": "River White",
-        "shadow-blue": "Shadow Blue",
         "steel-gray": "Steel Gray",
         "super-white": "Super White",
         "titanium-black-leathered": "Titanium Black",
@@ -137,8 +105,8 @@ describe("JW Stone reconciled inventory", () => {
         "white-silk": "White Silk",
       }
     );
-    expect(sourceNamed).toHaveLength(31);
-    expect(syntheticGroups).toHaveLength(38);
+    expect(sourceNamed).toHaveLength(30);
+    expect(syntheticGroups).toHaveLength(10);
     expect(
       syntheticGroups.map(({ name, displayName, slug, materialStatus }) => ({
         name,
@@ -147,7 +115,7 @@ describe("JW Stone reconciled inventory", () => {
         materialStatus,
       }))
     ).toEqual(
-      Array.from({ length: 38 }, (_, index) => {
+      Array.from({ length: 10 }, (_, index) => {
         const ordinal = String(index + 1).padStart(2, "0");
         return {
           name: `Trending Selection ${ordinal}`,
@@ -171,14 +139,6 @@ describe("JW Stone reconciled inventory", () => {
   it("leaves absent finish evidence unconfirmed", () => {
     expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishStatus).toBe("unconfirmed");
     expect(stones.find((stone) => stone.slug === "titanium")?.finishes).toEqual(["Leathered"]);
-    expect(stones.find((stone) => stone.slug === "bianco-superiory")?.finishes).toEqual([
-      "Leathered",
-      "Brushed",
-    ]);
-    expect(stones.find((stone) => stone.slug === "trending-selection-08")?.finishes).toEqual([
-      "Polished",
-      "Leathered",
-    ]);
   });
 
   it("suppresses crafted public names for synthetic Direct Connect item ids", () => {

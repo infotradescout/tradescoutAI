@@ -5,6 +5,7 @@ import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnec
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
 import { BuyerJourney } from "./BuyerJourney";
 import { BuyerWorkspace } from "./BuyerWorkspace";
+import { FirstCutSection } from "./FirstCutSection";
 import { MarketplaceHeader } from "./MarketplaceHeader";
 import { StoneDetailDialog } from "./StoneDetailDialog";
 import { WishlistPanel } from "./WishlistPanel";
@@ -169,6 +170,8 @@ export default function JWStoneMarketplace() {
           }}
         />
       )}
+
+      <FirstCutSection />
 
       <footer className="border-t border-stone-300 bg-stone-100 px-5 py-10 sm:px-8 lg:px-12">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between">

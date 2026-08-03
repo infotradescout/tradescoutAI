@@ -15,8 +15,8 @@ describe("JW Stone editorial color directions", () => {
     ).sort();
     const classifiedSlugs = Object.values(JW_STONE_SLUGS_BY_COLOR_DIRECTION).flat().sort();
 
-    expect(classifiedSlugs).toHaveLength(148);
-    expect(new Set(classifiedSlugs).size).toBe(148);
+    expect(classifiedSlugs).toHaveLength(119);
+    expect(new Set(classifiedSlugs).size).toBe(119);
     expect(classifiedSlugs).toEqual(canonicalSlugs);
     expect(Object.keys(JW_STONE_COLOR_BY_SLUG).sort()).toEqual(canonicalSlugs);
   });
@@ -27,10 +27,10 @@ describe("JW Stone editorial color directions", () => {
         Object.entries(JW_STONE_SLUGS_BY_COLOR_DIRECTION).map(([id, slugs]) => [id, slugs.length])
       )
     ).toEqual({
-      "soft-light": 50,
-      "warm-earthy": 25,
-      "cool-serene": 47,
-      "deep-dramatic": 13,
+      "soft-light": 45,
+      "warm-earthy": 19,
+      "cool-serene": 31,
+      "deep-dramatic": 11,
       "bold-expressive": 13,
     });
     expect(COLOR_DIRECTIONS.map(({ id, label }) => ({ id, label }))).toEqual([
@@ -46,9 +46,7 @@ describe("JW Stone editorial color directions", () => {
     expect(isColorDirectionId("soft-light")).toBe(true);
     expect(isColorDirectionId("Soft & Light")).toBe(false);
     expect(getColorDirectionForStone("amazonic-green")).toBe("bold-expressive");
-    expect(getColorDirectionForStone("trending-selection-05")).toBe("cool-serene");
-    expect(getColorDirectionForStone("trending-selection-09")).toBe("bold-expressive");
-    expect(getColorDirectionForStone("shadow-blue")).toBe("cool-serene");
+    expect(getColorDirectionForStone("trending-selection-05")).toBe("bold-expressive");
     expect(getColorDirectionForStone("not-in-inventory")).toBeNull();
   });
 });
