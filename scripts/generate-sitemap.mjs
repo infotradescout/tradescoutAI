@@ -63,7 +63,6 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/exchange/local-food', priority: 0.7, changefreq: 'daily' },
   { path: '/exchange/other', priority: 0.6, changefreq: 'daily' },
   { path: '/vehicle-marketplace', priority: 0.6, changefreq: 'daily' },
-  { path: '/homescout-listings', priority: 0.6, changefreq: 'daily' },
   { path: '/handmade-marketplace', priority: 0.6, changefreq: 'daily' },
   { path: '/trade-deals', priority: 0.7, changefreq: 'daily' },
   { path: '/groups', priority: 0.7, changefreq: 'daily' },

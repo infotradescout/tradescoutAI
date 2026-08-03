@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { canonicalPublicOrigin } from "@/lib/canonicalPublicOrigin";
 
 interface LocalBusinessSEOProps {
   contractor?: {
@@ -16,35 +17,8 @@ interface LocalBusinessSEOProps {
   };
 }
 
-function normalizePublicOrigin(origin: string) {
-  try {
-    const parsed = new URL(origin);
-    const host = parsed.hostname.toLowerCase();
-    const isLocal = host === "localhost" || host === "127.0.0.1";
-    if (isLocal) return parsed.toString().replace(/\/$/, "");
-
-    const canonicalHost =
-      host === "thetradescout.com" ||
-      host === "www.thetradescout.com" ||
-      host === "tradescoutai.onrender.com";
-
-    if (canonicalHost) {
-      parsed.protocol = "https:";
-      parsed.hostname = "www.thetradescout.com";
-      parsed.port = "";
-      return parsed.toString().replace(/\/$/, "");
-    }
-
-    if (parsed.protocol === "http:") parsed.protocol = "https:";
-    return parsed.toString().replace(/\/$/, "");
-  } catch {
-    return origin.replace(/\/$/, "");
-  }
-}
-
 function getPublicOriginForStructuredData() {
-  if (typeof window === "undefined") return "https://www.thetradescout.com";
-  return normalizePublicOrigin(window.location.origin);
+  return canonicalPublicOrigin(typeof window === "undefined" ? undefined : window.location.origin);
 }
 
 /**
@@ -71,47 +45,16 @@ export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       name: contractor.companyName,
-      description: contractor.about || `Local provider services by ${contractor.companyName}`,
+      description: contractor.about || undefined,
       url: publicUrl,
       sameAs: contractor.website ? [contractor.website] : undefined,
-      address: {
-        "@type": "PostalAddress",
-        addressRegion: location?.state || "US",
-        addressLocality: location?.county || "Local Area",
-        addressCountry: "US",
-      },
-      priceRange: "$$",
-      paymentAccepted: ["Cash", "Credit Card", "Check", "Financing"],
-      currenciesAccepted: "USD",
-      areaServed: {
-        "@type": "GeoCircle",
-        geoMidpoint: {
-          "@type": "GeoCoordinates",
-          addressRegion: location?.state,
-          addressLocality: location?.county,
-        },
-        geoRadius: "50000",
-      },
-      serviceType: "Local Services",
-      hasCredential: contractor.verifiedLicensed
-        ? {
-            "@type": "EducationalOccupationalCredential",
-            credentialCategory: "Professional License",
-            recognizedBy: {
-              "@type": "Organization",
-              name: "TradeScout verification records",
-            },
-          }
-        : undefined,
-      makesOffer: {
-        "@type": "Offer",
-        itemOffered: {
-          "@type": "Service",
-          name: "Local Services",
-          description: "Local provider services routed through TradeScout trust checks",
-        },
-        areaServed: location?.county || "Local Area",
-      },
+      areaServed:
+        location?.state || location?.county
+          ? {
+              "@type": "AdministrativeArea",
+              name: [location?.county, location?.state].filter(Boolean).join(", "),
+            }
+          : undefined,
     };
 
     // Create and inject structured data
@@ -136,36 +79,25 @@ export function createServiceCategoryStructuredData(
   services: string[],
   location?: { state?: string; county?: string }
 ) {
-  const publicOrigin = getPublicOriginForStructuredData();
   return {
     "@context": "https://schema.org",
     "@type": "Service",
-    serviceType: "Home Improvement Services",
-    provider: {
-      "@type": "Organization",
-      name: "TradeScout",
-      url: publicOrigin,
-    },
-    areaServed: {
-      "@type": "Place",
-      addressRegion: location?.state || "United States",
-      addressLocality: location?.county,
-    },
+    serviceType: "Local Services",
+    areaServed:
+      location?.state || location?.county
+        ? {
+            "@type": "AdministrativeArea",
+            name: [location?.county, location?.state].filter(Boolean).join(", "),
+          }
+        : undefined,
     hasOfferCatalog: {
       "@type": "OfferCatalog",
-      name: "Home Improvement Services",
-      itemListElement: services.map((service, index) => ({
+      name: "Published local services",
+      itemListElement: services.map((service) => ({
         "@type": "Offer",
         itemOffered: {
           "@type": "Service",
           name: service,
-          serviceType: "Home Improvement",
-        },
-        priceSpecification: {
-          "@type": "PriceSpecification",
-          priceCurrency: "USD",
-          price: "0",
-          description: "Free quotes available",
         },
       })),
     },

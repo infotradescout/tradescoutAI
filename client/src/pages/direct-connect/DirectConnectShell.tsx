@@ -923,7 +923,7 @@ const DIRECT_CONNECT_STRUCTURED_DATA = {
       description:
         "Local request flow that lets members post what they need, review replies, and reach out without the usual spam.",
       category: "Local provider request platform",
-      areaServed: "United States",
+      provider: "TradeScout",
     }),
     createBreadcrumbStructuredData([
       { name: "TradeScout", url: "/" },

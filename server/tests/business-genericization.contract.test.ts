@@ -290,9 +290,10 @@ describe("generic business profile and tool contracts", () => {
     const privacy = read("client/src/pages/legal/privacy-policy.tsx");
 
     expect(seoHelmet).toContain("local businesses, direct connect, exchange");
-    expect(seoHelmet).toContain("verified local businesses");
-    expect(seoHelmet).toContain("Find local businesses");
-    expect(seoHelmet).toContain("Local Business Services");
+    expect(seoHelmet).toContain("published business profiles");
+    expect(seoHelmet).not.toContain("verified local businesses");
+    expect(seoHelmet).not.toContain("+1-800-TRADESCOUT");
+    expect(seoHelmet).not.toContain('service.provider || "TradeScout"');
     expect(pageHead).toContain("local businesses, direct connect, exchange");
     expect(footer).toContain('href="/direct-connect"');
     expect(footer).toContain("Find Local Help");

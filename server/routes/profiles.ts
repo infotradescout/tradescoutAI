@@ -185,7 +185,6 @@ const CORE_STATIC_PATHS = [
   "/datasets/cities",
   "/affiliate",
   "/vehicle-marketplace",
-  "/homescout-listings",
   "/handmade-marketplace",
 ];
 
@@ -1394,10 +1393,7 @@ async function getPublicProfileContractorBinding(
         or(
           eq(contractors.userId, normalizedOwnerUserId),
           and(
-            eq(
-              contractors.id,
-              JW_STONE_RECOMMENDATION_COMPATIBILITY.contractorId
-            ),
+            eq(contractors.id, JW_STONE_RECOMMENDATION_COMPATIBILITY.contractorId),
             isNull(contractors.userId),
             eq(contractors.isActive, false),
             eq(contractors.verifiedLicensed, false),

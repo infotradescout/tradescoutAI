@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { formatTradeScoutTitle, TRADESCOUT_BRAND_NAME } from "@shared/brand";
+import { canonicalPublicOrigin } from "@/lib/canonicalPublicOrigin";
 
 interface SEOHelmetProps {
   title?: string;
@@ -181,7 +182,7 @@ function resolveAssetUrl(assetPath: string, baseUrl: string) {
 }
 
 function getCanonicalOrigin() {
-  return normalizePublicUrl(window.location.origin);
+  return canonicalPublicOrigin(typeof window === "undefined" ? undefined : window.location.origin);
 }
 
 function updateStructuredData(data: Record<string, any>) {
@@ -207,18 +208,8 @@ export const createWebsiteStructuredData = () => ({
   "@type": "WebSite",
   name: "TradeScout",
   description:
-    "Scout, TradeScout's local search and summary surface, connects people with verified local businesses, Exchange items, community context, and guided local action.",
+    "Scout is TradeScout's local discovery surface for published business profiles, Exchange items, community context, and guided local action.",
   url: getCanonicalOrigin(),
-  potentialAction: {
-    "@type": "SearchAction",
-    target: `${getCanonicalOrigin()}/direct-connect?search={search_term_string}`,
-    "query-input": "required name=search_term_string",
-  },
-  sameAs: [
-    "https://facebook.com/tradescout",
-    "https://twitter.com/tradescout",
-    "https://linkedin.com/company/tradescout",
-  ],
 });
 
 export const createFAQStructuredData = (faqs: Array<{ question: string; answer: string }>) => ({
@@ -239,38 +230,10 @@ export const createOrganizationStructuredData = () => ({
   "@type": "Organization",
   name: "TradeScout",
   description:
-    "Platform connecting residents, businesses, organizations, sellers, and local providers",
+    "Local discovery and coordination platform for people, businesses, organizations, and sellers.",
   url: getCanonicalOrigin(),
   logo: `${getCanonicalOrigin()}/icon-512.png?v=10`,
   image: `${getCanonicalOrigin()}/icon-512.png?v=10`,
-  address: {
-    "@type": "PostalAddress",
-    addressCountry: "US",
-  },
-  contactPoint: {
-    "@type": "ContactPoint",
-    telephone: "+1-800-TRADESCOUT",
-    contactType: "customer service",
-    availableLanguage: ["English"],
-  },
-  potentialAction: [
-    {
-      "@type": "SearchAction",
-      target: `${getCanonicalOrigin()}/direct-connect?search={search_term_string}`,
-      "query-input": "required name=search_term_string",
-      description: "Find local businesses",
-    },
-    {
-      "@type": "InteractAction",
-      target: `${getCanonicalOrigin()}/scout`,
-      description: "Start a protected request",
-    },
-  ],
-  sameAs: [
-    "https://facebook.com/tradescout",
-    "https://twitter.com/tradescout",
-    "https://linkedin.com/company/tradescout",
-  ],
 });
 
 export const createServiceStructuredData = (service: {
@@ -279,32 +242,26 @@ export const createServiceStructuredData = (service: {
   category: string;
   areaServed?: string;
   provider?: string;
-}) => ({
-  "@context": "https://schema.org",
-  "@type": "Service",
-  name: service.name,
-  description: service.description,
-  category: service.category,
-  provider: {
-    "@type": "Organization",
-    name: service.provider || "TradeScout",
-    url: getCanonicalOrigin(),
-  },
-  areaServed: service.areaServed || "United States",
-  hasOfferCatalog: {
-    "@type": "OfferCatalog",
-    name: "Local Business Services",
-    itemListElement: [
-      {
-        "@type": "Offer",
-        itemOffered: {
-          "@type": "Service",
-          name: "Local service requests",
-        },
-      },
-    ],
-  },
-});
+}) => {
+  const provider = service.provider?.trim();
+  const areaServed = service.areaServed?.trim();
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: service.name,
+    description: service.description,
+    category: service.category,
+    provider: provider
+      ? {
+          "@type": "Organization",
+          name: provider,
+          url: provider === "TradeScout" ? getCanonicalOrigin() : undefined,
+        }
+      : undefined,
+    areaServed: areaServed || undefined,
+  };
+};
 
 export const createContractorStructuredData = (contractor: {
   id: string;
@@ -335,21 +292,8 @@ export const createContractorStructuredData = (contractor: {
     name: contractor.name,
     description: contractor.description,
     url: publicUrl,
-    priceRange: "$$",
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: contractor.location,
-      addressCountry: "US",
-    },
-    hasCredential: contractor.verified
-      ? {
-          "@type": "EducationalOccupationalCredential",
-          credentialCategory: "Professional Certification",
-          name: "Verified Local Provider",
-        }
-      : undefined,
     serviceType: contractor.trades || [],
-    areaServed: contractor.location || "Local Area",
+    areaServed: contractor.location || undefined,
   };
 };
 
@@ -374,23 +318,13 @@ export const createLocalBusinessStructuredData = (biz: {
     description: biz.description || undefined,
     url,
     category: biz.category || undefined,
-    areaServed: hasPlace ? [`${biz.countyName}, ${biz.stateCode}`] : undefined,
-    address: hasPlace
+    areaServed: hasPlace
       ? {
-          "@type": "PostalAddress",
-          addressLocality: biz.countyName || undefined,
-          addressRegion: biz.stateCode || undefined,
-          addressCountry: "US",
+          "@type": "AdministrativeArea",
+          name: `${biz.countyName}, ${biz.stateCode}`,
         }
       : undefined,
     sameAs: biz.website ? [biz.website] : undefined,
-    hasCredential: biz.verifiedLabel
-      ? {
-          "@type": "EducationalOccupationalCredential",
-          credentialCategory: "Verification",
-          name: biz.verifiedLabel,
-        }
-      : undefined,
   };
 };
 

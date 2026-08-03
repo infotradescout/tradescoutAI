@@ -27,10 +27,7 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
-import {
-  HistoricalMigrationReplayRefusedError,
-  runRuntimeMigrations,
-} from "./runtimeMigrations";
+import { HistoricalMigrationReplayRefusedError, runRuntimeMigrations } from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
@@ -80,6 +77,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import { publicDiscoveryRouteNormalization } from "./publicDiscoveryRouteNormalization";
 import { buildPublicJwStoneMarketplaceHtml } from "./publicJwStoneMarketplaceHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
@@ -1631,6 +1629,8 @@ app.use(landingContractHeaders);
                 }
               );
 
+              app.use(publicDiscoveryRouteNormalization);
+
               // 2) Serve other static files (index.html, icons, etc.)
               app.use(
                 express.static(publicDistPath, {
@@ -1662,10 +1662,7 @@ app.use(landingContractHeaders);
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering JW Stone marketplace HTML:", err);
-                  return sendPublicPageRenderFailure(
-                    res,
-                    "Failed to render JW Stone marketplace"
-                  );
+                  return sendPublicPageRenderFailure(res, "Failed to render JW Stone marketplace");
                 }
               });
 

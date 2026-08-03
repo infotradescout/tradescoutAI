@@ -113,7 +113,17 @@ describe("Scout surface doctrine scan", () => {
     const violations: Array<{ file: string; phrase: string }> = [];
 
     for (const file of files) {
-      const source = fs.readFileSync(path.resolve(ROOT, file), "utf8");
+      let source: string;
+      try {
+        source = fs.readFileSync(path.resolve(ROOT, file), "utf8");
+      } catch (error) {
+        // Other audit contracts create and remove adversarial fixtures in these
+        // trees. Vitest runs files in parallel, so a fixture can disappear
+        // between this scan's directory walk and read without representing a
+        // persistent runtime source. Preserve fail-closed behavior otherwise.
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
+      }
       for (const banned of BANNED_PATTERNS) {
         if (banned.regex.test(source)) {
           violations.push({ file, phrase: banned.label });

@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
@@ -41,14 +41,14 @@ describeWithDb("outcome onboarding integration (no mocks)", () => {
 
     expect(persisted?.onboardingCompleted).toBe(true);
     expect(persisted?.preferences).toMatchObject({
-      outcomeOnboarding: {
+      onboardingOutcome: {
         kind: "express_result",
         resultRoute: "/scout?source=onboarding_result",
       },
     });
   });
 
-  it("atomically creates and activates one canonical business profile", async () => {
+  it("serializes concurrent completion into one canonical active business profile", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
       onboardingCompleted: false,
@@ -56,7 +56,7 @@ describeWithDb("outcome onboarding integration (no mocks)", () => {
     const unique = crypto.randomUUID();
     const businessName = `Outcome Proof ${unique}`;
 
-    const response = await agent.post("/api/onboarding/complete").send({
+    const payload = {
       kind: "business_profile",
       goal: "Publish my local service business",
       business: {
@@ -64,32 +64,53 @@ describeWithDb("outcome onboarding integration (no mocks)", () => {
         notes: "A local repair service created by the onboarding integration gate.",
         services: ["Repair coordination"],
       },
-    });
+    };
 
-    expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({
-      success: true,
-      result: {
-        kind: "business_profile",
-        profile: {
-          saved: true,
-          published: true,
-          discovery: "verification_gated",
+    const responses = await Promise.all([
+      agent.post("/api/onboarding/complete").send(payload),
+      agent.post("/api/onboarding/complete").send(payload),
+    ]);
+
+    for (const response of responses) {
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        success: true,
+        result: {
+          kind: "business_profile",
+          profile: {
+            saved: true,
+            published: true,
+            discovery: "verification_gated",
+          },
         },
-      },
-    });
+      });
+    }
 
-    const businessId = String(response.body?.result?.profile?.businessId || "");
-    const profileId = String(response.body?.result?.profile?.id || "");
+    const businessIds = responses.map((response) =>
+      String(response.body?.result?.profile?.businessId || "")
+    );
+    const profileIds = responses.map((response) =>
+      String(response.body?.result?.profile?.id || "")
+    );
+    expect(new Set(businessIds).size).toBe(1);
+    expect(new Set(profileIds).size).toBe(1);
+    const [businessId] = businessIds;
+    const [profileId] = profileIds;
     expect(businessId).not.toBe("");
     expect(profileId).not.toBe("");
 
-    const [business] = await db
+    const matchingBusinesses = await db
       .select()
       .from(businesses)
-      .where(eq(businesses.id, businessId))
-      .limit(1);
-    const [profile] = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
+      .where(and(eq(businesses.ownerUserId, String(user.id)), eq(businesses.name, businessName)));
+    const matchingProfiles = await db
+      .select()
+      .from(profiles)
+      .where(and(eq(profiles.ownerUserId, String(user.id)), eq(profiles.businessId, businessId)));
+    expect(matchingBusinesses).toHaveLength(1);
+    expect(matchingProfiles).toHaveLength(1);
+    const [business] = matchingBusinesses;
+    const [profile] = matchingProfiles;
     const [persistedUser] = await db
       .select({
         activeBusinessId: users.activeBusinessId,
