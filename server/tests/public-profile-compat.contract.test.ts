@@ -105,7 +105,11 @@ describe("public profile compatibility contracts", () => {
     expect(contractorProfile).toContain("canonicalBusinessProfileUrl?: string | null");
     expect(contractorProfile).toContain("setLocation(canonicalUrl)");
     expect(contractorProfile).toContain("Back to Find Local Help");
-    expect(contractorProfile).toContain("Verified Local Provider");
+    expect(contractorProfile).toContain("Local Provider | TradeScout");
+    expect(contractorProfile).not.toContain("Verified Local Provider");
+    expect(contractorProfile).not.toContain('addressCountry: "US"');
+    expect(contractorProfile).not.toContain('areaServed: "Local Area"');
+    expect(contractorProfile).not.toContain("verified provider");
     expect(contractorProfile).not.toContain("Contact stays gated through TradeScout");
     expect(contractorProfile).not.toContain("Back to Find Contractors");
     expect(contractorProfile).not.toContain("Verified Local Contractor");

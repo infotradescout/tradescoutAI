@@ -163,9 +163,7 @@ export default function ContractorProfile() {
             description: profileDescription,
             url: profileCanonical,
             image: projectPhotos[0]?.imageUrl,
-            address: { "@type": "PostalAddress", addressCountry: "US" },
             serviceType: "Local Services",
-            areaServed: "Local Area",
           },
           {
             "@type": "ImageObject",
@@ -183,16 +181,11 @@ export default function ContractorProfile() {
         description: profileDescription,
         url: profileCanonical,
         image: projectPhotos[0]?.imageUrl,
-        address: {
-          "@type": "PostalAddress",
-          addressCountry: "US",
-        },
         serviceType: "Local Services",
-        areaServed: "Local Area",
       };
 
   const seoTitle =
-    photoShareMeta?.title || `${contractor.companyName} - Verified Local Provider | TradeScout`;
+    photoShareMeta?.title || `${contractor.companyName} - Local Provider | TradeScout`;
   const seoDescription = photoShareMeta?.description || profileDescription;
   const seoImage = photoShareMeta?.imageUrl || projectPhotos[0]?.imageUrl;
   const seoCanonical = photoShareMeta?.canonical || profileCanonical;
@@ -203,7 +196,7 @@ export default function ContractorProfile() {
       <SEOHelmet
         title={seoTitle}
         description={seoDescription}
-        keywords={`${contractor.companyName}, local provider, local business, verified provider, TradeScout Direct Connect`}
+        keywords={`${contractor.companyName}, local provider, local business, TradeScout Direct Connect`}
         canonical={seoCanonical}
         ogType={photoShareMeta ? "article" : "profile"}
         ogImage={seoImage}

@@ -96,10 +96,6 @@ function buildStructuredData(args: {
     url: args.profileCanonical,
     image: args.firstPhotoUrl || undefined,
     sameAs: args.contractor.website ? [args.contractor.website] : undefined,
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "US",
-    },
   };
 
   if (!args.itemShare) return { "@context": "https://schema.org", ...localBusiness };
@@ -139,7 +135,7 @@ export function renderPublicContractorProfileHtml(args: {
   const firstPhotoUrl = resolvePublicImageUrl(firstPhoto?.imageUrl, args.origin);
   const description = itemShare?.description || composeProfileDescription(args.contractor);
   const title = formatTradeScoutTitle(
-    itemShare?.title || `${args.contractor.companyName} - Verified Local Provider`
+    itemShare?.title || `${args.contractor.companyName} - Local Provider`
   );
   const canonical = itemShare?.canonical || profileCanonical;
   const imageUrl =

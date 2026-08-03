@@ -59,6 +59,13 @@ const contractor = {
   isActive: true,
 };
 
+function readJsonLd(html: string) {
+  const match = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/);
+  expect(match).not.toBeNull();
+  if (!match) throw new Error("Expected JSON-LD");
+  return JSON.parse(match[1]);
+}
+
 describe("public contractor profile HTML", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -89,11 +96,43 @@ describe("public contractor profile HTML", () => {
     );
     expect(result.html).toContain('name="twitter:card" content="summary_large_image"');
     expect(result.html).toContain('"@type":"ImageObject"');
+    const jsonLd = readJsonLd(result.html);
+    const localBusiness = jsonLd["@graph"][0];
+    expect(localBusiness.address).toBeUndefined();
+    expect(localBusiness.areaServed).toBeUndefined();
+    expect(localBusiness.priceRange).toBeUndefined();
+    expect(localBusiness.hasCredential).toBeUndefined();
     expect(result.html).toContain('content="contractor-photo"');
     expect(result.html).not.toContain('property="og:image:width"');
     expect(result.html).not.toContain("private-owner-id");
     expect(result.html).not.toContain("private@example.com");
     expect(result.html).not.toContain("/private/insurance.pdf");
+  });
+
+  it("uses only source-backed facts in base-profile crawler metadata", async () => {
+    const result = await buildPublicContractorProfileHtml({
+      slug: contractor.slug,
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(result?.kind).toBe("html");
+    if (!result || result.kind !== "html") throw new Error("Expected rendered HTML");
+    const jsonLd = readJsonLd(result.html);
+    expect(jsonLd).toMatchObject({
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      name: "River City Masonry",
+      url: "https://www.thetradescout.com/contractors/river-city-masonry",
+      image: "https://www.thetradescout.com/uploads/contractors/blue-stone-patio.webp",
+      sameAs: ["https://rivercity.example"],
+    });
+    expect(jsonLd.address).toBeUndefined();
+    expect(jsonLd.areaServed).toBeUndefined();
+    expect(jsonLd.priceRange).toBeUndefined();
+    expect(jsonLd.hasCredential).toBeUndefined();
+    expect(result.html).toContain("River City Masonry - Local Provider | TradeScout");
+    expect(result.html).not.toContain("Verified Local Provider");
   });
 
   it("redirects only the base legacy profile to a richer public business profile", async () => {
