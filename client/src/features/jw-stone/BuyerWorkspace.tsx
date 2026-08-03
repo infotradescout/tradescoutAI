@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import {
   JW_STONE_CATALOG,
@@ -68,7 +68,6 @@ export function BuyerWorkspace({
   catalog = JW_STONE_CATALOG,
 }: BuyerWorkspaceProps) {
   const [query, setQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(state.buyer === "designer" ? 12 : 18);
   const copy = WORKSPACE_COPY[state.buyer];
   const color = COLOR_DIRECTIONS.find((direction) => direction.id === state.color)!;
 
@@ -103,11 +102,6 @@ export function BuyerWorkspace({
     );
   }, [catalog, query, state.color, state.finish, state.material, state.origin]);
 
-  useEffect(() => {
-    setVisibleCount(state.buyer === "designer" ? 12 : 18);
-  }, [query, state.buyer, state.color, state.finish, state.material, state.origin]);
-
-  const visible = filtered.slice(0, visibleCount);
   const gridClass =
     state.buyer === "fabricator"
       ? "sm:grid-cols-2 xl:grid-cols-3"
@@ -194,7 +188,7 @@ export function BuyerWorkspace({
                   origin: state.origin,
                 })
               }
-              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm outline-none focus:border-stone-800"
+              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
             >
               <option value="">All materials</option>
               {materialOptions.map((option) => (
@@ -221,7 +215,7 @@ export function BuyerWorkspace({
                   origin: state.origin,
                 })
               }
-              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm outline-none focus:border-stone-800"
+              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
             >
               <option value="">All verified finishes</option>
               {finishOptions.map((option) => (
@@ -249,7 +243,7 @@ export function BuyerWorkspace({
                     origin: event.target.value || null,
                   })
                 }
-                className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm outline-none focus:border-stone-800"
+                className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
               >
                 <option value="">All verified origins</option>
                 {originOptions.map((option) => (
@@ -316,9 +310,9 @@ export function BuyerWorkspace({
             </div>
           ) : null}
 
-          {visible.length ? (
+          {filtered.length ? (
             <ul className={`grid gap-6 lg:gap-8 ${gridClass}`}>
-              {visible.map((stone, index) => (
+              {filtered.map((stone, index) => (
                 <li
                   key={stone.id}
                   className={
@@ -354,18 +348,6 @@ export function BuyerWorkspace({
               </button>
             </div>
           )}
-
-          {visibleCount < filtered.length ? (
-            <div className="mt-12 text-center">
-              <button
-                type="button"
-                onClick={() => setVisibleCount((count) => count + 18)}
-                className="min-h-12 border border-stone-500 bg-white px-8 font-bold hover:bg-stone-950 hover:text-white"
-              >
-                Show more stones
-              </button>
-            </div>
-          ) : null}
         </div>
       </section>
     </main>

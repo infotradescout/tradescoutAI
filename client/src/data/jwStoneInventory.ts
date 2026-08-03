@@ -1,3 +1,14 @@
+import {
+  resolveJwStoneInventoryNamePresentation,
+  type JwStoneInventoryNameStatus,
+} from "@shared/jwStonePresentation";
+import generatedInventory from "./jwStoneInventory.generated.json";
+import imageFinishByDriveId from "./jwStoneImageFinishes.generated.json";
+import {
+  reconcileJwStoneGeneratedInventory,
+  type GeneratedJwStoneRecord,
+} from "./reconcileJwStoneInventory";
+
 export type JwStoneMaterialStatus =
   | "user_confirmed"
   | "source_folder"
@@ -66,6 +77,7 @@ const FILENAME_CONFIRMED = new Set(["calacatta-vaguili"]);
 
 const EXPLICIT_FINISHES: Record<string, string[]> = {
   "bianco-palomino": ["Polished"],
+  "bianco-superiory": ["Leathered", "Brushed"],
   "blue-dunes": ["Polished"],
   calacatta: ["Polished"],
   cristallo: ["Polished", "Honed"],
@@ -92,7 +104,11 @@ function materialStatus(slug: string, category: string): JwStoneMaterialStatus {
   return "source_folder";
 }
 
-const stones = generatedInventory.map(
+const reconciledInventory = reconcileJwStoneGeneratedInventory(
+  generatedInventory as GeneratedJwStoneRecord[]
+);
+
+const stones = reconciledInventory.map(
   (
     generated
   ): JwStoneInventoryStone & {
@@ -102,7 +118,7 @@ const stones = generatedInventory.map(
       generated;
     const namePresentation = resolveJwStoneInventoryNamePresentation({ name, slug });
     const status = materialStatus(slug, categorySlug);
-    const finishes = EXPLICIT_FINISHES[slug];
+    const finishes = EXPLICIT_FINISHES[slug] ?? generated.finishes;
     const imageFinishes = sourceFileIds?.map(
       (fileId: string) => (imageFinishByDriveId as Record<string, string[]>)[fileId]
     );
@@ -150,9 +166,3 @@ export const JW_STONE_INVENTORY_SUMMARY = {
     .length,
   needsFinishConfirmation: stones.filter((stone) => stone.finishStatus === "unconfirmed").length,
 };
-import generatedInventory from "./jwStoneInventory.generated.json";
-import imageFinishByDriveId from "./jwStoneImageFinishes.generated.json";
-import {
-  resolveJwStoneInventoryNamePresentation,
-  type JwStoneInventoryNameStatus,
-} from "@shared/jwStonePresentation";

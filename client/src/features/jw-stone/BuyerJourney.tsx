@@ -1,6 +1,7 @@
 import { Building2, Hammer, Home, Palette, RotateCcw } from "lucide-react";
 import { JW_STONE_CATALOG } from "./catalog";
 import { COLOR_DIRECTIONS } from "./colorDirections";
+import { FirstCutSection } from "./FirstCutSection";
 import type { BuyerType, ColorDirectionId } from "./types";
 
 const BUYERS: ReadonlyArray<{
@@ -142,9 +143,9 @@ export function BuyerJourney({
         <img
           src="/images/businesses/jw-stone/video/hero-poster.jpg"
           alt="Natural stone presented by JW Stone"
-          className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/70 to-black/10" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/55 via-black/15 to-transparent" />
         <div className="mx-auto flex min-h-[78vh] max-w-7xl items-end px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
           <div className="max-w-4xl">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-200">
@@ -169,6 +170,8 @@ export function BuyerJourney({
           </div>
         </div>
       </section>
+
+      <FirstCutSection />
 
       <section
         id="choose-buyer"
