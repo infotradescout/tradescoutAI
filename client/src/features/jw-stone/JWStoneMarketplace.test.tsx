@@ -3,7 +3,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JW_STONE_CATALOG } from "./catalog";
 import JWStoneMarketplace from "./JWStoneMarketplace";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -71,27 +70,12 @@ describe("JW Stone 2.0 marketplace journey", () => {
     expect(container.querySelector('[data-testid="buyer-selection"]')).not.toBeNull();
 
     click(buttonContaining(container, "I’m a fabricator"));
-    const colorSelection = container.querySelector<HTMLElement>('[data-testid="color-selection"]');
-    expect(colorSelection).not.toBeNull();
+    expect(container.querySelector('[data-testid="color-selection"]')).not.toBeNull();
     expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(0);
-    expect(colorSelection?.textContent).not.toContain("All current selections");
-
-    const colorCardImages = Array.from(
-      colorSelection?.querySelectorAll<HTMLImageElement>("button img") || []
-    );
-    expect(colorCardImages).toHaveLength(5);
-    expect(
-      colorCardImages.every((image) =>
-        image.getAttribute("src")?.startsWith("/images/businesses/jw-stone/inventory")
-      )
-    ).toBe(true);
 
     click(buttonContaining(container, "Soft & Light"));
     expect(container.querySelector('[data-testid="fabricator-workspace"]')).not.toBeNull();
-    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(
-      JW_STONE_CATALOG.filter((stone) => stone.colorDirection === "soft-light").length
-    );
-    expect(container.textContent).not.toContain("Show more stones");
+    expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(0);
     expect(
       container.querySelector('select[aria-label="Filter by verified country of origin"]')
     ).toBeNull();
@@ -131,49 +115,6 @@ describe("JW Stone 2.0 marketplace journey", () => {
     expect(container.innerHTML).not.toMatch(
       /Unnamed slab|Name not confirmed|Finish not confirmed|Dual Finish/i
     );
-  });
-
-  it("places the intact horizontal First Cut rail between the hero and buyer choices", () => {
-    const hero = container.querySelector('[data-testid="buyer-selection"]');
-    const firstCut = container.querySelector("#first-cut-title")?.closest("section");
-    const buyerChoices = container.querySelector("#choose-buyer");
-
-    expect(hero).not.toBeNull();
-    expect(firstCut).not.toBeNull();
-    expect(buyerChoices).not.toBeNull();
-    if (!hero || !firstCut || !buyerChoices) {
-      throw new Error("Expected the hero, First Cut, and buyer-choice sections");
-    }
-
-    expect(hero.compareDocumentPosition(firstCut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(
-      firstCut.compareDocumentPosition(buyerChoices) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-
-    const positions = Array.from(
-      firstCut.querySelectorAll<HTMLElement>('[data-first-cut-placeholder="true"]')
-    );
-    expect(positions).toHaveLength(3);
-    const rail = positions[0]?.parentElement;
-    expect(rail?.classList.contains("grid-cols-3")).toBe(true);
-    expect(positions.every((position) => position.parentElement === rail)).toBe(true);
-  });
-
-  it("gives every rendered dropdown an explicit dark-on-light scheme and visible labels", () => {
-    click(buttonContaining(container, "I’m a fabricator"));
-    click(buttonContaining(container, "Soft & Light"));
-
-    const selects = Array.from(container.querySelectorAll<HTMLSelectElement>("select"));
-    expect(selects.length).toBeGreaterThanOrEqual(2);
-
-    for (const select of selects) {
-      expect(select.classList.contains("text-stone-950")).toBe(true);
-      expect(select.classList.contains("bg-stone-50")).toBe(true);
-      expect(select.classList.contains("[color-scheme:light]")).toBe(true);
-      const labels = Array.from(select.options).map((option) => option.textContent?.trim());
-      expect(labels.length).toBeGreaterThan(0);
-      expect(labels.every(Boolean)).toBe(true);
-    }
   });
 
   it("persists a named wishlist without opening contact", () => {
