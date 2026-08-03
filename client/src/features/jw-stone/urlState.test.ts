@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JW_STONE_CATALOG } from "./catalog";
+import { JW_STONE_ANONYMOUS_CATALOG, JW_STONE_CATALOG } from "./catalog";
 import {
   parseMarketplaceUrlState,
   serializeMarketplaceUrlState,
@@ -8,26 +8,26 @@ import {
 import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 
 describe("JW Stone shareable marketplace URL state", () => {
-  it("requires buyer before color and color before all discovery state", () => {
+  it("restores buyer, color, filters, and named detail without a staged dependency", () => {
     expect(
       parseMarketplaceUrlState("?color=warm-earthy&material=quartzite&finish=honed&stone=cristallo")
     ).toEqual({
       buyer: null,
-      color: null,
-      material: null,
-      finish: null,
+      color: "warm-earthy",
+      material: "quartzite",
+      finish: "honed",
       origin: null,
-      stone: null,
+      stone: "cristallo",
     });
     expect(
       parseMarketplaceUrlState("?buyer=designer&material=quartzite&finish=honed&stone=cristallo")
     ).toEqual({
       buyer: "designer",
       color: null,
-      material: null,
-      finish: null,
+      material: "quartzite",
+      finish: "honed",
       origin: null,
-      stone: null,
+      stone: "cristallo",
     });
   });
 
@@ -51,16 +51,18 @@ describe("JW Stone shareable marketplace URL state", () => {
     );
   });
 
-  it("drops filter values that would render blank choices for the selected color", () => {
+  it("keeps independently valid filters and named detail even when they do not match color", () => {
     expect(
-      parseMarketplaceUrlState("?buyer=designer&color=soft-light&material=onyx&finish=flamed")
+      parseMarketplaceUrlState(
+        "?buyer=designer&color=soft-light&material=quartzite&finish=honed&stone=cristallo"
+      )
     ).toEqual({
       buyer: "designer",
       color: "soft-light",
-      material: null,
-      finish: null,
+      material: "quartzite",
+      finish: "honed",
       origin: null,
-      stone: null,
+      stone: "cristallo",
     });
   });
 
@@ -82,24 +84,33 @@ describe("JW Stone shareable marketplace URL state", () => {
     );
   });
 
-  it("drops unsupported filters, price state, mismatched details, and anonymous ids", () => {
+  it("drops only invalid values while retaining unrelated valid state", () => {
     expect(
       parseMarketplaceUrlState(
-        "?buyer=fabricator&color=cool-serene&material=fiction&finish=dual-finish&origin=guessed&price=low&stone=cristallo"
+        "?buyer=architect&color=rainbow&material=quartzite&finish=honed&origin=guessed&price=low&stone=cristallo"
       )
     ).toEqual({
-      buyer: "fabricator",
-      color: "cool-serene",
-      material: null,
+      buyer: null,
+      color: null,
+      material: "quartzite",
+      finish: "honed",
+      origin: null,
+      stone: "cristallo",
+    });
+  });
+
+  it("rejects anonymous and unknown stone ids without discarding other state", () => {
+    const anonymous = JW_STONE_ANONYMOUS_CATALOG[0]!;
+    expect(anonymous.anonymous).toBe(true);
+    expect(parseMarketplaceUrlState(`?material=quartzite&stone=${anonymous.id}`)).toEqual({
+      buyer: null,
+      color: null,
+      material: "quartzite",
       finish: null,
       origin: null,
       stone: null,
     });
-
-    expect(
-      parseMarketplaceUrlState("?buyer=homeowner&color=bold-expressive&stone=trending-selection-05")
-        .stone
-    ).toBeNull();
+    expect(parseMarketplaceUrlState("?stone=not-a-real-stone").stone).toBeNull();
   });
 
   it("accepts verified-origin state only when the supplied catalog exposes it", () => {
@@ -109,13 +120,12 @@ describe("JW Stone shareable marketplace URL state", () => {
       origin: { country: "Brazil", verified: true, source: "test source record" },
     };
     const fixtureCatalog = [fixture];
-    const query =
-      "https://www.thetradescout.com/jw-stone?buyer=designer&color=warm-earthy&origin=brazil&stone=cristallo";
+    const query = "https://www.thetradescout.com/jw-stone?origin=brazil&stone=cristallo";
 
     expect(parseMarketplaceUrlState(query).origin).toBeNull();
     expect(parseMarketplaceUrlState(query, fixtureCatalog)).toEqual({
-      buyer: "designer",
-      color: "warm-earthy",
+      buyer: null,
+      color: null,
       material: null,
       finish: null,
       origin: "brazil",
@@ -123,15 +133,22 @@ describe("JW Stone shareable marketplace URL state", () => {
     });
   });
 
-  it("recovers invalid buyer and color values at the nearest valid stage", () => {
-    expect(parseMarketplaceUrlState("?buyer=architect&color=soft-light").buyer).toBeNull();
-    expect(parseMarketplaceUrlState("?buyer=builder&color=rainbow")).toEqual({
-      buyer: "builder",
+  it("serializes safe filters and named detail without manufacturing buyer or color", () => {
+    const state: MarketplaceUrlState = {
+      buyer: null,
       color: null,
-      material: null,
-      finish: null,
+      material: "quartzite",
+      finish: "honed",
       origin: null,
-      stone: null,
-    });
+      stone: "cristallo",
+    };
+
+    expect(serializeMarketplaceUrlState(state).toString()).toBe(
+      "material=quartzite&finish=honed&stone=cristallo"
+    );
+    expect(toMarketplaceHref(state)).toBe(
+      "/jw-stone?material=quartzite&finish=honed&stone=cristallo"
+    );
+    expect(parseMarketplaceUrlState(serializeMarketplaceUrlState(state))).toEqual(state);
   });
 });

@@ -8,8 +8,8 @@
   },
   "release": {
     "id": "jw-stone-2-0-r1",
-    "version": "1.0.0",
-    "smallest_complete_loop": "A visitor opens the separate JW Stone route, chooses a buyer type and color direction, explores a truthful buyer-specific workspace, saves named stones without an account, returns to the saved selection, and deliberately starts an inquiry when ready."
+    "version": "1.1.1",
+    "smallest_complete_loop": "A visitor opens the separate JW Stone route, immediately browses and opens real supplied catalog selections under the approved Current Inventory heading without treating them as live-stock claims, optionally uses independent refinements or one compact customer-path guide with sourced knowledge and evidence-linked real items, saves named stones without an account, returns to the saved selection, and deliberately starts an inquiry when ready."
   },
   "active_build": {
     "id": "jw-stone-marketplace",
@@ -39,63 +39,63 @@
   "artifacts": [
     {
       "path": "intent-contract.md",
-      "version": "1.0.0",
-      "sha256": "5eb296c3850fcfd192d18a59944b8bbe9038de1c9f2af21a5af4aa5249a94b61"
+      "version": "1.1.1",
+      "sha256": "36d31feee88f638725b9196f16a0358eb78ae81865d9b5c2697ca89b7616bc34"
     },
     {
       "path": "scope-release.md",
-      "version": "1.0.0",
-      "sha256": "6721cb937e2c825625c2cfcb46dbdcaf354fb9e22841b5d1f0cf372f74bae270"
+      "version": "1.1.1",
+      "sha256": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9"
     },
     {
       "path": "experience-surfaces.md",
-      "version": "1.0.0",
-      "sha256": "b9e196e58af3385bbbd8c72a3f921b570910a9f43bafd400eb429e6b96ab3855"
+      "version": "1.1.1",
+      "sha256": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36"
     },
     {
       "path": "architecture-contract.md",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "sha256": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788"
     },
     {
       "path": "data-contract.md",
-      "version": "1.0.0",
-      "sha256": "2a32cf054452d732a26cfc617725ab899b53d9be5360726391ace16b51776963"
+      "version": "1.1.1",
+      "sha256": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af"
     },
     {
       "path": "api-integrations.md",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "sha256": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b"
     },
     {
       "path": "security-operations.md",
-      "version": "1.0.0",
+      "version": "1.1.1",
       "sha256": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769"
     },
     {
       "path": "delivery-map.md",
-      "version": "1.0.0",
-      "sha256": "21834e8254594aa9d45eafe575a597f1d5ea4b413105d366c5bb07c30c596228"
+      "version": "1.1.1",
+      "sha256": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c"
     },
     {
       "path": "traceability.md",
-      "version": "1.0.0",
-      "sha256": "6a8464dcde51f8c208446b2106715dc55b84035a138ef4843efee5434609f2fb"
+      "version": "1.1.1",
+      "sha256": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358"
     },
     {
       "path": "decisions-changes.md",
-      "version": "1.0.0",
-      "sha256": "68c6e0491bd5f456b097eb47c31e6ebfd8b59e40427e149946201d58b1638ec0"
+      "version": "1.1.1",
+      "sha256": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090"
     },
     {
       "path": "builds/jw-stone-marketplace/contract.md",
-      "version": "1.0.0",
-      "sha256": "33f7016cfa4df6ef0ffe2d4a4617e97b517442bb9eb472c1ea6d0f9d3afb6830"
+      "version": "1.1.1",
+      "sha256": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd"
     },
     {
       "path": "builds/jw-stone-marketplace/evidence.md",
-      "version": "1.0.0",
-      "sha256": "18cedd25bbf4ffe0de70dcef8c89de2cd46901be6e2266ff5aed4c1bf6c74069"
+      "version": "1.1.1",
+      "sha256": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
     }
   ],
   "requirements": [
@@ -121,7 +121,7 @@
     {
       "id": "JW-JOURNEY",
       "scope": "mvp",
-      "state": "usable",
+      "state": "specified",
       "depends_on": [
         "JW-ROUTE"
       ],
@@ -130,18 +130,18 @@
       ],
       "actor": "Fabricators, builders, designers, and homeowners",
       "trigger": "A visitor begins discovery on /jw-stone",
-      "behavior": "The visitor chooses buyer type first, then a visual color direction, and only then receives matching inventory with reversible choices and shareable URL state.",
-      "constraints": "Buyer, color, material, finish, verified origin, and eligible named-stone detail state restore from clean public query parameters.",
-      "negative": "Buyer selection alone never reveals the generic inventory grid, and URLs never expose price values or anonymous internal identifiers.",
+      "behavior": "The visitor sees First Cut and real supplied catalog selections under the approved Current Inventory heading immediately, can open a stone in one click, and may independently choose a customer path, visual color direction, material, finish, search term, verified origin, or eligible named-stone detail through reversible shareable state.",
+      "constraints": "Customer path and every refinement are optional and restore independently from clean public query parameters; invalid values do not discard unrelated valid state.",
+      "negative": "No customer-path or color choice may gate inventory, replace the page, start a questionnaire, manufacture another choice, open contact, or expose price values or anonymous internal identifiers.",
       "unchanged": "Existing profile discovery and search behavior outside /jw-stone remains unchanged.",
-      "acceptance": "Tests prove strict buyer-to-color gating, URL round trips, invalid-state recovery, and the ability to change either choice without restarting.",
+      "acceptance": "Tests prove initial inventory, one-click detail access, independent URL round trips, invalid-state recovery, and optional refinements without a staged dependency.",
       "owner": "jw-stone-marketplace-state",
       "proof": "State parser unit tests, component journey tests, and desktop/mobile browser journeys."
     },
     {
-      "id": "JW-WORKSPACES",
+      "id": "JW-GUIDANCE",
       "scope": "mvp",
-      "state": "usable",
+      "state": "specified",
       "depends_on": [
         "JW-JOURNEY",
         "JW-INVENTORY"
@@ -149,13 +149,13 @@
       "owners": [
         "jw-stone-marketplace-ui"
       ],
-      "actor": "A visitor who completed buyer and color selection",
-      "trigger": "Matching results become available",
-      "behavior": "Fabricators receive a specification desk, builders a project room, designers an editorial selection board, and homeowners a plain-language stone finder.",
-      "constraints": "Each workspace has materially different hierarchy, language, density, and buyer-relevant verified facts while using the same canonical catalog truth.",
-      "negative": "The four paths cannot be one product grid with renamed headings and cannot invent buyer services, suitability, reservations, ordering, or material facts.",
-      "unchanged": "Canonical inventory identity and optional Direct Connect boundaries are identical across workspaces.",
-      "acceptance": "Focused tests and four browser captures show distinct structures and truthful field selection for all buyer types.",
+      "actor": "A Fabricator, Builder & Developer, Architect & Designer, or Homeowner who wants targeted help",
+      "trigger": "The visitor clicks one compact customer-path control",
+      "behavior": "One in-place panel reveals concise source-attributed decision support and a compact rail of validated named JW stones selected by an explicit evidence-safe reason.",
+      "constraints": "Guidance uses the exact sources and item rules in data-contract.md; recommended slugs are named, reviewed, catalog-valid, and capped at six; each rail and item shows its factual reason; the closed selector is one toolbar row and the complete expanded guide stays under 520 rendered pixels at 1440 and 390 widths; the complete storefront and its ordering remain present.",
+      "negative": "A path cannot become a product, workspace, questionnaire, filter, page replacement, contact action, audience-specific catalog, or claim of suitability, popularity, live availability, future supply, origin, performance, or preference.",
+      "unchanged": "Canonical inventory identity, shared cards, galleries, wishlist, filters, and optional Direct Connect boundaries are identical across customer paths.",
+      "acceptance": "Focused tests and four browser captures prove exact source links, no more than three knowledge points, no more than six validated named stones, visible evidence reasons, a sub-520-pixel guide with no viewport/min-height styling, no second choice, and an unchanged ordered collection ID list before and after every path click.",
       "owner": "jw-stone-marketplace-ui",
       "proof": "Workspace contract tests, DOM structure assertions, source review, and visual evidence for each buyer."
     },
@@ -243,18 +243,18 @@
     {
       "id": "JW-CARDS",
       "scope": "mvp",
-      "state": "usable",
+      "state": "specified",
       "depends_on": [
-        "JW-WORKSPACES",
+        "JW-GUIDANCE",
         "JW-WISHLIST",
         "JW-ORIGIN"
       ],
       "owners": [
         "jw-stone-marketplace-ui"
       ],
-      "actor": "A visitor reviewing matching inventory",
-      "trigger": "A named or anonymous inventory presentation enters a workspace",
-      "behavior": "Image-led cards and details expose only buyer-relevant verified facts, safe save eligibility, voluntary inquiry, and an accessible full gallery.",
+      "actor": "A visitor reviewing the shared inventory",
+      "trigger": "A named or anonymous inventory presentation enters the collection or a named stone enters a recommendation rail",
+      "behavior": "Stable image-led cards and details expose only verified facts, safe save eligibility, voluntary inquiry, and an accessible full gallery; customer paths do not relabel or restructure them.",
       "constraints": "Named stones support stable detail sharing and saving; anonymous presentations use only Call for availability where identity is needed and cannot be saved under an internal name.",
       "negative": "No public price, unsupported availability, synthetic identity, mouse-only gallery, incorrect image orientation, or forced contact may appear.",
       "unchanged": "Source image order and canonical inventory identities remain unchanged.",
@@ -286,7 +286,7 @@
     {
       "id": "JW-A11Y",
       "scope": "mandatory",
-      "state": "usable",
+      "state": "specified",
       "depends_on": [
         "JW-JOURNEY",
         "JW-CARDS"
@@ -295,8 +295,8 @@
         "jw-stone-marketplace-ui"
       ],
       "actor": "Keyboard, touch, reduced-motion, and small-screen visitors",
-      "trigger": "The visitor navigates any marketplace stage or overlay",
-      "behavior": "Every control has semantic purpose and visible focus, dialogs remain escapable, galleries support keyboard and touch, filters work at mobile width, and motion respects user preference.",
+      "trigger": "The visitor navigates the compact guidance, collection, refinements, or an overlay",
+      "behavior": "Every control has semantic purpose and visible focus, the audience guide remains compact and operable, dialogs remain escapable, galleries support keyboard and touch, filters work at mobile width, and motion respects user preference.",
       "constraints": "The layout is usable near 1440-pixel desktop and 390-pixel mobile widths with adequate image-text contrast and no horizontal overflow.",
       "negative": "No trapped dialog, hidden focus, inaccessible save state, contrast-dependent instruction, hydration warning, or console error is accepted.",
       "unchanged": "Global accessibility and design-system behavior outside the standalone route remain unchanged.",
@@ -307,7 +307,7 @@
     {
       "id": "JW-SEO",
       "scope": "mandatory",
-      "state": "verified",
+      "state": "specified",
       "depends_on": [
         "JW-ROUTE",
         "JW-INVENTORY",
@@ -329,7 +329,7 @@
     {
       "id": "JW-PROTECT",
       "scope": "mandatory",
-      "state": "usable",
+      "state": "specified",
       "depends_on": [
         "JW-ROUTE",
         "JW-INVENTORY",
@@ -356,12 +356,12 @@
     {
       "id": "jw-stone-marketplace",
       "status": "interrupted",
-      "base_revision": "999481b602c2f99499c69a0c90b3840d4af0a158",
-      "lock_version": "1.0.0",
+      "base_revision": "10cbc151c6952904cdd32a5d6205fee890614d9a",
+      "lock_version": "1.1.1",
       "requirements": [
         "JW-ROUTE",
         "JW-JOURNEY",
-        "JW-WORKSPACES",
+        "JW-GUIDANCE",
         "JW-INVENTORY",
         "JW-FIRST-CUT",
         "JW-ORIGIN",
@@ -390,9 +390,9 @@
   "external_facts": [
     {
       "id": "JW-CATALOG-BASELINE",
-      "claim": "The canonical repository projection contains 119 JW inventory presentations: 109 source-named stones and 10 synthetic Trending Selection groups, with no explicit verified country-of-origin field populated.",
-      "source": "client/src/data/jwStoneInventory.ts and its generated JSON source at base revision 999481b602c2f99499c69a0c90b3840d4af0a158",
-      "source_version": "999481b602c2f99499c69a0c90b3840d4af0a158",
+      "claim": "The route-local reconciled marketplace projection contains 148 JW inventory presentations and preserves all 433 supplied source photos: 110 named selections and 38 publicly anonymous presentations, with no explicit verified country-of-origin field populated.",
+      "source": "client/src/features/jw-stone/reconciledInventory.ts and the canonical JW source projection at repair tree bfebc78a7debdce611def11ae6c7bc329b452922",
+      "source_version": "bfebc78a7debdce611def11ae6c7bc329b452922",
       "applicability": "Catalog integrity, anonymous-name protection, First Cut separation, and verified-origin behavior for JW Stone 2.0 release one",
       "observed_at": "2026-08-02",
       "revalidate_on": "Whenever the canonical JW inventory module or generated inventory JSON changes"
@@ -421,11 +421,11 @@
       "authority": "Thomas's explicit no-public-price requirement"
     },
     {
-      "id": "DEC-BUYER-COLOR",
+      "id": "DEC-AUDIENCE-LENS",
       "class": "release_commitment",
       "status": "accepted",
-      "statement": "The release requires buyer selection before color direction and four materially distinct downstream buyer workspaces.",
-      "authority": "Thomas's explicit discovery journey requirement"
+      "statement": "The four customer paths are optional one-click guidance inside one always-visible storefront and change only sourced knowledge, an evidence-linked recommendation rail, and supported fact priority.",
+      "authority": "Thomas's direct August 3 correction as product owner"
     },
     {
       "id": "DEC-LOCAL-WISHLIST",
@@ -449,8 +449,91 @@
       "authority": "Repository release policy and the user's demand for truthful visual proof"
     }
   ],
-  "amendments": [],
-  "invalidated_requirements": [],
+  "amendments": [
+    {
+      "id": "AMEND-AUDIENCE-LENS",
+      "authority": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+      "reason": "The product owner explicitly corrected the staged buyer-to-color workspace interpretation: customer paths provide targeted knowledge and likely useful real items with one click; they are not the product.",
+      "created_at": "2026-08-03T12:42:42-05:00",
+      "changes": {
+        "added": [
+          "Compact one-click customer-path guidance with authoritative source attribution",
+          "Validated named-stone recommendation rails with explicit evidence-safe reasons",
+          "Immediate full-catalog browsing and one-click stone detail access",
+          "Exact protected section manifest and measurable compactness contract"
+        ],
+        "modified": [
+          "Customer path, color, material, finish, origin, search, and stone URL state are independent and optional",
+          "Customer-path selection changes only knowledge, recommendation rail, and supported fact priority"
+        ],
+        "removed": [
+          "Buyer-to-color gating and required questionnaires",
+          "Viewport-height audience and color stages",
+          "Four buyer workspaces and audience-specific replacement page structures",
+          "Any requirement to hide inventory until visitor input"
+        ],
+        "renamed": [
+          "JW-WORKSPACES is replaced by JW-GUIDANCE",
+          "Buyer role is presented publicly as an optional customer path"
+        ],
+        "unchanged": [
+          "Protected header, hero, First Cut placement, footer, and approved JW wording",
+          "Separate route and unchanged current JW profile and custom-domain renderer",
+          "Canonical truth, no-price, anonymous-identity, wishlist, deliberate Direct Connect, and draft-only release boundaries"
+        ]
+      },
+      "impacted_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "approval_evidence": "decisions-changes.md"
+    },
+    {
+      "id": "AMEND-CATALOG-SNAPSHOT-TRUTH",
+      "authority": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+      "reason": "The canonical repository proves a supplied catalog snapshot and recorded historical source evidence, not live stock, quantity, or availability; the approved Current Inventory heading remains protected wording.",
+      "created_at": "2026-08-03T12:58:31-05:00",
+      "changes": {
+        "added": [
+          "Explicit supplied-catalog versus live-availability truth boundary"
+        ],
+        "modified": [
+          "Definition prose names real supplied catalog selections while preserving the approved Current Inventory page heading"
+        ],
+        "removed": [
+          "Any implication that catalog presence or recorded source counts prove live stock, quantity, or availability"
+        ],
+        "renamed": [],
+        "unchanged": [
+          "All audience-lens behavior and acceptance",
+          "Previously approved non-product First Cut placeholders",
+          "Protected header, hero, First Cut placement, Current Inventory heading, footer, profile, wishlist, Direct Connect, and release boundaries"
+        ]
+      },
+      "impacted_requirements": [
+        "JW-JOURNEY",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "approval_evidence": "decisions-changes.md"
+    }
+  ],
+  "invalidated_requirements": [
+    "JW-JOURNEY",
+    "JW-GUIDANCE",
+    "JW-INVENTORY",
+    "JW-CARDS",
+    "JW-A11Y",
+    "JW-SEO",
+    "JW-PROTECT"
+  ],
   "risk_triggers": [
     "public_mutation"
   ],
@@ -458,14 +541,14 @@
     "required": true,
     "status": "verified",
     "evidence": "builds/jw-stone-marketplace/evidence.md",
-    "reviewer": "Independent Direct Connect contract reviewer /root/dc_contract",
-    "reviewed_at": "2026-08-02T18:00:00-05:00",
-    "scope": "Definition review of the existing scalar mutation boundary and the proposed bounded JW Stone multi-selection handoff",
-    "revision": "999481b602c2f99499c69a0c90b3840d4af0a158"
+    "reviewer": "Independent truth Objector /root/jw_knowledge_audit; audience-lens Objector /root/competitor_paths",
+    "reviewed_at": "2026-08-03T13:00:20-05:00",
+    "scope": "Verified supplied-catalog versus live-availability boundary, approved Current Inventory wording, owner-authorized non-product First Cut placeholders, and the previously verified audience-lens definition",
+    "revision": "f8a59e47d1a3e822084f1654b04298debd49b0a6"
   },
-  "sealed_at": "2026-08-02T18:38:01+00:00",
-  "semantic_digest": "aa3b49a36e19df2b643e04dd38023d6b454c22c122c0eca84b33a1ab3d9e091b",
-  "control_digest": "491b3ddcee37efe2a526a37fcd73e31eec455637d1097304b4ee1b51f9f298ed",
+  "sealed_at": "2026-08-03T18:55:32+00:00",
+  "semantic_digest": "f82fd65c2ace71cf043f52efa403d9daafa4f79e7d633467d3f49760b3a60ef4",
+  "control_digest": "e38377a81b1784e0ebad8d0b9498491261e1c4a6a5914374ed03bcd66eea3aca",
   "seal_history": [
     {
       "sealed_at": "2026-08-02T17:44:59+00:00",
@@ -677,6 +760,240 @@
         "decisions-changes.md": "68c6e0491bd5f456b097eb47c31e6ebfd8b59e40427e149946201d58b1638ec0",
         "builds/jw-stone-marketplace/contract.md": "33f7016cfa4df6ef0ffe2d4a4617e97b517442bb9eb472c1ea6d0f9d3afb6830",
         "builds/jw-stone-marketplace/evidence.md": "18cedd25bbf4ffe0de70dcef8c89de2cd46901be6e2266ff5aed4c1bf6c74069"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-03T17:57:53+00:00",
+      "amendment": "AMEND-AUDIENCE-LENS",
+      "transition": "definition",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.1.0",
+      "build_status": "interrupted",
+      "as_built_verdict": "not_aligned",
+      "invalidated_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "semantic_digest": "2c963fb14b272a4f80a4577b3fa9469e86c0e104318ff56298f0589b1a350bd7",
+      "artifact_digests": {
+        "intent-contract.md": "53b6eeee6212b4099486e9be92d24d6ea4d67ab040b622d148ceb40b4d50b81c",
+        "scope-release.md": "5d286f205bdc631bfdc5b76337e49bfaa50a8c018ac2b3fed8a6f358f2bcfffd",
+        "experience-surfaces.md": "be602caf9eb6b6cdde6adc708d08a7241ddba217ddbb3a0db6eb0b1f0b953cdd",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c",
+        "traceability.md": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358",
+        "decisions-changes.md": "13551c0dc601d577a77daaf586351b83a2b4fecaf37fe10c141a021a2b9fd836",
+        "builds/jw-stone-marketplace/contract.md": "4697f1b15105c6bed43b4b4276241bf92c81041067385824da00bad992307214",
+        "builds/jw-stone-marketplace/evidence.md": "c9c2e51ceee91d79a63e3c93c1b56680c4f8bd1c512c7dff897118ad79542f98"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-03T18:00:43+00:00",
+      "amendment": "AMEND-CATALOG-SNAPSHOT-TRUTH",
+      "transition": "definition",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.1.1",
+      "build_status": "interrupted",
+      "as_built_verdict": "not_aligned",
+      "invalidated_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "semantic_digest": "0be91e3fb6297214be6d6785e1955584e5e9e4dbc9fb676da397b4556e2f848e",
+      "artifact_digests": {
+        "intent-contract.md": "ad8cd83489c0ad40bb63886b35297e2b43a0413e3f1cd7fab761ae65effbfc82",
+        "scope-release.md": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9",
+        "experience-surfaces.md": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c",
+        "traceability.md": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358",
+        "decisions-changes.md": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090",
+        "builds/jw-stone-marketplace/contract.md": "d9824d161c61e13bfd5ee72cf7fa43dd9380102fa20d6004f414a533bddb590b",
+        "builds/jw-stone-marketplace/evidence.md": "1ad2116b9831159081040f227cd0002a842115d5950922d4417296f3cc694d7f"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-03T18:01:02+00:00",
+      "amendment": null,
+      "transition": "build",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.1.1",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_aligned",
+      "invalidated_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "semantic_digest": "0be91e3fb6297214be6d6785e1955584e5e9e4dbc9fb676da397b4556e2f848e",
+      "artifact_digests": {
+        "intent-contract.md": "ad8cd83489c0ad40bb63886b35297e2b43a0413e3f1cd7fab761ae65effbfc82",
+        "scope-release.md": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9",
+        "experience-surfaces.md": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c",
+        "traceability.md": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358",
+        "decisions-changes.md": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090",
+        "builds/jw-stone-marketplace/contract.md": "d9824d161c61e13bfd5ee72cf7fa43dd9380102fa20d6004f414a533bddb590b",
+        "builds/jw-stone-marketplace/evidence.md": "1ad2116b9831159081040f227cd0002a842115d5950922d4417296f3cc694d7f"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-03T18:54:29+00:00",
+      "amendment": "AMEND-CATALOG-SNAPSHOT-TRUTH",
+      "transition": "definition",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.1.1",
+      "build_status": "locked",
+      "as_built_verdict": "not_aligned",
+      "invalidated_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "semantic_digest": "f82fd65c2ace71cf043f52efa403d9daafa4f79e7d633467d3f49760b3a60ef4",
+      "artifact_digests": {
+        "intent-contract.md": "36d31feee88f638725b9196f16a0358eb78ae81865d9b5c2697ca89b7616bc34",
+        "scope-release.md": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9",
+        "experience-surfaces.md": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c",
+        "traceability.md": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358",
+        "decisions-changes.md": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090",
+        "builds/jw-stone-marketplace/contract.md": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd",
+        "builds/jw-stone-marketplace/evidence.md": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-03T18:54:43+00:00",
+      "amendment": null,
+      "transition": "build",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.1.1",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_aligned",
+      "invalidated_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "semantic_digest": "f82fd65c2ace71cf043f52efa403d9daafa4f79e7d633467d3f49760b3a60ef4",
+      "artifact_digests": {
+        "intent-contract.md": "36d31feee88f638725b9196f16a0358eb78ae81865d9b5c2697ca89b7616bc34",
+        "scope-release.md": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9",
+        "experience-surfaces.md": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c",
+        "traceability.md": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358",
+        "decisions-changes.md": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090",
+        "builds/jw-stone-marketplace/contract.md": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd",
+        "builds/jw-stone-marketplace/evidence.md": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-03T18:55:32+00:00",
+      "amendment": null,
+      "transition": "as-built",
+      "checkpoint": false,
+      "active_build": "jw-stone-marketplace",
+      "lock_version": "1.1.1",
+      "build_status": "interrupted",
+      "as_built_verdict": "partial",
+      "invalidated_requirements": [
+        "JW-JOURNEY",
+        "JW-GUIDANCE",
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-A11Y",
+        "JW-SEO",
+        "JW-PROTECT"
+      ],
+      "semantic_digest": "f82fd65c2ace71cf043f52efa403d9daafa4f79e7d633467d3f49760b3a60ef4",
+      "artifact_digests": {
+        "intent-contract.md": "36d31feee88f638725b9196f16a0358eb78ae81865d9b5c2697ca89b7616bc34",
+        "scope-release.md": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9",
+        "experience-surfaces.md": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36",
+        "architecture-contract.md": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788",
+        "data-contract.md": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af",
+        "api-integrations.md": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b",
+        "security-operations.md": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769",
+        "delivery-map.md": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c",
+        "traceability.md": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358",
+        "decisions-changes.md": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090",
+        "builds/jw-stone-marketplace/contract.md": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd",
+        "builds/jw-stone-marketplace/evidence.md": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
       },
       "decision_authorities": {
         "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",

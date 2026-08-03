@@ -1,89 +1,54 @@
 import { Bookmark, BookmarkCheck, Expand, MessageCircle } from "lucide-react";
-import type { BuyerType, JwStoneCatalogItem } from "./types";
+import type { JwStoneCatalogItem } from "./types";
 
 type StoneCardProps = {
   stone: JwStoneCatalogItem;
-  buyer: BuyerType;
   saved: boolean;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
   onAsk: (stone: JwStoneCatalogItem) => void;
 };
 
-function StoneFacts({ stone, buyer }: { stone: JwStoneCatalogItem; buyer: BuyerType }) {
+function StoneFacts({ stone }: { stone: JwStoneCatalogItem }) {
   const finishes = stone.finishes.length ? stone.finishes.join(" / ") : null;
 
-  if (buyer === "fabricator") {
-    return (
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-stone-300 pt-4 text-xs">
-        {stone.materialLabel ? (
-          <div>
-            <dt className="uppercase tracking-wider text-stone-500">Material</dt>
-            <dd className="mt-1 font-semibold text-stone-900">{stone.materialLabel}</dd>
-          </div>
-        ) : null}
-        {finishes ? (
-          <div>
-            <dt className="uppercase tracking-wider text-stone-500">Finish</dt>
-            <dd className="mt-1 font-semibold text-stone-900">{finishes}</dd>
-          </div>
-        ) : null}
-        {stone.sourceEvidence ? (
-          <div>
-            <dt className="uppercase tracking-wider text-stone-500">Source bundle counts</dt>
-            <dd className="mt-1 font-semibold text-stone-900">
-              {stone.sourceEvidence.counts.join(" · ")}
-            </dd>
-          </div>
-        ) : null}
-        {stone.origin ? (
-          <div>
-            <dt className="uppercase tracking-wider text-stone-500">Origin</dt>
-            <dd className="mt-1 font-semibold text-stone-900">{stone.origin.country}</dd>
-          </div>
-        ) : null}
-      </dl>
-    );
-  }
-
-  if (buyer === "builder") {
-    return (
-      <ul className="space-y-2 border-t border-stone-300 pt-4 text-sm text-stone-700">
-        {stone.materialLabel ? <li>Material · {stone.materialLabel}</li> : null}
-        {finishes ? <li>Finish · {finishes}</li> : null}
-        {stone.sourceEvidence ? (
-          <li>Source bundle counts · {stone.sourceEvidence.counts.join(" · ")}</li>
-        ) : null}
-      </ul>
-    );
-  }
-
-  if (buyer === "designer") {
-    return (
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600">
-        {stone.materialLabel ? <span>{stone.materialLabel}</span> : null}
-        {finishes ? <span>{finishes}</span> : null}
-        {stone.origin ? <span>{stone.origin.country}</span> : null}
-      </div>
-    );
-  }
-
   return (
-    <p className="text-sm leading-6 text-stone-600">
-      {[stone.materialLabel, finishes].filter(Boolean).join(" · ") ||
-        "Explore the photographs and ask JW Stone for the details that matter to your project."}
-    </p>
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-stone-300 pt-4 text-xs">
+      {stone.materialLabel ? (
+        <div>
+          <dt className="uppercase tracking-wider text-stone-500">Material</dt>
+          <dd className="mt-1 font-semibold text-stone-900">{stone.materialLabel}</dd>
+        </div>
+      ) : null}
+      {finishes ? (
+        <div>
+          <dt className="uppercase tracking-wider text-stone-500">Finish</dt>
+          <dd className="mt-1 font-semibold text-stone-900">{finishes}</dd>
+        </div>
+      ) : null}
+      {stone.sourceEvidence ? (
+        <div>
+          <dt className="uppercase tracking-wider text-stone-500">Recorded source counts</dt>
+          <dd className="mt-1 font-semibold text-stone-900">
+            {stone.sourceEvidence.counts.join(" · ")}
+          </dd>
+        </div>
+      ) : null}
+      {stone.origin ? (
+        <div>
+          <dt className="uppercase tracking-wider text-stone-500">Verified origin</dt>
+          <dd className="mt-1 font-semibold text-stone-900">{stone.origin.country}</dd>
+        </div>
+      ) : null}
+      <div>
+        <dt className="uppercase tracking-wider text-stone-500">Supplied views</dt>
+        <dd className="mt-1 font-semibold text-stone-900">{stone.images.length}</dd>
+      </div>
+    </dl>
   );
 }
 
-export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }: StoneCardProps) {
-  const imageAspect = "aspect-[16/10]";
-  const requestLabel: Record<BuyerType, string> = {
-    fabricator: "Ask about a bundle",
-    builder: "Match a development",
-    designer: "Review a specification",
-    homeowner: "Match my project",
-  };
+export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneCardProps) {
   const alt = stone.displayName
     ? `${stone.displayName} stone photograph`
     : "Stone selection photograph from JW Stone";
@@ -91,15 +56,14 @@ export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }:
   return (
     <article
       data-stone-card="true"
+      data-stone-id={stone.id}
       data-anonymous={stone.anonymous ? "true" : "false"}
-      className={`group flex h-full flex-col border border-stone-300 bg-white ${
-        buyer === "designer" ? "lg:border-0 lg:bg-transparent" : ""
-      }`}
+      className="group flex h-full flex-col border border-stone-300 bg-white"
     >
       <button
         type="button"
         onClick={() => onOpen(stone)}
-        className={`relative block w-full overflow-hidden bg-stone-200 text-left ${imageAspect}`}
+        className="relative block aspect-[16/10] w-full overflow-hidden bg-stone-200 text-left"
         aria-label={`Open ${stone.publicLabel} gallery`}
       >
         <img
@@ -113,7 +77,7 @@ export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }:
         </span>
       </button>
 
-      <div className={`flex flex-1 flex-col ${buyer === "designer" ? "p-5 lg:px-0" : "p-5"}`}>
+      <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-stone-500">
@@ -143,10 +107,10 @@ export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }:
         </div>
 
         <div className="mt-5">
-          <StoneFacts stone={stone} buyer={buyer} />
+          <StoneFacts stone={stone} />
         </div>
 
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
+        <div className={`mt-auto grid gap-2 pt-6 ${stone.wishlistEligible ? "grid-cols-2" : ""}`}>
           <button
             type="button"
             onClick={() => onOpen(stone)}
@@ -154,14 +118,16 @@ export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }:
           >
             View gallery
           </button>
-          <button
-            type="button"
-            onClick={() => onAsk(stone)}
-            className="inline-flex min-h-11 items-center justify-center gap-2 bg-stone-950 px-3 text-sm font-semibold text-white hover:bg-black"
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            {requestLabel[buyer]}
-          </button>
+          {stone.wishlistEligible ? (
+            <button
+              type="button"
+              onClick={() => onAsk(stone)}
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-stone-950 px-3 text-sm font-semibold text-white hover:bg-black"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              Ask about this stone
+            </button>
+          ) : null}
         </div>
       </div>
     </article>

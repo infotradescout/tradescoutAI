@@ -5,7 +5,7 @@
 1. Lock the separate route, canonical ownership, truth rules, and protected existing profile behavior.
 2. Build the read-only catalog projection, explicit origin contract, editorial color-direction map, URL parser, and versioned wishlist primitives with unit proof.
 3. Register standalone client and server reachability plus accurate canonical metadata and sitemap inclusion without changing profile priority.
-4. Build buyer and color selection, then the four distinct workspaces, cards, details, gallery, filters, First Cut placeholders, and wishlist interface.
+4. Render First Cut and the full catalog immediately, then build the compact sourced customer-path guide, independent optional refinements, stable cards, details, gallery, and wishlist interface.
 5. Extend Direct Connect only as needed for bounded safe named-stone selections while preserving the existing scalar path and prohibiting anonymous IDs.
 6. Reconcile focused protections, current JW and non-JW regressions, type checking, repository guards, production build, broad tests, and exact-head diff.
 7. Run desktop and mobile browser journeys, save evidence, commit, push the feature branch, and open a held draft pull request without merging or deploying.

@@ -4,13 +4,13 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { JW_STONE_NAMED_CATALOG } from "./catalog";
-import { BuyerWorkspace } from "./BuyerWorkspace";
+import { StoneCollection } from "./StoneCollection";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
-describe("JW Stone verified-origin workspace path", () => {
-  it("shows an origin filter and designer fact only for an explicit verified fixture", () => {
+describe("JW Stone verified-origin collection path", () => {
+  it("shows an origin filter and fact only for an explicit verified fixture", () => {
     const sourceStone = JW_STONE_NAMED_CATALOG[0];
     const fixtureStone = {
       ...sourceStone,
@@ -26,10 +26,10 @@ describe("JW Stone verified-origin workspace path", () => {
 
     act(() => {
       root.render(
-        <BuyerWorkspace
+        <StoneCollection
           state={{
-            buyer: "designer",
-            color: fixtureStone.colorDirection,
+            buyer: null,
+            color: null,
             material: null,
             finish: null,
             origin: null,
@@ -38,8 +38,6 @@ describe("JW Stone verified-origin workspace path", () => {
           catalog={[fixtureStone]}
           savedCount={0}
           isSaved={() => false}
-          onChangeBuyer={vi.fn()}
-          onChangeColor={vi.fn()}
           onUpdateFilters={vi.fn()}
           onToggleSaved={vi.fn()}
           onOpen={vi.fn()}

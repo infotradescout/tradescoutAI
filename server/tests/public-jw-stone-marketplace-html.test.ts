@@ -56,7 +56,7 @@ describe("JW Stone marketplace public HTML", () => {
       "@type": "CollectionPage",
       name: "JW Stone | Guided Stone Discovery",
       description:
-        "Explore JW Stone inventory by buyer and color direction, save named selections in a browser wishlist, and choose when to start a request.",
+        "Browse JW Stone's supplied stone catalog, open full photo galleries, save named selections, and use optional source-backed guidance before choosing when to start a request.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
     });
@@ -74,8 +74,9 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain("Builders");
     expect(html).toContain("Designers");
     expect(html).toContain("Homeowners");
-    expect(html).toContain("Tell JW Stone what you need");
+    expect(html).toContain("Guidance when you need it");
     expect(html).toContain("Current Inventory");
+    expect(html).toContain("do not confirm live availability");
     expect(html).toContain("Saving never starts a request");
     expect(html).not.toContain("Stone chosen around the way you see a project");
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);

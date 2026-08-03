@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "node:path";
 
+const repositoryRoot = path.resolve(import.meta.dirname, "..");
 const externalBaseURL = process.env.BASE_URL;
 const baseURL = externalBaseURL || "http://127.0.0.1:4173";
 const port = new URL(baseURL).port || "4173";
@@ -18,6 +19,7 @@ export default defineConfig({
     ? undefined
     : {
         command: "node --import tsx -r dotenv/config server/index.ts",
+        cwd: repositoryRoot,
         url: `${baseURL}/jw-stone`,
         reuseExistingServer: false,
         timeout: 120_000,
