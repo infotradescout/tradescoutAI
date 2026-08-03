@@ -17,8 +17,9 @@ afterEach(() => {
 
 function app() {
   const instance = express();
+  instance.set("trust proxy", 1);
   instance.use(antiScrapeShield);
-  instance.get("*", (_req, res) => res.status(200).send("ok"));
+  instance.all("*", (_req, res) => res.status(200).send("ok"));
   return instance;
 }
 
@@ -71,5 +72,61 @@ describe("anti-scrape access for public profile discovery", () => {
 
     expect(response.status).toBe(403);
     expect(response.body).toEqual({ error: "Automated scraping is blocked." });
+  });
+
+  it("allows the route's trailing slash but limits discovery bypasses to reads", async () => {
+    process.env.NODE_ENV = "production";
+    const instance = app();
+    const headers = {
+      "X-Forwarded-For": "192.0.2.90",
+      "User-Agent": "curl/8.10.1",
+    };
+
+    const trailingSlash = await request(instance)
+      .get("/api/profiles/public-search/?query=Dean")
+      .set(headers);
+    const writeAttempt = await request(instance).post("/api/profiles/public-search").set(headers);
+
+    expect(trailingSlash.status).toBe(200);
+    expect(trailingSlash.headers["x-scout-guard"]).toBe("enabled");
+    expect(writeAttempt.status).toBe(403);
+  });
+
+  it("keeps one rate bucket when the caller rotates User-Agent", async () => {
+    process.env.NODE_ENV = "production";
+    const instance = app();
+
+    for (let requestIndex = 0; requestIndex < 50; requestIndex += 1) {
+      const response = await request(instance)
+        .get("/api/profiles/public-search?query=Dean")
+        .set("X-Forwarded-For", "192.0.2.91")
+        .set("User-Agent", `curl/rotated-${requestIndex}`);
+      expect(response.status).toBe(200);
+    }
+
+    const limited = await request(instance)
+      .get("/api/profiles/public-search?query=Dean")
+      .set("X-Forwarded-For", "192.0.2.91")
+      .set("User-Agent", "curl/rotated-over-limit");
+    expect(limited.status).toBe(429);
+  });
+
+  it("ignores spoofed forwarding prefixes at the trusted proxy boundary", async () => {
+    process.env.NODE_ENV = "production";
+    const instance = app();
+
+    for (let requestIndex = 0; requestIndex < 50; requestIndex += 1) {
+      const response = await request(instance)
+        .get("/api/profiles/public-search?query=Dean")
+        .set("X-Forwarded-For", `198.51.100.${requestIndex}, 192.0.2.92`)
+        .set("User-Agent", "curl/8.10.1");
+      expect(response.status).toBe(200);
+    }
+
+    const limited = await request(instance)
+      .get("/api/profiles/public-search?query=Dean")
+      .set("X-Forwarded-For", "198.51.100.250, 192.0.2.92")
+      .set("User-Agent", "curl/8.10.1");
+    expect(limited.status).toBe(429);
   });
 });

@@ -40,10 +40,10 @@ const cleanBucket = (bucket: Bucket, now: number) => {
 };
 
 const getKey = (req: Request): string => {
-  const ip =
-    (req.headers["x-forwarded-for"] as string) || req.ip || req.socket.remoteAddress || "unknown";
-  const ua = req.get("user-agent") || "unknown";
-  return `${ip}|${ua}`;
+  // Express resolves req.ip through the configured trusted-proxy boundary.
+  // Do not key on raw forwarding headers or User-Agent: both are client
+  // controlled and would let one caller reset the bucket on every request.
+  return req.ip || req.socket.remoteAddress || "unknown";
 };
 
 async function incrementRedisCounters(
@@ -106,7 +106,7 @@ export async function antiScrapeShield(req: Request, res: Response, next: NextFu
     /^\/robots\.txt$/i,
     /^\/llms\.txt$/i,
     /^\/sitemap.*\.xml$/i,
-    /^\/api\/profiles\/public-search$/i,
+    /^\/api\/profiles\/public-search\/?$/i,
     /^\/business\//i,
     /^\/trade\//i,
     /^\/city\//i,
@@ -114,7 +114,8 @@ export async function antiScrapeShield(req: Request, res: Response, next: NextFu
     /^\/datasets\//i,
     /^\/best\//i,
   ];
-  const isPublicDiscoveryPath = publicDiscoveryPaths.some((p) => p.test(path));
+  const isReadOnlyMethod = req.method === "GET" || req.method === "HEAD";
+  const isPublicDiscoveryPath = isReadOnlyMethod && publicDiscoveryPaths.some((p) => p.test(path));
 
   // Allow configured scraper agents or header token to bypass UA blocks (for LLM/bot crawlers)
   const allowedAgents = (process.env.SCRAPE_ALLOW_AGENTS || "scout-crawler")

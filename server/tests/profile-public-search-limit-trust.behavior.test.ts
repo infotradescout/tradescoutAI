@@ -66,6 +66,7 @@ describe("public profile search trust limit", () => {
     expect(predicate).toContain("${profiles.businessId} IS NULL");
     expect(predicate).toContain("${users.verifiedBadge} = true");
     expect(predicate).toContain("${users.verificationStatus}");
+    expect(predicate).toContain("${users.verificationStatus}::text");
     expect(predicate).toContain("OWNER_CONFIRMED_PROFILE_SOURCE");
     expect(predicate).toContain("ADMIN_MANAGED_PROFILE_SOURCE");
     expect(predicate).toContain("internalProfileSteward");
