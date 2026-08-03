@@ -132,11 +132,15 @@ describe("provider search public/contact boundary", () => {
   it("continues through Direct Connect rather than exposing direct contact actions", () => {
     const card = read("client/src/components/contractor-card.tsx");
     const connectAction = card.slice(
-      card.indexOf("showCallToAction ?"),
-      card.indexOf("</CardContent>")
+      card.indexOf("const connectParams"),
+      card.indexOf("const showAction")
     );
 
-    expect(connectAction).toContain("/direct-connect?intent=connect");
+    expect(connectAction).toContain('intent: "hire"');
+    expect(connectAction).toContain("targetProviderId: String(contractor.id)");
+    expect(connectAction).toContain(
+      "const connectHref = `/direct-connect?${connectParams.toString()}`"
+    );
     expect(connectAction).not.toContain("mailto:");
     expect(connectAction).not.toContain("tel:");
   });

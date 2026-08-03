@@ -132,6 +132,7 @@ import {
   type DirectConnectEntryContextType,
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
+import { resolveDirectConnectDispatchSelection } from "./directConnectDispatchSelection";
 import {
   buildDirectConnectHref,
   getDirectConnectEntry,
@@ -1835,15 +1836,21 @@ function DirectConnectRequestComposer({
     [dispatchCount, rankedCandidates]
   );
   const topCountSelectionKey = topCountIds.join("|");
+  const dispatchSelectionSeedKey =
+    dispatchMode === "top_count"
+      ? topCountSelectionKey
+      : String(prefillTargetProviderId || "").trim();
 
   useEffect(() => {
     if (!showDispatchSheet) return;
-    if (dispatchMode === "top_count") {
-      setSelectedContractorIds(topCountIds);
-      return;
-    }
-    setSelectedContractorIds([]);
-  }, [showDispatchSheet, dispatchMode, topCountSelectionKey]);
+    setSelectedContractorIds(
+      resolveDirectConnectDispatchSelection({
+        dispatchMode,
+        topCountIds,
+        prefillTargetProviderId,
+      })
+    );
+  }, [showDispatchSheet, dispatchMode, dispatchSelectionSeedKey]);
 
   useEffect(() => {
     hydrateDirectConnectDraft();

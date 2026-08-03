@@ -6,6 +6,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 const trustSurfaces = [
+  "client/src/components/contractor-card.tsx",
   "client/src/components/RecommendationGenerator.tsx",
   "client/src/pages/HelperPublicProfile.tsx",
   "client/src/components/HelperProfileModal.tsx",
@@ -66,6 +67,14 @@ describe("TradeScout trust presentation doctrine", () => {
     expect(source).toContain('"Limited"');
     expect(source).not.toContain("confidencePct");
     expect(source).not.toContain("Math.round(cvsScore)");
+  });
+
+  it("keeps internal CVS numbers off the shared customer provider card", () => {
+    const source = read("client/src/components/contractor-card.tsx");
+    expect(source).not.toContain("Math.round(cvsScore)");
+    expect(source).not.toMatch(/CVS\s+\$\{/);
+    expect(source).toContain("verifiedLicensed");
+    expect(source).toContain("totalRecommendations");
   });
 
   it("uses business language in primary navigation", () => {
