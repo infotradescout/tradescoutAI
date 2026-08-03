@@ -9,6 +9,7 @@ import {
 } from "./catalog";
 import { COLOR_DIRECTIONS } from "./colorDirections";
 import { StoneCard } from "./StoneCard";
+import { TrendingSelectionRail } from "./TrendingSelectionRail";
 import type { BuyerType, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import { buyerLabel } from "./BuyerJourney";
 
@@ -30,28 +31,28 @@ type BuyerWorkspaceProps = {
 
 const WORKSPACE_COPY: Record<BuyerType, { eyebrow: string; title: string; description: string }> = {
   fabricator: {
-    eyebrow: "Fabricator Desk",
-    title: "The working facts, close at hand.",
+    eyebrow: "Fabricators",
+    title: "Current Inventory",
     description:
-      "Review supported material, finish, source-count evidence, and complete galleries in a denser technical view.",
+      "Review named stone, confirmed finishes where listed, and source bundle counts, then ask JW Stone about current bundle matching and production timing.",
   },
   builder: {
-    eyebrow: "Builder Project Room",
-    title: "Build a project selection you can revisit.",
+    eyebrow: "Builders & Developers",
+    title: "Current Inventory",
     description:
-      "Organize the visual direction around real material records, source evidence, and a saved project list.",
+      "Share project volume, location, and timing so JW Stone can review material consistency, current supply, and delivery needs.",
   },
   designer: {
-    eyebrow: "Designer Selection Board",
-    title: "Let the stone lead the edit.",
+    eyebrow: "Architects & Designers",
+    title: "JW Stone Picks",
     description:
-      "A larger editorial view for image, material, verified finish, and verified origin when JW supplies it.",
+      "Compare stone imagery, category, and confirmed finish details, then request current availability and specification support for a selected project.",
   },
   homeowner: {
-    eyebrow: "Homeowner Stone Finder",
-    title: "Start with what you want the room to feel like.",
+    eyebrow: "Homeowners",
+    title: "Current Inventory",
     description:
-      "Explore real stone photographs in plain language, save what catches your eye, and ask only when you are ready.",
+      "Start with a room, inspiration, or selected stone, then ask JW Stone to review current availability, order requirements, and the next selection step.",
   },
 };
 
@@ -68,7 +69,7 @@ export function BuyerWorkspace({
   catalog = JW_STONE_CATALOG,
 }: BuyerWorkspaceProps) {
   const [query, setQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(state.buyer === "designer" ? 12 : 18);
+  const [visibleCount, setVisibleCount] = useState(12);
   const copy = WORKSPACE_COPY[state.buyer];
   const color = COLOR_DIRECTIONS.find((direction) => direction.id === state.color)!;
 
@@ -103,11 +104,14 @@ export function BuyerWorkspace({
     );
   }, [catalog, query, state.color, state.finish, state.material, state.origin]);
 
+  const namedFiltered = filtered.filter((stone) => !stone.anonymous);
+  const anonymousFiltered = filtered.filter((stone) => stone.anonymous);
+
   useEffect(() => {
-    setVisibleCount(state.buyer === "designer" ? 12 : 18);
+    setVisibleCount(12);
   }, [query, state.buyer, state.color, state.finish, state.material, state.origin]);
 
-  const visible = filtered.slice(0, visibleCount);
+  const visible = namedFiltered.slice(0, visibleCount);
   const gridClass =
     state.buyer === "fabricator"
       ? "sm:grid-cols-2 xl:grid-cols-3"
@@ -165,7 +169,15 @@ export function BuyerWorkspace({
         aria-label="Stone filters"
         className="border-b border-stone-300 bg-white px-5 py-5 sm:px-8 lg:px-12"
       >
-        <div className="mx-auto grid max-w-7xl gap-3 md:grid-cols-[minmax(14rem,1.4fr)_repeat(3,minmax(9rem,0.7fr))]">
+        <div
+          className={`mx-auto grid max-w-7xl gap-3 md:grid-cols-2 ${
+            finishOptions.length && originOptions.length
+              ? "xl:grid-cols-4"
+              : finishOptions.length || originOptions.length
+                ? "xl:grid-cols-3"
+                : "xl:grid-cols-2"
+          }`}
+        >
           <label className="relative block">
             <span className="sr-only">Search named stones</span>
             <Search
@@ -194,7 +206,7 @@ export function BuyerWorkspace({
                   origin: state.origin,
                 })
               }
-              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm outline-none focus:border-stone-800"
+              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
             >
               <option value="">All materials</option>
               {materialOptions.map((option) => (
@@ -209,32 +221,34 @@ export function BuyerWorkspace({
             />
           </label>
 
-          <label className="relative block">
-            <span className="sr-only">Filter by verified finish</span>
-            <select
-              aria-label="Filter by verified finish"
-              value={state.finish || ""}
-              onChange={(event) =>
-                onUpdateFilters({
-                  material: state.material,
-                  finish: event.target.value || null,
-                  origin: state.origin,
-                })
-              }
-              className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm outline-none focus:border-stone-800"
-            >
-              <option value="">All verified finishes</option>
-              {finishOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label} ({option.count})
-                </option>
-              ))}
-            </select>
-            <SlidersHorizontal
-              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500"
-              aria-hidden="true"
-            />
-          </label>
+          {finishOptions.length ? (
+            <label className="relative block">
+              <span className="sr-only">Filter by finish</span>
+              <select
+                aria-label="Filter by finish"
+                value={state.finish || ""}
+                onChange={(event) =>
+                  onUpdateFilters({
+                    material: state.material,
+                    finish: event.target.value || null,
+                    origin: state.origin,
+                  })
+                }
+                className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
+              >
+                <option value="">All finishes</option>
+                {finishOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} ({option.count})
+                  </option>
+                ))}
+              </select>
+              <SlidersHorizontal
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500"
+                aria-hidden="true"
+              />
+            </label>
+          ) : null}
 
           {originOptions.length ? (
             <label className="relative block">
@@ -249,7 +263,7 @@ export function BuyerWorkspace({
                     origin: event.target.value || null,
                   })
                 }
-                className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm outline-none focus:border-stone-800"
+                className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
               >
                 <option value="">All verified origins</option>
                 {originOptions.map((option) => (
@@ -263,9 +277,7 @@ export function BuyerWorkspace({
                 aria-hidden="true"
               />
             </label>
-          ) : (
-            <div className="hidden md:block" aria-hidden="true" />
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -276,7 +288,7 @@ export function BuyerWorkspace({
         <div className="mx-auto max-w-7xl">
           {state.buyer === "fabricator" ? (
             <div className="mb-8 grid gap-4 border-y border-stone-300 py-5 text-sm text-stone-600 sm:grid-cols-3">
-              <p>Verified finish appears only where the source states it.</p>
+              <p>Finish appears only where the supplied image titles state it.</p>
               <p>Source bundle counts are shown as recorded evidence.</p>
               <p>Open every card for the complete supplied gallery.</p>
             </div>
@@ -336,7 +348,7 @@ export function BuyerWorkspace({
                 </li>
               ))}
             </ul>
-          ) : (
+          ) : filtered.length === 0 ? (
             <div className="border border-stone-300 bg-white px-6 py-16 text-center">
               <h2 className="font-editorial text-3xl">No matching supplied selections</h2>
               <p className="mt-3 text-sm text-stone-600">
@@ -353,19 +365,21 @@ export function BuyerWorkspace({
                 Reset filters
               </button>
             </div>
-          )}
+          ) : null}
 
-          {visibleCount < filtered.length ? (
+          {visibleCount < namedFiltered.length ? (
             <div className="mt-12 text-center">
               <button
                 type="button"
-                onClick={() => setVisibleCount((count) => count + 18)}
+                onClick={() => setVisibleCount((count) => count + 12)}
                 className="min-h-12 border border-stone-500 bg-white px-8 font-bold hover:bg-stone-950 hover:text-white"
               >
                 Show more stones
               </button>
             </div>
           ) : null}
+
+          <TrendingSelectionRail items={anonymousFiltered} onOpen={onOpen} />
         </div>
       </section>
     </main>

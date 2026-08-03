@@ -22,6 +22,13 @@ const EMPTY_MARKETPLACE_URL_STATE: MarketplaceUrlState = Object.freeze({
   stone: null,
 });
 
+const RELEASED_COLOR_ALIASES: Readonly<Record<string, MarketplaceUrlState["color"]>> = {
+  "warm-neutrals": "warm-earthy",
+  "cool-lights": "soft-light",
+  "green-earth": "bold-expressive",
+  "mixed-palette": "bold-expressive",
+};
+
 function isBuyerType(value: unknown): value is BuyerType {
   return typeof value === "string" && (BUYER_TYPES as readonly string[]).includes(value);
 }
@@ -41,7 +48,9 @@ function toSearchParams(input: string | URLSearchParams): URLSearchParams {
 }
 
 function allowedValue(value: string | null, options: readonly { value: string }[]): string | null {
-  return value && options.some((option) => option.value === value) ? value : null;
+  if (!value) return null;
+  const normalized = toCatalogFilterValue(value);
+  return options.some((option) => option.value === normalized) ? normalized : null;
 }
 
 function stoneMatchesState(stone: JwStoneCatalogItem, state: MarketplaceUrlState): boolean {
@@ -71,14 +80,27 @@ export function parseMarketplaceUrlState(
   if (!isBuyerType(buyerValue)) return EMPTY_MARKETPLACE_URL_STATE;
 
   const buyer: BuyerType = buyerValue;
-  const colorValue = params.get("color");
-  if (!isColorDirectionId(colorValue)) {
+  const rawColor = params.get("color");
+  const requestedStoneValue = params.get("stone");
+  const requestedStone = requestedStoneValue
+    ? catalog.find(
+        (item) => item.wishlistEligible && !item.anonymous && item.shareSlug === requestedStoneValue
+      )
+    : null;
+  const releasedColor = rawColor ? RELEASED_COLOR_ALIASES[rawColor] : null;
+  const colorValue = isColorDirectionId(rawColor)
+    ? rawColor
+    : releasedColor
+      ? (requestedStone?.colorDirection ?? releasedColor)
+      : null;
+  if (!colorValue) {
     return { ...EMPTY_MARKETPLACE_URL_STATE, buyer };
   }
 
-  const material = allowedValue(params.get("material"), getMaterialFilterOptions(catalog));
-  const finish = allowedValue(params.get("finish"), getFinishFilterOptions(catalog));
-  const origin = allowedValue(params.get("origin"), getOriginFilterOptions(catalog));
+  const colorCatalog = catalog.filter((stone) => stone.colorDirection === colorValue);
+  const material = allowedValue(params.get("material"), getMaterialFilterOptions(colorCatalog));
+  const finish = allowedValue(params.get("finish"), getFinishFilterOptions(colorCatalog));
+  const origin = allowedValue(params.get("origin"), getOriginFilterOptions(colorCatalog));
   const partialState: MarketplaceUrlState = {
     buyer,
     color: colorValue,
@@ -88,15 +110,8 @@ export function parseMarketplaceUrlState(
     stone: null,
   };
 
-  const requestedStone = params.get("stone");
   const stone = requestedStone
-    ? catalog.find(
-        (item) =>
-          item.wishlistEligible &&
-          !item.anonymous &&
-          item.shareSlug === requestedStone &&
-          stoneMatchesState(item, partialState)
-      )
+    ? catalog.find((item) => item.id === requestedStone.id && stoneMatchesState(item, partialState))
     : null;
 
   return {

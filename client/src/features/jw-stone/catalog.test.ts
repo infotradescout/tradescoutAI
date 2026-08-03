@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
+import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
 import {
   JW_STONE_ANONYMOUS_CATALOG,
   JW_STONE_ANONYMOUS_PUBLIC_LABEL,
@@ -15,16 +15,16 @@ import {
   resolveVerifiedOrigin,
 } from "./catalog";
 
-const canonicalStones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
+const canonicalStones = JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((category) =>
   category.stones.map((stone) => ({ stone, categorySlug: category.categorySlug }))
 );
 
 describe("JW Stone 2.0 catalog projection", () => {
-  it("preserves all 119 canonical identities and 433 source images", () => {
-    expect(JW_STONE_CATALOG).toHaveLength(119);
-    expect(JW_STONE_NAMED_CATALOG).toHaveLength(109);
-    expect(JW_STONE_ANONYMOUS_CATALOG).toHaveLength(10);
-    expect(new Set(JW_STONE_CATALOG.map((stone) => stone.id)).size).toBe(119);
+  it("preserves all 148 reconciled selections and 433 source images", () => {
+    expect(JW_STONE_CATALOG).toHaveLength(148);
+    expect(JW_STONE_NAMED_CATALOG).toHaveLength(110);
+    expect(JW_STONE_ANONYMOUS_CATALOG).toHaveLength(38);
+    expect(new Set(JW_STONE_CATALOG.map((stone) => stone.id)).size).toBe(148);
     expect(JW_STONE_CATALOG.map((stone) => stone.id).sort()).toEqual(
       canonicalStones.map(({ stone }) => stone.slug).sort()
     );
@@ -49,7 +49,7 @@ describe("JW Stone 2.0 catalog projection", () => {
     }
 
     expect(JW_STONE_ANONYMOUS_CATALOG.map((stone) => stone.publicLabel)).toEqual(
-      Array.from({ length: 10 }, () => "Call for availability")
+      Array.from({ length: 38 }, () => "Call for availability")
     );
   });
 
@@ -57,7 +57,7 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(getCatalogItemById("cristallo")).toMatchObject({
       materialId: "quartzite",
       materialLabel: "Quartzite",
-      finishes: ["Polished", "Honed"],
+      finishes: ["Honed", "Polished"],
       finishStatus: "explicit",
     });
     expect(getCatalogItemById("amazonic-green")).toMatchObject({

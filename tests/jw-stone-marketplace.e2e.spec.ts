@@ -18,8 +18,14 @@ async function expectNoHorizontalOverflow(page: Page) {
 }
 
 async function openWorkspace(page: Page, buyer: string, color = "Soft & Light") {
+  const buyerLabels: Record<string, string> = {
+    fabricator: "Fabricators",
+    builder: "Builders & Developers",
+    designer: "Architects & Designers",
+    homeowner: "Homeowners",
+  };
   await page.goto("/jw-stone", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: `I’m a ${buyer}` }).click();
+  await page.getByRole("button", { name: buyerLabels[buyer] }).click();
   await page.getByRole("button", { name: new RegExp(`^${color}`) }).click();
   await expect(page.getByTestId(`${buyer}-workspace`)).toBeVisible();
   await expectNoHorizontalOverflow(page);
@@ -54,7 +60,7 @@ test.describe("JW Stone 2.0 rendered proof", () => {
     await expectNoHorizontalOverflow(page);
     await capture(page, "desktop-landing.png");
 
-    await page.getByRole("button", { name: "I’m a fabricator" }).click();
+    await page.getByRole("button", { name: "Fabricators" }).click();
     await expect(page.getByTestId("color-selection")).toBeVisible();
     await expect(page.locator("[data-stone-card]")).toHaveCount(0);
     await capture(page, "desktop-color-selection.png");
@@ -98,9 +104,10 @@ test.describe("JW Stone 2.0 rendered proof", () => {
     const anonymous = page.locator('[data-anonymous="true"]').first();
     await expect(anonymous).toContainText("Call for availability");
     await expect(anonymous.getByRole("button", { name: /^Save / })).toHaveCount(0);
-    expect(await anonymous.innerText()).not.toMatch(/Trending Selection|Unnamed slab/i);
+    expect(await anonymous.innerText()).not.toMatch(/Trending Selection\s+\d+|Unnamed slab/i);
     await capture(page, "desktop-anonymous-selection.png");
 
+    await page.goto("/jw-stone", { waitUntil: "networkidle" });
     const firstCut = page.getByRole("heading", { name: "First Cut Exclusives" });
     await firstCut.scrollIntoViewIfNeeded();
     await expect(page.locator('[data-first-cut-placeholder="true"]')).toHaveCount(3);
@@ -128,7 +135,7 @@ test.describe("JW Stone 2.0 rendered proof", () => {
     await expectNoHorizontalOverflow(page);
     await capture(page, "mobile-landing-390.png");
 
-    await page.getByRole("button", { name: "I’m a homeowner" }).click();
+    await page.getByRole("button", { name: "Homeowners" }).click();
     await expect(page.getByTestId("color-selection")).toBeVisible();
     await page.getByRole("button", { name: /^Warm & Earthy/ }).click();
     await expect(page.getByTestId("homeowner-workspace")).toBeVisible();

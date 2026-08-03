@@ -29,7 +29,6 @@ export function StoneDetailDialog({
 
   const imageCount = stone.images.length;
   const selectedImage = stone.images[imageIndex] || stone.images[0];
-  const selectedImageFinishes = stone.imageFinishes?.[imageIndex];
   const move = (direction: -1 | 1) => {
     if (imageCount < 2) return;
     setImageIndex((current) => (current + direction + imageCount) % imageCount);
@@ -144,14 +143,8 @@ export function StoneDetailDialog({
               ) : null}
               {stone.finishes.length ? (
                 <div className="flex justify-between gap-5 py-4">
-                  <dt className="text-stone-400">Verified finish</dt>
+                  <dt className="text-stone-400">Finish</dt>
                   <dd className="text-right font-semibold">{stone.finishes.join(" / ")}</dd>
-                </div>
-              ) : null}
-              {selectedImageFinishes?.length ? (
-                <div className="flex justify-between gap-5 py-4">
-                  <dt className="text-stone-400">This image</dt>
-                  <dd className="text-right font-semibold">{selectedImageFinishes.join(" / ")}</dd>
                 </div>
               ) : null}
               {stone.sourceEvidence ? (
@@ -170,8 +163,8 @@ export function StoneDetailDialog({
               ) : null}
             </dl>
 
-            <div className="mt-auto space-y-3 pt-9">
-              {stone.wishlistEligible ? (
+            {stone.wishlistEligible ? (
+              <div className="mt-auto space-y-3 pt-9">
                 <button
                   type="button"
                   onClick={() => onToggleSaved(stone)}
@@ -185,19 +178,19 @@ export function StoneDetailDialog({
                   )}
                   {saved ? "Remove from saved stones" : "Save this stone"}
                 </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => onAsk(stone)}
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 bg-stone-100 px-5 font-bold text-stone-950 hover:bg-white"
-              >
-                <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                {stone.anonymous ? "Ask JW Stone about availability" : "Ask about this stone"}
-              </button>
-              <p className="text-center text-xs leading-5 text-stone-500">
-                Saving stays in this browser. Contact starts only when you choose an inquiry.
-              </p>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => onAsk(stone)}
+                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 bg-stone-100 px-5 font-bold text-stone-950 hover:bg-white"
+                >
+                  <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                  Ask about this stone
+                </button>
+                <p className="text-center text-xs leading-5 text-stone-500">
+                  Saving stays in this browser. Contact starts only when you choose an inquiry.
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
       </DialogContent>

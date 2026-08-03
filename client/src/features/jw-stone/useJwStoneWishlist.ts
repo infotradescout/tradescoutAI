@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { JW_STONE_NAMED_CATALOG, getCatalogItemById } from "./catalog";
 import {
+  JW_STONE_LEGACY_WISHLIST_STORAGE_KEY,
   JW_STONE_WISHLIST_STORAGE_KEY,
   clearWishlist,
   getBrowserWishlistStorage,
@@ -25,7 +26,12 @@ export function useJwStoneWishlist() {
   useEffect(() => {
     restore();
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === JW_STONE_WISHLIST_STORAGE_KEY) restore();
+      if (
+        event.key === JW_STONE_WISHLIST_STORAGE_KEY ||
+        event.key === JW_STONE_LEGACY_WISHLIST_STORAGE_KEY
+      ) {
+        restore();
+      }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);

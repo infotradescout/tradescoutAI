@@ -40,15 +40,18 @@ describe("JW Stone marketplace routing contract", () => {
 
   it("loads the separate feature without routing the current JW profile through it", () => {
     const routesSource = read("client/src/AppRoutes.tsx");
-    const pageSource = read("client/src/pages/jw-stone-2/JwStoneMarketplacePage.tsx");
+    const pageSource = read("client/src/pages/JWStoneMarketplace.tsx");
+    const marketplaceSource = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const profileSource = read("client/src/pages/ProfileSiteView.tsx");
 
     expect(routesSource).toMatch(
-      /const JWStoneMarketplace = React\.lazy\(\s*\(\) => import\("\.\/pages\/jw-stone-2\/JwStoneMarketplacePage"\)\s*\)/
+      /const JWStoneMarketplace = React\.lazy\(\s*\(\) => import\("\.\/pages\/JWStoneMarketplace"\)\s*\)/
     );
-    expect(pageSource).toContain("data-jw-stone-2");
-    expect(pageSource).toContain('import { BuyerWorkspace } from "./BuyerWorkspace";');
+    expect(pageSource).toContain(
+      'import JWStoneMarketplace from "../features/jw-stone/JWStoneMarketplace";'
+    );
+    expect(marketplaceSource).toContain('import { BuyerWorkspace } from "./BuyerWorkspace";');
     expect(routesSource).not.toContain('RedirectTo to="/jw-stone"');
-    expect(profileSource).not.toContain("pages/jw-stone-2/JwStoneMarketplacePage");
+    expect(profileSource).not.toContain("features/jw-stone/JWStoneMarketplace");
   });
 });

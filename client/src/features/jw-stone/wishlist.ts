@@ -7,7 +7,8 @@ import type {
 } from "./types";
 
 export const JW_STONE_WISHLIST_VERSION = 1 as const;
-export const JW_STONE_WISHLIST_STORAGE_KEY = "jw-stone:wishlist:v1";
+export const JW_STONE_WISHLIST_STORAGE_KEY = "tradescout:jw-stone-2:wishlist";
+export const JW_STONE_LEGACY_WISHLIST_STORAGE_KEY = "jw-stone:wishlist:v1";
 export const JW_STONE_WISHLIST_MAX_ITEMS = 50;
 
 const MAX_STORED_IDS_TO_INSPECT = JW_STONE_WISHLIST_MAX_ITEMS * 10;
@@ -44,9 +45,9 @@ function envelope(ids: readonly string[]): WishlistEnvelope {
   };
 }
 
-function safelyRemoveStoredWishlist(storage: WishlistStorage): void {
+function safelyRemoveStoredWishlist(storage: WishlistStorage, key: string): void {
   try {
-    storage.removeItem(JW_STONE_WISHLIST_STORAGE_KEY);
+    storage.removeItem(key);
   } catch {
     // The in-memory empty selection remains usable when browser storage is blocked.
   }
@@ -84,8 +85,13 @@ export function loadWishlist(
   if (!storage) return { ids: [], status: "unavailable", persisted: false };
 
   let raw: string | null;
+  let sourceKey = JW_STONE_WISHLIST_STORAGE_KEY;
   try {
     raw = storage.getItem(JW_STONE_WISHLIST_STORAGE_KEY);
+    if (raw === null) {
+      sourceKey = JW_STONE_LEGACY_WISHLIST_STORAGE_KEY;
+      raw = storage.getItem(sourceKey);
+    }
   } catch {
     return { ids: [], status: "unavailable", persisted: false };
   }
@@ -96,12 +102,12 @@ export function loadWishlist(
   try {
     parsed = JSON.parse(raw);
   } catch {
-    safelyRemoveStoredWishlist(storage);
+    safelyRemoveStoredWishlist(storage, sourceKey);
     return { ids: [], status: "malformed", persisted: false };
   }
 
   if (!parsed || typeof parsed !== "object") {
-    safelyRemoveStoredWishlist(storage);
+    safelyRemoveStoredWishlist(storage, sourceKey);
     return { ids: [], status: "malformed", persisted: false };
   }
 
@@ -110,7 +116,7 @@ export function loadWishlist(
     return { ids: [], status: "unsupported", persisted: false };
   }
   if (!Array.isArray(candidate.ids)) {
-    safelyRemoveStoredWishlist(storage);
+    safelyRemoveStoredWishlist(storage, sourceKey);
     return { ids: [], status: "malformed", persisted: false };
   }
 
@@ -119,7 +125,7 @@ export function loadWishlist(
   const reconciled =
     !sameIds(ids, storedStringIds) || storedStringIds.length !== candidate.ids.length;
 
-  if (reconciled) {
+  if (reconciled || sourceKey === JW_STONE_LEGACY_WISHLIST_STORAGE_KEY) {
     const result = saveWishlist(storage, ids, eligibleIds);
     return { ids: result.ids, status: "reconciled", persisted: result.persisted };
   }
@@ -151,6 +157,7 @@ export function clearWishlist(storage: WishlistStorage | null | undefined): Wish
   if (!storage) return { ids: [], persisted: false };
   try {
     storage.removeItem(JW_STONE_WISHLIST_STORAGE_KEY);
+    storage.removeItem(JW_STONE_LEGACY_WISHLIST_STORAGE_KEY);
     return { ids: [], persisted: true };
   } catch {
     return { ids: [], persisted: false };

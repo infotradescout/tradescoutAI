@@ -59,17 +59,17 @@ export function buildPublicJwStoneMarketplaceHtml(
 <main data-seo-jw-stone-marketplace="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
-    <h1>JW Stone</h1>
+    <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
-    <h2>Choose a project path</h2>
+    <h2>Tell JW Stone what you need</h2>
     <ul>
-      <li>Fabricators can focus on supplied stone specifications and source counts.</li>
-      <li>Builders can organize supplied inventory facts for a project.</li>
-      <li>Designers can review imagery and build a selection board.</li>
-      <li>Homeowners can explore stone in plain language.</li>
+      <li><strong>Fabricators</strong> — Review named stone, confirmed finishes where listed, and source bundle counts, then ask JW Stone about current bundle matching and production timing.</li>
+      <li><strong>Builders &amp; Developers</strong> — Share project volume, location, and timing so JW Stone can review material consistency, current supply, and delivery needs.</li>
+      <li><strong>Architects &amp; Designers</strong> — Compare stone imagery, category, and confirmed finish details, then request current availability and specification support for a selected project.</li>
+      <li><strong>Homeowners</strong> — Start with a room, inspiration, or selected stone, then ask JW Stone to review current availability, order requirements, and the next selection step.</li>
     </ul>
-    <h2>Browse on your terms</h2>
-    <p>Country of origin appears only when JW Stone supplies a verified country. Saving a named stone does not contact JW Stone; starting a request is a separate choice.</p>
+    <h2>Current Inventory</h2>
+    <p>Stone discovery on your terms. Saving never starts a request.</p>
   </article>
 </main>`;
 
