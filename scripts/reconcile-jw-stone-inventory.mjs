@@ -24,6 +24,12 @@ const assetSpecs = currentModule
 
 const outputRoot = path.join(repoRoot, "client/public/images/businesses/jw-stone/inventory-source");
 const dataOutput = path.join(repoRoot, "client/src/data/jwStoneInventory.generated.json");
+const reconciliationManifest = JSON.parse(
+  fs.readFileSync(
+    path.join(repoRoot, "client/src/data/jwStoneInventoryReconciliation.json"),
+    "utf8"
+  )
+);
 const auditOutput = path.join(
   repoRoot,
   "docs/audits/data/jw-stone-image-reconciliation-2026-07-13.json"
@@ -202,8 +208,25 @@ for (const item of usable) {
   groups.set(key, group);
 }
 
-// Unnamed, generic, or ambiguous files remain visible without inventing a stone
-// or material assignment. Small batches keep the catalog usable on mobile.
+const reviewedUnidentifiedIds = [
+  ...reconciliationManifest.namedMerges.flatMap((entry) => entry.sourceFileIds),
+  ...reconciliationManifest.namedAdditions.flatMap((entry) => entry.sourceFileIds),
+  ...reconciliationManifest.anonymousBundles.flatMap((entry) => entry.sourceFileIds),
+];
+const currentUnidentifiedIds = trendingUnidentified.map((item) => item.driveFileId);
+if (
+  reviewedUnidentifiedIds.length !== new Set(reviewedUnidentifiedIds).size ||
+  reviewedUnidentifiedIds.length !== currentUnidentifiedIds.length ||
+  [...reviewedUnidentifiedIds].sort().join("\n") !== [...currentUnidentifiedIds].sort().join("\n")
+) {
+  throw new Error(
+    "JW Stone unidentified photos changed; update the evidence-backed reconciliation manifest before publishing inventory"
+  );
+}
+
+// These are raw holding batches only. They do not assert that adjacent files
+// depict one stone. The checked-in reconciliation manifest replaces them with
+// reviewed product bundles at application load and fails closed on any drift.
 for (let index = 0; index < trendingUnidentified.length; index += 8) {
   const batch = trendingUnidentified.slice(index, index + 8);
   const number = String(index / 8 + 1).padStart(2, "0");

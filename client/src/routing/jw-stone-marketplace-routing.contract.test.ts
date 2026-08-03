@@ -40,12 +40,30 @@ describe("JW Stone marketplace routing contract", () => {
 
   it("loads the separate feature without routing the current JW profile through it", () => {
     const routesSource = read("client/src/AppRoutes.tsx");
-    const pageSource = read("client/src/pages/jw-stone-2/JwStoneMarketplacePage.tsx");
+    const pageSource = read("client/src/pages/JWStoneMarketplace.tsx");
     const profileSource = read("client/src/pages/ProfileSiteView.tsx");
 
-    expect(routesSource).toContain('import("./pages/jw-stone-2/JwStoneMarketplacePage")');
-    expect(pageSource).toContain("export default function JwStoneMarketplacePage()");
+    expect(routesSource).toContain(
+      'const JWStoneMarketplace = React.lazy(() => import("./pages/JWStoneMarketplace"));'
+    );
+    expect(pageSource).toContain(
+      'import JWStoneMarketplace from "../features/jw-stone/JWStoneMarketplace";'
+    );
+    expect(pageSource).toContain("export default JWStoneMarketplace;");
     expect(routesSource).not.toContain('RedirectTo to="/jw-stone"');
-    expect(profileSource).not.toContain("jw-stone-2/JwStoneMarketplacePage");
+    expect(profileSource).not.toContain("features/jw-stone/JWStoneMarketplace");
+  });
+
+  it("keeps /u/jw-stone on the existing ProfileSiteView route", () => {
+    const appSource = read("client/src/App.tsx");
+    const routesSource = read("client/src/AppRoutes.tsx");
+    const profileSource = read("client/src/pages/ProfileSiteView.tsx");
+
+    expect(appSource).toContain('const isJwStoneMarketplaceRoute = pathOnly === "/jw-stone";');
+    expect(routesSource).toMatch(
+      /<Route path="\/u\/:slug">\s*<LazyPage Component=\{ProfileSiteView\} \/>/
+    );
+    expect(routesSource).not.toContain('<Route path="/u/jw-stone">');
+    expect(profileSource).not.toContain("JWStoneMarketplace");
   });
 });

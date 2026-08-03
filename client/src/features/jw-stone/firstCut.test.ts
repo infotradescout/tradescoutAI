@@ -15,7 +15,7 @@ describe("First Cut Exclusives data boundary", () => {
         position: index + 1,
       }))
     );
-    expect(JW_STONE_CATALOG).toHaveLength(119);
+    expect(JW_STONE_CATALOG).toHaveLength(148);
   });
 
   it("accepts only explicit named verified assignments", () => {

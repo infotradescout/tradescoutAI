@@ -1,3 +1,4 @@
+import { JW_STONE_INVENTORY_RECONCILIATION } from "@/data/reconcileJwStoneInventory";
 import { COLOR_DIRECTION_IDS, type ColorDirection, type ColorDirectionId } from "./types";
 
 /**
@@ -31,6 +32,15 @@ export const COLOR_DIRECTIONS = [
     description: "High contrast, vivid color, and energetic movement.",
   },
 ] as const satisfies readonly ColorDirection[];
+
+function reconciledSlugsFor(direction: ColorDirectionId): string[] {
+  return [
+    ...JW_STONE_INVENTORY_RECONCILIATION.namedAdditions,
+    ...JW_STONE_INVENTORY_RECONCILIATION.anonymousBundles,
+  ]
+    .filter((entry) => entry.colorDirection === direction)
+    .map((entry) => entry.slug);
+}
 
 export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
   "soft-light": [
@@ -74,11 +84,9 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "river-white",
     "super-white",
     "toulon-white",
-    "trending-selection-03",
-    "trending-selection-07",
-    "trending-selection-10",
     "valle-nevada-luna-pearl",
     "versace",
+    ...reconciledSlugsFor("soft-light"),
   ],
   "warm-earthy": [
     "arizona-gold",
@@ -98,8 +106,7 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "calacatta-macchia-vecchia",
     "gold-macaubas",
     "new-caledonia",
-    "trending-selection-01",
-    "trending-selection-02",
+    ...reconciledSlugsFor("warm-earthy"),
   ],
   "cool-serene": [
     "matrix-basalt",
@@ -126,13 +133,10 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "bianco-palomino",
     "mystic-spring",
     "steel-gray",
-    "trending-selection-04",
-    "trending-selection-06",
-    "trending-selection-08",
-    "trending-selection-09",
     "white-silk",
     "calacatta-andromeda",
     "apollonis",
+    ...reconciledSlugsFor("cool-serene"),
   ],
   "deep-dramatic": [
     "black-pearl",
@@ -146,6 +150,7 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "emerald-pearl",
     "titanium-black-leathered",
     "dueto",
+    ...reconciledSlugsFor("deep-dramatic"),
   ],
   "bold-expressive": [
     "alabama-rose",
@@ -160,7 +165,7 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "amazonic-green",
     "calacatta-corchia",
     "grand-constantine",
-    "trending-selection-05",
+    ...reconciledSlugsFor("bold-expressive"),
   ],
 } as const satisfies Readonly<Record<ColorDirectionId, readonly string[]>>;
 
