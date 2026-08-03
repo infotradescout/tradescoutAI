@@ -50,7 +50,7 @@ function StoneFacts({ stone, buyer }: { stone: JwStoneCatalogItem; buyer: BuyerT
     return (
       <ul className="space-y-2 border-t border-stone-300 pt-4 text-sm text-stone-700">
         {stone.materialLabel ? <li>Material · {stone.materialLabel}</li> : null}
-        {finishes ? <li>Recorded finish · {finishes}</li> : null}
+        {finishes ? <li>Finish · {finishes}</li> : null}
         {stone.sourceEvidence ? (
           <li>Source bundle counts · {stone.sourceEvidence.counts.join(" · ")}</li>
         ) : null}
@@ -77,7 +77,13 @@ function StoneFacts({ stone, buyer }: { stone: JwStoneCatalogItem; buyer: BuyerT
 }
 
 export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }: StoneCardProps) {
-  const imageAspect = buyer === "designer" ? "aspect-[4/5]" : "aspect-[4/3]";
+  const imageAspect = "aspect-[16/10]";
+  const requestLabel: Record<BuyerType, string> = {
+    fabricator: "Ask about a bundle",
+    builder: "Match a development",
+    designer: "Review a specification",
+    homeowner: "Match my project",
+  };
   const alt = stone.displayName
     ? `${stone.displayName} stone photograph`
     : "Stone selection photograph from JW Stone";
@@ -100,7 +106,7 @@ export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }:
           src={stone.images[0]}
           alt={alt}
           loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-500 motion-reduce:transition-none group-hover:scale-[1.025]"
+          className="h-full w-full object-contain"
         />
         <span className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center bg-stone-950/85 text-white">
           <Expand className="h-4 w-4" aria-hidden="true" />
@@ -154,7 +160,7 @@ export function StoneCard({ stone, buyer, saved, onToggleSaved, onOpen, onAsk }:
             className="inline-flex min-h-11 items-center justify-center gap-2 bg-stone-950 px-3 text-sm font-semibold text-white hover:bg-black"
           >
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            {stone.anonymous ? "Ask JW Stone" : "Ask about it"}
+            {requestLabel[buyer]}
           </button>
         </div>
       </div>

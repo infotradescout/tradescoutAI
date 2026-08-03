@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { JW_STONE_NAMED_CATALOG, JW_STONE_NAMED_IDS } from "./catalog";
 import {
+  JW_STONE_LEGACY_WISHLIST_STORAGE_KEY,
   JW_STONE_WISHLIST_MAX_ITEMS,
   JW_STONE_WISHLIST_STORAGE_KEY,
   clearWishlist,
@@ -70,6 +71,24 @@ describe("JW Stone account-free wishlist", () => {
     expect(reconciled).not.toContain("removed-inventory");
     expect(reconciled.every((id) => JW_STONE_NAMED_IDS.has(id))).toBe(true);
     expect(reconcileWishlistIds("not-an-array")).toEqual([]);
+  });
+
+  it("migrates saved stones from the original review shell into the released storage key", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      JW_STONE_LEGACY_WISHLIST_STORAGE_KEY,
+      JSON.stringify({ version: 1, ids: ["amazonic-green", "steel-gray"] })
+    );
+
+    expect(loadWishlist(storage)).toEqual({
+      ids: ["amazonic-green", "steel-gray"],
+      status: "reconciled",
+      persisted: true,
+    });
+    expect(JSON.parse(storage.getItem(JW_STONE_WISHLIST_STORAGE_KEY)!)).toEqual({
+      version: 1,
+      ids: ["amazonic-green", "steel-gray"],
+    });
   });
 
   it("reconciles stale saved state back to the current catalog", () => {
@@ -150,5 +169,6 @@ describe("JW Stone account-free wishlist", () => {
     saveWishlist(storage, ["amazonic-green"]);
     expect(clearWishlist(storage)).toEqual({ ids: [], persisted: true });
     expect(storage.getItem(JW_STONE_WISHLIST_STORAGE_KEY)).toBeNull();
+    expect(storage.getItem(JW_STONE_LEGACY_WISHLIST_STORAGE_KEY)).toBeNull();
   });
 });

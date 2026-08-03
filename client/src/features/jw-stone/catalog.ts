@@ -1,5 +1,6 @@
-import { JW_STONE_INVENTORY_CATEGORIES, type JwStoneInventoryStone } from "@/data/jwStoneInventory";
+import type { JwStoneInventoryStone } from "@/data/jwStoneInventory";
 import { getColorDirectionForStone } from "./colorDirections";
+import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
 import type {
   CatalogFilterOption,
   CatalogFilters,
@@ -84,7 +85,7 @@ export function projectJwStoneCatalogItem(args: {
 
 function buildCatalog(): readonly JwStoneCatalogItem[] {
   return Object.freeze(
-    JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
+    JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((category) =>
       category.stones.map((stone) =>
         projectJwStoneCatalogItem({
           stone,

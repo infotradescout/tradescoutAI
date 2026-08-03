@@ -31,7 +31,7 @@ describe("JW Stone shareable marketplace URL state", () => {
     });
   });
 
-  it("round trips a valid buyer, color, filter, and named detail", () => {
+  it("round trips a valid buyer, color, material, finish, and named detail", () => {
     const state: MarketplaceUrlState = {
       buyer: "designer",
       color: "warm-earthy",
@@ -48,6 +48,37 @@ describe("JW Stone shareable marketplace URL state", () => {
     expect(parseMarketplaceUrlState(serialized)).toEqual(state);
     expect(toMarketplaceHref(state)).toBe(
       "/jw-stone?buyer=designer&color=warm-earthy&material=quartzite&finish=honed&stone=cristallo"
+    );
+  });
+
+  it("drops filter values that would render blank choices for the selected color", () => {
+    expect(
+      parseMarketplaceUrlState("?buyer=designer&color=soft-light&material=onyx&finish=flamed")
+    ).toEqual({
+      buyer: "designer",
+      color: "soft-light",
+      material: null,
+      finish: null,
+      origin: null,
+      stone: null,
+    });
+  });
+
+  it("recovers links created by the rejected renderer without losing the selected stone", () => {
+    expect(
+      parseMarketplaceUrlState(
+        "?buyer=designer&color=cool-lights&material=Quartzite&finish=Honed&stone=cristallo"
+      )
+    ).toEqual({
+      buyer: "designer",
+      color: "warm-earthy",
+      material: "quartzite",
+      finish: "honed",
+      origin: null,
+      stone: "cristallo",
+    });
+    expect(parseMarketplaceUrlState("?buyer=builder&color=warm-neutrals").color).toBe(
+      "warm-earthy"
     );
   });
 

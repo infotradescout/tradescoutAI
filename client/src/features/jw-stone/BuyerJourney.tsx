@@ -1,6 +1,7 @@
 import { Building2, Hammer, Home, Palette, RotateCcw } from "lucide-react";
 import { JW_STONE_CATALOG } from "./catalog";
 import { COLOR_DIRECTIONS } from "./colorDirections";
+import { FirstCutSection } from "./FirstCutSection";
 import type { BuyerType, ColorDirectionId } from "./types";
 
 const BUYERS: ReadonlyArray<{
@@ -12,32 +13,34 @@ const BUYERS: ReadonlyArray<{
 }> = [
   {
     id: "fabricator",
-    label: "I’m a fabricator",
-    shortLabel: "Fabricator",
+    label: "Fabricators",
+    shortLabel: "Fabricators",
     description:
-      "Move quickly through supported material, finish, source-count, and gallery facts.",
+      "Review named stone, confirmed finishes where listed, and source bundle counts, then ask JW Stone about current bundle matching and production timing.",
     icon: Hammer,
   },
   {
     id: "builder",
-    label: "I’m a builder",
-    shortLabel: "Builder",
+    label: "Builders & Developers",
+    shortLabel: "Builders & Developers",
     description:
-      "Shape a project selection around material, visual direction, and source evidence.",
+      "Share project volume, location, and timing so JW Stone can review material consistency, current supply, and delivery needs.",
     icon: Building2,
   },
   {
     id: "designer",
-    label: "I’m a designer",
-    shortLabel: "Designer",
-    description: "Lead with imagery, movement, finishes, and verified source details.",
+    label: "Architects & Designers",
+    shortLabel: "Architects & Designers",
+    description:
+      "Compare stone imagery, category, and confirmed finish details, then request current availability and specification support for a selected project.",
     icon: Palette,
   },
   {
     id: "homeowner",
-    label: "I’m a homeowner",
-    shortLabel: "Homeowner",
-    description: "Explore in plain language and save a visual shortlist before reaching out.",
+    label: "Homeowners",
+    shortLabel: "Homeowners",
+    description:
+      "Start with a room, inspiration, or selected stone, then ask JW Stone to review current availability, order requirements, and the next selection step.",
     icon: Home,
   },
 ];
@@ -93,7 +96,10 @@ export function BuyerJourney({
             </button>
           </div>
 
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+          <div
+            className="scrollbar-hide -mx-5 mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-5 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-5"
+            aria-label="Color directions"
+          >
             {COLOR_DIRECTIONS.map((direction, index) => {
               const representative = JW_STONE_CATALOG.find(
                 (stone) => stone.colorDirection === direction.id
@@ -103,11 +109,11 @@ export function BuyerJourney({
                   type="button"
                   key={direction.id}
                   onClick={() => onChooseColor(direction.id)}
-                  className={`group overflow-hidden border border-stone-300 bg-white text-left transition-transform hover:-translate-y-1 hover:border-stone-600 sm:min-h-[26rem] ${
+                  className={`group w-[82vw] max-w-[22rem] shrink-0 snap-start overflow-hidden border border-stone-300 bg-white text-left transition-transform hover:-translate-y-1 hover:border-stone-600 sm:min-h-[26rem] sm:w-auto sm:max-w-none ${
                     index === 0 ? "sm:col-span-2 lg:col-span-1" : ""
                   }`}
                 >
-                  <div className="aspect-[4/5] overflow-hidden bg-stone-200">
+                  <div className="aspect-[5/4] overflow-hidden bg-stone-200 sm:aspect-[4/5]">
                     {representative ? (
                       <img
                         src={representative.images[0]}
@@ -142,9 +148,9 @@ export function BuyerJourney({
         <img
           src="/images/businesses/jw-stone/video/hero-poster.jpg"
           alt="Natural stone presented by JW Stone"
-          className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/70 to-black/10" />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-black/55 via-black/15 to-transparent" />
         <div className="mx-auto flex min-h-[78vh] max-w-7xl items-end px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
           <div className="max-w-4xl">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-amber-200">
@@ -169,6 +175,8 @@ export function BuyerJourney({
           </div>
         </div>
       </section>
+
+      <FirstCutSection />
 
       <section
         id="choose-buyer"

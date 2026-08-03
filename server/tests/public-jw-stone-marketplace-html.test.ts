@@ -74,7 +74,10 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain("Builders");
     expect(html).toContain("Designers");
     expect(html).toContain("Homeowners");
-    expect(html).toContain("starting a request is a separate choice");
+    expect(html).toContain("Tell JW Stone what you need");
+    expect(html).toContain("Current Inventory");
+    expect(html).toContain("Saving never starts a request");
+    expect(html).not.toContain("Stone chosen around the way you see a project");
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);
     expect(html).not.toMatch(/\bProduct\b|\bOffer\b|\$\d|priceRange/i);
   });
