@@ -167,7 +167,9 @@ const ProgressiveFeatureGate = memo(function ProgressiveFeatureGate({
 });
 
 const PublicLandingPage = React.lazy(() => import("./pages/TradeScoutLandingPage"));
-const JWStoneMarketplace = React.lazy(() => import("./pages/JWStoneMarketplace"));
+const JWStoneMarketplace = React.lazy(
+  () => import("./pages/jw-stone-2/JwStoneMarketplacePage")
+);
 
 // Root landing router: show public users the landing surface, authenticated users their appropriate dashboard
 const RootLanding = memo(function RootLanding() {
