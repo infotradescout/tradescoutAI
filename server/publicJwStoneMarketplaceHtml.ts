@@ -4,7 +4,7 @@ export const JW_STONE_MARKETPLACE_CANONICAL_URL = "https://www.thetradescout.com
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Guided Stone Discovery");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Explore JW Stone inventory by buyer and color direction, save named selections in a browser wishlist, and choose when to start a request.";
+  "Browse JW Stone's supplied stone catalog, open full photo galleries, save named selections, and use optional source-backed guidance before choosing when to start a request.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
@@ -61,14 +61,10 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
-    <h2>Tell JW Stone what you need</h2>
-    <ul>
-      <li><strong>Fabricators</strong> — Review named stone, confirmed finishes where listed, and source bundle counts, then ask JW Stone about current bundle matching and production timing.</li>
-      <li><strong>Builders &amp; Developers</strong> — Share project volume, location, and timing so JW Stone can review material consistency, current supply, and delivery needs.</li>
-      <li><strong>Architects &amp; Designers</strong> — Compare stone imagery, category, and confirmed finish details, then request current availability and specification support for a selected project.</li>
-      <li><strong>Homeowners</strong> — Start with a room, inspiration, or selected stone, then ask JW Stone to review current availability, order requirements, and the next selection step.</li>
-    </ul>
     <h2>Current Inventory</h2>
+    <p>Review supplied stone photographs, confirmed material and finish where listed, and recorded source evidence. Catalog presence and source counts do not confirm live availability.</p>
+    <h2>Guidance when you need it</h2>
+    <p>Fabricators, Builders &amp; Developers, Architects &amp; Designers, and Homeowners can open concise source-backed selection guidance without hiding or filtering the catalog.</p>
     <p>Stone discovery on your terms. Saving never starts a request.</p>
   </article>
 </main>`;

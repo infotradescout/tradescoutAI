@@ -93,6 +93,18 @@ describe("JW Stone 2.0 catalog projection", () => {
     }
   });
 
+  it("shows the full catalog by default and treats color as an optional refinement", () => {
+    expect(filterJwStoneCatalog({})).toEqual(JW_STONE_CATALOG);
+
+    const honed = filterJwStoneCatalog({ finish: "honed" });
+    expect(honed.length).toBeGreaterThan(0);
+    expect(honed.every((stone) => stone.finishes.includes("Honed"))).toBe(true);
+
+    const softLight = filterJwStoneCatalog({ color: "soft-light" });
+    expect(softLight.length).toBeGreaterThan(0);
+    expect(softLight.every((stone) => stone.colorDirection === "soft-light")).toBe(true);
+  });
+
   it("keeps current origin empty and accepts only explicit verified origin fixtures", () => {
     expect(JW_STONE_CATALOG.every((stone) => stone.origin === null)).toBe(true);
     expect(getOriginFilterOptions()).toEqual([]);
@@ -119,8 +131,6 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(getOriginFilterOptions([fixture])).toEqual([
       { value: "brazil", label: "Brazil", count: 1 },
     ]);
-    expect(
-      filterJwStoneCatalog({ color: fixture.colorDirection, origin: "brazil" }, [fixture])
-    ).toEqual([fixture]);
+    expect(filterJwStoneCatalog({ origin: "brazil" }, [fixture])).toEqual([fixture]);
   });
 });

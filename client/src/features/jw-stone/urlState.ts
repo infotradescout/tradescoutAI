@@ -13,15 +13,6 @@ import {
   type MarketplaceUrlState,
 } from "./types";
 
-const EMPTY_MARKETPLACE_URL_STATE: MarketplaceUrlState = Object.freeze({
-  buyer: null,
-  color: null,
-  material: null,
-  finish: null,
-  origin: null,
-  stone: null,
-});
-
 const RELEASED_COLOR_ALIASES: Readonly<Record<string, MarketplaceUrlState["color"]>> = {
   "warm-neutrals": "warm-earthy",
   "cool-lights": "soft-light",
@@ -53,33 +44,13 @@ function allowedValue(value: string | null, options: readonly { value: string }[
   return options.some((option) => option.value === normalized) ? normalized : null;
 }
 
-function stoneMatchesState(stone: JwStoneCatalogItem, state: MarketplaceUrlState): boolean {
-  if (!state.color || stone.colorDirection !== state.color) return false;
-  if (state.material && stone.materialId !== state.material) return false;
-  if (
-    state.finish &&
-    !stone.finishes.some((finish) => toCatalogFilterValue(finish) === state.finish)
-  ) {
-    return false;
-  }
-  if (
-    state.origin &&
-    (!stone.origin || toCatalogFilterValue(stone.origin.country) !== state.origin)
-  ) {
-    return false;
-  }
-  return true;
-}
-
 export function parseMarketplaceUrlState(
   input: string | URLSearchParams,
   catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
 ): MarketplaceUrlState {
   const params = toSearchParams(input);
   const buyerValue = params.get("buyer");
-  if (!isBuyerType(buyerValue)) return EMPTY_MARKETPLACE_URL_STATE;
-
-  const buyer: BuyerType = buyerValue;
+  const buyer: BuyerType | null = isBuyerType(buyerValue) ? buyerValue : null;
   const rawColor = params.get("color");
   const requestedStoneValue = params.get("stone");
   const requestedStone = requestedStoneValue
@@ -87,36 +58,21 @@ export function parseMarketplaceUrlState(
         (item) => item.wishlistEligible && !item.anonymous && item.shareSlug === requestedStoneValue
       )
     : null;
-  const releasedColor = rawColor ? RELEASED_COLOR_ALIASES[rawColor] : null;
-  const colorValue = isColorDirectionId(rawColor)
-    ? rawColor
+  const normalizedColor = rawColor ? toCatalogFilterValue(rawColor) : null;
+  const releasedColor = normalizedColor ? RELEASED_COLOR_ALIASES[normalizedColor] : null;
+  const color = isColorDirectionId(normalizedColor)
+    ? normalizedColor
     : releasedColor
       ? (requestedStone?.colorDirection ?? releasedColor)
       : null;
-  if (!colorValue) {
-    return { ...EMPTY_MARKETPLACE_URL_STATE, buyer };
-  }
-
-  const colorCatalog = catalog.filter((stone) => stone.colorDirection === colorValue);
-  const material = allowedValue(params.get("material"), getMaterialFilterOptions(colorCatalog));
-  const finish = allowedValue(params.get("finish"), getFinishFilterOptions(colorCatalog));
-  const origin = allowedValue(params.get("origin"), getOriginFilterOptions(colorCatalog));
-  const partialState: MarketplaceUrlState = {
-    buyer,
-    color: colorValue,
-    material,
-    finish,
-    origin,
-    stone: null,
-  };
-
-  const stone = requestedStone
-    ? catalog.find((item) => item.id === requestedStone.id && stoneMatchesState(item, partialState))
-    : null;
 
   return {
-    ...partialState,
-    stone: stone?.shareSlug ?? null,
+    buyer,
+    color,
+    material: allowedValue(params.get("material"), getMaterialFilterOptions(catalog)),
+    finish: allowedValue(params.get("finish"), getFinishFilterOptions(catalog)),
+    origin: allowedValue(params.get("origin"), getOriginFilterOptions(catalog)),
+    stone: requestedStone?.shareSlug ?? null,
   };
 }
 
@@ -134,10 +90,8 @@ export function serializeMarketplaceUrlState(
 
   const safe = parseMarketplaceUrlState(candidate, catalog);
   const serialized = new URLSearchParams();
-  if (!safe.buyer) return serialized;
-  serialized.set("buyer", safe.buyer);
-  if (!safe.color) return serialized;
-  serialized.set("color", safe.color);
+  if (safe.buyer) serialized.set("buyer", safe.buyer);
+  if (safe.color) serialized.set("color", safe.color);
   if (safe.material) serialized.set("material", safe.material);
   if (safe.finish) serialized.set("finish", safe.finish);
   if (safe.origin) serialized.set("origin", safe.origin);

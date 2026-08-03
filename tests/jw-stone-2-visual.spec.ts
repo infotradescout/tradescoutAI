@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -35,21 +35,53 @@ async function assertNoHorizontalOverflow(page: Page) {
 }
 
 async function screenshot(page: Page, name: string) {
-  await page.screenshot({
-    path: path.join(EVIDENCE_DIR, name),
-    fullPage: true,
-  });
+  await page.screenshot({ path: path.join(EVIDENCE_DIR, name), fullPage: false });
+}
+
+async function screenshotElement(locator: Locator, name: string) {
+  await locator.screenshot({ path: path.join(EVIDENCE_DIR, name) });
+}
+
+async function renderedCatalogIds(page: Page) {
+  return page.evaluate(() => [
+    ...Array.from(document.querySelectorAll("[data-stone-card]")).map((item) =>
+      item.getAttribute("data-stone-id")
+    ),
+    ...Array.from(document.querySelectorAll('[data-anonymous="true"]')).map((item) => {
+      const source = item.querySelector("img")?.getAttribute("src");
+      return source ? `anonymous:${source}` : null;
+    }),
+  ]);
+}
+
+async function expandCompleteCatalog(page: Page) {
+  const showMore = page.getByRole("button", { name: "Show more stones" });
+  for (let attempt = 0; attempt < 10 && (await showMore.isVisible()); attempt += 1) {
+    await showMore.click();
+  }
+  await expect(showMore).toBeHidden();
+  const ids = await renderedCatalogIds(page);
+  expect(ids).toHaveLength(148);
+  expect(new Set(ids).size).toBe(148);
+  return ids;
 }
 
 test.beforeAll(() => {
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
 });
 
-test("desktop preserves approved chrome and proves the below-hero luxury journey", async ({
-  page,
-}) => {
+test("desktop proves one storefront with four compact knowledge lenses", async ({ page }) => {
   test.setTimeout(180_000);
   const runtimeErrors = watchRuntime(page);
+  let requestSubmissions = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().includes("/api/tradepartner-profiles/jw-stone/express-request")
+    ) {
+      requestSubmissions += 1;
+    }
+  });
   await prepareStaticPreview(page);
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto("/jw-stone", { waitUntil: "networkidle" });
@@ -60,78 +92,91 @@ test("desktop preserves approved chrome and proves the below-hero luxury journey
   await expect(
     page.getByRole("heading", { name: "Natural stone, selected at the source." })
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Begin your selection" })).toBeVisible();
   await expect(
-    page.getByText("Stone discovery on your terms. Saving never starts a request.")
+    page.getByText("Search the full collection or ask JW Stone about your project.")
   ).toBeVisible();
-  await expect(page.getByText("Stone chosen around the way you see a project")).toHaveCount(0);
-  await expect(page.getByText("Begin with your point of view")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "First Cut Exclusives" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Current Inventory" })).toBeVisible();
+  await expect(page.locator("[data-stone-card]")).toHaveCount(24);
 
   const sectionOrder = await page.evaluate(() => {
-    const hero = document.querySelector('[data-testid="buyer-selection"]');
+    const hero = document.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = document.querySelector("#first-cut-title")?.closest("section");
-    const audience = document.querySelector("#choose-buyer");
-    if (!hero || !firstCut || !audience) return [];
-    return [hero, firstCut, audience].map((node) =>
+    const guide = document.querySelector('[data-testid="customer-path-guide"]');
+    const inventory = document.querySelector("#current-inventory");
+    if (!hero || !firstCut || !guide || !inventory) return [];
+    return [hero, firstCut, guide, inventory].map((node) =>
       Array.from(node.parentElement?.children || []).indexOf(node)
     );
   });
-  expect(sectionOrder[0]).toBeLessThan(sectionOrder[1]);
-  expect(sectionOrder[1]).toBeLessThan(sectionOrder[2]);
+  expect(sectionOrder).toHaveLength(4);
+  expect(sectionOrder).toEqual([...sectionOrder].sort((left, right) => left - right));
   await assertNoHorizontalOverflow(page);
-  await screenshot(page, "01-desktop-approved-shell.png");
+  await screenshot(page, "01-desktop-immediate-storefront.png");
 
-  await page.getByRole("button", { name: "Architects & Designers" }).click();
-  await page.getByRole("button", { name: /^Soft & Light/ }).click();
-  await expect(page.getByTestId("designer-workspace")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "JW Stone Picks" })).toBeVisible();
-  await expect(page.locator("[data-stone-card]")).toHaveCount(12);
+  const completeCatalogIds = await expandCompleteCatalog(page);
+  await expect(page.locator("[data-stone-card]")).toHaveCount(110);
+  await expect(page.locator('[data-anonymous="true"]')).toHaveCount(38);
+  const paths = [
+    ["Fabricators", "fabricator", "More documented selections"],
+    ["Builders & Developers", "builder", "More source records to review"],
+    ["Architects & Designers", "designer", "JW Stone Picks"],
+    ["Homeowners", "homeowner", "A starting edit"],
+  ] as const;
 
-  const materialFilter = page.getByLabel("Filter by material");
-  const finishFilter = page.getByLabel("Filter by finish");
-  await expect(materialFilter).toBeVisible();
-  await expect(finishFilter).toBeVisible();
-  for (const filter of [materialFilter, finishFilter]) {
-    expect(
-      await filter
-        .locator("option")
-        .evaluateAll((options) => options.every((option) => Boolean(option.textContent?.trim())))
-    ).toBe(true);
+  for (const [label, id, railTitle] of paths) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    const guide = page.getByTestId("customer-path-guide");
+    const panel = page.getByTestId("customer-path-panel");
+    await expect(panel).toHaveAttribute("data-customer-path", id);
+    await expect(panel.getByRole("heading", { name: railTitle })).toBeVisible();
+    await expect(panel.locator('a[target="_blank"]')).toHaveCount(2);
+    await expect(panel.locator('button[aria-label^="Open "]')).toHaveCount(6);
+    expect((await guide.boundingBox())?.height).toBeLessThan(520);
+    expect(await renderedCatalogIds(page)).toEqual(completeCatalogIds);
+    await expect(page.locator("[data-stone-card]")).toHaveCount(110);
+    expect(requestSubmissions).toBe(0);
+    await screenshotElement(guide, `02-desktop-${id}-guidance.png`);
   }
-  await finishFilter.selectOption("polished");
+
+  await page.getByLabel("Filter by finish").selectOption("polished");
   await expect(page).toHaveURL(/finish=polished/);
+  await expect(page).toHaveURL(/buyer=homeowner/);
   for (const card of await page.locator("[data-stone-card]").all()) {
     await expect(card).toContainText("Polished");
   }
-  await finishFilter.selectOption("");
-  expect(
-    await page
-      .locator("[data-stone-card] img")
-      .first()
-      .evaluate((image) => getComputedStyle(image).objectFit)
-  ).toBe("contain");
-
-  await page.getByRole("button", { name: "Show more stones" }).click();
-  expect(await page.locator("[data-stone-card]").count()).toBeGreaterThan(12);
-  await assertNoHorizontalOverflow(page);
-  await screenshot(page, "02-desktop-progressive-inventory.png");
 
   await page.goto("/jw-stone", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Homeowners" }).click();
-  await page.getByRole("button", { name: /^Bold & Expressive/ }).click();
+  await page
+    .locator('[data-stone-card] button[aria-label^="Open "][aria-label$=" gallery"]')
+    .first()
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page).toHaveURL(/stone=/);
+  await expect(page).not.toHaveURL(/buyer=|color=/);
+  await page.keyboard.press("Escape");
+
+  await page
+    .getByRole("button", { name: /^Save .* to saved stones$/ })
+    .first()
+    .click();
+  await expect(page.getByRole("button", { name: /Open saved stones, 1 saved/ })).toBeVisible();
+  expect(requestSubmissions).toBe(0);
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: /Open saved stones, 1 saved/ })).toBeVisible();
+
   const anonymous = page.locator('[data-anonymous="true"]').first();
   await expect(anonymous).toContainText("Call for availability");
   await expect(anonymous.getByRole("button", { name: /^Save / })).toHaveCount(0);
   expect(await anonymous.innerText()).not.toMatch(/Trending Selection\s+\d+|Unnamed slab/i);
   await assertNoHorizontalOverflow(page);
-  await screenshot(page, "03-desktop-trending-rail.png");
+  await screenshot(page, "03-desktop-saved-and-anonymous.png");
 
   expect(runtimeErrors).toEqual([]);
+  expect(requestSubmissions).toBe(0);
 });
 
-test("mobile keeps the approved shell, staged choices, gallery, and saved state usable", async ({
-  page,
-}) => {
+test("mobile keeps guidance compact, horizontal, and separate from inventory", async ({ page }) => {
   test.setTimeout(120_000);
   const runtimeErrors = watchRuntime(page);
   await prepareStaticPreview(page);
@@ -140,30 +185,69 @@ test("mobile keeps the approved shell, staged choices, gallery, and saved state 
 
   await expect(page.getByLabel("JW Stone marketplace home")).toBeVisible();
   await expect(page.getByRole("button", { name: "Ask JW" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "First Cut Exclusives" })).toBeVisible();
+  await expect(page.locator("[data-stone-card]")).toHaveCount(24);
   await assertNoHorizontalOverflow(page);
-  await screenshot(page, "04-mobile-approved-shell.png");
 
-  await page.getByRole("button", { name: "Homeowners" }).click();
-  const colorRail = page.getByLabel("Color directions");
-  await expect(colorRail).toBeVisible();
-  const colorRailBox = await colorRail.boundingBox();
-  expect(colorRailBox?.height).toBeLessThan(600);
-  const firstTwoChoices = await colorRail.locator("button").evaluateAll((buttons) =>
+  const firstCut = page
+    .getByRole("heading", { name: "First Cut Exclusives" })
+    .locator("xpath=ancestor::section");
+  expect((await firstCut.boundingBox())?.height).toBeLessThan(600);
+  const firstCutPositions = await page
+    .locator('[data-first-cut-placeholder="true"]')
+    .evaluateAll((positions) =>
+      positions.slice(0, 2).map((position) => {
+        const box = position.getBoundingClientRect();
+        return { x: box.x, y: box.y };
+      })
+    );
+  expect(firstCutPositions[1]?.x).toBeGreaterThan(firstCutPositions[0]?.x ?? 0);
+  expect(Math.abs((firstCutPositions[1]?.y ?? 0) - (firstCutPositions[0]?.y ?? 0))).toBeLessThan(2);
+
+  const toolbarButtons = await page
+    .getByTestId("customer-path-toolbar")
+    .locator("button")
+    .evaluateAll((buttons) =>
+      buttons.slice(0, 2).map((button) => {
+        const box = button.getBoundingClientRect();
+        return { x: box.x, y: box.y };
+      })
+    );
+  expect(toolbarButtons[1]?.x).toBeGreaterThan(toolbarButtons[0]?.x ?? 0);
+  expect(Math.abs((toolbarButtons[1]?.y ?? 0) - (toolbarButtons[0]?.y ?? 0))).toBeLessThan(2);
+
+  const guide = page.getByTestId("customer-path-guide");
+  const completeCatalogIds = await expandCompleteCatalog(page);
+  const paths = [
+    ["Fabricators", "fabricator"],
+    ["Builders & Developers", "builder"],
+    ["Architects & Designers", "designer"],
+    ["Homeowners", "homeowner"],
+  ] as const;
+
+  for (const [label, id] of paths) {
+    await page.getByRole("button", { name: label, exact: true }).click();
+    const panel = page.getByTestId("customer-path-panel");
+    await expect(panel).toHaveAttribute("data-customer-path", id);
+    expect((await guide.boundingBox())?.height).toBeLessThan(520);
+    await expect(panel.locator('a[target="_blank"]')).toHaveCount(2);
+    await expect(panel.locator('button[aria-label^="Open "]')).toHaveCount(6);
+    expect(await renderedCatalogIds(page)).toEqual(completeCatalogIds);
+    await assertNoHorizontalOverflow(page);
+    await screenshotElement(guide, `04-mobile-${id}-guidance.png`);
+  }
+
+  const panel = page.getByTestId("customer-path-panel");
+  const railItems = await panel.locator('button[aria-label^="Open "]').evaluateAll((buttons) =>
     buttons.slice(0, 2).map((button) => {
       const box = button.getBoundingClientRect();
       return { x: box.x, y: box.y };
     })
   );
-  expect(firstTwoChoices[1]?.x).toBeGreaterThan(firstTwoChoices[0]?.x ?? 0);
-  expect(Math.abs((firstTwoChoices[1]?.y ?? 0) - (firstTwoChoices[0]?.y ?? 0))).toBeLessThan(2);
-  await page.getByRole("button", { name: /^Warm & Earthy/ }).click();
-  await expect(page.getByTestId("homeowner-workspace")).toBeVisible();
-  await expect(page.locator("[data-stone-card]")).toHaveCount(12);
-  await assertNoHorizontalOverflow(page);
+  expect(railItems[1]?.x).toBeGreaterThan(railItems[0]?.x ?? 0);
+  expect(Math.abs((railItems[1]?.y ?? 0) - (railItems[0]?.y ?? 0))).toBeLessThan(2);
 
   await page
-    .getByRole("button", { name: /^Open .* gallery$/ })
+    .locator('[data-stone-card] button[aria-label^="Open "][aria-label$=" gallery"]')
     .first()
     .click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -177,7 +261,7 @@ test("mobile keeps the approved shell, staged choices, gallery, and saved state 
   await page.getByRole("button", { name: /Open saved stones, 1 saved/ }).click();
   await expect(page.getByRole("heading", { name: "Saved stones" })).toBeVisible();
   await assertNoHorizontalOverflow(page);
-  await screenshot(page, "05-mobile-workspace-and-saved-state.png");
+  await screenshot(page, "05-mobile-gallery-and-saved.png");
 
   expect(runtimeErrors).toEqual([]);
 });

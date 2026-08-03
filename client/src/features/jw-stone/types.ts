@@ -57,7 +57,7 @@ export type JwStoneCatalogItem = Readonly<{
 }>;
 
 export type CatalogFilters = Readonly<{
-  color: ColorDirectionId;
+  color?: ColorDirectionId | null;
   material?: string | null;
   finish?: string | null;
   origin?: string | null;

@@ -113,7 +113,7 @@ export function WishlistPanel({
               <Bookmark className="h-8 w-8 text-stone-400" aria-hidden="true" />
               <h3 className="mt-5 font-editorial text-3xl">Your selection is open</h3>
               <p className="mt-3 max-w-sm text-sm leading-6 text-stone-600">
-                Save any named stone from a buyer workspace. It will appear here when you return in
+                Save any named stone from the collection. It will appear here when you return in
                 this browser.
               </p>
               <button

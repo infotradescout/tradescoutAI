@@ -50,7 +50,13 @@ describe("JW Stone marketplace routing contract", () => {
     expect(pageSource).toContain(
       'import JWStoneMarketplace from "../features/jw-stone/JWStoneMarketplace";'
     );
-    expect(marketplaceSource).toContain('import { BuyerWorkspace } from "./BuyerWorkspace";');
+    expect(marketplaceSource).toContain('import { CustomerPathGuide } from "./CustomerPathGuide";');
+    expect(marketplaceSource).toContain('import { StoneCollection } from "./StoneCollection";');
+    expect(marketplaceSource).not.toMatch(/BuyerJourney|BuyerWorkspace/);
+    expect(fs.existsSync(path.resolve(process.cwd(), "client/src/features/jw-stone-2"))).toBe(
+      false
+    );
+    expect(fs.existsSync(path.resolve(process.cwd(), "client/src/pages/jw-stone-2"))).toBe(false);
     expect(routesSource).not.toContain('RedirectTo to="/jw-stone"');
     expect(profileSource).not.toContain("features/jw-stone/JWStoneMarketplace");
   });

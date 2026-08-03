@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import type { BuyerType, JwStoneCatalogItem } from "./types";
+import type { JwStoneCatalogItem } from "./types";
 
 type StoneDetailDialogProps = {
   stone: JwStoneCatalogItem | null;
-  buyer: BuyerType;
   saved: boolean;
   onOpenChange: (open: boolean) => void;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
@@ -14,7 +13,6 @@ type StoneDetailDialogProps = {
 
 export function StoneDetailDialog({
   stone,
-  buyer,
   saved,
   onOpenChange,
   onToggleSaved,
@@ -118,13 +116,7 @@ export function StoneDetailDialog({
 
           <div className="flex flex-col p-6 sm:p-9 lg:p-10">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-200">
-              {buyer === "designer"
-                ? "Designer selection"
-                : buyer === "fabricator"
-                  ? "Fabricator detail"
-                  : buyer === "builder"
-                    ? "Project detail"
-                    : "Stone detail"}
+              Stone detail
             </p>
             <DialogTitle className="mt-4 font-editorial text-4xl font-normal leading-none text-stone-50 sm:text-5xl">
               {stone.publicLabel}
@@ -149,9 +141,14 @@ export function StoneDetailDialog({
               ) : null}
               {stone.sourceEvidence ? (
                 <div className="flex justify-between gap-5 py-4">
-                  <dt className="text-stone-400">Source bundle counts</dt>
-                  <dd className="text-right font-semibold">
-                    {stone.sourceEvidence.counts.join(" · ")}
+                  <dt className="text-stone-400">Recorded source counts</dt>
+                  <dd className="text-right">
+                    <span className="block font-semibold">
+                      {stone.sourceEvidence.counts.join(" · ")}
+                    </span>
+                    <span className="mt-1 block text-xs text-stone-500">
+                      Source-file evidence, not live quantity.
+                    </span>
                   </dd>
                 </div>
               ) : null}

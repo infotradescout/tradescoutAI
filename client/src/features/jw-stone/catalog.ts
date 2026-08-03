@@ -188,7 +188,7 @@ export function filterJwStoneCatalog(
   catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
 ): JwStoneCatalogItem[] {
   return catalog.filter((stone) => {
-    if (stone.colorDirection !== filters.color) return false;
+    if (filters.color && stone.colorDirection !== filters.color) return false;
     if (filters.material && stone.materialId !== filters.material) return false;
     if (
       filters.finish &&

@@ -1,12 +1,12 @@
 # Build Contract: jw-stone-marketplace
 
-Verdict: definition locked; build awaiting controlled transition  
-Base revision: `999481b602c2f99499c69a0c90b3840d4af0a158`  
-Lock version: `1.0.0`
+Verdict: amended definition locked; implementation must replace the rejected staged model
+Base revision: `10cbc151c6952904cdd32a5d6205fee890614d9a`
+Lock version: `1.1.1`
 
 ## Included requirements and protected unchanged behavior
 
-This build owns JW-ROUTE, JW-JOURNEY, JW-WORKSPACES, JW-INVENTORY, JW-FIRST-CUT, JW-ORIGIN, JW-WISHLIST, JW-CARDS, JW-DIRECT-CONNECT, JW-A11Y, JW-SEO, and JW-PROTECT.
+This build owns JW-ROUTE, JW-JOURNEY, JW-GUIDANCE, JW-INVENTORY, JW-FIRST-CUT, JW-ORIGIN, JW-WISHLIST, JW-CARDS, JW-DIRECT-CONNECT, JW-A11Y, JW-SEO, and JW-PROTECT.
 
 Protected unchanged behavior includes `/u/jw-stone`, the JW custom-domain renderer, profile editing, existing inventory routes, database presentation settings, all non-JW profiles, scalar Direct Connect consumers, production, DNS, and `main`.
 
@@ -18,8 +18,8 @@ It depends on the canonical JW inventory and safe-name modules plus the existing
 
 ## Positive, negative, concurrency, recovery, and rollback proof
 
-Positive proof covers route reachability, strict staged discovery, four workspaces, named and anonymous catalog presentation, origin fixtures, First Cut placeholders, wishlist persistence, accessible galleries, safe contact, metadata, sitemap, and responsive browser journeys.
+Positive proof covers route reachability, immediate real inventory, one-click details, four compact sourced guidance paths, validated recommended named stones, independent optional refinements and URLs, named and anonymous catalog presentation, origin fixtures, First Cut placeholders, wishlist persistence, accessible galleries, safe contact, metadata, sitemap, and responsive browser journeys.
 
-Negative proof covers current-profile changes, buyer-gating bypass, public price, synthetic names, unsupported facts, invented origin, placeholder leakage, storage corruption and failure, automatic contact, unsafe request context, overlay bleed, runtime warnings, and horizontal overflow.
+Negative proof covers current-profile or protected-chrome changes, inventory withholding, required audience/color input, viewport-height guidance, workspace/page swapping, unsourced knowledge, unsupported recommendations, public price, synthetic names, unsupported facts, invented origin, placeholder leakage, storage corruption and failure, automatic contact, unsafe request context, overlay bleed, runtime warnings, and horizontal overflow.
 
 Concurrent wishlist updates remain bounded and safe across state transitions and storage events. Invalid URL and storage state recover to a usable stage. Rollback before release is branch closure; a later application release can be reverted without a data migration.
