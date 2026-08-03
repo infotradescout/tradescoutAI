@@ -99,6 +99,7 @@ describe("onboarding-created profile trust boundary", () => {
     );
     expect(searchPredicate).toContain("${profiles.businessId} IS NULL");
     expect(searchPredicate).toContain("${users.verifiedBadge} = true");
+    expect(searchPredicate).toContain("${users.verificationStatus}::text");
     expect(searchPredicate).toContain("'approved'");
     expect(searchPredicate).toContain("JRS_PROFILE_SLUG");
     expect(searchPredicate).toContain("PRO_FAB_PROFILE_SLUG");
