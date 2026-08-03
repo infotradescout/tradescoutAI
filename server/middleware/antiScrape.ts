@@ -106,6 +106,7 @@ export async function antiScrapeShield(req: Request, res: Response, next: NextFu
     /^\/robots\.txt$/i,
     /^\/llms\.txt$/i,
     /^\/sitemap.*\.xml$/i,
+    /^\/api\/profiles\/public-search$/i,
     /^\/business\//i,
     /^\/trade\//i,
     /^\/city\//i,
