@@ -80,6 +80,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import { buildPublicJwStoneMarketplaceHtml } from "./publicJwStoneMarketplaceHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
@@ -1641,6 +1642,32 @@ app.use(landingContractHeaders);
                   },
                 })
               );
+
+              // JW Stone 2.0 is a separate platform-hosted experience. The
+              // custom-domain authority middleware runs earlier and continues
+              // to own every request made to JW Stone's configured profile host.
+              app.get("/jw-stone", async (_req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(503).send("Application temporarily unavailable");
+                  }
+
+                  const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering JW Stone marketplace HTML:", err);
+                  return sendPublicPageRenderFailure(
+                    res,
+                    "Failed to render JW Stone marketplace"
+                  );
+                }
+              });
 
               // Public helper profiles: server-rendered metadata lets shared
               // portfolio links advertise the exact work photo before React loads.

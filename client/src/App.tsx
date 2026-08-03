@@ -99,14 +99,16 @@ const AppLayout = memo(function AppLayout() {
   const isShareRoute = pathOnly.startsWith("/r/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
+  const isJwStoneMarketplaceRoute = pathOnly === "/jw-stone";
   const isPublicProfileRoute =
-    (/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
+    isJwStoneMarketplaceRoute ||
+    ((/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/p\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/business\/[^/]+$/.test(pathOnly) ||
       /^\/contractors\/[^/]+$/.test(pathOnly) ||
       /^\/helpers\/[^/]+$/.test(pathOnly) ||
       /^\/profile\/[^/]+$/.test(pathOnly)) &&
-    !pathOnly.endsWith("/edit");
+      !pathOnly.endsWith("/edit"));
 
   const isStandaloneProfileRoute =
     (/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
@@ -266,6 +268,7 @@ const AppLayout = memo(function AppLayout() {
               isPublicCampaignRoute={isPublicCampaignRoute}
               isPublicRootLanding={isPublicRootLanding}
               isShareRoute={isShareRoute}
+              isJwStoneMarketplaceRoute={isJwStoneMarketplaceRoute}
               isStandaloneProfileRoute={isStandaloneProfileRoute}
               isCustomDomainProfileRoute={isCustomDomainProfileRoute}
             />
@@ -276,21 +279,21 @@ const AppLayout = memo(function AppLayout() {
       {/* Global components - CONTENT ONLY, NO NAV (AppShell owns all navigation) */}
 
       {/* Preferred Source Prompt - earned at 5 completed actions */}
-      {isAuthenticated && user?.id && (
+      {!isJwStoneMarketplaceRoute && isAuthenticated && user?.id && (
         <Suspense fallback={null}>
           <PreferredSourcePrompt userId={user.id} onClose={() => {}} />
         </Suspense>
       )}
 
       {/* Hold-to-Explain (ships dark behind flag) */}
-      {FEATURE_HOLD_TO_EXPLAIN && (
+      {!isJwStoneMarketplaceRoute && FEATURE_HOLD_TO_EXPLAIN && (
         <Suspense fallback={null}>
           <HoldToExplainProvider />
         </Suspense>
       )}
 
       {/* One-time Hold explainer (ships dark behind flag) */}
-      {FEATURE_HOLD_INTRO_TUTORIAL && (
+      {!isJwStoneMarketplaceRoute && FEATURE_HOLD_INTRO_TUTORIAL && (
         <Suspense fallback={null}>
           <HoldIntroTutorial />
         </Suspense>
@@ -344,10 +347,12 @@ const AppLayout = memo(function AppLayout() {
           </Suspense>
         )}
 
-      {/* Bug report tool - always available */}
-      <Suspense fallback={null}>
-        <SimpleBugReportTool />
-      </Suspense>
+      {/* Keep the flagship JW experience free of platform overlays. */}
+      {!isJwStoneMarketplaceRoute && (
+        <Suspense fallback={null}>
+          <SimpleBugReportTool />
+        </Suspense>
+      )}
     </SimpleMobileGestures>
   );
 });
