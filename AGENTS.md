@@ -43,6 +43,12 @@ This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, c
 - Any change affecting trust/exposure MUST route through Trust/CVS logic (no bypass).
 - Any production user-facing copy MUST remain TradeScout-only (no cross-product brand mentions) unless explicitly approved and documented as an exception.
 
+## 2a) JW Stone lane isolation (required)
+- New JW Stone work MUST use branches named `jw-stone/<topic>` created from `origin/main`.
+- Do not put JW marketplace, profile, inventory, passport, demand-brief, or JW strategy work on Dean recovery, non-JW remediation, or unrelated TradeScout platform branches.
+- Canonical lane rules and strategy: `docs/jw-stone/`.
+- Platform-law fixes that only incidentally help JW stay on TradeScout platform branches, not `jw-stone/*`.
+
 ## 3) Definition of done (TradeScout)
 - Feature works end-to-end for at least one county path.
 - No regressions in gating.

@@ -1,0 +1,14 @@
+---
+description: Isolate JW Stone work onto jw-stone/* branches so TradeScout core stays stable
+alwaysApply: true
+---
+
+# JW Stone branch isolation
+
+- New JW Stone work (marketplace, `/u/jw-stone`, inventory assets, Stone Passport, demand briefs, JW strategy docs, JW SI build) MUST use a branch named `jw-stone/<topic>` created from `origin/main`.
+- Do NOT implement JW changes on `fix/dean-damaskos-profile-recovery`, `codex/non-jw-release-remediation-*`, or unrelated TradeScout platform branches.
+- Do NOT extend legacy `codex/jw-stone-*`, `agent/jw-stone-*`, or `feature/jw-stone-2-0` branches; port needed work to a fresh `jw-stone/<topic>` from `origin/main`.
+- Keep JW PRs JW-scoped. Platform law / shared search / anti-scrape fixes belong on TradeScout platform branches even if JW benefits.
+- Canonical docs: `docs/jw-stone/README.md`, `docs/jw-stone/BRANCH_LANES.md`, `docs/jw-stone/CLOSED_LOOP_STRATEGY.md`.
+- Role truth for JW strategy: JW sources (30-year expert); Levon sells; fabricators, architects, designers, builders, and homeowners are all customers.
+- Merge to `main` deploys production — JW UI needs local preview and explicit owner GO.
