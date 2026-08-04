@@ -2,9 +2,9 @@ import { formatTradeScoutTitle } from "@shared/brand";
 
 export const JW_STONE_MARKETPLACE_CANONICAL_URL = "https://www.thetradescout.com/jw-stone";
 
-const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Guided Stone Discovery");
+const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Browse JW Stone's supplied stone catalog, open full photo galleries, save named selections, and use optional source-backed guidance before choosing when to start a request.";
+  "Browse JW Stone's supplied stone catalog, open full photo galleries, learn the basics of natural stone, save named selections, and ask about a material when you are ready.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
@@ -63,8 +63,8 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p>${description}</p>
     <h2>Current Inventory</h2>
     <p>Review supplied stone photographs, confirmed material and finish where listed, and recorded source evidence. Catalog presence and source counts do not confirm live availability.</p>
-    <h2>Guidance when you need it</h2>
-    <p>Fabricators, Builders &amp; Developers, Architects &amp; Designers, and Homeowners can open concise source-backed selection guidance without hiding or filtering the catalog.</p>
+    <h2>Learn about stone</h2>
+    <p>Read short, sourced basics about natural stone variation, finish, layout, and care—then ask JW Stone about a selection when you are ready.</p>
     <p>Stone discovery on your terms. Saving never starts a request.</p>
   </article>
 </main>`;
@@ -171,7 +171,7 @@ export function buildPublicJwStoneMarketplaceHtml(
   return injectJsonLd(html, {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "JW Stone | Guided Stone Discovery",
+    name: "JW Stone | Stone Discovery",
     description: JW_STONE_MARKETPLACE_DESCRIPTION,
     url: JW_STONE_MARKETPLACE_CANONICAL_URL,
     image: JW_STONE_MARKETPLACE_IMAGE_URL,

@@ -33,10 +33,10 @@ export function MarketplaceIntroduction() {
               Search the full collection or ask JW Stone about your project.
             </p>
             <a
-              href="#choose-buyer"
+              href="#current-inventory"
               className="mt-9 inline-flex min-h-12 items-center bg-stone-100 px-6 font-bold text-stone-950 hover:bg-white"
             >
-              Begin your selection
+              Browse current inventory
             </a>
           </div>
         </div>

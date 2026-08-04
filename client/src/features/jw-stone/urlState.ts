@@ -6,12 +6,7 @@ import {
   toCatalogFilterValue,
 } from "./catalog";
 import { isColorDirectionId } from "./colorDirections";
-import {
-  BUYER_TYPES,
-  type BuyerType,
-  type JwStoneCatalogItem,
-  type MarketplaceUrlState,
-} from "./types";
+import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 
 const RELEASED_COLOR_ALIASES: Readonly<Record<string, MarketplaceUrlState["color"]>> = {
   "warm-neutrals": "warm-earthy",
@@ -19,10 +14,6 @@ const RELEASED_COLOR_ALIASES: Readonly<Record<string, MarketplaceUrlState["color
   "green-earth": "bold-expressive",
   "mixed-palette": "bold-expressive",
 };
-
-function isBuyerType(value: unknown): value is BuyerType {
-  return typeof value === "string" && (BUYER_TYPES as readonly string[]).includes(value);
-}
 
 function toSearchParams(input: string | URLSearchParams): URLSearchParams {
   if (input instanceof URLSearchParams) return new URLSearchParams(input);
@@ -49,8 +40,7 @@ export function parseMarketplaceUrlState(
   catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
 ): MarketplaceUrlState {
   const params = toSearchParams(input);
-  const buyerValue = params.get("buyer");
-  const buyer: BuyerType | null = isBuyerType(buyerValue) ? buyerValue : null;
+  // Legacy ?buyer= is ignored — customer-path theater is removed.
   const rawColor = params.get("color");
   const requestedStoneValue = params.get("stone");
   const requestedStone = requestedStoneValue
@@ -67,7 +57,6 @@ export function parseMarketplaceUrlState(
       : null;
 
   return {
-    buyer,
     color,
     material: allowedValue(params.get("material"), getMaterialFilterOptions(catalog)),
     finish: allowedValue(params.get("finish"), getFinishFilterOptions(catalog)),
@@ -81,7 +70,6 @@ export function serializeMarketplaceUrlState(
   catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
 ): URLSearchParams {
   const candidate = new URLSearchParams();
-  if (state.buyer) candidate.set("buyer", state.buyer);
   if (state.color) candidate.set("color", state.color);
   if (state.material) candidate.set("material", state.material);
   if (state.finish) candidate.set("finish", state.finish);
@@ -90,7 +78,6 @@ export function serializeMarketplaceUrlState(
 
   const safe = parseMarketplaceUrlState(candidate, catalog);
   const serialized = new URLSearchParams();
-  if (safe.buyer) serialized.set("buyer", safe.buyer);
   if (safe.color) serialized.set("color", safe.color);
   if (safe.material) serialized.set("material", safe.material);
   if (safe.finish) serialized.set("finish", safe.finish);

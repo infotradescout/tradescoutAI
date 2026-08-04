@@ -70,7 +70,7 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneC
           src={stone.images[0]}
           alt={alt}
           loading="lazy"
-          className="h-full w-full object-contain"
+          className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
         />
         <span className="absolute bottom-3 right-3 inline-flex h-10 w-10 items-center justify-center bg-stone-950/85 text-white">
           <Expand className="h-4 w-4" aria-hidden="true" />

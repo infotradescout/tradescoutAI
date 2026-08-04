@@ -3,24 +3,24 @@ import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
-import { CustomerPathGuide } from "./CustomerPathGuide";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceHeader } from "./MarketplaceHeader";
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
+import { StoneLearningSection } from "./StoneLearningSection";
 import { WishlistPanel } from "./WishlistPanel";
 import { getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
-import type { BuyerType, JwStoneCatalogItem } from "./types";
+import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_CANONICAL_URL = "https://www.thetradescout.com/jw-stone";
 const JW_STONE_DESCRIPTION =
-  "Browse JW Stone's supplied stone catalog, open full photo galleries, save named selections, and use optional source-backed guidance before choosing when to start a request.";
+  "Browse JW Stone's supplied stone catalog, open full photo galleries, learn the basics of natural stone, save named selections, and ask about a material when you are ready.";
 const JW_STONE_COLLECTION_DATA = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  name: "JW Stone | Guided Stone Discovery",
+  name: "JW Stone | Stone Discovery",
   description: JW_STONE_DESCRIPTION,
   url: JW_STONE_CANONICAL_URL,
   image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
@@ -47,10 +47,6 @@ export default function JWStoneMarketplace() {
       ),
     [requestContext]
   );
-
-  const chooseBuyer = (buyer: BuyerType) => {
-    commit({ ...state, buyer, stone: null });
-  };
 
   const closeStone = () => {
     setAnonymousDetailId(null);
@@ -81,8 +77,8 @@ export default function JWStoneMarketplace() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-stone-100 font-sans text-stone-950">
       <SEOHelmet
-        title="JW Stone | Guided Stone Discovery"
-        socialTitle="JW Stone | Guided Stone Discovery"
+        title="JW Stone | Stone Discovery"
+        socialTitle="JW Stone | Stone Discovery"
         description={JW_STONE_DESCRIPTION}
         canonical={JW_STONE_CANONICAL_URL}
         ogType="website"
@@ -100,14 +96,6 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
 
-      <CustomerPathGuide
-        selectedPath={state.buyer}
-        onSelectPath={(buyer) =>
-          buyer ? chooseBuyer(buyer) : commit({ ...state, buyer: null, stone: null })
-        }
-        onOpenStone={openStone}
-      />
-
       <StoneCollection
         state={state}
         savedCount={wishlist.count}
@@ -117,6 +105,8 @@ export default function JWStoneMarketplace() {
         onOpen={openStone}
         onAsk={(stone) => startRequest(stone.wishlistEligible ? [stone] : [])}
       />
+
+      <StoneLearningSection />
 
       <footer className="border-t border-stone-300 bg-stone-100 px-5 py-10 sm:px-8 lg:px-12">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between">

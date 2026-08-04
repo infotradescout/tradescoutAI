@@ -19,6 +19,10 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 - `.selective-intelligence/builds/jw-stone-marketplace/`
 - JW runbooks under `docs/runbooks/JW_STONE_*` and audits under `docs/audits/JW_STONE_*`
 
+## Public storefront reset (2026-08-04)
+
+`/jw-stone` is **catalog-first** with a proportional Learn about stone section. The customer-path guide / buyer-type theater is void (SI lock `1.2.0`). Branch lane for that work: `jw-stone/marketplace-end-user-reset`.
+
 ## Owner rule
 
 Merge JW changes to `main` only with explicit GO and JW-scoped evidence. Merge to `main` deploys production.

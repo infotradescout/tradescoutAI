@@ -1,10 +1,6 @@
 import type { JwStoneMaterialStatus } from "@/data/jwStoneInventory";
 import type { JwStoneInventoryNameStatus } from "@shared/jwStonePresentation";
 
-export const BUYER_TYPES = ["fabricator", "builder", "designer", "homeowner"] as const;
-
-export type BuyerType = (typeof BUYER_TYPES)[number];
-
 export const COLOR_DIRECTION_IDS = [
   "soft-light",
   "warm-earthy",
@@ -70,7 +66,6 @@ export type CatalogFilterOption = Readonly<{
 }>;
 
 export type MarketplaceUrlState = Readonly<{
-  buyer: BuyerType | null;
   color: ColorDirectionId | null;
   material: string | null;
   finish: string | null;

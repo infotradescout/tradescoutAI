@@ -54,9 +54,9 @@ describe("JW Stone marketplace public HTML", () => {
     expect(jsonLd).toEqual({
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: "JW Stone | Guided Stone Discovery",
+      name: "JW Stone | Stone Discovery",
       description:
-        "Browse JW Stone's supplied stone catalog, open full photo galleries, save named selections, and use optional source-backed guidance before choosing when to start a request.",
+        "Browse JW Stone's supplied stone catalog, open full photo galleries, learn the basics of natural stone, save named selections, and ask about a material when you are ready.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
     });
@@ -70,14 +70,12 @@ describe("JW Stone marketplace public HTML", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
-    expect(html).toContain("Fabricators");
-    expect(html).toContain("Builders");
-    expect(html).toContain("Designers");
-    expect(html).toContain("Homeowners");
-    expect(html).toContain("Guidance when you need it");
+    expect(html).toContain("Learn about stone");
     expect(html).toContain("Current Inventory");
     expect(html).toContain("do not confirm live availability");
     expect(html).toContain("Saving never starts a request");
+    expect(html).not.toContain("Guidance when you need it");
+    expect(html).not.toContain("customer-path");
     expect(html).not.toContain("Stone chosen around the way you see a project");
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);
     expect(html).not.toMatch(/\bProduct\b|\bOffer\b|\$\d|priceRange/i);

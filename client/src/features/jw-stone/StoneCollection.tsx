@@ -93,7 +93,9 @@ export function StoneCollection({
               Current Inventory
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600">
-              Recorded source counts are source-file evidence, not live quantity or availability.
+              Browse supplied photographs and facts. Recorded source counts are source-file
+              evidence, not live quantity or availability. Ask JW Stone to confirm what is on hand
+              for your project.
             </p>
           </div>
           <dl className="flex border border-stone-300 bg-white text-center">
@@ -115,7 +117,7 @@ export function StoneCollection({
 
       <section
         aria-label="Stone filters"
-        className="border-y border-stone-300 bg-white px-5 py-4 sm:px-8 lg:px-12"
+        className="sticky top-20 z-20 border-y border-stone-300 bg-white/95 px-5 py-4 backdrop-blur-sm sm:px-8 lg:px-12"
       >
         <div className="mx-auto grid max-w-7xl gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="relative block sm:col-span-2 lg:col-span-1">

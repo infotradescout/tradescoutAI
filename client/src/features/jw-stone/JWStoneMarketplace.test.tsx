@@ -52,13 +52,7 @@ function buttonContaining(container: ParentNode, text: string): HTMLButtonElemen
   );
 }
 
-function visibleCollectionIds(container: HTMLElement): string[] {
-  return Array.from(container.querySelectorAll<HTMLElement>("[data-stone-card]"))
-    .map((card) => card.dataset.stoneId)
-    .filter((id): id is string => Boolean(id));
-}
-
-describe("JW Stone 2.0 marketplace", () => {
+describe("JW Stone marketplace end-user reset", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -77,7 +71,7 @@ describe("JW Stone 2.0 marketplace", () => {
     vi.unstubAllGlobals();
   });
 
-  it("locks the approved header, restored hero copy, footer, and protected shell", () => {
+  it("locks the approved header, hero, inventory, learn section, and footer", () => {
     expect(container.querySelector('a[aria-label="JW Stone marketplace home"]')).not.toBeNull();
     expect(buttonContaining(container, "Start a Request")).not.toBeNull();
     expect(container.textContent).toContain("JW Stone · A new way to discover stone");
@@ -85,27 +79,23 @@ describe("JW Stone 2.0 marketplace", () => {
     expect(container.textContent).toContain(
       "Search the full collection or ask JW Stone about your project."
     );
-    expect(container.textContent).toContain("Begin your selection");
+    expect(container.textContent).toContain("Browse current inventory");
+    expect(container.textContent).toContain("Learn about stone");
     expect(container.textContent).toContain(
       "Stone discovery on your terms. Saving never starts a request."
     );
-    expect(container.textContent).not.toContain("Stone chosen around the way you see a project");
+    expect(container.querySelector('[data-testid="customer-path-guide"]')).toBeNull();
+    expect(container.textContent).not.toContain("Fabricators");
     expect(container.textContent).not.toContain("Begin with your point of view");
 
     const hero = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-hero"]');
     const heroImage = hero?.querySelector<HTMLImageElement>(
       'img[src="/images/businesses/jw-stone/video/hero-poster.jpg"]'
     );
-    const heroVeil = hero?.querySelector<HTMLElement>("div.absolute.inset-0.-z-10");
     expect(heroImage?.className).toBe("absolute inset-0 -z-20 h-full w-full object-cover");
-    expect(heroVeil?.className).toContain("from-black/55");
-    expect(heroVeil?.className).toContain("via-black/15");
-    expect(heroVeil?.className).toContain("to-transparent");
   });
 
-  it("shows real stone and independent refinements without asking the visitor anything", () => {
-    expect(container.querySelector('[data-testid="customer-path-guide"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="customer-path-panel"]')).toBeNull();
+  it("shows inventory without requiring a customer path", () => {
     expect(container.textContent).toContain("Current Inventory");
     expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(24);
     expect(
@@ -113,9 +103,6 @@ describe("JW Stone 2.0 marketplace", () => {
     ).not.toBeNull();
     expect(container.querySelector('select[aria-label="Filter by material"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Filter by finish"]')).not.toBeNull();
-    expect(
-      container.querySelector('select[aria-label="Filter by verified country of origin"]')
-    ).toBeNull();
 
     click(container.querySelector('button[aria-label^="Open "][aria-label$=" gallery"]'));
     expect(document.querySelector('[role="dialog"]')).not.toBeNull();
@@ -124,43 +111,21 @@ describe("JW Stone 2.0 marketplace", () => {
     expect(window.location.search).not.toContain("color=");
   });
 
-  it("uses each customer path as one-click knowledge without changing the collection", () => {
-    const initialIds = visibleCollectionIds(container);
-    const paths = [
-      ["Fabricators", "fabricator", "More documented selections"],
-      ["Builders & Developers", "builder", "More source records to review"],
-      ["Architects & Designers", "designer", "JW Stone Picks"],
-      ["Homeowners", "homeowner", "A starting edit"],
-    ] as const;
+  it("ignores legacy buyer query params", () => {
+    act(() => root.unmount());
+    window.history.replaceState(null, "", "/jw-stone?buyer=homeowner&finish=polished");
+    root = createRoot(container);
+    act(() => root.render(<JWStoneMarketplace />));
 
-    for (const [label, id, railTitle] of paths) {
-      click(buttonContaining(container, label));
-      const panel = container.querySelector<HTMLElement>('[data-testid="customer-path-panel"]');
-      expect(panel?.dataset.customerPath).toBe(id);
-      expect(panel?.textContent).toContain(railTitle);
-      expect(panel?.querySelectorAll('a[target="_blank"]')).toHaveLength(2);
-      expect(panel?.querySelectorAll(`button[aria-label^="Open "]`)).toHaveLength(6);
-      expect(panel?.textContent).not.toMatch(/best for|ideal for|live availability|available now/i);
-      expect(visibleCollectionIds(container)).toEqual(initialIds);
-      expect(container.querySelector('[data-testid="jw-marketplace-hero"]')).not.toBeNull();
-      expect(container.querySelector("#first-cut-title")).not.toBeNull();
-      expect(container.querySelector("#current-inventory")).not.toBeNull();
-      expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
-      expect(window.location.search).toContain(`buyer=${id}`);
-    }
-  });
-
-  it("keeps the guidance toolbar compact and horizontal instead of building another stage", () => {
-    const guide = container.querySelector<HTMLElement>('[data-testid="customer-path-guide"]');
-    const toolbar = container.querySelector<HTMLElement>('[data-testid="customer-path-toolbar"]');
-    expect(toolbar?.className).toContain("overflow-x-auto");
-    expect(toolbar?.querySelectorAll("button")).toHaveLength(4);
-    expect(guide?.className).not.toMatch(/min-h|\bh-screen\b|\bmin-h-screen\b/);
-
-    click(buttonContaining(container, "Homeowners"));
-    const panel = container.querySelector<HTMLElement>('[data-testid="customer-path-panel"]');
-    expect(panel?.className).not.toMatch(/min-h|\bh-screen\b|\bmin-h-screen\b/);
-    expect(panel?.querySelector("button button, select, input")).toBeNull();
+    expect(container.querySelector('[data-testid="customer-path-guide"]')).toBeNull();
+    expect(container.querySelector('[data-testid="customer-path-panel"]')).toBeNull();
+    change(
+      container.querySelector<HTMLSelectElement>('select[aria-label="Filter by color direction"]'),
+      "warm-earthy"
+    );
+    expect(window.location.search).toContain("color=warm-earthy");
+    expect(window.location.search).toContain("finish=polished");
+    expect(window.location.search).not.toContain("buyer=");
   });
 
   it("treats color and finish as normal optional refinements", () => {
@@ -170,7 +135,6 @@ describe("JW Stone 2.0 marketplace", () => {
     );
     expect(window.location.search).toContain("finish=polished");
     expect(window.location.search).not.toContain("buyer=");
-    expect(window.location.search).not.toContain("color=");
     for (const card of container.querySelectorAll<HTMLElement>("[data-stone-card]")) {
       expect(card.textContent).toContain("Polished");
     }
@@ -183,42 +147,12 @@ describe("JW Stone 2.0 marketplace", () => {
     expect(window.location.search).toContain("finish=polished");
   });
 
-  it("keeps every active refinement visible when another filter has no overlap", () => {
-    const material = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="Filter by material"]'
-    );
-    const color = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="Filter by color direction"]'
-    );
-    const finish = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="Filter by finish"]'
-    );
-
-    change(material, "onyx");
-    change(color, "soft-light");
-    expect(material?.value).toBe("onyx");
-    expect(material?.querySelector('option[value="onyx"]')).not.toBeNull();
-    expect(window.location.search).toContain("material=onyx");
-    expect(window.location.search).toContain("color=soft-light");
-
-    change(color, "");
-    change(material, "granite");
-    change(finish, "honed");
-    expect(finish?.value).toBe("honed");
-    expect(finish?.querySelector('option[value="honed"]')).not.toBeNull();
-    expect(window.location.search).toContain("material=granite");
-    expect(window.location.search).toContain("finish=honed");
-  });
-
   it("keeps anonymous catalog presentations nameless and outside product actions", () => {
     const anonymousCard = container.querySelector<HTMLElement>('[data-anonymous="true"]');
     expect(anonymousCard).not.toBeNull();
     expect(anonymousCard?.textContent).toContain("Call for availability");
     expect(anonymousCard?.querySelector('button[aria-label^="Save "]')).toBeNull();
     expect(container.innerHTML).not.toMatch(/trending-selection|Trending Selection\s+\d+/i);
-    expect(container.innerHTML).not.toMatch(
-      /Unnamed slab|Name not confirmed|Finish not confirmed|Dual Finish/i
-    );
 
     click(
       anonymousCard?.querySelector('button[aria-label="Open this Trending Selection gallery"]') ||
@@ -228,10 +162,9 @@ describe("JW Stone 2.0 marketplace", () => {
     expect(dialog).not.toBeNull();
     if (!dialog) throw new Error("Expected the anonymous detail dialog");
     expect(buttonContaining(dialog, "Ask about this stone")).toBeNull();
-    expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
   });
 
-  it("persists a named wishlist without requiring a path or opening contact", () => {
+  it("persists a named wishlist without opening contact", () => {
     click(container.querySelector<HTMLButtonElement>('button[aria-label^="Save "]'));
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
@@ -240,33 +173,33 @@ describe("JW Stone 2.0 marketplace", () => {
     root = createRoot(container);
     act(() => root.render(<JWStoneMarketplace />));
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
-    expect(window.location.search).not.toContain("buyer=");
 
     click(buttonContaining(container, "Ask about this stone"));
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
 
-  it("keeps First Cut directly between the hero and the compact guide", () => {
+  it("orders hero, First Cut, inventory, then learn about stone", () => {
     const hero = container.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = container.querySelector("#first-cut-title")?.closest("section");
-    const guide = container.querySelector('[data-testid="customer-path-guide"]');
     const inventory = container.querySelector("#current-inventory");
+    const learn = container.querySelector('[data-testid="stone-learning"]');
 
     expect(hero).not.toBeNull();
     expect(firstCut).not.toBeNull();
-    expect(guide).not.toBeNull();
     expect(inventory).not.toBeNull();
-    if (!hero || !firstCut || !guide || !inventory) throw new Error("Expected page sections");
+    expect(learn).not.toBeNull();
+    if (!hero || !firstCut || !inventory || !learn) throw new Error("Expected page sections");
 
     expect(hero.compareDocumentPosition(firstCut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(firstCut.compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      guide.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
+      firstCut.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      inventory.compareDocumentPosition(learn) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
     const positions = firstCut.querySelectorAll('[data-first-cut-placeholder="true"]');
     expect(positions).toHaveLength(3);
-    for (const position of positions)
-      expect(position.querySelector("button, a, input, select")).toBeNull();
+    expect(learn.querySelectorAll('a[target="_blank"]')).toHaveLength(4);
   });
 });

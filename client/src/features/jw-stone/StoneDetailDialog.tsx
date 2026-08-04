@@ -160,6 +160,18 @@ export function StoneDetailDialog({
               ) : null}
             </dl>
 
+            <p className="mt-6 text-sm leading-6 text-stone-400">
+              Full slabs vary from small samples.{" "}
+              <a
+                href="#learn-about-stone"
+                className="font-semibold text-amber-100 underline decoration-amber-100/40 underline-offset-4 hover:decoration-amber-100"
+                onClick={() => onOpenChange(false)}
+              >
+                Learn about stone
+              </a>{" "}
+              before you decide, then ask JW Stone about this selection when you are ready.
+            </p>
+
             {stone.wishlistEligible ? (
               <div className="mt-auto space-y-3 pt-9">
                 <button

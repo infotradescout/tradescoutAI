@@ -1,44 +1,42 @@
 # Actual Intent Lock
 
 Project: JW Stone 2.0  
-Release: jw-stone-2-0-r1 / amendment 1.1.1
+Release: jw-stone-2-0-r1 / amendment 1.2.0 (owner override)  
 Status: locked for definition
 
 ## Outcome and primary value event
 
-JW Stone receives a separate, flagship stone-discovery experience at `/jw-stone`. Every visitor sees First Cut and the real supplied catalog immediately, can open a stone in one click, save real named stones without an account, return to the selection in the same browser, and deliberately start a Direct Connect request only when ready. An optional compact customer-path control gives Fabricators, Builders & Developers, Architects & Designers, and Homeowners sourced stone-selection knowledge plus a small evidence-linked edit of real JW items likely to help with that role's next decision.
+JW Stone receives a separate, flagship stone-discovery experience at `/jw-stone`. Every visitor sees First Cut and the real supplied catalog immediately, can open a stone in one click, save real named stones without an account, return to the selection in the same browser, learn proportional natural-stone basics from linked authoritative sources, and deliberately start a Direct Connect request only when ready.
+
+The rejected customer-path guide, buyer-type toolbar, recommendation rails, and staged buyer workspaces are **void**. They are not protected behavior.
 
 The current `/u/jw-stone` profile and JW custom-domain presentation are protected unchanged surfaces, not migration targets or alternate skins for the marketplace.
 
 ## Primary users, jobs, and required actors
 
-- Fabricators need practical selection knowledge about slab variation, layout and sequence review, supplied finish evidence, image coverage, and source counts without unsupported fabrication claims.
-- Builders & Developers need practical knowledge about approving actual slabs, selection timing, source-count evidence, finish continuity, and decisions that reduce late project changes without an availability promise.
-- Architects & Designers need practical knowledge about full-slab movement, sequential layout and bookmatching, finish effects, image sets, and verified origin when supplied.
-- Homeowners need plain-language knowledge about full slabs versus small samples, natural variation, finish and material care, and what to review before a deliberate inquiry.
-- JW staff receive only deliberate Direct Connect handoffs containing safe stable IDs and public labels.
+Fabricators, architects, designers, builders, and homeowners are all end users of the same storefront. The page does not split into role-gated products. Visitors need photography-led inventory, honest facts, optional filters, local wishlist, short sourced learning, and deliberate inquiry.
+
+JW staff receive only deliberate Direct Connect handoffs containing safe stable IDs and public labels. JW is the sourcing authority in business strategy; this public page must not invent exclusivity, live stock, or public prices.
 
 ## Non-negotiables and prohibitions
 
-- The stone storefront, First Cut, supplied catalog presented under the approved `Current Inventory` heading, search, and optional filters exist before any customer-path choice.
-- Customer paths are one-click guidance, not the product, a required questionnaire, a filter, a staged journey, or four alternate storefronts.
-- Selecting a path may reveal only sourced role-specific knowledge, a compact rail of explicitly allowlisted real named stones with a truthful recommendation reason, and supported fact priority. It never hides, replaces, or globally reorders the catalog.
-- The closed customer-path control is one toolbar row. The expanded guide contains at most three concise knowledge points and six recommended named stones, uses no viewport or minimum-height staging, and remains under 520 rendered pixels at the 1440- and 390-pixel proof widths.
-- Color, material, finish, search, and verified origin when available are independent optional refinements. No refinement is a prerequisite for opening inventory.
+- The stone storefront, First Cut, supplied catalog under `Current Inventory`, search, and optional filters are the product.
+- Learning about stone is one proportional section (and optional detail tips), not role tabs, recommendation rails, or a second storefront.
+- Color, material, finish, search, and verified origin when available are independent optional refinements.
 - Canonical inventory truth is preserved. Synthetic Trending Selection names stay private.
-- `Current Inventory` is protected approved page wording for the supplied catalog presentation, not a live-stock or quantity claim. Recorded source counts are historical source evidence; current availability is confirmed only through deliberate Direct Connect.
+- `Current Inventory` is protected approved page wording for the supplied catalog presentation, not a live-stock or quantity claim.
 - First Cut Exclusives contains intentional reveal placeholders only; placeholders are never catalog entities.
-- Origin appears only from an explicit verified source field. Current absent values stay invisible.
+- Origin appears only from an explicit verified source field.
 - No public price or price-derived surface exists.
 - Saving is local, account-free, persistent, and never itself a contact action.
 - Direct Connect opens only after explicit inquiry intent.
-- No production migration, deployment, DNS change, or merge to `main` belongs to this build.
+- Legacy `?buyer=` query params must not drive UI.
 - No claim of visual approval is valid without real desktop and mobile browser evidence from the exact commit.
 
-The protected page manifest is exact: existing MarketplaceHeader; existing hero markup, imagery, veil, wording, and action; First Cut directly below the hero; compact customer-path guide; Current Inventory with optional refinements, complete progressively reachable catalog, galleries, save, and deliberate request actions; existing footer; and existing wishlist/detail/request overlays. The amendment does not authorize new story, trust, FAQ, recommendation, or sales-copy sections that the product owner did not request.
+The protected page manifest is: MarketplaceHeader; existing hero markup, imagery, veil, and approved copy; First Cut directly below the hero; Current Inventory with refinements, catalog, galleries, save, and deliberate request actions; Learn about stone; existing footer; wishlist/detail/request overlays.
 
 ## Tradeoffs, authority, scope boundary, and completion proof
 
-The product owner's August 3 correction supersedes the rejected buyer-to-color gate and workspace model. Technical choices are delegated only inside the current constraints. Customer guidance must be attributable to an authoritative natural-stone source or canonical JW evidence. Editorial color directions may be created from supplied imagery as optional visual navigation, but cannot be presented as geological, origin, suitability, likelihood, popularity, availability, or material facts.
+Owner override of 2026-08-04 supersedes amendment 1.1.1 customer-path requirements. Learning content must be attributable to Natural Stone Institute / Use Natural Stone hosts already used by the product.
 
-Completion requires implementation, focused and broad regression evidence, production build, exact route and profile protection proof, desktop and mobile browser journeys, screenshots, diff review, commit, push, and an unmerged draft pull request. A blocked browser path leaves the draft held and the visual requirements incomplete; it does not weaken the definition.
+Completion requires implementation, focused regression evidence, desktop and mobile browser journeys, screenshots, commit on `jw-stone/marketplace-end-user-reset`, and owner local preview before merge to `main`.
