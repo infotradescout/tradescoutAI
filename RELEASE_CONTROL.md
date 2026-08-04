@@ -17,6 +17,10 @@ Repo file `render.yaml` sets `autoDeployTrigger: commit`. **Dashboard Auto-Deplo
 
 **Push/merge to `main` deploys production via Render. GitHub Actions is not part of validation or deployment.**
 
+## JW Stone lane isolation
+
+JW Stone product and strategy work uses **`jw-stone/<topic>`** branches only. Do not mix JW changes into Dean recovery, non-JW remediation, or unrelated platform PRs. See `docs/jw-stone/BRANCH_LANES.md`. JW merges to `main` still deploy production and require explicit GO plus JW-scoped evidence.
+
 ## Local release verification
 
 Run verification from a clean checkout of the exact commit under review.
