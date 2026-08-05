@@ -38,6 +38,7 @@ import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerBusinessContactRoutes } from "./routes/business-contact";
 import { registerTradePartnerExpressRoutes } from "./routes/tradepartner-express";
+import { registerJwStoneSavedStonesEmailRoutes } from "./routes/jw-stone-saved-stones-email";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
 import { registerTutorialRoutes } from "./routes/tutorials";
@@ -25656,6 +25657,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   registerBusinessProfileRoutes(app);
   registerBusinessContactRoutes(app);
   registerTradePartnerExpressRoutes(app);
+  registerJwStoneSavedStonesEmailRoutes(app);
   registerBusinessClaimRoutes(app);
   registerAdminBusinessCountyEnrichmentRoutes(app);
   registerContractorPromoRoutes(app);

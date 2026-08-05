@@ -1,35 +1,23 @@
-# Decisions and Semantic Changes
+# Decisions & Changes — JW Stone marketplace amendment 1.3.0
 
-## Governing invariants
+## Owner override (2026-08-04)
 
-- `DEC-SEPARATE-ROUTE`: JW Stone 2.0 exists only as a separate `/jw-stone` experience; the existing profile is protected unchanged.
-- `DEC-TRUTH-ONLY`: canonical explicit source data governs published stone facts and missing facts remain absent.
-- `DEC-NO-PRICE`: public price and price-derived surfaces are prohibited.
+Owner chat is product authority over stale SI locks for this recovery slice.
 
-## Active release commitments
+## Changes
 
-- `DEC-CATALOG-FIRST`: inventory discovery is the product; learning is proportional and optional.
-- `DEC-LOCAL-WISHLIST`: eligible named-stone IDs persist in a bounded versioned browser-local wishlist without an account or contact gate.
-- `DEC-OWNER-PREVIEW`: merge to `main` requires owner local desktop and mobile preview GO.
+- ADDED: New Arrivals section restored from unnamed inventory photo rail (replaces Call-for-availability / Trending Selection theater).
+- ADDED: Separate Aesthetic and literal Color filters (`aesthetic` + `color` URL state).
+- ADDED: Real MarketplaceFooter; header section nav includes New Arrivals.
+- ADDED: Customer role field on materials request form (ExpressDirectConnectPanel).
+- REMOVED: Learn about stone section and related modules.
+- REMOVED: Yellow / amber eyebrow copy.
+- REMOVED: Customer-facing "Call for availability" marketplace copy.
+- REMOVED: Card doctrine fact grids (source counts / supplied views as customer UI).
+- MODIFIED: Dense photo-first stone cards with compact meta line.
+- VOID: path-guide theater; learning theater; CFA theater.
+- UNCHANGED: `/u/jw-stone` profile, deliberate Direct Connect, wishlist, galleries, no-price rule, First Cut honesty, JW lane isolation, no merge without GO.
 
-## Reversible implementation choice
-
-- `DEC-VISUAL-COLOR`: color directions are explicit editorial visual classifications derived from supplied imagery. They are navigation labels, not geological, origin, suitability, availability, or material assertions.
-
-## Deferred data decisions
+## Deferred
 
 Actual First Cut stone assignments and verified country-of-origin values remain deferred until JW supplies source-authorized facts.
-
-## Authorized amendment: AMEND-END-USER-RESET
-
-Authority: Thomas's direct August 4 correction as the product owner.
-
-- ADDED: proportional Learn about stone section with Natural Stone Institute / Use Natural Stone sources.
-- MODIFIED: page manifest is MarketplaceHeader → hero → First Cut → Current Inventory → Learn about stone → footer.
-- REMOVED: customer-path guide, buyer-type toolbar, recommendation rails, role-gated knowledge product, and SI lock `1.1.1` JW-GUIDANCE requirements.
-- RENAMED: public title from Guided Stone Discovery to Stone Discovery.
-- UNCHANGED: route separation, canonical truth rules, current `/u/jw-stone` profile, wishlist, galleries, deliberate Direct Connect, no-price rule, First Cut honesty.
-
-Compatibility impact: legacy `?buyer=` query values are ignored and not serialized.
-
-Proof impact: prior path-guide evidence is invalid. Replacement proof must show catalog-first storefront, learn section, no customer-path UI, and desktop/mobile captures.

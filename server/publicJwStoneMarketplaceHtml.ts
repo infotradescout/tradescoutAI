@@ -4,7 +4,7 @@ export const JW_STONE_MARKETPLACE_CANONICAL_URL = "https://www.thetradescout.com
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
-  "Browse JW Stone's supplied stone catalog, open full photo galleries, learn the basics of natural stone, save named selections, and ask about a material when you are ready.";
+  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
@@ -61,11 +61,11 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
+    <h2>New Arrivals</h2>
+    <p>Recent stone photographs from JW Stone.</p>
     <h2>Current Inventory</h2>
-    <p>Review supplied stone photographs, confirmed material and finish where listed, and recorded source evidence. Catalog presence and source counts do not confirm live availability.</p>
-    <h2>Learn about stone</h2>
-    <p>Read short, sourced basics about natural stone variation, finish, layout, and care—then ask JW Stone about a selection when you are ready.</p>
-    <p>Stone discovery on your terms. Saving never starts a request.</p>
+    <p>Browse current selections by photo. Filter by aesthetic or color, then ask JW Stone to confirm what is on hand for your project.</p>
+    <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
   </article>
 </main>`;
 

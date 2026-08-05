@@ -7,10 +7,9 @@ import {
 } from "./urlState";
 
 const EMPTY_STATE: MarketplaceUrlState = {
-  buyer: null,
+  aesthetic: null,
   color: null,
   material: null,
-  finish: null,
   origin: null,
   stone: null,
 };

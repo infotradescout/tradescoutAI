@@ -5,12 +5,15 @@ import {
   JW_STONE_ANONYMOUS_PUBLIC_LABEL,
   JW_STONE_CATALOG,
   JW_STONE_NAMED_CATALOG,
+  JW_STONE_UNCONFIRMED_MATERIAL_LABEL,
   filterJwStoneCatalog,
   getCatalogItemById,
-  getFinishFilterOptions,
+  getColorFilterOptions,
   getMaterialFilterOptions,
   getNamedCatalogItemByShareSlug,
   getOriginFilterOptions,
+  groupNamedCatalogByMaterial,
+  materialSectionAnchorId,
   projectJwStoneCatalogItem,
   resolveVerifiedOrigin,
 } from "./catalog";
@@ -33,6 +36,8 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(getCatalogItemById("steel-gray")?.displayName).toBe("Steel Gray");
     expect(getNamedCatalogItemByShareSlug("versace")?.displayName).toBe("Versace");
     expect(getNamedCatalogItemByShareSlug("white-silk")?.displayName).toBe("White Silk");
+    expect(getCatalogItemById("matrix-basalt")?.slabDimensions).toMatch(/126×78"|127×77\.5"/);
+    expect(getCatalogItemById("trending-selection-01")?.slabDimensions).toBe('126×76"');
   });
 
   it("keeps anonymous inventory publicly nameless and ineligible for sharing or saving", () => {
@@ -49,7 +54,7 @@ describe("JW Stone 2.0 catalog projection", () => {
     }
 
     expect(JW_STONE_ANONYMOUS_CATALOG.map((stone) => stone.publicLabel)).toEqual(
-      Array.from({ length: 38 }, () => "Call for availability")
+      Array.from({ length: 38 }, () => "New arrival")
     );
   });
 
@@ -69,7 +74,9 @@ describe("JW Stone 2.0 catalog projection", () => {
 
     for (const projected of JW_STONE_CATALOG) {
       const canonical = canonicalStones.find(({ stone }) => stone.slug === projected.id)!.stone;
-      expect(projected.images).toEqual(canonical.images);
+      // Cover ranking may reorder photos; membership and count stay exact.
+      expect([...projected.images].sort()).toEqual([...canonical.images].sort());
+      expect(projected.images).toHaveLength(canonical.images.length);
       expect(projected.finishes).toEqual(canonical.finishes ?? []);
       expect(projected.sourceEvidence?.counts ?? []).toEqual(canonical.slabCounts ?? []);
       expect(Object.prototype.hasOwnProperty.call(projected.sourceEvidence ?? {}, "total")).toBe(
@@ -78,7 +85,7 @@ describe("JW Stone 2.0 catalog projection", () => {
     }
 
     expect(getMaterialFilterOptions().some((option) => option.value === "unconfirmed")).toBe(false);
-    expect(getFinishFilterOptions().map((option) => option.label)).toEqual([
+    expect([...new Set(JW_STONE_CATALOG.flatMap((stone) => stone.finishes))].sort()).toEqual([
       "Brushed",
       "Honed",
       "Leathered",
@@ -93,16 +100,56 @@ describe("JW Stone 2.0 catalog projection", () => {
     }
   });
 
-  it("shows the full catalog by default and treats color as an optional refinement", () => {
+  it("shows the full catalog by default and treats aesthetic and literal color as refinements", () => {
     expect(filterJwStoneCatalog({})).toEqual(JW_STONE_CATALOG);
 
-    const honed = filterJwStoneCatalog({ finish: "honed" });
-    expect(honed.length).toBeGreaterThan(0);
-    expect(honed.every((stone) => stone.finishes.includes("Honed"))).toBe(true);
-
-    const softLight = filterJwStoneCatalog({ color: "soft-light" });
+    const softLight = filterJwStoneCatalog({ aesthetic: "soft-light" });
     expect(softLight.length).toBeGreaterThan(0);
     expect(softLight.every((stone) => stone.colorDirection === "soft-light")).toBe(true);
+
+    const whites = filterJwStoneCatalog({ color: "white" });
+    expect(whites.length).toBeGreaterThan(0);
+    expect(whites.every((stone) => stone.colors.includes("white"))).toBe(true);
+    expect(getColorFilterOptions().some((option) => option.value === "white")).toBe(true);
+    // Beige appears from photographed palettes (not name matching).
+    expect(getColorFilterOptions().some((option) => option.value === "beige")).toBe(true);
+    expect(JW_STONE_CATALOG.every((stone) => stone.colorSwatches.length > 0)).toBe(true);
+
+    const quartzite = filterJwStoneCatalog({ material: "quartzite" });
+    expect(quartzite.length).toBeGreaterThan(0);
+    expect(quartzite.every((stone) => stone.materialId === "quartzite")).toBe(true);
+  });
+
+  it("groups the full named inventory by real material categories", () => {
+    const sections = groupNamedCatalogByMaterial(JW_STONE_NAMED_CATALOG);
+    expect(sections.map((section) => section.materialId)).toEqual([
+      "granite",
+      "marble",
+      "quartzite",
+      "quartz",
+      "onyx",
+      "soapstone",
+      "basalt",
+      "unconfirmed",
+    ]);
+    expect(sections.find((section) => section.materialId === "granite")).toMatchObject({
+      materialLabel: "Granite",
+      filterable: true,
+    });
+    expect(sections.find((section) => section.materialId === "quartz")).toMatchObject({
+      materialLabel: "Engineered Quartz",
+      filterable: true,
+    });
+    expect(sections.find((section) => section.materialId === "unconfirmed")).toMatchObject({
+      materialLabel: JW_STONE_UNCONFIRMED_MATERIAL_LABEL,
+      filterable: false,
+    });
+    expect(sections.reduce((sum, section) => sum + section.stones.length, 0)).toBe(110);
+    expect(sections.every((section) => section.stones.every((stone) => !stone.anonymous))).toBe(
+      true
+    );
+    expect(materialSectionAnchorId("marble")).toBe("inventory-marble");
+    expect(groupNamedCatalogByMaterial(JW_STONE_ANONYMOUS_CATALOG)).toEqual([]);
   });
 
   it("keeps current origin empty and accepts only explicit verified origin fixtures", () => {

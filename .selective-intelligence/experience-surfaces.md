@@ -1,9 +1,26 @@
-# Experience Surfaces
+# Experience Surfaces — JW Stone marketplace (amendment 1.3.0)
 
-Every visitor begins in the same protected image-led introduction, sees First Cut directly beneath it, and reaches the real supplied catalog without making a choice. The catalog retains the approved `Current Inventory` heading without implying live quantity or availability. Below inventory, a single Learn about stone section provides short sourced basics. There is no customer-path guide, buyer toolbar, or recommendation rail.
+Every visitor begins in the same image-led introduction with a real sticky header, sees First Cut beneath it, reaches New Arrivals and Current Inventory without making a buyer-path choice, and ends on a real footer. Customer role is collected only inside the request form.
 
-The server emits marketplace metadata and crawler fallback for `/jw-stone`; the sitemap exposes the route. First Cut placeholders and anonymous items do not receive product URLs.
+## Section order
 
-The continuous section order is MarketplaceHeader → protected hero → First Cut → Current Inventory → Learn about stone → existing footer, with detail, wishlist, and deliberate request overlays outside the document sequence.
+MarketplaceHeader → protected hero → First Cut → Current Inventory (Aesthetic + Color + material + finish filters, New Arrivals photo rail, named dense cards) → MarketplaceFooter, with detail, wishlist, and deliberate request overlays outside the document sequence.
 
-The route must remain strong near 1440-pixel desktop and 390-pixel mobile widths with no horizontal overflow. Semantic headings, buttons, lists, dialogs, labels, live wishlist count, visible focus, Escape handling, focus return, arrow-key gallery navigation, swipe-friendly gallery controls, and adequate text contrast are required.
+## Void surfaces
+
+- Customer-path guide / buyer toolbar / recommendation rails
+- Learn about stone
+- Yellow / amber eyebrows
+- Call for availability / Trending Selection marketing copy
+- Doctrine fact grids on cards (Recorded source counts, Supplied views, labeled MATERIAL/FINISH cells as primary card content)
+
+## Filters
+
+- Aesthetic / mood (Soft & Light, Warm & Earthy, …) via `?aesthetic=`
+- Literal color (White, Black, …) via `?color=`
+- Material, finish, verified origin when available
+- Legacy `?color=` aesthetic values map into `aesthetic`; literal colors stay on `color`
+
+## SSR / crawler
+
+Server emits marketplace metadata and crawler fallback for `/jw-stone` aligned to catalog-first copy. First Cut placeholders and anonymous New Arrivals photographs do not receive product URLs.

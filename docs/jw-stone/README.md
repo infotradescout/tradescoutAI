@@ -21,7 +21,17 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 
 ## Public storefront reset (2026-08-04)
 
-`/jw-stone` is **catalog-first** with a proportional Learn about stone section. The customer-path guide / buyer-type theater is void (SI lock `1.2.0`). Branch lane for that work: `jw-stone/marketplace-end-user-reset`.
+`/jw-stone` is **catalog-first**: light JW header (color `logo.svg`, profile chrome), First Cut, New Arrivals, dense inventory, Aesthetic + Color filters. Customer type (homeowner, fabricator, builder, designer, architect) is collected on the request form, not as page path theater. No Learn-about-stone theater, no yellow eyebrows, no Call-for-availability copy. Branch lane: `jw-stone/marketplace-end-user-reset`. Owner local preview required before merge.
+
+## Ops truth (inventory / wish list) — do not confuse labels
+
+| System | What it is | In this repo? |
+| --- | --- | --- |
+| Drive photo backlog cleanup → `jw_stone_reconciled_backlog.csv` | Clean filenames (`Category_Name_WxH.jpg`) pairing stone ↔ category ↔ dimensions ↔ Drive link | **Not in repo** (owner Sheet/Drive artifact). Closest in-repo evidence: `client/src/data/jwStoneSourceNames.generated.json`, `jwStoneInventoryReconciliation.json`, `docs/audits/JW_STONE_PROFILE_INVENTORY_RECONCILIATION_2026-07-13.md` |
+| Google Sheet Wish List + Apps Script | Buyer requests (e.g. 3cm Taj Mahal) matched to Inventory “Available”; Email/WhatsApp notify; duplicate-tag | **Not in repo** — Sheet workflow remains source of truth. No in-app WhatsApp spam engine. |
+| Marketplace **Saved** | Browser-local saved stones on `/jw-stone` | In repo (`wishlist.ts`). Label stays **Saved** — not JW’s Sheet Wish List. |
+
+Marketplace cards may show slab size inches when Drive source filenames / reconciliation evidence include them. That is source meta, not a live availability claim.
 
 ## Owner rule
 

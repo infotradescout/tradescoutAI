@@ -1,14 +1,14 @@
 # Build Contract: jw-stone-marketplace
 
-Verdict: owner override — catalog-first + proportional learning; customer-path guide void  
+Verdict: owner override 1.3.0 — catalog-first + New Arrivals; learning/CFA/path-guide void  
 Base revision: `5796383977dfee4411b161a3f4fcbc122405642d`  
-Lock version: `1.2.0`
+Lock version: `1.3.0`
 
 ## Included requirements and protected unchanged behavior
 
-This build owns JW-ROUTE, JW-INVENTORY, JW-FIRST-CUT, JW-ORIGIN, JW-WISHLIST, JW-CARDS, JW-LEARNING, JW-DIRECT-CONNECT, JW-A11Y, JW-SEO, and JW-PROTECT.
+This build owns JW-ROUTE, JW-INVENTORY, JW-FIRST-CUT, JW-NEW-ARRIVALS, JW-ORIGIN, JW-WISHLIST, JW-CARDS, JW-DIRECT-CONNECT, JW-A11Y, JW-SEO, and JW-PROTECT.
 
-JW-GUIDANCE customer-path guide requirements from lock `1.1.1` are **void**.
+JW-GUIDANCE customer-path guide (1.1.1), JW-LEARNING (1.2.0), and Call-for-availability / Trending Selection theater are **void**.
 
 Protected unchanged behavior includes `/u/jw-stone`, the JW custom-domain renderer, profile editing, existing inventory routes, database presentation settings, all non-JW profiles, scalar Direct Connect consumers, production, DNS, and `main` until an explicit GO merge.
 

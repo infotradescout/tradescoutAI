@@ -24,7 +24,10 @@ const css = `
   position: relative;
   min-height: 100%;
   background: var(--ts-bg, #2b2b2b);
-  overflow: hidden;
+  /* Clip decorative bleed sideways only — overflow:hidden here creates a
+     second scrollport and breaks hash/sticky landing (JW marketplace). */
+  overflow-x: clip;
+  overflow-y: visible;
   isolation: isolate;
 }
 

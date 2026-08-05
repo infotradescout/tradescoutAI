@@ -1,15 +1,29 @@
 import type { JwStoneInventoryStone } from "@/data/jwStoneInventory";
 import { getColorDirectionForStone } from "./colorDirections";
+import {
+  rankImagePathsForCover,
+  remapShareImageOrder,
+  reorderParallelByPermutation,
+} from "./coverImages";
 import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
+import {
+  getColorsForStone,
+  getPairingSwatchesForStone,
+  getStoneColorLabel,
+  getSwatchesForStone,
+} from "./stoneColors";
 import type {
   CatalogFilterOption,
   CatalogFilters,
   JwStoneCatalogItem,
   VerifiedOrigin,
 } from "./types";
+import { resolveJwStoneArrivedAt } from "./arrivalDates";
+import { resolveSlabDimensionsLabel } from "./slabDimensions";
 import { JW_STONE_VERIFIED_ORIGIN_BY_SLUG } from "./verifiedOrigins";
 
-export const JW_STONE_ANONYMOUS_PUBLIC_LABEL = "Call for availability";
+/** Public label for unnamed inventory photographs. Never invent availability claims. */
+export const JW_STONE_ANONYMOUS_PUBLIC_LABEL = "New arrival";
 
 const PUBLIC_LABEL_BY_CATEGORY: Readonly<Record<string, string>> = {
   basalt: "Basalt",
@@ -50,23 +64,38 @@ export function projectJwStoneCatalogItem(args: {
     stone.materialStatus === "unconfirmed"
       ? null
       : (PUBLIC_LABEL_BY_CATEGORY[categorySlug] ?? null);
+  const displayName = anonymous ? null : stone.displayName;
+  const colors = getColorsForStone(stone.slug);
+  const colorSwatches = getSwatchesForStone(stone.slug).map((swatch) => swatch.hex);
+  const pairingSwatches = getPairingSwatchesForStone(stone.slug);
+
+  // Lead every card / gallery with a full-slab context shot when the set has one.
+  const coverPermutation = rankImagePathsForCover(stone.images, { stoneSlug: stone.slug });
+  const images = coverPermutation.map((oldIndex) => stone.images[oldIndex]!);
+  const shareImageOrder = remapShareImageOrder(
+    stone.shareImageOrder,
+    coverPermutation,
+    stone.images.length
+  );
+  const imageFinishes = reorderParallelByPermutation(stone.imageFinishes, coverPermutation);
 
   return Object.freeze({
     id: stone.slug,
-    displayName: anonymous ? null : stone.displayName,
+    displayName,
     publicLabel: anonymous ? JW_STONE_ANONYMOUS_PUBLIC_LABEL : stone.displayName!,
     nameStatus: stone.nameStatus,
     anonymous,
     shareSlug: anonymous ? null : stone.slug,
     wishlistEligible: !anonymous,
     colorDirection,
-    images: Object.freeze([...stone.images]),
-    shareImageOrder: stone.shareImageOrder ? Object.freeze([...stone.shareImageOrder]) : undefined,
-    imageFinishes: stone.imageFinishes
+    colors,
+    colorSwatches: Object.freeze(colorSwatches),
+    pairingSwatches: Object.freeze([...pairingSwatches]),
+    images: Object.freeze(images),
+    shareImageOrder: shareImageOrder ? Object.freeze(shareImageOrder) : undefined,
+    imageFinishes: imageFinishes
       ? Object.freeze(
-          stone.imageFinishes.map((finishes) =>
-            finishes ? Object.freeze([...finishes]) : undefined
-          )
+          imageFinishes.map((finishes) => (finishes ? Object.freeze([...finishes]) : undefined))
         )
       : undefined,
     materialId: materialLabel ? categorySlug : null,
@@ -79,7 +108,9 @@ export function projectJwStoneCatalogItem(args: {
           counts: Object.freeze(counts),
         })
       : null,
+    slabDimensions: resolveSlabDimensionsLabel({ slug: stone.slug, images }),
     origin: resolveVerifiedOrigin(args.verifiedOrigin),
+    arrivedAt: resolveJwStoneArrivedAt(stone.slug),
   });
 }
 
@@ -165,12 +196,75 @@ export function getMaterialFilterOptions(
   );
 }
 
-export function getFinishFilterOptions(
-  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
-): CatalogFilterOption[] {
-  return countOptions(catalog, (stone) =>
-    stone.finishes.map((finish) => [toCatalogFilterValue(finish), finish] as const)
+/** Display / scroll order for named inventory sections (confirmed materials first). */
+export const JW_STONE_MATERIAL_SECTION_ORDER = [
+  "granite",
+  "marble",
+  "quartzite",
+  "quartz",
+  "onyx",
+  "soapstone",
+  "basalt",
+  "unconfirmed",
+] as const;
+
+export const JW_STONE_UNCONFIRMED_MATERIAL_SECTION_ID = "unconfirmed";
+export const JW_STONE_UNCONFIRMED_MATERIAL_LABEL = "Material to Confirm";
+
+export type NamedMaterialSection = Readonly<{
+  /** Confirmed material slug, or `unconfirmed` when materialLabel is absent. */
+  materialId: string;
+  materialLabel: string;
+  /** True when stones lack a confirmed materialId (not a URL filter value). */
+  filterable: boolean;
+  stones: readonly JwStoneCatalogItem[];
+}>;
+
+/**
+ * Group named stones by real catalog material for category-separated inventory UI.
+ * Anonymous stones are excluded — they belong in New Arrivals, not named sections.
+ */
+export function groupNamedCatalogByMaterial(
+  stones: readonly JwStoneCatalogItem[]
+): NamedMaterialSection[] {
+  const buckets = new Map<string, JwStoneCatalogItem[]>();
+  const labels = new Map<string, string>();
+
+  for (const stone of stones) {
+    if (stone.anonymous) continue;
+    const materialId =
+      stone.materialId && stone.materialLabel
+        ? stone.materialId
+        : JW_STONE_UNCONFIRMED_MATERIAL_SECTION_ID;
+    const materialLabel =
+      stone.materialId && stone.materialLabel
+        ? stone.materialLabel
+        : JW_STONE_UNCONFIRMED_MATERIAL_LABEL;
+    labels.set(materialId, materialLabel);
+    const list = buckets.get(materialId);
+    if (list) list.push(stone);
+    else buckets.set(materialId, [stone]);
+  }
+
+  const orderedIds = [
+    ...JW_STONE_MATERIAL_SECTION_ORDER.filter((id) => buckets.has(id)),
+    ...[...buckets.keys()]
+      .filter((id) => !(JW_STONE_MATERIAL_SECTION_ORDER as readonly string[]).includes(id))
+      .sort((a, b) => (labels.get(a) ?? a).localeCompare(labels.get(b) ?? b)),
+  ];
+
+  return orderedIds.map((materialId) =>
+    Object.freeze({
+      materialId,
+      materialLabel: labels.get(materialId) ?? materialId,
+      filterable: materialId !== JW_STONE_UNCONFIRMED_MATERIAL_SECTION_ID,
+      stones: Object.freeze(buckets.get(materialId) ?? []),
+    })
   );
+}
+
+export function materialSectionAnchorId(materialId: string): string {
+  return `inventory-${materialId}`;
 }
 
 export function getOriginFilterOptions(
@@ -183,12 +277,32 @@ export function getOriginFilterOptions(
   );
 }
 
+export function getColorFilterOptions(
+  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
+): CatalogFilterOption[] {
+  return countOptions(catalog, (stone) =>
+    stone.colors.flatMap((colorId) => {
+      const label = getStoneColorLabel(colorId);
+      return label ? ([[colorId, label]] as const) : [];
+    })
+  );
+}
+
+export function getFinishFilterOptions(
+  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
+): CatalogFilterOption[] {
+  return countOptions(catalog, (stone) =>
+    stone.finishes.map((finish) => [toCatalogFilterValue(finish), finish] as const)
+  );
+}
+
 export function filterJwStoneCatalog(
   filters: CatalogFilters,
   catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
 ): JwStoneCatalogItem[] {
   return catalog.filter((stone) => {
-    if (filters.color && stone.colorDirection !== filters.color) return false;
+    if (filters.aesthetic && stone.colorDirection !== filters.aesthetic) return false;
+    if (filters.color && !stone.colors.includes(filters.color)) return false;
     if (filters.material && stone.materialId !== filters.material) return false;
     if (
       filters.finish &&

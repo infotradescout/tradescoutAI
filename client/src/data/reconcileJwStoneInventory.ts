@@ -33,6 +33,8 @@ type ReconciledAddition = {
   sourceFileIds: string[];
   slabCounts?: number[];
   finishes?: string[];
+  /** ISO day/datetime when the stone arrived; feeds 14-day New Arrivals. */
+  arrivedAt?: string;
 };
 
 type AnonymousBundle = Omit<ReconciledAddition, "categorySlug" | "name"> & {

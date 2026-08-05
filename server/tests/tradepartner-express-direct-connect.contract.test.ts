@@ -137,4 +137,38 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(panel).toContain("Manage my request");
     expect(panel).not.toContain("job notes, replies");
   });
+
+  it("delivers Express request emails under production EMAIL_MODE restrictions", () => {
+    const route = read("server/routes/tradepartner-express.ts");
+    const emailService = read("server/services/emailService.ts");
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+
+    // Business notify: allow-listed purpose + recipient fallback when shared inbox missing.
+    expect(route).toContain('purpose: "tradepartner_request_notification"');
+    expect(route).toContain(
+      'profileData.notificationEmail || profileData.email || row?.ownerEmail || ""'
+    );
+    expect(route).toContain("business notification email skipped: no notification recipient");
+    expect(emailService).toContain('purpose === "tradepartner_request_notification"');
+
+    // Requester confirmation for existing accounts must not use purpose "notification"
+    // (silently suppressed when EMAIL_MODE=account_creation_only).
+    expect(route).toContain("tradepartner_request_confirmation");
+    expect(route).toContain("const requesterEmailPurpose = requesterWasCreated");
+    expect(route).toContain("purpose: requesterEmailPurpose");
+    expect(emailService).toContain('purpose === "tradepartner_request_confirmation"');
+    expect(route).not.toMatch(
+      /purpose:\s*requesterWasCreated\s*\?\s*"account_creation"\s*:\s*"notification"/
+    );
+
+    // Marketing opt-in: unchecked by default, persisted when true.
+    expect(panel).toContain("updatesOptIn: false");
+    expect(panel).toContain(
+      "Email me about new arrivals, First Cut releases, and other JW Stone updates"
+    );
+    expect(panel).toContain("updatesOptIn: form.updatesOptIn === true");
+    expect(route).toContain("updatesOptIn: z.boolean().optional()");
+    expect(route).toContain("marketingEmails: updatesOptIn");
+    expect(route).toContain("updatesOptIn,");
+  });
 });

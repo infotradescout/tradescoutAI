@@ -1,42 +1,48 @@
 # Actual Intent Lock
 
 Project: JW Stone 2.0  
-Release: jw-stone-2-0-r1 / amendment 1.2.0 (owner override)  
+Release: jw-stone-2-0-r1 / amendment 1.3.0 (owner chat authority, 2026-08-04)  
 Status: locked for definition
 
 ## Outcome and primary value event
 
-JW Stone receives a separate, flagship stone-discovery experience at `/jw-stone`. Every visitor sees First Cut and the real supplied catalog immediately, can open a stone in one click, save real named stones without an account, return to the selection in the same browser, learn proportional natural-stone basics from linked authoritative sources, and deliberately start a Direct Connect request only when ready.
+JW Stone receives a separate, flagship stone-discovery experience at `/jw-stone`. Every visitor sees a real header and footer, First Cut, New Arrivals, and the supplied catalog immediately; can open a stone in one click; save named stones without an account; and deliberately start a Direct Connect request only when ready. Customer type (homeowner, fabricator, builder, designer, architect) is collected on the request form — never as page path theater.
 
-The rejected customer-path guide, buyer-type toolbar, recommendation rails, and staged buyer workspaces are **void**. They are not protected behavior.
+## Owner authority (supersedes stale SI locks)
 
-The current `/u/jw-stone` profile and JW custom-domain presentation are protected unchanged surfaces, not migration targets or alternate skins for the marketplace.
+Owner chat of 2026-08-04 is product authority when it conflicts with prior SI locks:
 
-## Primary users, jobs, and required actors
+- Stones must be dense and photo-first; no wasted fact-card doctrine (MATERIAL / FINISH / RECORDED SOURCE COUNTS / SUPPLIED VIEWS labels).
+- Proper marketplace header and footer are required.
+- Learn about stone is **void** — remove; do not restore learning theater.
+- Yellow / amber eyebrow lines are **void** — never ship them.
+- "Color directions" label is wrong: filter is Aesthetic (or Mood); a separate literal Color filter (e.g. White) is required.
+- New Arrivals must be present (restored from the unnamed inventory photo rail; prior "Call for availability" / Trending Selection theater is **void**).
+- "Call for availability" customer copy is **void** — never asked for.
+- No inventing unsolicited storefront theater (path guides, recommendation rails, buyer workspaces).
+- JW lane only (`jw-stone/*`); local preview before merge; no merge without GO.
 
-Fabricators, architects, designers, builders, and homeowners are all end users of the same storefront. The page does not split into role-gated products. Visitors need photography-led inventory, honest facts, optional filters, local wishlist, short sourced learning, and deliberate inquiry.
+## Void requirements from prior amendments
 
-JW staff receive only deliberate Direct Connect handoffs containing safe stable IDs and public labels. JW is the sourcing authority in business strategy; this public page must not invent exclusivity, live stock, or public prices.
+- JW-GUIDANCE customer-path guide (1.1.1) — void
+- JW-LEARNING / Learn about stone section (1.2.0) — void
+- Call for availability / Trending Selection marketing rail — void
 
-## Non-negotiables and prohibitions
+## Non-negotiables
 
-- The stone storefront, First Cut, supplied catalog under `Current Inventory`, search, and optional filters are the product.
-- Learning about stone is one proportional section (and optional detail tips), not role tabs, recommendation rails, or a second storefront.
-- Color, material, finish, search, and verified origin when available are independent optional refinements.
-- Canonical inventory truth is preserved. Synthetic Trending Selection names stay private.
-- `Current Inventory` is protected approved page wording for the supplied catalog presentation, not a live-stock or quantity claim.
-- First Cut Exclusives contains intentional reveal placeholders only; placeholders are never catalog entities.
-- Origin appears only from an explicit verified source field.
-- No public price or price-derived surface exists.
-- Saving is local, account-free, persistent, and never itself a contact action.
-- Direct Connect opens only after explicit inquiry intent.
-- Legacy `?buyer=` query params must not drive UI.
-- No claim of visual approval is valid without real desktop and mobile browser evidence from the exact commit.
+- Catalog-first storefront under `Current Inventory` with search and optional Aesthetic, Color, material, finish, and verified origin filters.
+- New Arrivals presents unnamed inventory photographs without inventing product names or availability claims.
+- First Cut Exclusives remains honest placeholders until JW supplies verified assignments.
+- No public price surface.
+- Saving is local and never itself a contact action.
+- Direct Connect opens only after explicit inquiry intent; materials requests require customer role on the form.
+- Legacy `?buyer=` must not drive UI.
+- No visual-approval claim without desktop and mobile browser evidence from the exact commit.
 
-The protected page manifest is: MarketplaceHeader; existing hero markup, imagery, veil, and approved copy; First Cut directly below the hero; Current Inventory with refinements, catalog, galleries, save, and deliberate request actions; Learn about stone; existing footer; wishlist/detail/request overlays.
+## Protected page manifest
 
-## Tradeoffs, authority, scope boundary, and completion proof
+MarketplaceHeader → hero (no yellow eyebrows) → First Cut → Current Inventory (filters, New Arrivals photo rail, named catalog) → MarketplaceFooter → wishlist / detail / request overlays.
 
-Owner override of 2026-08-04 supersedes amendment 1.1.1 customer-path requirements. Learning content must be attributable to Natural Stone Institute / Use Natural Stone hosts already used by the product.
+## Completion proof
 
-Completion requires implementation, focused regression evidence, desktop and mobile browser journeys, screenshots, commit on `jw-stone/marketplace-end-user-reset`, and owner local preview before merge to `main`.
+Implementation + focused regression evidence + owner local preview on `/jw-stone` before any merge to `main`.

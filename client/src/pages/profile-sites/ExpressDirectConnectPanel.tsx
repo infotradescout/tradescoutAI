@@ -20,7 +20,26 @@ export type ExpressDirectConnectRequestType =
   | "other";
 
 export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service";
+export type ExpressDirectConnectCustomerRole =
+  | "homeowner"
+  | "fabricator"
+  | "builder"
+  | "designer"
+  | "architect"
+  | "other";
 type ExpressDirectConnectDeliveryCustody = "business" | "tradescout_pending_owner";
+
+const MATERIALS_CUSTOMER_ROLES: Array<{
+  value: ExpressDirectConnectCustomerRole;
+  label: string;
+}> = [
+  { value: "homeowner", label: "Homeowner" },
+  { value: "fabricator", label: "Fabricator" },
+  { value: "builder", label: "Builder" },
+  { value: "designer", label: "Designer" },
+  { value: "architect", label: "Architect" },
+  { value: "other", label: "Other" },
+];
 
 type ExpressDirectConnectPanelProps = {
   open: boolean;
@@ -168,6 +187,7 @@ export default function ExpressDirectConnectPanel({
     name: "",
     email: "",
     phone: "",
+    customerRole: "" as ExpressDirectConnectCustomerRole | "",
     requestType: defaultRequestType,
     message: selectedServiceName
       ? `I'm interested in ${selectedServiceName}.`
@@ -178,8 +198,16 @@ export default function ExpressDirectConnectPanel({
           : stableItemId
             ? "I'm interested in this stone selection."
             : "",
+    // Compliance default: unchecked. Opt-in only when the visitor checks it.
+    updatesOptIn: false,
     website: "",
   });
+  const updatesOptInLabel =
+    requestMode === "materials" && profileSlug === "jw-stone"
+      ? "Email me about new arrivals, First Cut releases, and other JW Stone updates"
+      : requestMode === "materials"
+        ? "Email me about new arrivals, first cuts, and other promotions"
+        : "Email me about updates and promotions";
 
   useEffect(() => {
     if (!open) return;
@@ -211,6 +239,8 @@ export default function ExpressDirectConnectPanel({
     setRequestDeliveryCustody(deliveryCustody);
     setForm((current) => ({
       ...current,
+      customerRole: "",
+      updatesOptIn: false,
       requestType: defaultRequestType,
       message: selectedServiceName
         ? `I'm interested in ${selectedServiceName}.`
@@ -327,6 +357,13 @@ export default function ExpressDirectConnectPanel({
     setBusy(true);
     setError("");
     try {
+      if (requestMode === "materials" && !form.customerRole) {
+        setError(
+          "Select whether you are a homeowner, fabricator, builder, designer, or architect."
+        );
+        setBusy(false);
+        return;
+      }
       const materialContext = multiStoneSelections.length
         ? {
             stoneName: undefined,
@@ -338,6 +375,12 @@ export default function ExpressDirectConnectPanel({
             itemId: stableItemId || undefined,
             stoneSelections: undefined,
           };
+      const roleLabel =
+        MATERIALS_CUSTOMER_ROLES.find((role) => role.value === form.customerRole)?.label || "";
+      const messageWithRole =
+        requestMode === "materials" && roleLabel
+          ? `Customer type: ${roleLabel}.\n\n${form.message}`
+          : form.message;
       const response = await fetch(
         `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request`,
         {
@@ -345,7 +388,13 @@ export default function ExpressDirectConnectPanel({
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            ...form,
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            requestType: form.requestType,
+            message: messageWithRole,
+            website: form.website,
+            updatesOptIn: form.updatesOptIn === true,
             ...materialContext,
             serviceName: selectedServiceName || undefined,
           }),
@@ -560,6 +609,33 @@ export default function ExpressDirectConnectPanel({
                   />
                 </label>
               </div>
+              {requestMode === "materials" ? (
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
+                    I am a…
+                  </span>
+                  <select
+                    required
+                    value={form.customerRole}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        customerRole: event.target.value as ExpressDirectConnectCustomerRole | "",
+                      })
+                    }
+                    className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none focus:border-ts-orange"
+                  >
+                    <option value="" disabled>
+                      Select one
+                    </option>
+                    {MATERIALS_CUSTOMER_ROLES.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <label className="block">
                 <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
                   What do you need?
@@ -592,6 +668,15 @@ export default function ExpressDirectConnectPanel({
                   placeholder={config.placeholder}
                   className="w-full resize-y rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                 />
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-black/10 bg-white px-4 py-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={form.updatesOptIn}
+                  onChange={(event) => setForm({ ...form, updatesOptIn: event.target.checked })}
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-black/30 text-ts-orange focus:ring-ts-orange"
+                />
+                <span className="text-sm leading-6 text-stone-700">{updatesOptInLabel}</span>
               </label>
               <input
                 tabIndex={-1}

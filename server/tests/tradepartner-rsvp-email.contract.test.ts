@@ -30,4 +30,15 @@ describe("tradepartner RSVP email routing", () => {
     const source = read("server/services/emailService.ts");
     expect(source).toContain('purpose === "tradepartner_rsvp_confirmation"');
   });
+
+  it("allows Express Direct Connect requester confirmations when EMAIL_MODE is restricted", () => {
+    const source = read("server/services/emailService.ts");
+    expect(source).toContain('purpose === "tradepartner_request_confirmation"');
+    expect(source).toContain('purpose === "tradepartner_request_notification"');
+  });
+
+  it("allows JW Stone customer saved-stones copy emails when EMAIL_MODE is restricted", () => {
+    const source = read("server/services/emailService.ts");
+    expect(source).toContain('purpose === "jw_stone_saved_stones_copy"');
+  });
 });

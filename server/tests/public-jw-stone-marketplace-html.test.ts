@@ -56,7 +56,7 @@ describe("JW Stone marketplace public HTML", () => {
       "@type": "CollectionPage",
       name: "JW Stone | Stone Discovery",
       description:
-        "Browse JW Stone's supplied stone catalog, open full photo galleries, learn the basics of natural stone, save named selections, and ask about a material when you are ready.",
+        "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
     });
@@ -70,10 +70,17 @@ describe("JW Stone marketplace public HTML", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
-    expect(html).toContain("Learn about stone");
     expect(html).toContain("Current Inventory");
-    expect(html).toContain("do not confirm live availability");
+    expect(html).toContain("Filter by aesthetic or color");
     expect(html).toContain("Saving never starts a request");
+    expect(html).toContain(
+      "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready."
+    );
+    expect(html).not.toContain("Learn about stone");
+    expect(html).not.toContain("recorded source");
+    expect(html).not.toContain("source counts");
+    expect(html).not.toContain("Call for availability");
+    expect(html).toContain("New Arrivals");
     expect(html).not.toContain("Guidance when you need it");
     expect(html).not.toContain("customer-path");
     expect(html).not.toContain("Stone chosen around the way you see a project");
