@@ -20,6 +20,27 @@ export type SendEmailParams = {
   purpose?: string;
 };
 
+type EmailSendResult = {
+  skipped: boolean;
+  messageId?: string;
+};
+
+const BREVO_MAX_ATTEMPTS = 3;
+const BREVO_TIMEOUT_MS = 15_000;
+const BREVO_RETRY_BASE_MS = 500;
+
+function recipientSummary(to: string | string[]): string[] {
+  return (Array.isArray(to) ? to : [to]).map((value) => String(value).trim().toLowerCase());
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function shouldRetryBrevo(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
 class EmailService {
   private configured: boolean;
   private provider: "sendgrid" | "brevo" | "none";
@@ -61,6 +82,8 @@ class EmailService {
       .toLowerCase()
       .trim();
     this.mode = modeRaw === "account_creation_only" ? "account_creation_only" : "all";
+
+    console.info("[email] service initialized", this.getDiagnostics());
   }
 
   isConfigured(): boolean {
@@ -81,16 +104,23 @@ class EmailService {
     };
   }
 
-  async sendEmail(params: SendEmailParams): Promise<{ skipped: boolean; messageId?: string }> {
+  async sendEmail(params: SendEmailParams): Promise<EmailSendResult> {
+    const recipients = recipientSummary(params.to);
+    const purpose = String(params.purpose || "unspecified")
+      .toLowerCase()
+      .trim();
+
     if (!this.configured) {
-      console.warn("[email] Email provider not configured; skipping send");
+      console.error("[email] send skipped: provider not configured", {
+        provider: this.provider,
+        purpose,
+        subject: params.subject,
+        recipients,
+      });
       return { skipped: true };
     }
 
     if (this.mode === "account_creation_only") {
-      const purpose = String(params.purpose || "")
-        .toLowerCase()
-        .trim();
       const allowed =
         purpose === "account_creation" ||
         purpose === "email_verification" ||
@@ -108,9 +138,11 @@ class EmailService {
         purpose === "jw_stone_saved_stones_copy" ||
         purpose === "property_participant_invite";
       if (!allowed) {
-        console.warn("[email] Suppressed by EMAIL_MODE=account_creation_only", {
-          purpose: params.purpose,
+        console.warn("[email] send suppressed by EMAIL_MODE=account_creation_only", {
+          provider: this.provider,
+          purpose,
           subject: params.subject,
+          recipients,
         });
         return { skipped: true };
       }
@@ -141,15 +173,37 @@ class EmailService {
         headers: params.headers,
       };
 
-      const [response] = await sgMail.send(payload);
-      const messageId = (response?.headers as any)?.["x-message-id"];
-
-      return { skipped: false, messageId: Array.isArray(messageId) ? messageId[0] : messageId };
+      try {
+        const [response] = await sgMail.send(payload);
+        const rawMessageId = (response?.headers as any)?.["x-message-id"];
+        const messageId = Array.isArray(rawMessageId) ? rawMessageId[0] : rawMessageId;
+        console.info("[email] provider accepted message", {
+          provider: "sendgrid",
+          purpose,
+          subject: params.subject,
+          recipients,
+          messageId: messageId || null,
+        });
+        return { skipped: false, messageId };
+      } catch (error) {
+        console.error("[email] provider rejected message", {
+          provider: "sendgrid",
+          purpose,
+          subject: params.subject,
+          recipients,
+          error,
+        });
+        throw error;
+      }
     }
 
     if (this.provider === "brevo") {
       if (!this.brevoApiKey) {
-        console.warn("[email] Brevo selected but BREVO_API_KEY missing; skipping send");
+        console.error("[email] send skipped: Brevo selected but API key missing", {
+          purpose,
+          subject: params.subject,
+          recipients,
+        });
         return { skipped: true };
       }
       const fetchFn = (globalThis as any).fetch as undefined | typeof fetch;
@@ -157,10 +211,9 @@ class EmailService {
         throw new Error("Brevo email requires global fetch() (Node 18+)");
       }
 
-      const toList = Array.isArray(params.to) ? params.to : [params.to];
       const payload = {
         sender: from.name ? { email: from.email, name: from.name } : { email: from.email },
-        to: toList.map((email) => ({ email })),
+        to: recipients.map((email) => ({ email })),
         subject: params.subject,
         ...(params.html ? { htmlContent: params.html } : {}),
         ...(params.text ? { textContent: params.text } : {}),
@@ -170,28 +223,83 @@ class EmailService {
         ...(params.headers ? { headers: params.headers } : {}),
       };
 
-      const resp = await fetchFn("https://api.brevo.com/v3/smtp/email", {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "content-type": "application/json",
-          "api-key": this.brevoApiKey,
-        },
-        body: JSON.stringify(payload),
-      });
+      let lastError: unknown = null;
+      for (let attempt = 1; attempt <= BREVO_MAX_ATTEMPTS; attempt += 1) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), BREVO_TIMEOUT_MS);
+        try {
+          const resp = await fetchFn("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+              accept: "application/json",
+              "content-type": "application/json",
+              "api-key": this.brevoApiKey,
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
 
-      if (!resp.ok) {
-        const text = await resp.text().catch(() => "");
-        throw new Error(`Brevo send failed (${resp.status}): ${text || resp.statusText}`);
+          const responseText = await resp.text().catch(() => "");
+          if (!resp.ok) {
+            const error = new Error(
+              `Brevo send failed (${resp.status}): ${responseText || resp.statusText}`
+            );
+            lastError = error;
+            const retry = attempt < BREVO_MAX_ATTEMPTS && shouldRetryBrevo(resp.status);
+            console.error("[email] Brevo rejected message", {
+              purpose,
+              subject: params.subject,
+              recipients,
+              status: resp.status,
+              attempt,
+              retry,
+              response: responseText || resp.statusText,
+            });
+            if (!retry) throw error;
+          } else {
+            const json: any = responseText ? JSON.parse(responseText) : null;
+            const messageId = json?.messageId || json?.["messageId"];
+            console.info("[email] provider accepted message", {
+              provider: "brevo",
+              purpose,
+              subject: params.subject,
+              recipients,
+              attempt,
+              messageId: typeof messageId === "string" ? messageId : null,
+            });
+            return {
+              skipped: false,
+              messageId: typeof messageId === "string" ? messageId : undefined,
+            };
+          }
+        } catch (error) {
+          lastError = error;
+          const retry = attempt < BREVO_MAX_ATTEMPTS;
+          console.error("[email] Brevo delivery attempt failed", {
+            purpose,
+            subject: params.subject,
+            recipients,
+            attempt,
+            retry,
+            error,
+          });
+          if (!retry) throw error;
+        } finally {
+          clearTimeout(timeout);
+        }
+
+        await sleep(BREVO_RETRY_BASE_MS * 2 ** (attempt - 1));
       }
 
-      const json: any = await resp.json().catch(() => null);
-      const messageId = json?.messageId || json?.["messageId"];
-      return { skipped: false, messageId: typeof messageId === "string" ? messageId : undefined };
+      throw lastError instanceof Error ? lastError : new Error("Brevo send failed");
     }
 
-    // Should never happen, but fail-soft.
-    console.warn("[email] Unknown provider; skipping send");
+    console.error("[email] send skipped: unknown provider", {
+      provider: this.provider,
+      purpose,
+      subject: params.subject,
+      recipients,
+    });
     return { skipped: true };
   }
 }
