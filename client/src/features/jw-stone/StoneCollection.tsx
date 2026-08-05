@@ -1,248 +1,450 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import {
   JW_STONE_CATALOG,
   filterJwStoneCatalog,
+  getColorFilterOptions,
   getFinishFilterOptions,
   getMaterialFilterOptions,
-  getOriginFilterOptions,
 } from "./catalog";
-import { COLOR_DIRECTIONS } from "./colorDirections";
+import { jw } from "./brand";
+import { isHandOnlyStone } from "./coverImages";
+import { confirmedSlabCount } from "./stoneFacts";
 import { StoneCard } from "./StoneCard";
-import { TrendingSelectionRail } from "./TrendingSelectionRail";
 import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 
-type CollectionFilters = Pick<MarketplaceUrlState, "color" | "material" | "finish" | "origin">;
+type CollectionFilters = Pick<MarketplaceUrlState, "aesthetic" | "color" | "material" | "origin">;
+
+type AvailabilityFilter = "any" | "with-count";
 
 type StoneCollectionProps = {
   state: MarketplaceUrlState;
-  savedCount: number;
   isSaved: (id: string) => boolean;
   onUpdateFilters: (filters: CollectionFilters) => void;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
-  onAsk: (stone: JwStoneCatalogItem) => void;
   catalog?: readonly JwStoneCatalogItem[];
 };
 
-const PAGE_SIZE = 24;
+type ActiveChip = Readonly<{
+  key: string;
+  label: string;
+  onClear: () => void;
+}>;
 
 export function StoneCollection({
   state,
-  savedCount,
   isSaved,
   onUpdateFilters,
   onToggleSaved,
   onOpen,
-  onAsk,
   catalog = JW_STONE_CATALOG,
 }: StoneCollectionProps) {
   const [query, setQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  /** Finish stays local — never serialized to ?finish= (legacy param ignored). */
+  const [finish, setFinish] = useState<string | null>(null);
+  const [availability, setAvailability] = useState<AvailabilityFilter>("any");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftColor, setDraftColor] = useState<string | null>(null);
+  const [draftMaterial, setDraftMaterial] = useState<string | null>(null);
+  const [draftFinish, setDraftFinish] = useState<string | null>(null);
+  const [draftAvailability, setDraftAvailability] = useState<AvailabilityFilter>("any");
 
+  const colorOptions = useMemo(() => getColorFilterOptions(catalog), [catalog]);
   const materialOptions = useMemo(() => getMaterialFilterOptions(catalog), [catalog]);
   const finishOptions = useMemo(() => getFinishFilterOptions(catalog), [catalog]);
-  const originOptions = useMemo(() => getOriginFilterOptions(catalog), [catalog]);
+
+  const namedCatalog = useMemo(() => {
+    return catalog
+      .filter((stone) => !stone.anonymous)
+      .slice()
+      .sort((a, b) => Number(isHandOnlyStone(a.images)) - Number(isHandOnlyStone(b.images)));
+  }, [catalog]);
 
   const filtered = useMemo(() => {
-    const matches = filterJwStoneCatalog(
+    const base = filterJwStoneCatalog(
       {
+        aesthetic: state.aesthetic,
         color: state.color,
         material: state.material,
-        finish: state.finish,
+        finish,
         origin: state.origin,
       },
-      catalog
-    );
+      namedCatalog
+    ).filter((stone) => (availability === "with-count" ? confirmedSlabCount(stone) != null : true));
+
     const normalizedQuery = query.trim().toLocaleLowerCase();
-    if (!normalizedQuery) return matches;
-    return matches.filter(
-      (stone) =>
-        !stone.anonymous &&
-        Boolean(
-          stone.displayName?.toLocaleLowerCase().includes(normalizedQuery) ||
-          stone.materialLabel?.toLocaleLowerCase().includes(normalizedQuery) ||
-          stone.finishes.some((finish) => finish.toLocaleLowerCase().includes(normalizedQuery))
-        )
+    if (!normalizedQuery) return base;
+    return base.filter((stone) =>
+      Boolean(
+        stone.displayName?.toLocaleLowerCase().includes(normalizedQuery) ||
+        stone.materialLabel?.toLocaleLowerCase().includes(normalizedQuery) ||
+        stone.finishes.some((value) => value.toLocaleLowerCase().includes(normalizedQuery))
+      )
     );
-  }, [catalog, query, state.color, state.finish, state.material, state.origin]);
-
-  const namedFiltered = filtered.filter((stone) => !stone.anonymous);
-  const anonymousFiltered = filtered.filter((stone) => stone.anonymous);
-  const visible = namedFiltered.slice(0, visibleCount);
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [query, state.color, state.finish, state.material, state.origin]);
+  }, [
+    availability,
+    finish,
+    namedCatalog,
+    query,
+    state.aesthetic,
+    state.color,
+    state.material,
+    state.origin,
+  ]);
 
   const update = (next: Partial<CollectionFilters>) =>
     onUpdateFilters({
+      aesthetic: next.aesthetic === undefined ? state.aesthetic : next.aesthetic,
       color: next.color === undefined ? state.color : next.color,
       material: next.material === undefined ? state.material : next.material,
-      finish: next.finish === undefined ? state.finish : next.finish,
       origin: next.origin === undefined ? state.origin : next.origin,
     });
 
-  return (
-    <main id="current-inventory" className="bg-stone-100 text-stone-950">
-      <section className="border-t border-stone-300 px-5 pb-8 pt-12 sm:px-8 lg:px-12 lg:pb-10 lg:pt-16">
-        <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-stone-500">JW Stone</p>
-            <h2 className="mt-3 font-editorial text-5xl leading-none sm:text-6xl">
-              Current Inventory
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-stone-600">
-              Recorded source counts are source-file evidence, not live quantity or availability.
-            </p>
-          </div>
-          <dl className="flex border border-stone-300 bg-white text-center">
-            <div className="min-w-28 border-r border-stone-300 px-4 py-3">
-              <dt className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                Selections
-              </dt>
-              <dd className="mt-1 font-editorial text-3xl">{filtered.length}</dd>
-            </div>
-            <div className="min-w-24 px-4 py-3">
-              <dt className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                Saved
-              </dt>
-              <dd className="mt-1 font-editorial text-3xl">{savedCount}</dd>
-            </div>
-          </dl>
-        </div>
-      </section>
+  const openFilters = () => {
+    setDraftColor(state.color);
+    setDraftMaterial(state.material);
+    setDraftFinish(finish);
+    setDraftAvailability(availability);
+    setFiltersOpen(true);
+  };
 
-      <section
-        aria-label="Stone filters"
-        className="border-y border-stone-300 bg-white px-5 py-4 sm:px-8 lg:px-12"
-      >
-        <div className="mx-auto grid max-w-7xl gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="relative block sm:col-span-2 lg:col-span-1">
-            <span className="sr-only">Search named stones</span>
+  const applyFilters = () => {
+    setFinish(draftFinish);
+    setAvailability(draftAvailability);
+    update({
+      color: draftColor,
+      material: draftMaterial,
+    });
+    setFiltersOpen(false);
+  };
+
+  const clearAll = () => {
+    setQuery("");
+    setFinish(null);
+    setAvailability("any");
+    setDraftColor(null);
+    setDraftMaterial(null);
+    setDraftFinish(null);
+    setDraftAvailability("any");
+    update({
+      aesthetic: null,
+      color: null,
+      material: null,
+      origin: null,
+    });
+    setFiltersOpen(false);
+  };
+
+  const clearSheetDraft = () => {
+    setDraftColor(null);
+    setDraftMaterial(null);
+    setDraftFinish(null);
+    setDraftAvailability("any");
+  };
+
+  const chips = useMemo<ActiveChip[]>(() => {
+    const next: ActiveChip[] = [];
+    if (state.aesthetic) {
+      next.push({
+        key: "aesthetic",
+        label: aestheticChipLabel(state.aesthetic),
+        onClear: () => update({ aesthetic: null }),
+      });
+    }
+    if (state.color) {
+      const label =
+        colorOptions.find((option) => option.value === state.color)?.label || state.color;
+      next.push({
+        key: "color",
+        label,
+        onClear: () => update({ color: null }),
+      });
+    }
+    if (state.material) {
+      const label =
+        materialOptions.find((option) => option.value === state.material)?.label || state.material;
+      next.push({
+        key: "material",
+        label,
+        onClear: () => update({ material: null }),
+      });
+    }
+    if (finish) {
+      const label = finishOptions.find((option) => option.value === finish)?.label || finish;
+      next.push({
+        key: "finish",
+        label,
+        onClear: () => setFinish(null),
+      });
+    }
+    if (availability === "with-count") {
+      next.push({
+        key: "availability",
+        label: "Slab count known",
+        onClear: () => setAvailability("any"),
+      });
+    }
+    return next;
+  }, [
+    availability,
+    colorOptions,
+    finish,
+    finishOptions,
+    materialOptions,
+    state.aesthetic,
+    state.color,
+    state.material,
+  ]);
+
+  const hasRefinements = Boolean(query.trim() || chips.length);
+  const draftResultCount = useMemo(() => {
+    return filterJwStoneCatalog(
+      {
+        aesthetic: state.aesthetic,
+        color: draftColor,
+        material: draftMaterial,
+        finish: draftFinish,
+        origin: state.origin,
+      },
+      namedCatalog
+    ).filter((stone) =>
+      draftAvailability === "with-count" ? confirmedSlabCount(stone) != null : true
+    ).length;
+  }, [
+    draftAvailability,
+    draftColor,
+    draftFinish,
+    draftMaterial,
+    namedCatalog,
+    state.aesthetic,
+    state.origin,
+  ]);
+
+  return (
+    <main
+      id="current-inventory"
+      data-testid="jw-inventory"
+      className={`bg-[var(--jw-bg)] text-[var(--jw-ink)] ${jw.scrollTarget}`}
+    >
+      <section className="px-5 pb-4 pt-9 sm:px-9 sm:pt-11 lg:px-12">
+        <div className="mx-auto max-w-[1600px]">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-editorial text-2xl leading-tight text-[var(--jw-ink)] sm:text-3xl">
+                Explore the collection
+              </h2>
+              <p className={`mt-2 text-sm ${jw.muted}`}>
+                {filtered.length} {filtered.length === 1 ? "selection" : "selections"}
+                {hasRefinements ? " matching refinements" : " in the collection"}
+              </p>
+            </div>
+            <button
+              type="button"
+              data-testid="jw-filters-sheet-open"
+              aria-expanded={filtersOpen}
+              onClick={openFilters}
+              className={`inline-flex min-h-11 shrink-0 items-center gap-2 px-3.5 text-sm font-semibold ${
+                chips.length
+                  ? "bg-[var(--jw-accent)] text-[var(--jw-on-accent)]"
+                  : `text-[var(--jw-ink)] ${jw.ghostOnLight}`
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+              Filter
+            </button>
+          </div>
+
+          <label className="relative mt-4 block w-full min-w-0">
+            <span className="sr-only">Search the collection</span>
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500"
+              className={`pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 ${jw.muted}`}
               aria-hidden="true"
             />
             <input
               type="search"
-              aria-label="Search named stones"
+              aria-label="Search the collection"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search named stones"
-              className="min-h-12 w-full border border-stone-300 bg-stone-50 pl-10 pr-3 text-sm outline-none focus:border-stone-800"
+              placeholder="Search the collection"
+              className="min-h-12 w-full border-0 border-b border-[var(--jw-border)] bg-transparent pl-7 pr-3 text-sm text-[var(--jw-ink)] outline-none [color-scheme:light] placeholder:text-[var(--jw-muted)] focus:border-[var(--jw-accent)]"
             />
           </label>
 
-          <FilterSelect
-            label="Filter by color direction"
-            value={state.color || ""}
-            onChange={(value) => update({ color: (value || null) as MarketplaceUrlState["color"] })}
-          >
-            <option value="">All color directions</option>
-            {COLOR_DIRECTIONS.map((direction) => {
-              const count = catalog.filter((stone) => stone.colorDirection === direction.id).length;
-              return (
-                <option key={direction.id} value={direction.id}>
-                  {direction.label} ({count})
-                </option>
-              );
-            })}
-          </FilterSelect>
-
-          <FilterSelect
-            label="Filter by material"
-            value={state.material || ""}
-            onChange={(value) => update({ material: value || null })}
-          >
-            <option value="">All materials</option>
-            {materialOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} ({option.count})
-              </option>
-            ))}
-          </FilterSelect>
-
-          <FilterSelect
-            label="Filter by finish"
-            value={state.finish || ""}
-            onChange={(value) => update({ finish: value || null })}
-          >
-            <option value="">All finishes</option>
-            {finishOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label} ({option.count})
-              </option>
-            ))}
-          </FilterSelect>
-
-          {originOptions.length ? (
-            <FilterSelect
-              label="Filter by verified country of origin"
-              value={state.origin || ""}
-              onChange={(value) => update({ origin: value || null })}
-            >
-              <option value="">All verified origins</option>
-              {originOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label} ({option.count})
-                </option>
+          {chips.length ? (
+            <ul className="mt-3 flex flex-wrap gap-2" aria-label="Active filters">
+              {chips.map((chip) => (
+                <li key={chip.key}>
+                  <button
+                    type="button"
+                    onClick={chip.onClear}
+                    className="inline-flex min-h-9 items-center gap-1.5 bg-[var(--jw-accent)]/20 px-2.5 text-xs font-medium text-[var(--jw-ink)]"
+                  >
+                    {chip.label}
+                    <X className="h-3 w-3" aria-hidden="true" />
+                    <span className="sr-only">Clear {chip.label}</span>
+                  </button>
+                </li>
               ))}
-            </FilterSelect>
+            </ul>
           ) : null}
         </div>
       </section>
 
-      <section aria-label="Current Inventory" className="px-5 py-10 sm:px-8 lg:px-12 lg:py-14">
-        <div className="mx-auto max-w-7xl">
-          {visible.length ? (
-            <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 lg:gap-8">
-              {visible.map((stone) => (
+      <section
+        aria-label="Stone inventory"
+        data-testid="jw-inventory-grid"
+        className="px-5 pb-12 sm:px-9 lg:px-12 lg:pb-16"
+      >
+        <div className="mx-auto max-w-[42rem]">
+          {filtered.length ? (
+            <ul className="flex flex-col gap-10 sm:gap-12">
+              {filtered.map((stone) => (
                 <li key={stone.id}>
                   <StoneCard
                     stone={stone}
                     saved={isSaved(stone.id)}
                     onToggleSaved={onToggleSaved}
                     onOpen={onOpen}
-                    onAsk={onAsk}
                   />
                 </li>
               ))}
             </ul>
-          ) : filtered.length === 0 ? (
-            <div className="border border-stone-300 bg-white px-6 py-14 text-center">
-              <h3 className="font-editorial text-3xl">No matching supplied selections</h3>
-              <p className="mt-3 text-sm text-stone-600">Clear the search or refinements.</p>
+          ) : (
+            <div className="px-1 py-14 text-center">
+              <h3 className="font-editorial text-3xl text-[var(--jw-ink)]">No matching stones</h3>
+              <p className={`mt-3 text-sm ${jw.muted}`}>Clear the search or refinements.</p>
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  onUpdateFilters({ color: null, material: null, finish: null, origin: null });
-                }}
-                className="mt-6 min-h-11 border border-stone-500 px-5 text-sm font-semibold hover:bg-stone-100"
+                onClick={clearAll}
+                className={`mt-6 min-h-12 px-5 text-sm ${jw.ghostOnLight}`}
               >
-                Reset filters
+                Reset refinements
               </button>
             </div>
-          ) : null}
-
-          {visibleCount < namedFiltered.length ? (
-            <div className="mt-10 text-center">
-              <button
-                type="button"
-                onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-                className="min-h-12 border border-stone-500 bg-white px-8 font-bold hover:bg-stone-950 hover:text-white"
-              >
-                Show more stones
-              </button>
-            </div>
-          ) : null}
-
-          <TrendingSelectionRail items={anonymousFiltered} onOpen={onOpen} />
+          )}
         </div>
       </section>
+
+      {filtersOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/35 sm:items-center"
+          role="presentation"
+          onClick={() => setFiltersOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jw-filters-sheet-title"
+            data-testid="jw-filters-sheet"
+            className="w-full max-w-md bg-[var(--jw-surface)] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 sm:pb-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3
+                id="jw-filters-sheet-title"
+                className="font-editorial text-xl text-[var(--jw-ink)]"
+              >
+                Filter
+              </h3>
+              <button
+                type="button"
+                aria-label="Close filters"
+                onClick={() => setFiltersOpen(false)}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--jw-ink)]"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <FilterSelect
+                label="Color"
+                value={draftColor || ""}
+                onChange={(value) => setDraftColor(value || null)}
+              >
+                <option value="">Color</option>
+                {colorOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </FilterSelect>
+
+              <FilterSelect
+                label="Material"
+                value={draftMaterial || ""}
+                onChange={(value) => setDraftMaterial(value || null)}
+              >
+                <option value="">Material</option>
+                {materialOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </FilterSelect>
+
+              <FilterSelect
+                label="Finish"
+                value={draftFinish || ""}
+                onChange={(value) => setDraftFinish(value || null)}
+              >
+                <option value="">Finish</option>
+                {finishOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </FilterSelect>
+
+              <FilterSelect
+                label="Availability"
+                value={draftAvailability}
+                onChange={(value) =>
+                  setDraftAvailability(value === "with-count" ? "with-count" : "any")
+                }
+              >
+                <option value="any">Availability</option>
+                <option value="with-count">Slab count known</option>
+              </FilterSelect>
+
+              <button
+                type="button"
+                onClick={clearSheetDraft}
+                className={`min-h-12 w-full px-4 text-sm ${jw.ghostOnLight}`}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={applyFilters}
+                className={`min-h-12 w-full px-4 text-sm ${jw.accentCta}`}
+              >
+                Show {draftResultCount} results
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
+}
+
+function aestheticChipLabel(id: string): string {
+  switch (id) {
+    case "warm-earthy":
+      return "Warm neutrals";
+    case "soft-light":
+      return "White & light";
+    case "bold-expressive":
+      return "Green";
+    case "cool-serene":
+      return "Blue";
+    case "deep-dramatic":
+      return "Dramatic darks";
+    default:
+      return id;
+  }
 }
 
 function FilterSelect({
@@ -257,20 +459,16 @@ function FilterSelect({
   children: React.ReactNode;
 }) {
   return (
-    <label className="relative block">
+    <label className="relative block w-full">
       <span className="sr-only">{label}</span>
       <select
         aria-label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="min-h-12 w-full appearance-none border border-stone-300 bg-stone-50 px-3 pr-9 text-sm text-stone-950 [color-scheme:light] outline-none focus:border-stone-800"
+        className={`min-h-12 w-full appearance-none px-3 pr-8 text-sm [color-scheme:light] ${jw.field}`}
       >
         {children}
       </select>
-      <SlidersHorizontal
-        className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500"
-        aria-hidden="true"
-      />
     </label>
   );
 }

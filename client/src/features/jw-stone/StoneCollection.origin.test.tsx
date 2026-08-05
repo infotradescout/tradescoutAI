@@ -10,8 +10,9 @@ import { StoneCollection } from "./StoneCollection";
   true;
 
 describe("JW Stone verified-origin collection path", () => {
-  it("shows an origin filter and fact only for an explicit verified fixture", () => {
+  it("keeps filter controls in the Filter sheet (no permanent filter boxes)", () => {
     const sourceStone = JW_STONE_NAMED_CATALOG[0];
+    if (!sourceStone.materialId) throw new Error("Expected fixture materialId");
     const fixtureStone = {
       ...sourceStone,
       origin: {
@@ -28,28 +29,38 @@ describe("JW Stone verified-origin collection path", () => {
       root.render(
         <StoneCollection
           state={{
-            buyer: null,
+            aesthetic: null,
             color: null,
             material: null,
-            finish: null,
             origin: null,
             stone: null,
           }}
           catalog={[fixtureStone]}
-          savedCount={0}
           isSaved={() => false}
           onUpdateFilters={vi.fn()}
           onToggleSaved={vi.fn()}
           onOpen={vi.fn()}
-          onAsk={vi.fn()}
         />
       );
     });
 
-    expect(
-      container.querySelector('select[aria-label="Filter by verified country of origin"]')
-    ).not.toBeNull();
-    expect(container.textContent).toContain("Brazil");
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(1);
+    expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Availability"]')).toBeNull();
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="jw-filters-sheet-open"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.querySelector('[data-testid="jw-filters-sheet"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Color"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Material"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Finish"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Availability"]')).not.toBeNull();
 
     act(() => root.unmount());
     container.remove();

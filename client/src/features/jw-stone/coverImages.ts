@@ -1,0 +1,249 @@
+import sourceNamesById from "@/data/jwStoneSourceNames.generated.json";
+
+/**
+ * Marketplace cover ranking: prefer full-slab context shots over hand / sample /
+ * detail close-ups when the stone's image set includes a better lead.
+ *
+ * Mirrors scripts/reorder-jw-stone-full-slab-leads.mjs scoring, with extra
+ * demotions for known hand-scale photos that were saved without CLOSE in the name.
+ */
+
+const SOURCE_NAME_BY_ID = sourceNamesById as Record<string, string>;
+
+/** Explicit preferred lead drive file ids (warehouse / full-slab context). */
+export const JW_STONE_PREFERRED_COVER_FILE_IDS: Readonly<Record<string, string>> = Object.freeze({
+  "galaxy-white": "1g58rJny4wbYKb-V8z1rug_hCUEcb7DeO",
+  "emperor-brown": "1UkwxC3a6LWlHkaUPZLKppFJT18s9f6oQ",
+  "super-white": "1R9wC8J72zpDBdL31Zf4aMISigDudPaQy",
+  "juparana-blue": "1D9v9nEKAm5BCDuSlzYpdn9PwOi0nkjKs",
+  "beverly-blue": "1BHaSAxN9B8CbNN9gaKiK2F_HJ-GAyRVy",
+  "bianco-superiory": "1-1U8FEyCh3N2_DOxRhNKT_lUW72Jh_RQ",
+  "calacatta-amala": "1-8YRVJ9x4_lEyoLWh7RpAY0oFPbJHcFa",
+  "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
+  picasso: "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
+  bronzonite: "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
+});
+
+/**
+ * Drive file ids confirmed as hand-on-stone / sample-scale leads.
+ * Keep these out of index 0 whenever any stronger sibling exists.
+ */
+export const JW_STONE_HAND_COVER_FILE_IDS: ReadonlySet<string> = new Set([
+  // Previously confirmed
+  "1UDe57h8Vq_IpmDKm9JvV-1jEdrc7TMKW", // steel-gray brushed
+  "1fqDCQbCGOI4ieLt5899s8XYZv3OlhJp6", // steel-gray close polished
+  "18gmBQeXMlJVXkyVR8CYZcr7S19YLnIvM", // fusion-yellow close
+  "1M2IO3m_dOI-OMPWbTE8Y4JgtLZaAVYnD", // dallas-white close look
+  "11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru", // blue-dream close (hand)
+  // Visually confirmed hand-on-stone (often misnamed with slab dimensions)
+  "1o_wQm5dke5f0mnIXjslDs4Ai0XE6ttXA", // galaxy-white former preferred
+  "1_SEkFjSzvYBgRoP1PR0_YMJEkv5T9t6z", // galaxy-white sibling hand
+  "1BrnNoAJ7X3z5lXuKwKZCPX17Y7G7rg-p", // juparana-blue hand
+  "1lfVGyu3oVXcdaAb6amxkgSJBB_w1Rh36", // juparana-blue hand
+  "1Sj9EjHRqjwVqTqi5bFZTrjdwMRhIm7ul", // beverly-blue hand
+  "1ApF2R6Pbn8aWYpXNHD7VNlJwsFlBsIP4", // beverly-blue hand
+  "1Xa7SrSqU8QkEQ2loN5e0MJAiBwqh5d7d", // bianco-superiory hand
+  "112yUwIti-kOjZj7MZD9O_IRRRMO65hUT", // calacatta-amala hand
+  "15V13zBDRJlRIWJPRHNwyEEhBj5YFRo7m", // fusion-brown hand
+  "1n3tCkEbpG8cwAZqp3rsULP5Npm0fYptH", // picasso hand
+  "1aiC_duaWb8dY1HHKkGeK9UjbUMRqnPY0", // bronzonite hand
+]);
+
+function normalizeName(sourceName = ""): string {
+  return sourceName.toLowerCase().replace(/[_-]+/g, " ");
+}
+
+export function driveFileIdFromImagePath(imagePath: string): string {
+  const base = imagePath.split("/").pop() || "";
+  return base.replace(/\.[^.]+$/, "");
+}
+
+export function sourceNameForImagePath(imagePath: string): string {
+  return SOURCE_NAME_BY_ID[driveFileIdFromImagePath(imagePath)] || "";
+}
+
+/** Phone-camera / WhatsApp dumps — score-demoted (some are still full slabs). */
+export function isPhoneDumpSourceName(sourceName = ""): boolean {
+  const compact = normalizeName(sourceName).replace(/\s+/g, "");
+  return (
+    /^(img_?\d+|dsc_?\d+|photo\d+|pxl_?\d+|heic)/i.test(compact) || /\.heic$/i.test(sourceName)
+  );
+}
+
+export function isCloseUpSourceName(sourceName = ""): boolean {
+  const name = normalizeName(sourceName);
+  return /(close\s*up|closeup|close\s*look|\bclose\b|\bdetail\b|\btexture\b|\bswatch\b|scloseup|\bsample\b|\bthumb\b|\bhand\b|\bhands\b|\bholding\b)/.test(
+    name
+  );
+}
+
+export function isFullSlabSourceName(sourceName = ""): boolean {
+  const name = normalizeName(sourceName);
+  if (isCloseUpSourceName(name) || isPhoneDumpSourceName(sourceName)) return false;
+  return (
+    /\b(slabs?|bundle|bundles|warehouse|yard|rack|standing|full\s*size|full\s*slab)\b/.test(name) ||
+    /\d+\s*[x×"']\s*\d+/.test(name)
+  );
+}
+
+/**
+ * True when this path is a confirmed hand-scale or close-named shot.
+ * Phone dumps are score-demoted separately — some PHOTO-* files are full slabs.
+ */
+export function isHandScaleCoverImage(imagePath: string, sourceName?: string): boolean {
+  const fileId = driveFileIdFromImagePath(imagePath);
+  const name = sourceName ?? sourceNameForImagePath(imagePath);
+  return JW_STONE_HAND_COVER_FILE_IDS.has(fileId) || isCloseUpSourceName(name);
+}
+
+/** True when at least one image is a non-hand / non-close lead candidate. */
+export function hasNonHandCoverCandidate(images: readonly string[]): boolean {
+  return images.some((imagePath) => !isHandScaleCoverImage(imagePath));
+}
+
+/**
+ * Stones whose entire set is close-up / hand / phone-dump — no full-slab
+ * cover can be chosen without inventing photos.
+ */
+export function isHandOnlyStone(images: readonly string[]): boolean {
+  if (!images.length) return true;
+  return !hasNonHandCoverCandidate(images);
+}
+
+function slabCount(sourceName = ""): number {
+  const match = normalizeName(sourceName).match(/(\d+)\s*slabs?\b/);
+  return match ? Number(match[1]) : 0;
+}
+
+function hasDimensions(sourceName = ""): boolean {
+  return /\d+\s*[x×"']\s*\d+/.test(normalizeName(sourceName));
+}
+
+export function scoreImageForCover(args: {
+  imagePath: string;
+  sourceName?: string;
+  preferredFileId?: string;
+}): number {
+  const fileId = driveFileIdFromImagePath(args.imagePath);
+  const name = normalizeName(args.sourceName || sourceNameForImagePath(args.imagePath));
+  const rawName = args.sourceName || sourceNameForImagePath(args.imagePath);
+  let value = 0;
+
+  // Never boost a preferred id that is itself a confirmed hand / close / phone dump.
+  const preferredIsUsable =
+    Boolean(args.preferredFileId) &&
+    !JW_STONE_HAND_COVER_FILE_IDS.has(args.preferredFileId!) &&
+    !isCloseUpSourceName(SOURCE_NAME_BY_ID[args.preferredFileId!] || "") &&
+    !isPhoneDumpSourceName(SOURCE_NAME_BY_ID[args.preferredFileId!] || "");
+
+  if (preferredIsUsable && fileId === args.preferredFileId) value += 500;
+  if (JW_STONE_HAND_COVER_FILE_IDS.has(fileId)) value -= 250;
+  if (isPhoneDumpSourceName(rawName)) value -= 180;
+  if (isCloseUpSourceName(name)) value -= 100;
+  if (isFullSlabSourceName(rawName)) value += 50;
+  if (/\b(warehouse|yard|rack|standing|full\s*size|full\s*slab)\b/.test(name)) value += 25;
+  if (hasDimensions(name) && !isCloseUpSourceName(name) && !isPhoneDumpSourceName(rawName)) {
+    value += 20;
+  }
+  if (/\bslabs?\b/.test(name) && !isCloseUpSourceName(name) && !isPhoneDumpSourceName(rawName)) {
+    value += 15;
+  }
+  value += Math.min(slabCount(name), 8);
+  return value;
+}
+
+export function rankImagePathsForCover(
+  images: readonly string[],
+  options?: { stoneSlug?: string; preferredFileId?: string }
+): number[] {
+  if (images.length < 2) return images.map((_, index) => index);
+
+  const preferredFileId =
+    options?.preferredFileId ||
+    (options?.stoneSlug ? JW_STONE_PREFERRED_COVER_FILE_IDS[options.stoneSlug] : undefined) ||
+    "";
+
+  return images
+    .map((imagePath, index) => ({
+      index,
+      score: scoreImageForCover({ imagePath, preferredFileId }),
+      hand: isHandScaleCoverImage(imagePath),
+    }))
+    .sort((a, b) => {
+      // Hard rule: any non-hand image outranks every hand/close/phone image.
+      if (a.hand !== b.hand) return a.hand ? 1 : -1;
+      return b.score - a.score || a.index - b.index;
+    })
+    .map((entry) => entry.index);
+}
+
+export function orderImagesForCover<T extends string>(
+  images: readonly T[],
+  options?: { stoneSlug?: string; preferredFileId?: string }
+): T[] {
+  const rank = rankImagePathsForCover(images, options);
+  if (rank.every((oldIndex, newIndex) => oldIndex === newIndex)) return [...images];
+  return rank.map((oldIndex) => images[oldIndex]!);
+}
+
+/** Remap share ordinal → display index after a presentation reorder. */
+export function remapShareImageOrder(
+  shareImageOrder: readonly number[] | undefined,
+  permutation: readonly number[],
+  imageCount: number
+): number[] | undefined {
+  if (!shareImageOrder || shareImageOrder.length !== imageCount) {
+    return shareImageOrder ? [...shareImageOrder] : undefined;
+  }
+  const oldToNew = new Map(permutation.map((oldIndex, newIndex) => [oldIndex, newIndex]));
+  return shareImageOrder.map((oldDisplayIndex) => oldToNew.get(oldDisplayIndex) ?? oldDisplayIndex);
+}
+
+export function reorderParallelByPermutation<T>(
+  values: readonly T[] | undefined,
+  permutation: readonly number[]
+): T[] | undefined {
+  if (!values || values.length !== permutation.length) return values ? [...values] : undefined;
+  return permutation.map((oldIndex) => values[oldIndex]!);
+}
+
+/**
+ * Stones whose current lead cannot be improved to a full-slab context shot
+ * because every supplied photograph is a close-up / hand / sample view.
+ */
+export function listStonesWithoutFullSlabCover(
+  args: {
+    slug: string;
+    images: readonly string[];
+  }[]
+): string[] {
+  return args
+    .filter(({ images }) => {
+      if (!images.length) return true;
+      return !images.some((imagePath) => {
+        const name = sourceNameForImagePath(imagePath);
+        const fileId = driveFileIdFromImagePath(imagePath);
+        return (
+          isFullSlabSourceName(name) &&
+          !isCloseUpSourceName(name) &&
+          !isPhoneDumpSourceName(name) &&
+          !JW_STONE_HAND_COVER_FILE_IDS.has(fileId)
+        );
+      });
+    })
+    .map(({ slug }) => slug)
+    .sort();
+}
+
+/** Hand-only / close-only stone ids (no inventable full-slab cover). */
+export function listHandOnlyStoneIds(
+  args: {
+    slug: string;
+    images: readonly string[];
+  }[]
+): string[] {
+  return args
+    .filter(({ images }) => isHandOnlyStone(images))
+    .map(({ slug }) => slug)
+    .sort();
+}

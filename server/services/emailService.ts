@@ -100,6 +100,12 @@ class EmailService {
         purpose === "tradepartner_rsvp_admin" ||
         purpose === "tradepartner_rsvp_confirmation" ||
         purpose === "tradepartner_request_notification" ||
+        // Requester confirmation for Express Direct Connect. Existing-account
+        // matches previously used purpose "notification", which EMAIL_MODE
+        // account_creation_only silently suppressed in production.
+        purpose === "tradepartner_request_confirmation" ||
+        // Customer-only copy of JW Stone browser-saved stones (not a JW notify).
+        purpose === "jw_stone_saved_stones_copy" ||
         purpose === "property_participant_invite";
       if (!allowed) {
         console.warn("[email] Suppressed by EMAIL_MODE=account_creation_only", {

@@ -95,6 +95,9 @@ const requestSchema = z
       .optional(),
     // Quiet bot trap. Real browsers never populate this hidden field.
     website: z.string().max(0).optional(),
+    // Explicit marketing consent. Default unchecked on the client; never
+    // treat absence as opt-in.
+    updatesOptIn: z.boolean().optional(),
   })
   .strict();
 
@@ -105,9 +108,8 @@ type TradePartnerTarget = {
   businessName: string;
   ownerUserId: string;
   phone: string;
-  // Where new-request emails go. Separate from the owner's login email --
-  // a business may want requests routed to a shared inbox instead of
-  // whatever address the account owner personally signed in with.
+  // Where new-request emails go. Prefer profileData.notificationEmail
+  // (shared inbox), then profileData.email, then the owner login email.
   notificationEmail: string;
   deliveryCustody: "business" | "tradescout_pending_owner";
 };
@@ -177,6 +179,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
       ownerPhone: users.phone,
+      ownerEmail: users.email,
     })
     .from(profiles)
     .innerJoin(businesses, eq(profiles.businessId, businesses.id))
@@ -201,7 +204,12 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     : "business";
   const profileData = (row?.profileData || {}) as Record<string, any>;
   const phone = String(profileData.phone || row?.ownerPhone || "").trim();
-  const notificationEmail = String(profileData.notificationEmail || "").trim();
+  // Business-facing request mail must not silently no-op when only the
+  // owner login email exists. Prefer an explicit shared inbox, then any
+  // stored business email, then the account owner.
+  const notificationEmail = normalizeEmail(
+    profileData.notificationEmail || profileData.email || row?.ownerEmail || ""
+  );
   if (
     !row ||
     String(row.businessStatus) !== "active" ||
@@ -357,6 +365,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         let requester = viewerId ? await storage.getUser(viewerId) : null;
         if (!requester) requester = await storage.getUserByEmail(email);
         const requesterWasCreated = !requester;
+        const updatesOptIn = body.updatesOptIn === true;
         if (!requester) {
           requester = await storage.createUser({
             email,
@@ -371,11 +380,25 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             addressVerified: false,
             onboardingCompleted: false,
             preferences: {
+              // Targeting later uses preferences.marketingEmails (admin segments).
+              // No ESP sync is claimed here — consent is stored truthfully.
+              marketingEmails: updatesOptIn,
               provisional: {
                 userTypes: ["homeowner"],
                 source: "tradepartner_profile_express_request",
                 capturedAt: new Date().toISOString(),
               },
+              ...(updatesOptIn
+                ? {
+                    marketingConsent: {
+                      source: "tradepartner_profile_express_request",
+                      profileSlug: target.profileSlug,
+                      businessId: target.businessId,
+                      topics: ["new_arrivals", "first_cuts", "promotions"],
+                      optedInAt: new Date().toISOString(),
+                    },
+                  }
+                : {}),
             },
           } as any);
         } else if (viewerId) {
@@ -386,9 +409,47 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           if (!requester.firstName) updates.firstName = firstName;
           if (!requester.lastName && lastName) updates.lastName = lastName;
           if (!requester.phone) updates.phone = body.phone;
+          if (updatesOptIn) {
+            const existingPreferences =
+              requester.preferences && typeof requester.preferences === "object"
+                ? (requester.preferences as Record<string, any>)
+                : {};
+            updates.preferences = {
+              ...existingPreferences,
+              marketingEmails: true,
+              marketingConsent: {
+                source: "tradepartner_profile_express_request",
+                profileSlug: target.profileSlug,
+                businessId: target.businessId,
+                topics: ["new_arrivals", "first_cuts", "promotions"],
+                optedInAt: new Date().toISOString(),
+              },
+            };
+          }
           if (Object.keys(updates).length > 0) {
             requester = await storage.updateUser(String(requester.id), updates);
           }
+        } else if (updatesOptIn && requester) {
+          // Logged-out email match: persist marketing consent only (no profile
+          // field overwrite). Still ties opt-in to the matched account so
+          // admin marketing segments can find them later.
+          const existingPreferences =
+            requester.preferences && typeof requester.preferences === "object"
+              ? (requester.preferences as Record<string, any>)
+              : {};
+          requester = await storage.updateUser(String(requester.id), {
+            preferences: {
+              ...existingPreferences,
+              marketingEmails: true,
+              marketingConsent: {
+                source: "tradepartner_profile_express_request",
+                profileSlug: target.profileSlug,
+                businessId: target.businessId,
+                topics: ["new_arrivals", "first_cuts", "promotions"],
+                optedInAt: new Date().toISOString(),
+              },
+            },
+          });
         }
 
         const sanitizedMessage = redactContactDetails(body.message).trim();
@@ -441,6 +502,15 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 itemId: body.itemId || null,
                 deliveryCustody: target.deliveryCustody,
                 contactCheck: "phone_required",
+                updatesOptIn,
+                ...(updatesOptIn
+                  ? {
+                      marketingConsent: {
+                        topics: ["new_arrivals", "first_cuts", "promotions"],
+                        profileSlug: target.profileSlug,
+                      },
+                    }
+                  : {}),
                 membershipOnboarding: requesterWasCreated
                   ? "provisional_account_created"
                   : viewerId
@@ -499,7 +569,24 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           });
         }
 
-        if (target.notificationEmail && emailService.isConfigured()) {
+        if (!emailService.isConfigured()) {
+          console.warn(
+            "[tradepartner-express] business notification email skipped: email provider not configured",
+            {
+              requestId: created.id,
+              businessId: target.businessId,
+            }
+          );
+        } else if (!target.notificationEmail) {
+          console.warn(
+            "[tradepartner-express] business notification email skipped: no notification recipient",
+            {
+              requestId: created.id,
+              businessId: target.businessId,
+              profileSlug: target.profileSlug,
+            }
+          );
+        } else {
           const publicBase = String(
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
           ).replace(/\/$/, "");
@@ -599,6 +686,13 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             // across every business. Real back-and-forth with the business
             // happens separately, through whatever contact the business
             // owner uses, once they accept the request.
+            // New accounts keep purpose account_creation (already allow-listed).
+            // Existing-account matches must use tradepartner_request_confirmation
+            // — purpose "notification" is suppressed under EMAIL_MODE=
+            // account_creation_only (production).
+            const requesterEmailPurpose = requesterWasCreated
+              ? "account_creation"
+              : "tradepartner_request_confirmation";
             const emailResult = await emailService.sendEmail({
               to: requester.email,
               subject:
@@ -636,9 +730,16 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               ]
                 .filter(Boolean)
                 .join("\n"),
-              purpose: requesterWasCreated ? "account_creation" : "notification",
+              purpose: requesterEmailPurpose,
             });
             onboardingEmailStatus = emailResult.skipped ? "skipped" : "sent";
+            if (emailResult.skipped) {
+              console.warn("[tradepartner-express] requester confirmation email skipped", {
+                requestId: created.id,
+                requesterUserId: requester.id,
+                purpose: requesterEmailPurpose,
+              });
+            }
           } catch (error) {
             onboardingEmailStatus = "failed";
             console.warn("[tradepartner-express] requester onboarding email failed", {

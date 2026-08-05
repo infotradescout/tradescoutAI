@@ -30,23 +30,64 @@ const BASELINE_SHARE_LEAD_FILE_IDS = {
 /**
  * Prefer these drive file ids as lead when present — filename scoring alone
  * still promotes hand/swatch shots that were saved without CLOSE in the name.
+ * Keep in sync with client/src/features/jw-stone/coverImages.ts.
  */
 const PREFERRED_LEAD_FILE_IDS = {
-  "galaxy-white": "1o_wQm5dke5f0mnIXjslDs4Ai0XE6ttXA",
+  "galaxy-white": "1g58rJny4wbYKb-V8z1rug_hCUEcb7DeO",
   "emperor-brown": "1UkwxC3a6LWlHkaUPZLKppFJT18s9f6oQ",
   "mexican-brown": null, // filled below after lookup
   "super-white": "1R9wC8J72zpDBdL31Zf4aMISigDudPaQy",
+  "juparana-blue": "1D9v9nEKAm5BCDuSlzYpdn9PwOi0nkjKs",
+  "beverly-blue": "1BHaSAxN9B8CbNN9gaKiK2F_HJ-GAyRVy",
+  "bianco-superiory": "1-1U8FEyCh3N2_DOxRhNKT_lUW72Jh_RQ",
+  "calacatta-amala": "1-8YRVJ9x4_lEyoLWh7RpAY0oFPbJHcFa",
+  "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
+  picasso: "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
+  bronzonite: "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
 };
 
 function normalizeName(sourceName = "") {
   return sourceName.toLowerCase().replace(/[_-]+/g, " ");
 }
 
+function isPhoneDump(sourceName = "") {
+  const compact = normalizeName(sourceName).replace(/\s+/g, "");
+  return (
+    /^(img_?\d+|dsc_?\d+|photo\d+|pxl_?\d+|heic)/i.test(compact) ||
+    /\.heic$/i.test(sourceName)
+  );
+}
+
 function isCloseUp(sourceName = "") {
   const name = normalizeName(sourceName);
-  return /(close\s*up|closeup|close\s*look|\bclose\b|\bdetail\b|\btexture\b|\bswatch\b)/.test(
+  return /(close\s*up|closeup|close\s*look|\bclose\b|\bdetail\b|\btexture\b|\bswatch\b|scloseup|\bsample\b|\bthumb\b|\bhand\b|\bhands\b|\bholding\b)/.test(
     name
   );
+}
+
+/** Hand-on-stone / sample-scale photos — keep in sync with coverImages.ts */
+const HAND_COVER_FILE_IDS = new Set([
+  "1UDe57h8Vq_IpmDKm9JvV-1jEdrc7TMKW",
+  "1fqDCQbCGOI4ieLt5899s8XYZv3OlhJp6",
+  "18gmBQeXMlJVXkyVR8CYZcr7S19YLnIvM",
+  "1M2IO3m_dOI-OMPWbTE8Y4JgtLZaAVYnD",
+  "11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru",
+  "1o_wQm5dke5f0mnIXjslDs4Ai0XE6ttXA",
+  "1_SEkFjSzvYBgRoP1PR0_YMJEkv5T9t6z",
+  "1BrnNoAJ7X3z5lXuKwKZCPX17Y7G7rg-p",
+  "1lfVGyu3oVXcdaAb6amxkgSJBB_w1Rh36",
+  "1Sj9EjHRqjwVqTqi5bFZTrjdwMRhIm7ul",
+  "1ApF2R6Pbn8aWYpXNHD7VNlJwsFlBsIP4",
+  "1Xa7SrSqU8QkEQ2loN5e0MJAiBwqh5d7d",
+  "112yUwIti-kOjZj7MZD9O_IRRRMO65hUT",
+  "15V13zBDRJlRIWJPRHNwyEEhBj5YFRo7m",
+  "1n3tCkEbpG8cwAZqp3rsULP5Npm0fYptH",
+  "1aiC_duaWb8dY1HHKkGeK9UjbUMRqnPY0",
+]);
+
+function isHandScale(fileId = "", sourceName = "") {
+  // Phone dumps are score-demoted only — some PHOTO-* files are full slabs.
+  return HAND_COVER_FILE_IDS.has(fileId) || isCloseUp(sourceName);
 }
 
 function slabCount(sourceName = "") {
@@ -61,19 +102,26 @@ function hasDimensions(sourceName = "") {
 
 function isFullSlabContext(sourceName = "") {
   const name = normalizeName(sourceName);
-  if (isCloseUp(name)) return false;
+  if (isCloseUp(name) || isPhoneDump(sourceName)) return false;
   return /\b(slabs?|bundle|bundles|warehouse|yard|rack|standing)\b/.test(name) || hasDimensions(name);
 }
 
 function score(sourceName = "", preferredId = "", fileId = "") {
   const name = normalizeName(sourceName);
   let value = 0;
-  if (preferredId && fileId === preferredId) value += 500;
+  const preferredUsable =
+    preferredId &&
+    !HAND_COVER_FILE_IDS.has(preferredId) &&
+    !isCloseUp(nameById.get(preferredId) || "") &&
+    !isPhoneDump(nameById.get(preferredId) || "");
+  if (preferredUsable && fileId === preferredId) value += 500;
+  if (HAND_COVER_FILE_IDS.has(fileId)) value -= 250;
+  if (isPhoneDump(sourceName)) value -= 180;
   if (isCloseUp(name)) value -= 100;
-  if (isFullSlabContext(name)) value += 50;
+  if (isFullSlabContext(sourceName)) value += 50;
   if (/\b(warehouse|yard|rack|standing|full\s*size|full\s*slab)\b/.test(name)) value += 25;
-  if (hasDimensions(name) && !isCloseUp(name)) value += 20;
-  if (/\bslabs?\b/.test(name) && !isCloseUp(name)) value += 15;
+  if (hasDimensions(name) && !isCloseUp(name) && !isPhoneDump(sourceName)) value += 20;
+  if (/\bslabs?\b/.test(name) && !isCloseUp(name) && !isPhoneDump(sourceName)) value += 15;
   // Weak tie-breaker only — do not let a higher bundle count demote a clear full-slab lead.
   value += Math.min(slabCount(name), 8);
   return value;
@@ -82,7 +130,9 @@ function score(sourceName = "", preferredId = "", fileId = "") {
 // Resolve mexican-brown preferred id from inventory (non-close sibling)
 for (const stone of inventory) {
   if (stone.slug !== "mexican-brown") continue;
-  const alt = stone.sourceFileIds.find((id) => !isCloseUp(nameById.get(id) || ""));
+  const alt = stone.sourceFileIds.find(
+    (id) => !isHandScale(id, nameById.get(id) || "")
+  );
   if (alt) PREFERRED_LEAD_FILE_IDS["mexican-brown"] = alt;
 }
 
@@ -90,6 +140,9 @@ const examples = [];
 let changed = 0;
 let closeUpLeadBefore = 0;
 let closeUpLeadAfter = 0;
+let handLeadBefore = 0;
+let handLeadAfter = 0;
+const handOnlySlugs = [];
 
 for (const stone of inventory) {
   if (!Array.isArray(stone.sourceFileIds) || stone.sourceFileIds.length < 1) continue;
@@ -97,7 +150,13 @@ for (const stone of inventory) {
   const preferredId = PREFERRED_LEAD_FILE_IDS[stone.slug] || "";
   const ranked = stone.sourceFileIds.map((id, index) => {
     const name = nameById.get(id) || "";
-    return { index, id, name, score: score(name, preferredId, id) };
+    return {
+      index,
+      id,
+      name,
+      hand: isHandScale(id, name),
+      score: score(name, preferredId, id),
+    };
   });
   const baselineShareLeadId = BASELINE_SHARE_LEAD_FILE_IDS[stone.slug] || "";
   const shareOrder = [...ranked].sort((a, b) => {
@@ -105,15 +164,23 @@ for (const stone of inventory) {
       if (a.id === baselineShareLeadId) return -1;
       if (b.id === baselineShareLeadId) return 1;
     }
-    return (driveOrderById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
-      (driveOrderById.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+    return (
+      (driveOrderById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+      (driveOrderById.get(b.id) ?? Number.MAX_SAFE_INTEGER)
+    );
   });
   const shareFileIds = shareOrder.map((entry) => entry.id);
 
+  if (ranked[0]?.hand) handLeadBefore += 1;
   if (isCloseUp(ranked[0]?.name)) closeUpLeadBefore += 1;
 
-  const sorted = [...ranked].sort((a, b) => b.score - a.score || a.index - b.index);
+  const sorted = [...ranked].sort((a, b) => {
+    if (a.hand !== b.hand) return a.hand ? 1 : -1;
+    return b.score - a.score || a.index - b.index;
+  });
+  if (sorted[0]?.hand) handLeadAfter += 1;
   if (isCloseUp(sorted[0]?.name)) closeUpLeadAfter += 1;
+  if (sorted.every((entry) => entry.hand)) handOnlySlugs.push(stone.slug);
 
   const displayOrderChanged = !sorted.every(
     (entry, index) => entry.index === ranked[index].index
@@ -131,7 +198,7 @@ for (const stone of inventory) {
     stone.slabCounts = reorder(stone.slabCounts);
     const after = nameById.get(stone.sourceFileIds[0]) || null;
     changed += 1;
-    if (examples.length < 30) {
+    if (examples.length < 40) {
       examples.push({
         slug: stone.slug,
         before,
@@ -160,6 +227,9 @@ console.log(
       changed,
       closeUpLeadBefore,
       closeUpLeadAfter,
+      handLeadBefore,
+      handLeadAfter,
+      handOnlySlugs: handOnlySlugs.sort(),
       examples,
     },
     null,

@@ -153,6 +153,14 @@ export const users = pgTable("users", {
     emailNotifications?: boolean;
     smsNotifications?: boolean;
     marketingEmails?: boolean;
+    /** Express Direct Connect / similar explicit opt-in provenance. No ESP sync implied. */
+    marketingConsent?: {
+      source?: string;
+      profileSlug?: string;
+      businessId?: string;
+      topics?: string[];
+      optedInAt?: string;
+    };
     completedTours?: string[]; // Track completed onboarding tours
     navigation?: {
       customOrder?: string[]; // Array of navigation items in user's preferred order

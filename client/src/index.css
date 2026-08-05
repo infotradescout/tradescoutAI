@@ -5,6 +5,50 @@ body,
   height: 100%;
 }
 
+/* JW marketplace: document is the only scrollport — hash/category landings
+   must not trap inside .ts-bg / #root height:100% dual-scroll. */
+html.jw-marketplace-scroll,
+html.jw-marketplace-scroll body {
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+}
+html.jw-marketplace-scroll #root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+html.jw-marketplace-scroll .ts-bg {
+  /* visible on both axes — overflow-x:clip makes Chromium treat .ts-bg as the
+     fixedpos containing block, so the bottom Connect bar scrolls away. */
+  overflow: visible;
+  min-height: 100%;
+  height: auto;
+}
+
+/* JW marketplace uses warm ivory fields — defeat global dark ts-input defaults. */
+[data-jw-brand="true"] input:not([type="radio"]):not([type="checkbox"]),
+[data-jw-brand="true"] textarea,
+[data-jw-brand="true"] select {
+  background-color: var(--jw-surface);
+  border-color: var(--jw-border);
+  color: var(--jw-ink);
+  color-scheme: light;
+  box-shadow: none;
+}
+[data-jw-brand="true"] input::placeholder,
+[data-jw-brand="true"] textarea::placeholder {
+  color: var(--jw-muted);
+}
+[data-jw-brand="true"] input:focus,
+[data-jw-brand="true"] textarea:focus,
+[data-jw-brand="true"] select:focus {
+  border-color: var(--jw-accent);
+  box-shadow: none;
+}
+
+
 body.ts-scroll-lock {
   overflow: hidden;
 }

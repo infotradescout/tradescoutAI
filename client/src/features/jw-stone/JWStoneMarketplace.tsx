@@ -1,26 +1,30 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
-import { CustomerPathGuide } from "./CustomerPathGuide";
+import { JW_STONE_BRAND_STYLE, jw } from "./brand";
+import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
+import { ColorPaletteRail } from "./ColorPaletteRail";
+import { FirstCutSection } from "./FirstCutSection";
+import { JwStoneRequestBand } from "./JwStoneRequestBand";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceHeader } from "./MarketplaceHeader";
+import { MaterialCategoryRail } from "./MaterialCategoryRail";
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
 import { WishlistPanel } from "./WishlistPanel";
-import { getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
-import type { BuyerType, JwStoneCatalogItem } from "./types";
+import type { ColorDirectionId, JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_CANONICAL_URL = "https://www.thetradescout.com/jw-stone";
 const JW_STONE_DESCRIPTION =
-  "Browse JW Stone's supplied stone catalog, open full photo galleries, save named selections, and use optional source-backed guidance before choosing when to start a request.";
+  "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
 const JW_STONE_COLLECTION_DATA = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  name: "JW Stone | Guided Stone Discovery",
+  name: "JW Stone | Stone Discovery",
   description: JW_STONE_DESCRIPTION,
   url: JW_STONE_CANONICAL_URL,
   image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
@@ -33,6 +37,18 @@ export default function JWStoneMarketplace() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [anonymousDetailId, setAnonymousDetailId] = useState<string | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
+
+  // Document scroll only — avoid body/#root dual-scroll trapping hash landings.
+  useEffect(() => {
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("jw-marketplace-scroll");
+    body.classList.add("jw-marketplace-scroll");
+    return () => {
+      root.classList.remove("jw-marketplace-scroll");
+      body.classList.remove("jw-marketplace-scroll");
+    };
+  }, []);
 
   const selectedStone =
     (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) ||
@@ -47,10 +63,6 @@ export default function JWStoneMarketplace() {
       ),
     [requestContext]
   );
-
-  const chooseBuyer = (buyer: BuyerType) => {
-    commit({ ...state, buyer, stone: null });
-  };
 
   const closeStone = () => {
     setAnonymousDetailId(null);
@@ -78,11 +90,27 @@ export default function JWStoneMarketplace() {
     setRequestContext(stones);
   };
 
+  const askAboutStone = (stone: JwStoneCatalogItem) => {
+    startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
+  };
+
+  const selectPalette = (aesthetic: ColorDirectionId | null) => {
+    commit({ ...state, aesthetic, stone: null });
+  };
+
+  const selectMaterial = (material: string | null) => {
+    commit({ ...state, material, stone: null });
+  };
+
   return (
-    <div className="min-h-screen overflow-x-hidden bg-stone-100 font-sans text-stone-950">
+    <div
+      className={`min-h-screen overflow-x-visible pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
+      style={JW_STONE_BRAND_STYLE}
+      data-jw-brand="true"
+    >
       <SEOHelmet
-        title="JW Stone | Guided Stone Discovery"
-        socialTitle="JW Stone | Guided Stone Discovery"
+        title="JW Stone | Stone Discovery"
+        socialTitle="JW Stone | Stone Discovery"
         description={JW_STONE_DESCRIPTION}
         canonical={JW_STONE_CANONICAL_URL}
         ogType="website"
@@ -99,35 +127,20 @@ export default function JWStoneMarketplace() {
       </p>
 
       <MarketplaceIntroduction />
-
-      <CustomerPathGuide
-        selectedPath={state.buyer}
-        onSelectPath={(buyer) =>
-          buyer ? chooseBuyer(buyer) : commit({ ...state, buyer: null, stone: null })
-        }
-        onOpenStone={openStone}
-      />
+      <FirstCutSection />
+      <ColorPaletteRail active={state.aesthetic} onSelect={selectPalette} />
+      <MaterialCategoryRail active={state.material} onSelect={selectMaterial} />
 
       <StoneCollection
         state={state}
-        savedCount={wishlist.count}
         isSaved={wishlist.isSaved}
         onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
-        onAsk={(stone) => startRequest(stone.wishlistEligible ? [stone] : [])}
+        catalog={JW_STONE_CATALOG}
       />
 
-      <footer className="border-t border-stone-300 bg-stone-100 px-5 py-10 sm:px-8 lg:px-12">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between">
-          <img
-            src="/images/businesses/jw-stone/logo.svg"
-            alt="JW Stone"
-            className="h-10 w-auto max-w-44 object-contain object-left"
-          />
-          <p>Stone discovery on your terms. Saving never starts a request.</p>
-        </div>
-      </footer>
+      <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
       <StoneDetailDialog
         stone={selectedStone}
@@ -136,7 +149,7 @@ export default function JWStoneMarketplace() {
           if (!open) closeStone();
         }}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onAsk={(stone) => startRequest(stone.wishlistEligible ? [stone] : [])}
+        onAsk={askAboutStone}
       />
 
       <WishlistPanel
@@ -144,6 +157,7 @@ export default function JWStoneMarketplace() {
         items={wishlist.items}
         restored={wishlist.restored}
         persisted={wishlist.persisted}
+        knownEmail={typeof user?.email === "string" ? user.email : null}
         onOpenChange={setWishlistOpen}
         onRemove={wishlist.remove}
         onClear={wishlist.clear}

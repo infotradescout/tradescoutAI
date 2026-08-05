@@ -52,13 +52,7 @@ function buttonContaining(container: ParentNode, text: string): HTMLButtonElemen
   );
 }
 
-function visibleCollectionIds(container: HTMLElement): string[] {
-  return Array.from(container.querySelectorAll<HTMLElement>("[data-stone-card]"))
-    .map((card) => card.dataset.stoneId)
-    .filter((id): id is string => Boolean(id));
-}
-
-describe("JW Stone 2.0 marketplace", () => {
+describe("JW Stone marketplace luxury layout", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -77,161 +71,193 @@ describe("JW Stone 2.0 marketplace", () => {
     vi.unstubAllGlobals();
   });
 
-  it("locks the approved header, restored hero copy, footer, and protected shell", () => {
+  it("locks header, hero, palette, inventory, and bottom Connect without header Connect", () => {
+    const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
     expect(container.querySelector('a[aria-label="JW Stone marketplace home"]')).not.toBeNull();
-    expect(buttonContaining(container, "Start a Request")).not.toBeNull();
-    expect(container.textContent).toContain("JW Stone · A new way to discover stone");
+    expect(container.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-connect-cta"]')).not.toBeNull();
+    expect(header).not.toBeNull();
+    expect(buttonContaining(header!, "Connect")).toBeNull();
+    expect(header?.querySelector('[aria-label="Open saved stones, 0 saved"]')).not.toBeNull();
+    expect(header?.textContent).not.toMatch(/\b0\b/);
+    expect(container.querySelector('[data-testid="jw-marketplace-menu-button"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-menu-panel"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-footer"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
-    expect(container.textContent).toContain(
-      "Search the full collection or ask JW Stone about your project."
-    );
-    expect(container.textContent).toContain("Begin your selection");
-    expect(container.textContent).toContain(
-      "Stone discovery on your terms. Saving never starts a request."
-    );
-    expect(container.textContent).not.toContain("Stone chosen around the way you see a project");
-    expect(container.textContent).not.toContain("Begin with your point of view");
+    expect(container.textContent).toContain("Browse inventory");
+    expect(container.textContent).toContain("First Cut");
+    expect(container.textContent).toContain("Browse by color");
+    expect(container.textContent).toContain("Warm neutrals");
+    expect(container.textContent).toContain("White & light");
+    expect(container.textContent).toContain("Dramatic darks");
+    expect(container.textContent).toContain("Browse by material");
+    expect(container.textContent).toContain("Granite");
+    expect(container.textContent).toContain("Marble");
+    expect(container.textContent).toContain("Quartzite");
+    expect(container.textContent).toContain("Explore the collection");
+    expect(container.textContent).toContain("Tell JW Stone what you need");
+    expect(container.textContent).not.toContain("From source to finished space");
+    expect(container.textContent).not.toContain("Trending");
+    expect(container.textContent).not.toContain("JW Stone Picks");
+    expect(container.textContent).not.toContain("Current Inventory");
+    expect(container.textContent).not.toMatch(/Basalt\s*—\s*1 selection/i);
+    expect(container.querySelector('[data-testid="jw-marketplace-story"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-trending"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-request"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-palette-rail"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
+
+    const request = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-request"]');
+    expect(request?.className).toMatch(/fixed/);
+
+    expect(header?.className).toMatch(/bg-\[var\(--jw-surface\)\]|bg-\[var\(--jw-bg\)\]/);
+    expect(header?.className).not.toMatch(/shadow/);
+    const logo = container.querySelector<HTMLImageElement>('[data-testid="jw-marketplace-logo"]');
+    expect(logo?.getAttribute("src")).toBe("/images/businesses/jw-stone/logo.svg");
+    expect(logo?.className).not.toMatch(/brightness-0|invert/);
 
     const hero = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-hero"]');
-    const heroImage = hero?.querySelector<HTMLImageElement>(
-      'img[src="/images/businesses/jw-stone/video/hero-poster.jpg"]'
+    const heroVideo = hero?.querySelector<HTMLVideoElement>("video");
+    expect(heroVideo).not.toBeNull();
+    expect(heroVideo?.getAttribute("poster")).toBe(
+      "/images/businesses/jw-stone/video/hero-poster.jpg"
     );
-    const heroVeil = hero?.querySelector<HTMLElement>("div.absolute.inset-0.-z-10");
-    expect(heroImage?.className).toBe("absolute inset-0 -z-20 h-full w-full object-cover");
-    expect(heroVeil?.className).toContain("from-black/55");
-    expect(heroVeil?.className).toContain("via-black/15");
-    expect(heroVeil?.className).toContain("to-transparent");
+    expect(heroVideo?.className).toContain("max-w-[1920px]");
+    expect(hero?.innerHTML).toMatch(/bg-gradient-to-t/);
+    const title = hero?.querySelector("#jw-marketplace-title");
+    expect(title).not.toBeNull();
+    expect(title?.closest(".absolute")).toBeNull();
+
+    const branded = container.querySelector<HTMLElement>('[data-jw-brand="true"]');
+    expect(branded).not.toBeNull();
+    expect(branded?.style.getPropertyValue("--jw-accent").trim()).toBe("#a8b86c");
+    expect(branded?.style.getPropertyValue("--jw-bg").trim()).toBe("#f5f0e6");
+    expect(branded?.style.getPropertyValue("--jw-dark").trim()).toBe("#2a2724");
+    expect(branded?.className).toMatch(/pb-\[calc\(5\.75rem/);
+    expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
   });
 
-  it("shows real stone and independent refinements without asking the visitor anything", () => {
-    expect(container.querySelector('[data-testid="customer-path-guide"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="customer-path-panel"]')).toBeNull();
-    expect(container.textContent).toContain("Current Inventory");
-    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(24);
-    expect(
-      container.querySelector('select[aria-label="Filter by color direction"]')
-    ).not.toBeNull();
-    expect(container.querySelector('select[aria-label="Filter by material"]')).not.toBeNull();
-    expect(container.querySelector('select[aria-label="Filter by finish"]')).not.toBeNull();
-    expect(
-      container.querySelector('select[aria-label="Filter by verified country of origin"]')
-    ).toBeNull();
+  it("keeps section links behind the menu and opens Connect from the menu", () => {
+    const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
+    expect(header).not.toBeNull();
+    if (!header) throw new Error("Expected header");
 
-    click(container.querySelector('button[aria-label^="Open "][aria-label$=" gallery"]'));
-    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
-    expect(window.location.search).toContain("stone=");
-    expect(window.location.search).not.toContain("buyer=");
-    expect(window.location.search).not.toContain("color=");
+    click(container.querySelector('[data-testid="jw-marketplace-menu-button"]'));
+    const panel = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-menu-panel"]');
+    expect(panel).not.toBeNull();
+    if (!panel) throw new Error("Expected menu panel");
+    expect(panel.querySelector('a[href="#first-cut-title"]')?.textContent).toContain("First Cut");
+    expect(panel.querySelector('a[href="#jw-palette-rail"]')?.textContent).toContain(
+      "Browse by color"
+    );
+    expect(panel.querySelector('a[href="#jw-material-rail"]')?.textContent).toContain(
+      "Browse by material"
+    );
+    expect(panel.querySelector('a[href="#current-inventory"]')?.textContent).toContain(
+      "Explore the collection"
+    );
+    expect(panel.querySelector('a[href="#new-arrivals"]')).toBeNull();
+    expect(panel.querySelector('a[href="#jw-story"]')).toBeNull();
+    expect(buttonContaining(panel, "Connect")).not.toBeNull();
+    expect(header.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
+
+    click(buttonContaining(panel, "Connect"));
+    expect(container.querySelector('[data-testid="jw-marketplace-menu-panel"]')).toBeNull();
+    expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
 
-  it("uses each customer path as one-click knowledge without changing the collection", () => {
-    const initialIds = visibleCollectionIds(container);
-    const paths = [
-      ["Fabricators", "fabricator", "More documented selections"],
-      ["Builders & Developers", "builder", "More source records to review"],
-      ["Architects & Designers", "designer", "JW Stone Picks"],
-      ["Homeowners", "homeowner", "A starting edit"],
-    ] as const;
-
-    for (const [label, id, railTitle] of paths) {
-      click(buttonContaining(container, label));
-      const panel = container.querySelector<HTMLElement>('[data-testid="customer-path-panel"]');
-      expect(panel?.dataset.customerPath).toBe(id);
-      expect(panel?.textContent).toContain(railTitle);
-      expect(panel?.querySelectorAll('a[target="_blank"]')).toHaveLength(2);
-      expect(panel?.querySelectorAll(`button[aria-label^="Open "]`)).toHaveLength(6);
-      expect(panel?.textContent).not.toMatch(/best for|ideal for|live availability|available now/i);
-      expect(visibleCollectionIds(container)).toEqual(initialIds);
-      expect(container.querySelector('[data-testid="jw-marketplace-hero"]')).not.toBeNull();
-      expect(container.querySelector("#first-cut-title")).not.toBeNull();
-      expect(container.querySelector("#current-inventory")).not.toBeNull();
-      expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
-      expect(window.location.search).toContain(`buyer=${id}`);
-    }
-  });
-
-  it("keeps the guidance toolbar compact and horizontal instead of building another stage", () => {
-    const guide = container.querySelector<HTMLElement>('[data-testid="customer-path-guide"]');
-    const toolbar = container.querySelector<HTMLElement>('[data-testid="customer-path-toolbar"]');
-    expect(toolbar?.className).toContain("overflow-x-auto");
-    expect(toolbar?.querySelectorAll("button")).toHaveLength(4);
-    expect(guide?.className).not.toMatch(/min-h|\bh-screen\b|\bmin-h-screen\b/);
-
-    click(buttonContaining(container, "Homeowners"));
-    const panel = container.querySelector<HTMLElement>('[data-testid="customer-path-panel"]');
-    expect(panel?.className).not.toMatch(/min-h|\bh-screen\b|\bmin-h-screen\b/);
-    expect(panel?.querySelector("button button, select, input")).toBeNull();
-  });
-
-  it("treats color and finish as normal optional refinements", () => {
-    change(
-      container.querySelector<HTMLSelectElement>('select[aria-label="Filter by finish"]'),
-      "polished"
-    );
-    expect(window.location.search).toContain("finish=polished");
-    expect(window.location.search).not.toContain("buyer=");
-    expect(window.location.search).not.toContain("color=");
-    for (const card of container.querySelectorAll<HTMLElement>("[data-stone-card]")) {
-      expect(card.textContent).toContain("Polished");
-    }
-
-    change(
-      container.querySelector<HTMLSelectElement>('select[aria-label="Filter by color direction"]'),
-      "warm-earthy"
-    );
-    expect(window.location.search).toContain("color=warm-earthy");
-    expect(window.location.search).toContain("finish=polished");
-  });
-
-  it("keeps every active refinement visible when another filter has no overlap", () => {
-    const material = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="Filter by material"]'
-    );
-    const color = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="Filter by color direction"]'
-    );
-    const finish = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="Filter by finish"]'
-    );
-
-    change(material, "onyx");
-    change(color, "soft-light");
-    expect(material?.value).toBe("onyx");
-    expect(material?.querySelector('option[value="onyx"]')).not.toBeNull();
-    expect(window.location.search).toContain("material=onyx");
-    expect(window.location.search).toContain("color=soft-light");
-
-    change(color, "");
-    change(material, "granite");
-    change(finish, "honed");
-    expect(finish?.value).toBe("honed");
-    expect(finish?.querySelector('option[value="honed"]')).not.toBeNull();
-    expect(window.location.search).toContain("material=granite");
-    expect(window.location.search).toContain("finish=honed");
-  });
-
-  it("keeps anonymous catalog presentations nameless and outside product actions", () => {
-    const anonymousCard = container.querySelector<HTMLElement>('[data-anonymous="true"]');
-    expect(anonymousCard).not.toBeNull();
-    expect(anonymousCard?.textContent).toContain("Call for availability");
-    expect(anonymousCard?.querySelector('button[aria-label^="Save "]')).toBeNull();
-    expect(container.innerHTML).not.toMatch(/trending-selection|Trending Selection\s+\d+/i);
-    expect(container.innerHTML).not.toMatch(
-      /Unnamed slab|Name not confirmed|Finish not confirmed|Dual Finish/i
-    );
-
-    click(
-      anonymousCard?.querySelector('button[aria-label="Open this Trending Selection gallery"]') ||
-        null
-    );
-    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-    expect(dialog).not.toBeNull();
-    if (!dialog) throw new Error("Expected the anonymous detail dialog");
-    expect(buttonContaining(dialog, "Ask about this stone")).toBeNull();
+  it("opens Express Direct Connect from the sticky Connect CTA", () => {
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
+    click(container.querySelector('[data-testid="jw-marketplace-connect-cta"]'));
+    expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
 
-  it("persists a named wishlist without requiring a path or opening contact", () => {
+  it("shows editorial collection chrome: search + Filter sheet, no Ask on cards", () => {
+    expect(container.textContent).toContain("Explore the collection");
+    expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
+    expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(20);
+    expect(container.querySelector('input[aria-label="Search the collection"]')).not.toBeNull();
+    expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
+    expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-filters-sheet-open"]')).not.toBeNull();
+    expect(container.textContent).not.toMatch(/Basalt\s*—\s*1 selection/i);
+    expect(container.textContent).not.toContain("DETAILS PENDING");
+    expect(container.textContent).not.toContain("Details pending");
+
+    const firstCard = container.querySelector<HTMLElement>("[data-stone-card]");
+    expect(firstCard).not.toBeNull();
+    if (!firstCard) throw new Error("Expected a stone card");
+    expect(buttonContaining(firstCard, "Ask")).toBeNull();
+    expect(buttonContaining(firstCard, "View gallery")).toBeNull();
+    expect(buttonContaining(firstCard, "View stone")).not.toBeNull();
+    expect(firstCard.className).not.toMatch(/\bborder\b/);
+    expect(firstCard.querySelector("[class*='aspect-']")).not.toBeNull();
+    expect(firstCard.querySelector('button[aria-label^="Save "]')).not.toBeNull();
+
+    const inventory = container.querySelector('[data-testid="jw-inventory-grid"]');
+    expect(inventory?.querySelector("ul")?.className).toMatch(/flex-col/);
+    expect(inventory?.querySelector("ul")?.className).not.toMatch(/grid-cols-/);
+
+    click(container.querySelector('[data-testid="jw-material-marble"]'));
+    expect(window.location.search).toContain("material=marble");
+    for (const card of container.querySelectorAll<HTMLElement>("[data-stone-card]")) {
+      expect(card.textContent).toMatch(/Marble/i);
+    }
+
+    click(container.querySelector('[data-testid="jw-filters-sheet-open"]'));
+    expect(container.querySelector('[data-testid="jw-filters-sheet"]')).not.toBeNull();
+    change(container.querySelector<HTMLSelectElement>('select[aria-label="Material"]'), "granite");
+    click(buttonContaining(container.querySelector('[data-testid="jw-filters-sheet"]')!, "Show"));
+    expect(window.location.search).toContain("material=granite");
+    for (const card of container.querySelectorAll<HTMLElement>("[data-stone-card]")) {
+      expect(card.textContent).toMatch(/Granite/i);
+    }
+  });
+
+  it("ignores legacy buyer and finish query params", () => {
+    act(() => root.unmount());
+    window.history.replaceState(null, "", "/jw-stone?buyer=homeowner&finish=polished");
+    root = createRoot(container);
+    act(() => root.render(<JWStoneMarketplace />));
+
+    expect(window.location.search).not.toContain("finish=");
+    expect(window.location.search).not.toContain("buyer=");
+    expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(20);
+  });
+
+  it("treats palette, color, and material as optional refinements", () => {
+    click(container.querySelector('[data-testid="jw-palette-warm-earthy"]'));
+    expect(window.location.search).toContain("aesthetic=warm-earthy");
+
+    click(container.querySelector('[data-testid="jw-material-quartzite"]'));
+    expect(window.location.search).toContain("material=quartzite");
+    expect(window.location.search).toContain("aesthetic=warm-earthy");
+
+    click(container.querySelector('[data-testid="jw-filters-sheet-open"]'));
+    change(container.querySelector<HTMLSelectElement>('select[aria-label="Color"]'), "white");
+    change(container.querySelector<HTMLSelectElement>('select[aria-label="Material"]'), "granite");
+    click(buttonContaining(container.querySelector('[data-testid="jw-filters-sheet"]')!, "Show"));
+    expect(window.location.search).toContain("color=white");
+    expect(window.location.search).toContain("aesthetic=warm-earthy");
+    expect(window.location.search).toContain("material=granite");
+  });
+
+  it("keeps Call for availability theater out and omits empty New Arrivals", () => {
+    expect(container.textContent).not.toContain("Call for availability");
+    expect(container.querySelector('[data-testid="jw-new-arrivals"]')).toBeNull();
+    expect(container.textContent).not.toContain("New Arrivals");
+  });
+
+  it("persists a named wishlist without opening contact and hides zero badge", () => {
+    expect(container.querySelector('[aria-label="Open saved stones, 0 saved"]')).not.toBeNull();
+    const badge = container.querySelector(
+      '[aria-label="Open saved stones, 0 saved"] .rounded-full'
+    );
+    expect(badge).toBeNull();
+
     click(container.querySelector<HTMLButtonElement>('button[aria-label^="Save "]'));
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
@@ -240,33 +266,59 @@ describe("JW Stone 2.0 marketplace", () => {
     root = createRoot(container);
     act(() => root.render(<JWStoneMarketplace />));
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
-    expect(window.location.search).not.toContain("buyer=");
-
-    click(buttonContaining(container, "Ask about this stone"));
-    expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
 
-  it("keeps First Cut directly between the hero and the compact guide", () => {
+  it("orders header, hero, First Cut peek, color, material, inventory, then Connect", () => {
+    const header = container.querySelector('[data-testid="jw-marketplace-header"]');
     const hero = container.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = container.querySelector("#first-cut-title")?.closest("section");
-    const guide = container.querySelector('[data-testid="customer-path-guide"]');
+    const palette = container.querySelector('[data-testid="jw-palette-rail"]');
+    const materials = container.querySelector('[data-testid="jw-material-rail"]');
     const inventory = container.querySelector("#current-inventory");
+    const request = container.querySelector('[data-testid="jw-marketplace-request"]');
 
+    expect(header).not.toBeNull();
     expect(hero).not.toBeNull();
     expect(firstCut).not.toBeNull();
-    expect(guide).not.toBeNull();
+    expect(palette).not.toBeNull();
+    expect(materials).not.toBeNull();
     expect(inventory).not.toBeNull();
-    if (!hero || !firstCut || !guide || !inventory) throw new Error("Expected page sections");
+    expect(request).not.toBeNull();
+    if (!header || !hero || !firstCut || !palette || !materials || !inventory || !request) {
+      throw new Error("Expected page sections");
+    }
 
+    expect(header.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hero.compareDocumentPosition(firstCut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(firstCut.compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      guide.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
+      firstCut.compareDocumentPosition(palette) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      palette.compareDocumentPosition(materials) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      materials.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      inventory.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
-    const positions = firstCut.querySelectorAll('[data-first-cut-placeholder="true"]');
-    expect(positions).toHaveLength(3);
-    for (const position of positions)
-      expect(position.querySelector("button, a, input, select")).toBeNull();
+    expect(inventory.className).toMatch(/scroll-mt-/);
+
+    const rail = firstCut.querySelector('[data-testid="jw-first-cut-rail"]');
+    expect(rail?.className).toMatch(/snap-x/);
+    expect(rail?.className).not.toMatch(/grid-cols-3/);
+    const photoSlots = firstCut.querySelectorAll('[data-first-cut-photo="true"]');
+    expect(photoSlots.length).toBe(3);
+    for (const slot of Array.from(photoSlots)) {
+      expect(slot.querySelector("img")).not.toBeNull();
+      expect(slot.className).toMatch(/w-\[88vw\]|w-\[86vw\]/);
+      expect(slot.textContent?.trim()).toBe("");
+    }
+    expect(firstCut.textContent).toContain(
+      "Newly sourced by JW Stone. Names and specifications are added as inventory is confirmed."
+    );
+    expect(firstCut.textContent).not.toMatch(/Details pending/i);
+    expect(firstCut.className).not.toMatch(/darkBar|jw-dark|--jw-dark/);
   });
 });

@@ -1,4 +1,6 @@
-import { Bookmark, MessageCircle } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import { Bookmark, Menu, X } from "lucide-react";
+import { JW_STONE_LOGO_URL, jw } from "./brand";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
@@ -6,47 +8,142 @@ type MarketplaceHeaderProps = {
   onStartRequest: () => void;
 };
 
+/**
+ * Light site chrome: logo · Saved · Menu.
+ * Connect lives only on the persistent bottom bar.
+ */
 export function MarketplaceHeader({
   wishlistCount,
   onOpenWishlist,
   onStartRequest,
 }: MarketplaceHeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    const onPointer = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onPointer);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onPointer);
+    };
+  }, [menuOpen]);
+
+  const closeAnd = (action?: () => void) => {
+    setMenuOpen(false);
+    action?.();
+  };
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-stone-950/95 text-stone-50 backdrop-blur">
-      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-12">
-        <a href="/jw-stone" aria-label="JW Stone marketplace home" className="shrink-0">
+    <header
+      data-testid="jw-marketplace-header"
+      className={`sticky top-0 z-40 border-b ${jw.border} ${jw.surface}`}
+    >
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-5 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
+        <a
+          href="/jw-stone"
+          aria-label="JW Stone marketplace home"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
+        >
           <img
-            src="/images/businesses/jw-stone/logo.svg"
+            src={JW_STONE_LOGO_URL}
             alt="JW Stone"
-            className="h-11 w-auto max-w-44 object-contain object-left brightness-0 invert"
+            className="h-auto w-[148px] object-contain object-left sm:w-[180px] md:w-[200px]"
+            data-testid="jw-marketplace-logo"
           />
         </a>
 
-        <nav aria-label="JW Stone actions" className="flex items-center gap-2 sm:gap-3">
+        <nav aria-label="JW Stone actions" className="flex items-center gap-1 sm:gap-1.5">
           <button
             type="button"
             onClick={onOpenWishlist}
-            className="relative inline-flex min-h-11 items-center gap-2 border border-white/20 px-3 text-sm font-semibold text-stone-100 transition-colors hover:border-white/50 hover:bg-white/5 sm:px-4"
+            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
             aria-label={`Open saved stones, ${wishlistCount} saved`}
           >
             <Bookmark className="h-4 w-4" aria-hidden="true" />
             <span className="hidden sm:inline">Saved</span>
-            <span
-              className="inline-flex min-w-6 justify-center rounded-full bg-stone-100 px-1.5 py-0.5 text-xs font-bold text-stone-950"
-              aria-hidden="true"
+            {wishlistCount > 0 ? (
+              <span
+                className="inline-flex min-w-5 justify-center rounded-full bg-[var(--jw-accent)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--jw-on-accent)]"
+                aria-hidden="true"
+              >
+                {wishlistCount}
+              </span>
+            ) : null}
+          </button>
+
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              data-testid="jw-marketplace-menu-button"
+              aria-expanded={menuOpen}
+              aria-controls={menuId}
+              aria-label={menuOpen ? "Close page menu" : "Open page menu"}
+              onClick={() => setMenuOpen((open) => !open)}
+              className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
             >
-              {wishlistCount}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={onStartRequest}
-            className="inline-flex min-h-11 items-center gap-2 bg-stone-100 px-3 text-sm font-bold text-stone-950 transition-colors hover:bg-white sm:px-5"
-          >
-            <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Start a Request</span>
-            <span className="sm:hidden">Ask JW</span>
-          </button>
+              {menuOpen ? (
+                <X className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Menu className="h-4 w-4" aria-hidden="true" />
+              )}
+              <span className="hidden sm:inline">Menu</span>
+            </button>
+
+            {menuOpen ? (
+              <div
+                id={menuId}
+                data-testid="jw-marketplace-menu-panel"
+                className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}
+              >
+                <nav aria-label="JW Stone page sections" className="flex flex-col gap-0.5 text-sm">
+                  <a
+                    href="#first-cut-title"
+                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    First Cut
+                  </a>
+                  <a
+                    href="#jw-palette-rail"
+                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Browse by color
+                  </a>
+                  <a
+                    href="#jw-material-rail"
+                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Browse by material
+                  </a>
+                  <a
+                    href="#current-inventory"
+                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Explore the collection
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => closeAnd(onStartRequest)}
+                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-accent)] hover:bg-[var(--jw-bg)]"
+                  >
+                    Connect
+                  </button>
+                </nav>
+              </div>
+            ) : null}
+          </div>
         </nav>
       </div>
     </header>

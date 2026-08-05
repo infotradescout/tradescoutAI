@@ -1,154 +1,96 @@
 import { describe, expect, it } from "vitest";
-import { JW_STONE_ANONYMOUS_CATALOG, JW_STONE_CATALOG } from "./catalog";
 import {
   parseMarketplaceUrlState,
   serializeMarketplaceUrlState,
   toMarketplaceHref,
 } from "./urlState";
-import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 
-describe("JW Stone shareable marketplace URL state", () => {
-  it("restores buyer, color, filters, and named detail without a staged dependency", () => {
-    expect(
-      parseMarketplaceUrlState("?color=warm-earthy&material=quartzite&finish=honed&stone=cristallo")
-    ).toEqual({
-      buyer: null,
-      color: "warm-earthy",
-      material: "quartzite",
-      finish: "honed",
-      origin: null,
-      stone: "cristallo",
-    });
-    expect(
-      parseMarketplaceUrlState("?buyer=designer&material=quartzite&finish=honed&stone=cristallo")
-    ).toEqual({
-      buyer: "designer",
+describe("JW Stone marketplace URL state", () => {
+  it("restores aesthetic, color, filters, and named detail without buyer paths", () => {
+    expect(parseMarketplaceUrlState("")).toEqual({
+      aesthetic: null,
       color: null,
-      material: "quartzite",
-      finish: "honed",
-      origin: null,
-      stone: "cristallo",
-    });
-  });
-
-  it("round trips a valid buyer, color, material, finish, and named detail", () => {
-    const state: MarketplaceUrlState = {
-      buyer: "designer",
-      color: "warm-earthy",
-      material: "quartzite",
-      finish: "honed",
-      origin: null,
-      stone: "cristallo",
-    };
-    const serialized = serializeMarketplaceUrlState(state);
-
-    expect(serialized.toString()).toBe(
-      "buyer=designer&color=warm-earthy&material=quartzite&finish=honed&stone=cristallo"
-    );
-    expect(parseMarketplaceUrlState(serialized)).toEqual(state);
-    expect(toMarketplaceHref(state)).toBe(
-      "/jw-stone?buyer=designer&color=warm-earthy&material=quartzite&finish=honed&stone=cristallo"
-    );
-  });
-
-  it("keeps independently valid filters and named detail even when they do not match color", () => {
-    expect(
-      parseMarketplaceUrlState(
-        "?buyer=designer&color=soft-light&material=quartzite&finish=honed&stone=cristallo"
-      )
-    ).toEqual({
-      buyer: "designer",
-      color: "soft-light",
-      material: "quartzite",
-      finish: "honed",
-      origin: null,
-      stone: "cristallo",
-    });
-  });
-
-  it("recovers links created by the rejected renderer without losing the selected stone", () => {
-    expect(
-      parseMarketplaceUrlState(
-        "?buyer=designer&color=cool-lights&material=Quartzite&finish=Honed&stone=cristallo"
-      )
-    ).toEqual({
-      buyer: "designer",
-      color: "warm-earthy",
-      material: "quartzite",
-      finish: "honed",
-      origin: null,
-      stone: "cristallo",
-    });
-    expect(parseMarketplaceUrlState("?buyer=builder&color=warm-neutrals").color).toBe(
-      "warm-earthy"
-    );
-  });
-
-  it("drops only invalid values while retaining unrelated valid state", () => {
-    expect(
-      parseMarketplaceUrlState(
-        "?buyer=architect&color=rainbow&material=quartzite&finish=honed&origin=guessed&price=low&stone=cristallo"
-      )
-    ).toEqual({
-      buyer: null,
-      color: null,
-      material: "quartzite",
-      finish: "honed",
-      origin: null,
-      stone: "cristallo",
-    });
-  });
-
-  it("rejects anonymous and unknown stone ids without discarding other state", () => {
-    const anonymous = JW_STONE_ANONYMOUS_CATALOG[0]!;
-    expect(anonymous.anonymous).toBe(true);
-    expect(parseMarketplaceUrlState(`?material=quartzite&stone=${anonymous.id}`)).toEqual({
-      buyer: null,
-      color: null,
-      material: "quartzite",
-      finish: null,
+      material: null,
       origin: null,
       stone: null,
     });
-    expect(parseMarketplaceUrlState("?stone=not-a-real-stone").stone).toBeNull();
-  });
 
-  it("accepts verified-origin state only when the supplied catalog exposes it", () => {
-    const base = JW_STONE_CATALOG.find((stone) => stone.id === "cristallo")!;
-    const fixture: JwStoneCatalogItem = {
-      ...base,
-      origin: { country: "Brazil", verified: true, source: "test source record" },
-    };
-    const fixtureCatalog = [fixture];
-    const query = "https://www.thetradescout.com/jw-stone?origin=brazil&stone=cristallo";
-
-    expect(parseMarketplaceUrlState(query).origin).toBeNull();
-    expect(parseMarketplaceUrlState(query, fixtureCatalog)).toEqual({
-      buyer: null,
+    expect(
+      parseMarketplaceUrlState("?buyer=designer&material=quartzite&finish=honed&stone=cristallo")
+    ).toEqual({
+      aesthetic: null,
       color: null,
-      material: null,
-      finish: null,
-      origin: "brazil",
+      material: "quartzite",
+      origin: null,
       stone: "cristallo",
     });
   });
 
-  it("serializes safe filters and named detail without manufacturing buyer or color", () => {
-    const state: MarketplaceUrlState = {
-      buyer: null,
-      color: null,
+  it("round trips aesthetic, literal color, material, and named detail", () => {
+    const state = {
+      aesthetic: "warm-earthy" as const,
+      color: "white",
       material: "quartzite",
-      finish: "honed",
       origin: null,
       stone: "cristallo",
     };
 
     expect(serializeMarketplaceUrlState(state).toString()).toBe(
-      "material=quartzite&finish=honed&stone=cristallo"
+      "aesthetic=warm-earthy&color=white&material=quartzite&stone=cristallo"
     );
     expect(toMarketplaceHref(state)).toBe(
-      "/jw-stone?material=quartzite&finish=honed&stone=cristallo"
+      "/jw-stone?aesthetic=warm-earthy&color=white&material=quartzite&stone=cristallo"
     );
-    expect(parseMarketplaceUrlState(serializeMarketplaceUrlState(state))).toEqual(state);
+  });
+
+  it("maps legacy color= aesthetic values and released aliases", () => {
+    expect(parseMarketplaceUrlState("?buyer=builder&color=warm-neutrals")).toMatchObject({
+      aesthetic: "warm-earthy",
+      color: null,
+    });
+    expect(parseMarketplaceUrlState("?color=warm-earthy")).toMatchObject({
+      aesthetic: "warm-earthy",
+      color: null,
+    });
+    expect(parseMarketplaceUrlState("?aesthetic=soft-light&color=white")).toMatchObject({
+      aesthetic: "soft-light",
+      color: "white",
+    });
+    expect(
+      parseMarketplaceUrlState(
+        "?buyer=architect&color=rainbow&material=quartzite&finish=honed&origin=guessed&price=low&stone=cristallo"
+      )
+    ).toEqual({
+      aesthetic: null,
+      color: null,
+      material: "quartzite",
+      origin: null,
+      stone: "cristallo",
+    });
+  });
+
+  it("serializes safe filters without manufacturing buyer", () => {
+    expect(
+      serializeMarketplaceUrlState({
+        aesthetic: null,
+        color: null,
+        material: "granite",
+        origin: null,
+        stone: null,
+      }).toString()
+    ).toBe("material=granite");
+  });
+
+  it("drops legacy finish query params", () => {
+    expect(parseMarketplaceUrlState("?finish=polished&material=quartzite")).toEqual({
+      aesthetic: null,
+      color: null,
+      material: "quartzite",
+      origin: null,
+      stone: null,
+    });
+    expect(
+      serializeMarketplaceUrlState(parseMarketplaceUrlState("?finish=polished")).toString()
+    ).toBe("");
   });
 });
