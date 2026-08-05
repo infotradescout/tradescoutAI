@@ -56,12 +56,12 @@ export function TrendingSection({ items, onOpen, onAsk }: TrendingSectionProps) 
                 className="group block w-full text-left"
                 aria-label="Open stone photograph gallery"
               >
-                <span className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[var(--jw-surface)]">
+                <span className="relative flex aspect-[4/3] items-center justify-center bg-[var(--jw-surface)]">
                   <img
                     src={stone.images[0]}
                     alt="Stone photograph from JW Stone"
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    className="h-full w-full object-contain"
                   />
                 </span>
               </button>

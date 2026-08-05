@@ -54,12 +54,12 @@ export function NewArrivalsSection({ items, onOpen }: NewArrivalsSectionProps) {
                 className="group block w-full text-left"
                 aria-label="Open New Arrivals gallery"
               >
-                <span className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[var(--jw-surface)]">
+                <span className="relative flex aspect-[4/3] items-center justify-center bg-[var(--jw-surface)]">
                   <img
                     src={stone.images[0]}
                     alt="New arrival stone photograph from JW Stone"
                     loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    className="h-full w-full object-contain"
                   />
                   <NewArrivalBadgeOverlay />
                   <span className="absolute bottom-1.5 right-1.5 inline-flex items-center gap-1 bg-[var(--jw-dark)]/90 px-2 py-1 text-[11px] font-semibold text-white">

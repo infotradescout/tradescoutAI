@@ -69,7 +69,11 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(
     page.getByTestId("jw-marketplace-header").getByLabel("JW Stone marketplace home")
   ).toBeVisible();
-  await expect(page.getByTestId("jw-marketplace-footer")).toHaveCount(0);
+  await expect(page.getByTestId("jw-marketplace-footer")).toBeVisible();
+  await expect(page.getByTestId("jw-marketplace-footer-logo")).toBeVisible();
+  await expect(page.getByTestId("jw-marketplace-tradescout-link")).toHaveText(
+    "Powered by TradeScout"
+  );
   await expect(page.getByTestId("jw-marketplace-connect")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-connect-cta")).toBeVisible();
   await expect(page.getByText("JW Stone · A new way to discover stone")).toHaveCount(0);
@@ -82,7 +86,9 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(logo).toHaveAttribute("src", "/images/businesses/jw-stone/logo.svg");
   await expect(page.getByRole("heading", { name: "First Cut" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Browse by color" })).toBeVisible();
-  await expect(page.getByText("Warm neutrals")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-all")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-warm-neutrals")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-gray-silver")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Browse by material" })).toBeVisible();
   await expect(page.getByTestId("jw-material-granite")).toBeVisible();
   await expect(page.getByTestId("jw-material-marble")).toBeVisible();
@@ -91,7 +97,7 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(page.getByTestId("jw-new-arrivals")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-story")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-trending")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Tell JW Stone what you need" })).toBeVisible();
+  await expect(page.getByTestId("jw-marketplace-connect-cta")).toHaveText("Contact");
   await expect(page.getByText("Call for availability")).toHaveCount(0);
   await expect(page.getByTestId("jw-inventory-categories")).toHaveCount(0);
   await expect(page.getByTestId("jw-material-rail")).toBeVisible();
@@ -147,16 +153,17 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   }
 
   await page.goto("/jw-stone", { waitUntil: "networkidle" });
-  await page
-    .locator(
-      '#current-inventory [data-stone-card][data-anonymous="false"] button[aria-label^="Open "]'
-    )
-    .first()
-    .click();
+  const firstInventoryCard = page
+    .locator('#current-inventory [data-stone-card][data-anonymous="false"]')
+    .first();
+  await expect(firstInventoryCard.getByText("Pairs with")).toBeVisible();
+  await expect(firstInventoryCard.locator('[aria-label^="Colors #"]')).toBeVisible();
+  await firstInventoryCard.locator('button[aria-label^="Open "]').click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page).toHaveURL(/stone=/);
-  await expect(page.getByText("Colors from photo")).toBeVisible();
-  await expect(page.getByText("Pairs with")).toBeVisible();
+  const detailDialog = page.getByRole("dialog");
+  await expect(detailDialog.getByText("Colors from photo")).toBeVisible();
+  await expect(detailDialog.getByText("Pairs with")).toBeVisible();
   await page.keyboard.press("Escape");
 
   await page
@@ -238,15 +245,16 @@ test("mobile keeps editorial showroom usable at 390", async ({ page }) => {
   await screenshot(page, "04-mobile-390-editorial-cards.png");
   await screenshotElement(page.getByTestId("jw-marketplace-request"), "04-mobile-connect.png");
 
-  await page
-    .locator(
-      '#current-inventory [data-stone-card][data-anonymous="false"] button[aria-label^="Open "]'
-    )
-    .first()
-    .click();
+  const mobileCard = page
+    .locator('#current-inventory [data-stone-card][data-anonymous="false"]')
+    .first();
+  await expect(mobileCard.getByText("Pairs with")).toBeVisible();
+  await expect(mobileCard.locator('[aria-label^="Colors #"]')).toBeVisible();
+  await mobileCard.locator('button[aria-label^="Open "]').click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByText("Colors from photo")).toBeVisible();
-  await expect(page.getByText("Pairs with")).toBeVisible();
+  const mobileDialog = page.getByRole("dialog");
+  await expect(mobileDialog.getByText("Colors from photo")).toBeVisible();
+  await expect(mobileDialog.getByText("Pairs with")).toBeVisible();
   await assertNoHorizontalOverflow(page);
   await screenshot(page, "04-mobile-390-detail.png");
   await page.keyboard.press("Escape");

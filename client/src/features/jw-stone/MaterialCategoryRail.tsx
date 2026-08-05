@@ -106,13 +106,13 @@ export function MaterialCategoryRail({
                 data-testid={`jw-material-${item.materialId}`}
                 aria-pressed={isActive}
                 onClick={() => onSelect(isActive ? null : item.materialId)}
-                className="group relative h-36 w-[9.5rem] shrink-0 overflow-hidden text-left sm:h-44 sm:w-44"
+                className="group relative h-36 w-[9.5rem] shrink-0 overflow-hidden bg-[var(--jw-dark)] text-left sm:h-44 sm:w-44"
               >
                 {item.coverSrc ? (
                   <img
                     src={item.coverSrc}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                    className="absolute inset-0 h-full w-full object-contain"
                   />
                 ) : (
                   <span className="absolute inset-0 bg-[var(--jw-surface)]" aria-hidden="true" />

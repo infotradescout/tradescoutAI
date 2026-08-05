@@ -136,13 +136,13 @@ export function WishlistPanel({
                   <button
                     type="button"
                     onClick={() => onOpenStone(stone)}
-                    className="aspect-square overflow-hidden bg-[var(--jw-surface)]"
+                    className="aspect-square bg-[var(--jw-surface)]"
                     aria-label={`Open ${stone.publicLabel}`}
                   >
                     <img
                       src={stone.images[0]}
                       alt=""
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       loading="lazy"
                     />
                   </button>
