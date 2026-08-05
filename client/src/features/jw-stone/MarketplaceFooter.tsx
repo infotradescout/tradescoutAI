@@ -5,18 +5,26 @@ type MarketplaceFooterProps = {
   onStartRequest?: () => void;
   /** Only link to #new-arrivals when that section is mounted. */
   showNewArrivals?: boolean;
+  /** Only link to #jw-trending when that section is mounted. */
+  showTrending?: boolean;
 };
 
 /**
  * Light compact footer sheet — logo, short nav, legal.
  * Connect CTA is the sticky request bar (not duplicated here).
  */
-export function MarketplaceFooter({ showNewArrivals = false }: MarketplaceFooterProps) {
+export function MarketplaceFooter({
+  showNewArrivals = false,
+  showTrending = false,
+}: MarketplaceFooterProps) {
   const nav: { href: string; label: string }[] = [
     { href: "#first-cut-title", label: "First Cut" },
+    { href: "#jw-palette-rail", label: "Color" },
+    { href: "#jw-material-rail", label: "Material" },
     ...(showNewArrivals ? [{ href: "#new-arrivals", label: "New Arrivals" }] : []),
     { href: "#current-inventory", label: "Inventory" },
-    { href: "#jw-trending", label: "Trending" },
+    ...(showTrending ? [{ href: "#jw-trending", label: "Trending" }] : []),
+    { href: "/u/jw-stone", label: "Profile" },
   ];
 
   return (
@@ -34,7 +42,7 @@ export function MarketplaceFooter({ showNewArrivals = false }: MarketplaceFooter
           />
         </a>
 
-        <nav aria-label="JW Stone sections" className="w-full max-w-md">
+        <nav aria-label="JW Stone sections" className="w-full max-w-lg">
           <ul className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-1">
             {nav.map((item) => (
               <li key={item.href} className="sm:contents">

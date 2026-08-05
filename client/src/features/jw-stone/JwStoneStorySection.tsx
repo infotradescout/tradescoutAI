@@ -39,12 +39,12 @@ export function JwStoneStorySection() {
               key={image.src}
               className={`group w-[72vw] max-w-[360px] flex-none snap-start overflow-hidden sm:w-[46vw] md:w-[28vw] md:max-w-[320px] ${jw.darkElevated}`}
             >
-              <span className="relative block aspect-[16/10] overflow-hidden bg-black">
+              <span className="relative block aspect-[16/10] bg-black">
                 <img
                   src={image.src}
                   alt={image.alt}
                   loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                  className="h-full w-full object-contain"
                 />
               </span>
               <figcaption className="border-t border-white/10 px-3 py-2.5 text-sm font-semibold text-[var(--jw-on-dark)]">

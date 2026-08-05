@@ -72,6 +72,10 @@ describe("StoneDetailDialog", () => {
     );
 
     if (stone.materialLabel) expect(dialog?.textContent).toContain(stone.materialLabel);
+    if (stone.origin) {
+      expect(dialog?.textContent).toContain("Origin");
+      expect(dialog?.textContent).toContain(stone.origin.country);
+    }
     if (stone.sourceEvidence?.counts?.length) {
       expect(dialog?.textContent).toMatch(/Available now|slabs available/i);
     }

@@ -437,11 +437,11 @@ function aestheticChipLabel(id: string): string {
     case "soft-light":
       return "White & light";
     case "bold-expressive":
-      return "Green";
+      return "Multicolor";
     case "cool-serene":
-      return "Blue";
+      return "Cool & serene";
     case "deep-dramatic":
-      return "Dramatic darks";
+      return "Black & dramatic";
     default:
       return id;
   }

@@ -44,7 +44,7 @@ export function FirstCutSection() {
                 <img
                   src={item.stone.images[0]}
                   alt={`${item.stone.publicLabel} stone photograph`}
-                  className="aspect-[4/5] w-full object-cover sm:aspect-[5/4]"
+                  className="aspect-[4/5] w-full bg-[var(--jw-surface)] object-contain sm:aspect-[5/4]"
                 />
                 {item.stone.displayName ? (
                   <figcaption className="mt-3 font-editorial text-lg leading-tight text-[var(--jw-ink)] sm:text-xl">
@@ -65,7 +65,7 @@ export function FirstCutSection() {
                 <img
                   src={item.imageSrc}
                   alt="First Cut stone photograph"
-                  className="aspect-[4/5] w-full object-cover sm:aspect-[5/4]"
+                  className="aspect-[4/5] w-full bg-[var(--jw-surface)] object-contain sm:aspect-[5/4]"
                 />
               </figure>
             );

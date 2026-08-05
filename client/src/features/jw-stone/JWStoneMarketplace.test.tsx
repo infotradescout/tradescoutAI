@@ -82,20 +82,30 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(header?.textContent).not.toMatch(/\b0\b/);
     expect(container.querySelector('[data-testid="jw-marketplace-menu-button"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-menu-panel"]')).toBeNull();
-    expect(container.querySelector('[data-testid="jw-marketplace-footer"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-footer"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-footer-logo"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-marketplace-tradescout-link"]')?.textContent
+    ).toContain("Powered by TradeScout");
     expect(container.textContent).toContain("Natural stone, selected at the source.");
     expect(container.textContent).toContain("Browse inventory");
     expect(container.textContent).toContain("First Cut");
     expect(container.textContent).toContain("Browse by color");
+    expect(container.textContent).toContain("All");
     expect(container.textContent).toContain("Warm neutrals");
     expect(container.textContent).toContain("White & light");
-    expect(container.textContent).toContain("Dramatic darks");
+    expect(container.textContent).toContain("Gray & silver");
+    expect(container.textContent).toContain("Black & dramatic");
+    expect(container.textContent).toContain("Brown & earth");
+    expect(container.textContent).toContain("Red & burgundy");
+    expect(container.textContent).toContain("Multicolor");
     expect(container.textContent).toContain("Browse by material");
     expect(container.textContent).toContain("Granite");
     expect(container.textContent).toContain("Marble");
     expect(container.textContent).toContain("Quartzite");
     expect(container.textContent).toContain("Explore the collection");
-    expect(container.textContent).toContain("Tell JW Stone what you need");
+    expect(container.textContent).toContain("Contact");
+    expect(container.textContent).not.toContain("Tell JW Stone what you need");
     expect(container.textContent).not.toContain("From source to finished space");
     expect(container.textContent).not.toContain("Trending");
     expect(container.textContent).not.toContain("JW Stone Picks");
@@ -196,6 +206,10 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(firstCard.className).not.toMatch(/\bborder\b/);
     expect(firstCard.querySelector("[class*='aspect-']")).not.toBeNull();
     expect(firstCard.querySelector('button[aria-label^="Save "]')).not.toBeNull();
+    expect(firstCard.textContent).toContain("Pairs with");
+    expect(firstCard.querySelector('[aria-label^="Colors #"]')).not.toBeNull();
+    expect(firstCard.querySelector('[aria-label^="Pairs with #"]')).not.toBeNull();
+    expect(firstCard.querySelector("img")?.className).toMatch(/object-contain/);
 
     const inventory = container.querySelector('[data-testid="jw-inventory-grid"]');
     expect(inventory?.querySelector("ul")?.className).toMatch(/flex-col/);
@@ -229,9 +243,19 @@ describe("JW Stone marketplace luxury layout", () => {
   });
 
   it("treats palette, color, and material as optional refinements", () => {
-    click(container.querySelector('[data-testid="jw-palette-warm-earthy"]'));
+    click(container.querySelector('[data-testid="jw-palette-warm-neutrals"]'));
     expect(window.location.search).toContain("aesthetic=warm-earthy");
+    expect(window.location.search).not.toContain("color=");
 
+    click(container.querySelector('[data-testid="jw-palette-green"]'));
+    expect(window.location.search).toContain("color=green");
+    expect(window.location.search).not.toContain("aesthetic=");
+
+    click(container.querySelector('[data-testid="jw-palette-all"]'));
+    expect(window.location.search).not.toContain("aesthetic=");
+    expect(window.location.search).not.toContain("color=");
+
+    click(container.querySelector('[data-testid="jw-palette-warm-neutrals"]'));
     click(container.querySelector('[data-testid="jw-material-quartzite"]'));
     expect(window.location.search).toContain("material=quartzite");
     expect(window.location.search).toContain("aesthetic=warm-earthy");
@@ -268,13 +292,14 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
   });
 
-  it("orders header, hero, First Cut peek, color, material, inventory, then Connect", () => {
+  it("orders header, hero, First Cut peek, color, material, inventory, footer, then Connect", () => {
     const header = container.querySelector('[data-testid="jw-marketplace-header"]');
     const hero = container.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = container.querySelector("#first-cut-title")?.closest("section");
     const palette = container.querySelector('[data-testid="jw-palette-rail"]');
     const materials = container.querySelector('[data-testid="jw-material-rail"]');
     const inventory = container.querySelector("#current-inventory");
+    const footer = container.querySelector('[data-testid="jw-marketplace-footer"]');
     const request = container.querySelector('[data-testid="jw-marketplace-request"]');
 
     expect(header).not.toBeNull();
@@ -283,8 +308,18 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(palette).not.toBeNull();
     expect(materials).not.toBeNull();
     expect(inventory).not.toBeNull();
+    expect(footer).not.toBeNull();
     expect(request).not.toBeNull();
-    if (!header || !hero || !firstCut || !palette || !materials || !inventory || !request) {
+    if (
+      !header ||
+      !hero ||
+      !firstCut ||
+      !palette ||
+      !materials ||
+      !inventory ||
+      !footer ||
+      !request
+    ) {
       throw new Error("Expected page sections");
     }
 
@@ -300,8 +335,9 @@ describe("JW Stone marketplace luxury layout", () => {
       materials.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
-      inventory.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING
+      inventory.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+    expect(footer.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     expect(inventory.className).toMatch(/scroll-mt-/);
 

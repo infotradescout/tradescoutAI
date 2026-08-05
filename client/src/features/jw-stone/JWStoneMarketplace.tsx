@@ -5,16 +5,17 @@ import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnec
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
-import { ColorPaletteRail } from "./ColorPaletteRail";
+import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
+import { MarketplaceFooter } from "./MarketplaceFooter";
 import { MarketplaceHeader } from "./MarketplaceHeader";
 import { MaterialCategoryRail } from "./MaterialCategoryRail";
 import { StoneCollection } from "./StoneCollection";
 import { StoneDetailDialog } from "./StoneDetailDialog";
 import { WishlistPanel } from "./WishlistPanel";
-import type { ColorDirectionId, JwStoneCatalogItem } from "./types";
+import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
@@ -94,8 +95,8 @@ export default function JWStoneMarketplace() {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
 
-  const selectPalette = (aesthetic: ColorDirectionId | null) => {
-    commit({ ...state, aesthetic, stone: null });
+  const selectPalette = (next: ColorSwatchSelection) => {
+    commit({ ...state, aesthetic: next.aesthetic, color: next.color, stone: null });
   };
 
   const selectMaterial = (material: string | null) => {
@@ -128,7 +129,13 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
       <FirstCutSection />
-      <ColorPaletteRail active={state.aesthetic} onSelect={selectPalette} />
+      <ColorPaletteRail
+        aesthetic={state.aesthetic}
+        color={state.color}
+        material={state.material}
+        origin={state.origin}
+        onSelect={selectPalette}
+      />
       <MaterialCategoryRail active={state.material} onSelect={selectMaterial} />
 
       <StoneCollection
@@ -139,6 +146,8 @@ export default function JWStoneMarketplace() {
         onOpen={openStone}
         catalog={JW_STONE_CATALOG}
       />
+
+      <MarketplaceFooter />
 
       <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
