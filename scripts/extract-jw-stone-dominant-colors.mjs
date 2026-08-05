@@ -9,7 +9,7 @@
  * - Among near-tied covers, prefer richer slab-face chroma (veins / flash)
  * - Extract a slab-face region from the original, then resize (preserve thin veins)
  * - Hand covers bias to the upper face (hands usually bottom) + skin reject
- * - Drop clamp-orange, sky-blue, foliage-edge, glare on dark stones
+ * - Mask center slab face; drop clamp/crane yellow, sky, foliage-edge, ground, glare
  * - Body LAB histogram + outlier/accent pass; adaptive 3–5 distinct swatches
  * - Filter buckets from photographed swatches only (never stone names)
  */
@@ -324,6 +324,11 @@ function chromaLab(lab) {
 function bucketColor(r, g, b) {
   const { h, s, l } = rgbToHsl(r, g, b);
 
+  // Near-black body reads Black even when one channel dominates (shadow / clamp shade).
+  // Keep chromatic dark blue/green flash (Steel Gray, etc.) out of this shortcut.
+  if (l <= 0.12) return "black";
+  if (l <= 0.18 && s < 0.22) return "black";
+
   // Near-white cream / blush veins read as White for customers.
   // (HSL saturation can read high on pale pinks — prefer lightness.)
   if (l >= 0.88) return "white";
@@ -403,13 +408,38 @@ function isClampOrange(h, s, l) {
   return h >= 8 && h <= 42 && s > 0.48 && l > 0.22 && l < 0.72;
 }
 
+/** Crane / hoist / clamp high-chroma yellow — not stone gold veins. */
+function isIndustrialYellow(h, s, l) {
+  if (isClampOrange(h, s, l)) return true;
+  if (h < 25 || h > 68) return false;
+  // Bright equipment yellow (incl. pale cream-yellow highlights).
+  if (s > 0.55 && l > 0.35) return true;
+  if (s > 0.4 && l > 0.78) return true;
+  return false;
+}
+
 function isSkyBlue(h, s, l) {
-  // Bright yard sky only — do not treat dark labradorite / blue quartz flash as sky.
-  return h >= 185 && h <= 230 && s > 0.28 && l > 0.52;
+  // Yard sky + polished-face sky reflections — keep dark blue quartz flash (low L).
+  return h >= 180 && h <= 235 && s > 0.22 && l > 0.42;
 }
 
 function isFoliageGreen(h, s, l, edge) {
   return edge && h >= 75 && h <= 155 && s > 0.28 && l < 0.5;
+}
+
+/** Ground gravel / neighboring cream slabs — not dark-stone body. */
+function isYardGroundWarm(h, s, l, { isDarkStone }) {
+  if (!isDarkStone) return false;
+  if (l < 0.55 || s < 0.12) return false;
+  return (h >= 20 && h <= 75) || h >= 350 || h < 15;
+}
+
+function isYardGarbageHue(h, s, l, { isDarkStone = false, edge = false } = {}) {
+  if (isIndustrialYellow(h, s, l)) return true;
+  if (isSkyBlue(h, s, l)) return true;
+  if (isFoliageGreen(h, s, l, edge)) return true;
+  if (isYardGroundWarm(h, s, l, { isDarkStone })) return true;
+  return false;
 }
 
 function median(values) {
@@ -504,6 +534,8 @@ function pickAdaptivePalette(
   const tryAdd = (candidate, minShare) => {
     if (!candidate || picks.length >= target) return false;
     if (handBias && looksLikeSkinCluster(candidate.r, candidate.g, candidate.b)) return false;
+    const { h, s, l } = rgbToHsl(candidate.r, candidate.g, candidate.b);
+    if (isYardGarbageHue(h, s, l, { isDarkStone })) return false;
     if (candidate.share < minShare && picks.length >= MIN_N) return false;
     if (!isDistinctFromPicks(candidate, picks, PICK_DELTA_E)) return false;
     picks.push(candidate);
@@ -522,7 +554,8 @@ function pickAdaptivePalette(
   );
   const byLight = [...pool].sort((a, b) => b.lab.L - a.lab.L);
   const byDark = [...pool].sort((a, b) => a.lab.L - b.lab.L);
-  tryAdd(byLight[0], MIN_ACCENT_SHARE);
+  // Dark yard stones: lightest "veins" are usually sky/ground bounce — skip.
+  if (!isDarkStone) tryAdd(byLight[0], MIN_ACCENT_SHARE);
   tryAdd(byDark[0], MIN_ACCENT_SHARE);
 
   // 3) Chroma / hue accents (gold veins, blue flash, rust lines)
@@ -551,8 +584,9 @@ function pickAdaptivePalette(
     }
   }
 
-  // 5) Mid-tone stones: keep a true light vein if present (white quartz, cream)
-  if (!isLightStone) {
+  // 5) Mid-tone stones only: keep a true light vein if present (white quartz, cream).
+  // Dark stones skip — pale samples are almost always yard reflections.
+  if (!isLightStone && !isDarkStone) {
     const lightVein = [...accentClusters, ...bodyClusters]
       .filter((c) => {
         if (handBias && looksLikeSkinCluster(c.r, c.g, c.b)) return false;
@@ -600,12 +634,12 @@ function slabExtractBox(width, height, handBias) {
       height: Math.round(height * 0.52),
     };
   }
-  // Full-slab warehouse: drop clamp (top), gravel (bottom), sky/sides.
+  // Outdoor yard / full-slab: center the stone face — drop clamp, sky, gravel, sides.
   return {
-    left: Math.round(width * 0.16),
-    top: Math.round(height * 0.14),
-    width: Math.round(width * 0.68),
-    height: Math.round(height * 0.6),
+    left: Math.round(width * 0.22),
+    top: Math.round(height * 0.2),
+    width: Math.round(width * 0.56),
+    height: Math.round(height * 0.48),
   };
 }
 
@@ -634,8 +668,8 @@ async function faceChromaScore(absPath, handBias) {
         if (handBias && (isSkinTone(r, g, b, h, s, l) || looksLikeSkinCluster(r, g, b))) {
           continue;
         }
-        if (isClampOrange(h, s, l)) continue;
-        // Sky reject only on full-slab yard shots (hand covers are face-filling).
+        if (isIndustrialYellow(h, s, l)) continue;
+        // Sky / crane rejects on full-slab yard shots (hand covers are face-filling).
         if (!handBias && isSkyBlue(h, s, l)) continue;
         sum += chromaLab(rgbToLab(r, g, b));
         n += 1;
@@ -704,7 +738,7 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
       // Extra inset on the extracted face — still drop residual clamp/gravel edges.
       const nx = x / (width - 1);
       const ny = y / (height - 1);
-      if (nx < 0.05 || nx > 0.95 || ny < 0.05 || ny > 0.95) continue;
+      if (nx < 0.08 || nx > 0.92 || ny < 0.08 || ny > 0.9) continue;
 
       const i = (y * width + x) * channels;
       const a = data[i + 3];
@@ -713,14 +747,14 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
       const g = data[i + 1];
       const b = data[i + 2];
       const { h, s, l } = rgbToHsl(r, g, b);
-      const edge = nx < 0.12 || nx > 0.88 || ny < 0.1 || ny > 0.9;
-      const topBand = ny < 0.22;
+      const edge = nx < 0.14 || nx > 0.86 || ny < 0.12 || ny > 0.88;
+      const topBand = ny < 0.28;
 
       if (handBias && isSkinTone(r, g, b, h, s, l)) continue;
       if (handBias && looksLikeSkinCluster(r, g, b)) continue;
-      if (isClampOrange(h, s, l)) continue;
-      // Sky / foliage at frame edge + upper band (yard sky above slabs).
-      if (!handBias && (edge || topBand) && isSkyBlue(h, s, l)) continue;
+      if (isIndustrialYellow(h, s, l)) continue;
+      // Sky / foliage / equipment anywhere on yard shots; edge/top band is stricter for foliage.
+      if (!handBias && isSkyBlue(h, s, l)) continue;
       if (!handBias && isFoliageGreen(h, s, l, edge || topBand)) continue;
 
       soft.push({ r, g, b, h, s, l, lab: rgbToLab(r, g, b) });
@@ -743,11 +777,16 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
     const maxCh = Math.max(p.r, p.g, p.b);
     if (!isLightStone && p.l > 0.9 && maxCh > 235) return false;
     if (p.l > 0.96 && maxCh > 245) return false;
+    if (isIndustrialYellow(p.h, p.s, p.l)) return false;
 
     if (isDarkStone) {
-      // Drop washed glare / sky reflections on polished dark faces.
-      if (p.l > 0.72 && maxCh > 200) return false;
-      if (p.l > 0.66 && p.s < 0.1) return false;
+      // Drop washed glare / sky / yard reflections on polished dark faces.
+      if (p.l > 0.55) return false;
+      if (p.l > 0.48 && p.s < 0.12) return false;
+      if (isSkyBlue(p.h, p.s, p.l)) return false;
+      if (isYardGroundWarm(p.h, p.s, p.l, { isDarkStone: true })) return false;
+      // High-chroma cool reflection (sky bounce) on dark stone.
+      if (p.l > 0.35 && p.s > 0.16 && p.h >= 170 && p.h <= 250) return false;
       return true;
     }
     if (isLightStone) {
@@ -768,16 +807,17 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
   };
   const medianChroma = median(pool.map((p) => chromaLab(p.lab)));
 
-  let bodyClusters = labHistogramClusters(pool);
+  const rejectCluster = (c) => {
+    const { h, s, l } = rgbToHsl(c.r, c.g, c.b);
+    if (handBias && looksLikeSkinCluster(c.r, c.g, c.b)) return true;
+    return isYardGarbageHue(h, s, l, { isDarkStone, edge: false });
+  };
+
+  let bodyClusters = labHistogramClusters(pool).filter((c) => !rejectCluster(c));
   const accentPixels = pool.filter(
     (p) => labDistance(p.lab, medianLab) > 15 || chromaLab(p.lab) > medianChroma * 1.35
   );
-  let accentClusters = labHistogramClusters(accentPixels);
-
-  if (handBias) {
-    bodyClusters = bodyClusters.filter((c) => !looksLikeSkinCluster(c.r, c.g, c.b));
-    accentClusters = accentClusters.filter((c) => !looksLikeSkinCluster(c.r, c.g, c.b));
-  }
+  let accentClusters = labHistogramClusters(accentPixels).filter((c) => !rejectCluster(c));
 
   if (!bodyClusters.length) {
     return {
@@ -870,7 +910,7 @@ async function main() {
   const payload = {
     generatedAt: new Date().toISOString(),
     method:
-      "slab-face extract + LAB body/accent histogram (sharp 512px); hand skin filter; clamp/sky/foliage/glare rejects; adaptive 3–5 distinct; buckets from HSL",
+      "center slab-face extract + LAB body/accent histogram (sharp 512px); hand skin filter; clamp/crane/sky/foliage/ground/glare rejects; adaptive 3–5 distinct; buckets from HSL",
     stones: result,
   };
 

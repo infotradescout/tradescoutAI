@@ -53,6 +53,25 @@ describe("JW Stone photographed color palettes", () => {
     expect(getColorsForStone("cristallo")).toEqual(expect.arrayContaining(["beige", "black"]));
   });
 
+  it("Black Pearl swatches stay on the dark stone face (no cream / crane yellow)", () => {
+    const swatches = getSwatchesForStone("black-pearl");
+    expect(swatches.length).toBeGreaterThanOrEqual(3);
+    expect(getColorsForStone("black-pearl")).toEqual(expect.arrayContaining(["gray"]));
+    for (const swatch of swatches) {
+      const hex = swatch.hex;
+      const r = Number.parseInt(hex.slice(1, 3), 16);
+      const g = Number.parseInt(hex.slice(3, 5), 16);
+      const b = Number.parseInt(hex.slice(5, 7), 16);
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const l = (max + min) / (2 * 255);
+      const s = max === min ? 0 : (max - min) / (255 - Math.abs(max + min - 255));
+      // No pale cream / industrial yellow from yard equipment or gravel.
+      expect(l, hex).toBeLessThan(0.55);
+      expect(!(s > 0.4 && l > 0.35), hex).toBe(true);
+    }
+  });
+
   it("derives soft pairing swatches from stone hues (not from photo sampling)", () => {
     const pairings = derivePairingSwatches(["#2a2418", "#c4a35a", "#ebe6d8"]);
     expect(pairings.length).toBeGreaterThan(0);
@@ -65,6 +84,28 @@ describe("JW Stone photographed color palettes", () => {
 
     const fromStone = getPairingSwatchesForStone("arizona-gold");
     expect(fromStone.length).toBeGreaterThan(0);
+  });
+
+  it("dark stones pair with warm neutrals / soft white / muted metal — not pastel teal/lavender", () => {
+    const pairings = derivePairingSwatches(["#0d0000", "#484844", "#757268"]);
+    expect(pairings.length).toBeGreaterThanOrEqual(3);
+    for (const hex of pairings) {
+      const r = Number.parseInt(hex.slice(1, 3), 16);
+      const g = Number.parseInt(hex.slice(3, 5), 16);
+      const b = Number.parseInt(hex.slice(5, 7), 16);
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const l = (max + min) / (2 * 255);
+      const d = max - min;
+      const s = max === 0 ? 0 : d / max;
+      // Reject high-chroma cool pastels (teal / lavender theory garbage).
+      const coolHue = b >= g && b >= r && max > min ? true : g >= r && g >= b && b > r;
+      expect(!(coolHue && s > 0.22 && l > 0.45 && l < 0.85), hex).toBe(true);
+    }
+
+    const fromStone = getPairingSwatchesForStone("black-pearl");
+    expect(fromStone.length).toBeGreaterThan(0);
+    expect(fromStone.length).toBeLessThanOrEqual(4);
   });
 
   it("accepts only vocabulary color ids", () => {

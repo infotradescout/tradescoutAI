@@ -188,12 +188,38 @@ function pushUnique(list: string[], hex: string, minDistance = 28): void {
   list.push(hex);
 }
 
+function stoneLightness(hex: string): number | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return rgbToHsl(rgb.r, rgb.g, rgb.b).l;
+}
+
+/** Near-black / charcoal stone faces — pair with warm neutrals, not theory pastels. */
+function isDarkNearBlackPalette(stoneHexes: readonly string[]): boolean {
+  const lights = stoneHexes.map(stoneLightness).filter((value): value is number => value != null);
+  if (!lights.length) return false;
+  const sorted = [...lights].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const medianL = sorted.length % 2 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+  const darkShare = lights.filter((l) => l <= 0.42).length / lights.length;
+  return medianL <= 0.35 || darkShare >= 0.67;
+}
+
 /**
- * Soft "Pairs with" colors from simple complementary / split-complement /
- * warm↔cool pairing. Never read from the photograph.
+ * Soft "Pairs with" colors derived only from cleaned stone swatches.
+ * Dark/near-black stones stay on warm neutrals / soft white / muted metal —
+ * never pastel teal/lavender from complementary theory on bad hues.
  */
 export function derivePairingSwatches(stoneHexes: readonly string[]): readonly string[] {
   const pairings: string[] = [];
+
+  if (isDarkNearBlackPalette(stoneHexes)) {
+    pushUnique(pairings, hslToHex(40, 0.12, 0.92)); // soft white
+    pushUnique(pairings, hslToHex(36, 0.22, 0.78)); // warm cream
+    pushUnique(pairings, hslToHex(30, 0.14, 0.58)); // warm taupe
+    pushUnique(pairings, hslToHex(210, 0.06, 0.52)); // muted metal
+    return Object.freeze(pairings.slice(0, MAX_PAIRING_SWATCHES));
+  }
 
   for (const hex of stoneHexes.slice(0, 3)) {
     const rgb = hexToRgb(hex);
@@ -205,12 +231,12 @@ export function derivePairingSwatches(stoneHexes: readonly string[]): readonly s
       const warmUndertone = h >= 20 && h <= 70;
       if (l <= 0.28) {
         pushUnique(pairings, hslToHex(38, 0.22, 0.72)); // soft warm cream
-        pushUnique(pairings, hslToHex(210, 0.18, 0.42)); // slate blue
+        pushUnique(pairings, hslToHex(210, 0.08, 0.48)); // muted metal
       } else if (l >= 0.7) {
-        pushUnique(pairings, hslToHex(210, 0.16, 0.38)); // deep cool
+        pushUnique(pairings, hslToHex(210, 0.1, 0.36)); // deep cool metal
         pushUnique(pairings, hslToHex(28, 0.28, 0.48)); // warm taupe
       } else if (warmUndertone) {
-        pushUnique(pairings, hslToHex(205, 0.22, 0.48)); // soft blue
+        pushUnique(pairings, hslToHex(205, 0.12, 0.46)); // muted cool metal
       } else {
         pushUnique(pairings, hslToHex(32, 0.32, 0.55)); // warm sand
       }
@@ -218,15 +244,16 @@ export function derivePairingSwatches(stoneHexes: readonly string[]): readonly s
     }
 
     // Complementary (hue + 180°), nudged toward a usable mid lightness.
+    // Cap saturation so yard-garbage complements never become pastel teal/lavender.
     const complementL = clamp01(l < 0.35 ? l + 0.18 : l > 0.7 ? l - 0.16 : l);
-    const complementS = clamp01(Math.max(0.22, Math.min(0.55, s * 0.85 + 0.08)));
+    const complementS = clamp01(Math.max(0.14, Math.min(0.38, s * 0.55 + 0.06)));
     pushUnique(pairings, hslToHex(h + 180, complementS, complementL));
 
     // Soft split-complement for the lead chromatic hue only.
     if (pairings.length < 3) {
       pushUnique(
         pairings,
-        hslToHex(h + 150, clamp01(complementS * 0.9), clamp01(complementL + 0.04))
+        hslToHex(h + 150, clamp01(complementS * 0.85), clamp01(complementL + 0.04))
       );
     }
   }
@@ -238,7 +265,7 @@ export function derivePairingSwatches(stoneHexes: readonly string[]): readonly s
     if (s >= 0.1) {
       pushUnique(
         pairings,
-        hslToHex(h + 28, clamp01(s * 0.55), clamp01(l > 0.55 ? l - 0.08 : l + 0.1))
+        hslToHex(h + 28, clamp01(s * 0.45), clamp01(l > 0.55 ? l - 0.08 : l + 0.1))
       );
     }
   }
