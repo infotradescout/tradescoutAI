@@ -215,7 +215,9 @@ describe("MaterialCategoryRail", () => {
 
     const greenChip = container.querySelector('[data-testid="jw-material-color-green"]');
     expect(greenChip?.getAttribute("aria-pressed")).toBe("true");
-    expect(container.textContent).toContain(`1 of ${greenGranite.length} granite`);
+    expect(container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent).toBe(
+      `Granite · 1 of ${greenGranite.length}`
+    );
     expect(container.querySelector('[data-testid="jw-material-color-empty"]')).toBeNull();
   });
 });

@@ -183,6 +183,13 @@ describe("JW Stone compact color swatch selector", () => {
       expect(container.querySelector('[data-testid="jw-palette-prompt"]')).toBeNull();
       expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();
       expect(container.querySelector("[data-stone-card]")).not.toBeNull();
+      expect(container.querySelector('[data-testid="jw-palette-results-heading"]')).toBeNull();
+
+      const status = container.querySelector('[data-testid="jw-material-stone-status"]');
+      expect(status?.textContent).toMatch(/^Warm neutrals · \d+ of \d+$/);
+      // One status line only — no redundant "N … selections" / "N of M … selections" stack.
+      expect(container.textContent).not.toMatch(/\d+ warm neutrals selections/i);
+      expect(container.textContent).not.toMatch(/\d+ of \d+ warm neutrals selections/i);
 
       const warm = container.querySelector('[data-testid="jw-palette-warm-neutrals"]');
       expect(warm?.getAttribute("aria-pressed")).toBe("true");
