@@ -22,40 +22,36 @@ type JwCollapsibleSectionProps = {
   background?: ReactNode;
 };
 
+/** One calm cue: large chevron + muted Open/Close — no olive pill, no duplicate subtitle. */
 function SectionToggleCue({
   expanded,
-  title,
   tone,
   testId,
 }: {
   expanded: boolean;
-  title: string;
   tone: "light" | "dark";
   testId: string;
 }) {
-  const label = expanded ? "Tap to close" : "Tap to open";
+  const label = expanded ? "Close" : "Open";
   const toneClass =
     tone === "dark"
-      ? "border-2 border-white bg-[var(--jw-accent)] text-[var(--jw-on-accent)] shadow-lg group-hover:brightness-110 group-active:scale-95"
-      : "border-2 border-[var(--jw-ink)] bg-[var(--jw-accent)] text-[var(--jw-on-accent)] shadow-md group-hover:brightness-110 group-active:scale-95";
+      ? "text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]"
+      : "text-[var(--jw-muted)]";
 
   return (
     <span
       data-testid={`${testId}-expand-cue`}
-      className={`inline-flex shrink-0 items-center gap-2 px-3.5 py-2.5 text-sm font-bold uppercase tracking-wide sm:px-4 sm:text-base ${toneClass}`}
+      className={`inline-flex shrink-0 flex-col items-center gap-0.5 ${toneClass}`}
       aria-hidden="true"
     >
-      {label}
+      <span className="text-[11px] font-medium tracking-wide sm:text-xs">{label}</span>
       <ChevronDown
         data-testid={`${testId}-expand-chevron`}
-        className={`h-7 w-7 shrink-0 transition-transform duration-200 sm:h-8 sm:w-8 ${
+        className={`h-8 w-8 shrink-0 transition-transform duration-200 sm:h-9 sm:w-9 ${
           expanded ? "rotate-180" : ""
         }`}
-        strokeWidth={2.75}
+        strokeWidth={2.25}
       />
-      <span className="sr-only">
-        {label} {title}
-      </span>
     </span>
   );
 }
@@ -68,7 +64,7 @@ const photoToggleBase =
  * When expanded, the photo title band stays sticky under the marketplace header so
  * tapping it again can always collapse — even deep in a long inventory list.
  * Re-opens from hash matches on `#id` (menu / hero jump links).
- * Tap to open/close + large chevron are always visible — bands must read as buttons.
+ * Large chevron + muted Open/Close keep bands obviously tappable without loud chrome.
  */
 export function JwCollapsibleSection({
   id,
@@ -114,7 +110,7 @@ export function JwCollapsibleSection({
   }, [defaultExpanded]);
 
   const toggle = () => setExpandedAndNotify(!expandedRef.current);
-  const actionLabel = expanded ? `Tap to close ${title}` : `Tap to open ${title}`;
+  const actionLabel = expanded ? `Close ${title}` : `Open ${title}`;
 
   if (!hasBackground) {
     return (
@@ -141,7 +137,7 @@ export function JwCollapsibleSection({
             >
               {title}
             </h2>
-            <SectionToggleCue expanded={expanded} title={title} tone="light" testId={testId} />
+            <SectionToggleCue expanded={expanded} tone="light" testId={testId} />
           </button>
           {summary ? (
             <p className={`mt-2 max-w-xl text-sm leading-6 ${jw.muted}`}>{summary}</p>
@@ -212,16 +208,16 @@ export function JwCollapsibleSection({
             >
               {title}
             </h2>
-            {!expanded ? (
+            {!expanded && summary ? (
               <p
-                className="mt-1.5 max-w-xl text-base font-semibold leading-5 text-white sm:text-lg"
+                className="mt-1.5 max-w-xl text-sm font-normal leading-5 text-white/75 sm:text-base"
                 data-testid={`${testId}-expand-hint`}
               >
-                {summary ?? "Tap to open"}
+                {summary}
               </p>
             ) : null}
           </span>
-          <SectionToggleCue expanded={expanded} title={title} tone="dark" testId={testId} />
+          <SectionToggleCue expanded={expanded} tone="dark" testId={testId} />
         </span>
       </button>
 

@@ -705,17 +705,24 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();
     expect(
       container.querySelector('[data-testid="jw-palette-rail-toggle"]')?.getAttribute("aria-label")
-    ).toBe("Tap to close Browse by color");
+    ).toBe("Close Browse by color");
     expect(
       container.querySelector('[data-testid="jw-material-rail-toggle"]')?.getAttribute("aria-label")
-    ).toBe("Tap to open Browse by material");
+    ).toBe("Open Browse by material");
     expect(
       container.querySelector('[data-testid="jw-inventory-toggle"]')?.getAttribute("aria-label")
-    ).toBe("Tap to open Full inventory");
-    expect(container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="jw-material-rail-expand-cue"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="jw-inventory-expand-cue"]')).not.toBeNull();
+    ).toBe("Open Full inventory");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
+    ).toMatch(/^Close$/);
+    expect(
+      container.querySelector('[data-testid="jw-material-rail-expand-cue"]')?.textContent
+    ).toMatch(/^Open$/);
+    expect(container.querySelector('[data-testid="jw-inventory-expand-cue"]')?.textContent).toMatch(
+      /^Open$/
+    );
     expect(container.querySelector('[data-testid="jw-inventory-expand-chevron"]')).not.toBeNull();
+    expect(container.textContent).not.toMatch(/Tap to open/i);
 
     const inventoryToggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
     click(inventoryToggle);
@@ -731,7 +738,7 @@ describe("JW Stone marketplace luxury layout", () => {
     // Expanded inventory keeps a sticky photo title band so header toggle stays reachable.
     expect(inventoryToggle?.className).toMatch(/\bsticky\b/);
     expect(inventoryToggle?.className).toMatch(/top-14/);
-    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Tap to close Full inventory");
+    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Close Full inventory");
 
     click(inventoryToggle);
     expect(
