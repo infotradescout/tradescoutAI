@@ -12,7 +12,6 @@ import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceFooter } from "./MarketplaceFooter";
 import { MarketplaceHeader } from "./MarketplaceHeader";
-import { MarketplaceTrustSection } from "./MarketplaceTrustSection";
 import { MaterialCategoryRail } from "./MaterialCategoryRail";
 import { isJwStoneMarketplaceDomainSurface, marketplaceBasePath } from "./marketplaceRoutes";
 import { StoneCollection } from "./StoneCollection";
@@ -222,7 +221,6 @@ export default function JWStoneMarketplace() {
       />
 
       <JwStoneStorySection />
-      <MarketplaceTrustSection />
 
       <MarketplaceFooter />
 

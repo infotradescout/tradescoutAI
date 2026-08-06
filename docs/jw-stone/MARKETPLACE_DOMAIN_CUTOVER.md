@@ -13,7 +13,7 @@
 | Inventory SoT | Profile 119 vs marketplace 148 | One reconciled catalog (148) |
 | Stone URLs | Profile `/stones/:slug` | Domain `/stones/:slug`; platform `/jw-stone/stones/:slug` |
 | Material URLs | Profile `/materials/:slug` | Domain `/materials/:slug`; platform `/jw-stone/materials/:slug` |
-| Trust | Profile about / FAQ | Marketplace `MarketplaceTrustSection` |
+| Trust | Profile about / FAQ | **Removed** from marketplace (redundant Why JW / FAQ chrome) |
 | Share | Profile ShareButton | Marketplace share → stone paths |
 | New Arrivals rail | Claimed / unmounted | **Permanently dropped** (no SSR claim; not mounted) |
 
