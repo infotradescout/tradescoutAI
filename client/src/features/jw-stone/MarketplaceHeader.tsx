@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Bookmark, Menu, X } from "lucide-react";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
+import { marketplaceBasePath } from "./marketplaceRoutes";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
@@ -49,7 +50,7 @@ export function MarketplaceHeader({
     >
       <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-5 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
         <a
-          href="/jw-stone"
+          href={marketplaceBasePath() || "/"}
           aria-label="JW Stone marketplace home"
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
         >

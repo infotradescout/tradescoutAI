@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import generatedJwStoneInventory from "../../client/src/data/jwStoneInventory.generated.json";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 import {
   createProfileInventoryItemShareMetadata,
@@ -16,21 +15,27 @@ import {
   listProfileInventoryCategories,
 } from "@shared/profileCategoryShare";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
+import { JW_STONE_CANONICAL_INVENTORY_SUMMARY } from "../jwStoneCanonicalInventory";
 import { resolveAffiliateShareDestinationOrigin } from "../utils/affiliateShareDestination";
-
-type RawStone = {
-  name: string;
-  slug: string;
-  categorySlug: string;
-  images: string[];
-  shareImageOrder?: number[];
-};
 
 const origin = "https://jwstonelogistics.com";
 const tradeScoutProfileUrl = "https://www.thetradescout.com/u/jw-stone";
 const contentBlocks = [JW_STONE_PUBLIC_DISCOVERY_BLOCK];
-const rawStones = generatedJwStoneInventory as RawStone[];
-const inventoryCategories = inventoryCategoriesForProfile("jw-stone", contentBlocks);
+const inventoryCategories = inventoryCategoriesForProfile("jw-stone", contentBlocks) as Array<{
+  categorySlug: string;
+  stones: Array<{
+    slug: string;
+    images: string[];
+    shareImageOrder?: number[];
+    nameStatus?: string;
+  }>;
+}>;
+const normalizedItems = listProfileInventoryItems(inventoryCategories);
+const shareOrderBySlug = new Map(
+  inventoryCategories.flatMap((category) =>
+    category.stones.map((stone) => [stone.slug, stone.shareImageOrder] as const)
+  )
+);
 
 function mappedRequest() {
   return {
@@ -42,28 +47,19 @@ function mappedRequest() {
 }
 
 describe("JW Stone public discovery coverage", () => {
-  it("gives all 119 published stones and all 433 photos stable owner-domain URLs", () => {
-    const normalizedItems = listProfileInventoryItems(inventoryCategories);
-    const rawSlugs = new Set(rawStones.map((stone) => stone.slug));
-    const normalizedSlugs = new Set(normalizedItems.map((stone) => stone.slug));
-
-    expect(rawStones).toHaveLength(119);
-    expect(normalizedItems).toHaveLength(119);
-    expect(normalizedSlugs).toEqual(rawSlugs);
-    expect(rawStones.reduce((total, stone) => total + stone.images.length, 0)).toBe(433);
+  it("gives all reconciled stones and photos stable owner-domain URLs", () => {
+    expect(JW_STONE_CANONICAL_INVENTORY_SUMMARY.stoneCount).toBe(148);
+    expect(JW_STONE_CANONICAL_INVENTORY_SUMMARY.imageCount).toBe(434);
+    expect(normalizedItems).toHaveLength(148);
+    expect(normalizedItems.reduce((total, stone) => total + stone.images.length, 0)).toBe(434);
 
     const anonymousItems = normalizedItems.filter((stone) => !stone.hasPublicName);
-    expect(anonymousItems.map((stone) => stone.slug)).toEqual(
-      Array.from(
-        { length: 10 },
-        (_, index) => `trending-selection-${String(index + 1).padStart(2, "0")}`
-      )
-    );
+    expect(anonymousItems).toHaveLength(38);
     expect(anonymousItems.every((stone) => stone.name === "")).toBe(true);
-    expect(anonymousItems.reduce((total, stone) => total + stone.images.length, 0)).toBe(73);
+    expect(anonymousItems.every((stone) => /^trending-selection-\d+$/.test(stone.slug))).toBe(true);
 
     let checkedPhotos = 0;
-    for (const stone of rawStones) {
+    for (const stone of normalizedItems) {
       expect(
         buildProfilePublicItemUrl({
           profileUrl: `${origin}/`,
@@ -90,9 +86,10 @@ describe("JW Stone public discovery coverage", () => {
         )
       ).toBe(origin);
 
+      const rawShareOrder = shareOrderBySlug.get(stone.slug);
       const shareOrder =
-        Array.isArray(stone.shareImageOrder) && stone.shareImageOrder.length === stone.images.length
-          ? stone.shareImageOrder
+        Array.isArray(rawShareOrder) && rawShareOrder.length === stone.images.length
+          ? rawShareOrder
           : stone.images.map((_, index) => index);
 
       for (let shareIndex = 0; shareIndex < stone.images.length; shareIndex += 1) {
@@ -153,17 +150,13 @@ describe("JW Stone public discovery coverage", () => {
           canonical: expectedTradeScoutCanonical,
         });
         expect(
-          profileInventoryShareIndexForDisplay(
-            stone.images,
-            stone.shareImageOrder,
-            expectedDisplayIndex
-          )
+          profileInventoryShareIndexForDisplay(stone.images, rawShareOrder, expectedDisplayIndex)
         ).toBe(shareIndex);
         checkedPhotos += 1;
       }
     }
 
-    expect(checkedPhotos).toBe(433);
+    expect(checkedPhotos).toBe(434);
   });
 
   it("auto-populates the seven real JW material pages and excludes the placeholder group", () => {

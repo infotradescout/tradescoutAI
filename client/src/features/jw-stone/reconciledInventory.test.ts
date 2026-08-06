@@ -18,16 +18,26 @@ function marketplaceStone(slug: string) {
   return marketplaceStones.find((stone) => stone.slug === slug);
 }
 
-describe("JW Stone marketplace-only inventory reconciliation", () => {
-  it("keeps the existing profile inventory untouched while publishing 148 marketplace selections", () => {
-    expect(JW_STONE_INVENTORY_SUMMARY).toMatchObject({ stoneCount: 119, imageCount: 433 });
+describe("JW Stone unified reconciled inventory", () => {
+  it("publishes one 148-selection catalog for profile and marketplace", () => {
+    expect(JW_STONE_INVENTORY_SUMMARY).toMatchObject({
+      stoneCount: 148,
+      imageCount: JW_STONE_MARKETPLACE_INVENTORY_SUMMARY.imageCount,
+    });
     expect(JW_STONE_MARKETPLACE_INVENTORY_SUMMARY).toEqual({
       stoneCount: 148,
-      imageCount: 433,
+      imageCount: JW_STONE_INVENTORY_SUMMARY.imageCount,
+      needsMaterialConfirmation: JW_STONE_INVENTORY_SUMMARY.needsMaterialConfirmation,
+      needsFinishConfirmation: JW_STONE_INVENTORY_SUMMARY.needsFinishConfirmation,
     });
-    expect(new Set(baseStones.map((stone) => stone.slug)).size).toBe(119);
+    expect(new Set(baseStones.map((stone) => stone.slug)).size).toBe(148);
     expect(new Set(marketplaceStones.map((stone) => stone.slug)).size).toBe(148);
-    expect(new Set(marketplaceStones.flatMap((stone) => stone.images)).size).toBe(433);
+    expect(marketplaceStones.map((stone) => stone.slug).sort()).toEqual(
+      baseStones.map((stone) => stone.slug).sort()
+    );
+    expect(new Set(marketplaceStones.flatMap((stone) => stone.images)).size).toBe(
+      JW_STONE_INVENTORY_SUMMARY.imageCount
+    );
 
     for (const stone of marketplaceStones) {
       for (const image of stone.images) {

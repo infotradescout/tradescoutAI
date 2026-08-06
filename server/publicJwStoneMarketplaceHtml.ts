@@ -1,6 +1,15 @@
 import { formatTradeScoutTitle } from "@shared/brand";
+import {
+  createProfileInventoryCategoryShareMetadata,
+  listProfileInventoryCategories,
+} from "@shared/profileCategoryShare";
+import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
+import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../client/src/data/jwStoneProfilePresentation";
+import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInventory";
 
-export const JW_STONE_MARKETPLACE_CANONICAL_URL = "https://www.thetradescout.com/jw-stone";
+export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/jw-stone";
+/** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
+export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_URL;
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
@@ -8,8 +17,16 @@ const JW_STONE_MARKETPLACE_DESCRIPTION =
 const JW_STONE_MARKETPLACE_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
-type PublicJwStoneMarketplaceHtmlOptions = {
+export type PublicJwStoneMarketplaceHtmlOptions = {
   templateHtml: string;
+  origin?: string;
+  /** Absolute marketplace collection URL for this host (custom domain `/` or platform `/jw-stone`). */
+  collectionUrl?: string;
+  stoneSlug?: unknown;
+  photo?: unknown;
+  materialSlug?: unknown;
+  /** When true, inject client flag so React mounts marketplace on the custom host. */
+  marketplaceDomainSurface?: boolean;
 };
 
 function escapeHtml(value: string): string {
@@ -40,29 +57,98 @@ function injectJsonLd(html: string, jsonLd: object): string {
   return html.replace("</head>", `<script type="application/ld+json">${json}</script>\n</head>`);
 }
 
+function injectMarketplaceDomainSurface(html: string): string {
+  const script = `<script>window.__TS_JW_STONE_MARKETPLACE_SURFACE__=true;window.__TS_CUSTOM_DOMAIN_PROFILE_SLUG__="jw-stone";</script>`;
+  return html.replace("</head>", `${script}\n</head>`);
+}
+
+function normalizeOrigin(origin: string | undefined): string {
+  const raw = String(origin || "https://www.thetradescout.com")
+    .trim()
+    .replace(/\/+$/, "");
+  return raw || "https://www.thetradescout.com";
+}
+
+function resolveCollectionUrl(opts: PublicJwStoneMarketplaceHtmlOptions): string {
+  if (opts.collectionUrl) return String(opts.collectionUrl).replace(/\/+$/, "") || "/";
+  const origin = normalizeOrigin(opts.origin);
+  if (opts.marketplaceDomainSurface) return `${origin}/`;
+  return JW_STONE_MARKETPLACE_PLATFORM_URL;
+}
+
 /**
- * Injects crawler and share metadata for the separate JW Stone marketplace.
- * This renderer intentionally has no inventory dependency: individual stones,
- * anonymous reconciliation groups, First Cut placeholders, commercial terms,
- * and origin claims do not belong in this collection-level document.
+ * Injects crawler and share metadata for the JW Stone marketplace collection
+ * and optional stone/material deep links.
  */
 export function buildPublicJwStoneMarketplaceHtml(
   opts: PublicJwStoneMarketplaceHtmlOptions
 ): string {
-  const title = escapeHtml(JW_STONE_MARKETPLACE_TITLE);
-  const description = escapeHtml(JW_STONE_MARKETPLACE_DESCRIPTION);
-  const canonical = escapeHtml(JW_STONE_MARKETPLACE_CANONICAL_URL);
-  const imageUrl = escapeHtml(JW_STONE_MARKETPLACE_IMAGE_URL);
-  const imageAlt = "JW Stone Logistics logo";
+  const origin = normalizeOrigin(opts.origin);
+  const collectionUrl = resolveCollectionUrl(opts);
+  const profileUrl = opts.marketplaceDomainSurface ? `${origin}/` : collectionUrl;
+  const contentBlocks = [JW_STONE_PUBLIC_DISCOVERY_BLOCK];
 
-  const summary = `
+  const itemShare = opts.stoneSlug
+    ? createProfileInventoryItemShareMetadata({
+        profileName: "JW Stone Logistics",
+        profileUrl,
+        assetOrigin: `${origin}/`,
+        categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+        itemSlug: opts.stoneSlug,
+        photo: opts.photo,
+        publicRouteContentBlocks: contentBlocks,
+      })
+    : null;
+
+  const categoryShare =
+    !itemShare && opts.materialSlug
+      ? createProfileInventoryCategoryShareMetadata({
+          profileName: "JW Stone Logistics",
+          profileUrl,
+          assetOrigin: `${origin}/`,
+          categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+          categorySlug: opts.materialSlug,
+          publicRouteContentBlocks: contentBlocks,
+        })
+      : null;
+
+  const title = escapeHtml(itemShare?.title || categoryShare?.title || JW_STONE_MARKETPLACE_TITLE);
+  const description = escapeHtml(
+    itemShare?.description || categoryShare?.description || JW_STONE_MARKETPLACE_DESCRIPTION
+  );
+  const canonical = escapeHtml(itemShare?.canonical || categoryShare?.canonical || collectionUrl);
+  const imageUrl = escapeHtml(
+    itemShare?.imageUrl || categoryShare?.imageUrl || JW_STONE_MARKETPLACE_IMAGE_URL
+  );
+  const imageAlt = escapeHtml(
+    itemShare?.imageAlt || categoryShare?.title || "JW Stone Logistics logo"
+  );
+
+  const summary = itemShare
+    ? `
+<main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-item="${escapeHtml(itemShare.itemSlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
+  <article>
+    <p><img src="${escapeHtml(itemShare.imageUrl)}" alt="${imageAlt}" width="640" height="480" /></p>
+    <h1>${escapeHtml(itemShare.hasPublicName ? itemShare.itemName : "Current stone selection")}</h1>
+    <p>${description}</p>
+    <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
+  </article>
+</main>`
+    : categoryShare
+      ? `
+<main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-category="${escapeHtml(categoryShare.categorySlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
+  <article>
+    <h1>${escapeHtml(categoryShare.title)}</h1>
+    <p>${description}</p>
+    <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
+  </article>
+</main>`
+      : `
 <main data-seo-jw-stone-marketplace="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
     <p><img src="/images/businesses/jw-stone/logo.svg" alt="${imageAlt}" width="180" height="72" /></p>
     <h1>Natural stone, selected at the source.</h1>
     <p>${description}</p>
-    <h2>New Arrivals</h2>
-    <p>Recent stone photographs from JW Stone.</p>
     <h2>Current Inventory</h2>
     <p>Browse current selections by photo. Filter by aesthetic or color, then ask JW Stone to confirm what is on hand for your project.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
@@ -167,13 +253,83 @@ export function buildPublicJwStoneMarketplaceHtml(
     `<meta name="twitter:image:alt" content="${imageAlt}" />`
   );
 
+  if (opts.marketplaceDomainSurface) {
+    html = injectMarketplaceDomainSurface(html);
+  }
+
   html = injectSummary(html, summary);
-  return injectJsonLd(html, {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: "JW Stone | Stone Discovery",
-    description: JW_STONE_MARKETPLACE_DESCRIPTION,
-    url: JW_STONE_MARKETPLACE_CANONICAL_URL,
-    image: JW_STONE_MARKETPLACE_IMAGE_URL,
-  });
+  const jsonLd = itemShare
+    ? {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: itemShare.title,
+        description: itemShare.description,
+        url: itemShare.canonical,
+        image: itemShare.imageUrl,
+        isPartOf: { "@type": "CollectionPage", url: collectionUrl },
+      }
+    : categoryShare
+      ? {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: categoryShare.title,
+          description: categoryShare.description,
+          url: categoryShare.canonical,
+          image: categoryShare.imageUrl,
+        }
+      : {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "JW Stone | Stone Discovery",
+          description: JW_STONE_MARKETPLACE_DESCRIPTION,
+          url: collectionUrl,
+          image: JW_STONE_MARKETPLACE_IMAGE_URL,
+        };
+
+  return injectJsonLd(html, jsonLd);
+}
+
+export function buildJwStoneMarketplaceSitemapXml(origin: string): string {
+  const publicOrigin = normalizeOrigin(origin);
+  const contentBlocks = [JW_STONE_PUBLIC_DISCOVERY_BLOCK];
+  const categories = listProfileInventoryCategories(
+    JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
+    contentBlocks
+  ).filter((category) => category.indexable);
+  const items = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap((category) =>
+    category.stones.map((stone) => stone.slug)
+  );
+
+  const urls = [
+    `${publicOrigin}/`,
+    ...categories.map((category) => `${publicOrigin}/materials/${category.slug}`),
+    ...items.map((slug) => `${publicOrigin}/stones/${slug}`),
+  ];
+
+  const entries = urls
+    .map((url) => `  <url>\n    <loc>${escapeHtml(url)}</loc>\n  </url>`)
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+}
+
+export function buildJwStoneMarketplaceLlmsText(origin: string): string {
+  const publicOrigin = normalizeOrigin(origin);
+  return [
+    "# JW Stone",
+    "",
+    "Natural stone marketplace on TradeScout.",
+    "",
+    `Canonical: ${publicOrigin}/`,
+    `Robots: ${publicOrigin}/robots.txt`,
+    `Sitemap: ${publicOrigin}/sitemap.xml`,
+    "",
+    "Indexable surfaces:",
+    `- Collection: ${publicOrigin}/`,
+    `- Stones: ${publicOrigin}/stones/{slug}`,
+    `- Materials: ${publicOrigin}/materials/{slug}`,
+    "",
+    "Contact is gated through TradeScout Express Direct Connect.",
+    "",
+  ].join("\n");
 }

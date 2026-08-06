@@ -99,7 +99,28 @@ const AppLayout = memo(function AppLayout() {
   const isShareRoute = pathOnly.startsWith("/r/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
-  const isJwStoneMarketplaceRoute = pathOnly === "/jw-stone";
+  // Set server-side only when this page is being served at a business's own
+  // custom domain root -- the URL path itself gives no clue which profile to
+  // render (there's no /u/:slug in it), so this is the only way the client
+  // router knows. Takes priority over everything else: a visitor on a
+  // business's own domain should always see that business, regardless of
+  // path or auth state.
+  const customDomainProfileSlug =
+    typeof window !== "undefined"
+      ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
+          .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
+      : undefined;
+  const isJwStoneMarketplaceDomain =
+    typeof window !== "undefined" &&
+    Boolean(
+      (window as unknown as { __TS_JW_STONE_MARKETPLACE_SURFACE__?: boolean })
+        .__TS_JW_STONE_MARKETPLACE_SURFACE__
+    );
+  // JW custom domain serves the marketplace storefront (not ProfileSiteView).
+  const isCustomDomainProfileRoute =
+    Boolean(customDomainProfileSlug) && !isJwStoneMarketplaceDomain;
+  const isJwStoneMarketplaceRoute =
+    isJwStoneMarketplaceDomain || pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
   const isPublicProfileRoute =
     isJwStoneMarketplaceRoute ||
     ((/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
@@ -114,19 +135,6 @@ const AppLayout = memo(function AppLayout() {
     (/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/p\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly)) &&
     !pathOnly.endsWith("/edit");
-
-  // Set server-side only when this page is being served at a business's own
-  // custom domain root -- the URL path itself gives no clue which profile to
-  // render (there's no /u/:slug in it), so this is the only way the client
-  // router knows. Takes priority over everything else: a visitor on a
-  // business's own domain should always see that business, regardless of
-  // path or auth state.
-  const customDomainProfileSlug =
-    typeof window !== "undefined"
-      ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
-          .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
-      : undefined;
-  const isCustomDomainProfileRoute = Boolean(customDomainProfileSlug);
 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;

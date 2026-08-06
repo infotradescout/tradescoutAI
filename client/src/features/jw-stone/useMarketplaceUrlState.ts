@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { MarketplaceUrlState } from "./types";
-import {
-  parseMarketplaceUrlState,
-  serializeMarketplaceUrlState,
-  toMarketplaceHref,
-} from "./urlState";
+import { parseMarketplaceUrlState, toMarketplaceHref } from "./urlState";
 
 const EMPTY_STATE: MarketplaceUrlState = {
   aesthetic: null,
@@ -15,9 +11,8 @@ const EMPTY_STATE: MarketplaceUrlState = {
 };
 
 function readBrowserState(): MarketplaceUrlState {
-  return typeof window === "undefined"
-    ? EMPTY_STATE
-    : parseMarketplaceUrlState(window.location.search);
+  if (typeof window === "undefined") return EMPTY_STATE;
+  return parseMarketplaceUrlState(window.location.search, undefined, window.location.pathname);
 }
 
 export function useMarketplaceUrlState() {
@@ -27,6 +22,7 @@ export function useMarketplaceUrlState() {
     const canonicalHref = toMarketplaceHref(readBrowserState());
     const currentHref = `${window.location.pathname}${window.location.search}`;
     if (currentHref !== canonicalHref) window.history.replaceState(null, "", canonicalHref);
+    setState(readBrowserState());
 
     const handlePopState = () => setState(readBrowserState());
     window.addEventListener("popstate", handlePopState);
@@ -34,11 +30,10 @@ export function useMarketplaceUrlState() {
   }, []);
 
   const commit = useCallback((next: MarketplaceUrlState, options?: { replace?: boolean }) => {
-    const safe = parseMarketplaceUrlState(serializeMarketplaceUrlState(next));
-    const href = toMarketplaceHref(safe);
+    const href = toMarketplaceHref(next);
     if (options?.replace) window.history.replaceState(null, "", href);
     else window.history.pushState(null, "", href);
-    setState(safe);
+    setState(readBrowserState());
   }, []);
 
   return { state, commit };

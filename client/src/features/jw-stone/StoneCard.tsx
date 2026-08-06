@@ -1,5 +1,7 @@
 import { Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
+import { JwStoneShareControl } from "./JwStoneShareControl";
+import { stoneShareDestination } from "./marketplaceRoutes";
 import { availabilityDimensionsLine, materialFinishLine } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
 
@@ -86,6 +88,20 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneC
           >
             View stone
           </button>
+          {stone.wishlistEligible && stone.shareSlug ? (
+            <JwStoneShareControl
+              destination={stoneShareDestination(stone.shareSlug)}
+              title={stone.displayName || "JW Stone selection"}
+              text={
+                stone.displayName
+                  ? `See ${stone.displayName} at JW Stone`
+                  : "See this stone selection at JW Stone"
+              }
+              imageUrl={stone.images[0]}
+              label="Share"
+              className="inline-flex min-h-9 items-center justify-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--jw-ink)]"
+            />
+          ) : null}
           {stone.wishlistEligible ? (
             <button
               type="button"

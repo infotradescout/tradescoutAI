@@ -9,10 +9,9 @@ type NewArrivalsSectionProps = {
 };
 
 /**
- * Photo-first rail for stones inside the 14-day arrival window.
- * Mounts only when at least one stone is in-window (after First Cut, before inventory).
- * Shows slab size when Drive / reconciliation evidence includes it.
- * Owner label: New Arrivals (not CFA, not Trending Selection).
+ * Photo-first New Arrivals rail — **permanently unmounted** on marketplace 2.0.
+ * Kept as a dormant module so arrival-window helpers/tests remain available;
+ * do not remount without an explicit owner product decision.
  */
 export function NewArrivalsSection({ items, onOpen }: NewArrivalsSectionProps) {
   if (!items.length) return null;

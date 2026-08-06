@@ -40,11 +40,11 @@ describe("JW Stone saved-stones email copy", () => {
 
     expect(content.subject).toContain("2 saved stones");
     expect(content.html).toContain("Amazonic Green");
-    expect(content.html).toContain("/jw-stone?stone=amazonic-green");
+    expect(content.html).toContain("/jw-stone/stones/amazonic-green");
     expect(content.html).toContain("Steel Gray");
     expect(content.html).toContain("JW Stone is not notified");
     expect(content.text).toContain(
-      "Amazonic Green: https://www.thetradescout.com/jw-stone?stone=amazonic-green"
+      "Amazonic Green: https://www.thetradescout.com/jw-stone/stones/amazonic-green"
     );
     expect(content.text).toContain("- Steel Gray");
     expect(content.html).not.toContain("Sheet Wish List");

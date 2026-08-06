@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
+import { JwStoneShareControl } from "./JwStoneShareControl";
+import { stoneShareDestination } from "./marketplaceRoutes";
 import {
   availabilityDetailLabel,
   confirmedFinishes,
@@ -181,6 +183,20 @@ export function StoneDetailDialog({
                   <MessageCircle className="h-5 w-5" aria-hidden="true" />
                   {askLabel}
                 </button>
+                {stone.shareSlug ? (
+                  <JwStoneShareControl
+                    destination={stoneShareDestination(stone.shareSlug)}
+                    title={stone.displayName || "JW Stone selection"}
+                    text={
+                      stone.displayName
+                        ? `See ${stone.displayName} at JW Stone`
+                        : "See this stone selection at JW Stone"
+                    }
+                    imageUrl={stone.images[imageIndex] || stone.images[0]}
+                    label="Share this stone"
+                    className={`inline-flex min-h-11 w-full items-center justify-center gap-2 px-5 sm:min-h-12 ${jw.ghostOnLight}`}
+                  />
+                ) : null}
                 <button
                   type="button"
                   onClick={() => onToggleSaved(stone)}

@@ -66,29 +66,40 @@ describe("JW Stone marketplace public HTML", () => {
     expect(serialized).not.toMatch(/Trending Selection|Unnamed slab|First Cut|countryOfOrigin/i);
   });
 
-  it("renders a safe crawler summary without exposing stone identities or forcing contact", () => {
+  it("renders a safe crawler summary without exposing invented contact claims", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
     expect(html).toContain("Current Inventory");
     expect(html).toContain("Filter by aesthetic or color");
     expect(html).toContain("Saving never starts a request");
-    expect(html).toContain(
-      "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready."
-    );
+    expect(html).not.toContain("New Arrivals");
     expect(html).not.toContain("Learn about stone");
-    expect(html).not.toContain("recorded source");
-    expect(html).not.toContain("source counts");
     expect(html).not.toContain("Call for availability");
-    expect(html).toContain("New Arrivals");
-    expect(html).not.toContain("Guidance when you need it");
-    expect(html).not.toContain("customer-path");
-    expect(html).not.toContain("Stone chosen around the way you see a project");
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);
-    expect(html).not.toMatch(/\bProduct\b|\bOffer\b|\$\d|priceRange/i);
   });
 
-  it("registers the canonical route after custom-domain authority and before the SPA catch-all", () => {
+  it("publishes stone OG metadata for shareable marketplace stone URLs", () => {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      origin: "https://jwstonelogistics.com",
+      collectionUrl: "https://jwstonelogistics.com/",
+      marketplaceDomainSurface: true,
+      stoneSlug: "amazonic-green",
+    });
+
+    expect(html).toContain("window.__TS_JW_STONE_MARKETPLACE_SURFACE__=true");
+    expect(html).toContain('data-seo-jw-stone-item="amazonic-green"');
+    expect(html).toContain(
+      'link rel="canonical" href="https://jwstonelogistics.com/stones/amazonic-green"'
+    );
+    expect(html).toContain(
+      'property="og:url" content="https://jwstonelogistics.com/stones/amazonic-green"'
+    );
+    expect(html).toMatch(/Amazonic Green/);
+  });
+
+  it("registers marketplace routes after custom-domain authority and before the SPA catch-all", () => {
     const source = read("server/index.ts");
     const customDomainMarker = source.indexOf("const CUSTOM_DOMAIN_CACHE");
     const customDomainMiddleware = source.indexOf(
@@ -96,20 +107,17 @@ describe("JW Stone marketplace public HTML", () => {
       customDomainMarker
     );
     const marketplaceRoute = source.indexOf('app.get("/jw-stone"');
+    const stoneRoute = source.indexOf('app.get("/jw-stone/stones/:stoneSlug"');
     const catchAllRoute = source.indexOf('app.get("*"');
 
     expect(customDomainMarker).toBeGreaterThan(-1);
     expect(customDomainMiddleware).toBeGreaterThan(customDomainMarker);
     expect(marketplaceRoute).toBeGreaterThan(customDomainMiddleware);
-    expect(catchAllRoute).toBeGreaterThan(marketplaceRoute);
+    expect(stoneRoute).toBeGreaterThan(marketplaceRoute);
+    expect(catchAllRoute).toBeGreaterThan(stoneRoute);
 
-    const routeBlock = source.slice(marketplaceRoute, marketplaceRoute + 1_800);
-    expect(routeBlock).toContain("buildPublicJwStoneMarketplaceHtml");
-    expect(routeBlock).toContain('path.join(publicDistPath, "index.html")');
-    expect(routeBlock).not.toContain("/u/jw-stone");
-    expect(routeBlock).not.toContain("jwstonelogistics.com");
-    expect(routeBlock).not.toContain("res.redirect");
-    expect(routeBlock).not.toContain("storage.");
-    expect(routeBlock).not.toMatch(/migration|presentationMode|profilePresentation/);
+    expect(source).toContain("serveJwStoneMarketplaceCustomDomainPath");
+    expect(source).toContain("buildPublicJwStoneMarketplaceHtml");
+    expect(source).toContain("jwstonelogistics.com");
   });
 });

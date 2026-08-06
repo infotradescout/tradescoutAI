@@ -53,7 +53,7 @@ If a change is required for **platform law** (contact gating, trust, anti-scrape
 1. One JW concern per PR when practical.
 2. Diff must not include Dean, non-JW remediation, or unrelated platform files.
 3. Title prefix: `jw-stone:` …
-4. Record JW-scoped browser proof for UI (`/jw-stone` and/or `/u/jw-stone`).
+4. Record JW-scoped browser proof for UI (`/jw-stone` and/or custom-domain marketplace). Legacy `/u/jw-stone` public storefront redirects to marketplace.
 5. Explicit owner GO before merge to `main` (production deploy).
 6. Prefer draft PR until local preview is approved for user-facing JW UI.
 

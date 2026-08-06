@@ -36,7 +36,7 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(JW_STONE_CATALOG.map((stone) => stone.id).sort()).toEqual(
       canonicalStones.map(({ stone }) => stone.slug).sort()
     );
-    expect(sourceImageCount).toBe(433);
+    expect(sourceImageCount).toBe(434);
     expect(publicImageCount).toBeGreaterThan(300);
     expect(publicImageCount).toBeLessThanOrEqual(sourceImageCount);
     expect(getCatalogItemById("amazonic-green")?.displayName).toBe("Amazonic Green");

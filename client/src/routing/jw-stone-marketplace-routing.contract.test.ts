@@ -6,10 +6,12 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
 
 describe("JW Stone marketplace routing contract", () => {
-  it("classifies only /jw-stone as the standalone marketplace route", () => {
+  it("classifies platform and custom-domain marketplace surfaces", () => {
     const appSource = read("client/src/App.tsx");
 
-    expect(appSource).toContain('const isJwStoneMarketplaceRoute = pathOnly === "/jw-stone";');
+    expect(appSource).toContain("__TS_JW_STONE_MARKETPLACE_SURFACE__");
+    expect(appSource).toContain('pathOnly === "/jw-stone"');
+    expect(appSource).toContain('pathOnly.startsWith("/jw-stone/")');
     expect(appSource).toMatch(/const isPublicProfileRoute\s*=\s*isJwStoneMarketplaceRoute\s*\|\|/);
     expect(appSource).toContain("isJwStoneMarketplaceRoute={isJwStoneMarketplaceRoute}");
     expect(appSource).toContain('root.classList.add("jw-marketplace-scroll")');
@@ -40,11 +42,14 @@ describe("JW Stone marketplace routing contract", () => {
     expect(routesSource).toContain('<Route path="/p/:slug">');
   });
 
-  it("loads the separate feature without routing the current JW profile through it", () => {
+  it("loads the marketplace as the public JW home and redirects the legacy profile storefront", () => {
     const routesSource = read("client/src/AppRoutes.tsx");
     const pageSource = read("client/src/pages/JWStoneMarketplace.tsx");
     const marketplaceSource = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const profileSource = read("client/src/pages/ProfileSiteView.tsx");
+    const redirectSource = read("client/src/features/jw-stone/profileStorefrontRedirect.ts");
+    const canonicalBusiness = read("server/services/canonicalBusinessProfileRoute.ts");
+    const serverIndex = read("server/index.ts");
 
     expect(routesSource).toMatch(
       /const JWStoneMarketplace = React\.lazy\(\s*\(\) => import\("\.\/pages\/JWStoneMarketplace"\)\s*\)/
@@ -53,15 +58,19 @@ describe("JW Stone marketplace routing contract", () => {
       'import JWStoneMarketplace from "../features/jw-stone/JWStoneMarketplace";'
     );
     expect(marketplaceSource).toContain('import { StoneCollection } from "./StoneCollection";');
-    expect(marketplaceSource).toContain(
-      'import { StoneLearningSection } from "./StoneLearningSection";'
-    );
+    expect(marketplaceSource).toContain("MarketplaceTrustSection");
     expect(marketplaceSource).not.toMatch(/CustomerPathGuide|BuyerJourney|BuyerWorkspace/);
     expect(fs.existsSync(path.resolve(process.cwd(), "client/src/features/jw-stone-2"))).toBe(
       false
     );
     expect(fs.existsSync(path.resolve(process.cwd(), "client/src/pages/jw-stone-2"))).toBe(false);
-    expect(routesSource).not.toContain('RedirectTo to="/jw-stone"');
+    expect(routesSource).toContain("resolveJwStonePublicStorefrontRedirect");
+    expect(routesSource).toContain("ProfileSiteOrJwMarketplaceRedirect");
+    expect(redirectSource).toContain("return `/jw-stone");
+    expect(canonicalBusiness).toContain('path: "/jw-stone"');
+    expect(serverIndex).toContain(
+      "return res.redirect(301, `${origin}/jw-stone${requestSearchSuffix(req)}`);"
+    );
     expect(profileSource).not.toContain("features/jw-stone/JWStoneMarketplace");
   });
 });
