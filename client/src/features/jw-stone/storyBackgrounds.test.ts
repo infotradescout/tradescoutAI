@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import {
+  COLOR_COLLAGE_STRIPS,
+  FINISHED_WORK_BRIDGE_BACKGROUND,
+  INVENTORY_SECTION_BACKGROUND,
+  JW_FINISHED_WORK_PHOTOS,
+  MATERIAL_SECTION_BACKGROUND,
+} from "./storyBackgrounds";
+
+describe("JW story backgrounds", () => {
+  it("uses face-only color strips; material warehouse + inventory outdoor yard", () => {
+    expect(COLOR_COLLAGE_STRIPS).toHaveLength(8);
+    expect(COLOR_COLLAGE_STRIPS.every((strip) => strip.src.includes("/color-collage/"))).toBe(true);
+
+    const colorJoined = COLOR_COLLAGE_STRIPS.map((strip) => strip.src).join(" ");
+    expect(colorJoined).toContain("04-black.webp");
+    expect(colorJoined).toContain("07-blue.webp");
+    expect(colorJoined).toContain("08-red.webp");
+    expect(colorJoined).not.toContain("/inventory/");
+    expect(colorJoined).not.toContain("/inventory-source/");
+    expect(colorJoined).not.toContain("/black-pearl/");
+
+    expect(MATERIAL_SECTION_BACKGROUND.src).toContain(
+      "/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp"
+    );
+    expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/story/");
+    expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/material-covers/");
+    expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/color-collage/");
+
+    expect(INVENTORY_SECTION_BACKGROUND.src).toContain("/story/full-inventory-yard.webp");
+    expect(INVENTORY_SECTION_BACKGROUND.src).not.toContain("taj-living-room");
+    expect(INVENTORY_SECTION_BACKGROUND.src).not.toBe(MATERIAL_SECTION_BACKGROUND.src);
+    expect(INVENTORY_SECTION_BACKGROUND.src).not.toContain("/material-covers/");
+    expect(INVENTORY_SECTION_BACKGROUND.src).not.toContain("/color-collage/");
+
+    expect(FINISHED_WORK_BRIDGE_BACKGROUND.src).toContain("/story/mont-blanc-bar.webp");
+    expect(JW_FINISHED_WORK_PHOTOS.length).toBeGreaterThanOrEqual(3);
+    expect(JW_FINISHED_WORK_PHOTOS.every((photo) => photo.src.includes("/story/"))).toBe(true);
+    expect(JW_FINISHED_WORK_PHOTOS.some((photo) => photo.src.includes("quarry"))).toBe(false);
+    expect("label" in MATERIAL_SECTION_BACKGROUND).toBe(false);
+    expect("label" in INVENTORY_SECTION_BACKGROUND).toBe(false);
+  });
+});

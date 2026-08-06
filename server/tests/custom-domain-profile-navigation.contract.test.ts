@@ -45,11 +45,9 @@ describe("custom-domain public Profile navigation contract", () => {
     expect(expressPanel).toContain(
       "const requestHref = qualifyPublicProfileItemDestination(requestPath, platformBaseHref);"
     );
-    expect(expressPanel).toContain(
-      "const manageRequestHref = qualifyPublicProfileItemDestination("
-    );
-    expect(expressPanel).toContain("requiresDocumentNavigation(postCallSignupHref)");
+    expect(expressPanel).toContain("requiresDocumentNavigation(requestHref)");
     expect(expressPanel).not.toContain("<Link href={requestPath}>");
-    expect(expressPanel).not.toContain("<Link href={postCallSignupHref}>");
+    expect(expressPanel).not.toContain("postCallSignupHref");
+    expect(expressPanel).not.toContain("manageRequestHref");
   });
 });

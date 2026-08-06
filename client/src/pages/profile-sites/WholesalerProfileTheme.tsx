@@ -2835,12 +2835,13 @@ export default function WholesalerProfileTheme({
                   <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--brand-accent)]">
                     {presentation.story?.eyebrow || "From source to finished space"}
                   </p>
-                  <h2
-                    className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}
-                  >
-                    {presentation.story?.heading ||
-                      "Material selected with the final space in mind."}
-                  </h2>
+                  {presentation.story?.heading ? (
+                    <h2
+                      className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}
+                    >
+                      {presentation.story.heading}
+                    </h2>
+                  ) : null}
                 </div>
                 <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:gap-4 md:px-0">
                   {storyImages.map((image) => (

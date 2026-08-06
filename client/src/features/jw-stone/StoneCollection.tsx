@@ -9,6 +9,8 @@ import {
 } from "./catalog";
 import { jw } from "./brand";
 import { isHandOnlyStone } from "./coverImages";
+import { InventoryCollageBackground } from "./InventoryCollageBackground";
+import { JwCollapsibleSection } from "./JwCollapsibleSection";
 import { confirmedSlabCount } from "./stoneFacts";
 import { StoneCard } from "./StoneCard";
 import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
@@ -21,8 +23,11 @@ type StoneCollectionProps = {
   state: MarketplaceUrlState;
   isSaved: (id: string) => boolean;
   onUpdateFilters: (filters: CollectionFilters) => void;
+  /** Called when Full inventory opens — parent clears browse-rail URL tags. */
+  onEnterFullInventory?: () => void;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
+  onAsk: (stone: JwStoneCatalogItem) => void;
   catalog?: readonly JwStoneCatalogItem[];
 };
 
@@ -36,8 +41,10 @@ export function StoneCollection({
   state,
   isSaved,
   onUpdateFilters,
+  onEnterFullInventory,
   onToggleSaved,
   onOpen,
+  onAsk,
   catalog = JW_STONE_CATALOG,
 }: StoneCollectionProps) {
   const [query, setQuery] = useState("");
@@ -222,96 +229,104 @@ export function StoneCollection({
   ]);
 
   return (
-    <main
-      id="current-inventory"
-      data-testid="jw-inventory"
-      className={`bg-[var(--jw-bg)] text-[var(--jw-ink)] ${jw.scrollTarget}`}
-    >
-      <section className="px-5 pb-4 pt-9 sm:px-9 sm:pt-11 lg:px-12">
-        <div className="mx-auto max-w-[1600px]">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="font-editorial text-2xl leading-tight text-[var(--jw-ink)] sm:text-3xl">
-                Explore the collection
-              </h2>
-              <p className={`mt-2 text-sm ${jw.muted}`}>
-                {filtered.length} {filtered.length === 1 ? "selection" : "selections"}
-                {hasRefinements ? " matching refinements" : " in the collection"}
-              </p>
-            </div>
-            <button
-              type="button"
-              data-testid="jw-filters-sheet-open"
-              aria-expanded={filtersOpen}
-              onClick={openFilters}
-              className={`inline-flex min-h-11 shrink-0 items-center gap-2 px-3.5 text-sm font-semibold ${
-                chips.length
-                  ? "bg-[var(--jw-accent)] text-[var(--jw-on-accent)]"
-                  : `text-[var(--jw-ink)] ${jw.ghostOnLight}`
-              }`}
-            >
-              <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
-              Filter
-            </button>
-          </div>
-
-          <label className="relative mt-4 block w-full min-w-0">
-            <span className="sr-only">Search the collection</span>
-            <Search
-              className={`pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 ${jw.muted}`}
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              aria-label="Search the collection"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search the collection"
-              className="min-h-12 w-full border-0 border-b border-[var(--jw-border)] bg-transparent pl-7 pr-3 text-sm text-[var(--jw-ink)] outline-none [color-scheme:light] placeholder:text-[var(--jw-muted)] focus:border-[var(--jw-accent)]"
-            />
-          </label>
-
-          {chips.length ? (
-            <ul className="mt-3 flex flex-wrap gap-2" aria-label="Active filters">
-              {chips.map((chip) => (
-                <li key={chip.key}>
-                  <button
-                    type="button"
-                    onClick={chip.onClear}
-                    className="inline-flex min-h-9 items-center gap-1.5 bg-[var(--jw-accent)]/20 px-2.5 text-xs font-medium text-[var(--jw-ink)]"
-                  >
-                    {chip.label}
-                    <X className="h-3 w-3" aria-hidden="true" />
-                    <span className="sr-only">Clear {chip.label}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      </section>
-
-      <section
-        aria-label="Stone inventory"
-        data-testid="jw-inventory-grid"
-        className="px-5 pb-12 sm:px-9 lg:px-12 lg:pb-16"
+    <>
+      <JwCollapsibleSection
+        id="current-inventory"
+        testId="jw-inventory"
+        headingId="jw-inventory-heading"
+        title="Full inventory"
+        onExpandedChange={(expanded) => {
+          if (!expanded) return;
+          // Local sheet-only refinements reset with URL tags so inventory starts clean.
+          setQuery("");
+          setFinish(null);
+          setAvailability("any");
+          setDraftColor(null);
+          setDraftMaterial(null);
+          setDraftFinish(null);
+          setDraftAvailability("any");
+          setFiltersOpen(false);
+          onEnterFullInventory?.();
+        }}
+        background={<InventoryCollageBackground />}
       >
-        <div className="mx-auto max-w-[42rem]">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <p className={`text-sm ${jw.muted}`}>
+            {`${filtered.length} ${filtered.length === 1 ? "selection" : "selections"}${
+              hasRefinements ? " matching refinements" : " in the collection"
+            }`}
+          </p>
+          <button
+            type="button"
+            data-testid="jw-filters-sheet-open"
+            aria-expanded={filtersOpen}
+            onClick={openFilters}
+            className={`inline-flex min-h-11 shrink-0 items-center gap-2 px-3.5 text-sm font-semibold ${
+              chips.length
+                ? "bg-[var(--jw-accent)] text-[var(--jw-on-accent)]"
+                : `text-[var(--jw-ink)] ${jw.ghostOnLight}`
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+            Filter
+          </button>
+        </div>
+
+        <label className="relative mt-4 block w-full min-w-0">
+          <span className="sr-only">Search the collection</span>
+          <Search
+            className={`pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2 ${jw.muted}`}
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            aria-label="Search the collection"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search the collection"
+            className="min-h-12 w-full border-0 border-b border-[var(--jw-border)] bg-transparent pl-7 pr-3 text-sm text-[var(--jw-ink)] outline-none [color-scheme:light] placeholder:text-[var(--jw-muted)] focus:border-[var(--jw-accent)]"
+          />
+        </label>
+
+        {chips.length ? (
+          <ul className="mt-3 flex flex-wrap gap-2" aria-label="Active filters">
+            {chips.map((chip) => (
+              <li key={chip.key}>
+                <button
+                  type="button"
+                  onClick={chip.onClear}
+                  className="inline-flex min-h-9 items-center gap-1.5 bg-[var(--jw-accent)]/20 px-2.5 text-xs font-medium text-[var(--jw-ink)]"
+                >
+                  {chip.label}
+                  <X className="h-3 w-3" aria-hidden="true" />
+                  <span className="sr-only">Clear {chip.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <div
+          aria-label="Stone inventory"
+          data-testid="jw-inventory-grid"
+          className="mt-6 pb-8 sm:pb-12 lg:pb-16"
+        >
           {filtered.length ? (
-            <ul className="flex flex-col gap-10 sm:gap-12">
+            <ul className="flex flex-col gap-8 sm:gap-10">
               {filtered.map((stone) => (
-                <li key={stone.id}>
+                <li key={stone.id} className="min-w-0">
                   <StoneCard
                     stone={stone}
                     saved={isSaved(stone.id)}
                     onToggleSaved={onToggleSaved}
                     onOpen={onOpen}
+                    onAsk={onAsk}
                   />
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="px-1 py-14 text-center">
+            <div className="py-14 text-center">
               <h3 className="font-editorial text-3xl text-[var(--jw-ink)]">No matching stones</h3>
               <p className={`mt-3 text-sm ${jw.muted}`}>Clear the search or refinements.</p>
               <button
@@ -324,7 +339,7 @@ export function StoneCollection({
             </div>
           )}
         </div>
-      </section>
+      </JwCollapsibleSection>
 
       {filtersOpen ? (
         <div
@@ -426,7 +441,7 @@ export function StoneCollection({
           </div>
         </div>
       ) : null}
-    </main>
+    </>
   );
 }
 
@@ -441,7 +456,7 @@ function aestheticChipLabel(id: string): string {
     case "cool-serene":
       return "Cool & serene";
     case "deep-dramatic":
-      return "Black & dramatic";
+      return "Black";
     default:
       return id;
   }

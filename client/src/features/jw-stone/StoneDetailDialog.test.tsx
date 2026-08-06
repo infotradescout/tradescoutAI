@@ -38,12 +38,12 @@ describe("StoneDetailDialog", () => {
     container.remove();
   });
 
-  it("shows confirmed facts, photo palette + Pairs with, and Ask JW about {name}", () => {
+  it("shows confirmed facts and Ask JW about {name} without color swatches or Pairs with", () => {
     const stone =
       JW_STONE_CATALOG.find((entry) => entry.id === "blue-dunes") ||
-      JW_STONE_CATALOG.find((entry) => entry.wishlistEligible && entry.colorSwatches.length > 0);
+      JW_STONE_CATALOG.find((entry) => entry.wishlistEligible);
     expect(stone).toBeTruthy();
-    if (!stone) throw new Error("Expected a named wishlist-eligible stone with swatches");
+    if (!stone) throw new Error("Expected a named wishlist-eligible stone");
 
     const onAsk = vi.fn();
     const onToggleSaved = vi.fn();
@@ -63,13 +63,10 @@ describe("StoneDetailDialog", () => {
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain(stone.displayName || "");
-    expect(dialog?.textContent).toContain("Colors from photo");
-    expect(dialog?.textContent).toContain("Pairs with");
-    expect(dialog?.querySelector('[aria-label^="Colors #"]')).not.toBeNull();
-    expect(dialog?.querySelector('[aria-label^="Pairs with #"]')).not.toBeNull();
-    expect(dialog?.querySelectorAll('[aria-label^="#"]').length).toBe(
-      stone.colorSwatches.length + stone.pairingSwatches.length
-    );
+    expect(dialog?.textContent).not.toContain("Colors from photo");
+    expect(dialog?.textContent).not.toContain("Pairs with");
+    expect(dialog?.querySelector('[aria-label^="Colors #"]')).toBeNull();
+    expect(dialog?.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
 
     if (stone.materialLabel) expect(dialog?.textContent).toContain(stone.materialLabel);
     if (stone.origin) {

@@ -1,4 +1,4 @@
-import React, { Suspense, memo, useEffect } from "react";
+import React, { Suspense, memo, useEffect, useLayoutEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Router, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
@@ -130,6 +130,24 @@ const AppLayout = memo(function AppLayout() {
 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
+
+  // Unlock document scroll before the lazy JW chunk mounts. Without this,
+  // height:100% on html/body/#root/.app-root traps wheel/trackpad/touch.
+  useLayoutEffect(() => {
+    if (!isJwStoneMarketplaceRoute) return;
+    const root = document.documentElement;
+    const body = document.body;
+    root.classList.add("jw-marketplace-scroll");
+    body.classList.add("jw-marketplace-scroll");
+    // Clear leftover modal inline locks from prior routes.
+    if (body.style.overflow === "hidden") {
+      body.style.overflow = "";
+    }
+    return () => {
+      root.classList.remove("jw-marketplace-scroll");
+      body.classList.remove("jw-marketplace-scroll");
+    };
+  }, [isJwStoneMarketplaceRoute]);
 
   // Identity funnel telemetry: emit once per browser session
   useEffect(() => {

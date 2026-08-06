@@ -15,7 +15,7 @@ export type SelectTrendingOptions = {
 /**
  * Homeless inventory for the Trending rail: anonymous / not wishlist-eligible
  * named homes. No CFA copy, no invented product names — cards stay photo +
- * palette + Ask.
+ * Photo + Ask.
  */
 export function selectTrendingItems(
   catalog: readonly JwStoneCatalogItem[],

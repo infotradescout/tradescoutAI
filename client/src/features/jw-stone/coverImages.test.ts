@@ -85,6 +85,132 @@ describe("JW Stone marketplace cover image ranking", () => {
     );
   });
 
+  it("promotes Alabama White face-true white cover over yard blue-washed lead", () => {
+    const blueWashed =
+      "/images/businesses/jw-stone/inventory-source/10yweUjuZUXYPMdABEIM6kq7EC4N4Djyn.webp";
+    const faceTrue =
+      "/images/businesses/jw-stone/inventory-source/1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso.webp";
+
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["alabama-white"]).toBe(
+      driveFileIdFromImagePath(faceTrue)
+    );
+
+    const ordered = orderImagesForCover([blueWashed, faceTrue], {
+      stoneSlug: "alabama-white",
+    });
+    expect(ordered[0]).toBe(faceTrue);
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "alabama-white");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso");
+  });
+
+  it("promotes Aspen White full-slab over clamp-hand and hand-scale siblings", () => {
+    const clampHand =
+      "/images/businesses/jw-stone/inventory-source/1CtB0-MY_RP50AEdeSHvwHYJzSwGYs8Ae.webp";
+    const handScale =
+      "/images/businesses/jw-stone/inventory-source/1T9OTfK4VWe5j0wMuIof2BUdeo7RZ57_R.webp";
+    const fullSlab =
+      "/images/businesses/jw-stone/inventory-source/1PGDSTn70sheqEx3u39VgzuJNodBJW0xe.webp";
+
+    expect(isHandScaleCoverImage(clampHand)).toBe(true);
+    expect(isHandScaleCoverImage(handScale)).toBe(true);
+    expect(isHandScaleCoverImage(fullSlab)).toBe(false);
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "aspen-white");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("1PGDSTn70sheqEx3u39VgzuJNodBJW0xe");
+    expect(stone!.images.every((image) => !isHandScaleCoverImage(image))).toBe(true);
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["aspen-white"]).toBe(
+      driveFileIdFromImagePath(fullSlab)
+    );
+  });
+
+  it("keeps AJ Quartz off hand-on-face siblings when a full-slab lead exists", () => {
+    const handA =
+      "/images/businesses/jw-stone/inventory-source/1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE.webp";
+    const handB =
+      "/images/businesses/jw-stone/inventory-source/1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK.webp";
+    expect(isHandScaleCoverImage(handA)).toBe(true);
+    expect(isHandScaleCoverImage(handB)).toBe(true);
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "aj-quartz");
+    expect(stone).toBeTruthy();
+    expect(isHandScaleCoverImage(stone!.images[0]!)).toBe(false);
+    expect(stone!.images.some((image) => image.includes("1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE"))).toBe(
+      false
+    );
+    expect(stone!.images.some((image) => image.includes("1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK"))).toBe(
+      false
+    );
+  });
+
+  it("keeps Black Pearl off outdoor reflection clamp lead", () => {
+    const reflectionLead =
+      "/images/businesses/jw-stone/inventory-source/1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp";
+    const faceLead = "/images/businesses/jw-stone/inventory-source/black-pearl-slab-face.webp";
+    const botchedFace =
+      "/images/businesses/jw-stone/inventory-source/black-pearl-face-1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp";
+
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(reflectionLead))).toBe(true);
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(botchedFace))).toBe(true);
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["black-pearl"]).toBe(
+      driveFileIdFromImagePath(faceLead)
+    );
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "black-pearl");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("black-pearl-slab-face");
+    expect(driveFileIdFromImagePath(stone!.images[0]!)).not.toBe(
+      "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs"
+    );
+    expect(stone!.images.some((image) => image.includes(botchedFace.split("/").pop()!))).toBe(
+      false
+    );
+  });
+
+  it("keeps Taj Mahal off hand-on-stone yard leads", () => {
+    const handLead =
+      "/images/businesses/jw-stone/inventory-source/1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW.webp";
+    const handSeriesLead =
+      "/images/businesses/jw-stone/inventory-source/16683MPLP7Tbr_zWA29ito0eVct7ooffq.webp";
+    const cleanFace =
+      "/images/businesses/jw-stone/inventory-source/1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh.webp";
+
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(handLead))).toBe(true);
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(handSeriesLead))).toBe(true);
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["taj-mahal"]).toBe(
+      driveFileIdFromImagePath(cleanFace)
+    );
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "taj-mahal");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh");
+    expect(stone!.images[0]).not.toContain("1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW");
+    expect(stone!.images[0]).not.toContain("16683MPLP7Tbr_zWA29ito0eVct7ooffq");
+  });
+
+  it("keeps Shadow Storm off hand-on-face dimension leads", () => {
+    const handFace =
+      "/images/businesses/jw-stone/inventory-source/11_8FYGX-hKzb7MMljH8LGukCR6ofFcaz.webp";
+    const preferred =
+      "/images/businesses/jw-stone/inventory-source/1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8.webp";
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(handFace))).toBe(true);
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["shadow-storm"]).toBe(
+      driveFileIdFromImagePath(preferred)
+    );
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "shadow-storm");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8");
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(stone!.images[0]!))).toBe(
+      false
+    );
+    // Public gallery drops denylisted hand siblings when a clean face exists.
+    expect(stone!.images).toHaveLength(1);
+    expect(stone!.images.every((image) => !isHandScaleCoverImage(image))).toBe(true);
+  });
+
   it("keeps catalog covers off known hand-scale leads when a better sibling exists", () => {
     for (const stone of JW_STONE_CATALOG) {
       if (stone.images.length < 2) continue;

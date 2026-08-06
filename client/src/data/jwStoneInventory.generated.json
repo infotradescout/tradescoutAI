@@ -79,13 +79,15 @@
     "name": "Black Pearl",
     "slug": "black-pearl",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp"
+      "/images/businesses/jw-stone/inventory-source/1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp",
+      "/images/businesses/jw-stone/inventory-source/black-pearl-slab-face.webp"
     ],
     "sourceFolders": [
       "Granite"
     ],
     "sourceFileIds": [
-      "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs"
+      "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs",
+      "black-pearl-slab-face"
     ]
   },
   {

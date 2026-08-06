@@ -72,7 +72,7 @@
       ]
     },
     "black-pearl": {
-      "cover": "/images/businesses/jw-stone/inventory-source/1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/black-pearl-slab-face.webp",
       "swatches": [
         {
           "hex": "#0d0000",
@@ -219,6 +219,10 @@
       "cover": "/images/businesses/jw-stone/inventory-source/1M2IO3m_dOI-OMPWbTE8Y4JgtLZaAVYnD.webp",
       "swatches": [
         {
+          "hex": "#e4dede",
+          "bucket": "white"
+        },
+        {
           "hex": "#ab9d9d",
           "bucket": "gray"
         },
@@ -229,20 +233,11 @@
         {
           "hex": "#494646",
           "bucket": "gray"
-        },
-        {
-          "hex": "#252d3d",
-          "bucket": "blue"
-        },
-        {
-          "hex": "#e4dede",
-          "bucket": "white"
         }
       ],
       "buckets": [
-        "gray",
-        "blue",
-        "white"
+        "white",
+        "gray"
       ]
     },
     "fantasy-black": {
@@ -617,24 +612,28 @@
       ]
     },
     "alabama-white": {
-      "cover": "/images/businesses/jw-stone/inventory-source/10yweUjuZUXYPMdABEIM6kq7EC4N4Djyn.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso.webp",
       "swatches": [
         {
-          "hex": "#8592a7",
-          "bucket": "blue"
-        },
-        {
-          "hex": "#b5bdc6",
+          "hex": "#c9cccb",
           "bucket": "white"
         },
         {
-          "hex": "#36404f",
-          "bucket": "blue"
+          "hex": "#c6c8c7",
+          "bucket": "white"
+        },
+        {
+          "hex": "#babdbe",
+          "bucket": "white"
+        },
+        {
+          "hex": "#aaadac",
+          "bucket": "gray"
         }
       ],
       "buckets": [
-        "blue",
-        "white"
+        "white",
+        "gray"
       ]
     },
     "aspen-white": {
@@ -2148,13 +2147,12 @@
         },
         {
           "hex": "#414a54",
-          "bucket": "blue"
+          "bucket": "gray"
         }
       ],
       "buckets": [
         "white",
-        "gray",
-        "blue"
+        "gray"
       ]
     },
     "new-caledonia": {

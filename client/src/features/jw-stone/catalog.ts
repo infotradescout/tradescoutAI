@@ -1,9 +1,9 @@
 import type { JwStoneInventoryStone } from "@/data/jwStoneInventory";
 import { getColorDirectionForStone } from "./colorDirections";
 import {
+  hasNonHandCoverCandidate,
+  isHandScaleCoverImage,
   rankImagePathsForCover,
-  remapShareImageOrder,
-  reorderParallelByPermutation,
 } from "./coverImages";
 import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
 import {
@@ -69,15 +69,18 @@ export function projectJwStoneCatalogItem(args: {
   const colorSwatches = getSwatchesForStone(stone.slug).map((swatch) => swatch.hex);
   const pairingSwatches = getPairingSwatchesForStone(stone.slug);
 
-  // Lead every card / gallery with a full-slab context shot when the set has one.
+  // Lead with the best showroom face; drop hand/body-part leads from the public
+  // gallery whenever a non-hand sibling exists (luxury storefront, not yard scrapbook).
   const coverPermutation = rankImagePathsForCover(stone.images, { stoneSlug: stone.slug });
-  const images = coverPermutation.map((oldIndex) => stone.images[oldIndex]!);
-  const shareImageOrder = remapShareImageOrder(
-    stone.shareImageOrder,
-    coverPermutation,
-    stone.images.length
-  );
-  const imageFinishes = reorderParallelByPermutation(stone.imageFinishes, coverPermutation);
+  const rankedPaths = coverPermutation.map((oldIndex) => stone.images[oldIndex]!);
+  const keepIndexes = hasNonHandCoverCandidate(rankedPaths)
+    ? coverPermutation.filter((oldIndex) => !isHandScaleCoverImage(stone.images[oldIndex]!))
+    : coverPermutation;
+  const images = keepIndexes.map((oldIndex) => stone.images[oldIndex]!);
+  const shareImageOrder = images.map((_, index) => index);
+  const imageFinishes = stone.imageFinishes?.length
+    ? keepIndexes.map((oldIndex) => stone.imageFinishes?.[oldIndex])
+    : undefined;
 
   return Object.freeze({
     id: stone.slug,

@@ -22,6 +22,16 @@ export const JW_STONE_PREFERRED_COVER_FILE_IDS: Readonly<Record<string, string>>
   "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
   picasso: "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
   bronzonite: "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
+  /** Full-slab face (warehouse rack). Sibling yard/close shots include hands. */
+  "shadow-storm": "1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8",
+  /** Full slab outdoors — siblings include clamp-hand and hand-scale close-ups. */
+  "aspen-white": "1PGDSTn70sheqEx3u39VgzuJNodBJW0xe",
+  /** Face-true white slab — prior lead (BLOCK#22129) was yard/sky blue-washed. */
+  "alabama-white": "1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso",
+  /** Slab-face band crop — only photo in set; raw lead has clamp + photographer reflection. */
+  "black-pearl": "black-pearl-slab-face",
+  /** Honed full slab outdoors — siblings include hand-on-face close-ups (128X80 series). */
+  "taj-mahal": "1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh",
 });
 
 /**
@@ -47,6 +57,30 @@ export const JW_STONE_HAND_COVER_FILE_IDS: ReadonlySet<string> = new Set([
   "15V13zBDRJlRIWJPRHNwyEEhBj5YFRo7m", // fusion-brown hand
   "1n3tCkEbpG8cwAZqp3rsULP5Npm0fYptH", // picasso hand
   "1aiC_duaWb8dY1HHKkGeK9UjbUMRqnPY0", // bronzonite hand
+  // Shadow Storm — dimension names had been boosting hand-on-face scale shots
+  "11_8FYGX-hKzb7MMljH8LGukCR6ofFcaz", // shadow-storm hand-on-face scale
+  "1_jxbwi-xAV-_3Zs2ivWlzwNXFnyRgRxL", // shadow-storm hand-on-face
+  "101ftcLyGe6pWSzuCPcrs94AanpuG5Dnb", // shadow-storm hand-on-face
+  "1POZ36aWL-ASV2uQSMS_5w11Q22X5nQgY", // shadow-storm yard hand + clamp
+  "130CuUhmYEbsQwGynnQ8R6lDIW34E9qKc", // shadow-storm yard hand + clamp
+  "1XHgYqAJR548-hOlxH8rx7oCQ8q8feIRP", // shadow-storm warehouse hand on edge
+  "1sD8kGUwsGE5tymxjMEr6QPEFP9TlRorr", // shadow-storm merge sibling hand-on-face
+  // Aspen White — clamp-hand lead + hand-scale sibling (misnamed with slab dims)
+  "1CtB0-MY_RP50AEdeSHvwHYJzSwGYs8Ae", // aspen-white hand on clamp
+  "1T9OTfK4VWe5j0wMuIof2BUdeo7RZ57_R", // aspen-white hand-on-face scale
+  // AJ Quartz — hand-scale close siblings (misnamed with slab dims)
+  "1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE", // aj-quartz hand-on-face
+  "1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK", // aj-quartz hand-on-face
+  // Black Pearl — outdoor yard lead with clamp + photographer reflection
+  "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs", // black-pearl reflection/clamp lead
+  "black-pearl-face-1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs", // botched crop — still shows clamp + reflection
+  // Taj Mahal — hand-on-face yard shots (misnamed with slab dimensions)
+  "16683MPLP7Tbr_zWA29ito0eVct7ooffq", // taj-mahal 128X80 hand-on-face (series lead)
+  "1QJ3LbaifHqRv24aZ5hWSnmlU_IL1XjfX", // taj-mahal 128X80 hand-on-face sibling
+  "1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW", // taj-mahal hand on face
+  "1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b", // taj-mahal Granos hand-scale
+  "1L42L_3HT_2rFzdCTWT46k_AS_ytajWF-", // taj-mahal Granos hand-scale
+  "1KlXD4-B96IBcvKjfCPGTM-aR8AwmD446", // taj-mahal close-up hand-scale
 ]);
 
 function normalizeName(sourceName = ""): string {

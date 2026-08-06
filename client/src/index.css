@@ -5,26 +5,59 @@ body,
   height: 100%;
 }
 
-/* JW marketplace: document is the only scrollport — hash/category landings
-   must not trap inside .ts-bg / #root height:100% dual-scroll. */
-html.jw-marketplace-scroll,
-html.jw-marketplace-scroll body {
+/* JW marketplace: document (html) is the only scrollport.
+   Global html/body/#root/.app-root { height:100% } otherwise traps wheel/
+   trackpad/touch — body can grow scrollHeight while window.scrollY stays 0. */
+html.jw-marketplace-scroll {
   height: auto;
   min-height: 100%;
   overflow-x: clip;
   overflow-y: auto;
 }
-html.jw-marketplace-scroll #root {
+html.jw-marketplace-scroll body.jw-marketplace-scroll {
   height: auto;
   min-height: 100%;
+  /* Never a second scrollport beside html. */
+  overflow: visible;
+}
+html.jw-marketplace-scroll #root,
+html.jw-marketplace-scroll .app-root,
+html.jw-marketplace-scroll .simple-mobile-gestures,
+html.jw-marketplace-scroll .ts-bg,
+html.jw-marketplace-scroll .ts-bg__content,
+html.jw-marketplace-scroll main {
+  height: auto;
+  min-height: 100%;
+  max-height: none;
   overflow: visible;
 }
 html.jw-marketplace-scroll .ts-bg {
   /* visible on both axes — overflow-x:clip makes Chromium treat .ts-bg as the
      fixedpos containing block, so the bottom Connect bar scrolls away. */
   overflow: visible;
-  min-height: 100%;
-  height: auto;
+}
+/* Decorative layers use negative inset (e.g. __base inset:-20%). With
+   overflow-y:visible that bleed extends document scrollHeight and paints a
+   huge empty charcoal void after the JW footer. Pin insets on this route. */
+html.jw-marketplace-scroll .ts-bg__base,
+html.jw-marketplace-scroll .ts-bg__grid,
+html.jw-marketplace-scroll .ts-bg__topo,
+html.jw-marketplace-scroll .ts-bg__vignette {
+  inset: 0;
+}
+
+/*
+ * JW editorial display face. Must beat global `h1–h6 { Sora }` — without this,
+ * `font-editorial` was a no-op (missing from Tailwind) and titles looked like
+ * generic/browser serif (Times-on-Windows) or Sora, not Cormorant.
+ */
+[data-jw-brand="true"] .font-editorial {
+  font-family:
+    "Cormorant Garamond",
+    Georgia,
+    "Palatino Linotype",
+    Palatino,
+    serif;
 }
 
 /* JW marketplace uses warm ivory fields — defeat global dark ts-input defaults. */
@@ -46,6 +79,58 @@ html.jw-marketplace-scroll .ts-bg {
 [data-jw-brand="true"] select:focus {
   border-color: var(--jw-accent);
   box-shadow: none;
+}
+
+/* JW First Cut — full-width lead + two supports below. Aspect frames, no svh void bands.
+   Reveal uses transform only (no opacity:0 + fill-mode:both) so a stalled animation cannot hide the lead. */
+@keyframes jw-first-cut-reveal {
+  from {
+    transform: translateY(0.55rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+[data-jw-brand="true"] .jw-first-cut__intro {
+  animation: jw-first-cut-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+[data-jw-brand="true"] .jw-first-cut__lead .jw-first-cut__tile {
+  animation: jw-first-cut-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
+}
+
+[data-jw-brand="true"] .jw-first-cut__support .jw-first-cut__tile {
+  animation: jw-first-cut-reveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+[data-jw-brand="true"] .jw-first-cut__support .jw-first-cut__tile:nth-child(1) {
+  animation-delay: 0.12s;
+}
+
+[data-jw-brand="true"] .jw-first-cut__support .jw-first-cut__tile:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+[data-jw-brand="true"] .jw-first-cut__image {
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-jw-brand="true"] .jw-first-cut__tile:hover .jw-first-cut__image,
+[data-jw-brand="true"] .jw-first-cut__tile:focus-visible .jw-first-cut__image {
+  transform: scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-jw-brand="true"] .jw-first-cut__intro,
+  [data-jw-brand="true"] .jw-first-cut__lead .jw-first-cut__tile,
+  [data-jw-brand="true"] .jw-first-cut__support .jw-first-cut__tile {
+    animation: none;
+  }
+
+  [data-jw-brand="true"] .jw-first-cut__image {
+    transition: none;
+  }
 }
 
 

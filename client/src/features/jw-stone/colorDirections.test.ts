@@ -27,19 +27,38 @@ describe("JW Stone editorial color directions", () => {
         Object.entries(JW_STONE_SLUGS_BY_COLOR_DIRECTION).map(([id, slugs]) => [id, slugs.length])
       )
     ).toEqual({
-      "soft-light": 50,
-      "warm-earthy": 25,
-      "cool-serene": 47,
-      "deep-dramatic": 13,
-      "bold-expressive": 13,
+      "soft-light": 49,
+      "warm-earthy": 27,
+      "cool-serene": 48,
+      "deep-dramatic": 10,
+      "bold-expressive": 14,
     });
     expect(COLOR_DIRECTIONS.map(({ id, label }) => ({ id, label }))).toEqual([
       { id: "soft-light", label: "Soft & Light" },
       { id: "warm-earthy", label: "Warm & Earthy" },
       { id: "cool-serene", label: "Cool & Serene" },
-      { id: "deep-dramatic", label: "Deep & Dramatic" },
+      { id: "deep-dramatic", label: "Black" },
       { id: "bold-expressive", label: "Bold & Expressive" },
     ]);
+  });
+
+  it("locks face-true reclasses that yard/surround chrome previously skewed", () => {
+    // Green face washed white by outdoor glare → not Soft & Light.
+    expect(getColorDirectionForStone("pinta-verde")).toBe("bold-expressive");
+    // Brown faces parked in cool gray / black from floor & shadow.
+    expect(getColorDirectionForStone("mexican-brown")).toBe("warm-earthy");
+    expect(getColorDirectionForStone("chocolate-brown")).toBe("warm-earthy");
+    expect(getColorDirectionForStone("dueto")).toBe("warm-earthy");
+    // Near-black basalt face — not cool yard gray.
+    expect(getColorDirectionForStone("matrix-basalt")).toBe("deep-dramatic");
+    // Gray faces misread as warm gold / espresso from racks and shadow.
+    expect(getColorDirectionForStone("jaguar-leather")).toBe("cool-serene");
+    expect(getColorDirectionForStone("titanium")).toBe("cool-serene");
+    expect(getColorDirectionForStone("soapstone")).toBe("cool-serene");
+    // Soft white — not Cool & Serene / blue from yard wash.
+    expect(getColorDirectionForStone("alabama-white")).toBe("soft-light");
+    expect(getColorDirectionForStone("dallas-white")).toBe("soft-light");
+    expect(getColorDirectionForStone("namib-fantasy")).toBe("soft-light");
   });
 
   it("resolves only supported direction ids and known stones", () => {

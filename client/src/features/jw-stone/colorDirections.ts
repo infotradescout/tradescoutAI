@@ -23,7 +23,7 @@ export const COLOR_DIRECTIONS = [
   },
   {
     id: "deep-dramatic",
-    label: "Deep & Dramatic",
+    label: "Black",
     description: "Charcoal, black, and espresso depth.",
   },
   {
@@ -56,7 +56,6 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "cherokee-marble",
     "matarazzo",
     "mugla",
-    "pinta-verde",
     "white-fantasy",
     "zucci-marble",
     "aj-quartz",
@@ -91,7 +90,6 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
   "warm-earthy": [
     "arizona-gold",
     "giallo-ornamental",
-    "jaguar-leather",
     "nilo-river",
     "tyfoon",
     "emperor-brown",
@@ -106,10 +104,13 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "calacatta-macchia-vecchia",
     "gold-macaubas",
     "new-caledonia",
+    // Face-true reclass: yard chrome previously pushed these into cool/black.
+    "mexican-brown",
+    "chocolate-brown",
+    "dueto",
     ...reconciledSlugsFor("warm-earthy"),
   ],
   "cool-serene": [
-    "matrix-basalt",
     "blue-bahia",
     "blue-dunes",
     "blue-fantasy",
@@ -118,7 +119,6 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "cristalita-blue",
     "grigio-fantasy",
     "itaoca",
-    "mexican-brown",
     "namib-carrera",
     "oyster-white",
     "shadow-storm",
@@ -136,20 +136,22 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "white-silk",
     "calacatta-andromeda",
     "apollonis",
+    // Face-true reclass: gray faces misread as warm gold / near-black from racks/shadow.
+    "jaguar-leather",
+    "titanium",
+    "soapstone",
     ...reconciledSlugsFor("cool-serene"),
   ],
   "deep-dramatic": [
     "black-pearl",
     "fantasy-black",
     "preto-sao-gabriel",
-    "titanium",
     "venta-black",
-    "soapstone",
     "black-dunes",
-    "chocolate-brown",
     "emerald-pearl",
     "titanium-black-leathered",
-    "dueto",
+    // Face-true reclass: near-black basalt face (not cool gray floor).
+    "matrix-basalt",
     ...reconciledSlugsFor("deep-dramatic"),
   ],
   "bold-expressive": [
@@ -163,6 +165,8 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "blue-dream",
     "marbella-green",
     "amazonic-green",
+    // Face-true reclass: green face washed to white by outdoor glare.
+    "pinta-verde",
     "calacatta-corchia",
     "grand-constantine",
     ...reconciledSlugsFor("bold-expressive"),

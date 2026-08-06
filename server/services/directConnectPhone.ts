@@ -1,13 +1,20 @@
+import {
+  extractDirectConnectPhoneDigits,
+  isValidDirectConnectRequestPhone,
+} from "@shared/directConnectPhone";
+
 export type DirectConnectPhone = {
   display: string;
   tel: string;
 };
 
+export { isValidDirectConnectRequestPhone };
+
 export function normalizeDirectConnectPhone(raw: unknown): DirectConnectPhone | null {
   const display = String(raw || "").trim();
-  const digits = display.replace(/\D/g, "");
-  if (digits.length < 10 || digits.length > 15) return null;
+  if (!isValidDirectConnectRequestPhone(display)) return null;
 
+  const digits = extractDirectConnectPhoneDigits(display);
   const e164 =
     digits.length === 10
       ? `+1${digits}`
@@ -19,5 +26,5 @@ export function normalizeDirectConnectPhone(raw: unknown): DirectConnectPhone | 
 }
 
 export function hasDirectConnectPhone(raw: unknown): boolean {
-  return normalizeDirectConnectPhone(raw) !== null;
+  return isValidDirectConnectRequestPhone(raw);
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -8,6 +8,7 @@ import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } 
 import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
+import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceFooter } from "./MarketplaceFooter";
 import { MarketplaceHeader } from "./MarketplaceHeader";
@@ -36,24 +37,25 @@ export default function JWStoneMarketplace() {
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [wishlistOpen, setWishlistOpen] = useState(false);
-  const [anonymousDetailId, setAnonymousDetailId] = useState<string | null>(null);
+  /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
+  const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
 
-  // Document scroll only — avoid body/#root dual-scroll trapping hash landings.
-  useEffect(() => {
+  // Ensure unlock while this page is mounted; AppLayout owns route-level cleanup
+  // so Strict Mode remounts do not briefly strip the class mid-route.
+  useLayoutEffect(() => {
     const root = document.documentElement;
     const body = document.body;
     root.classList.add("jw-marketplace-scroll");
     body.classList.add("jw-marketplace-scroll");
-    return () => {
-      root.classList.remove("jw-marketplace-scroll");
-      body.classList.remove("jw-marketplace-scroll");
-    };
+    if (body.style.overflow === "hidden") {
+      body.style.overflow = "";
+    }
   }, []);
 
-  const selectedStone =
-    (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) ||
-    (anonymousDetailId ? getCatalogItemById(anonymousDetailId) : null);
+  // Prefer URL-named stone, else explicit override (First Cut photo / anonymous catalog).
+  const activeStone =
+    (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) || detailOverride;
 
   const requestTargets = useMemo<readonly DirectConnectMaterialTarget[]>(
     () =>
@@ -66,22 +68,24 @@ export default function JWStoneMarketplace() {
   );
 
   const closeStone = () => {
-    setAnonymousDetailId(null);
+    setDetailOverride(null);
     if (state.stone) commit({ ...state, stone: null }, { replace: true });
   };
 
   const openStone = (stone: JwStoneCatalogItem) => {
     if (stone.anonymous || !stone.shareSlug) {
-      setAnonymousDetailId(stone.id);
+      // First Cut photo ids are not in JW_STONE_CATALOG — keep the full object.
+      setDetailOverride(getCatalogItemById(stone.id) || stone);
+      if (state.stone) commit({ ...state, stone: null }, { replace: true });
       return;
     }
-    setAnonymousDetailId(null);
+    setDetailOverride(null);
     commit({ ...state, stone: stone.shareSlug });
   };
 
   const openSavedStone = (stone: JwStoneCatalogItem) => {
     setWishlistOpen(false);
-    setAnonymousDetailId(null);
+    setDetailOverride(null);
     commit({ ...state, stone: stone.shareSlug });
   };
 
@@ -95,12 +99,47 @@ export default function JWStoneMarketplace() {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
 
+  /** Browse by color — never invents or keeps a material refinement. */
   const selectPalette = (next: ColorSwatchSelection) => {
+    commit({
+      ...state,
+      aesthetic: next.aesthetic,
+      color: next.color,
+      material: null,
+      stone: null,
+    });
+  };
+
+  /** Material-panel color refine — AND with the active material; stays in the material section. */
+  const selectMaterialColor = (next: ColorSwatchSelection) => {
     commit({ ...state, aesthetic: next.aesthetic, color: next.color, stone: null });
   };
 
   const selectMaterial = (material: string | null) => {
+    // Clearing material keeps aesthetic/color; clearing color (via chips) keeps material.
     commit({ ...state, material, stone: null });
+    if (!material) return;
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-testid="jw-material-section-${material}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+
+  /** Full inventory is a clean slate — rail tags do not carry over. */
+  const enterFullInventory = () => {
+    if (!state.aesthetic && !state.color && !state.material && !state.origin) return;
+    commit(
+      {
+        ...state,
+        aesthetic: null,
+        color: null,
+        material: null,
+        origin: null,
+        stone: null,
+      },
+      { replace: true }
+    );
   };
 
   return (
@@ -128,32 +167,47 @@ export default function JWStoneMarketplace() {
       </p>
 
       <MarketplaceIntroduction />
-      <FirstCutSection />
+      <FirstCutSection onOpen={openStone} />
       <ColorPaletteRail
         aesthetic={state.aesthetic}
         color={state.color}
-        material={state.material}
+        material={null}
         origin={state.origin}
         onSelect={selectPalette}
       />
-      <MaterialCategoryRail active={state.material} onSelect={selectMaterial} />
+      <MaterialCategoryRail
+        active={state.material}
+        aesthetic={state.aesthetic}
+        color={state.color}
+        onSelect={selectMaterial}
+        onSelectColor={selectMaterialColor}
+        isSaved={wishlist.isSaved}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
+        catalog={JW_STONE_CATALOG}
+      />
 
       <StoneCollection
         state={state}
         isSaved={wishlist.isSaved}
         onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
+        onEnterFullInventory={enterFullInventory}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
+        onAsk={askAboutStone}
         catalog={JW_STONE_CATALOG}
       />
+
+      <JwStoneStorySection />
 
       <MarketplaceFooter />
 
       <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
       <StoneDetailDialog
-        stone={selectedStone}
-        saved={selectedStone ? wishlist.isSaved(selectedStone.id) : false}
+        stone={activeStone}
+        saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
         onOpenChange={(open) => {
           if (!open) closeStone();
         }}

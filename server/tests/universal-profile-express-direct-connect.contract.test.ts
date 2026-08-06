@@ -105,6 +105,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain("const requestWorkspacePath =");
     expect(routeSource).toContain("const onboardingPath = activation");
     expect(routeSource).toContain('let onboardingEmailStatus: "sent" | "skipped" | "failed"');
+    expect(routeSource).toContain("const businessEmailResult = await emailService.sendEmail");
     expect(routeSource).toContain("const emailResult = await emailService.sendEmail");
     expect(routeSource).toContain('onboardingEmailStatus = "failed"');
     expect(routeSource).toContain("onboardingPath,");

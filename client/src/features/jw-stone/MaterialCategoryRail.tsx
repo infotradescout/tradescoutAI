@@ -1,15 +1,22 @@
+import { useEffect, useMemo } from "react";
+import { jw } from "./brand";
 import {
   JW_STONE_CATALOG,
   JW_STONE_MATERIAL_SECTION_ORDER,
+  filterJwStoneCatalog,
   getCatalogItemById,
   groupNamedCatalogByMaterial,
 } from "./catalog";
-import { jw } from "./brand";
-import type { JwStoneCatalogItem } from "./types";
+import { ColorSwatchChipRow, type ColorSwatchSelection } from "./ColorPaletteRail";
+import { JwCollapsibleSection } from "./JwCollapsibleSection";
+import { isHandOnlyStone } from "./coverImages";
+import { MaterialCollageBackground } from "./MaterialCollageBackground";
+import { MaterialStonePager } from "./MaterialStonePager";
+import type { ColorDirectionId, JwStoneCatalogItem } from "./types";
 
 /**
  * Preferred cover stones for material tiles — real catalog ids only.
- * Falls back to the first named stone in that material when missing.
+ * Used only as a fallback when a dedicated face-cover asset is missing.
  */
 export const MATERIAL_RAIL_COVER_STONE_IDS: Readonly<Record<string, string>> = {
   granite: "blue-dunes",
@@ -21,17 +28,40 @@ export const MATERIAL_RAIL_COVER_STONE_IDS: Readonly<Record<string, string>> = {
   basalt: "matrix-basalt",
 };
 
+/**
+ * Face-only material rail covers (no hands, clamps, yard chrome).
+ * Built by tmp/build-material-covers.mjs into material-covers/.
+ */
+export const MATERIAL_RAIL_COVER_IMAGES: Readonly<Record<string, string>> = Object.freeze({
+  granite: "/images/businesses/jw-stone/material-covers/granite.webp",
+  marble: "/images/businesses/jw-stone/material-covers/marble.webp",
+  quartzite: "/images/businesses/jw-stone/material-covers/quartzite.webp",
+  quartz: "/images/businesses/jw-stone/material-covers/quartz.webp",
+  onyx: "/images/businesses/jw-stone/material-covers/onyx.webp",
+  soapstone: "/images/businesses/jw-stone/material-covers/soapstone.webp",
+  basalt: "/images/businesses/jw-stone/material-covers/basalt.webp",
+});
+
 export type MaterialRailItem = Readonly<{
   materialId: string;
   materialLabel: string;
   count: number;
   coverSrc: string | null;
+  stones: readonly JwStoneCatalogItem[];
 }>;
 
 export function getMaterialRailItems(
-  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
+  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG,
+  refinements: { aesthetic?: ColorDirectionId | null; color?: string | null } = {}
 ): MaterialRailItem[] {
-  const sections = groupNamedCatalogByMaterial(catalog).filter((section) => section.filterable);
+  const refined = filterJwStoneCatalog(
+    {
+      aesthetic: refinements.aesthetic ?? null,
+      color: refinements.color ?? null,
+    },
+    catalog
+  );
+  const sections = groupNamedCatalogByMaterial(refined).filter((section) => section.filterable);
   const order = JW_STONE_MATERIAL_SECTION_ORDER as readonly string[];
 
   return [...sections]
@@ -46,96 +76,221 @@ export function getMaterialRailItems(
     .map((section) => {
       const preferredId = MATERIAL_RAIL_COVER_STONE_IDS[section.materialId];
       const preferred = preferredId ? getCatalogItemById(preferredId) : null;
+      const stones = section.stones
+        .slice()
+        .sort((a, b) => Number(isHandOnlyStone(a.images)) - Number(isHandOnlyStone(b.images)));
       const coverStone =
-        preferred && preferred.materialId === section.materialId
+        preferred &&
+        preferred.materialId === section.materialId &&
+        stones.some((stone) => stone.id === preferred.id)
           ? preferred
-          : (section.stones.find((stone) => stone.images[0]) ?? section.stones[0] ?? null);
+          : (stones.find((stone) => stone.images[0] && !isHandOnlyStone(stone.images)) ??
+            stones.find((stone) => stone.images[0]) ??
+            stones[0] ??
+            null);
+      const dedicatedCover = MATERIAL_RAIL_COVER_IMAGES[section.materialId] ?? null;
       return {
         materialId: section.materialId,
         materialLabel: section.materialLabel,
-        count: section.stones.length,
-        coverSrc: coverStone?.images[0] ?? null,
+        count: stones.length,
+        coverSrc: dedicatedCover ?? coverStone?.images[0] ?? null,
+        stones: Object.freeze(stones),
       };
     });
 }
 
 type MaterialCategoryRailProps = {
+  /** Expanded material id inside this section — null means all material rows collapsed. */
   active: string | null;
+  aesthetic?: ColorDirectionId | null;
+  color?: string | null;
   onSelect: (materialId: string | null) => void;
+  /** Color refine while a material is expanded — same URL aesthetic/color keys as Browse by color. */
+  onSelectColor?: (next: ColorSwatchSelection) => void;
+  isSaved: (id: string) => boolean;
+  onToggleSaved: (stone: JwStoneCatalogItem) => void;
+  onOpen: (stone: JwStoneCatalogItem) => void;
+  onAsk: (stone: JwStoneCatalogItem) => void;
   catalog?: readonly JwStoneCatalogItem[];
 };
 
+/**
+ * Keep the expanded material visible even when the active color refinement
+ * yields zero stones for that material (so chips + empty state stay on screen).
+ */
+function ensureActiveMaterialVisible(
+  items: MaterialRailItem[],
+  active: string | null,
+  catalog: readonly JwStoneCatalogItem[]
+): MaterialRailItem[] {
+  if (!active || items.some((item) => item.materialId === active)) return items;
+  const fallback = getMaterialRailItems(catalog).find((item) => item.materialId === active);
+  if (!fallback) return items;
+  const empty: MaterialRailItem = { ...fallback, count: 0, stones: Object.freeze([]) };
+  const order = JW_STONE_MATERIAL_SECTION_ORDER as readonly string[];
+  return [...items, empty].sort((a, b) => {
+    const ai = order.indexOf(a.materialId);
+    const bi = order.indexOf(b.materialId);
+    const aRank = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+    const bRank = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.materialLabel.localeCompare(b.materialLabel);
+  });
+}
+
+/**
+ * Page IA section #2 below First Cut: collapsed "Browse by material".
+ * Expanded body = stacked materials; opening a material reveals color refine + paged stones.
+ */
 export function MaterialCategoryRail({
   active,
+  aesthetic = null,
+  color = null,
   onSelect,
+  onSelectColor,
+  isSaved,
+  onToggleSaved,
+  onOpen,
+  onAsk,
   catalog = JW_STONE_CATALOG,
 }: MaterialCategoryRailProps) {
-  const items = getMaterialRailItems(catalog);
+  const items = useMemo(
+    () =>
+      ensureActiveMaterialVisible(
+        getMaterialRailItems(catalog, { aesthetic, color }),
+        active,
+        catalog
+      ),
+    [active, aesthetic, catalog, color]
+  );
+
+  useEffect(() => {
+    if (!active) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (event.defaultPrevented) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      event.preventDefault();
+      onSelect(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [active, onSelect]);
+
   if (!items.length) return null;
 
   return (
-    <section
+    <JwCollapsibleSection
       id="jw-material-rail"
-      data-testid="jw-material-rail"
-      aria-labelledby="jw-material-heading"
-      className={`bg-[var(--jw-bg)] px-5 py-9 sm:px-9 sm:py-11 lg:px-12 ${jw.scrollTarget}`}
+      testId="jw-material-rail"
+      headingId="jw-material-heading"
+      title="Browse by material"
+      defaultExpanded={Boolean(active)}
+      background={<MaterialCollageBackground />}
     >
-      <div className="mx-auto max-w-[1600px]">
-        <h2
-          id="jw-material-heading"
-          className="font-editorial text-2xl leading-tight text-[var(--jw-ink)] sm:text-3xl"
-        >
-          Browse by material
-        </h2>
-        <p className={`mt-2 max-w-xl text-sm leading-6 ${jw.muted}`}>
-          Granite, marble, quartzite, and more — tap a material to open that part of the collection.
-        </p>
-
-        <div
-          className="mt-5 flex gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-6 sm:gap-4 [&::-webkit-scrollbar]:hidden"
-          role="list"
-          aria-label="Material categories"
-        >
-          {items.map((item) => {
-            const isActive = active === item.materialId;
-            return (
+      <ul
+        className="flex flex-col gap-4 sm:gap-5"
+        role="list"
+        aria-label="Material categories"
+        data-testid="jw-material-stack"
+      >
+        {items.map((item) => {
+          const expanded = active === item.materialId;
+          const panelId = `jw-material-panel-${item.materialId}`;
+          return (
+            <li
+              key={item.materialId}
+              className="min-w-0"
+              data-testid={`jw-material-section-${item.materialId}`}
+              data-expanded={expanded ? "true" : "false"}
+            >
               <button
-                key={item.materialId}
                 type="button"
-                role="listitem"
                 data-testid={`jw-material-${item.materialId}`}
-                aria-pressed={isActive}
-                onClick={() => onSelect(isActive ? null : item.materialId)}
-                className="group relative h-36 w-[9.5rem] shrink-0 overflow-hidden bg-[var(--jw-dark)] text-left sm:h-44 sm:w-44"
+                aria-expanded={expanded}
+                aria-controls={panelId}
+                onClick={() => onSelect(expanded ? null : item.materialId)}
+                className="group relative block w-full overflow-hidden bg-[var(--jw-dark)] text-left"
               >
-                {item.coverSrc ? (
-                  <img
-                    src={item.coverSrc}
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-contain"
-                  />
-                ) : (
-                  <span className="absolute inset-0 bg-[var(--jw-surface)]" aria-hidden="true" />
-                )}
+                <span className="relative flex min-h-[12rem] items-stretch sm:min-h-[15rem] lg:min-h-[17rem]">
+                  {item.coverSrc ? (
+                    <img
+                      src={item.coverSrc}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="absolute inset-0 bg-[var(--jw-surface)]" aria-hidden="true" />
+                  )}
+                </span>
                 <span
-                  className={`absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-transparent ${
-                    isActive ? "ring-2 ring-inset ring-[var(--jw-accent)]" : ""
-                  }`}
+                  className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-4 pb-4 pt-16 sm:px-5 sm:pb-5"
                   aria-hidden="true"
                 />
-                <span className="absolute inset-x-0 bottom-0 px-3 pb-3">
-                  <span className="block font-editorial text-lg leading-tight text-white sm:text-xl">
-                    {item.materialLabel}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-white/80">
-                    {item.count} {item.count === 1 ? "selection" : "selections"}
+                <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-4 sm:px-5 sm:pb-5">
+                  <span>
+                    <span className="block font-editorial text-2xl leading-tight text-white sm:text-3xl">
+                      {item.materialLabel}
+                    </span>
+                    <span className="mt-0.5 block text-sm text-white/85">
+                      {item.count} {item.count === 1 ? "selection" : "selections"}
+                    </span>
                   </span>
                 </span>
               </button>
-            );
-          })}
-        </div>
-      </div>
-    </section>
+
+              {expanded ? (
+                <div
+                  id={panelId}
+                  data-testid={`jw-material-stone-rail-${item.materialId}`}
+                  className="mt-3 sm:mt-4"
+                >
+                  {onSelectColor ? (
+                    <div
+                      className="mb-4 sm:mb-5"
+                      data-testid={`jw-material-color-refine-${item.materialId}`}
+                    >
+                      <p
+                        className={`mb-3 text-sm leading-relaxed ${jw.muted}`}
+                        data-testid="jw-material-color-prompt"
+                      >
+                        Refine by color
+                      </p>
+                      <ColorSwatchChipRow
+                        aesthetic={aesthetic}
+                        color={color}
+                        material={item.materialId}
+                        onSelect={onSelectColor}
+                        catalog={catalog}
+                        testIdPrefix="jw-material-color"
+                        ariaLabel={`Color filters for ${item.materialLabel}`}
+                      />
+                    </div>
+                  ) : null}
+                  {item.stones.length ? (
+                    <MaterialStonePager
+                      materialLabel={item.materialLabel}
+                      stones={item.stones}
+                      isSaved={isSaved}
+                      onToggleSaved={onToggleSaved}
+                      onOpen={onOpen}
+                      onAsk={onAsk}
+                    />
+                  ) : (
+                    <p
+                      className={`text-sm leading-relaxed ${jw.muted}`}
+                      data-testid="jw-material-color-empty"
+                    >
+                      No {item.materialLabel.toLowerCase()} selections in this color. Choose another
+                      color, or clear the color filter.
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
+    </JwCollapsibleSection>
   );
 }
