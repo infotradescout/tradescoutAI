@@ -15,6 +15,12 @@ function click(el: Element | null) {
   });
 }
 
+function visibleOpenCloseLabels(root: ParentNode) {
+  return Array.from(root.querySelectorAll('[data-testid$="-expand-cue"]')).map(
+    (el) => el.textContent?.trim() || ""
+  );
+}
+
 describe("JwCollapsibleSection", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -30,7 +36,7 @@ describe("JwCollapsibleSection", () => {
     container.remove();
   });
 
-  it("exposes calm button affordance: Open/Close cue, aria-expanded, visible chevron", () => {
+  it("shows exactly one Open/Close cue — never Tap to open, never under-title duplicate", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
@@ -38,6 +44,7 @@ describe("JwCollapsibleSection", () => {
           testId="jw-inventory"
           headingId="jw-inventory-heading"
           title="Full inventory"
+          summary="Must not appear on photo band"
           background={<div data-testid="jw-inventory-collage" />}
         >
           <p data-testid="jw-inventory-body">stone grid</p>
@@ -52,21 +59,22 @@ describe("JwCollapsibleSection", () => {
     expect(toggle?.className).toMatch(/cursor-pointer/);
     expect(toggle?.className).toMatch(/focus-visible:ring/);
 
+    expect(container.querySelectorAll('[data-testid="jw-inventory-expand-cue"]')).toHaveLength(1);
+    expect(container.querySelector('[data-testid="jw-inventory-expand-hint"]')).toBeNull();
+    expect(visibleOpenCloseLabels(container)).toEqual(["Open"]);
+    expect(container.textContent).not.toMatch(/Tap to open/i);
+    expect(container.textContent).not.toMatch(/Tap to close/i);
+    expect(container.textContent).not.toContain("Must not appear on photo band");
+    expect(container.querySelector('[data-testid="jw-inventory-expand-chevron"]')).not.toBeNull();
+
     const cue = container.querySelector('[data-testid="jw-inventory-expand-cue"]');
-    expect(cue?.textContent).toMatch(/^Open$/);
     expect(cue?.className).not.toMatch(/bg-\[var\(--jw-accent\)\]/);
     expect(cue?.className).not.toMatch(/uppercase/);
-    expect(container.querySelector('[data-testid="jw-inventory-expand-chevron"]')).not.toBeNull();
-    // No duplicate under-title "Tap to open" when summary is omitted.
-    expect(container.querySelector('[data-testid="jw-inventory-expand-hint"]')).toBeNull();
-    expect(container.textContent).not.toMatch(/Tap to open/i);
 
     click(toggle);
     expect(toggle?.getAttribute("aria-expanded")).toBe("true");
     expect(toggle?.getAttribute("aria-label")).toBe("Close Full inventory");
-    expect(container.querySelector('[data-testid="jw-inventory-expand-cue"]')?.textContent).toMatch(
-      /^Close$/
-    );
+    expect(visibleOpenCloseLabels(container)).toEqual(["Close"]);
     expect(
       container.querySelector('[data-testid="jw-inventory-expand-chevron"]')?.getAttribute("class")
     ).toMatch(/rotate-180/);
@@ -108,7 +116,7 @@ describe("JwCollapsibleSection", () => {
     expect(toggle?.className).not.toMatch(/\bsticky\b/);
   });
 
-  it("keeps header toggle collapse for color/material style sections with Open cue", () => {
+  it("keeps header toggle collapse for color/material style sections with one Open cue", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
@@ -127,46 +135,17 @@ describe("JwCollapsibleSection", () => {
     const toggle = container.querySelector('[data-testid="jw-palette-rail-toggle"]');
     expect(section?.getAttribute("data-expanded")).toBe("false");
     expect(toggle?.getAttribute("aria-label")).toBe("Open Browse by color");
-    expect(
-      container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
-    ).toMatch(/^Open$/);
+    expect(visibleOpenCloseLabels(container)).toEqual(["Open"]);
 
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("true");
     expect(container.querySelector('[data-testid="jw-palette-body"]')).not.toBeNull();
     expect(toggle?.className).toMatch(/\bsticky\b/);
     expect(toggle?.getAttribute("aria-label")).toBe("Close Browse by color");
-    expect(
-      container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
-    ).toMatch(/^Close$/);
+    expect(visibleOpenCloseLabels(container)).toEqual(["Close"]);
 
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("false");
     expect(container.querySelector('[data-testid="jw-palette-body"]')).toBeNull();
-  });
-
-  it("shows optional summary under the title without duplicating the Open cue", () => {
-    act(() => {
-      root.render(
-        <JwCollapsibleSection
-          id="jw-palette-rail"
-          testId="jw-palette-rail"
-          headingId="jw-palette-heading"
-          title="Browse by color"
-          summary="Eight color families"
-          backgroundSrc="/images/businesses/jw-stone/story/living-room.webp"
-        >
-          <p>swatches</p>
-        </JwCollapsibleSection>
-      );
-    });
-
-    expect(
-      container.querySelector('[data-testid="jw-palette-rail-expand-hint"]')?.textContent
-    ).toBe("Eight color families");
-    expect(
-      container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
-    ).toMatch(/^Open$/);
-    expect(container.textContent).not.toMatch(/Tap to open/i);
   });
 });
