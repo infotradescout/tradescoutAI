@@ -3,13 +3,14 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { COLOR_SWATCH_OPTIONS } from "./ColorPaletteRail";
 import {
   getMaterialRailItems,
   MATERIAL_RAIL_COVER_IMAGES,
   MATERIAL_RAIL_COVER_STONE_IDS,
   MaterialCategoryRail,
 } from "./MaterialCategoryRail";
-import { getCatalogItemById } from "./catalog";
+import { filterJwStoneCatalog, getCatalogItemById } from "./catalog";
 import { isHandScaleCoverImage } from "./coverImages";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -126,5 +127,95 @@ describe("MaterialCategoryRail", () => {
     expect(rail?.className).not.toMatch(/overflow-x-auto/);
     expect(rail?.querySelectorAll("[data-stone-card]").length).toBe(1);
     expect(rail?.querySelector("img")?.className).toMatch(/object-contain/);
+  });
+
+  it("exposes color refine chips once a material is active (no All chip)", () => {
+    const onSelect = vi.fn();
+    const onSelectColor = vi.fn();
+    const noop = vi.fn();
+
+    act(() =>
+      root.render(
+        <MaterialCategoryRail
+          active={null}
+          onSelect={onSelect}
+          onSelectColor={onSelectColor}
+          isSaved={() => false}
+          onToggleSaved={noop}
+          onOpen={noop}
+          onAsk={noop}
+        />
+      )
+    );
+    act(() =>
+      container
+        .querySelector('[data-testid="jw-material-rail-toggle"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(container.querySelector('[data-testid="jw-material-color-chip-row"]')).toBeNull();
+
+    act(() =>
+      root.render(
+        <MaterialCategoryRail
+          active="granite"
+          onSelect={onSelect}
+          onSelectColor={onSelectColor}
+          isSaved={() => false}
+          onToggleSaved={noop}
+          onOpen={noop}
+          onAsk={noop}
+        />
+      )
+    );
+
+    expect(
+      container.querySelector('[data-testid="jw-material-color-refine-granite"]')
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-material-color-prompt"]')?.textContent
+    ).toContain("Refine by color");
+    const row = container.querySelector('[data-testid="jw-material-color-chip-row"]');
+    expect(row).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-color-all"]')).toBeNull();
+
+    for (const option of COLOR_SWATCH_OPTIONS) {
+      expect(
+        container.querySelector(`[data-testid="jw-material-color-${option.id}"]`)
+      ).not.toBeNull();
+    }
+
+    const green = container.querySelector('[data-testid="jw-material-color-green"]');
+    act(() => green?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onSelectColor).toHaveBeenCalledWith({ aesthetic: null, color: "green" });
+  });
+
+  it("refines the active material stone pager when color is applied", () => {
+    const noop = vi.fn();
+    const graniteAll = getMaterialRailItems().find((item) => item.materialId === "granite");
+    expect(graniteAll?.count).toBeGreaterThan(1);
+
+    const greenGranite = filterJwStoneCatalog({ material: "granite", color: "green" });
+    expect(greenGranite.length).toBeGreaterThan(0);
+    expect(greenGranite.length).toBeLessThan(graniteAll!.count);
+
+    act(() =>
+      root.render(
+        <MaterialCategoryRail
+          active="granite"
+          color="green"
+          onSelect={noop}
+          onSelectColor={noop}
+          isSaved={() => false}
+          onToggleSaved={noop}
+          onOpen={noop}
+          onAsk={noop}
+        />
+      )
+    );
+
+    const greenChip = container.querySelector('[data-testid="jw-material-color-green"]');
+    expect(greenChip?.getAttribute("aria-pressed")).toBe("true");
+    expect(container.textContent).toContain(`1 of ${greenGranite.length} granite`);
+    expect(container.querySelector('[data-testid="jw-material-color-empty"]')).toBeNull();
   });
 });

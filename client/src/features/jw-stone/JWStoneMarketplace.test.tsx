@@ -438,6 +438,43 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(window.location.search).toContain("material=granite");
   });
 
+  it("lets material-first shoppers refine by color chips inside the material panel", () => {
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
+    click(container.querySelector('[data-testid="jw-material-granite"]'));
+    expect(window.location.search).toContain("material=granite");
+    expect(window.location.search).not.toContain("color=");
+    expect(window.location.search).not.toContain("aesthetic=");
+
+    expect(
+      container.querySelector('[data-testid="jw-material-color-refine-granite"]')
+    ).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-color-all"]')).toBeNull();
+
+    click(container.querySelector('[data-testid="jw-material-color-green"]'));
+    expect(window.location.search).toContain("material=granite");
+    expect(window.location.search).toContain("color=green");
+    expect(window.location.search).not.toContain("aesthetic=");
+    expect(
+      container
+        .querySelector('[data-testid="jw-material-color-green"]')
+        ?.getAttribute("aria-pressed")
+    ).toBe("true");
+
+    // Re-click clears color only — material stays.
+    click(container.querySelector('[data-testid="jw-material-color-green"]'));
+    expect(window.location.search).toContain("material=granite");
+    expect(window.location.search).not.toContain("color=");
+
+    click(container.querySelector('[data-testid="jw-material-color-warm-neutrals"]'));
+    expect(window.location.search).toContain("material=granite");
+    expect(window.location.search).toContain("aesthetic=warm-earthy");
+
+    // Collapse material clears material only — color stays.
+    click(container.querySelector('[data-testid="jw-material-granite"]'));
+    expect(window.location.search).not.toContain("material=");
+    expect(window.location.search).toContain("aesthetic=warm-earthy");
+  });
+
   it("keeps Call for availability theater out and omits empty New Arrivals", () => {
     expect(container.textContent).not.toContain("Call for availability");
     expect(container.querySelector('[data-testid="jw-new-arrivals"]')).toBeNull();

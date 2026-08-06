@@ -194,6 +194,72 @@ function ColorFaceCue({
   );
 }
 
+type ColorSwatchChipRowProps = {
+  aesthetic: ColorDirectionId | null;
+  color: string | null;
+  /** When set, chip counts are scoped to this material (material ∩ color). */
+  material?: string | null;
+  origin?: string | null;
+  onSelect: (next: ColorSwatchSelection) => void;
+  catalog?: readonly JwStoneCatalogItem[];
+  /** Prefix for data-testid values (default: jw-palette). */
+  testIdPrefix?: string;
+  ariaLabel?: string;
+};
+
+/** Full color-direction chip grid — shared by Browse by color and material refine. */
+export function ColorSwatchChipRow({
+  aesthetic,
+  color,
+  material = null,
+  origin = null,
+  onSelect,
+  catalog = JW_STONE_CATALOG,
+  testIdPrefix = "jw-palette",
+  ariaLabel = "Color palettes",
+}: ColorSwatchChipRowProps) {
+  const base = { material, origin };
+  const options = COLOR_SWATCH_OPTIONS.map((option) => ({
+    ...option,
+    count: countForColorSwatch(option, catalog, base),
+  }));
+  const activeState = { aesthetic, color };
+
+  return (
+    <div
+      className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-9"
+      role="list"
+      aria-label={ariaLabel}
+      data-testid={`${testIdPrefix}-chip-row`}
+    >
+      {options.map((option) => {
+        const isActive = isColorSwatchActive(option, activeState);
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="listitem"
+            data-testid={`${testIdPrefix}-${option.id}`}
+            aria-pressed={isActive}
+            onClick={() => onSelect(selectionForColorSwatch(option, isActive))}
+            className="group min-w-0 text-left"
+          >
+            <ColorFaceCue faceSrc={option.faceSrc} faces={option.faces} active={isActive} />
+            <span className="mt-2.5 block min-w-0 sm:mt-3">
+              <span className="block font-editorial text-base leading-tight tracking-tight text-[var(--jw-ink)] sm:text-lg lg:text-xl">
+                {option.label}
+              </span>
+              <span className={`mt-0.5 block text-xs leading-none ${jw.muted}`}>
+                {option.count} {option.count === 1 ? "selection" : "selections"}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type ColorPaletteRailProps = {
   aesthetic: ColorDirectionId | null;
   color: string | null;
@@ -212,13 +278,6 @@ export function ColorPaletteRail({
   onSelect,
   catalog = JW_STONE_CATALOG,
 }: ColorPaletteRailProps) {
-  const base = { material, origin };
-  const options = COLOR_SWATCH_OPTIONS.map((option) => ({
-    ...option,
-    count: countForColorSwatch(option, catalog, base),
-  }));
-
-  const activeState = { aesthetic, color };
   const hasSelection = Boolean(aesthetic || color);
 
   return (
@@ -235,37 +294,14 @@ export function ColorPaletteRail({
           Choose a color direction to refine the collection.
         </p>
       ) : null}
-      <div
-        className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-9"
-        role="list"
-        aria-label="Color palettes"
-        data-testid="jw-palette-chip-row"
-      >
-        {options.map((option) => {
-          const isActive = isColorSwatchActive(option, activeState);
-          return (
-            <button
-              key={option.id}
-              type="button"
-              role="listitem"
-              data-testid={`jw-palette-${option.id}`}
-              aria-pressed={isActive}
-              onClick={() => onSelect(selectionForColorSwatch(option, isActive))}
-              className="group min-w-0 text-left"
-            >
-              <ColorFaceCue faceSrc={option.faceSrc} faces={option.faces} active={isActive} />
-              <span className="mt-2.5 block min-w-0 sm:mt-3">
-                <span className="block font-editorial text-base leading-tight tracking-tight text-[var(--jw-ink)] sm:text-lg lg:text-xl">
-                  {option.label}
-                </span>
-                <span className={`mt-0.5 block text-xs leading-none ${jw.muted}`}>
-                  {option.count} {option.count === 1 ? "selection" : "selections"}
-                </span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <ColorSwatchChipRow
+        aesthetic={aesthetic}
+        color={color}
+        material={material}
+        origin={origin}
+        onSelect={onSelect}
+        catalog={catalog}
+      />
     </JwCollapsibleSection>
   );
 }

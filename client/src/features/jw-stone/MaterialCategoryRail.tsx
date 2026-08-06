@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { jw } from "./brand";
 import {
   JW_STONE_CATALOG,
   JW_STONE_MATERIAL_SECTION_ORDER,
@@ -6,6 +7,7 @@ import {
   getCatalogItemById,
   groupNamedCatalogByMaterial,
 } from "./catalog";
+import { ColorSwatchChipRow, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { JwCollapsibleSection } from "./JwCollapsibleSection";
 import { isHandOnlyStone } from "./coverImages";
 import { MaterialCollageBackground } from "./MaterialCollageBackground";
@@ -103,6 +105,8 @@ type MaterialCategoryRailProps = {
   aesthetic?: ColorDirectionId | null;
   color?: string | null;
   onSelect: (materialId: string | null) => void;
+  /** Color refine while a material is expanded — same URL aesthetic/color keys as Browse by color. */
+  onSelectColor?: (next: ColorSwatchSelection) => void;
   isSaved: (id: string) => boolean;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
@@ -111,14 +115,39 @@ type MaterialCategoryRailProps = {
 };
 
 /**
+ * Keep the expanded material visible even when the active color refinement
+ * yields zero stones for that material (so chips + empty state stay on screen).
+ */
+function ensureActiveMaterialVisible(
+  items: MaterialRailItem[],
+  active: string | null,
+  catalog: readonly JwStoneCatalogItem[]
+): MaterialRailItem[] {
+  if (!active || items.some((item) => item.materialId === active)) return items;
+  const fallback = getMaterialRailItems(catalog).find((item) => item.materialId === active);
+  if (!fallback) return items;
+  const empty: MaterialRailItem = { ...fallback, count: 0, stones: Object.freeze([]) };
+  const order = JW_STONE_MATERIAL_SECTION_ORDER as readonly string[];
+  return [...items, empty].sort((a, b) => {
+    const ai = order.indexOf(a.materialId);
+    const bi = order.indexOf(b.materialId);
+    const aRank = ai === -1 ? Number.MAX_SAFE_INTEGER : ai;
+    const bRank = bi === -1 ? Number.MAX_SAFE_INTEGER : bi;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.materialLabel.localeCompare(b.materialLabel);
+  });
+}
+
+/**
  * Page IA section #2 below First Cut: collapsed "Browse by material".
- * Expanded body = stacked materials; opening a material reveals a paged stone viewer.
+ * Expanded body = stacked materials; opening a material reveals color refine + paged stones.
  */
 export function MaterialCategoryRail({
   active,
   aesthetic = null,
   color = null,
   onSelect,
+  onSelectColor,
   isSaved,
   onToggleSaved,
   onOpen,
@@ -126,8 +155,13 @@ export function MaterialCategoryRail({
   catalog = JW_STONE_CATALOG,
 }: MaterialCategoryRailProps) {
   const items = useMemo(
-    () => getMaterialRailItems(catalog, { aesthetic, color }),
-    [aesthetic, catalog, color]
+    () =>
+      ensureActiveMaterialVisible(
+        getMaterialRailItems(catalog, { aesthetic, color }),
+        active,
+        catalog
+      ),
+    [active, aesthetic, catalog, color]
   );
 
   useEffect(() => {
@@ -211,14 +245,46 @@ export function MaterialCategoryRail({
                   data-testid={`jw-material-stone-rail-${item.materialId}`}
                   className="mt-3 sm:mt-4"
                 >
-                  <MaterialStonePager
-                    materialLabel={item.materialLabel}
-                    stones={item.stones}
-                    isSaved={isSaved}
-                    onToggleSaved={onToggleSaved}
-                    onOpen={onOpen}
-                    onAsk={onAsk}
-                  />
+                  {onSelectColor ? (
+                    <div
+                      className="mb-4 sm:mb-5"
+                      data-testid={`jw-material-color-refine-${item.materialId}`}
+                    >
+                      <p
+                        className={`mb-3 text-sm leading-relaxed ${jw.muted}`}
+                        data-testid="jw-material-color-prompt"
+                      >
+                        Refine by color
+                      </p>
+                      <ColorSwatchChipRow
+                        aesthetic={aesthetic}
+                        color={color}
+                        material={item.materialId}
+                        onSelect={onSelectColor}
+                        catalog={catalog}
+                        testIdPrefix="jw-material-color"
+                        ariaLabel={`Color filters for ${item.materialLabel}`}
+                      />
+                    </div>
+                  ) : null}
+                  {item.stones.length ? (
+                    <MaterialStonePager
+                      materialLabel={item.materialLabel}
+                      stones={item.stones}
+                      isSaved={isSaved}
+                      onToggleSaved={onToggleSaved}
+                      onOpen={onOpen}
+                      onAsk={onAsk}
+                    />
+                  ) : (
+                    <p
+                      className={`text-sm leading-relaxed ${jw.muted}`}
+                      data-testid="jw-material-color-empty"
+                    >
+                      No {item.materialLabel.toLowerCase()} selections in this color. Choose another
+                      color, or clear the color filter.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </li>

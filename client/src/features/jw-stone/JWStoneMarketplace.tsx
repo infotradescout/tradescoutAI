@@ -110,10 +110,12 @@ export default function JWStoneMarketplace() {
 
   const selectPalette = (next: ColorSwatchSelection) => {
     commit({ ...state, aesthetic: next.aesthetic, color: next.color, stone: null });
-    if (next.aesthetic || next.color) scrollToInventory();
+    // Material-first refine stays in place; color-first scrolls to inventory.
+    if ((next.aesthetic || next.color) && !state.material) scrollToInventory();
   };
 
   const selectMaterial = (material: string | null) => {
+    // Clearing material keeps aesthetic/color; clearing color (via chips) keeps material.
     commit({ ...state, material, stone: null });
     if (!material) return;
     requestAnimationFrame(() => {
@@ -161,6 +163,7 @@ export default function JWStoneMarketplace() {
         aesthetic={state.aesthetic}
         color={state.color}
         onSelect={selectMaterial}
+        onSelectColor={selectPalette}
         isSaved={wishlist.isSaved}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
