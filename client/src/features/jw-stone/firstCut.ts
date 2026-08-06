@@ -38,10 +38,7 @@ export const JW_STONE_FIRST_CUT_PHOTO_SLOTS: readonly FirstCutPhotoSlot[] = Obje
 
 export const JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT = 3;
 
-/** Shared section note — never repeat under every card. First-to-market meaning. */
-export const JW_STONE_FIRST_CUT_SECTION_NOTE = "New to market. First chance to buy.";
-
-/** @deprecated Prefer JW_STONE_FIRST_CUT_SECTION_NOTE — kept for legacy test imports. */
+/** @deprecated Kept for legacy test imports — section no longer surfaces pending copy. */
 export const JW_STONE_FIRST_CUT_PENDING_LABEL = "Details pending";
 
 /**

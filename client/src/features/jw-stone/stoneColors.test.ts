@@ -63,6 +63,14 @@ describe("JW Stone photographed color palettes", () => {
     expect(getColorsForStone("fusion-yellow")).toEqual(expect.arrayContaining(["yellow", "gold"]));
   });
 
+  it("Alabama White stays white/gray — never blue (yard/sky wash)", () => {
+    const colors = getColorsForStone("alabama-white");
+    expect(colors).toEqual(expect.arrayContaining(["white"]));
+    expect(colors).not.toContain("blue");
+    expect(getColorsForStone("dallas-white")).not.toContain("blue");
+    expect(getColorsForStone("namib-fantasy")).not.toContain("blue");
+  });
+
   it("Black Pearl swatches stay on the dark stone face (no cream / crane yellow)", () => {
     const swatches = getSwatchesForStone("black-pearl");
     expect(swatches.length).toBeGreaterThanOrEqual(3);

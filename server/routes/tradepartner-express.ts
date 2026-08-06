@@ -13,7 +13,7 @@ import {
   workRequests,
 } from "@shared/schema";
 import { storage } from "../storage";
-import { emailService } from "../services/emailService";
+import { emailService, maskEmailForLog } from "../services/emailService";
 import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
@@ -531,6 +531,38 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           return [request];
         });
 
+        const httpRequestId =
+          String((req as any).requestId || req.get("x-request-id") || "").trim() || null;
+        const emailConfigured = emailService.isConfigured();
+        let ownerNotificationStatus: "sent" | "failed" = "sent";
+        let businessNotificationEmailStatus: "sent" | "skipped" | "failed" | "not_requested" =
+          "not_requested";
+        let businessNotificationEmailReason: string | null = target.notificationEmail
+          ? null
+          : "no_notification_recipient";
+        let businessNotificationMessageId: string | null = null;
+
+        console.info("[tradepartner-express] recipients resolved", {
+          requestId: created.id,
+          correlationId: httpRequestId,
+          profileSlug: target.profileSlug,
+          businessId: target.businessId,
+          ownerUserId: target.ownerUserId,
+          notificationRecipient: target.notificationEmail
+            ? maskEmailForLog(target.notificationEmail)
+            : null,
+          requesterRecipient: maskEmailForLog(requester.email),
+          emailConfigured,
+          deliveryCustody: target.deliveryCustody,
+          accountCreated: requesterWasCreated,
+        });
+
+        console.info("[tradepartner-express] owner notification attempted", {
+          requestId: created.id,
+          correlationId: httpRequestId,
+          ownerUserId: target.ownerUserId,
+          deliveryMethods: ["in_app", "push"],
+        });
         try {
           await notificationService.createNotification({
             userId: target.ownerUserId,
@@ -543,11 +575,19 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             iconColor: "orange",
             deliveryMethods: ["in_app", "push"],
           });
+          console.info("[tradepartner-express] owner notification queued", {
+            requestId: created.id,
+            correlationId: httpRequestId,
+            ownerUserId: target.ownerUserId,
+            deliveryMethods: ["in_app", "push"],
+          });
         } catch (error) {
           // The request is already committed. A notification outage must not
           // report a false submission failure and invite duplicate requests.
+          ownerNotificationStatus = "failed";
           console.warn("[tradepartner-express] owner notification failed", {
             requestId: created.id,
+            correlationId: httpRequestId,
             ownerUserId: target.ownerUserId,
             error,
           });
@@ -562,25 +602,37 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         } catch (error) {
           console.warn("[tradepartner-express] beta admin notification failed", {
             requestId: created.id,
+            correlationId: httpRequestId,
             error,
           });
         }
 
-        if (!emailService.isConfigured()) {
+        // Await business notify (do not fire-and-forget). A prior regression
+        // used `void sendEmail(...).catch(...)`, so 201 could return before
+        // send finished and successes never logged against requestId.
+        if (!emailConfigured) {
+          businessNotificationEmailStatus = "skipped";
+          businessNotificationEmailReason = "email_provider_not_configured";
           console.warn(
             "[tradepartner-express] business notification email skipped: email provider not configured",
             {
               requestId: created.id,
+              correlationId: httpRequestId,
               businessId: target.businessId,
+              reason: businessNotificationEmailReason,
             }
           );
         } else if (!target.notificationEmail) {
+          businessNotificationEmailStatus = "skipped";
+          businessNotificationEmailReason = "no_notification_recipient";
           console.warn(
             "[tradepartner-express] business notification email skipped: no notification recipient",
             {
               requestId: created.id,
+              correlationId: httpRequestId,
               businessId: target.businessId,
               profileSlug: target.profileSlug,
+              reason: businessNotificationEmailReason,
             }
           );
         } else {
@@ -588,8 +640,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
           ).replace(/\/$/, "");
           const inboxUrl = `${publicBase}/direct-connect/inbox`;
-          void emailService
-            .sendEmail({
+          console.info("[tradepartner-express] business notification email send start", {
+            requestId: created.id,
+            correlationId: httpRequestId,
+            purpose: "tradepartner_request_notification",
+            notificationRecipient: maskEmailForLog(target.notificationEmail),
+          });
+          try {
+            const businessEmailResult = await emailService.sendEmail({
               to: target.notificationEmail,
               subject: `New request for ${target.businessName}`,
               html: [
@@ -626,14 +684,42 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 .filter(Boolean)
                 .join("\n"),
               purpose: "tradepartner_request_notification",
-            })
-            .catch((error) =>
-              console.warn("[tradepartner-express] business notification email failed", {
+              requestId: String(created.id),
+              correlationId: httpRequestId,
+            });
+            if (businessEmailResult.skipped) {
+              businessNotificationEmailStatus = "skipped";
+              businessNotificationEmailReason =
+                businessEmailResult.skippedReason || "suppressed_or_unconfigured";
+              console.warn("[tradepartner-express] business notification email skipped", {
                 requestId: created.id,
-                notificationEmail: target.notificationEmail,
-                error,
-              })
-            );
+                correlationId: httpRequestId,
+                reason: businessNotificationEmailReason,
+                provider: businessEmailResult.provider,
+                notificationRecipient: maskEmailForLog(target.notificationEmail),
+              });
+            } else {
+              businessNotificationEmailStatus = "sent";
+              businessNotificationMessageId = businessEmailResult.messageId || null;
+              console.info("[tradepartner-express] business notification email sent", {
+                requestId: created.id,
+                correlationId: httpRequestId,
+                provider: businessEmailResult.provider,
+                messageId: businessNotificationMessageId,
+                notificationRecipient: maskEmailForLog(target.notificationEmail),
+              });
+            }
+          } catch (error) {
+            businessNotificationEmailStatus = "failed";
+            businessNotificationEmailReason = "provider_send_failed";
+            console.warn("[tradepartner-express] business notification email failed", {
+              requestId: created.id,
+              correlationId: httpRequestId,
+              notificationRecipient: maskEmailForLog(target.notificationEmail),
+              reason: businessNotificationEmailReason,
+              error,
+            });
+          }
         }
 
         const requestWorkspaceParams = new URLSearchParams({
@@ -667,8 +753,33 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           ? `/reset-password?token=${encodeURIComponent(activation.token)}&next=${encodeURIComponent(requestWorkspacePath)}`
           : null;
         let onboardingEmailStatus: "sent" | "skipped" | "failed" = "skipped";
+        let onboardingEmailReason: string | null = null;
+        let onboardingEmailMessageId: string | null = null;
+        // A no-reply confirmation from TradeScout itself -- generic
+        // across every business. Real back-and-forth with the business
+        // happens separately, through whatever contact the business
+        // owner uses, once they accept the request.
+        // New accounts keep purpose account_creation (already allow-listed).
+        // Existing-account matches must use tradepartner_request_confirmation
+        // — purpose "notification" is suppressed under EMAIL_MODE=
+        // account_creation_only (production).
+        const requesterEmailPurpose = requesterWasCreated
+          ? "account_creation"
+          : "tradepartner_request_confirmation";
 
-        if (emailService.isConfigured()) {
+        if (!emailConfigured) {
+          onboardingEmailStatus = "skipped";
+          onboardingEmailReason = "email_provider_not_configured";
+          console.warn("[tradepartner-express] requester confirmation email skipped", {
+            requestId: created.id,
+            correlationId: httpRequestId,
+            requesterUserId: requester.id,
+            purpose: requesterEmailPurpose,
+            accountCreated: requesterWasCreated,
+            reason: onboardingEmailReason,
+            requesterRecipient: maskEmailForLog(requester.email),
+          });
+        } else {
           const publicBase = String(
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
           ).replace(/\/$/, "");
@@ -678,18 +789,15 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           const verificationUrl = verification
             ? `${publicBase}/verify-email?token=${verification.token}&next=${encodeURIComponent(requestWorkspacePath)}`
             : null;
+          console.info("[tradepartner-express] requester confirmation email send start", {
+            requestId: created.id,
+            correlationId: httpRequestId,
+            requesterUserId: requester.id,
+            purpose: requesterEmailPurpose,
+            accountCreated: requesterWasCreated,
+            requesterRecipient: maskEmailForLog(requester.email),
+          });
           try {
-            // A no-reply confirmation from TradeScout itself -- generic
-            // across every business. Real back-and-forth with the business
-            // happens separately, through whatever contact the business
-            // owner uses, once they accept the request.
-            // New accounts keep purpose account_creation (already allow-listed).
-            // Existing-account matches must use tradepartner_request_confirmation
-            // — purpose "notification" is suppressed under EMAIL_MODE=
-            // account_creation_only (production).
-            const requesterEmailPurpose = requesterWasCreated
-              ? "account_creation"
-              : "tradepartner_request_confirmation";
             const emailResult = await emailService.sendEmail({
               to: requester.email,
               subject:
@@ -728,20 +836,48 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 .filter(Boolean)
                 .join("\n"),
               purpose: requesterEmailPurpose,
+              requestId: String(created.id),
+              correlationId: httpRequestId,
             });
             onboardingEmailStatus = emailResult.skipped ? "skipped" : "sent";
+            onboardingEmailReason = emailResult.skipped
+              ? emailResult.skippedReason || "suppressed_or_unconfigured"
+              : null;
+            onboardingEmailMessageId = emailResult.messageId || null;
             if (emailResult.skipped) {
               console.warn("[tradepartner-express] requester confirmation email skipped", {
                 requestId: created.id,
+                correlationId: httpRequestId,
                 requesterUserId: requester.id,
                 purpose: requesterEmailPurpose,
+                accountCreated: requesterWasCreated,
+                reason: onboardingEmailReason,
+                provider: emailResult.provider,
+                requesterRecipient: maskEmailForLog(requester.email),
+              });
+            } else {
+              console.info("[tradepartner-express] requester confirmation email sent", {
+                requestId: created.id,
+                correlationId: httpRequestId,
+                requesterUserId: requester.id,
+                purpose: requesterEmailPurpose,
+                accountCreated: requesterWasCreated,
+                provider: emailResult.provider,
+                messageId: onboardingEmailMessageId,
+                requesterRecipient: maskEmailForLog(requester.email),
               });
             }
           } catch (error) {
             onboardingEmailStatus = "failed";
+            onboardingEmailReason = "provider_send_failed";
             console.warn("[tradepartner-express] requester onboarding email failed", {
               requestId: created.id,
+              correlationId: httpRequestId,
               requesterUserId: requester.id,
+              purpose: requesterEmailPurpose,
+              accountCreated: requesterWasCreated,
+              reason: onboardingEmailReason,
+              requesterRecipient: maskEmailForLog(requester.email),
               error,
             });
           }
@@ -749,6 +885,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
 
         console.info("[tradepartner-express] phone-gated request created", {
           requestId: created.id,
+          correlationId: httpRequestId,
           profileId: target.profileId,
           businessId: target.businessId,
           requesterUserId: requester.id,
@@ -756,6 +893,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           connectionMode: "express",
           deliveryCustody: target.deliveryCustody,
           accountCreated: requesterWasCreated,
+          ownerNotificationStatus,
+          businessNotificationEmailStatus,
+          businessNotificationEmailReason,
+          businessNotificationMessageId,
+          onboardingEmailStatus,
+          onboardingEmailReason,
+          onboardingEmailMessageId,
+          requesterEmailPurpose,
         });
         return res.status(201).json({
           requestId: created.id,
@@ -800,8 +945,24 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           html: "<p>This is an admin-triggered test of the tradepartner_request_notification email path. If you received this, the EMAIL_MODE allow-list and provider config are working.</p>",
           text: "This is an admin-triggered test of the tradepartner_request_notification email path. If you received this, the EMAIL_MODE allow-list and provider config are working.",
           purpose: "tradepartner_request_notification",
+          correlationId:
+            String((req as any).requestId || req.get("x-request-id") || "").trim() || null,
         });
-        return res.json({ sent: !result.skipped, messageId: result.messageId || null });
+        console.info("[tradepartner-express] test notification email result", {
+          sent: !result.skipped,
+          skipped: result.skipped,
+          skippedReason: result.skippedReason || null,
+          provider: result.provider,
+          messageId: result.messageId || null,
+          to: maskEmailForLog(to),
+        });
+        return res.json({
+          sent: !result.skipped,
+          skipped: result.skipped,
+          skippedReason: result.skippedReason || null,
+          messageId: result.messageId || null,
+          provider: result.provider,
+        });
       } catch (error) {
         console.error("[tradepartner-express] test notification email failed", error);
         return res.status(500).json({ message: "Test email failed to send." });

@@ -48,6 +48,10 @@ const PREFERRED_COVER_FILE_IDS = {
   "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
   "picasso": "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
   "bronzonite": "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
+  "shadow-storm": "1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8",
+  "aspen-white": "1PGDSTn70sheqEx3u39VgzuJNodBJW0xe",
+  // Face-true white — prior BLOCK#22129 lead was yard/sky blue-washed.
+  "alabama-white": "1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso",
 };
 
 /** Keep in sync with client/src/features/jw-stone/coverImages.ts */

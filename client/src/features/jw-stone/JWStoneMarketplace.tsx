@@ -32,15 +32,6 @@ const JW_STONE_COLLECTION_DATA = {
   image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
 };
 
-function scrollToInventory() {
-  requestAnimationFrame(() => {
-    document.getElementById("current-inventory")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  });
-}
-
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const { state, commit } = useMarketplaceUrlState();
@@ -108,10 +99,20 @@ export default function JWStoneMarketplace() {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
 
+  /** Browse by color — never invents or keeps a material refinement. */
   const selectPalette = (next: ColorSwatchSelection) => {
+    commit({
+      ...state,
+      aesthetic: next.aesthetic,
+      color: next.color,
+      material: null,
+      stone: null,
+    });
+  };
+
+  /** Material-panel color refine — AND with the active material; stays in the material section. */
+  const selectMaterialColor = (next: ColorSwatchSelection) => {
     commit({ ...state, aesthetic: next.aesthetic, color: next.color, stone: null });
-    // Material-first refine stays in place; color-first scrolls to inventory.
-    if ((next.aesthetic || next.color) && !state.material) scrollToInventory();
   };
 
   const selectMaterial = (material: string | null) => {
@@ -123,6 +124,22 @@ export default function JWStoneMarketplace() {
         .querySelector(`[data-testid="jw-material-section-${material}"]`)
         ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
+  };
+
+  /** Full inventory is a clean slate — rail tags do not carry over. */
+  const enterFullInventory = () => {
+    if (!state.aesthetic && !state.color && !state.material && !state.origin) return;
+    commit(
+      {
+        ...state,
+        aesthetic: null,
+        color: null,
+        material: null,
+        origin: null,
+        stone: null,
+      },
+      { replace: true }
+    );
   };
 
   return (
@@ -154,7 +171,7 @@ export default function JWStoneMarketplace() {
       <ColorPaletteRail
         aesthetic={state.aesthetic}
         color={state.color}
-        material={state.material}
+        material={null}
         origin={state.origin}
         onSelect={selectPalette}
       />
@@ -163,7 +180,7 @@ export default function JWStoneMarketplace() {
         aesthetic={state.aesthetic}
         color={state.color}
         onSelect={selectMaterial}
-        onSelectColor={selectPalette}
+        onSelectColor={selectMaterialColor}
         isSaved={wishlist.isSaved}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
@@ -175,6 +192,7 @@ export default function JWStoneMarketplace() {
         state={state}
         isSaved={wishlist.isSaved}
         onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
+        onEnterFullInventory={enterFullInventory}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
         onAsk={askAboutStone}

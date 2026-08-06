@@ -179,4 +179,37 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("marketingEmails: updatesOptIn");
     expect(route).toContain("updatesOptIn,");
   });
+
+  it("awaits both Express emails and logs send/skip/fail against requestId", () => {
+    const route = read("server/routes/tradepartner-express.ts");
+    const emailService = read("server/services/emailService.ts");
+
+    // Regression: business notify must not be fire-and-forget (void .catch).
+    expect(route).toContain("const businessEmailResult = await emailService.sendEmail({");
+    expect(route).not.toMatch(/void\s+emailService\s*\n?\s*\.sendEmail/);
+    expect(route).toContain("requestId: String(created.id)");
+    expect(route).toContain("correlationId: httpRequestId");
+
+    expect(route).toContain('"[tradepartner-express] recipients resolved"');
+    expect(route).toContain('"[tradepartner-express] owner notification attempted"');
+    expect(route).toContain('"[tradepartner-express] owner notification queued"');
+    expect(route).toContain('"[tradepartner-express] business notification email send start"');
+    expect(route).toContain('"[tradepartner-express] business notification email sent"');
+    expect(route).toContain('"[tradepartner-express] business notification email skipped"');
+    expect(route).toContain('"[tradepartner-express] requester confirmation email send start"');
+    expect(route).toContain('"[tradepartner-express] requester confirmation email sent"');
+    expect(route).toContain("businessNotificationEmailStatus");
+    expect(route).toContain("onboardingEmailStatus");
+    expect(route).toContain("requesterEmailPurpose");
+    expect(route).toContain("maskEmailForLog");
+
+    // Unconfigured provider must log skip for requester too (was silent).
+    expect(route).toContain("reason: onboardingEmailReason");
+    expect(route).toContain('"email_provider_not_configured"');
+
+    expect(emailService).toContain('"[email] send start"');
+    expect(emailService).toContain("requestId?: string | null");
+    expect(emailService).toContain("maskEmailForLog");
+    expect(emailService).toContain("skippedReason");
+  });
 });

@@ -55,6 +55,10 @@ describe("JW Stone editorial color directions", () => {
     expect(getColorDirectionForStone("jaguar-leather")).toBe("cool-serene");
     expect(getColorDirectionForStone("titanium")).toBe("cool-serene");
     expect(getColorDirectionForStone("soapstone")).toBe("cool-serene");
+    // Soft white — not Cool & Serene / blue from yard wash.
+    expect(getColorDirectionForStone("alabama-white")).toBe("soft-light");
+    expect(getColorDirectionForStone("dallas-white")).toBe("soft-light");
+    expect(getColorDirectionForStone("namib-fantasy")).toBe("soft-light");
   });
 
   it("resolves only supported direction ids and known stones", () => {

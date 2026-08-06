@@ -23,6 +23,8 @@ type StoneCollectionProps = {
   state: MarketplaceUrlState;
   isSaved: (id: string) => boolean;
   onUpdateFilters: (filters: CollectionFilters) => void;
+  /** Called when Full inventory opens — parent clears browse-rail URL tags. */
+  onEnterFullInventory?: () => void;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
   onAsk: (stone: JwStoneCatalogItem) => void;
@@ -39,6 +41,7 @@ export function StoneCollection({
   state,
   isSaved,
   onUpdateFilters,
+  onEnterFullInventory,
   onToggleSaved,
   onOpen,
   onAsk,
@@ -232,7 +235,19 @@ export function StoneCollection({
         testId="jw-inventory"
         headingId="jw-inventory-heading"
         title="Full inventory"
-        defaultExpanded={Boolean(state.aesthetic || state.color || state.material || state.origin)}
+        onExpandedChange={(expanded) => {
+          if (!expanded) return;
+          // Local sheet-only refinements reset with URL tags so inventory starts clean.
+          setQuery("");
+          setFinish(null);
+          setAvailability("any");
+          setDraftColor(null);
+          setDraftMaterial(null);
+          setDraftFinish(null);
+          setDraftAvailability("any");
+          setFiltersOpen(false);
+          onEnterFullInventory?.();
+        }}
         background={<InventoryCollageBackground />}
       >
         <div className="flex flex-wrap items-end justify-between gap-3">

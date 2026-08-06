@@ -18,19 +18,54 @@ export type SendEmailParams = {
   headers?: Record<string, string>;
   /** Optional classifier so we can selectively suppress emails by env */
   purpose?: string;
+  /** Upstream work-request / express request id for log correlation (never a secret). */
+  requestId?: string | null;
+  /** Optional secondary correlation id (e.g. HTTP request id). */
+  correlationId?: string | null;
 };
 
-type EmailSendResult = {
+export type EmailSkippedReason =
+  | "provider_not_configured"
+  | "email_mode_suppressed"
+  | "brevo_api_key_missing"
+  | "unknown_provider";
+
+export type EmailSendResult = {
   skipped: boolean;
   messageId?: string;
+  provider: "sendgrid" | "brevo" | "none";
+  skippedReason?: EmailSkippedReason;
 };
 
 const BREVO_MAX_ATTEMPTS = 3;
 const BREVO_TIMEOUT_MS = 15_000;
 const BREVO_RETRY_BASE_MS = 500;
 
+/** Mask local-part for logs: `j***@domain.com` (keeps domain for ops triage). */
+export function maskEmailForLog(email: string): string {
+  const normalized = String(email || "")
+    .trim()
+    .toLowerCase();
+  const at = normalized.indexOf("@");
+  if (at <= 0 || at === normalized.length - 1) return "***";
+  const local = normalized.slice(0, at);
+  const domain = normalized.slice(at + 1);
+  const visible = local.slice(0, 1) || "*";
+  return `${visible}***@${domain}`;
+}
+
 function recipientSummary(to: string | string[]): string[] {
-  return (Array.isArray(to) ? to : [to]).map((value) => String(value).trim().toLowerCase());
+  return (Array.isArray(to) ? to : [to])
+    .map((value) => String(value).trim().toLowerCase())
+    .filter(Boolean)
+    .map(maskEmailForLog);
+}
+
+function correlationFields(params: Pick<SendEmailParams, "requestId" | "correlationId">) {
+  return {
+    ...(params.requestId ? { requestId: String(params.requestId) } : {}),
+    ...(params.correlationId ? { correlationId: String(params.correlationId) } : {}),
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -109,15 +144,22 @@ class EmailService {
     const purpose = String(params.purpose || "unspecified")
       .toLowerCase()
       .trim();
+    const correlation = correlationFields(params);
+    const baseLog = {
+      provider: this.provider,
+      purpose,
+      subject: params.subject,
+      recipients,
+      ...correlation,
+    };
 
     if (!this.configured) {
-      console.error("[email] send skipped: provider not configured", {
+      console.error("[email] send skipped: provider not configured", baseLog);
+      return {
+        skipped: true,
         provider: this.provider,
-        purpose,
-        subject: params.subject,
-        recipients,
-      });
-      return { skipped: true };
+        skippedReason: "provider_not_configured",
+      };
     }
 
     if (this.mode === "account_creation_only") {
@@ -138,13 +180,12 @@ class EmailService {
         purpose === "jw_stone_saved_stones_copy" ||
         purpose === "property_participant_invite";
       if (!allowed) {
-        console.warn("[email] send suppressed by EMAIL_MODE=account_creation_only", {
+        console.warn("[email] send suppressed by EMAIL_MODE=account_creation_only", baseLog);
+        return {
+          skipped: true,
           provider: this.provider,
-          purpose,
-          subject: params.subject,
-          recipients,
-        });
-        return { skipped: true };
+          skippedReason: "email_mode_suppressed",
+        };
       }
     }
 
@@ -152,10 +193,17 @@ class EmailService {
       throw new Error("Email requires html or text content");
     }
 
+    console.info("[email] send start", baseLog);
+
     const from =
       typeof params.from === "object" && params.from
         ? params.from
         : { email: params.from || this.defaultFrom };
+
+    // Brevo needs real addresses in the API body; masked list is log-only.
+    const rawRecipients = (Array.isArray(params.to) ? params.to : [params.to])
+      .map((value) => String(value).trim().toLowerCase())
+      .filter(Boolean);
 
     if (this.provider === "sendgrid") {
       const content: Array<{ type: "text/html" | "text/plain"; value: string }> = [];
@@ -178,19 +226,15 @@ class EmailService {
         const rawMessageId = (response?.headers as any)?.["x-message-id"];
         const messageId = Array.isArray(rawMessageId) ? rawMessageId[0] : rawMessageId;
         console.info("[email] provider accepted message", {
+          ...baseLog,
           provider: "sendgrid",
-          purpose,
-          subject: params.subject,
-          recipients,
           messageId: messageId || null,
         });
-        return { skipped: false, messageId };
+        return { skipped: false, messageId, provider: "sendgrid" };
       } catch (error) {
         console.error("[email] provider rejected message", {
+          ...baseLog,
           provider: "sendgrid",
-          purpose,
-          subject: params.subject,
-          recipients,
           error,
         });
         throw error;
@@ -199,12 +243,12 @@ class EmailService {
 
     if (this.provider === "brevo") {
       if (!this.brevoApiKey) {
-        console.error("[email] send skipped: Brevo selected but API key missing", {
-          purpose,
-          subject: params.subject,
-          recipients,
-        });
-        return { skipped: true };
+        console.error("[email] send skipped: Brevo selected but API key missing", baseLog);
+        return {
+          skipped: true,
+          provider: "brevo",
+          skippedReason: "brevo_api_key_missing",
+        };
       }
       const fetchFn = (globalThis as any).fetch as undefined | typeof fetch;
       if (!fetchFn) {
@@ -213,7 +257,7 @@ class EmailService {
 
       const payload = {
         sender: from.name ? { email: from.email, name: from.name } : { email: from.email },
-        to: recipients.map((email) => ({ email })),
+        to: rawRecipients.map((email) => ({ email })),
         subject: params.subject,
         ...(params.html ? { htmlContent: params.html } : {}),
         ...(params.text ? { textContent: params.text } : {}),
@@ -247,9 +291,7 @@ class EmailService {
             lastError = error;
             const retry = attempt < BREVO_MAX_ATTEMPTS && shouldRetryBrevo(resp.status);
             console.error("[email] Brevo rejected message", {
-              purpose,
-              subject: params.subject,
-              recipients,
+              ...baseLog,
               status: resp.status,
               attempt,
               retry,
@@ -260,25 +302,22 @@ class EmailService {
             const json: any = responseText ? JSON.parse(responseText) : null;
             const messageId = json?.messageId || json?.["messageId"];
             console.info("[email] provider accepted message", {
+              ...baseLog,
               provider: "brevo",
-              purpose,
-              subject: params.subject,
-              recipients,
               attempt,
               messageId: typeof messageId === "string" ? messageId : null,
             });
             return {
               skipped: false,
               messageId: typeof messageId === "string" ? messageId : undefined,
+              provider: "brevo",
             };
           }
         } catch (error) {
           lastError = error;
           const retry = attempt < BREVO_MAX_ATTEMPTS;
           console.error("[email] Brevo delivery attempt failed", {
-            purpose,
-            subject: params.subject,
-            recipients,
+            ...baseLog,
             attempt,
             retry,
             error,
@@ -294,13 +333,12 @@ class EmailService {
       throw lastError instanceof Error ? lastError : new Error("Brevo send failed");
     }
 
-    console.error("[email] send skipped: unknown provider", {
+    console.error("[email] send skipped: unknown provider", baseLog);
+    return {
+      skipped: true,
       provider: this.provider,
-      purpose,
-      subject: params.subject,
-      recipients,
-    });
-    return { skipped: true };
+      skippedReason: "unknown_provider",
+    };
   }
 }
 

@@ -4,14 +4,13 @@ import {
   JW_STONE_FIRST_CUT_ASSIGNMENTS,
   JW_STONE_FIRST_CUT_PHOTO_SLOTS,
   JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT,
-  JW_STONE_FIRST_CUT_SECTION_NOTE,
   buildFirstCutPresentation,
   firstCutPhotoAsDetailStone,
   resolveFirstCutDetailStone,
 } from "./firstCut";
 
 describe("First Cut Exclusives data boundary", () => {
-  it("ships three photo-only First Cut slots with a shared section note (no invented names)", () => {
+  it("ships three photo-only First Cut slots (no invented names)", () => {
     expect(JW_STONE_FIRST_CUT_ASSIGNMENTS).toEqual([]);
     expect(JW_STONE_FIRST_CUT_PHOTO_SLOTS).toEqual([
       // Lead: physically long green bookmatched pair (not burgundy / black-vein).
@@ -24,9 +23,6 @@ describe("First Cut Exclusives data boundary", () => {
       { kind: "photo", id: "first-cut-2", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[1].imageSrc },
       { kind: "photo", id: "first-cut-3", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[2].imageSrc },
     ]);
-    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).toBe("New to market. First chance to buy.");
-    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).not.toMatch(/newly sourced/i);
-    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).not.toMatch(/Fresh from the first cut/i);
     expect(JW_STONE_CATALOG).toHaveLength(148);
   });
 

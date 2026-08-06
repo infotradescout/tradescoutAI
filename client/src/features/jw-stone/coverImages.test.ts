@@ -85,6 +85,26 @@ describe("JW Stone marketplace cover image ranking", () => {
     );
   });
 
+  it("promotes Alabama White face-true white cover over yard blue-washed lead", () => {
+    const blueWashed =
+      "/images/businesses/jw-stone/inventory-source/10yweUjuZUXYPMdABEIM6kq7EC4N4Djyn.webp";
+    const faceTrue =
+      "/images/businesses/jw-stone/inventory-source/1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso.webp";
+
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["alabama-white"]).toBe(
+      driveFileIdFromImagePath(faceTrue)
+    );
+
+    const ordered = orderImagesForCover([blueWashed, faceTrue], {
+      stoneSlug: "alabama-white",
+    });
+    expect(ordered[0]).toBe(faceTrue);
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "alabama-white");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso");
+  });
+
   it("promotes Aspen White full-slab over clamp-hand and hand-scale siblings", () => {
     const clampHand =
       "/images/businesses/jw-stone/inventory-source/1CtB0-MY_RP50AEdeSHvwHYJzSwGYs8Ae.webp";
@@ -123,6 +143,51 @@ describe("JW Stone marketplace cover image ranking", () => {
     expect(stone!.images.some((image) => image.includes("1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK"))).toBe(
       false
     );
+  });
+
+  it("keeps Black Pearl off outdoor reflection clamp lead", () => {
+    const reflectionLead =
+      "/images/businesses/jw-stone/inventory-source/1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp";
+    const faceLead = "/images/businesses/jw-stone/inventory-source/black-pearl-slab-face.webp";
+    const botchedFace =
+      "/images/businesses/jw-stone/inventory-source/black-pearl-face-1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp";
+
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(reflectionLead))).toBe(true);
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(botchedFace))).toBe(true);
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["black-pearl"]).toBe(
+      driveFileIdFromImagePath(faceLead)
+    );
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "black-pearl");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("black-pearl-slab-face");
+    expect(driveFileIdFromImagePath(stone!.images[0]!)).not.toBe(
+      "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs"
+    );
+    expect(stone!.images.some((image) => image.includes(botchedFace.split("/").pop()!))).toBe(
+      false
+    );
+  });
+
+  it("keeps Taj Mahal off hand-on-stone yard leads", () => {
+    const handLead =
+      "/images/businesses/jw-stone/inventory-source/1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW.webp";
+    const handSeriesLead =
+      "/images/businesses/jw-stone/inventory-source/16683MPLP7Tbr_zWA29ito0eVct7ooffq.webp";
+    const cleanFace =
+      "/images/businesses/jw-stone/inventory-source/1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh.webp";
+
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(handLead))).toBe(true);
+    expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(handSeriesLead))).toBe(true);
+    expect(JW_STONE_PREFERRED_COVER_FILE_IDS["taj-mahal"]).toBe(
+      driveFileIdFromImagePath(cleanFace)
+    );
+
+    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "taj-mahal");
+    expect(stone).toBeTruthy();
+    expect(stone!.images[0]).toContain("1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh");
+    expect(stone!.images[0]).not.toContain("1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW");
+    expect(stone!.images[0]).not.toContain("16683MPLP7Tbr_zWA29ito0eVct7ooffq");
   });
 
   it("keeps Shadow Storm off hand-on-face dimension leads", () => {

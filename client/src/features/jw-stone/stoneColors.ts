@@ -48,8 +48,9 @@ const MAX_PAIRING_SWATCHES = 4;
 
 /**
  * Face-true color bucket overrides when cover sampling still picks up yard /
- * floor / sky / clamp chrome instead of the stone face. Buckets merge with
- * photographed data (override buckets lead). Never invent hex swatches here.
+ * floor / sky / clamp chrome instead of the stone face. When set, these buckets
+ * fully replace photographed filter buckets (surround chrome must not linger).
+ * Never invent hex swatches here.
  */
 export const JW_STONE_FACE_TRUE_COLOR_OVERRIDES: Readonly<Record<string, readonly StoneColorId[]>> =
   Object.freeze({
@@ -60,6 +61,10 @@ export const JW_STONE_FACE_TRUE_COLOR_OVERRIDES: Readonly<Record<string, readonl
     "blue-bahia": Object.freeze(["blue", "gray"] as const),
     "emerald-pearl": Object.freeze(["green", "black"] as const),
     "fusion-yellow": Object.freeze(["yellow", "gold", "black"] as const),
+    // Soft white faces misread as blue from yard/sky wash or hand-close chrome.
+    "alabama-white": Object.freeze(["white", "gray"] as const),
+    "dallas-white": Object.freeze(["white", "gray"] as const),
+    "namib-fantasy": Object.freeze(["white", "gray"] as const),
   });
 
 export function isStoneColorId(value: unknown): value is StoneColorId {
@@ -88,28 +93,22 @@ export function getSwatchesForStone(stoneId: string): readonly StoneColorSwatch[
 /**
  * Filter buckets derived from the photographed palette.
  * Empty only when the stone has no sampled cover data.
- * Face-true overrides win when yard/surround sampling washed the face hue.
+ * Face-true overrides fully replace photographed buckets when surround chrome
+ * washed the face hue (so a wrong "blue" cannot linger beside "white").
  */
 export function getColorsForStone(stoneId: string): readonly StoneColorId[] {
   const override = JW_STONE_FACE_TRUE_COLOR_OVERRIDES[stoneId];
+  if (override?.length) return Object.freeze([...override]);
+
   const raw = PALETTE_BY_ID[stoneId];
-
-  const photographed = (() => {
-    if (!raw) return [] as StoneColorId[];
-    const fromBuckets = (raw.buckets ?? []).filter(isStoneColorId);
-    if (fromBuckets.length) return fromBuckets;
-    return asSwatches(raw)
+  if (!raw) return Object.freeze([]);
+  const fromBuckets = (raw.buckets ?? []).filter(isStoneColorId);
+  if (fromBuckets.length) return Object.freeze(fromBuckets);
+  return Object.freeze(
+    asSwatches(raw)
       .map((swatch) => swatch.bucket)
-      .filter((bucket, index, list) => list.indexOf(bucket) === index);
-  })();
-
-  if (!override?.length) return Object.freeze(photographed);
-
-  const merged: StoneColorId[] = [];
-  for (const bucket of [...override, ...photographed]) {
-    if (!merged.includes(bucket)) merged.push(bucket);
-  }
-  return Object.freeze(merged);
+      .filter((bucket, index, list) => list.indexOf(bucket) === index)
+  );
 }
 
 function clamp01(value: number): number {

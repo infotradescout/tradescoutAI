@@ -1,6 +1,5 @@
 import {
   buildFirstCutPresentation,
-  JW_STONE_FIRST_CUT_SECTION_NOTE,
   resolveFirstCutDetailStone,
   type FirstCutPresentation,
 } from "./firstCut";
@@ -118,16 +117,13 @@ export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
       className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-10 pt-6 sm:pb-14 sm:pt-8 ${jw.scrollTarget}`}
     >
       <div className={`mx-auto w-full max-w-[1680px] px-3 sm:px-6 lg:px-8 ${jw.scrollTarget}`}>
-        <header className="jw-first-cut__intro mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 sm:mb-4">
+        <header className="jw-first-cut__intro mb-3 sm:mb-4">
           <h2
             id="first-cut-title"
             className="font-editorial text-2xl font-medium leading-none tracking-tight text-[var(--jw-ink)] sm:text-3xl"
           >
-            First Cut
+            First Cut Exclusives
           </h2>
-          <p className={`max-w-md text-sm leading-5 sm:text-[0.95rem] sm:leading-6 ${jw.muted}`}>
-            {JW_STONE_FIRST_CUT_SECTION_NOTE}
-          </p>
         </header>
 
         {/* Full-width lead on top; two supports in one tight row below — no side column / beige void. */}

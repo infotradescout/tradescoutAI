@@ -26,6 +26,12 @@ export const JW_STONE_PREFERRED_COVER_FILE_IDS: Readonly<Record<string, string>>
   "shadow-storm": "1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8",
   /** Full slab outdoors — siblings include clamp-hand and hand-scale close-ups. */
   "aspen-white": "1PGDSTn70sheqEx3u39VgzuJNodBJW0xe",
+  /** Face-true white slab — prior lead (BLOCK#22129) was yard/sky blue-washed. */
+  "alabama-white": "1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso",
+  /** Slab-face band crop — only photo in set; raw lead has clamp + photographer reflection. */
+  "black-pearl": "black-pearl-slab-face",
+  /** Honed full slab outdoors — siblings include hand-on-face close-ups (128X80 series). */
+  "taj-mahal": "1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh",
 });
 
 /**
@@ -65,6 +71,16 @@ export const JW_STONE_HAND_COVER_FILE_IDS: ReadonlySet<string> = new Set([
   // AJ Quartz — hand-scale close siblings (misnamed with slab dims)
   "1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE", // aj-quartz hand-on-face
   "1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK", // aj-quartz hand-on-face
+  // Black Pearl — outdoor yard lead with clamp + photographer reflection
+  "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs", // black-pearl reflection/clamp lead
+  "black-pearl-face-1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs", // botched crop — still shows clamp + reflection
+  // Taj Mahal — hand-on-face yard shots (misnamed with slab dimensions)
+  "16683MPLP7Tbr_zWA29ito0eVct7ooffq", // taj-mahal 128X80 hand-on-face (series lead)
+  "1QJ3LbaifHqRv24aZ5hWSnmlU_IL1XjfX", // taj-mahal 128X80 hand-on-face sibling
+  "1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW", // taj-mahal hand on face
+  "1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b", // taj-mahal Granos hand-scale
+  "1L42L_3HT_2rFzdCTWT46k_AS_ytajWF-", // taj-mahal Granos hand-scale
+  "1KlXD4-B96IBcvKjfCPGTM-aR8AwmD446", // taj-mahal close-up hand-scale
 ]);
 
 function normalizeName(sourceName = ""): string {

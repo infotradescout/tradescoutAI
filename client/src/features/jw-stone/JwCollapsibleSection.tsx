@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { jw } from "./brand";
 
 type JwCollapsibleSectionProps = {
@@ -10,6 +10,8 @@ type JwCollapsibleSectionProps = {
   summary?: string;
   /** Open on first paint when deep-link filters / hash warrant it. */
   defaultExpanded?: boolean;
+  /** Fires when expanded flips (toggle, hash jump, or defaultExpanded open). */
+  onExpandedChange?: (expanded: boolean) => void;
   children: ReactNode;
   className?: string;
   /** Full-bleed single photo atmosphere. */
@@ -32,6 +34,7 @@ export function JwCollapsibleSection({
   title,
   summary,
   defaultExpanded = false,
+  onExpandedChange,
   children,
   className = "",
   backgroundSrc,
@@ -41,10 +44,22 @@ export function JwCollapsibleSection({
   const [expanded, setExpanded] = useState(defaultExpanded);
   const panelId = `${testId}-panel`;
   const hasBackground = Boolean(background || backgroundSrc);
+  const expandedRef = useRef(expanded);
+  const onExpandedChangeRef = useRef(onExpandedChange);
+  expandedRef.current = expanded;
+  onExpandedChangeRef.current = onExpandedChange;
+
+  const setExpandedAndNotify = (next: boolean | ((prev: boolean) => boolean)) => {
+    const value = typeof next === "function" ? next(expandedRef.current) : next;
+    if (value === expandedRef.current) return;
+    expandedRef.current = value;
+    setExpanded(value);
+    onExpandedChangeRef.current?.(value);
+  };
 
   useEffect(() => {
     const syncFromHash = () => {
-      if (window.location.hash === `#${id}`) setExpanded(true);
+      if (window.location.hash === `#${id}`) setExpandedAndNotify(true);
     };
     syncFromHash();
     window.addEventListener("hashchange", syncFromHash);
@@ -52,10 +67,10 @@ export function JwCollapsibleSection({
   }, [id]);
 
   useEffect(() => {
-    if (defaultExpanded) setExpanded(true);
+    if (defaultExpanded) setExpandedAndNotify(true);
   }, [defaultExpanded]);
 
-  const toggle = () => setExpanded((open) => !open);
+  const toggle = () => setExpandedAndNotify(!expandedRef.current);
 
   if (!hasBackground) {
     return (
