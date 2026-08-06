@@ -167,6 +167,26 @@ describe("JW Stone compact color swatch selector", () => {
       expect(expectedIds).toHaveLength(EXPECTED_COLOR_LABELS.length);
     });
 
+    it("stays collapsed on mount even when a color filter is already set", () => {
+      const onSelect = vi.fn();
+      act(() =>
+        root.render(
+          <ColorPaletteRail
+            aesthetic="warm-earthy"
+            color={null}
+            onSelect={onSelect}
+            {...railHandlers}
+          />
+        )
+      );
+
+      expect(
+        container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+      ).toBe("false");
+      expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
+      expect(container.querySelector('[data-testid="jw-palette-chip-row"]')).toBeNull();
+    });
+
     it("renders stone-face chips with editorial labels and selection", () => {
       const onSelect = vi.fn();
       act(() =>
@@ -179,6 +199,12 @@ describe("JW Stone compact color swatch selector", () => {
           />
         )
       );
+
+      act(() => {
+        container
+          .querySelector('[data-testid="jw-palette-rail-toggle"]')
+          ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
 
       expect(container.querySelector('[data-testid="jw-palette-prompt"]')).toBeNull();
       expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();

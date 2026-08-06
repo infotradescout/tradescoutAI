@@ -185,6 +185,8 @@ export function MaterialCategoryRail({
       testId="jw-material-rail"
       headingId="jw-material-heading"
       title="Browse by material"
+      // Initial paint only (JwCollapsibleSection is not reactive): material path
+      // deep-links may open once. Clean /jw-stone stays collapsed.
       defaultExpanded={Boolean(active)}
       background={<MaterialCollageBackground />}
     >
