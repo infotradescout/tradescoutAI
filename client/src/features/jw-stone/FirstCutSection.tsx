@@ -1,8 +1,34 @@
-import { buildFirstCutPresentation, JW_STONE_FIRST_CUT_SECTION_NOTE } from "./firstCut";
+import {
+  buildFirstCutPresentation,
+  JW_STONE_FIRST_CUT_SECTION_NOTE,
+  resolveFirstCutDetailStone,
+  type FirstCutPresentation,
+} from "./firstCut";
 import { jw } from "./brand";
+import type { JwStoneCatalogItem } from "./types";
 
-export function FirstCutSection() {
-  const presentation = buildFirstCutPresentation();
+type FirstCutSectionProps = {
+  onOpen?: (stone: JwStoneCatalogItem) => void;
+};
+
+type TileRole = "lead" | "support";
+
+/** Cache-bust so updated first-cut assets are not stuck behind an old empty response. */
+const FIRST_CUT_PHOTO_CACHE_BUST = "green-bookmatch-lead-1";
+
+function tileImageSrc(item: Extract<FirstCutPresentation, { kind: "stone" | "photo" }>): string {
+  if (item.kind === "stone") return item.stone.images[0] ?? "";
+  return `${item.imageSrc}?v=${FIRST_CUT_PHOTO_CACHE_BUST}`;
+}
+
+function tileAriaLabel(item: Extract<FirstCutPresentation, { kind: "stone" | "photo" }>): string {
+  if (item.kind === "stone") return item.stone.publicLabel;
+  return "First Cut stone";
+}
+
+export function FirstCutSection({ onOpen }: FirstCutSectionProps) {
+  const presentation = buildFirstCutPresentation().slice(0, 3);
+  const [lead, ...support] = presentation;
   const hasStones = presentation.some((item) => item.kind === "stone");
   const hasPhotos = presentation.some((item) => item.kind === "photo");
 
@@ -12,77 +38,109 @@ export function FirstCutSection() {
       ? "First Cut photos"
       : "Upcoming First Cut placements";
 
+  const renderMedia = (
+    item: Extract<FirstCutPresentation, { kind: "stone" | "photo" }>,
+    role: TileRole
+  ) => {
+    const testId =
+      item.kind === "stone"
+        ? `jw-first-cut-stone-${item.stone.id}`
+        : `jw-first-cut-photo-${item.id}`;
+
+    return (
+      <button
+        key={item.kind === "stone" ? item.stone.id : item.id}
+        type="button"
+        data-testid={testId}
+        data-first-cut-photo={item.kind === "photo" ? "true" : undefined}
+        data-first-cut-lead={role === "lead" ? "true" : undefined}
+        data-first-cut-support={role === "support" ? "true" : undefined}
+        onClick={() => onOpen?.(resolveFirstCutDetailStone(item))}
+        className={`jw-first-cut__tile jw-first-cut__tile--${role} group relative flex h-full w-full min-w-0 flex-col text-left`}
+        aria-label={tileAriaLabel(item)}
+      >
+        {/*
+          In-flow frames sized by aspect-ratio — no svh min-heights that leave beige voids.
+          Lead: wide frame for green bookmatched pair. Supports: identical 4/3 cells + cover
+          so mixed slab ratios never look like uneven tiles.
+        */}
+        <span
+          className={
+            role === "lead"
+              ? "relative block aspect-[2/1] w-full overflow-hidden bg-[var(--jw-bg)]"
+              : "relative block aspect-[4/3] w-full overflow-hidden bg-[var(--jw-bg)]"
+          }
+        >
+          <img
+            src={tileImageSrc(item)}
+            alt=""
+            className="jw-first-cut__image h-full w-full object-cover object-center"
+          />
+        </span>
+        {item.kind === "stone" && item.stone.displayName ? (
+          <span className="mt-2 font-editorial text-base leading-tight text-[var(--jw-ink)] sm:text-lg">
+            {item.stone.displayName}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
+  const renderPlaceholder = (
+    item: Extract<FirstCutPresentation, { kind: "placeholder" }>,
+    role: TileRole
+  ) => (
+    <div
+      key={item.position}
+      data-first-cut-placeholder="true"
+      data-first-cut-lead={role === "lead" ? "true" : undefined}
+      data-first-cut-support={role === "support" ? "true" : undefined}
+      className={`jw-first-cut__tile jw-first-cut__tile--${role} flex w-full min-w-0 flex-col justify-end bg-[var(--jw-surface)] p-4 ${
+        role === "lead" ? "aspect-[2/1]" : "aspect-[4/3]"
+      }`}
+    >
+      <span className={`text-[10px] uppercase tracking-[0.16em] sm:text-xs ${jw.muted}`}>
+        Coming soon
+      </span>
+    </div>
+  );
+
+  const renderItem = (item: FirstCutPresentation | undefined, role: TileRole) => {
+    if (!item) return null;
+    if (item.kind === "placeholder") return renderPlaceholder(item, role);
+    return renderMedia(item, role);
+  };
+
   return (
     <section
       aria-labelledby="first-cut-title"
-      className={`bg-[var(--jw-bg)] px-0 pb-10 pt-9 sm:pb-12 sm:pt-11 ${jw.scrollTarget}`}
+      data-testid="jw-first-cut"
+      className={`jw-first-cut bg-[var(--jw-bg)] px-0 pb-10 pt-6 sm:pb-14 sm:pt-8 ${jw.scrollTarget}`}
     >
-      <div className={`mx-auto max-w-[1600px] px-5 sm:px-9 lg:px-12 ${jw.scrollTarget}`}>
-        <h2
-          id="first-cut-title"
-          className="font-editorial text-2xl leading-tight text-[var(--jw-ink)] sm:text-3xl"
+      <div className={`mx-auto w-full max-w-[1680px] px-3 sm:px-6 lg:px-8 ${jw.scrollTarget}`}>
+        <header className="jw-first-cut__intro mb-3 flex flex-wrap items-end justify-between gap-x-6 gap-y-2 sm:mb-4">
+          <h2
+            id="first-cut-title"
+            className="font-editorial text-2xl font-medium leading-none tracking-tight text-[var(--jw-ink)] sm:text-3xl"
+          >
+            First Cut
+          </h2>
+          <p className={`max-w-md text-sm leading-5 sm:text-[0.95rem] sm:leading-6 ${jw.muted}`}>
+            {JW_STONE_FIRST_CUT_SECTION_NOTE}
+          </p>
+        </header>
+
+        {/* Full-width lead on top; two supports in one tight row below — no side column / beige void. */}
+        <div
+          className="jw-first-cut__premiere grid grid-cols-1 gap-2 sm:gap-2.5"
+          aria-label={ariaLabel}
+          data-testid="jw-first-cut-rail"
         >
-          First Cut
-        </h2>
-        <p className={`mt-2 max-w-xl text-sm leading-6 ${jw.muted}`}>
-          {JW_STONE_FIRST_CUT_SECTION_NOTE}
-        </p>
-      </div>
-
-      <div
-        className="mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 pl-5 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-6 sm:gap-4 sm:pl-9 lg:pl-12 [&::-webkit-scrollbar]:hidden"
-        aria-label={ariaLabel}
-        data-testid="jw-first-cut-rail"
-      >
-        {presentation.map((item) => {
-          if (item.kind === "stone") {
-            return (
-              <figure
-                key={item.stone.id}
-                className="w-[88vw] max-w-[42rem] shrink-0 snap-start sm:w-[86vw]"
-              >
-                <img
-                  src={item.stone.images[0]}
-                  alt={`${item.stone.publicLabel} stone photograph`}
-                  className="aspect-[4/5] w-full bg-[var(--jw-surface)] object-contain sm:aspect-[5/4]"
-                />
-                {item.stone.displayName ? (
-                  <figcaption className="mt-3 font-editorial text-lg leading-tight text-[var(--jw-ink)] sm:text-xl">
-                    {item.stone.displayName}
-                  </figcaption>
-                ) : null}
-              </figure>
-            );
-          }
-
-          if (item.kind === "photo") {
-            return (
-              <figure
-                key={item.id}
-                data-first-cut-photo="true"
-                className="w-[88vw] max-w-[42rem] shrink-0 snap-start sm:w-[86vw]"
-              >
-                <img
-                  src={item.imageSrc}
-                  alt="First Cut stone photograph"
-                  className="aspect-[4/5] w-full bg-[var(--jw-surface)] object-contain sm:aspect-[5/4]"
-                />
-              </figure>
-            );
-          }
-
-          return (
-            <div
-              key={item.position}
-              data-first-cut-placeholder="true"
-              className="flex w-[88vw] max-w-[42rem] shrink-0 snap-start flex-col justify-end bg-[var(--jw-surface)] aspect-[4/5] p-5 sm:w-[86vw] sm:aspect-[5/4]"
-            >
-              <span className={`text-xs uppercase tracking-[0.16em] ${jw.muted}`}>Coming soon</span>
-            </div>
-          );
-        })}
-        {/* Trailing inset so the last slide can snap with a peek of previous. */}
-        <div className="w-5 shrink-0 sm:w-9 lg:w-12" aria-hidden="true" />
+          <div className="jw-first-cut__lead w-full">{renderItem(lead, "lead")}</div>
+          <div className="jw-first-cut__support grid w-full grid-cols-2 items-stretch gap-2 sm:gap-2.5">
+            {support.map((item) => renderItem(item, "support"))}
+          </div>
+        </div>
       </div>
     </section>
   );

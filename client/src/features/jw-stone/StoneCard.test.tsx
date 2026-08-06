@@ -24,32 +24,47 @@ describe("StoneCard", () => {
     container.remove();
   });
 
-  it("shows compact stone palette + Pairs with under editorial facts", () => {
+  it("shows Save, View stone, and Ask without color swatches or Pairs with", () => {
     const stone =
       JW_STONE_CATALOG.find((entry) => entry.id === "blue-dunes") ||
-      JW_STONE_CATALOG.find(
-        (entry) =>
-          entry.wishlistEligible &&
-          entry.colorSwatches.length > 0 &&
-          entry.pairingSwatches.length > 0
-      );
+      JW_STONE_CATALOG.find((entry) => entry.wishlistEligible);
     expect(stone).toBeTruthy();
-    if (!stone) throw new Error("Expected a named stone with palette swatches");
+    if (!stone) throw new Error("Expected a named wishlist-eligible stone");
+
+    const onAsk = vi.fn();
+    const onToggleSaved = vi.fn();
+    const onOpen = vi.fn();
 
     act(() =>
       root.render(
-        <StoneCard stone={stone} saved={false} onToggleSaved={vi.fn()} onOpen={vi.fn()} />
+        <StoneCard
+          stone={stone}
+          saved={false}
+          onToggleSaved={onToggleSaved}
+          onOpen={onOpen}
+          onAsk={onAsk}
+        />
       )
     );
 
     const card = container.querySelector<HTMLElement>("[data-stone-card]");
     expect(card).not.toBeNull();
-    expect(card?.textContent).toContain("Pairs with");
-    expect(card?.querySelector('[aria-label^="Colors #"]')).not.toBeNull();
-    expect(card?.querySelector('[aria-label^="Pairs with #"]')).not.toBeNull();
-    expect(card?.querySelectorAll('[aria-label^="#"]').length).toBe(
-      stone.colorSwatches.length + stone.pairingSwatches.length
-    );
+    expect(card?.querySelector('button[aria-label^="Save "]')).not.toBeNull();
+    expect(card?.textContent).toContain("View stone");
+    expect(card?.textContent).toContain("Ask");
+    expect(card?.textContent).not.toContain("Pairs with");
+    expect(card?.textContent).not.toContain("Colors from photo");
+    expect(card?.querySelector('[aria-label^="Colors #"]')).toBeNull();
+    expect(card?.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
+    expect(card?.querySelector("img")?.className).toMatch(/h-auto/);
     expect(card?.querySelector("img")?.className).toMatch(/object-contain/);
+    expect(card?.querySelector("img")?.className).not.toMatch(/object-cover|aspect-/);
+
+    const ask = Array.from(card?.querySelectorAll("button") || []).find((button) =>
+      (button.textContent || "").includes("Ask")
+    );
+    expect(ask).toBeTruthy();
+    act(() => ask?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onAsk).toHaveBeenCalledWith(stone);
   });
 });

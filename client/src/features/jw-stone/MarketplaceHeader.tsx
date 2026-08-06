@@ -104,35 +104,7 @@ export function MarketplaceHeader({
                 data-testid="jw-marketplace-menu-panel"
                 className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}
               >
-                <nav aria-label="JW Stone page sections" className="flex flex-col gap-0.5 text-sm">
-                  <a
-                    href="#first-cut-title"
-                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    First Cut
-                  </a>
-                  <a
-                    href="#jw-palette-rail"
-                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Browse by color
-                  </a>
-                  <a
-                    href="#jw-material-rail"
-                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Browse by material
-                  </a>
-                  <a
-                    href="#current-inventory"
-                    className="px-3 py-2.5 text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Explore the collection
-                  </a>
+                <nav aria-label="JW Stone menu" className="flex flex-col gap-0.5 text-sm">
                   <button
                     type="button"
                     onClick={() => closeAnd(onStartRequest)}

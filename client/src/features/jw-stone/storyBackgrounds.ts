@@ -2,8 +2,8 @@ import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "@/data/jwStoneProfilePresen
 
 /**
  * Profile-owned quarry + finished-space photography from `/u/jw-stone`.
- * Finished-work bridge may reuse story frames; browse rails must NOT surface
- * story/editorial captions ("Wagner…", quarry labels) as section chrome.
+ * Marketplace story section mounts the full sequence (quarry first).
+ * Browse rails must NOT surface story/editorial captions as section chrome.
  */
 const storyImages = JW_STONE_PROFILE_PRESENTATION_BLOCK.data.story.images;
 
@@ -30,7 +30,7 @@ export const JW_STORY_BACKGROUNDS = {
   },
 } as const;
 
-type ColorCollageStrip = Readonly<{
+type CollageStrip = Readonly<{
   src: string;
   alt: string;
 }>;
@@ -40,7 +40,7 @@ type ColorCollageStrip = Readonly<{
  * Spectrum L→R: white → warm → gray → black → brown → green → blue → red.
  * Assets built by tmp/build-color-collage-faces.mjs into color-collage/.
  */
-export const COLOR_COLLAGE_STRIPS: readonly ColorCollageStrip[] = Object.freeze([
+export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
   {
     src: "/images/businesses/jw-stone/color-collage/01-white.webp",
     alt: "White stone face",
@@ -84,18 +84,18 @@ export const MATERIAL_SECTION_BACKGROUND = {
   alt: "Natural stone slabs in the JW Stone warehouse",
 } as const;
 
-/** Full inventory — architectural interior atmosphere (no editorial caption). */
+/** Full inventory — outdoor slab-yard atmosphere (no editorial caption). */
 export const INVENTORY_SECTION_BACKGROUND = {
-  src: JW_STORY_BACKGROUNDS.livingRoom.src,
-  alt: "JW Stone collection for browsing the full inventory",
+  src: "/images/businesses/jw-stone/story/full-inventory-yard.webp",
+  alt: "Natural stone slabs on A-frames in the JW Stone yard",
 } as const;
 
-/** @deprecated Prefer JW_FINISHED_WORK_PHOTOS — kept for any residual imports. */
+/** @deprecated Prefer JW_STORY_BACKGROUNDS — kept for residual imports. */
 export const FINISHED_WORK_BRIDGE_BACKGROUND = JW_STORY_BACKGROUNDS.montBlancBar;
 
 /**
- * Finished-work gallery — original profile finished-space frames only
- * (no quarry / yard). Shown as its own separated section below inventory.
+ * Finished-space frames only (no quarry). Marketplace gallery uses the full
+ * story sequence via profile presentation; this subset remains for asset checks.
  */
 export const JW_FINISHED_WORK_PHOTOS = Object.freeze([
   {

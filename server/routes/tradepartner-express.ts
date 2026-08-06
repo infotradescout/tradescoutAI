@@ -22,7 +22,7 @@ import {
   canExposePublishedProfilePublicly,
   hasTradeScoutPendingOwnerCustody,
 } from "../services/ownerConfirmedDirectProfile";
-import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
+import { hasDirectConnectPhone, normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
@@ -60,12 +60,9 @@ const requestSchema = z
     phone: z
       .string()
       .trim()
-      .min(10)
+      .min(1, "Enter a phone number.")
       .max(40)
-      .refine((value) => {
-        const digits = value.replace(/\D/g, "");
-        return digits.length >= 10 && digits.length <= 15;
-      }, "Enter a complete phone number."),
+      .refine((value) => hasDirectConnectPhone(value), "Enter a complete phone number."),
     requestType: z.enum(EXPRESS_REQUEST_TYPES),
     message: z.string().trim().min(10).max(3000),
     stoneName: z.string().trim().max(180).optional(),

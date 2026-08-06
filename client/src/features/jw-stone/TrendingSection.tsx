@@ -1,6 +1,5 @@
 import { MessageCircle } from "lucide-react";
 import { jw } from "./brand";
-import { StonePalette } from "./StonePalette";
 import type { JwStoneCatalogItem } from "./types";
 
 type TrendingSectionProps = {
@@ -11,7 +10,7 @@ type TrendingSectionProps = {
 
 /**
  * Trending rail for homeless / anonymous inventory photographs.
- * Photo + color palette + Ask only — no placeholder names or invented specs.
+ * Photo + Ask only — no placeholder names or invented specs.
  */
 export function TrendingSection({ items, onOpen, onAsk }: TrendingSectionProps) {
   if (!items.length) return null;
@@ -56,23 +55,17 @@ export function TrendingSection({ items, onOpen, onAsk }: TrendingSectionProps) 
                 className="group block w-full text-left"
                 aria-label="Open stone photograph gallery"
               >
-                <span className="relative flex aspect-[4/3] items-center justify-center bg-[var(--jw-surface)]">
+                <span className="relative block">
                   <img
                     src={stone.images[0]}
                     alt="Stone photograph from JW Stone"
                     loading="lazy"
-                    className="h-full w-full object-contain"
+                    className="block h-auto w-full"
                   />
                 </span>
               </button>
 
               <div className="flex flex-col gap-2 px-2.5 py-2">
-                <StonePalette
-                  colorSwatches={stone.colorSwatches}
-                  pairingSwatches={stone.pairingSwatches}
-                  size="sm"
-                />
-
                 <button
                   type="button"
                   onClick={() => onAsk(stone)}

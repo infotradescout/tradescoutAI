@@ -4,8 +4,9 @@ import { jw } from "./brand";
 const story = JW_STONE_PROFILE_PRESENTATION_BLOCK.data.story;
 
 /**
- * Profile-owned quarry + source-to-space photography at marketplace bottom.
- * Companion to finished-work installs — quarry / Wagner-era source frames first.
+ * Single bottom composition: source → finished space.
+ * Quarry leads; finished installs follow. Process copy from the former
+ * finished-work bridge lives here — one section chrome, no duplicate galleries.
  */
 export function JwStoneStorySection() {
   if (!story.images.length) return null;
@@ -24,17 +25,15 @@ export function JwStoneStorySection() {
         className={`border-y border-[var(--jw-border-strong)] bg-[var(--jw-dark)] ${jw.scrollTarget}`}
       >
         <div className="mx-auto max-w-[1600px] px-5 py-10 sm:px-9 sm:py-14 lg:px-12 lg:py-16">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--jw-accent)]">
+          <p
+            id="jw-story-heading"
+            className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--jw-accent)]"
+          >
             {story.eyebrow}
           </p>
-          <h2
-            id="jw-story-heading"
-            className="mt-2 max-w-2xl font-editorial text-3xl leading-tight text-white sm:text-4xl lg:text-5xl"
-          >
-            {story.heading}
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
-            Quarry relationships and finished rooms — the path from source stone to installed space.
+          <p className="mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
+            JW Stone handles the entire process — from sourcing through fabrication to delivery —
+            with quarry-direct pricing.
           </p>
 
           <ul

@@ -13,7 +13,9 @@ export const JW_STONE_LOGO_URL = JW_STONE_SOCIAL_PRESENTATION.logoUrl;
  * - marketplace UI accent `#a8b86c` — lighter olive for CTAs/chrome (owner: `#81904a` too dark)
  * - secondary `#6d6c69` — logo.svg / logo-social.svg checker squares
  * - ink `#171717` / muted `#4c4c4c` — logo wordmark + tagline fills
- * - display type: `font-editorial` (Cormorant/Georgia) matches logo Georgia wordmark
+ * - display type: `font-editorial` → Cormorant Garamond (index.html + Tailwind
+ *   `fontFamily.editorial` + `[data-jw-brand] .font-editorial`); Georgia fallback —
+ *   never Times / Times New Roman
  * - header chrome: light ground + color logo (WholesalerProfileTheme JW path)
  * - catalog ground: warm ivory (owner luxury layout) — not wholesaler cream `#f7f4ec`
  * - First Cut bar: deep charcoal (not absolute black)

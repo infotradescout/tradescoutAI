@@ -25,10 +25,8 @@ describe("TrendingSection", () => {
     container.remove();
   });
 
-  it("keeps compact stone palette + Pairs with on each trending card", () => {
-    const items = selectTrendingItems(JW_STONE_CATALOG, { limit: 3 }).filter(
-      (stone) => stone.colorSwatches.length > 0
-    );
+  it("shows photo + Ask without color swatches or Pairs with", () => {
+    const items = selectTrendingItems(JW_STONE_CATALOG, { limit: 3 });
     expect(items.length).toBeGreaterThan(0);
 
     act(() => root.render(<TrendingSection items={items} onOpen={vi.fn()} onAsk={vi.fn()} />));
@@ -36,10 +34,13 @@ describe("TrendingSection", () => {
     const cards = container.querySelectorAll<HTMLElement>("[data-trending='true']");
     expect(cards.length).toBe(items.length);
     for (const card of cards) {
-      expect(card.textContent).toContain("Pairs with");
-      expect(card.querySelector('[aria-label^="Colors #"]')).not.toBeNull();
-      expect(card.querySelector('[aria-label^="Pairs with #"]')).not.toBeNull();
-      expect(card.querySelector("img")?.className).toMatch(/object-contain/);
+      expect(card.textContent).not.toContain("Pairs with");
+      expect(card.textContent).not.toContain("Colors from photo");
+      expect(card.querySelector('[aria-label^="Colors #"]')).toBeNull();
+      expect(card.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
+      expect(card.querySelector("img")?.className).toMatch(/h-auto/);
+      expect(card.querySelector("img")?.className).not.toMatch(/object-contain|aspect-/);
+      expect(card.textContent).toMatch(/Ask/);
     }
   });
 });

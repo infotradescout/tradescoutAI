@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -8,6 +8,7 @@ import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } 
 import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
+import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceFooter } from "./MarketplaceFooter";
 import { MarketplaceHeader } from "./MarketplaceHeader";
@@ -31,29 +32,39 @@ const JW_STONE_COLLECTION_DATA = {
   image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
 };
 
+function scrollToInventory() {
+  requestAnimationFrame(() => {
+    document.getElementById("current-inventory")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}
+
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [wishlistOpen, setWishlistOpen] = useState(false);
-  const [anonymousDetailId, setAnonymousDetailId] = useState<string | null>(null);
+  /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
+  const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
 
-  // Document scroll only — avoid body/#root dual-scroll trapping hash landings.
-  useEffect(() => {
+  // Ensure unlock while this page is mounted; AppLayout owns route-level cleanup
+  // so Strict Mode remounts do not briefly strip the class mid-route.
+  useLayoutEffect(() => {
     const root = document.documentElement;
     const body = document.body;
     root.classList.add("jw-marketplace-scroll");
     body.classList.add("jw-marketplace-scroll");
-    return () => {
-      root.classList.remove("jw-marketplace-scroll");
-      body.classList.remove("jw-marketplace-scroll");
-    };
+    if (body.style.overflow === "hidden") {
+      body.style.overflow = "";
+    }
   }, []);
 
-  const selectedStone =
-    (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) ||
-    (anonymousDetailId ? getCatalogItemById(anonymousDetailId) : null);
+  // Prefer URL-named stone, else explicit override (First Cut photo / anonymous catalog).
+  const activeStone =
+    (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) || detailOverride;
 
   const requestTargets = useMemo<readonly DirectConnectMaterialTarget[]>(
     () =>
@@ -66,22 +77,24 @@ export default function JWStoneMarketplace() {
   );
 
   const closeStone = () => {
-    setAnonymousDetailId(null);
+    setDetailOverride(null);
     if (state.stone) commit({ ...state, stone: null }, { replace: true });
   };
 
   const openStone = (stone: JwStoneCatalogItem) => {
     if (stone.anonymous || !stone.shareSlug) {
-      setAnonymousDetailId(stone.id);
+      // First Cut photo ids are not in JW_STONE_CATALOG — keep the full object.
+      setDetailOverride(getCatalogItemById(stone.id) || stone);
+      if (state.stone) commit({ ...state, stone: null }, { replace: true });
       return;
     }
-    setAnonymousDetailId(null);
+    setDetailOverride(null);
     commit({ ...state, stone: stone.shareSlug });
   };
 
   const openSavedStone = (stone: JwStoneCatalogItem) => {
     setWishlistOpen(false);
-    setAnonymousDetailId(null);
+    setDetailOverride(null);
     commit({ ...state, stone: stone.shareSlug });
   };
 
@@ -97,10 +110,17 @@ export default function JWStoneMarketplace() {
 
   const selectPalette = (next: ColorSwatchSelection) => {
     commit({ ...state, aesthetic: next.aesthetic, color: next.color, stone: null });
+    if (next.aesthetic || next.color) scrollToInventory();
   };
 
   const selectMaterial = (material: string | null) => {
     commit({ ...state, material, stone: null });
+    if (!material) return;
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-testid="jw-material-section-${material}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
   };
 
   return (
@@ -128,7 +148,7 @@ export default function JWStoneMarketplace() {
       </p>
 
       <MarketplaceIntroduction />
-      <FirstCutSection />
+      <FirstCutSection onOpen={openStone} />
       <ColorPaletteRail
         aesthetic={state.aesthetic}
         color={state.color}
@@ -136,7 +156,17 @@ export default function JWStoneMarketplace() {
         origin={state.origin}
         onSelect={selectPalette}
       />
-      <MaterialCategoryRail active={state.material} onSelect={selectMaterial} />
+      <MaterialCategoryRail
+        active={state.material}
+        aesthetic={state.aesthetic}
+        color={state.color}
+        onSelect={selectMaterial}
+        isSaved={wishlist.isSaved}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
+        catalog={JW_STONE_CATALOG}
+      />
 
       <StoneCollection
         state={state}
@@ -144,16 +174,19 @@ export default function JWStoneMarketplace() {
         onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
+        onAsk={askAboutStone}
         catalog={JW_STONE_CATALOG}
       />
+
+      <JwStoneStorySection />
 
       <MarketplaceFooter />
 
       <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
       <StoneDetailDialog
-        stone={selectedStone}
-        saved={selectedStone ? wishlist.isSaved(selectedStone.id) : false}
+        stone={activeStone}
+        saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
         onOpenChange={(open) => {
           if (!open) closeStone();
         }}

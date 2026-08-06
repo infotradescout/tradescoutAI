@@ -24,22 +24,63 @@ export const JW_STONE_FIRST_CUT_ASSIGNMENTS: readonly FirstCutAssignment[] = Obj
 /**
  * Photo-only First Cut slots (exactly three render in FirstCutSection).
  * Assets live in `client/public/images/businesses/jw-stone/first-cut/` (01–05 may exist;
- * marketplace First Cut uses 01–03 only). Captions stay pending — do not invent names/specs.
+ * marketplace First Cut uses three distinct photo slots). Captions stay pending — do not invent names/specs.
+ *
+ * Lead (first slot) is the physically long green bookmatched pair (`05.jpg`) —
+ * reads ~twice as wide as the single-slab supports. Supports: black vein (`01`) + Rouge De Roi (`02`).
  */
 export const JW_STONE_FIRST_CUT_PHOTO_SLOTS: readonly FirstCutPhotoSlot[] = Object.freeze([
-  { id: "first-cut-1", imageSrc: "/images/businesses/jw-stone/first-cut/01.jpg" },
-  { id: "first-cut-2", imageSrc: "/images/businesses/jw-stone/first-cut/02.jpg" },
-  { id: "first-cut-3", imageSrc: "/images/businesses/jw-stone/first-cut/03.jpg" },
+  { id: "first-cut-1", imageSrc: "/images/businesses/jw-stone/first-cut/05.jpg" },
+  { id: "first-cut-2", imageSrc: "/images/businesses/jw-stone/first-cut/01.jpg" },
+  // 03 is same Rouge De Roi lot as 02; keep 02 as the burgundy support.
+  { id: "first-cut-3", imageSrc: "/images/businesses/jw-stone/first-cut/02.jpg" },
 ]);
 
 export const JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT = 3;
 
-/** Shared section note — never repeat under every card. */
-export const JW_STONE_FIRST_CUT_SECTION_NOTE =
-  "Newly sourced by JW Stone. Names and specifications are added as inventory is confirmed.";
+/** Shared section note — never repeat under every card. First-to-market meaning. */
+export const JW_STONE_FIRST_CUT_SECTION_NOTE = "New to market. First chance to buy.";
 
 /** @deprecated Prefer JW_STONE_FIRST_CUT_SECTION_NOTE — kept for legacy test imports. */
 export const JW_STONE_FIRST_CUT_PENDING_LABEL = "Details pending";
+
+/**
+ * Ephemeral detail identity for unlinked First Cut photos.
+ * Opens StoneDetailDialog with First Cut media + pending facts — no invented product name.
+ */
+export function firstCutPhotoAsDetailStone(slot: FirstCutPhotoSlot): JwStoneCatalogItem {
+  return Object.freeze({
+    id: slot.id,
+    displayName: null,
+    publicLabel: "First Cut",
+    nameStatus: "placeholder",
+    anonymous: true,
+    shareSlug: null,
+    wishlistEligible: false,
+    colorDirection: "bold-expressive",
+    colors: Object.freeze([]),
+    colorSwatches: Object.freeze([]),
+    pairingSwatches: Object.freeze([]),
+    images: Object.freeze([slot.imageSrc]),
+    materialId: null,
+    materialLabel: null,
+    materialStatus: "unconfirmed",
+    finishes: Object.freeze([]),
+    finishStatus: "unconfirmed",
+    sourceEvidence: null,
+    slabDimensions: null,
+    origin: null,
+    arrivedAt: null,
+  });
+}
+
+/** Resolve a presentation item to a stone suitable for StoneDetailDialog. */
+export function resolveFirstCutDetailStone(
+  item: Extract<FirstCutPresentation, { kind: "stone" | "photo" }>
+): JwStoneCatalogItem {
+  if (item.kind === "stone") return item.stone;
+  return firstCutPhotoAsDetailStone(item);
+}
 
 function dedupePresentation(items: FirstCutPresentation[]): FirstCutPresentation[] {
   const seen = new Set<string>();

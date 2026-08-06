@@ -6,6 +6,7 @@ import {
 } from "@/lib/publicProfileItemDestination";
 import { ArrowLeft, CheckCircle2, Loader2, MessageCircle, Phone, MapPin, X } from "lucide-react";
 import type { DirectConnectMaterialTarget } from "./directConnectMaterial";
+import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
 import { sanitizeJwStoneDirectConnectSelections } from "@shared/jwStoneDirectConnect";
 
 export type ExpressDirectConnectRequestType =
@@ -174,13 +175,8 @@ export default function ExpressDirectConnectPanel({
   const [error, setError] = useState("");
   const [callPhone, setCallPhone] = useState("");
   const [callTel, setCallTel] = useState("");
-  const [accountCreated, setAccountCreated] = useState(false);
   const [requestId, setRequestId] = useState("");
   const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
-  const [onboardingPath, setOnboardingPath] = useState("");
-  const [onboardingEmailStatus, setOnboardingEmailStatus] = useState<
-    "sent" | "skipped" | "failed" | "unknown"
-  >("unknown");
   const [requestDeliveryCustody, setRequestDeliveryCustody] =
     useState<ExpressDirectConnectDeliveryCustody>(deliveryCustody);
   const [form, setForm] = useState({
@@ -231,11 +227,8 @@ export default function ExpressDirectConnectPanel({
     setError("");
     setCallPhone("");
     setCallTel("");
-    setAccountCreated(false);
     setRequestId("");
     setRequestWorkspacePath("");
-    setOnboardingPath("");
-    setOnboardingEmailStatus("unknown");
     setRequestDeliveryCustody(deliveryCustody);
     setForm((current) => ({
       ...current,
@@ -290,29 +283,6 @@ export default function ExpressDirectConnectPanel({
 
   if (!open) return null;
 
-  const postCallParams = new URLSearchParams({
-    from: "public_profile",
-    profile: profileSlug,
-    profileName: businessName,
-  });
-  if (itemParam) postCallParams.set("item", itemParam);
-  if (stableItemId) postCallParams.set("itemId", stableItemId);
-  if (selectedServiceName) postCallParams.set("service", selectedServiceName);
-  const postCallSignupHref = qualifyPublicProfileItemDestination(
-    `/pre-scout-setup?mode=create&next=${encodeURIComponent(
-      `/direct-connect?${postCallParams.toString()}`
-    )}`,
-    platformBaseHref
-  );
-  const manageRequestPath =
-    accountCreated && onboardingPath
-      ? onboardingPath
-      : `/pre-scout-setup?mode=signin&email=${encodeURIComponent(form.email)}&next=${encodeURIComponent(requestPath)}`;
-  const manageRequestHref = qualifyPublicProfileItemDestination(
-    manageRequestPath,
-    platformBaseHref
-  );
-
   const close = () => {
     if (!busy) onClose();
   };
@@ -357,6 +327,17 @@ export default function ExpressDirectConnectPanel({
     setBusy(true);
     setError("");
     try {
+      const phone = form.phone.trim();
+      if (!phone) {
+        setError("Enter a phone number so they can reach you.");
+        setBusy(false);
+        return;
+      }
+      if (!isValidDirectConnectRequestPhone(phone)) {
+        setError("Enter a complete phone number so they can reach you.");
+        setBusy(false);
+        return;
+      }
       if (requestMode === "materials" && !form.customerRole) {
         setError(
           "Select whether you are a homeowner, fabricator, builder, designer, or architect."
@@ -390,7 +371,7 @@ export default function ExpressDirectConnectPanel({
           body: JSON.stringify({
             name: form.name,
             email: form.email,
-            phone: form.phone,
+            phone,
             requestType: form.requestType,
             message: messageWithRole,
             website: form.website,
@@ -408,16 +389,9 @@ export default function ExpressDirectConnectPanel({
             : "We couldn’t send that yet."
         );
       }
-      setAccountCreated(json?.accountCreated === true);
       setRequestId(String(json?.requestId || ""));
       setRequestWorkspacePath(
         typeof json?.requestWorkspacePath === "string" ? json.requestWorkspacePath : ""
-      );
-      setOnboardingPath(typeof json?.onboardingPath === "string" ? json.onboardingPath : "");
-      setOnboardingEmailStatus(
-        ["sent", "skipped", "failed"].includes(json?.onboardingEmailStatus)
-          ? json.onboardingEmailStatus
-          : "unknown"
       );
       setRequestDeliveryCustody(
         json?.deliveryCustody === "tradescout_pending_owner"
@@ -602,9 +576,14 @@ export default function ExpressDirectConnectPanel({
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel"
+                    name="phone"
+                    aria-required="true"
                     placeholder="(555) 555-5555"
                     value={form.phone}
-                    onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                    onChange={(event) => {
+                      setError("");
+                      setForm({ ...form, phone: event.target.value });
+                    }}
                     className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                   />
                 </label>
@@ -715,34 +694,14 @@ export default function ExpressDirectConnectPanel({
                   {callPhone || "Call again"}
                 </a>
               ) : null}
-              {!hasViewerSession ? (
-                <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <p className="font-bold text-neutral-900">Keep this connection organized.</p>
-                  {requiresDocumentNavigation(postCallSignupHref) ? (
-                    <a
-                      href={postCallSignupHref}
-                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
-                    >
-                      Manage this in TradeScout
-                    </a>
-                  ) : (
-                    <Link
-                      href={postCallSignupHref}
-                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
-                    >
-                      Manage this in TradeScout
-                    </Link>
-                  )}
-                  {stayInProfile ? (
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="mt-2 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
-                    >
-                      No thanks, back to {businessName}
-                    </button>
-                  ) : null}
-                </div>
+              {stayInProfile ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-7 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
+                >
+                  Back to {businessName}
+                </button>
               ) : null}
             </div>
           ) : null}
@@ -763,72 +722,31 @@ export default function ExpressDirectConnectPanel({
                 </p>
               ) : null}
 
-              {!hasViewerSession ? (
-                <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <p className="font-bold text-neutral-900">
-                    {accountCreated
-                      ? "Finish setup and manage this request"
-                      : "Sign in to manage this request"}
-                  </p>
-                  {requestDeliveryCustody !== "tradescout_pending_owner" ? (
-                    <p className="mt-1 text-sm text-stone-600">
-                      See replies from {businessName}, decisions, job progress, and follow-up in one
-                      convenient place.
-                    </p>
-                  ) : null}
-                  {accountCreated && onboardingEmailStatus === "sent" ? (
-                    <p className="mt-2 text-xs font-medium text-emerald-700">
-                      A setup email was sent. You can also continue here now.
-                    </p>
-                  ) : accountCreated ? (
-                    <p className="mt-2 text-xs font-medium text-amber-700">
-                      No email is required to continue from this browser.
-                    </p>
-                  ) : null}
-                  {requiresDocumentNavigation(manageRequestHref) ? (
-                    <a
-                      href={manageRequestHref}
-                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
-                    >
-                      {accountCreated ? "Manage my request" : "Sign in and manage it"}
-                    </a>
-                  ) : (
-                    <Link
-                      href={manageRequestHref}
-                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
-                    >
-                      {accountCreated ? "Manage my request" : "Sign in and manage it"}
-                    </Link>
-                  )}
-                  <p className="mt-3 text-xs text-stone-500">
-                    You can add this project to your HomeID later if you want it in your home
-                    record.
-                  </p>
-                  {stayInProfile ? (
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="mt-2 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
-                    >
-                      No thanks, back to {businessName}
-                    </button>
-                  ) : null}
-                </div>
-              ) : requiresDocumentNavigation(requestHref) ? (
-                <a
-                  href={requestHref}
-                  className="mt-6 inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+              {hasViewerSession ? (
+                requiresDocumentNavigation(requestHref) ? (
+                  <a
+                    href={requestHref}
+                    className="mt-6 inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                  >
+                    Manage this request
+                  </a>
+                ) : (
+                  <Link
+                    href={requestHref}
+                    className="mt-6 inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                  >
+                    Manage this request
+                  </Link>
+                )
+              ) : stayInProfile ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-6 w-full rounded-xl px-6 py-3 text-sm font-semibold text-stone-600 transition-colors hover:text-neutral-900"
                 >
-                  Manage this request
-                </a>
-              ) : (
-                <Link
-                  href={requestHref}
-                  className="mt-6 inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
-                >
-                  Manage this request
-                </Link>
-              )}
+                  Back to {businessName}
+                </button>
+              ) : null}
             </div>
           ) : null}
 

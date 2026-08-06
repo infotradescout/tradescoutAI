@@ -99,13 +99,19 @@ describe("Public-profile Express Direct Connect contract", () => {
   it("uses required phone entry—not SMS or OTP—as request friction", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const phoneAuthority = read("server/services/directConnectPhone.ts");
+    const sharedPhone = read("shared/directConnectPhone.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(phoneAuthority).toContain("digits.length < 10 || digits.length > 15");
+    expect(sharedPhone).toContain("digits.length >= 10 && digits.length <= 15");
+    expect(phoneAuthority).toContain("isValidDirectConnectRequestPhone");
+    expect(route).toContain("hasDirectConnectPhone(value)");
     expect(route).toContain("normalizeDirectConnectPhone(target.phone)");
     expect(route).toContain('contactCheck: "phone_required"');
     expect(panel).toContain('type="tel"');
     expect(panel).toContain('autoComplete="tel"');
+    expect(panel).toContain("isValidDirectConnectRequestPhone");
+    expect(panel).toContain("Enter a phone number so they can reach you.");
+    expect(panel).toContain("Enter a complete phone number so they can reach you.");
     expect(panel).toContain('<span className="text-xs font-normal text-stone-600">Required</span>');
     expect(panel).not.toMatch(/sendOtp|verifyOtp|smsCode|SMS verification/);
     expect(route).not.toMatch(/sendOtp|verifyOtp|smsCode/);
@@ -122,7 +128,7 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain('routingMode: "tradepartner_profile_express"');
   });
 
-  it("creates a provisional member and invites logged-out callers to join", () => {
+  it("creates a provisional member without a post-request signup CTA", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
@@ -131,10 +137,12 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("passwordResetService.createToken");
     expect(route).toContain("emailVerificationService.createToken");
     expect(route).toContain("existing_account_match_unverified");
-    expect(panel).toContain("Keep this connection organized.");
-    expect(panel).toContain("Manage this in TradeScout");
-    expect(panel).toContain("Finish setup and manage this request");
-    expect(panel).toContain("Manage my request");
+    expect(panel).not.toContain("Keep this connection organized.");
+    expect(panel).not.toContain("Manage this in TradeScout");
+    expect(panel).not.toContain("Finish setup and manage this request");
+    expect(panel).not.toContain("Sign in to manage this request");
+    expect(panel).not.toContain("Sign in and manage it");
+    expect(panel).not.toContain("pre-scout-setup?mode=create");
     expect(panel).not.toContain("job notes, replies");
   });
 

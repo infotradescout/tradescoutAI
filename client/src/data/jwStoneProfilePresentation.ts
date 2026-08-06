@@ -74,7 +74,6 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
     },
     story: {
       eyebrow: "From source to finished space",
-      heading: "Stone selected with the final room in mind.",
       images: [
         {
           src: "/images/businesses/jw-stone/story/quarry.webp",

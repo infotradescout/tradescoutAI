@@ -1,6 +1,5 @@
-import { Bookmark, BookmarkCheck } from "lucide-react";
+import { Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
-import { StonePalette } from "./StonePalette";
 import { availabilityDimensionsLine, materialFinishLine } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
 
@@ -9,19 +8,22 @@ type StoneCardProps = {
   saved: boolean;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
+  onAsk: (stone: JwStoneCatalogItem) => void;
 };
 
 /**
- * Single-column editorial inventory row — photo-led, no bordered product box,
- * no Ask CTA (Ask lives only in detail).
+ * Showroom inventory tile — full-width stone photograph with a centered caption
+ * system underneath (not a left-ragged classifieds column).
+ * Actions: Save (bookmark), View stone, Ask — no color / Pairs with chrome.
  */
-export function StoneCard({ stone, saved, onToggleSaved, onOpen }: StoneCardProps) {
+export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneCardProps) {
   const alt = stone.displayName
     ? `${stone.displayName} stone photograph`
     : "Stone selection photograph from JW Stone";
   const meta = materialFinishLine(stone);
   const facts = availabilityDimensionsLine(stone);
   const title = stone.displayName || "";
+  const caption = [meta, facts].filter(Boolean).join(" · ");
 
   return (
     <article
@@ -30,18 +32,18 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen }: StoneCardProp
       className="group"
       data-anonymous={stone.anonymous ? "true" : "false"}
     >
-      <div className="relative">
+      <div className="relative bg-[var(--jw-dark)]">
         <button
           type="button"
           onClick={() => onOpen(stone)}
-          className="block w-full bg-[var(--jw-surface)] text-left"
+          className="block w-full"
           aria-label={`Open ${stone.publicLabel}`}
         >
           <img
             src={stone.images[0]}
             alt={alt}
             loading="lazy"
-            className="aspect-[4/5] w-full object-contain sm:aspect-[5/4]"
+            className="mx-auto block h-auto w-full object-contain"
           />
         </button>
         {stone.wishlistEligible ? (
@@ -63,33 +65,38 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen }: StoneCardProp
         ) : null}
       </div>
 
-      <div className="pt-3.5 sm:pt-4">
+      <div className="flex flex-col items-center px-3 pb-1 pt-3 text-center sm:px-4 sm:pt-3.5">
         {title ? (
-          <h3 className="font-editorial text-2xl leading-tight text-[var(--jw-ink)] sm:text-[1.75rem]">
+          <h3 className="font-editorial text-xl leading-tight tracking-tight text-[var(--jw-ink)] sm:text-2xl">
             {title}
           </h3>
         ) : null}
 
-        {meta ? <p className={`mt-1.5 text-sm leading-5 ${jw.muted}`}>{meta}</p> : null}
-        {facts ? <p className={`mt-1 text-sm leading-5 ${jw.muted}`}>{facts}</p> : null}
-
-        {stone.colorSwatches.length ? (
-          <div className="mt-2.5">
-            <StonePalette
-              colorSwatches={stone.colorSwatches}
-              pairingSwatches={stone.pairingSwatches}
-              size="sm"
-            />
-          </div>
+        {caption ? (
+          <p className={`mt-1 max-w-md text-xs leading-5 tracking-wide sm:text-sm ${jw.muted}`}>
+            {caption}
+          </p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={() => onOpen(stone)}
-          className="mt-2.5 text-sm font-medium text-[var(--jw-ink)] underline underline-offset-4 decoration-[var(--jw-border-strong)] transition-colors hover:decoration-[var(--jw-ink)]"
-        >
-          View stone
-        </button>
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => onOpen(stone)}
+            className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--jw-ink)] underline decoration-[var(--jw-border-strong)] underline-offset-4 transition-colors hover:decoration-[var(--jw-ink)]"
+          >
+            View stone
+          </button>
+          {stone.wishlistEligible ? (
+            <button
+              type="button"
+              onClick={() => onAsk(stone)}
+              className={`inline-flex min-h-9 items-center justify-center gap-1.5 px-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] sm:min-h-10 sm:px-4 ${jw.accentCta}`}
+            >
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
+              Ask
+            </button>
+          ) : null}
+        </div>
       </div>
     </article>
   );

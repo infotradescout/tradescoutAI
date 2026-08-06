@@ -8,6 +8,8 @@ export default {
       fontFamily: {
         sans: ['"DM Sans"', "system-ui", "sans-serif"],
         display: ["Sora", '"DM Sans"', "system-ui", "sans-serif"],
+        /** JW / lux editorial display — Cormorant (loaded in index.html). Never Times. */
+        editorial: ['"Cormorant Garamond"', "Georgia", '"Palatino Linotype"', "Palatino", "serif"],
         mono: ['"JetBrains Mono"', "ui-monospace", "monospace"],
       },
       screens: {

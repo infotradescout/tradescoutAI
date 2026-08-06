@@ -53,6 +53,16 @@ describe("JW Stone photographed color palettes", () => {
     expect(getColorsForStone("cristallo")).toEqual(expect.arrayContaining(["beige", "black"]));
   });
 
+  it("face-true overrides restore hue washed out by yard/floor/sky sampling", () => {
+    expect(getColorsForStone("mexican-brown")).toEqual(expect.arrayContaining(["brown"]));
+    expect(getColorsForStone("chocolate-brown")).toEqual(expect.arrayContaining(["brown"]));
+    expect(getColorsForStone("dueto")).toEqual(expect.arrayContaining(["brown"]));
+    expect(getColorsForStone("pinta-verde")).toEqual(expect.arrayContaining(["green"]));
+    expect(getColorsForStone("blue-bahia")).toEqual(expect.arrayContaining(["blue"]));
+    expect(getColorsForStone("emerald-pearl")).toEqual(expect.arrayContaining(["green"]));
+    expect(getColorsForStone("fusion-yellow")).toEqual(expect.arrayContaining(["yellow", "gold"]));
+  });
+
   it("Black Pearl swatches stay on the dark stone face (no cream / crane yellow)", () => {
     const swatches = getSwatchesForStone("black-pearl");
     expect(swatches.length).toBeGreaterThanOrEqual(3);

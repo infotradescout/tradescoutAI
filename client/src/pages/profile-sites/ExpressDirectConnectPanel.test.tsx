@@ -256,4 +256,111 @@ describe("Express Direct Connect anonymous inventory context", () => {
     expect(requestBody).not.toHaveProperty("stoneName");
     expect(requestBody).not.toHaveProperty("itemId");
   });
+
+  it("blocks submit without a real phone number and shows a clear error", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="jw-stone"
+          businessName="JW Stone"
+          hasViewerSession={false}
+          allowCall={false}
+          requestMode="materials"
+          initialView="request"
+          initialRequestType="request_material"
+          initialStoneName="Steel Gray"
+          initialItemId="steel-gray"
+        />
+      );
+    });
+
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    selectCustomerRole(container, "fabricator");
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Enter a phone number so they can reach you.");
+
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "555-01");
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Enter a complete phone number so they can reach you.");
+  });
+
+  it("shows request success without a signup CTA for anonymous visitors", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        requestId: "request-success",
+        requestWorkspacePath: "/direct-connect/engagements?requestId=request-success",
+        accountCreated: true,
+        onboardingPath: "/pre-scout-setup?mode=create",
+        onboardingEmailStatus: "sent",
+        deliveryCustody: "business",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    act(() => {
+      root.render(
+        <ExpressDirectConnectPanel
+          open
+          onClose={vi.fn()}
+          profileSlug="jw-stone"
+          businessName="JW Stone"
+          hasViewerSession={false}
+          allowCall={false}
+          stayInProfile
+          requestMode="materials"
+          initialView="request"
+          initialRequestType="request_material"
+          initialStoneName="Steel Gray"
+          initialItemId="steel-gray"
+        />
+      );
+    });
+
+    change(container.querySelector<HTMLInputElement>('input[autocomplete="name"]'), "Alex Smith");
+    change(container.querySelector<HTMLInputElement>('input[type="email"]'), "alex@example.com");
+    change(container.querySelector<HTMLInputElement>('input[type="tel"]'), "555-555-1212");
+    selectCustomerRole(container, "fabricator");
+
+    await act(async () => {
+      container
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Request sent");
+    expect(container.textContent).toContain("JW Stone received your project details.");
+    expect(container.textContent).toContain("Back to JW Stone");
+    expect(container.textContent).not.toContain("Sign in to manage this request");
+    expect(container.textContent).not.toContain("Finish setup and manage this request");
+    expect(container.textContent).not.toContain("Sign in and manage it");
+    expect(container.textContent).not.toContain("Manage this in TradeScout");
+    expect(container.querySelector('a[href*="pre-scout-setup"]')).toBeNull();
+  });
 });

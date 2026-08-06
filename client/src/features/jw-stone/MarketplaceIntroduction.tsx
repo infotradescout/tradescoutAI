@@ -1,5 +1,3 @@
-import { jw } from "./brand";
-
 /** Canonical JW marketplace hero — highest-res source in repo (1920×1080). */
 const JW_STONE_HERO_VIDEO = "/images/businesses/jw-stone/video/hero.mp4";
 const JW_STONE_HERO_POSTER = "/images/businesses/jw-stone/video/hero-poster.jpg";
@@ -7,8 +5,8 @@ const JW_STONE_HERO_WIDTH = 1920;
 const JW_STONE_HERO_HEIGHT = 1080;
 
 /**
- * Hero image + statement + Browse inventory.
- * Warm ivory panel under the film — no full-hero darken, no heavy shadow.
+ * Hero film + brand headline (no Browse inventory CTA).
+ * Warm ivory panel under the film — no full-hero darken.
  */
 export function MarketplaceIntroduction() {
   return (
@@ -17,7 +15,7 @@ export function MarketplaceIntroduction() {
       className="bg-[var(--jw-bg)]"
       aria-labelledby="jw-marketplace-title"
     >
-      <div className="relative flex justify-center bg-[var(--jw-dark)]">
+      <div className="relative flex max-h-[32svh] justify-center overflow-hidden bg-[var(--jw-dark)]">
         <video
           autoPlay
           muted
@@ -28,7 +26,7 @@ export function MarketplaceIntroduction() {
           width={JW_STONE_HERO_WIDTH}
           height={JW_STONE_HERO_HEIGHT}
           aria-hidden="true"
-          className="block h-auto w-full max-w-[1920px]"
+          className="block h-[32svh] w-full max-w-[1920px] object-cover"
         >
           <source src={JW_STONE_HERO_VIDEO} type="video/mp4" />
         </video>
@@ -38,20 +36,14 @@ export function MarketplaceIntroduction() {
           aria-hidden="true"
         />
       </div>
-      <div className="mx-auto max-w-[1600px] bg-[var(--jw-bg)] px-5 py-6 sm:px-9 sm:py-7 lg:px-12">
-        <div className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center sm:gap-5">
+      <div className="mx-auto max-w-[1600px] bg-[var(--jw-bg)] px-5 py-3 sm:px-9 sm:py-4 lg:px-12">
+        <div className="mx-auto max-w-2xl text-center">
           <h1
             id="jw-marketplace-title"
-            className="font-editorial text-[1.75rem] leading-tight tracking-tight text-[var(--jw-ink)] sm:text-[2rem] md:text-[2.125rem]"
+            className="font-editorial text-[1.5rem] leading-tight tracking-tight text-[var(--jw-ink)] sm:text-[1.75rem] md:text-[1.875rem]"
           >
             Natural stone, selected at the source.
           </h1>
-          <a
-            href="#current-inventory"
-            className={`inline-flex min-h-12 w-fit items-center px-5 text-sm ${jw.accentCta}`}
-          >
-            Browse inventory
-          </a>
         </div>
       </div>
     </section>

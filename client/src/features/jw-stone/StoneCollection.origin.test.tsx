@@ -40,8 +40,20 @@ describe("JW Stone verified-origin collection path", () => {
           onUpdateFilters={vi.fn()}
           onToggleSaved={vi.fn()}
           onOpen={vi.fn()}
+          onAsk={vi.fn()}
         />
       );
+    });
+
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(0);
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="jw-inventory-toggle"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(1);

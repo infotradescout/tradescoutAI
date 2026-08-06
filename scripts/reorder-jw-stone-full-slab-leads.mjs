@@ -44,6 +44,7 @@ const PREFERRED_LEAD_FILE_IDS = {
   "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
   picasso: "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
   bronzonite: "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
+  "shadow-storm": "1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8",
 };
 
 function normalizeName(sourceName = "") {
@@ -83,6 +84,13 @@ const HAND_COVER_FILE_IDS = new Set([
   "15V13zBDRJlRIWJPRHNwyEEhBj5YFRo7m",
   "1n3tCkEbpG8cwAZqp3rsULP5Npm0fYptH",
   "1aiC_duaWb8dY1HHKkGeK9UjbUMRqnPY0",
+  "11_8FYGX-hKzb7MMljH8LGukCR6ofFcaz",
+  "1_jxbwi-xAV-_3Zs2ivWlzwNXFnyRgRxL",
+  "101ftcLyGe6pWSzuCPcrs94AanpuG5Dnb",
+  "1POZ36aWL-ASV2uQSMS_5w11Q22X5nQgY",
+  "130CuUhmYEbsQwGynnQ8R6lDIW34E9qKc",
+  "1XHgYqAJR548-hOlxH8rx7oCQ8q8feIRP",
+  "1sD8kGUwsGE5tymxjMEr6QPEFP9TlRorr",
 ]);
 
 function isHandScale(fileId = "", sourceName = "") {

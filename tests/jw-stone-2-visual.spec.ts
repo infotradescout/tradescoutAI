@@ -80,35 +80,55 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Natural stone, selected at the source." })
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Browse inventory" })).toBeVisible();
+  await expect(page.getByTestId("jw-marketplace-hero-brand")).toHaveCount(0);
+  await expect(page.getByTestId("jw-marketplace-hero-image")).toHaveCount(0);
+  await expect(
+    page.getByText(
+      "Thirty years of expertise for fabricators, architects, designers, builders, and homeowners."
+    )
+  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Browse inventory" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "View First Cut" })).toHaveCount(0);
+  await expect(page.getByText("Open for palette filters")).toHaveCount(0);
+  await expect(page.getByText("Open for stacked materials")).toHaveCount(0);
+  await expect(page.getByText("expand to search and browse")).toHaveCount(0);
   const logo = page.getByTestId("jw-marketplace-logo");
   await expect(logo).toBeVisible();
   await expect(logo).toHaveAttribute("src", "/images/businesses/jw-stone/logo.svg");
   await expect(page.getByRole("heading", { name: "First Cut" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Browse by color" })).toBeVisible();
-  await expect(page.getByTestId("jw-palette-all")).toBeVisible();
-  await expect(page.getByTestId("jw-palette-warm-neutrals")).toBeVisible();
-  await expect(page.getByTestId("jw-palette-gray-silver")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Browse by material" })).toBeVisible();
-  await expect(page.getByTestId("jw-material-granite")).toBeVisible();
-  await expect(page.getByTestId("jw-material-marble")).toBeVisible();
-  await expect(page.getByTestId("jw-material-quartzite")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Explore the collection" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Full inventory" })).toBeVisible();
+  await expect(page.getByTestId("jw-palette-rail")).toHaveAttribute("data-expanded", "false");
+  await expect(page.getByTestId("jw-material-rail")).toHaveAttribute("data-expanded", "false");
+  await expect(page.getByTestId("jw-inventory")).toHaveAttribute("data-expanded", "false");
+  await expect(page.getByTestId("jw-palette-all")).toHaveCount(0);
+  await expect(page.getByTestId("jw-material-stack")).toHaveCount(0);
+  await expect(page.locator("#current-inventory [data-stone-card]")).toHaveCount(0);
   await expect(page.getByTestId("jw-new-arrivals")).toHaveCount(0);
-  await expect(page.getByTestId("jw-marketplace-story")).toHaveCount(0);
+  await expect(page.getByTestId("jw-marketplace-story")).toHaveCount(1);
+  await expect(page.getByTestId("jw-finished-work-bridge")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-trending")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-connect-cta")).toHaveText("Contact");
   await expect(page.getByText("Call for availability")).toHaveCount(0);
   await expect(page.getByTestId("jw-inventory-categories")).toHaveCount(0);
   await expect(page.getByTestId("jw-material-rail")).toBeVisible();
+
+  await page.getByTestId("jw-palette-rail-toggle").click();
+  await expect(page.getByTestId("jw-palette-all")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-warm-neutrals")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-gray-silver")).toBeVisible();
+  await page.getByTestId("jw-palette-rail-toggle").click();
+
+  await page.getByTestId("jw-inventory-toggle").click();
   await expect(page.locator("#current-inventory [data-stone-card]").first()).toBeVisible();
   await expect(page.getByLabel("Search the collection")).toBeVisible();
   await expect(page.getByTestId("jw-filters-sheet-open")).toBeVisible();
   await expect(page.locator('select[aria-label="Color"]')).toHaveCount(0);
   await expect(page.locator('select[aria-label="Material"]')).toHaveCount(0);
-
   const stoneCount = await page.locator("#current-inventory [data-stone-card]").count();
   expect(stoneCount).toBeGreaterThan(20);
+  await page.getByTestId("jw-inventory-toggle").click();
 
   const sectionOrder = await page.evaluate(() => {
     const header = document.querySelector('[data-testid="jw-marketplace-header"]');
@@ -130,40 +150,63 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await assertNoHorizontalOverflow(page);
   await screenshot(page, "01-desktop-immediate-storefront.png");
 
+  await page.getByTestId("jw-material-rail-toggle").click();
+  await expect(page.getByTestId("jw-material-stack")).toBeVisible();
+  await expect(page.getByTestId("jw-material-stone-rail")).toHaveCount(0);
   await page.getByTestId("jw-material-granite").click();
   await expect(page).toHaveURL(/material=granite/);
   await expect(page).not.toHaveURL(/buyer=/);
   await expect(page).not.toHaveURL(/finish=/);
-  const graniteCards = page.locator("#current-inventory [data-stone-card]");
+  await expect(page.getByTestId("jw-material-section-granite")).toHaveAttribute(
+    "data-expanded",
+    "true"
+  );
+  const graniteRail = page.getByTestId("jw-material-stone-rail");
+  await expect(graniteRail).toBeVisible();
+  const graniteCards = graniteRail.locator("[data-stone-card]");
   expect(await graniteCards.count()).toBeGreaterThan(10);
+  const graniteSlide = await graniteRail.locator("li").first().boundingBox();
+  expect(graniteSlide?.width ?? 0).toBeGreaterThan(1100);
   for (const card of await graniteCards.all()) {
     await expect(card).toContainText(/Granite/i);
     await expect(card.getByRole("button", { name: /^Ask/ })).toHaveCount(0);
   }
+  await expect(page.getByTestId("jw-inventory")).toHaveAttribute("data-expanded", "false");
+  await screenshot(page, "02-desktop-material-h-scroll-large.png");
 
+  await page.getByTestId("jw-inventory-toggle").click();
   await page.getByTestId("jw-filters-sheet-open").click();
   await expect(page.getByTestId("jw-filters-sheet")).toBeVisible();
   await page.locator('select[aria-label="Material"]').selectOption("marble");
   await page.getByRole("button", { name: /Show \d+ results/ }).click();
   await expect(page).toHaveURL(/material=marble/);
-  const marbleCards = page.locator("#current-inventory [data-stone-card]");
+  await expect(page.getByTestId("jw-material-section-marble")).toHaveAttribute(
+    "data-expanded",
+    "true"
+  );
+  const marbleCards = page.getByTestId("jw-material-stone-rail").locator("[data-stone-card]");
   expect(await marbleCards.count()).toBeGreaterThan(10);
   for (const card of await marbleCards.all()) {
     await expect(card).toContainText(/Marble/i);
   }
 
+  await page.getByTestId("jw-material-marble").click();
+  await expect(page).not.toHaveURL(/material=/);
+  await expect(page.getByTestId("jw-material-stone-rail")).toHaveCount(0);
+
   await page.goto("/jw-stone", { waitUntil: "networkidle" });
+  await page.getByTestId("jw-inventory-toggle").click();
   const firstInventoryCard = page
     .locator('#current-inventory [data-stone-card][data-anonymous="false"]')
     .first();
-  await expect(firstInventoryCard.getByText("Pairs with")).toBeVisible();
-  await expect(firstInventoryCard.locator('[aria-label^="Colors #"]')).toBeVisible();
+  await expect(firstInventoryCard.getByText("Pairs with")).toHaveCount(0);
+  await expect(firstInventoryCard.locator('[aria-label^="Colors #"]')).toHaveCount(0);
   await firstInventoryCard.locator('button[aria-label^="Open "]').click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page).toHaveURL(/stone=/);
   const detailDialog = page.getByRole("dialog");
-  await expect(detailDialog.getByText("Colors from photo")).toBeVisible();
-  await expect(detailDialog.getByText("Pairs with")).toBeVisible();
+  await expect(detailDialog.getByText("Colors from photo")).toHaveCount(0);
+  await expect(detailDialog.getByText("Pairs with")).toHaveCount(0);
   await page.keyboard.press("Escape");
 
   await page
@@ -175,7 +218,9 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   expect(requestSubmissions).toBe(0);
 
   // Hash landing clears sticky header via scroll-margin (inventory not "missing").
-  await page.getByRole("link", { name: "Browse inventory" }).click();
+  await page.evaluate(() => {
+    window.location.hash = "current-inventory";
+  });
   await page.waitForTimeout(200);
   const inventoryVisible = await page.evaluate(() => {
     const el = document.querySelector("#current-inventory");
@@ -204,15 +249,16 @@ test("mobile keeps editorial showroom usable at 390", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByTestId("jw-marketplace-connect")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-connect-cta")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Browse by color" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Browse by material" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Explore the collection" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Full inventory" })).toBeVisible();
   await expect(page.getByTestId("jw-inventory-categories")).toHaveCount(0);
-  await expect(page.getByTestId("jw-material-rail")).toBeVisible();
-  await expect(page.locator("#current-inventory [data-stone-card]").first()).toBeVisible();
-  await expect(page.getByLabel("Search the collection")).toBeVisible();
+  await expect(page.getByTestId("jw-material-rail")).toHaveAttribute("data-expanded", "false");
+  await expect(page.getByTestId("jw-material-stack")).toHaveCount(0);
+  await expect(page.getByTestId("jw-inventory")).toHaveAttribute("data-expanded", "false");
   await assertNoHorizontalOverflow(page);
 
-  // First Cut: dominant peek carousel — lead slide ~85–90% width, next peeks.
+  // First Cut: full-width lead on top, two supports in one row below (tight gap, no beige void).
   const firstCutSlots = page.locator(
     '[data-first-cut-photo="true"], [data-first-cut-placeholder="true"]'
   );
@@ -220,27 +266,49 @@ test("mobile keeps editorial showroom usable at 390", async ({ page }) => {
   const firstCutPositions = await firstCutSlots.evaluateAll((positions) =>
     positions.map((position) => {
       const box = position.getBoundingClientRect();
-      return { x: box.x, y: box.y, width: box.width, right: box.right };
+      return { x: box.x, y: box.y, width: box.width, right: box.right, bottom: box.bottom };
     })
   );
   expect(firstCutPositions).toHaveLength(3);
-  expect(firstCutPositions[0]?.width ?? 0).toBeGreaterThan(390 * 0.82);
-  expect(firstCutPositions[0]?.width ?? 0).toBeLessThan(390 * 0.95);
-  expect(firstCutPositions[1]?.x ?? 0).toBeGreaterThan(390 * 0.75);
-  expect(firstCutPositions[1]?.right ?? 0).toBeGreaterThan(390);
-  expect(Math.abs((firstCutPositions[1]?.y ?? 0) - (firstCutPositions[0]?.y ?? 0))).toBeLessThan(2);
+  const leadWidth = firstCutPositions[0]?.width ?? 0;
+  expect(leadWidth).toBeGreaterThan(390 * 0.85);
+  expect(firstCutPositions[0]?.right ?? 0).toBeLessThanOrEqual(390 + 1);
+  const supportWidth = firstCutPositions[1]?.width ?? 0;
+  expect(supportWidth).toBeGreaterThan(90);
+  expect(supportWidth).toBeLessThan(390 * 0.55);
+  expect(firstCutPositions[1]?.x ?? 0).toBeLessThan(firstCutPositions[2]?.x ?? 0);
+  expect(Math.abs((firstCutPositions[2]?.y ?? 0) - (firstCutPositions[1]?.y ?? 0))).toBeLessThan(2);
+  expect(
+    (firstCutPositions[1]?.y ?? 0) - (firstCutPositions[0]?.bottom ?? 0)
+  ).toBeGreaterThanOrEqual(0);
+  expect((firstCutPositions[1]?.y ?? 0) - (firstCutPositions[0]?.bottom ?? 0)).toBeLessThan(20);
   await expect(page.getByText(/Details pending/i)).toHaveCount(0);
-
-  const cardBox = await page.locator("#current-inventory [data-stone-card]").first().boundingBox();
-  expect(cardBox?.width ?? 0).toBeGreaterThan(300);
-  expect(cardBox?.height ?? 0).toBeGreaterThan(280);
-
-  const inventoryList = page.locator('[data-testid="jw-inventory-grid"] ul');
-  await expect(inventoryList).toHaveClass(/flex-col/);
 
   await screenshot(page, "04-mobile-390-storefront.png");
   await page.locator("#first-cut-title").scrollIntoViewIfNeeded();
-  await screenshot(page, "04-mobile-390-first-cut-peek.png");
+  await screenshot(page, "04-mobile-390-first-cut-stacked.png");
+
+  await page.getByTestId("jw-material-rail-toggle").click();
+  await page.getByTestId("jw-material-granite").scrollIntoViewIfNeeded();
+  await page.getByTestId("jw-material-granite").click();
+  await expect(page).toHaveURL(/material=granite/);
+  const mobileRail = page.getByTestId("jw-material-stone-rail");
+  await expect(mobileRail).toBeVisible();
+  const mobileSlide = await mobileRail.locator("li").first().boundingBox();
+  expect(mobileSlide?.width ?? 0).toBeGreaterThan(340);
+  expect(mobileSlide?.width ?? 0).toBeGreaterThan(390 * 0.85);
+  await mobileRail.scrollIntoViewIfNeeded();
+  await screenshot(page, "04-mobile-390-material-h-scroll-large.png");
+  await page.keyboard.press("Escape");
+  await expect(page).not.toHaveURL(/material=/);
+  await expect(page.getByTestId("jw-material-stone-rail")).toHaveCount(0);
+
+  await page.getByTestId("jw-inventory-toggle").click();
+  const cardBox = await page.locator("#current-inventory [data-stone-card]").first().boundingBox();
+  expect(cardBox?.width ?? 0).toBeGreaterThan(300);
+  expect(cardBox?.height ?? 0).toBeGreaterThan(280);
+  const inventoryList = page.locator('[data-testid="jw-inventory-grid"] ul');
+  await expect(inventoryList).toHaveClass(/flex-col/);
   await page.locator("#current-inventory").scrollIntoViewIfNeeded();
   await screenshot(page, "04-mobile-390-editorial-cards.png");
   await screenshotElement(page.getByTestId("jw-marketplace-request"), "04-mobile-connect.png");
@@ -248,13 +316,13 @@ test("mobile keeps editorial showroom usable at 390", async ({ page }) => {
   const mobileCard = page
     .locator('#current-inventory [data-stone-card][data-anonymous="false"]')
     .first();
-  await expect(mobileCard.getByText("Pairs with")).toBeVisible();
-  await expect(mobileCard.locator('[aria-label^="Colors #"]')).toBeVisible();
+  await expect(mobileCard.getByText("Pairs with")).toHaveCount(0);
+  await expect(mobileCard.locator('[aria-label^="Colors #"]')).toHaveCount(0);
   await mobileCard.locator('button[aria-label^="Open "]').click();
   await expect(page.getByRole("dialog")).toBeVisible();
   const mobileDialog = page.getByRole("dialog");
-  await expect(mobileDialog.getByText("Colors from photo")).toBeVisible();
-  await expect(mobileDialog.getByText("Pairs with")).toBeVisible();
+  await expect(mobileDialog.getByText("Colors from photo")).toHaveCount(0);
+  await expect(mobileDialog.getByText("Pairs with")).toHaveCount(0);
   await assertNoHorizontalOverflow(page);
   await screenshot(page, "04-mobile-390-detail.png");
   await page.keyboard.press("Escape");

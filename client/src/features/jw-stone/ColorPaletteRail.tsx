@@ -1,84 +1,95 @@
 import { filterJwStoneCatalog, JW_STONE_CATALOG } from "./catalog";
 import { jw } from "./brand";
+import { ColorCollageBackground } from "./ColorCollageBackground";
+import { JwCollapsibleSection } from "./JwCollapsibleSection";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import type { StoneColorId } from "./stoneColors";
+
+const COLOR_FACE_VERSION = "face-3";
 
 /**
  * Compact shopper color families → existing aesthetic / color URL filters.
  * Labels are shopper-facing; filter keys must match catalog classifications.
- * Families with zero matching inventory are omitted at render time.
+ * Full set always renders (no "All" chip; no count-based omission).
+ * Face cues are real stone photography (color-collage/), not flat paint chips.
  */
 export const COLOR_SWATCH_OPTIONS = [
-  {
-    id: "all",
-    label: "All",
-    aesthetic: null,
-    color: null,
-    swatch: "linear-gradient(135deg, #f4f1ea 0%, #d9d2c5 48%, #b8ae9c 100%)",
-  },
   {
     id: "white-light",
     label: "White & light",
     aesthetic: "soft-light" as const,
     color: null,
-    swatch: "linear-gradient(135deg, #ffffff 0%, #f3efe6 55%, #e4ddd0 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/01-white.webp",
+    faces: null,
   },
   {
     id: "warm-neutrals",
     label: "Warm neutrals",
     aesthetic: "warm-earthy" as const,
     color: null,
-    swatch: "linear-gradient(135deg, #e8d3b0 0%, #c9a66b 52%, #9c7a45 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    faces: null,
   },
   {
     id: "gray-silver",
     label: "Gray & silver",
     aesthetic: null,
     color: "gray" as const,
-    swatch: "linear-gradient(135deg, #eceff2 0%, #a8b0b8 50%, #6d757e 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/03-gray.webp",
+    faces: null,
   },
   {
     id: "black-dramatic",
-    label: "Black & dramatic",
+    label: "Black",
     aesthetic: "deep-dramatic" as const,
     color: null,
-    swatch: "linear-gradient(135deg, #3a3532 0%, #1c1a18 55%, #0d0c0b 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/04-black.webp",
+    faces: null,
   },
   {
     id: "brown-earth",
     label: "Brown & earth",
     aesthetic: null,
     color: "brown" as const,
-    swatch: "linear-gradient(135deg, #c4a484 0%, #8b5e3c 52%, #5c3a22 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/05-brown.webp",
+    faces: null,
   },
   {
     id: "green",
     label: "Green",
     aesthetic: null,
     color: "green" as const,
-    swatch: "linear-gradient(135deg, #c5d4a8 0%, #6f8f4e 52%, #3f5a2c 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/06-green.webp",
+    faces: null,
   },
   {
     id: "blue",
     label: "Blue",
     aesthetic: null,
     color: "blue" as const,
-    swatch: "linear-gradient(135deg, #c9d7e8 0%, #6f8fad 52%, #3a5570 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/07-blue.webp",
+    faces: null,
   },
   {
     id: "red-burgundy",
     label: "Red & burgundy",
     aesthetic: null,
     color: "rose" as const,
-    swatch: "linear-gradient(135deg, #d7a8a8 0%, #8f4a55 52%, #5a2430 100%)",
+    faceSrc: "/images/businesses/jw-stone/color-collage/08-red.webp",
+    faces: null,
   },
   {
     id: "multicolor",
     label: "Multicolor",
     aesthetic: "bold-expressive" as const,
     color: null,
-    swatch:
-      "linear-gradient(135deg, #f0e6d8 0%, #c9a66b 28%, #6f8fad 55%, #6f8f4e 78%, #5a2430 100%)",
+    faceSrc: null,
+    faces: [
+      "/images/businesses/jw-stone/color-collage/07-blue.webp",
+      "/images/businesses/jw-stone/color-collage/06-green.webp",
+      "/images/businesses/jw-stone/color-collage/08-red.webp",
+      "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    ] as const,
   },
 ] as const satisfies readonly ColorSwatchOptionDef[];
 
@@ -87,7 +98,8 @@ type ColorSwatchOptionDef = {
   label: string;
   aesthetic: ColorDirectionId | null;
   color: StoneColorId | null;
-  swatch: string;
+  faceSrc: string | null;
+  faces: readonly string[] | null;
 };
 
 export type ColorSwatchSelection = {
@@ -105,19 +117,13 @@ export const PALETTE_RAIL_DIRECTIONS = COLOR_SWATCH_OPTIONS.filter(
 }));
 
 export function countForColorSwatch(
-  option: Pick<ColorSwatchOptionDef, "aesthetic" | "color" | "id">,
+  option: Pick<ColorSwatchOptionDef, "aesthetic" | "color">,
   catalog: readonly JwStoneCatalogItem[],
   baseFilters: Pick<MarketplaceUrlState, "material" | "origin"> = {
     material: null,
     origin: null,
   }
 ): number {
-  if (option.id === "all") {
-    return filterJwStoneCatalog(
-      { material: baseFilters.material, origin: baseFilters.origin },
-      catalog
-    ).length;
-  }
   return filterJwStoneCatalog(
     {
       aesthetic: option.aesthetic,
@@ -130,23 +136,62 @@ export function countForColorSwatch(
 }
 
 export function isColorSwatchActive(
-  option: Pick<ColorSwatchOptionDef, "id" | "aesthetic" | "color">,
+  option: Pick<ColorSwatchOptionDef, "aesthetic" | "color">,
   state: ColorSwatchSelection
 ): boolean {
-  if (option.id === "all") return !state.aesthetic && !state.color;
   if (option.aesthetic) return state.aesthetic === option.aesthetic && !state.color;
   if (option.color) return state.color === option.color && !state.aesthetic;
   return false;
 }
 
+/** Re-clicking the active chip clears the color filter (no "All" chip). */
 export function selectionForColorSwatch(
-  option: Pick<ColorSwatchOptionDef, "id" | "aesthetic" | "color">,
+  option: Pick<ColorSwatchOptionDef, "aesthetic" | "color">,
   currentlyActive: boolean
 ): ColorSwatchSelection {
-  if (currentlyActive || option.id === "all") {
+  if (currentlyActive) {
     return { aesthetic: null, color: null };
   }
   return { aesthetic: option.aesthetic, color: option.color };
+}
+
+function ColorFaceCue({
+  faceSrc,
+  faces,
+  active,
+}: {
+  faceSrc: string | null;
+  faces: readonly string[] | null;
+  active: boolean;
+}) {
+  const stripFaces = faces?.length ? faces : faceSrc ? [faceSrc] : null;
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`relative block aspect-[3/4] w-full overflow-hidden bg-[var(--jw-dark)] ${
+        active ? "ring-1 ring-[var(--jw-ink)] ring-offset-2 ring-offset-[var(--jw-bg)]" : ""
+      }`}
+    >
+      {stripFaces ? (
+        <span className="absolute inset-0 flex">
+          {stripFaces.map((src) => (
+            <span key={src} className="relative min-w-0 flex-1 overflow-hidden">
+              <img
+                src={`${src}?v=${COLOR_FACE_VERSION}`}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                loading="lazy"
+                decoding="async"
+              />
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className="absolute inset-0 bg-[var(--jw-surface)]" />
+      )}
+    </span>
+  );
 }
 
 type ColorPaletteRailProps = {
@@ -158,6 +203,7 @@ type ColorPaletteRailProps = {
   catalog?: readonly JwStoneCatalogItem[];
 };
 
+/** Page IA section #1 below First Cut: collapsed until opened. */
 export function ColorPaletteRail({
   aesthetic,
   color,
@@ -170,73 +216,56 @@ export function ColorPaletteRail({
   const options = COLOR_SWATCH_OPTIONS.map((option) => ({
     ...option,
     count: countForColorSwatch(option, catalog, base),
-  })).filter((option) => option.id === "all" || option.count > 0);
+  }));
 
   const activeState = { aesthetic, color };
+  const hasSelection = Boolean(aesthetic || color);
 
   return (
-    <section
+    <JwCollapsibleSection
       id="jw-palette-rail"
-      data-testid="jw-palette-rail"
-      aria-labelledby="jw-palette-heading"
-      className={`bg-[var(--jw-bg)] px-5 py-9 sm:px-9 sm:py-11 lg:px-12 ${jw.scrollTarget}`}
+      testId="jw-palette-rail"
+      headingId="jw-palette-heading"
+      title="Browse by color"
+      defaultExpanded={hasSelection}
+      background={<ColorCollageBackground />}
     >
-      <div className="mx-auto max-w-[1600px]">
-        <h2
-          id="jw-palette-heading"
-          className="font-editorial text-2xl leading-tight text-[var(--jw-ink)] sm:text-3xl"
-        >
-          Browse by color
-        </h2>
-        <p className={`mt-2 max-w-xl text-sm leading-6 ${jw.muted}`}>
-          Start with a palette — or browse by material below.
+      {!hasSelection ? (
+        <p className={`mb-4 text-sm leading-relaxed ${jw.muted}`} data-testid="jw-palette-prompt">
+          Choose a color direction to refine the collection.
         </p>
-
-        <div
-          className="mt-5 grid grid-cols-2 gap-2.5 sm:mt-6 sm:grid-cols-3 sm:gap-3 lg:grid-cols-3"
-          role="list"
-          aria-label="Color palettes"
-        >
-          {options.map((option) => {
-            const isActive = isColorSwatchActive(option, activeState);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="listitem"
-                data-testid={`jw-palette-${option.id}`}
-                aria-pressed={isActive}
-                onClick={() => onSelect(selectionForColorSwatch(option, isActive))}
-                className={`flex min-h-[3.25rem] items-center gap-3 px-3 py-2.5 text-left transition-colors sm:min-h-[3.5rem] ${
-                  isActive
-                    ? "bg-[var(--jw-accent)] text-[var(--jw-on-accent)]"
-                    : "bg-[var(--jw-surface)] text-[var(--jw-ink)] hover:bg-[var(--jw-surface)]/80"
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`h-9 w-9 shrink-0 border sm:h-10 sm:w-10 ${
-                    isActive ? "border-[var(--jw-on-accent)]/35" : "border-[var(--jw-border)]"
-                  }`}
-                  style={{ background: option.swatch }}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold leading-tight sm:text-[0.95rem]">
-                    {option.label}
-                  </span>
-                  <span
-                    className={`mt-0.5 block text-xs leading-none ${
-                      isActive ? "text-[var(--jw-on-accent)]/80" : jw.muted
-                    }`}
-                  >
-                    {option.count} {option.count === 1 ? "selection" : "selections"}
-                  </span>
+      ) : null}
+      <div
+        className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-9"
+        role="list"
+        aria-label="Color palettes"
+        data-testid="jw-palette-chip-row"
+      >
+        {options.map((option) => {
+          const isActive = isColorSwatchActive(option, activeState);
+          return (
+            <button
+              key={option.id}
+              type="button"
+              role="listitem"
+              data-testid={`jw-palette-${option.id}`}
+              aria-pressed={isActive}
+              onClick={() => onSelect(selectionForColorSwatch(option, isActive))}
+              className="group min-w-0 text-left"
+            >
+              <ColorFaceCue faceSrc={option.faceSrc} faces={option.faces} active={isActive} />
+              <span className="mt-2.5 block min-w-0 sm:mt-3">
+                <span className="block font-editorial text-base leading-tight tracking-tight text-[var(--jw-ink)] sm:text-lg lg:text-xl">
+                  {option.label}
                 </span>
-              </button>
-            );
-          })}
-        </div>
+                <span className={`mt-0.5 block text-xs leading-none ${jw.muted}`}>
+                  {option.count} {option.count === 1 ? "selection" : "selections"}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
-    </section>
+    </JwCollapsibleSection>
   );
 }

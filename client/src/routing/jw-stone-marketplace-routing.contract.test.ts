@@ -12,6 +12,8 @@ describe("JW Stone marketplace routing contract", () => {
     expect(appSource).toContain('const isJwStoneMarketplaceRoute = pathOnly === "/jw-stone";');
     expect(appSource).toMatch(/const isPublicProfileRoute\s*=\s*isJwStoneMarketplaceRoute\s*\|\|/);
     expect(appSource).toContain("isJwStoneMarketplaceRoute={isJwStoneMarketplaceRoute}");
+    expect(appSource).toContain('root.classList.add("jw-marketplace-scroll")');
+    expect(appSource).toContain("useLayoutEffect");
   });
 
   it("keeps the flagship route free of platform overlays", () => {

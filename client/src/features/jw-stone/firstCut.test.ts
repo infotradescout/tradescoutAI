@@ -6,24 +6,27 @@ import {
   JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT,
   JW_STONE_FIRST_CUT_SECTION_NOTE,
   buildFirstCutPresentation,
+  firstCutPhotoAsDetailStone,
+  resolveFirstCutDetailStone,
 } from "./firstCut";
 
 describe("First Cut Exclusives data boundary", () => {
   it("ships three photo-only First Cut slots with a shared section note (no invented names)", () => {
     expect(JW_STONE_FIRST_CUT_ASSIGNMENTS).toEqual([]);
     expect(JW_STONE_FIRST_CUT_PHOTO_SLOTS).toEqual([
-      { id: "first-cut-1", imageSrc: "/images/businesses/jw-stone/first-cut/01.jpg" },
-      { id: "first-cut-2", imageSrc: "/images/businesses/jw-stone/first-cut/02.jpg" },
-      { id: "first-cut-3", imageSrc: "/images/businesses/jw-stone/first-cut/03.jpg" },
+      // Lead: physically long green bookmatched pair (not burgundy / black-vein).
+      { id: "first-cut-1", imageSrc: "/images/businesses/jw-stone/first-cut/05.jpg" },
+      { id: "first-cut-2", imageSrc: "/images/businesses/jw-stone/first-cut/01.jpg" },
+      { id: "first-cut-3", imageSrc: "/images/businesses/jw-stone/first-cut/02.jpg" },
     ]);
     expect(buildFirstCutPresentation()).toEqual([
       { kind: "photo", id: "first-cut-1", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[0].imageSrc },
       { kind: "photo", id: "first-cut-2", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[1].imageSrc },
       { kind: "photo", id: "first-cut-3", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[2].imageSrc },
     ]);
-    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).toContain(
-      "Names and specifications are added as inventory is confirmed"
-    );
+    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).toBe("New to market. First chance to buy.");
+    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).not.toMatch(/newly sourced/i);
+    expect(JW_STONE_FIRST_CUT_SECTION_NOTE).not.toMatch(/Fresh from the first cut/i);
     expect(JW_STONE_CATALOG).toHaveLength(148);
   });
 
@@ -64,5 +67,21 @@ describe("First Cut Exclusives data boundary", () => {
         []
       )
     ).toHaveLength(JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT);
+  });
+
+  it("builds anonymous First Cut detail stones without inventing product names", () => {
+    const detail = firstCutPhotoAsDetailStone(JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!);
+    expect(detail.displayName).toBeNull();
+    expect(detail.publicLabel).toBe("First Cut");
+    expect(detail.anonymous).toBe(true);
+    expect(detail.wishlistEligible).toBe(false);
+    expect(detail.images).toEqual([JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!.imageSrc]);
+    expect(
+      resolveFirstCutDetailStone({
+        kind: "photo",
+        id: "first-cut-1",
+        imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!.imageSrc,
+      }).id
+    ).toBe("first-cut-1");
   });
 });

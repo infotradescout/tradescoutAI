@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
-import { StonePalette } from "./StonePalette";
 import {
   availabilityDetailLabel,
   confirmedFinishes,
@@ -64,7 +63,7 @@ export function StoneDetailDialog({
       >
         <div className="flex min-h-full flex-col">
           <div
-            className="relative bg-[var(--jw-dark)]"
+            className="relative bg-[var(--jw-bg)]"
             onTouchStart={(event) => {
               touchStartX.current = event.touches[0]?.clientX ?? null;
             }}
@@ -83,7 +82,7 @@ export function StoneDetailDialog({
                   ? `${stone.displayName} stone, view ${imageIndex + 1}`
                   : `JW Stone selection, view ${imageIndex + 1}`
               }
-              className="max-h-[58dvh] w-full object-contain sm:max-h-[68dvh]"
+              className="mx-auto block h-auto max-h-[70dvh] w-auto max-w-full"
             />
             {imageCount > 1 ? (
               <>
@@ -170,17 +169,6 @@ export function StoneDetailDialog({
                   </div>
                 ) : null}
               </dl>
-
-              {stone.colorSwatches.length ? (
-                <div className="mt-6 sm:mt-7">
-                  <StonePalette
-                    colorSwatches={stone.colorSwatches}
-                    pairingSwatches={stone.pairingSwatches}
-                    size="md"
-                    showLabels
-                  />
-                </div>
-              ) : null}
             </div>
 
             {stone.wishlistEligible ? (

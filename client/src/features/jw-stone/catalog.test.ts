@@ -23,7 +23,12 @@ const canonicalStones = JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((categ
 );
 
 describe("JW Stone 2.0 catalog projection", () => {
-  it("preserves all 148 reconciled selections and 433 source images", () => {
+  it("preserves all 148 reconciled selections (public gallery may omit hand leads)", () => {
+    const sourceImageCount = canonicalStones.reduce(
+      (sum, { stone }) => sum + stone.images.length,
+      0
+    );
+    const publicImageCount = JW_STONE_CATALOG.reduce((sum, stone) => sum + stone.images.length, 0);
     expect(JW_STONE_CATALOG).toHaveLength(148);
     expect(JW_STONE_NAMED_CATALOG).toHaveLength(110);
     expect(JW_STONE_ANONYMOUS_CATALOG).toHaveLength(38);
@@ -31,7 +36,9 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(JW_STONE_CATALOG.map((stone) => stone.id).sort()).toEqual(
       canonicalStones.map(({ stone }) => stone.slug).sort()
     );
-    expect(JW_STONE_CATALOG.reduce((sum, stone) => sum + stone.images.length, 0)).toBe(433);
+    expect(sourceImageCount).toBe(433);
+    expect(publicImageCount).toBeGreaterThan(300);
+    expect(publicImageCount).toBeLessThanOrEqual(sourceImageCount);
     expect(getCatalogItemById("amazonic-green")?.displayName).toBe("Amazonic Green");
     expect(getCatalogItemById("steel-gray")?.displayName).toBe("Steel Gray");
     expect(getNamedCatalogItemByShareSlug("versace")?.displayName).toBe("Versace");
@@ -74,9 +81,13 @@ describe("JW Stone 2.0 catalog projection", () => {
 
     for (const projected of JW_STONE_CATALOG) {
       const canonical = canonicalStones.find(({ stone }) => stone.slug === projected.id)!.stone;
-      // Cover ranking may reorder photos; membership and count stay exact.
-      expect([...projected.images].sort()).toEqual([...canonical.images].sort());
-      expect(projected.images).toHaveLength(canonical.images.length);
+      // Cover ranking may reorder; confirmed hand-scale siblings may be omitted from
+      // the public gallery when a cleaner face exists.
+      expect(projected.images.length).toBeGreaterThan(0);
+      expect(projected.images.length).toBeLessThanOrEqual(canonical.images.length);
+      for (const image of projected.images) {
+        expect(canonical.images).toContain(image);
+      }
       expect(projected.finishes).toEqual(canonical.finishes ?? []);
       expect(projected.sourceEvidence?.counts ?? []).toEqual(canonical.slabCounts ?? []);
       expect(Object.prototype.hasOwnProperty.call(projected.sourceEvidence ?? {}, "total")).toBe(

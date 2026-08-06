@@ -82,41 +82,166 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(header?.textContent).not.toMatch(/\b0\b/);
     expect(container.querySelector('[data-testid="jw-marketplace-menu-button"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-menu-panel"]')).toBeNull();
-    expect(container.querySelector('[data-testid="jw-marketplace-footer"]')).not.toBeNull();
+    const footer = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-footer"]');
+    expect(footer).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-footer-logo"]')).not.toBeNull();
     expect(
       container.querySelector('[data-testid="jw-marketplace-tradescout-link"]')?.textContent
     ).toContain("Powered by TradeScout");
+    expect(footer?.querySelector('a[href="#first-cut-title"]')).toBeNull();
+    expect(footer?.querySelector('a[href="#jw-palette-rail"]')).toBeNull();
+    expect(footer?.querySelector('a[href="#jw-material-rail"]')).toBeNull();
+    expect(footer?.querySelector('a[href="#current-inventory"]')).toBeNull();
+    expect(footer?.querySelector('a[href="/u/jw-stone"]')).toBeNull();
+    expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
-    expect(container.textContent).toContain("Browse inventory");
+    expect(container.textContent).not.toContain(
+      "Thirty years of expertise for fabricators, architects, designers, builders, and homeowners."
+    );
+    expect(container.textContent).not.toContain("Browse inventory");
+    expect(
+      container.querySelector('[data-testid="jw-marketplace-hero"] a[href="#current-inventory"]')
+    ).toBeNull();
+    expect(container.textContent).not.toContain("View First Cut");
+    expect(container.textContent).not.toContain("Open for palette filters");
+    expect(container.textContent).not.toContain("Open for stacked materials");
+    expect(container.textContent).not.toContain("expand to search and browse");
     expect(container.textContent).toContain("First Cut");
     expect(container.textContent).toContain("Browse by color");
-    expect(container.textContent).toContain("All");
-    expect(container.textContent).toContain("Warm neutrals");
-    expect(container.textContent).toContain("White & light");
-    expect(container.textContent).toContain("Gray & silver");
-    expect(container.textContent).toContain("Black & dramatic");
-    expect(container.textContent).toContain("Brown & earth");
-    expect(container.textContent).toContain("Red & burgundy");
-    expect(container.textContent).toContain("Multicolor");
     expect(container.textContent).toContain("Browse by material");
-    expect(container.textContent).toContain("Granite");
-    expect(container.textContent).toContain("Marble");
-    expect(container.textContent).toContain("Quartzite");
-    expect(container.textContent).toContain("Explore the collection");
+    expect(container.textContent).toContain("Full inventory");
+    expect(container.textContent).toContain(
+      "JW Stone handles the entire process — from sourcing through fabrication to delivery — with quarry-direct pricing."
+    );
+    expect(container.textContent).not.toContain("Installed spaces");
+    expect(container.textContent).not.toContain("Finished work");
+    expect(container.querySelector("#jw-finished-work-heading")).toBeNull();
+    expect(container.querySelector('[data-testid="jw-finished-work-bridge"]')).toBeNull();
+    expect(container.textContent).not.toContain("Wagner at the quarry");
+    expect(container.textContent).toContain("Finished-space inspiration");
+    expect(container.textContent).toContain("Stone specified for the whole space");
+    expect(container.textContent).toContain("Material with architectural impact");
+    expect(container.textContent).toContain("Direct quarry relationships");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(
+      container.querySelector('[data-testid="jw-material-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-palette-all"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stack"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-inventory-grid"]')).toBeNull();
+    expect(container.querySelectorAll("[data-stone-card]").length).toBe(0);
     expect(container.textContent).toContain("Contact");
     expect(container.textContent).not.toContain("Tell JW Stone what you need");
-    expect(container.textContent).not.toContain("From source to finished space");
+    expect(container.textContent).toContain("From source to finished space");
     expect(container.textContent).not.toContain("Trending");
     expect(container.textContent).not.toContain("JW Stone Picks");
     expect(container.textContent).not.toContain("Current Inventory");
-    expect(container.textContent).not.toMatch(/Basalt\s*—\s*1 selection/i);
-    expect(container.querySelector('[data-testid="jw-marketplace-story"]')).toBeNull();
+    expect(container.textContent).not.toContain("Explore the collection");
+    expect(container.querySelector('[data-testid="jw-marketplace-story"]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-testid="jw-marketplace-story"]')).toHaveLength(1);
     expect(container.querySelector('[data-testid="jw-marketplace-trending"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-request"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-palette-rail"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
+
+    const colorToggle = container.querySelector('[data-testid="jw-palette-rail-toggle"]');
+    const materialToggle = container.querySelector('[data-testid="jw-material-rail-toggle"]');
+    const inventoryToggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
+    expect(colorToggle?.textContent).not.toMatch(/\bOpen\b/);
+    expect(materialToggle?.textContent).not.toMatch(/\bOpen\b/);
+    expect(inventoryToggle?.textContent).not.toMatch(/\bOpen\b/);
+    expect(colorToggle?.querySelector('[data-testid="jw-color-collage"]')).not.toBeNull();
+    expect(
+      colorToggle
+        ?.querySelector('[data-testid="jw-color-collage"]')
+        ?.getAttribute("data-page-count")
+    ).toBeNull();
+    expect(colorToggle?.querySelector('[data-testid="jw-color-collage-track"]')).toBeNull();
+    expect(colorToggle?.querySelector('[data-testid="jw-color-collage-page-0"]')).toBeNull();
+    const collageSrcs = Array.from(
+      colorToggle?.querySelectorAll('[data-testid="jw-color-collage"] img') || []
+    ).map((img) => img.getAttribute("src") || "");
+    expect(collageSrcs).toHaveLength(8);
+    expect(collageSrcs.every((src) => src.includes("/color-collage/"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("04-black.webp"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("07-blue.webp"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("08-red.webp"))).toBe(true);
+    expect(collageSrcs.some((src) => src.includes("/black-pearl/"))).toBe(false);
+
+    expect(materialToggle?.querySelector('[data-testid="jw-material-collage"]')).not.toBeNull();
+    expect(
+      materialToggle
+        ?.querySelector('[data-testid="jw-material-collage"]')
+        ?.getAttribute("data-page-count")
+    ).toBeNull();
+    expect(materialToggle?.querySelector('[data-testid="jw-material-collage-page-0"]')).toBeNull();
+    const materialSrcs = Array.from(
+      materialToggle?.querySelectorAll('[data-testid="jw-material-collage"] img') || []
+    ).map((img) => img.getAttribute("src") || "");
+    expect(materialSrcs).toHaveLength(1);
+    expect(materialSrcs[0]).toContain("/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp");
+    expect(materialSrcs[0]).not.toContain("/material-covers/");
+    expect(materialSrcs[0]).not.toContain("/color-collage/");
+    expect(materialSrcs[0]).not.toContain("/story/");
+
+    expect(inventoryToggle?.querySelector('[data-testid="jw-inventory-collage"]')).not.toBeNull();
+    expect(
+      inventoryToggle
+        ?.querySelector('[data-testid="jw-inventory-collage"]')
+        ?.getAttribute("data-page-count")
+    ).toBeNull();
+    expect(
+      inventoryToggle?.querySelector('[data-testid="jw-inventory-collage-page-0"]')
+    ).toBeNull();
+    const inventorySrcs = Array.from(
+      inventoryToggle?.querySelectorAll('[data-testid="jw-inventory-collage"] img') || []
+    ).map((img) => img.getAttribute("src") || "");
+    expect(inventorySrcs).toHaveLength(1);
+    expect(inventorySrcs[0]).toContain("/story/full-inventory-yard.webp");
+    expect(inventorySrcs[0]).not.toContain("taj-living-room");
+    expect(inventorySrcs[0]).not.toBe(materialSrcs[0]);
+    expect(inventorySrcs[0]).not.toContain("/material-covers/");
+    expect(inventorySrcs[0]).not.toContain("/color-collage/");
+    expect(inventorySrcs[0]).not.toContain("/inventory-source/");
+
+    const story = container.querySelector('[data-testid="jw-marketplace-story"]');
+    expect(story?.getAttribute("id")).toBe("jw-story");
+    expect(story?.textContent).toContain("From source to finished space");
+    expect(story?.textContent).not.toContain("Stone selected with the final room in mind");
+    expect(story?.textContent).toContain(
+      "JW Stone handles the entire process — from sourcing through fabrication to delivery — with quarry-direct pricing."
+    );
+    expect(story?.textContent).toContain("Direct quarry relationships");
+    expect(story?.textContent).not.toContain("Finished work");
+    expect(story?.textContent).not.toContain("Installed spaces");
+    expect(container.querySelector('[data-testid="jw-story-separator"]')).not.toBeNull();
+    const storySrcs = Array.from(story?.querySelectorAll("img") || []).map(
+      (img) => img.getAttribute("src") || ""
+    );
+    expect(storySrcs.length).toBeGreaterThanOrEqual(4);
+    expect(storySrcs[0]).toContain("/story/quarry.webp");
+    expect(storySrcs.some((src) => src.includes("/story/taj-living-room.webp"))).toBe(true);
+    expect(storySrcs.some((src) => src.includes("/story/fireplace.webp"))).toBe(true);
+    expect(storySrcs.some((src) => src.includes("/story/mont-blanc-bar.webp"))).toBe(true);
+    const footerEl = container.querySelector('[data-testid="jw-marketplace-footer"]');
+    const inventoryEl = container.querySelector("#current-inventory");
+    expect(
+      story &&
+        inventoryEl &&
+        footerEl &&
+        Boolean(inventoryEl.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+        Boolean(story.compareDocumentPosition(footerEl) & Node.DOCUMENT_POSITION_FOLLOWING)
+    ).toBe(true);
+
+    expect(colorToggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(materialToggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(inventoryToggle?.className).toMatch(/min-h-\[25svh\]/);
 
     const request = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-request"]');
     expect(request?.className).toMatch(/fixed/);
@@ -134,6 +259,8 @@ describe("JW Stone marketplace luxury layout", () => {
       "/images/businesses/jw-stone/video/hero-poster.jpg"
     );
     expect(heroVideo?.className).toContain("max-w-[1920px]");
+    expect(hero?.querySelector('[data-testid="jw-marketplace-hero-image"]')).toBeNull();
+    expect(hero?.querySelector('[data-testid="jw-marketplace-hero-brand"]')).toBeNull();
     expect(hero?.innerHTML).toMatch(/bg-gradient-to-t/);
     const title = hero?.querySelector("#jw-marketplace-title");
     expect(title).not.toBeNull();
@@ -148,7 +275,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
   });
 
-  it("keeps section links behind the menu and opens Connect from the menu", () => {
+  it("opens Connect from the menu without section jump links", () => {
     const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
     expect(header).not.toBeNull();
     if (!header) throw new Error("Expected header");
@@ -157,18 +284,14 @@ describe("JW Stone marketplace luxury layout", () => {
     const panel = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-menu-panel"]');
     expect(panel).not.toBeNull();
     if (!panel) throw new Error("Expected menu panel");
-    expect(panel.querySelector('a[href="#first-cut-title"]')?.textContent).toContain("First Cut");
-    expect(panel.querySelector('a[href="#jw-palette-rail"]')?.textContent).toContain(
-      "Browse by color"
-    );
-    expect(panel.querySelector('a[href="#jw-material-rail"]')?.textContent).toContain(
-      "Browse by material"
-    );
-    expect(panel.querySelector('a[href="#current-inventory"]')?.textContent).toContain(
-      "Explore the collection"
-    );
+    expect(panel.querySelector('a[href="#first-cut-title"]')).toBeNull();
+    expect(panel.querySelector('a[href="#jw-palette-rail"]')).toBeNull();
+    expect(panel.querySelector('a[href="#jw-material-rail"]')).toBeNull();
+    expect(panel.querySelector('a[href="#current-inventory"]')).toBeNull();
+    expect(panel.querySelector('a[href="#jw-finished-work"]')).toBeNull();
     expect(panel.querySelector('a[href="#new-arrivals"]')).toBeNull();
     expect(panel.querySelector('a[href="#jw-story"]')).toBeNull();
+    expect(panel.querySelector('a[href="/u/jw-stone"]')).toBeNull();
     expect(buttonContaining(panel, "Connect")).not.toBeNull();
     expect(header.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
 
@@ -183,52 +306,89 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
 
-  it("shows editorial collection chrome: search + Filter sheet, no Ask on cards", () => {
-    expect(container.textContent).toContain("Explore the collection");
+  it("shows editorial collection chrome: search + Filter sheet, Save/Ask/View on cards", () => {
+    expect(container.textContent).toContain("Full inventory");
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
+    expect(container.querySelectorAll("[data-stone-card]").length).toBe(0);
+
+    click(container.querySelector('[data-testid="jw-inventory-toggle"]'));
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("true");
     expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(20);
     expect(container.querySelector('input[aria-label="Search the collection"]')).not.toBeNull();
     expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-filters-sheet-open"]')).not.toBeNull();
-    expect(container.textContent).not.toMatch(/Basalt\s*—\s*1 selection/i);
     expect(container.textContent).not.toContain("DETAILS PENDING");
     expect(container.textContent).not.toContain("Details pending");
 
     const firstCard = container.querySelector<HTMLElement>("[data-stone-card]");
     expect(firstCard).not.toBeNull();
     if (!firstCard) throw new Error("Expected a stone card");
-    expect(buttonContaining(firstCard, "Ask")).toBeNull();
+    expect(buttonContaining(firstCard, "Ask")).not.toBeNull();
     expect(buttonContaining(firstCard, "View gallery")).toBeNull();
     expect(buttonContaining(firstCard, "View stone")).not.toBeNull();
     expect(firstCard.className).not.toMatch(/\bborder\b/);
-    expect(firstCard.querySelector("[class*='aspect-']")).not.toBeNull();
+    expect(firstCard.querySelector("[class*='aspect-']")).toBeNull();
     expect(firstCard.querySelector('button[aria-label^="Save "]')).not.toBeNull();
-    expect(firstCard.textContent).toContain("Pairs with");
-    expect(firstCard.querySelector('[aria-label^="Colors #"]')).not.toBeNull();
-    expect(firstCard.querySelector('[aria-label^="Pairs with #"]')).not.toBeNull();
+    expect(firstCard.textContent).not.toContain("Pairs with");
+    expect(firstCard.textContent).not.toContain("Colors from photo");
+    expect(firstCard.querySelector('[aria-label^="Colors #"]')).toBeNull();
+    expect(firstCard.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
+    expect(firstCard.querySelector("img")?.className).toMatch(/h-auto/);
     expect(firstCard.querySelector("img")?.className).toMatch(/object-contain/);
+    expect(firstCard.querySelector("img")?.className).not.toMatch(/object-cover/);
+
+    expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
+    click(buttonContaining(firstCard, "Ask"));
+    expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
 
     const inventory = container.querySelector('[data-testid="jw-inventory-grid"]');
     expect(inventory?.querySelector("ul")?.className).toMatch(/flex-col/);
-    expect(inventory?.querySelector("ul")?.className).not.toMatch(/grid-cols-/);
+    expect(inventory?.querySelector("ul")?.className).not.toMatch(/md:grid-cols-2/);
+
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
+    expect(container.querySelector('[data-testid="jw-material-stack"]')?.className).toMatch(
+      /flex-col/
+    );
+    expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).toBeNull();
 
     click(container.querySelector('[data-testid="jw-material-marble"]'));
     expect(window.location.search).toContain("material=marble");
-    for (const card of container.querySelectorAll<HTMLElement>("[data-stone-card]")) {
-      expect(card.textContent).toMatch(/Marble/i);
-    }
+    expect(
+      container
+        .querySelector('[data-testid="jw-material-section-marble"]')
+        ?.getAttribute("data-expanded")
+    ).toBe("true");
+    const marbleRail = container.querySelector('[data-testid="jw-material-stone-rail"]');
+    expect(marbleRail).not.toBeNull();
+    expect(marbleRail?.querySelector('[data-testid="jw-material-stone-prev"]')).not.toBeNull();
+    expect(marbleRail?.querySelector('[data-testid="jw-material-stone-next"]')).not.toBeNull();
+    expect(marbleRail?.className).not.toMatch(/overflow-x-auto/);
+    expect(marbleRail?.querySelector("[data-stone-card]")?.textContent).toMatch(/Marble/i);
+    expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(1);
 
     click(container.querySelector('[data-testid="jw-filters-sheet-open"]'));
     expect(container.querySelector('[data-testid="jw-filters-sheet"]')).not.toBeNull();
     change(container.querySelector<HTMLSelectElement>('select[aria-label="Material"]'), "granite");
     click(buttonContaining(container.querySelector('[data-testid="jw-filters-sheet"]')!, "Show"));
     expect(window.location.search).toContain("material=granite");
-    for (const card of container.querySelectorAll<HTMLElement>("[data-stone-card]")) {
-      expect(card.textContent).toMatch(/Granite/i);
-    }
+    const graniteRail = container.querySelector('[data-testid="jw-material-stone-rail"]');
+    expect(graniteRail).not.toBeNull();
+    expect(graniteRail?.querySelector("[data-stone-card]")?.textContent).toMatch(/Granite/i);
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("true");
+    expect(
+      container.querySelectorAll("#current-inventory [data-stone-card]").length
+    ).toBeGreaterThan(0);
+
+    click(container.querySelector('[data-testid="jw-material-granite"]'));
+    expect(window.location.search).not.toContain("material=");
+    expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).toBeNull();
   });
 
   it("ignores legacy buyer and finish query params", () => {
@@ -239,10 +399,13 @@ describe("JW Stone marketplace luxury layout", () => {
 
     expect(window.location.search).not.toContain("finish=");
     expect(window.location.search).not.toContain("buyer=");
+    expect(container.querySelectorAll("[data-stone-card]").length).toBe(0);
+    click(container.querySelector('[data-testid="jw-inventory-toggle"]'));
     expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(20);
   });
 
   it("treats palette, color, and material as optional refinements", () => {
+    click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-palette-warm-neutrals"]'));
     expect(window.location.search).toContain("aesthetic=warm-earthy");
     expect(window.location.search).not.toContain("color=");
@@ -251,14 +414,20 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(window.location.search).toContain("color=green");
     expect(window.location.search).not.toContain("aesthetic=");
 
-    click(container.querySelector('[data-testid="jw-palette-all"]'));
+    // No "All" chip — re-click active color clears the color filter.
+    expect(container.querySelector('[data-testid="jw-palette-all"]')).toBeNull();
+    click(container.querySelector('[data-testid="jw-palette-green"]'));
     expect(window.location.search).not.toContain("aesthetic=");
     expect(window.location.search).not.toContain("color=");
 
     click(container.querySelector('[data-testid="jw-palette-warm-neutrals"]'));
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-material-quartzite"]'));
     expect(window.location.search).toContain("material=quartzite");
     expect(window.location.search).toContain("aesthetic=warm-earthy");
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("true");
 
     click(container.querySelector('[data-testid="jw-filters-sheet-open"]'));
     change(container.querySelector<HTMLSelectElement>('select[aria-label="Color"]'), "white");
@@ -282,6 +451,7 @@ describe("JW Stone marketplace luxury layout", () => {
     );
     expect(badge).toBeNull();
 
+    click(container.querySelector('[data-testid="jw-inventory-toggle"]'));
     click(container.querySelector<HTMLButtonElement>('button[aria-label^="Save "]'));
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
@@ -292,13 +462,14 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
   });
 
-  it("orders header, hero, First Cut peek, color, material, inventory, footer, then Connect", () => {
+  it("orders header, hero, First Cut premiere, color, material, inventory, story, footer, then Connect", () => {
     const header = container.querySelector('[data-testid="jw-marketplace-header"]');
     const hero = container.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = container.querySelector("#first-cut-title")?.closest("section");
     const palette = container.querySelector('[data-testid="jw-palette-rail"]');
     const materials = container.querySelector('[data-testid="jw-material-rail"]');
     const inventory = container.querySelector("#current-inventory");
+    const story = container.querySelector('[data-testid="jw-marketplace-story"]');
     const footer = container.querySelector('[data-testid="jw-marketplace-footer"]');
     const request = container.querySelector('[data-testid="jw-marketplace-request"]');
 
@@ -308,8 +479,10 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(palette).not.toBeNull();
     expect(materials).not.toBeNull();
     expect(inventory).not.toBeNull();
+    expect(story).not.toBeNull();
     expect(footer).not.toBeNull();
     expect(request).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-finished-work-bridge"]')).toBeNull();
     if (
       !header ||
       !hero ||
@@ -317,6 +490,7 @@ describe("JW Stone marketplace luxury layout", () => {
       !palette ||
       !materials ||
       !inventory ||
+      !story ||
       !footer ||
       !request
     ) {
@@ -335,26 +509,121 @@ describe("JW Stone marketplace luxury layout", () => {
       materials.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
-      inventory.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING
+      inventory.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+    expect(story.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(footer.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     expect(inventory.className).toMatch(/scroll-mt-/);
 
     const rail = firstCut.querySelector('[data-testid="jw-first-cut-rail"]');
-    expect(rail?.className).toMatch(/snap-x/);
-    expect(rail?.className).not.toMatch(/grid-cols-3/);
+    expect(rail?.className).toMatch(/jw-first-cut__premiere/);
+    expect(rail?.className).toMatch(/grid-cols-1/);
+    expect(rail?.className).not.toMatch(/snap-x|overflow-x-auto|grid-cols-3|lg:grid-cols-/);
+    expect(firstCut.className).toMatch(/jw-first-cut/);
+    expect(firstCut.querySelector(".jw-first-cut__lead")).not.toBeNull();
+    const supportRow = firstCut.querySelector(".jw-first-cut__support");
+    expect(supportRow).not.toBeNull();
+    expect(supportRow?.className).toMatch(/grid-cols-2/);
+    expect(supportRow?.className).not.toMatch(/lg:grid-cols-1|min-h-\[56svh\]|lg:min-h-/);
     const photoSlots = firstCut.querySelectorAll('[data-first-cut-photo="true"]');
     expect(photoSlots.length).toBe(3);
+    expect(firstCut.querySelectorAll('[data-first-cut-lead="true"]')).toHaveLength(1);
+    expect(firstCut.querySelectorAll('[data-first-cut-support="true"]')).toHaveLength(2);
     for (const slot of Array.from(photoSlots)) {
-      expect(slot.querySelector("img")).not.toBeNull();
-      expect(slot.className).toMatch(/w-\[88vw\]|w-\[86vw\]/);
+      const img = slot.querySelector("img");
+      expect(img).not.toBeNull();
+      expect(img?.getAttribute("src")).toMatch(/\/first-cut\/0[125]\.jpg/);
+      expect(slot.className).not.toMatch(/w-\[88vw\]|w-\[86vw\]|shrink-0/);
+      expect(slot.className).not.toMatch(/--jw-dark|jw-dark/);
+      expect(img?.className).not.toMatch(/max-h-|absolute|inset-0/);
+      expect(img?.getAttribute("alt")).toBe("");
+      expect(img?.getAttribute("title")).toBeNull();
+      expect(slot.getAttribute("title")).toBeNull();
+      expect(slot.getAttribute("aria-label")).toBeTruthy();
+      expect(slot.getAttribute("aria-label")).not.toMatch(/photograph/i);
       expect(slot.textContent?.trim()).toBe("");
+      expect(slot.textContent).not.toMatch(/\bOpen\b/i);
     }
-    expect(firstCut.textContent).toContain(
-      "Newly sourced by JW Stone. Names and specifications are added as inventory is confirmed."
+    const lead = firstCut.querySelector('[data-first-cut-lead="true"]');
+    const leadFrame = lead?.querySelector("span");
+    const leadImg = lead?.querySelector("img");
+    // Aspect frame + cover on whole long-slab lead — no oversized svh bands / beige voids.
+    expect(leadFrame?.className).toMatch(/aspect-/);
+    expect(leadFrame?.className).not.toMatch(/svh|min-h-0|min-h-\[/);
+    expect(leadImg?.className).toMatch(/object-cover/);
+    expect(leadImg?.className).not.toMatch(/object-contain/);
+    const supportTiles = firstCut.querySelectorAll('[data-first-cut-support="true"]');
+    const supportFrames = Array.from(supportTiles).map((tile) => tile.querySelector("span"));
+    expect(supportFrames).toHaveLength(2);
+    for (const frame of supportFrames) {
+      expect(frame?.className).toMatch(/aspect-\[4\/3\]/);
+      expect(frame?.className).not.toMatch(/svh|min-h-\[/);
+    }
+    // Equal grid cells: both support frames share the same aspect utility (identical box size).
+    expect(supportFrames[0]?.className).toBe(supportFrames[1]?.className);
+    const supportImgs = firstCut.querySelectorAll('[data-first-cut-support="true"] img');
+    expect(supportImgs.length).toBe(2);
+    for (const img of Array.from(supportImgs)) {
+      expect(img.className).toMatch(/object-cover/);
+      expect(img.className).not.toMatch(/object-contain/);
+    }
+    // Lead is the physically long green bookmatched pair (05), not burgundy (02) or black vein (01).
+    expect(leadImg?.getAttribute("src")).toContain("/first-cut/05.jpg");
+    expect(leadImg?.getAttribute("src")).toContain("v=green-bookmatch-lead-1");
+    expect(leadFrame?.className).toMatch(/aspect-\[2\/1\]/);
+    const supportSrcs = Array.from(supportImgs).map((img) => img.getAttribute("src") ?? "");
+    expect(supportSrcs.some((src) => src.includes("/first-cut/01.jpg"))).toBe(true);
+    expect(supportSrcs.some((src) => src.includes("/first-cut/02.jpg"))).toBe(true);
+    expect(firstCut.textContent).toContain("New to market. First chance to buy.");
+    const firstCutTitle = firstCut.querySelector("#first-cut-title");
+    expect(firstCutTitle?.className).toMatch(/font-editorial/);
+    expect(firstCutTitle?.className).not.toMatch(/font-serif/);
+    expect(firstCut.textContent).not.toContain(
+      "Thirty years of expertise for fabricators, architects, designers, builders, and homeowners."
     );
+    expect(firstCut.textContent).not.toMatch(/newly sourced/i);
+    expect(firstCut.textContent).not.toMatch(/Fresh from the first cut/i);
     expect(firstCut.textContent).not.toMatch(/Details pending/i);
+    expect(firstCut.textContent).not.toMatch(/Entering the market for the first time/i);
     expect(firstCut.className).not.toMatch(/darkBar|jw-dark|--jw-dark/);
+  });
+
+  it("opens First Cut photo tiles into stone detail", () => {
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    click(container.querySelector('[data-testid="jw-first-cut-photo-first-cut-1"]'));
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain("First Cut");
+    expect(dialog?.querySelector("img")?.getAttribute("src")).toContain("/first-cut/05.jpg");
+  });
+
+  it("expands full inventory with filtered stones when a color swatch is chosen", () => {
+    click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
+    click(container.querySelector('[data-testid="jw-palette-green"]'));
+    expect(window.location.search).toContain("color=green");
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("true");
+    const cards = container.querySelectorAll("#current-inventory [data-stone-card]");
+    expect(cards.length).toBeGreaterThan(0);
+    expect(container.querySelector('[data-testid="jw-inventory-collapse"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-palette-rail-collapse"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/Close Browse by color/i);
+    expect(container.textContent).not.toMatch(/Close Browse by material/i);
+    expect(container.textContent).not.toMatch(/Close Full inventory/i);
+
+    const inventoryToggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
+    // Expanded inventory keeps a sticky photo title band so header toggle stays reachable.
+    expect(inventoryToggle?.className).toMatch(/\bsticky\b/);
+    expect(inventoryToggle?.className).toMatch(/top-14/);
+
+    click(inventoryToggle);
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-inventory-grid"]')).toBeNull();
+    expect(inventoryToggle?.className).toMatch(/min-h-\[25svh\]/);
+    expect(inventoryToggle?.className).not.toMatch(/\bsticky\b/);
   });
 });
