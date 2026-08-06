@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { filterJwStoneCatalog, JW_STONE_CATALOG } from "./catalog";
 import { jw } from "./brand";
 import { ColorCollageBackground } from "./ColorCollageBackground";
+import { isHandOnlyStone } from "./coverImages";
 import { JwCollapsibleSection } from "./JwCollapsibleSection";
+import { MaterialStonePager } from "./MaterialStonePager";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import type { StoneColorId } from "./stoneColors";
 
@@ -266,8 +269,19 @@ type ColorPaletteRailProps = {
   material?: string | null;
   origin?: string | null;
   onSelect: (next: ColorSwatchSelection) => void;
+  isSaved: (id: string) => boolean;
+  onToggleSaved: (stone: JwStoneCatalogItem) => void;
+  onOpen: (stone: JwStoneCatalogItem) => void;
+  onAsk: (stone: JwStoneCatalogItem) => void;
   catalog?: readonly JwStoneCatalogItem[];
 };
+
+function activeColorSwatchLabel(aesthetic: ColorDirectionId | null, color: string | null): string {
+  const match = COLOR_SWATCH_OPTIONS.find((option) =>
+    isColorSwatchActive(option, { aesthetic, color })
+  );
+  return match?.label ?? "Color";
+}
 
 /** Page IA section #1 below First Cut: collapsed until opened. */
 export function ColorPaletteRail({
@@ -276,9 +290,29 @@ export function ColorPaletteRail({
   material = null,
   origin = null,
   onSelect,
+  isSaved,
+  onToggleSaved,
+  onOpen,
+  onAsk,
   catalog = JW_STONE_CATALOG,
 }: ColorPaletteRailProps) {
   const hasSelection = Boolean(aesthetic || color);
+  const selectionLabel = activeColorSwatchLabel(aesthetic, color);
+  const matches = useMemo(() => {
+    if (!hasSelection) return [];
+    return filterJwStoneCatalog(
+      {
+        aesthetic,
+        color,
+        material,
+        origin,
+      },
+      catalog
+    )
+      .filter((stone) => !stone.anonymous)
+      .slice()
+      .sort((a, b) => Number(isHandOnlyStone(a.images)) - Number(isHandOnlyStone(b.images)));
+  }, [aesthetic, catalog, color, hasSelection, material, origin]);
 
   return (
     <JwCollapsibleSection
@@ -291,7 +325,7 @@ export function ColorPaletteRail({
     >
       {!hasSelection ? (
         <p className={`mb-4 text-sm leading-relaxed ${jw.muted}`} data-testid="jw-palette-prompt">
-          Choose a color direction to refine the collection.
+          Choose a color direction — matching stones appear right here.
         </p>
       ) : null}
       <ColorSwatchChipRow
@@ -302,6 +336,34 @@ export function ColorPaletteRail({
         onSelect={onSelect}
         catalog={catalog}
       />
+      {hasSelection ? (
+        <div className="mt-6 sm:mt-8" data-testid="jw-palette-results">
+          <p
+            className={`mb-3 text-sm font-semibold text-[var(--jw-ink)]`}
+            data-testid="jw-palette-results-heading"
+          >
+            {matches.length} {selectionLabel.toLowerCase()}
+            {matches.length === 1 ? " selection" : " selections"}
+          </p>
+          {matches.length ? (
+            <MaterialStonePager
+              materialLabel={selectionLabel}
+              stones={matches}
+              isSaved={isSaved}
+              onToggleSaved={onToggleSaved}
+              onOpen={onOpen}
+              onAsk={onAsk}
+            />
+          ) : (
+            <p
+              className={`text-sm leading-relaxed ${jw.muted}`}
+              data-testid="jw-palette-results-empty"
+            >
+              No named selections in this color. Choose another color, or clear the color filter.
+            </p>
+          )}
+        </div>
+      ) : null}
     </JwCollapsibleSection>
   );
 }

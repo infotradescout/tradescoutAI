@@ -468,6 +468,29 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[aria-label="Active filters"]')).toBeNull();
   });
 
+  it("shows matching stones immediately after Browse by color selection", () => {
+    click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
+
+    click(container.querySelector('[data-testid="jw-palette-green"]'));
+    expect(window.location.search).toContain("color=green");
+    expect(window.location.pathname).not.toMatch(/\/materials\//);
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("true");
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();
+    expect(
+      container.querySelectorAll('[data-testid="jw-palette-results"] [data-stone-card]').length
+    ).toBeGreaterThan(0);
+    expect(
+      container.querySelector('[data-testid="jw-palette-results-heading"]')?.textContent
+    ).toMatch(/green/i);
+    // Color browse must not require opening Full inventory.
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+  });
+
   it("lets material-first shoppers refine by color chips inside the material panel", () => {
     click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-material-granite"]'));
@@ -679,10 +702,20 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("false");
     expect(container.querySelector('[data-testid="jw-inventory-grid"]')).toBeNull();
-    expect(container.querySelector('[data-testid="jw-palette-rail-collapse"]')).toBeNull();
-    expect(container.textContent).not.toMatch(/Close Browse by color/i);
-    expect(container.textContent).not.toMatch(/Close Browse by material/i);
-    expect(container.textContent).not.toMatch(/Close Full inventory/i);
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail-toggle"]')?.getAttribute("aria-label")
+    ).toBe("Tap to close Browse by color");
+    expect(
+      container.querySelector('[data-testid="jw-material-rail-toggle"]')?.getAttribute("aria-label")
+    ).toBe("Tap to open Browse by material");
+    expect(
+      container.querySelector('[data-testid="jw-inventory-toggle"]')?.getAttribute("aria-label")
+    ).toBe("Tap to open Full inventory");
+    expect(container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-rail-expand-cue"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-inventory-expand-cue"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-inventory-expand-chevron"]')).not.toBeNull();
 
     const inventoryToggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
     click(inventoryToggle);
@@ -698,7 +731,7 @@ describe("JW Stone marketplace luxury layout", () => {
     // Expanded inventory keeps a sticky photo title band so header toggle stays reachable.
     expect(inventoryToggle?.className).toMatch(/\bsticky\b/);
     expect(inventoryToggle?.className).toMatch(/top-14/);
-    expect(container.querySelector('[data-testid="jw-inventory-collapse"]')).toBeNull();
+    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Tap to close Full inventory");
 
     click(inventoryToggle);
     expect(

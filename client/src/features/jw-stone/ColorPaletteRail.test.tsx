@@ -115,10 +115,19 @@ describe("JW Stone compact color swatch selector", () => {
       container.remove();
     });
 
+    const railHandlers = {
+      isSaved: () => false,
+      onToggleSaved: vi.fn(),
+      onOpen: vi.fn(),
+      onAsk: vi.fn(),
+    };
+
     it("renders the full color set in a wrapping grid with no All chip", () => {
       const onSelect = vi.fn();
       act(() =>
-        root.render(<ColorPaletteRail aesthetic={null} color={null} onSelect={onSelect} />)
+        root.render(
+          <ColorPaletteRail aesthetic={null} color={null} onSelect={onSelect} {...railHandlers} />
+        )
       );
 
       // Collapsed until opened — expand to assert the full chip set.
@@ -161,10 +170,19 @@ describe("JW Stone compact color swatch selector", () => {
     it("renders stone-face chips with editorial labels and selection", () => {
       const onSelect = vi.fn();
       act(() =>
-        root.render(<ColorPaletteRail aesthetic="warm-earthy" color={null} onSelect={onSelect} />)
+        root.render(
+          <ColorPaletteRail
+            aesthetic="warm-earthy"
+            color={null}
+            onSelect={onSelect}
+            {...railHandlers}
+          />
+        )
       );
 
       expect(container.querySelector('[data-testid="jw-palette-prompt"]')).toBeNull();
+      expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();
+      expect(container.querySelector("[data-stone-card]")).not.toBeNull();
 
       const warm = container.querySelector('[data-testid="jw-palette-warm-neutrals"]');
       expect(warm?.getAttribute("aria-pressed")).toBe("true");

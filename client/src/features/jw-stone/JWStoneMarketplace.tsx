@@ -99,7 +99,7 @@ export default function JWStoneMarketplace() {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
 
-  /** Browse by color — never invents or keeps a material refinement. */
+  /** Browse by color — never invents or keeps a material refinement; results show in the color section. */
   const selectPalette = (next: ColorSwatchSelection) => {
     commit({
       ...state,
@@ -107,6 +107,12 @@ export default function JWStoneMarketplace() {
       color: next.color,
       material: null,
       stone: null,
+    });
+    if (!next.aesthetic && !next.color) return;
+    requestAnimationFrame(() => {
+      document
+        .querySelector('[data-testid="jw-palette-results"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   };
 
@@ -185,6 +191,10 @@ export default function JWStoneMarketplace() {
         material={null}
         origin={state.origin}
         onSelect={selectPalette}
+        isSaved={wishlist.isSaved}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
       />
       <MaterialCategoryRail
         active={state.material}
