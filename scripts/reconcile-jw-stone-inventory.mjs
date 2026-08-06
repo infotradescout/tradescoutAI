@@ -161,8 +161,8 @@ for (let index = 0; index < identified.length; index += 1) {
   try {
     await sharp(input)
       .rotate()
-      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 78, effort: 4 })
+      .resize({ width: 2048, height: 2048, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 90, effort: 5 })
       .toFile(path.join(outputRoot, `${item.driveFileId}.webp`));
     usable.push({ ...item, image: relativeImage });
   } catch (error) {
