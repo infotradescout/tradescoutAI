@@ -492,8 +492,9 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelectorAll('[data-testid="jw-palette-results"] [data-stone-card]').length
     ).toBeGreaterThan(0);
     expect(
-      container.querySelector('[data-testid="jw-palette-results-heading"]')?.textContent
-    ).toMatch(/green/i);
+      container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent
+    ).toMatch(/^Green · \d+ of \d+$/);
+    expect(container.textContent).not.toMatch(/\d+ green selections/i);
     // Color browse must not require opening Full inventory.
     expect(
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")

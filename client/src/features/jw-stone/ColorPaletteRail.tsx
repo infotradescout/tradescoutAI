@@ -338,13 +338,6 @@ export function ColorPaletteRail({
       />
       {hasSelection ? (
         <div className="mt-6 sm:mt-8" data-testid="jw-palette-results">
-          <p
-            className={`mb-3 text-sm font-semibold text-[var(--jw-ink)]`}
-            data-testid="jw-palette-results-heading"
-          >
-            {matches.length} {selectionLabel.toLowerCase()}
-            {matches.length === 1 ? " selection" : " selections"}
-          </p>
           {matches.length ? (
             <MaterialStonePager
               materialLabel={selectionLabel}

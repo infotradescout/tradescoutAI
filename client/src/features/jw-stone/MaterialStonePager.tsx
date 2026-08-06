@@ -41,9 +41,11 @@ export function MaterialStonePager({
   return (
     <div data-testid="jw-material-stone-rail" className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-[var(--jw-ink)]/80">
-          {safeIndex + 1} of {total} {materialLabel.toLowerCase()}
-          {total === 1 ? " selection" : " selections"}
+        <p
+          className="text-sm font-semibold text-[var(--jw-ink)]"
+          data-testid="jw-material-stone-status"
+        >
+          {materialLabel} · {safeIndex + 1} of {total}
         </p>
         <div className="flex items-center gap-2">
           <button
