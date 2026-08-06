@@ -1,25 +1,37 @@
 # JW Stone marketplace domain cutover
 
-**Status:** Implemented on `jw-stone/marketplace-replace-profile` (pending owner preview GO before merge).  
-**Goal:** `jwstonelogistics.com` serves the marketplace storefront so marketplace can replace the legacy wholesaler profile as the public site.
+**Status:** Replace cutover complete — marketplace is the only public JW home.  
+**Goal:** `jwstonelogistics.com` and TradeScout `/jw-stone` serve the marketplace storefront. The legacy `/u/jw-stone` profile storefront is redirected away (not a second public site).
 
-## What changed
+## What customers hit
 
 | Surface | Before | After |
 | --- | --- | --- |
 | `jwstonelogistics.com` / `www` | Profile HTML (`ProfileSiteView`) | Marketplace HTML + React (`JWStoneMarketplace`) |
-| Inventory SoT | Profile 119 vs marketplace 148 | One reconciled catalog (148) for profile adapter, share metadata, marketplace |
-| Stone URLs | Profile `/stones/:slug` | Same paths on custom domain; platform `/jw-stone/stones/:slug` |
-| Material URLs | Profile `/materials/:slug` | Same on custom domain; platform `/jw-stone/materials/:slug` |
-| Trust | Profile about / FAQ / differentiators | Marketplace `MarketplaceTrustSection` (+ story heading) |
-| Share | Profile ShareButton | Marketplace cards + detail ShareButton → `/stones/{slug}` |
+| TradeScout `/jw-stone` | Marketplace (parallel) | Marketplace (public home on platform) |
+| TradeScout `/u/jw-stone` | Legacy wholesaler profile storefront | **301 / client redirect → marketplace** (`/jw-stone` or custom-domain `/`) |
+| Inventory SoT | Profile 119 vs marketplace 148 | One reconciled catalog (148) |
+| Stone URLs | Profile `/stones/:slug` | Domain `/stones/:slug`; platform `/jw-stone/stones/:slug` |
+| Material URLs | Profile `/materials/:slug` | Domain `/materials/:slug`; platform `/jw-stone/materials/:slug` |
+| Trust | Profile about / FAQ | Marketplace `MarketplaceTrustSection` |
+| Share | Profile ShareButton | Marketplace share → stone paths |
+| New Arrivals rail | Claimed / unmounted | **Permanently dropped** (no SSR claim; not mounted) |
 
-## Redirects preserved
+## Redirects
 
-- `/u/jw-stone` on the custom host → `/`
+- Custom host `/u/jw-stone` → `/` (marketplace)
+- Platform `/u/jw-stone` (public) → custom domain `/` when mapped, else `/jw-stone`
+- Platform `/u/jw-stone/stones|materials/...` → domain equivalents when mapped, else `/jw-stone/...`
 - `/?stone={slug}` → `/stones/{slug}` (optional `?photo=`)
 - `/?category={slug}` → `/materials/{slug}`
 - Platform `/jw-stone?stone=` → `/jw-stone/stones/{slug}`
+- `/business/jw-stone` canonical route → `/jw-stone` (not `/u/jw-stone`)
+
+**Preserved (not public storefront):**
+
+- `/u/jw-stone/edit` — TradePartner / admin profile editor
+- `/u/jw-stone?book=1` — booking surface on profile
+- Express Direct Connect gating from marketplace Contact / Ask
 
 ## Client flag
 
@@ -30,19 +42,18 @@ window.__TS_JW_STONE_MARKETPLACE_SURFACE__ = true;
 window.__TS_CUSTOM_DOMAIN_PROFILE_SLUG__ = "jw-stone";
 ```
 
-`App.tsx` mounts marketplace (not `ProfileSiteView`) when the marketplace surface flag is set.
+`App.tsx` mounts marketplace (not `ProfileSiteView`) when the marketplace surface flag is set. Platform `/u/jw-stone` soft-navigations redirect via `resolveJwStonePublicStorefrontRedirect`.
 
-## Verify locally
+## Post-deploy verify (owner)
 
-1. `npm run dev` (or project standard).
-2. Platform: open `http://127.0.0.1:5000/jw-stone` and `/jw-stone/stones/cristallo`.
-3. Custom host (hosts file or local proxy): point `jwstonelogistics.com` at local, confirm `/` is marketplace, `/stones/cristallo` opens the stone, `/materials/granite` filters material.
-4. Confirm Express Direct Connect still opens from Contact / Ask (gated).
-5. Confirm share buttons copy `/stones/{slug}` (domain) or `/jw-stone/stones/{slug}` (platform).
+1. Live: `https://jwstonelogistics.com/` is marketplace (not old profile shell).
+2. Live: `https://www.thetradescout.com/jw-stone` is the same storefront.
+3. Live: `https://www.thetradescout.com/u/jw-stone` redirects to marketplace (domain or `/jw-stone`).
+4. Stone deep link: `/stones/cristallo` (domain) and `/jw-stone/stones/cristallo` (platform).
+5. Express Direct Connect still opens gated from Contact / Ask.
+6. `/u/jw-stone/edit` still loads the profile editor for owners/admins.
+7. Share buttons copy marketplace stone URLs.
 
-## Still open / owner decisions
+## Still open (non-blocking)
 
 - Live DB recommendations directory is not mirrored on marketplace (static trust strip only).
-- Legacy `/u/jw-stone` on TradeScout still renders the profile editor/public profile route for platform paths — custom domain no longer does.
-- New Arrivals rail remains unmounted (SSR no longer claims it); mount or permanently drop in a follow-up.
-- Do not merge to `main` until owner local preview GO.

@@ -22,7 +22,7 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 
 ## Public storefront reset (2026-08-04)
 
-`/jw-stone` (and `jwstonelogistics.com` after cutover) is **catalog-first**: light JW header, First Cut, dense inventory, Aesthetic + Color filters, trust strip, path-based stone/material URLs. Customer type is collected on the request form, not as page path theater. No Learn-about-stone theater, no Call-for-availability copy. See `MARKETPLACE_DOMAIN_CUTOVER.md`. Owner local preview required before merge.
+`/jw-stone` and `jwstonelogistics.com` are the **only** public JW home (marketplace replaces the legacy `/u/jw-stone` storefront). Catalog-first: light JW header, First Cut, dense inventory, Aesthetic + Color filters, trust strip, path-based stone/material URLs. Customer type is collected on the request form. See `MARKETPLACE_DOMAIN_CUTOVER.md`.
 
 ## Ops truth (inventory / wish list) — do not confuse labels
 

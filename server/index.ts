@@ -2134,6 +2134,24 @@ app.use(landingContractHeaders);
                       }
                       return res.redirect(301, destination);
                     }
+                    // JW without a mapped domain still must not serve the legacy
+                    // profile item HTML — marketplace paths are the public SoT.
+                    if (slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG) {
+                      const marketplaceSuffix = destinationSuffix
+                        .replace(/^\/stones\//i, "/jw-stone/stones/")
+                        .replace(/^\/materials\//i, "/jw-stone/materials/");
+                      const destination = buildPublicProfileCanonicalRedirectTarget({
+                        origin,
+                        canonicalPath: marketplaceSuffix.startsWith("/jw-stone")
+                          ? marketplaceSuffix
+                          : `/jw-stone${destinationSuffix}`,
+                        referral: req.query.ref,
+                      });
+                      if (!destination) {
+                        return sendPublicPageNotFound(res, "Profile destination not found");
+                      }
+                      return res.redirect(301, destination);
+                    }
                     if (req.path.startsWith("/p/")) {
                       const destination = buildPublicProfileCanonicalRedirectTarget({
                         origin,
@@ -2268,6 +2286,15 @@ app.use(landingContractHeaders);
                   }
                   if (customDomain && String(req.query.book || "") !== "1") {
                     return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);
+                  }
+
+                  // JW Stone public storefront is the marketplace — never serve the
+                  // legacy profile HTML as a second public home on TradeScout.
+                  if (
+                    slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG &&
+                    String(req.query.book || "") !== "1"
+                  ) {
+                    return res.redirect(301, `${origin}/jw-stone${requestSearchSuffix(req)}`);
                   }
 
                   // Keep /p/:slug as legacy path but canonicalize to /u/:slug.

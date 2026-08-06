@@ -42,11 +42,14 @@ describe("JW Stone marketplace routing contract", () => {
     expect(routesSource).toContain('<Route path="/p/:slug">');
   });
 
-  it("loads the separate marketplace feature without routing the legacy profile through it", () => {
+  it("loads the marketplace as the public JW home and redirects the legacy profile storefront", () => {
     const routesSource = read("client/src/AppRoutes.tsx");
     const pageSource = read("client/src/pages/JWStoneMarketplace.tsx");
     const marketplaceSource = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const profileSource = read("client/src/pages/ProfileSiteView.tsx");
+    const redirectSource = read("client/src/features/jw-stone/profileStorefrontRedirect.ts");
+    const canonicalBusiness = read("server/services/canonicalBusinessProfileRoute.ts");
+    const serverIndex = read("server/index.ts");
 
     expect(routesSource).toMatch(
       /const JWStoneMarketplace = React\.lazy\(\s*\(\) => import\("\.\/pages\/JWStoneMarketplace"\)\s*\)/
@@ -61,7 +64,13 @@ describe("JW Stone marketplace routing contract", () => {
       false
     );
     expect(fs.existsSync(path.resolve(process.cwd(), "client/src/pages/jw-stone-2"))).toBe(false);
-    expect(routesSource).not.toContain('RedirectTo to="/jw-stone"');
+    expect(routesSource).toContain("resolveJwStonePublicStorefrontRedirect");
+    expect(routesSource).toContain("ProfileSiteOrJwMarketplaceRedirect");
+    expect(redirectSource).toContain("return `/jw-stone");
+    expect(canonicalBusiness).toContain('path: "/jw-stone"');
+    expect(serverIndex).toContain(
+      "return res.redirect(301, `${origin}/jw-stone${requestSearchSuffix(req)}`);"
+    );
     expect(profileSource).not.toContain("features/jw-stone/JWStoneMarketplace");
   });
 });

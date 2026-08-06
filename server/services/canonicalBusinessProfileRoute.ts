@@ -1,5 +1,6 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
+import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import { db } from "../db";
 import { canExposePublishedProfilePublicly } from "./ownerConfirmedDirectProfile";
 
@@ -72,6 +73,14 @@ export async function resolveCanonicalBusinessProfileRoute(
 
   const profileSlug = String(linkedProfile?.slug || "").trim();
   if (!profileSlug) return null;
+
+  // JW Stone public home is the marketplace, not the legacy profile storefront.
+  if (profileSlug.toLowerCase() === JW_STONE_PROFILE_SLUG) {
+    return {
+      slug: profileSlug,
+      path: "/jw-stone",
+    };
+  }
 
   return {
     slug: profileSlug,
