@@ -1,6 +1,9 @@
 /**
  * Build face-only vertical strips for Browse by color.
  * Hard-crop to stone surface only — no sky, clamps, hands, ground, gear, reflections of people.
+ *
+ * Outputs ~900×2400 @ webp q92 so full-bleed collage bands stay sharp on desktop.
+ * Prefer inventory-source (≤1600px) over nested inventory/** (often 1000px).
  */
 import sharp from "sharp";
 import fs from "node:fs";
@@ -8,6 +11,10 @@ import path from "node:path";
 
 const outDir = "client/public/images/businesses/jw-stone/color-collage";
 const previewDir = "tmp/color-collage-face-preview";
+const OUT_W = 900;
+const OUT_H = 2400;
+const WEBP_QUALITY = 92;
+
 fs.mkdirSync(outDir, { recursive: true });
 fs.mkdirSync(previewDir, { recursive: true });
 
@@ -16,45 +23,46 @@ const STRIPS = [
   {
     id: "01-white",
     alt: "White stone face",
-    src: "client/public/images/businesses/jw-stone/inventory/quartzite/rhino-white/4.webp",
-    box: { left: 0.22, top: 0.18, width: 0.56, height: 0.64 },
+    // Face-true Alabama White lead — Rhino White crops read as blank / mushy white.
+    src: "client/public/images/businesses/jw-stone/inventory-source/1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso.webp",
+    box: { left: 0.28, top: 0.18, width: 0.44, height: 0.62 },
   },
   {
     id: "02-warm",
     alt: "Warm stone face",
-    src: "client/public/images/businesses/jw-stone/inventory/quartzite/taj-mahal/4.webp",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b.webp",
     box: { left: 0.25, top: 0.2, width: 0.5, height: 0.6 },
   },
   {
     id: "03-gray",
     alt: "Gray stone face",
-    src: "client/public/images/businesses/jw-stone/inventory/marble/grigio-fantasy/1.webp",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1DhruW-z_cS08qBpTZ4Fw4yVivYEVRu6C.webp",
     box: { left: 0.34, top: 0.28, width: 0.32, height: 0.55 },
   },
   {
     id: "04-black",
     alt: "Black stone face",
     // Fantasy Black #2 — close face, no photographer reflection (Black Pearl reflects camera person).
-    src: "client/public/images/businesses/jw-stone/inventory/granite/fantasy-black/2.webp",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1ModDlYlHq4jdhNo5pyp7s90IR8YnQggI.webp",
     box: { left: 0.2, top: 0.12, width: 0.6, height: 0.55 },
   },
   {
     id: "05-brown",
     alt: "Brown gold stone face",
-    src: "client/public/images/businesses/jw-stone/inventory/granite/arizona-gold/2.webp",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1pKdJmj7VT9o37TogtLJrQU7D9MynlVq_.webp",
     // Keep well above the fingertip at the bottom-left of the source photo.
     box: { left: 0.28, top: 0.1, width: 0.48, height: 0.4 },
   },
   {
     id: "06-green",
     alt: "Green stone face",
-    src: "client/public/images/businesses/jw-stone/inventory/quartzite/marbella-green/1.webp",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1qQNSzUB6ObrUq6oadLxqKn_JxWRpSH2a.webp",
     box: { left: 0.32, top: 0.3, width: 0.36, height: 0.52 },
   },
   {
     id: "07-blue",
     alt: "Blue stone face",
-    src: "client/public/images/businesses/jw-stone/inventory/granite/blue-goias/1.webp",
+    src: "client/public/images/businesses/jw-stone/inventory-source/19PB3hiee2ils34FffQnjFS0SvcR9fX16.webp",
     box: { left: 0.15, top: 0.1, width: 0.7, height: 0.8 },
   },
   {
@@ -82,15 +90,22 @@ for (const strip of STRIPS) {
   const outPath = path.join(outDir, `${strip.id}.webp`);
   await sharp(strip.src)
     .extract(extract)
-    .resize(360, 960, { fit: "cover", position: "centre" })
-    .webp({ quality: 88 })
+    .resize(OUT_W, OUT_H, { fit: "cover", position: "centre", kernel: "lanczos3" })
+    .webp({ quality: WEBP_QUALITY, effort: 5 })
     .toFile(outPath);
 
   await sharp(outPath)
-    .jpeg({ quality: 90 })
+    .jpeg({ quality: 92 })
     .toFile(path.join(previewDir, `${strip.id}.jpg`));
 
-  console.log(strip.id, path.basename(strip.src), `${extract.width}x${extract.height}`);
+  const outStat = fs.statSync(outPath);
+  console.log(
+    strip.id,
+    path.basename(strip.src),
+    `crop ${extract.width}x${extract.height}`,
+    `-> ${OUT_W}x${OUT_H}`,
+    `${Math.round(outStat.size / 1024)}KB`,
+  );
 }
 
 console.log("wrote", STRIPS.length, "face strips to", outDir);

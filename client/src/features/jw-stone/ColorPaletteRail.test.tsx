@@ -220,6 +220,7 @@ describe("JW Stone compact color swatch selector", () => {
       const warm = container.querySelector('[data-testid="jw-palette-warm-neutrals"]');
       expect(warm?.getAttribute("aria-pressed")).toBe("true");
       expect(warm?.querySelector("img")?.getAttribute("src")).toContain("/color-collage/02-warm");
+      expect(warm?.querySelector("img")?.getAttribute("src")).toContain("v=face-4");
       expect(warm?.textContent).toContain("Warm neutrals");
       expect(warm?.className).not.toMatch(/bg-\[var\(--jw-accent\)\]/);
 
