@@ -6,10 +6,12 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
 
 describe("JW Stone marketplace routing contract", () => {
-  it("classifies only /jw-stone as the standalone marketplace route", () => {
+  it("classifies platform and custom-domain marketplace surfaces", () => {
     const appSource = read("client/src/App.tsx");
 
-    expect(appSource).toContain('const isJwStoneMarketplaceRoute = pathOnly === "/jw-stone";');
+    expect(appSource).toContain("__TS_JW_STONE_MARKETPLACE_SURFACE__");
+    expect(appSource).toContain('pathOnly === "/jw-stone"');
+    expect(appSource).toContain('pathOnly.startsWith("/jw-stone/")');
     expect(appSource).toMatch(/const isPublicProfileRoute\s*=\s*isJwStoneMarketplaceRoute\s*\|\|/);
     expect(appSource).toContain("isJwStoneMarketplaceRoute={isJwStoneMarketplaceRoute}");
     expect(appSource).toContain('root.classList.add("jw-marketplace-scroll")');
@@ -40,7 +42,7 @@ describe("JW Stone marketplace routing contract", () => {
     expect(routesSource).toContain('<Route path="/p/:slug">');
   });
 
-  it("loads the separate feature without routing the current JW profile through it", () => {
+  it("loads the separate marketplace feature without routing the legacy profile through it", () => {
     const routesSource = read("client/src/AppRoutes.tsx");
     const pageSource = read("client/src/pages/JWStoneMarketplace.tsx");
     const marketplaceSource = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
@@ -53,9 +55,7 @@ describe("JW Stone marketplace routing contract", () => {
       'import JWStoneMarketplace from "../features/jw-stone/JWStoneMarketplace";'
     );
     expect(marketplaceSource).toContain('import { StoneCollection } from "./StoneCollection";');
-    expect(marketplaceSource).toContain(
-      'import { StoneLearningSection } from "./StoneLearningSection";'
-    );
+    expect(marketplaceSource).toContain("MarketplaceTrustSection");
     expect(marketplaceSource).not.toMatch(/CustomerPathGuide|BuyerJourney|BuyerWorkspace/);
     expect(fs.existsSync(path.resolve(process.cwd(), "client/src/features/jw-stone-2"))).toBe(
       false

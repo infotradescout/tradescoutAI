@@ -16,6 +16,7 @@ vi.mock("../storage", () => ({
 }));
 
 import { buildPublicProfileHtml } from "../publicProfileHtml";
+import { buildPublicJwStoneMarketplaceHtml } from "../publicJwStoneMarketplaceHtml";
 import {
   buildPublicProfileCanonicalRedirectTarget,
   resolvePublicProfileCategoryRequest,
@@ -141,6 +142,27 @@ async function renderResolvedProfile(args: {
   categoryRequest: PublicProfileCategoryRequestResolution;
 }) {
   const { itemRequest, categoryRequest } = args;
+
+  // JW Stone custom domain serves marketplace HTML (replace-profile cutover).
+  if (String(args.profile.slug || "").toLowerCase() === "jw-stone") {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      origin: args.origin,
+      collectionUrl: `${args.origin}/`,
+      marketplaceDomainSurface: true,
+      stoneSlug:
+        itemRequest.kind === "item" && itemRequest.itemType === "inventory"
+          ? itemRequest.itemSlug
+          : undefined,
+      photo:
+        itemRequest.kind === "item" && itemRequest.itemType === "inventory"
+          ? String(itemRequest.imageIndex + 1)
+          : undefined,
+      materialSlug: categoryRequest.kind === "category" ? categoryRequest.categorySlug : undefined,
+    });
+    return args.res.status(200).type("html").send(html);
+  }
+
   const html = await buildPublicProfileHtml({
     slug: args.profile.slug,
     origin: args.origin,
@@ -157,8 +179,7 @@ async function renderResolvedProfile(args: {
       itemRequest.kind === "item" && itemRequest.itemType === "gallery"
         ? itemRequest.itemSlug
         : undefined,
-    categorySlug:
-      categoryRequest.kind === "category" ? categoryRequest.categorySlug : undefined,
+    categorySlug: categoryRequest.kind === "category" ? categoryRequest.categorySlug : undefined,
   });
   if (!html) return args.res.status(404).send("Profile destination not found");
   return args.res.status(200).type("html").send(html);
@@ -316,9 +337,7 @@ function runtimeApp() {
         301,
         redirectTarget({
           origin: customDomain ? `https://${customDomain}` : PLATFORM_ORIGIN,
-          canonicalPath: customDomain
-            ? destinationSuffix(canonicalPath, basePath)
-            : canonicalPath,
+          canonicalPath: customDomain ? destinationSuffix(canonicalPath, basePath) : canonicalPath,
           referral: req.query.ref,
         })
       );
@@ -360,23 +379,21 @@ describe("public profile domain routing runtime", () => {
 
   it("serves exact owner-domain item and category pages with owner-domain canonicals", async () => {
     const app = runtimeApp();
-    const itemResponse = await request(app)
-      .get("/stones/blue-mare")
-      .set("Host", OWNER_HOST);
-    const categoryResponse = await request(app)
-      .get("/materials/granite")
-      .set("Host", OWNER_HOST);
+    const itemResponse = await request(app).get("/stones/blue-dunes").set("Host", OWNER_HOST);
+    const categoryResponse = await request(app).get("/materials/granite").set("Host", OWNER_HOST);
 
     expect(itemResponse.status).toBe(200);
     expect(itemResponse.text).toContain(
-      'rel="canonical" href="https://jwstonelogistics.com/stones/blue-mare"'
+      'rel="canonical" href="https://jwstonelogistics.com/stones/blue-dunes"'
     );
-    expect(itemResponse.text).toContain('data-seo-profile-item="inventory"');
+    expect(itemResponse.text).toContain('data-seo-jw-stone-marketplace="true"');
+    expect(itemResponse.text).toContain('data-seo-jw-stone-item="blue-dunes"');
+    expect(itemResponse.text).toContain("__TS_JW_STONE_MARKETPLACE_SURFACE__");
     expect(categoryResponse.status).toBe(200);
     expect(categoryResponse.text).toContain(
       'rel="canonical" href="https://jwstonelogistics.com/materials/granite"'
     );
-    expect(categoryResponse.text).toContain('data-seo-profile-category="granite"');
+    expect(categoryResponse.text).toContain('data-seo-jw-stone-category="granite"');
   });
 
   it("redirects scoped TradeScout item and category paths to their owner domain", async () => {
@@ -407,8 +424,7 @@ describe("public profile domain routing runtime", () => {
       .get("/u/jw-stone?stone=blue-dunes&photo=2&ref=partner-7")
       .set("Host", "www.thetradescout.com");
 
-    const canonical =
-      "https://jwstonelogistics.com/stones/blue-dunes?photo=2&ref=partner-7";
+    const canonical = "https://jwstonelogistics.com/stones/blue-dunes?photo=2&ref=partner-7";
     expect(ownerResponse.status).toBe(301);
     expect(ownerResponse.headers.location).toBe(canonical);
     expect(platformResponse.status).toBe(301);

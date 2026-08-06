@@ -66,7 +66,7 @@ export function buildJwStoneSavedStonesEmail(args: {
     .map((stone) => {
       const label = escapeHtml(stone.name);
       if (!stone.shareSlug) return `<li>${label}</li>`;
-      const href = `${base}/jw-stone?stone=${encodeURIComponent(stone.shareSlug)}`;
+      const href = `${base}/jw-stone/stones/${encodeURIComponent(stone.shareSlug)}`;
       return `<li><a href="${href}">${label}</a></li>`;
     })
     .join("\n");
@@ -74,7 +74,7 @@ export function buildJwStoneSavedStonesEmail(args: {
   const textItems = stones
     .map((stone) => {
       if (!stone.shareSlug) return `- ${stone.name}`;
-      return `- ${stone.name}: ${base}/jw-stone?stone=${encodeURIComponent(stone.shareSlug)}`;
+      return `- ${stone.name}: ${base}/jw-stone/stones/${encodeURIComponent(stone.shareSlug)}`;
     })
     .join("\n");
 

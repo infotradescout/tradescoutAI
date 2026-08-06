@@ -39,8 +39,30 @@ describe("JW Stone marketplace URL state", () => {
       "aesthetic=warm-earthy&color=white&material=quartzite&stone=cristallo"
     );
     expect(toMarketplaceHref(state)).toBe(
-      "/jw-stone?aesthetic=warm-earthy&color=white&material=quartzite&stone=cristallo"
+      "/jw-stone/stones/cristallo?aesthetic=warm-earthy&color=white"
     );
+    expect(
+      parseMarketplaceUrlState(
+        "?aesthetic=warm-earthy&color=white",
+        undefined,
+        "/jw-stone/stones/cristallo"
+      )
+    ).toEqual({
+      aesthetic: "warm-earthy",
+      color: "white",
+      material: null,
+      origin: null,
+      stone: "cristallo",
+    });
+    expect(toMarketplaceHref({ ...state, stone: null })).toBe(
+      "/jw-stone/materials/quartzite?aesthetic=warm-earthy&color=white"
+    );
+    expect(
+      parseMarketplaceUrlState("", undefined, "/jw-stone/materials/engineered-quartz")
+    ).toMatchObject({
+      material: "quartz",
+      stone: null,
+    });
   });
 
   it("maps legacy color= aesthetic values and released aliases", () => {

@@ -10,6 +10,7 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 | --- | --- |
 | [BRANCH_LANES.md](./BRANCH_LANES.md) | Branch naming, merge rules, what must not land on `main` casually |
 | [CLOSED_LOOP_STRATEGY.md](./CLOSED_LOOP_STRATEGY.md) | Corrected closed-loop market plan (JW sources; Levon sells; five customer bases) |
+| [MARKETPLACE_DOMAIN_CUTOVER.md](./MARKETPLACE_DOMAIN_CUTOVER.md) | Custom domain → marketplace replace-profile cutover |
 
 ## Related repo areas (already on `main` — change only from `jw-stone/*`)
 
@@ -21,7 +22,7 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 
 ## Public storefront reset (2026-08-04)
 
-`/jw-stone` is **catalog-first**: light JW header (color `logo.svg`, profile chrome), First Cut, New Arrivals, dense inventory, Aesthetic + Color filters. Customer type (homeowner, fabricator, builder, designer, architect) is collected on the request form, not as page path theater. No Learn-about-stone theater, no yellow eyebrows, no Call-for-availability copy. Branch lane: `jw-stone/marketplace-end-user-reset`. Owner local preview required before merge.
+`/jw-stone` (and `jwstonelogistics.com` after cutover) is **catalog-first**: light JW header, First Cut, dense inventory, Aesthetic + Color filters, trust strip, path-based stone/material URLs. Customer type is collected on the request form, not as page path theater. No Learn-about-stone theater, no Call-for-availability copy. See `MARKETPLACE_DOMAIN_CUTOVER.md`. Owner local preview required before merge.
 
 ## Ops truth (inventory / wish list) — do not confuse labels
 

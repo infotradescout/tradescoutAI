@@ -6,6 +6,7 @@ import {
   toCatalogFilterValue,
 } from "./catalog";
 import { isColorDirectionId } from "./colorDirections";
+import { parseMarketplacePathname, toMarketplacePathHref } from "./marketplaceRoutes";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 
 const RELEASED_AESTHETIC_ALIASES: Readonly<Record<string, ColorDirectionId>> = {
@@ -54,13 +55,21 @@ function resolveAesthetic(
 
 export function parseMarketplaceUrlState(
   input: string | URLSearchParams,
-  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
+  catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG,
+  pathname?: string
 ): MarketplaceUrlState {
   const params = toSearchParams(input);
+  const pathBits =
+    typeof pathname === "string"
+      ? parseMarketplacePathname(pathname)
+      : typeof window !== "undefined"
+        ? parseMarketplacePathname(window.location.pathname)
+        : { stone: null, material: null };
+
   // Legacy ?buyer= is ignored — customer-path theater is removed.
   const rawAesthetic = params.get("aesthetic");
   const rawColor = params.get("color");
-  const requestedStoneValue = params.get("stone");
+  const requestedStoneValue = pathBits.stone || params.get("stone");
   const requestedStone = requestedStoneValue
     ? catalog.find(
         (item) => item.wishlistEligible && !item.anonymous && item.shareSlug === requestedStoneValue
@@ -76,10 +85,15 @@ export function parseMarketplaceUrlState(
     ? null
     : allowedValue(rawColor, getColorFilterOptions(catalog));
 
+  const materialFromPath = pathBits.material
+    ? allowedValue(pathBits.material, getMaterialFilterOptions(catalog))
+    : null;
+
   return {
     aesthetic,
     color,
-    material: allowedValue(params.get("material"), getMaterialFilterOptions(catalog)),
+    material:
+      materialFromPath || allowedValue(params.get("material"), getMaterialFilterOptions(catalog)),
     origin: allowedValue(params.get("origin"), getOriginFilterOptions(catalog)),
     stone: requestedStone?.shareSlug ?? null,
   };
@@ -96,7 +110,7 @@ export function serializeMarketplaceUrlState(
   if (state.origin) candidate.set("origin", state.origin);
   if (state.stone) candidate.set("stone", state.stone);
 
-  const safe = parseMarketplaceUrlState(candidate, catalog);
+  const safe = parseMarketplaceUrlState(candidate, catalog, "/jw-stone");
   const serialized = new URLSearchParams();
   if (safe.aesthetic) serialized.set("aesthetic", safe.aesthetic);
   if (safe.color) serialized.set("color", safe.color);
@@ -110,6 +124,10 @@ export function toMarketplaceHref(
   state: MarketplaceUrlState,
   catalog: readonly JwStoneCatalogItem[] = JW_STONE_CATALOG
 ): string {
-  const query = serializeMarketplaceUrlState(state, catalog).toString();
-  return query ? `/jw-stone?${query}` : "/jw-stone";
+  const safe = parseMarketplaceUrlState(
+    serializeMarketplaceUrlState(state, catalog),
+    catalog,
+    "/jw-stone"
+  );
+  return toMarketplacePathHref(safe);
 }

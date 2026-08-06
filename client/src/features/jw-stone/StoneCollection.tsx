@@ -28,6 +28,8 @@ type StoneCollectionProps = {
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
   onAsk: (stone: JwStoneCatalogItem) => void;
+  /** Empty-search source request — opens Express without inventing a stone name. */
+  onSourceRequest?: () => void;
   catalog?: readonly JwStoneCatalogItem[];
 };
 
@@ -45,6 +47,7 @@ export function StoneCollection({
   onToggleSaved,
   onOpen,
   onAsk,
+  onSourceRequest,
   catalog = JW_STONE_CATALOG,
 }: StoneCollectionProps) {
   const [query, setQuery] = useState("");
@@ -328,14 +331,31 @@ export function StoneCollection({
           ) : (
             <div className="py-14 text-center">
               <h3 className="font-editorial text-3xl text-[var(--jw-ink)]">No matching stones</h3>
-              <p className={`mt-3 text-sm ${jw.muted}`}>Clear the search or refinements.</p>
-              <button
-                type="button"
-                onClick={clearAll}
-                className={`mt-6 min-h-12 px-5 text-sm ${jw.ghostOnLight}`}
-              >
-                Reset refinements
-              </button>
+              <p className={`mt-3 text-sm ${jw.muted}`}>
+                Clear the search or refinements
+                {onSourceRequest && query.trim()
+                  ? ", or ask JW Stone to source what you need."
+                  : "."}
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className={`min-h-12 px-5 text-sm ${jw.ghostOnLight}`}
+                >
+                  Reset refinements
+                </button>
+                {onSourceRequest && query.trim() ? (
+                  <button
+                    type="button"
+                    data-testid="jw-source-request"
+                    onClick={onSourceRequest}
+                    className={`min-h-12 px-5 text-sm ${jw.accentCta}`}
+                  >
+                    Request this stone
+                  </button>
+                ) : null}
+              </div>
             </div>
           )}
         </div>

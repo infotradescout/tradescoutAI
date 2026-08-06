@@ -1,3 +1,21 @@
+/**
+ * Canonical JW Stone public inventory.
+ *
+ * Profile discovery, share metadata, and the marketplace catalog all read this
+ * reconciled projection (148 selections / full source photo set). Do not ship a
+ * divergent “profile-only” list alongside marketplace.
+ */
+import generatedInventory from "./jwStoneInventory.generated.json";
+import imageFinishByDriveId from "./jwStoneImageFinishes.generated.json";
+import {
+  reconcileJwStoneGeneratedInventory,
+  type GeneratedJwStoneRecord,
+} from "./reconcileJwStoneInventory";
+import {
+  resolveJwStoneInventoryNamePresentation,
+  type JwStoneInventoryNameStatus,
+} from "@shared/jwStonePresentation";
+
 export type JwStoneMaterialStatus =
   | "user_confirmed"
   | "source_folder"
@@ -51,7 +69,7 @@ const CATEGORY_ORDER = [
   "soapstone",
   "basalt",
   "unconfirmed",
-];
+] as const;
 
 const USER_CONFIRMED = new Set([
   "blue-dunes",
@@ -64,95 +82,96 @@ const USER_CONFIRMED = new Set([
 
 const FILENAME_CONFIRMED = new Set(["calacatta-vaguili"]);
 
-const EXPLICIT_FINISHES: Record<string, string[]> = {
-  "bianco-palomino": ["Polished"],
-  "blue-dunes": ["Polished"],
-  calacatta: ["Polished"],
-  cristallo: ["Polished", "Honed"],
-  "fantasy-black": ["Leathered", "Polished"],
-  "gold-macaubas": ["Leathered", "Polished"],
-  "jaguar-leather": ["Leathered"],
-  "mont-blanc": ["Polished"],
-  "namib-bianco-select": ["Polished"],
-  "namib-fantasy": ["Polished"],
-  "preto-sao-gabriel": ["Leathered"],
-  "rhino-white": ["Polished"],
-  "steel-gray": ["Brushed", "Polished"],
-  "taj-mahal": ["Honed"],
-  titanium: ["Leathered"],
-  "titanium-black-leathered": ["Leathered"],
-  versace: ["Honed"],
-  "viscount-white": ["Leathered", "Polished"],
+/** Source-title spellings that the generated finish parser did not normalize. */
+const MARKETPLACE_FINISH_BY_SOURCE_ID: Readonly<Record<string, readonly string[]>> = {
+  "1Xa7SrSqU8QkEQ2loN5e0MJAiBwqh5d7d": ["Leathered"],
+  "16W501McWkRTtvt5qSQmpHbM-gPWFBIbh": ["Leathered"],
+  "1-1U8FEyCh3N2_DOxRhNKT_lUW72Jh_RQ": ["Leathered"],
+  "191RN3EiWViOSo-i0c9qxcZgXtfIW4joY": ["Leathered", "Polished"],
+  "1S8hBqFND6VJriBUY_D8suZlq-4RKnyAU": ["Leathered"],
+  "1AKtf_qUIAsbuv8v_jHrtZUyQY0Q0DkU7": ["Leathered"],
+  "1-vv4LRby_0SLHClkFAl5O7PgMDycjQEq": ["Polished"],
+  "1c0fyGhU4W_0M4bHFlHjdJ2PYHSsMTF29": ["Polished", "Leathered"],
 };
 
-function materialStatus(slug: string, category: string): JwStoneMaterialStatus {
-  if (USER_CONFIRMED.has(slug)) return "user_confirmed";
-  if (FILENAME_CONFIRMED.has(slug)) return "filename";
-  if (category === "unconfirmed") return "unconfirmed";
+function sourceTitleFinishes(sourceFileId: string): readonly string[] | undefined {
+  return (
+    MARKETPLACE_FINISH_BY_SOURCE_ID[sourceFileId] ??
+    (imageFinishByDriveId as Record<string, string[]>)[sourceFileId]
+  );
+}
+
+function materialStatus(generated: GeneratedJwStoneRecord): JwStoneMaterialStatus {
+  if (USER_CONFIRMED.has(generated.slug)) return "user_confirmed";
+  if (FILENAME_CONFIRMED.has(generated.slug)) return "filename";
+  if (generated.categorySlug === "unconfirmed") return "unconfirmed";
   return "source_folder";
 }
 
-const stones = generatedInventory.map(
-  (
-    generated
-  ): JwStoneInventoryStone & {
-    categorySlug: string;
-  } => {
-    const { categorySlug, slug, name, images, shareImageOrder, slabCounts, sourceFileIds } =
-      generated;
-    const namePresentation = resolveJwStoneInventoryNamePresentation({ name, slug });
-    const status = materialStatus(slug, categorySlug);
-    const finishes = EXPLICIT_FINISHES[slug];
-    const imageFinishes = sourceFileIds?.map(
-      (fileId: string) => (imageFinishByDriveId as Record<string, string[]>)[fileId]
-    );
-    return {
-      categorySlug,
-      name,
-      ...namePresentation,
-      slug,
-      images,
-      shareImageOrder,
-      imageFinishes: imageFinishes?.some((f: string[] | undefined) => f?.length)
-        ? imageFinishes
-        : undefined,
-      slabCounts,
-      materialStatus: status,
-      finishes,
-      finishStatus: finishes?.length ? "explicit" : "unconfirmed",
-      sourceNote:
-        status === "user_confirmed"
-          ? "Material confirmed during JW Stone reconciliation."
-          : status === "filename"
-            ? "Material stated in the source filename."
-            : status === "source_folder"
-              ? "Material follows the JW Stone source folder; finish remains separate evidence."
-              : "Source material is conflicting or absent; confirmation required.",
-    };
-  }
-);
+function projectStone(generated: GeneratedJwStoneRecord): JwStoneInventoryStone & {
+  categorySlug: string;
+} {
+  const namePresentation = resolveJwStoneInventoryNamePresentation({
+    name: generated.name,
+    slug: generated.slug,
+  });
+  const imageFinishes = generated.sourceFileIds.map((sourceFileId) =>
+    sourceTitleFinishes(sourceFileId)
+  );
+  const finishes = [
+    ...new Set(
+      [...imageFinishes.flatMap((values) => values ?? []), ...(generated.finishes ?? [])]
+        .map((finish) => finish.trim())
+        .filter((finish) => finish && finish.toLocaleLowerCase() !== "dual finish")
+    ),
+  ];
+  const status = materialStatus(generated);
+
+  return {
+    categorySlug: generated.categorySlug,
+    name: generated.name,
+    ...namePresentation,
+    slug: generated.slug,
+    images: generated.images,
+    shareImageOrder: generated.shareImageOrder,
+    imageFinishes: imageFinishes.some((values) => values?.length)
+      ? imageFinishes.map((values) => (values ? [...values] : undefined))
+      : undefined,
+    slabCounts: generated.slabCounts,
+    materialStatus: status,
+    finishes: finishes.length ? finishes : undefined,
+    finishStatus: finishes.length ? "explicit" : "unconfirmed",
+    sourceNote:
+      status === "user_confirmed"
+        ? "Material confirmed during JW Stone reconciliation."
+        : status === "filename"
+          ? "Material stated in the source filename."
+          : status === "source_folder"
+            ? "Material follows the JW Stone source folder; finish remains separate evidence."
+            : "Source material is conflicting or absent; confirmation required.",
+  };
+}
+
+const reconciled = reconcileJwStoneGeneratedInventory(
+  generatedInventory as GeneratedJwStoneRecord[]
+).map(projectStone);
 
 export const JW_STONE_INVENTORY_CATEGORIES: JwStoneInventoryCategory[] = CATEGORY_ORDER.map(
   (categorySlug) => ({
     category: CATEGORY_LABELS[categorySlug],
     categorySlug,
-    stones: stones
+    stones: reconciled
       .filter((stone) => stone.categorySlug === categorySlug)
       .map(({ categorySlug: _categorySlug, ...stone }) => stone)
       .sort((a, b) => a.name.localeCompare(b.name)),
   })
 ).filter((category) => category.stones.length > 0);
 
-export const JW_STONE_INVENTORY_SUMMARY = {
-  stoneCount: stones.length,
-  imageCount: stones.reduce((total, stone) => total + stone.images.length, 0),
-  needsMaterialConfirmation: stones.filter((stone) => stone.materialStatus === "unconfirmed")
+export const JW_STONE_INVENTORY_SUMMARY = Object.freeze({
+  stoneCount: reconciled.length,
+  imageCount: reconciled.reduce((total, stone) => total + stone.images.length, 0),
+  needsMaterialConfirmation: reconciled.filter((stone) => stone.materialStatus === "unconfirmed")
     .length,
-  needsFinishConfirmation: stones.filter((stone) => stone.finishStatus === "unconfirmed").length,
-};
-import generatedInventory from "./jwStoneInventory.generated.json";
-import imageFinishByDriveId from "./jwStoneImageFinishes.generated.json";
-import {
-  resolveJwStoneInventoryNamePresentation,
-  type JwStoneInventoryNameStatus,
-} from "@shared/jwStonePresentation";
+  needsFinishConfirmation: reconciled.filter((stone) => stone.finishStatus === "unconfirmed")
+    .length,
+});

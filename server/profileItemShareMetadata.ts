@@ -1,65 +1,21 @@
-import generatedJwStoneInventory from "../client/src/data/jwStoneInventory.generated.json";
 import {
   createProfileInventoryItemShareMetadata,
   type ProfileInventoryItemShareMetadata,
 } from "@shared/profileItemShare";
-import { resolveJwStoneInventoryNamePresentation } from "@shared/jwStonePresentation";
+import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInventory";
 
 const JW_STONE_PROFILE_SLUG = "jw-stone";
-
-const JW_STONE_CATEGORY_LABELS: Record<string, string> = {
-  granite: "Granite",
-  marble: "Marble",
-  quartzite: "Quartzite",
-  quartz: "Engineered Quartz",
-  onyx: "Onyx",
-  soapstone: "Soapstone",
-  basalt: "Basalt",
-  unconfirmed: "Trending at JW Stone",
-};
-
-type GeneratedJwStone = {
-  categorySlug?: string;
-  name?: string;
-  displayName?: string | null;
-  nameStatus?: "source" | "placeholder";
-  slug?: string;
-  images?: string[];
-  shareImageOrder?: number[];
-};
 
 type ProfileContentBlock = {
   type?: unknown;
   data?: unknown;
 };
 
-const jwStoneInventoryCategories = (() => {
-  const categories = new Map<
-    string,
-    { category: string; categorySlug: string; stones: GeneratedJwStone[] }
-  >();
-
-  for (const stone of generatedJwStoneInventory as GeneratedJwStone[]) {
-    const categorySlug = String(stone?.categorySlug || "").trim();
-    if (!categorySlug) continue;
-    const existing = categories.get(categorySlug) || {
-      category: JW_STONE_CATEGORY_LABELS[categorySlug] || categorySlug,
-      categorySlug,
-      stones: [],
-    };
-    const namePresentation = resolveJwStoneInventoryNamePresentation(stone);
-    existing.stones.push({ ...stone, ...namePresentation });
-    categories.set(categorySlug, existing);
-  }
-
-  return Array.from(categories.values());
-})();
-
 export function inventoryCategoriesForProfile(
   profileSlug: string,
   contentBlocks: unknown
 ): unknown {
-  if (profileSlug === JW_STONE_PROFILE_SLUG) return jwStoneInventoryCategories;
+  if (profileSlug === JW_STONE_PROFILE_SLUG) return JW_STONE_CANONICAL_INVENTORY_CATEGORIES;
   if (!Array.isArray(contentBlocks)) return [];
 
   const inventoryBlock = (contentBlocks as ProfileContentBlock[]).find(

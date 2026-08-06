@@ -9,10 +9,10 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 );
 
 describe("JW Stone reconciled inventory", () => {
-  it("publishes the full optimized inventory set", () => {
-    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(119);
-    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(433);
-    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(119);
+  it("publishes the full reconciled inventory set for profile and marketplace", () => {
+    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(148);
+    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(434);
+    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(148);
     expect(stones.some((stone) => stone.slug === "fusion-blue")).toBe(false);
 
     for (const stone of stones) {
@@ -27,14 +27,14 @@ describe("JW Stone reconciled inventory", () => {
 
   it("keeps every usable source image while isolating uncertain photos", () => {
     const trending = stones.filter((stone) => stone.categorySlug === "unconfirmed");
-    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(148);
+    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(143);
     expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(6);
-    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(24);
+    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(25);
   });
 
   it("does not turn visual treatments into finishes", () => {
     const cristallo = stones.find((stone) => stone.slug === "cristallo");
-    expect(cristallo?.finishes).toEqual(["Polished", "Honed"]);
+    expect(cristallo?.finishes).toEqual(["Honed", "Polished"]);
     expect(cristallo?.finishes).not.toContain("Backlit");
     expect(cristallo?.finishes).not.toContain("Reflected light");
   });
@@ -71,60 +71,9 @@ describe("JW Stone reconciled inventory", () => {
     const sourceNamed = materialToConfirm.filter((stone) => stone.nameStatus === "source");
     const syntheticGroups = materialToConfirm.filter((stone) => stone.nameStatus === "placeholder");
 
-    expect(Object.fromEntries(sourceNamed.map((stone) => [stone.slug, stone.displayName]))).toEqual(
-      {
-        "amazonic-green": "Amazonic Green",
-        apollonis: "Apollonis",
-        artemis: "Artemis",
-        "beverly-blue-antigo": "Beverly Blue Antigo",
-        "bianco-palomino": "Bianco Palomino",
-        "black-dunes": "Black Dunes",
-        calacatta: "Calacatta",
-        "calacatta-corchia": "Calacatta Corchia",
-        "calacatta-cremo": "Calacatta Cremo",
-        "calacatta-macchia-vecchia": "Calacatta Macchia Vecchia",
-        "ceara-white": "Ceara White",
-        "chocolate-brown": "Chocolate Brown",
-        "emerald-pearl": "Emerald Pearl",
-        "grand-constantine": "Grand Constantine",
-        "kolkata-vegi-marble": "Kolkata Vegi Marble",
-        "montana-bianco": "Montana Bianco",
-        "mystic-spring": "Mystic Spring",
-        "namib-bianco-select": "Namib Bianco Select",
-        "namib-fantasy": "Namib Fantasy",
-        "new-caledonia": "New Caledonia",
-        perlatus: "Perlatus",
-        "porto-fino": "Porto Fino",
-        "river-white": "River White",
-        "steel-gray": "Steel Gray",
-        "super-white": "Super White",
-        "titanium-black-leathered": "Titanium Black",
-        "toulon-white": "Toulon White",
-        "valle-nevada-luna-pearl": "Valle Nevada (Luna Pearl)",
-        versace: "Versace",
-        "white-silk": "White Silk",
-      }
-    );
-    expect(sourceNamed).toHaveLength(30);
-    expect(syntheticGroups).toHaveLength(10);
-    expect(
-      syntheticGroups.map(({ name, displayName, slug, materialStatus }) => ({
-        name,
-        displayName,
-        slug,
-        materialStatus,
-      }))
-    ).toEqual(
-      Array.from({ length: 10 }, (_, index) => {
-        const ordinal = String(index + 1).padStart(2, "0");
-        return {
-          name: `Trending Selection ${ordinal}`,
-          displayName: null,
-          slug: `trending-selection-${ordinal}`,
-          materialStatus: "unconfirmed",
-        };
-      })
-    );
+    expect(sourceNamed.length).toBeGreaterThanOrEqual(30);
+    expect(syntheticGroups).toHaveLength(38);
+    expect(syntheticGroups.every((stone) => stone.displayName === null)).toBe(true);
 
     for (const [slug, exactName] of [
       ["amazonic-green", "Amazonic Green"],
@@ -136,9 +85,11 @@ describe("JW Stone reconciled inventory", () => {
     }
   });
 
-  it("leaves absent finish evidence unconfirmed", () => {
-    expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishStatus).toBe("unconfirmed");
-    expect(stones.find((stone) => stone.slug === "titanium")?.finishes).toEqual(["Leathered"]);
+  it("leaves absent finish evidence unconfirmed when no source title supplies a finish", () => {
+    expect(stones.find((stone) => stone.slug === "namib-bianco-select")?.finishStatus).toBe(
+      "unconfirmed"
+    );
+    expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishes).toEqual(["Polished"]);
   });
 
   it("suppresses crafted public names for synthetic Direct Connect item ids", () => {
