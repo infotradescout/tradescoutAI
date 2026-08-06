@@ -115,8 +115,8 @@ export function WishlistPanel({
             Saved stones
           </SheetTitle>
           <SheetDescription className={`max-w-md text-sm leading-5 ${jw.muted}`}>
-            Kept in this browser for quick return. Email yourself a copy so the list survives cache
-            clears — JW Stone is only contacted when you ask about a stone.
+            Stones you’ve bookmarked. Kept in this browser — email yourself a copy if you want it to
+            stick. JW Stone isn’t notified until you Ask.
           </SheetDescription>
           {restored && !persisted ? (
             <p className={`text-sm ${jw.muted}`}>
@@ -175,11 +175,10 @@ export function WishlistPanel({
             <div className="flex h-full min-h-80 flex-col items-center justify-center text-center">
               <Bookmark className={`h-8 w-8 ${jw.muted}`} aria-hidden="true" />
               <h3 className="mt-5 font-editorial text-3xl text-[var(--jw-ink)]">
-                Your selection is open
+                Nothing saved yet
               </h3>
               <p className={`mt-3 max-w-sm text-sm leading-6 ${jw.muted}`}>
-                Save any named stone from the collection. It will appear here when you return in
-                this browser. Once saved, you can email yourself a durable copy.
+                Bookmark any named stone from the collection to see it here.
               </p>
               <button
                 type="button"
