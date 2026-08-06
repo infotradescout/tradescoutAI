@@ -116,6 +116,47 @@ describe("JwCollapsibleSection", () => {
     expect(toggle?.className).not.toMatch(/\bsticky\b/);
   });
 
+  it("does not force-open when defaultExpanded flips to true after mount", () => {
+    act(() => {
+      root.render(
+        <JwCollapsibleSection
+          id="jw-palette-rail"
+          testId="jw-palette-rail"
+          headingId="jw-palette-heading"
+          title="Browse by color"
+          defaultExpanded={false}
+          backgroundSrc="/images/businesses/jw-stone/story/living-room.webp"
+        >
+          <p data-testid="jw-palette-body">swatches</p>
+        </JwCollapsibleSection>
+      );
+    });
+
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+
+    act(() => {
+      root.render(
+        <JwCollapsibleSection
+          id="jw-palette-rail"
+          testId="jw-palette-rail"
+          headingId="jw-palette-heading"
+          title="Browse by color"
+          defaultExpanded={true}
+          backgroundSrc="/images/businesses/jw-stone/story/living-room.webp"
+        >
+          <p data-testid="jw-palette-body">swatches</p>
+        </JwCollapsibleSection>
+      );
+    });
+
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-palette-body"]')).toBeNull();
+  });
+
   it("keeps header toggle collapse for color/material style sections with one Open cue", () => {
     act(() => {
       root.render(

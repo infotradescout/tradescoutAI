@@ -13,9 +13,13 @@ type JwCollapsibleSectionProps = {
    * (chevron + muted Open/Close).
    */
   summary?: string;
-  /** Open on first paint when deep-link filters / hash warrant it. */
+  /**
+   * Open on first paint only (deep-link filters / material path).
+   * Not reactive — later prop flips must not force-open (e.g. material color
+   * refine must not auto-expand Browse by color).
+   */
   defaultExpanded?: boolean;
-  /** Fires when expanded flips (toggle, hash jump, or defaultExpanded open). */
+  /** Fires when expanded flips (toggle or hash jump). */
   onExpandedChange?: (expanded: boolean) => void;
   children: ReactNode;
   className?: string;
@@ -108,10 +112,6 @@ export function JwCollapsibleSection({
     window.addEventListener("hashchange", syncFromHash);
     return () => window.removeEventListener("hashchange", syncFromHash);
   }, [id]);
-
-  useEffect(() => {
-    if (defaultExpanded) setExpandedAndNotify(true);
-  }, [defaultExpanded]);
 
   const toggle = () => setExpandedAndNotify(!expandedRef.current);
   const actionLabel = expanded ? `Close ${title}` : `Open ${title}`;

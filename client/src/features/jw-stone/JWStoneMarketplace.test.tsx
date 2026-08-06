@@ -504,6 +504,53 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("false");
   });
 
+  it("starts with Browse by color collapsed and no color filter on /jw-stone", () => {
+    expect(window.location.pathname).toBe("/jw-stone");
+    expect(window.location.search).not.toContain("color=");
+    expect(window.location.search).not.toContain("aesthetic=");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(
+      container.querySelector('[data-testid="jw-material-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-palette-chip-row"]')).toBeNull();
+  });
+
+  it("does not auto-open Browse by color when material refine writes a color", () => {
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
+    click(container.querySelector('[data-testid="jw-material-granite"]'));
+    click(container.querySelector('[data-testid="jw-material-color-green"]'));
+    expect(window.location.search).toContain("color=green");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
+  });
+
+  it("keeps Browse by color collapsed on color deep-link until the shopper opens it", () => {
+    act(() => root.unmount());
+    window.history.replaceState(null, "", "/jw-stone?color=green");
+    root = createRoot(container);
+    act(() => root.render(<JWStoneMarketplace />));
+
+    expect(window.location.search).toContain("color=green");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
+
+    click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("true");
+    expect(container.querySelector('[data-testid="jw-palette-results"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-palette-green"]')?.getAttribute("aria-pressed")
+    ).toBe("true");
+  });
+
   it("lets material-first shoppers refine by color chips inside the material panel", () => {
     click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-material-granite"]'));
@@ -525,6 +572,10 @@ describe("JW Stone marketplace luxury layout", () => {
         .querySelector('[data-testid="jw-material-color-green"]')
         ?.getAttribute("aria-pressed")
     ).toBe("true");
+    // Shared URL color must not steal-open Browse by color.
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
 
     // Re-click clears color only — material stays.
     click(container.querySelector('[data-testid="jw-material-color-green"]'));
@@ -539,6 +590,9 @@ describe("JW Stone marketplace luxury layout", () => {
     click(container.querySelector('[data-testid="jw-material-granite"]'));
     expect(window.location.pathname).not.toMatch(/\/materials\//);
     expect(window.location.search).toContain("aesthetic=warm-earthy");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
   });
 
   it("keeps Call for availability theater out and omits empty New Arrivals", () => {

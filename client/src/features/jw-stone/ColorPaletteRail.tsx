@@ -283,7 +283,11 @@ function activeColorSwatchLabel(aesthetic: ColorDirectionId | null, color: strin
   return match?.label ?? "Color";
 }
 
-/** Page IA section #1 below First Cut: collapsed until opened. */
+/**
+ * Always collapsed on mount — shopper must open the band.
+ * Shared URL ?color= / ?aesthetic= (including material refine) must not
+ * auto-expand this section. Deep-link filters still apply once opened.
+ */
 export function ColorPaletteRail({
   aesthetic,
   color,
@@ -320,7 +324,7 @@ export function ColorPaletteRail({
       testId="jw-palette-rail"
       headingId="jw-palette-heading"
       title="Browse by color"
-      defaultExpanded={hasSelection}
+      defaultExpanded={false}
       background={<ColorCollageBackground />}
     >
       {!hasSelection ? (
