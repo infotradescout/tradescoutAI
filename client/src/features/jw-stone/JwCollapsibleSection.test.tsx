@@ -30,6 +30,46 @@ describe("JwCollapsibleSection", () => {
     container.remove();
   });
 
+  it("exposes button affordance: Tap to open/close, aria-expanded, visible chevron", () => {
+    act(() => {
+      root.render(
+        <JwCollapsibleSection
+          id="current-inventory"
+          testId="jw-inventory"
+          headingId="jw-inventory-heading"
+          title="Full inventory"
+          background={<div data-testid="jw-inventory-collage" />}
+        >
+          <p data-testid="jw-inventory-body">stone grid</p>
+        </JwCollapsibleSection>
+      );
+    });
+
+    const toggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
+    expect(toggle?.tagName).toBe("BUTTON");
+    expect(toggle?.getAttribute("aria-expanded")).toBe("false");
+    expect(toggle?.getAttribute("aria-label")).toBe("Tap to open Full inventory");
+    expect(toggle?.className).toMatch(/cursor-pointer/);
+    expect(toggle?.className).toMatch(/focus-visible:ring/);
+    expect(container.querySelector('[data-testid="jw-inventory-expand-cue"]')?.textContent).toMatch(
+      /Tap to open/i
+    );
+    expect(container.querySelector('[data-testid="jw-inventory-expand-chevron"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-inventory-expand-hint"]')?.textContent
+    ).toMatch(/Tap to open/i);
+
+    click(toggle);
+    expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+    expect(toggle?.getAttribute("aria-label")).toBe("Tap to close Full inventory");
+    expect(container.querySelector('[data-testid="jw-inventory-expand-cue"]')?.textContent).toMatch(
+      /Tap to close/i
+    );
+    expect(
+      container.querySelector('[data-testid="jw-inventory-expand-chevron"]')?.getAttribute("class")
+    ).toMatch(/rotate-180/);
+  });
+
   it("expands and collapses Full inventory via the photo header toggle", () => {
     act(() => {
       root.render(
@@ -55,12 +95,9 @@ describe("JwCollapsibleSection", () => {
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("true");
     expect(container.querySelector('[data-testid="jw-inventory-body"]')).not.toBeNull();
-    // Expanded: compact sticky band stays reachable while scrolling inventory.
     expect(toggle?.className).toMatch(/\bsticky\b/);
     expect(toggle?.className).toMatch(/top-14/);
     expect(toggle?.className).not.toMatch(/min-h-\[25svh\]/);
-    expect(container.querySelector('[data-testid="jw-inventory-collapse"]')).toBeNull();
-    expect(container.textContent).not.toMatch(/Close Full inventory/i);
 
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("false");
@@ -69,7 +106,7 @@ describe("JwCollapsibleSection", () => {
     expect(toggle?.className).not.toMatch(/\bsticky\b/);
   });
 
-  it("keeps header toggle collapse for color/material style sections", () => {
+  it("keeps header toggle collapse for color/material style sections with Tap cue", () => {
     act(() => {
       root.render(
         <JwCollapsibleSection
@@ -87,12 +124,17 @@ describe("JwCollapsibleSection", () => {
     const section = container.querySelector('[data-testid="jw-palette-rail"]');
     const toggle = container.querySelector('[data-testid="jw-palette-rail-toggle"]');
     expect(section?.getAttribute("data-expanded")).toBe("false");
+    expect(toggle?.getAttribute("aria-label")).toBe("Tap to open Browse by color");
+    expect(container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')).not.toBeNull();
 
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("true");
     expect(container.querySelector('[data-testid="jw-palette-body"]')).not.toBeNull();
     expect(toggle?.className).toMatch(/\bsticky\b/);
-    expect(container.textContent).not.toMatch(/Close Browse by color/i);
+    expect(toggle?.getAttribute("aria-label")).toBe("Tap to close Browse by color");
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
+    ).toMatch(/Tap to close/i);
 
     click(toggle);
     expect(section?.getAttribute("data-expanded")).toBe("false");
