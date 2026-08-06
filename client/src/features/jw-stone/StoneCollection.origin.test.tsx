@@ -50,18 +50,35 @@ describe("JW Stone verified-origin collection path", () => {
     ).toBe("false");
     expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(0);
 
+    const inventoryToggle = container.querySelector<HTMLButtonElement>(
+      '[data-testid="jw-inventory-toggle"]'
+    );
+
     act(() => {
-      container
-        .querySelector<HTMLButtonElement>('[data-testid="jw-inventory-toggle"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      inventoryToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("true");
     expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(1);
+    expect(inventoryToggle?.className).toMatch(/\bsticky\b/);
     expect(container.querySelector('select[aria-label="Color"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Material"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Finish"]')).toBeNull();
     expect(container.querySelector('select[aria-label="Availability"]')).toBeNull();
 
+    act(() => {
+      inventoryToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(
+      container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(0);
+
+    act(() => {
+      inventoryToggle?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
     act(() => {
       container
         .querySelector<HTMLButtonElement>('[data-testid="jw-filters-sheet-open"]')
