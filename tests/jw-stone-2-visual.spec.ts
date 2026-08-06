@@ -107,6 +107,8 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(page.locator("#current-inventory [data-stone-card]")).toHaveCount(0);
   await expect(page.getByTestId("jw-new-arrivals")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-story")).toHaveCount(1);
+  await expect(page.getByTestId("jw-marketplace-trust")).toHaveCount(0);
+  await expect(page.getByText("Why JW Stone")).toHaveCount(0);
   await expect(page.getByTestId("jw-finished-work-bridge")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-trending")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-connect-cta")).toHaveText("Contact");

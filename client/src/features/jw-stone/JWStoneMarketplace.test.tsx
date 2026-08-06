@@ -95,6 +95,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(footer?.querySelector('a[href="/u/jw-stone"]')).toBeNull();
     expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
+    expect(container.textContent).not.toContain("Why JW Stone");
+    expect(container.textContent).not.toContain("How do I confirm availability or pricing?");
+    expect(container.querySelector('[data-testid="jw-marketplace-trust"]')).toBeNull();
     expect(container.textContent).not.toContain(
       "Thirty years of expertise for fabricators, architects, designers, builders, and homeowners."
     );
@@ -562,7 +565,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
   });
 
-  it("orders header, hero, First Cut premiere, color, material, inventory, story, trust, footer, then Connect", () => {
+  it("orders header, hero, First Cut premiere, color, material, inventory, story, footer, then Connect", () => {
     const header = container.querySelector('[data-testid="jw-marketplace-header"]');
     const hero = container.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = container.querySelector("#first-cut-title")?.closest("section");
@@ -570,7 +573,6 @@ describe("JW Stone marketplace luxury layout", () => {
     const materials = container.querySelector('[data-testid="jw-material-rail"]');
     const inventory = container.querySelector("#current-inventory");
     const story = container.querySelector('[data-testid="jw-marketplace-story"]');
-    const trust = container.querySelector('[data-testid="jw-marketplace-trust"]');
     const footer = container.querySelector('[data-testid="jw-marketplace-footer"]');
     const request = container.querySelector('[data-testid="jw-marketplace-request"]');
 
@@ -581,7 +583,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(materials).not.toBeNull();
     expect(inventory).not.toBeNull();
     expect(story).not.toBeNull();
-    expect(trust).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-marketplace-trust"]')).toBeNull();
     expect(footer).not.toBeNull();
     expect(request).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-finished-work-bridge"]')).toBeNull();
@@ -593,7 +595,6 @@ describe("JW Stone marketplace luxury layout", () => {
       !materials ||
       !inventory ||
       !story ||
-      !trust ||
       !footer ||
       !request
     ) {
@@ -614,8 +615,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(
       inventory.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(story.compareDocumentPosition(trust) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(trust.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(story.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(footer.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     expect(inventory.className).toMatch(/scroll-mt-/);
