@@ -565,7 +565,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[aria-label="Open saved stones, 1 saved"]')).not.toBeNull();
   });
 
-  it("orders header, hero, First Cut premiere, color, material, inventory, story, footer, then Connect", () => {
+  it("orders header, hero, First Cut premiere, inventory, color, material, story, footer, then Connect", () => {
     const header = container.querySelector('[data-testid="jw-marketplace-header"]');
     const hero = container.querySelector('[data-testid="jw-marketplace-hero"]');
     const firstCut = container.querySelector("#first-cut-title")?.closest("section");
@@ -604,16 +604,16 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(header.compareDocumentPosition(hero) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hero.compareDocumentPosition(firstCut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
-      firstCut.compareDocumentPosition(palette) & Node.DOCUMENT_POSITION_FOLLOWING
+      firstCut.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      inventory.compareDocumentPosition(palette) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
       palette.compareDocumentPosition(materials) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(
-      materials.compareDocumentPosition(inventory) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-    expect(
-      inventory.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING
+      materials.compareDocumentPosition(story) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(story.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(footer.compareDocumentPosition(request) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

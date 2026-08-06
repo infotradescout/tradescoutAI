@@ -184,6 +184,17 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
       <FirstCutSection onOpen={openStone} />
+      <StoneCollection
+        state={state}
+        isSaved={wishlist.isSaved}
+        onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
+        onEnterFullInventory={enterFullInventory}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
+        onSourceRequest={() => startRequest([])}
+        catalog={JW_STONE_CATALOG}
+      />
       <ColorPaletteRail
         aesthetic={state.aesthetic}
         color={state.color}
@@ -205,18 +216,6 @@ export default function JWStoneMarketplace() {
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
         onAsk={askAboutStone}
-        catalog={JW_STONE_CATALOG}
-      />
-
-      <StoneCollection
-        state={state}
-        isSaved={wishlist.isSaved}
-        onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
-        onEnterFullInventory={enterFullInventory}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-        onSourceRequest={() => startRequest([])}
         catalog={JW_STONE_CATALOG}
       />
 
