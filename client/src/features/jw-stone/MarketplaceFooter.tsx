@@ -1,32 +1,10 @@
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 
-type MarketplaceFooterProps = {
-  /** Reserved for parent wiring; primary Connect lives on the sticky request bar. */
-  onStartRequest?: () => void;
-  /** Only link to #new-arrivals when that section is mounted. */
-  showNewArrivals?: boolean;
-  /** Only link to #jw-trending when that section is mounted. */
-  showTrending?: boolean;
-};
-
 /**
- * Light compact footer sheet — logo, short nav, legal.
+ * Light compact footer sheet — logo + legal.
  * Connect CTA is the sticky request bar (not duplicated here).
  */
-export function MarketplaceFooter({
-  showNewArrivals = false,
-  showTrending = false,
-}: MarketplaceFooterProps) {
-  const nav: { href: string; label: string }[] = [
-    { href: "#first-cut-title", label: "First Cut" },
-    { href: "#jw-palette-rail", label: "Color" },
-    { href: "#jw-material-rail", label: "Material" },
-    ...(showNewArrivals ? [{ href: "#new-arrivals", label: "New Arrivals" }] : []),
-    { href: "#current-inventory", label: "Inventory" },
-    ...(showTrending ? [{ href: "#jw-trending", label: "Trending" }] : []),
-    { href: "/u/jw-stone", label: "Profile" },
-  ];
-
+export function MarketplaceFooter() {
   return (
     <footer
       data-testid="jw-marketplace-footer"
@@ -41,21 +19,6 @@ export function MarketplaceFooter({
             data-testid="jw-marketplace-footer-logo"
           />
         </a>
-
-        <nav aria-label="JW Stone sections" className="w-full max-w-lg">
-          <ul className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:items-center sm:justify-center sm:gap-1">
-            {nav.map((item) => (
-              <li key={item.href} className="sm:contents">
-                <a
-                  href={item.href}
-                  className="inline-flex min-h-11 items-center justify-center px-3 text-sm font-semibold text-[var(--jw-ink)] transition-colors hover:text-[var(--jw-accent)] sm:min-h-10"
-                >
-                  {item.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
 
         <div
           className={`flex flex-col items-center gap-1 text-xs ${jw.muted} sm:flex-row sm:gap-3 sm:text-sm`}
