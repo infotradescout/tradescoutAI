@@ -7,7 +7,11 @@ type JwCollapsibleSectionProps = {
   testId: string;
   headingId: string;
   title: string;
-  /** Optional — luxury collapsed rows use heading only (no tutorial microcopy). */
+  /**
+   * Optional supporting copy for the non-photo shell only.
+   * Never used as an open/close affordance — photo bands show one cue only
+   * (chevron + muted Open/Close).
+   */
   summary?: string;
   /** Open on first paint when deep-link filters / hash warrant it. */
   defaultExpanded?: boolean;
@@ -22,7 +26,7 @@ type JwCollapsibleSectionProps = {
   background?: ReactNode;
 };
 
-/** One calm cue: large chevron + muted Open/Close — no olive pill, no duplicate subtitle. */
+/** Exactly one visible cue per band: muted Open/Close + large rotating chevron. */
 function SectionToggleCue({
   expanded,
   tone,
@@ -64,7 +68,7 @@ const photoToggleBase =
  * When expanded, the photo title band stays sticky under the marketplace header so
  * tapping it again can always collapse — even deep in a long inventory list.
  * Re-opens from hash matches on `#id` (menu / hero jump links).
- * Large chevron + muted Open/Close keep bands obviously tappable without loud chrome.
+ * One calm cue only — large chevron + muted Open/Close (no under-title open copy, no pill).
  */
 export function JwCollapsibleSection({
   id,
@@ -197,26 +201,16 @@ export function JwCollapsibleSection({
               : "relative z-[1] mx-auto flex w-full max-w-[1600px] items-end justify-between gap-4 px-5 pb-5 pt-8 sm:px-9 sm:pb-6 sm:pt-10 lg:px-12"
           }
         >
-          <span className="min-w-0">
-            <h2
-              id={headingId}
-              className={
-                expanded
-                  ? "max-w-3xl font-editorial text-xl leading-tight text-white sm:text-2xl"
-                  : "max-w-3xl font-editorial text-2xl leading-tight text-white sm:text-3xl lg:text-4xl"
-              }
-            >
-              {title}
-            </h2>
-            {!expanded && summary ? (
-              <p
-                className="mt-1.5 max-w-xl text-sm font-normal leading-5 text-white/75 sm:text-base"
-                data-testid={`${testId}-expand-hint`}
-              >
-                {summary}
-              </p>
-            ) : null}
-          </span>
+          <h2
+            id={headingId}
+            className={
+              expanded
+                ? "min-w-0 max-w-3xl font-editorial text-xl leading-tight text-white sm:text-2xl"
+                : "min-w-0 max-w-3xl font-editorial text-2xl leading-tight text-white sm:text-3xl lg:text-4xl"
+            }
+          >
+            {title}
+          </h2>
           <SectionToggleCue expanded={expanded} tone="dark" testId={testId} />
         </span>
       </button>

@@ -153,9 +153,18 @@ describe("JW Stone marketplace luxury layout", () => {
     const colorToggle = container.querySelector('[data-testid="jw-palette-rail-toggle"]');
     const materialToggle = container.querySelector('[data-testid="jw-material-rail-toggle"]');
     const inventoryToggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
-    expect(colorToggle?.textContent).not.toMatch(/\bOpen\b/);
-    expect(materialToggle?.textContent).not.toMatch(/\bOpen\b/);
-    expect(inventoryToggle?.textContent).not.toMatch(/\bOpen\b/);
+    // One calm cue only — never dual "Tap to open" (under-title + pill).
+    expect(container.textContent).not.toMatch(/Tap to open/i);
+    expect(container.querySelectorAll('[data-testid$="-expand-hint"]')).toHaveLength(0);
+    expect(
+      colorToggle?.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
+    ).toMatch(/^Open$/);
+    expect(
+      materialToggle?.querySelector('[data-testid="jw-material-rail-expand-cue"]')?.textContent
+    ).toMatch(/^Open$/);
+    expect(
+      inventoryToggle?.querySelector('[data-testid="jw-inventory-expand-cue"]')?.textContent
+    ).toMatch(/^Open$/);
     expect(colorToggle?.querySelector('[data-testid="jw-color-collage"]')).not.toBeNull();
     expect(
       colorToggle
