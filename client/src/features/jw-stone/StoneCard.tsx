@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
@@ -11,6 +12,8 @@ type StoneCardProps = {
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
   onAsk: (stone: JwStoneCatalogItem) => void;
+  /** Optional overlays inside the media frame (e.g. carousel prev/next). */
+  mediaChrome?: ReactNode;
 };
 
 /**
@@ -18,7 +21,14 @@ type StoneCardProps = {
  * system underneath (not a left-ragged classifieds column).
  * Actions: Save (bookmark), View stone, Ask — no color / Pairs with chrome.
  */
-export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneCardProps) {
+export function StoneCard({
+  stone,
+  saved,
+  onToggleSaved,
+  onOpen,
+  onAsk,
+  mediaChrome,
+}: StoneCardProps) {
   const alt = stone.displayName
     ? `${stone.displayName} stone photograph`
     : "Stone selection photograph from JW Stone";
@@ -56,7 +66,7 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneC
               saved ? " from" : " to"
             } saved stones`}
             aria-pressed={saved}
-            className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center bg-[var(--jw-bg)]/85 text-[var(--jw-ink)] backdrop-blur-[2px] transition-colors hover:bg-[var(--jw-bg)]"
+            className="absolute right-3 top-3 z-20 inline-flex h-11 w-11 items-center justify-center bg-[var(--jw-bg)]/85 text-[var(--jw-ink)] backdrop-blur-[2px] transition-colors hover:bg-[var(--jw-bg)]"
           >
             {saved ? (
               <BookmarkCheck className="h-5 w-5 text-[var(--jw-accent)]" aria-hidden="true" />
@@ -65,6 +75,7 @@ export function StoneCard({ stone, saved, onToggleSaved, onOpen, onAsk }: StoneC
             )}
           </button>
         ) : null}
+        {mediaChrome}
       </div>
 
       <div className="flex flex-col items-center px-3 pb-1 pt-3 text-center sm:px-4 sm:pt-3.5">
