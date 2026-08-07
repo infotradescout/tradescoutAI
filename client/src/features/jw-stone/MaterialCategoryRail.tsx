@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { jw } from "./brand";
 import {
   JW_STONE_CATALOG,
   JW_STONE_MATERIAL_SECTION_ORDER,
@@ -98,7 +99,8 @@ export function getMaterialRailItems(
       return {
         materialId: section.materialId,
         materialLabel: section.materialLabel,
-        count: stones.length,
+        // Tile stature always reflects full material inventory — never a color-empty 0.
+        count: section.stones.length,
         coverSrc: dedicatedCover ?? coverStone?.images[0] ?? null,
         stones: Object.freeze(stones),
       };
@@ -221,14 +223,24 @@ export function MaterialCategoryRail({
                   data-testid={`jw-material-stone-rail-${item.materialId}`}
                   className="mt-3 sm:mt-4"
                 >
-                  <MaterialStonePager
-                    materialLabel={item.materialLabel}
-                    stones={item.stones}
-                    isSaved={isSaved}
-                    onToggleSaved={onToggleSaved}
-                    onOpen={onOpen}
-                    onAsk={onAsk}
-                  />
+                  {item.stones.length ? (
+                    <MaterialStonePager
+                      materialLabel={item.materialLabel}
+                      stones={item.stones}
+                      isSaved={isSaved}
+                      onToggleSaved={onToggleSaved}
+                      onOpen={onOpen}
+                      onAsk={onAsk}
+                    />
+                  ) : (
+                    <p
+                      className={`text-sm leading-relaxed ${jw.muted}`}
+                      data-testid="jw-material-color-empty"
+                    >
+                      No {item.materialLabel.toLowerCase()} selections match the active color
+                      filter. Clear color in Browse by color, or pick another material.
+                    </p>
+                  )}
                 </div>
               ) : null}
             </li>

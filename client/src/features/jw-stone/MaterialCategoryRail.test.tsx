@@ -30,7 +30,7 @@ describe("MaterialCategoryRail", () => {
     container.remove();
   });
 
-  it("exposes every filterable material with a real catalog cover and stones", () => {
+  it("exposes every filterable material including Onyx with a real catalog cover and stones", () => {
     const items = getMaterialRailItems();
     expect(items.map((item) => item.materialId)).toEqual([
       "granite",
@@ -41,6 +41,9 @@ describe("MaterialCategoryRail", () => {
       "soapstone",
       "basalt",
     ]);
+    expect(items.find((item) => item.materialId === "onyx")).toMatchObject({
+      materialLabel: "Onyx",
+    });
     expect(items.every((item) => item.count > 0)).toBe(true);
     expect(items.every((item) => item.stones.length === item.count)).toBe(true);
     expect(items.every((item) => Boolean(item.coverSrc))).toBe(true);
@@ -185,13 +188,25 @@ describe("MaterialCategoryRail", () => {
     );
   });
 
-  it("keeps Onyx listed even when an unrelated color refinement is active", () => {
+  it("keeps Onyx listed with full stature even when an unrelated color refine is active", () => {
+    const base = getMaterialRailItems().find((item) => item.materialId === "onyx");
+    expect(base?.count).toBeGreaterThan(0);
+
     const items = getMaterialRailItems(undefined, { color: "blue" });
-    expect(items.map((item) => item.materialId)).toContain("onyx");
+    expect(items.map((item) => item.materialId)).toEqual([
+      "granite",
+      "marble",
+      "quartzite",
+      "quartz",
+      "onyx",
+      "soapstone",
+      "basalt",
+    ]);
     const onyx = items.find((item) => item.materialId === "onyx");
     expect(onyx?.coverSrc).toContain("/material-covers/onyx");
-    // Blue refine may yield zero onyx stones, but the category must remain.
-    expect(onyx).toBeDefined();
+    // Blue refine may empty the pager stones, but the tile count stays full-catalog.
+    expect(onyx?.count).toBe(base?.count);
+    expect(onyx?.stones.length).toBeLessThanOrEqual(base!.count);
   });
 
   it("opens Onyx stones without requiring a color selection", () => {
