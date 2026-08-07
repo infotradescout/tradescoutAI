@@ -138,7 +138,7 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 | # | Step | Result |
 | --- | --- | --- |
 | 1–5 | Canonical `/jw-stone` signed-out; luxury design; no blank shell; no duplicate SSR; identity visible | Pass (Playwright + matrix) |
-| 6–9 | Buyer workspaces Fabricator/Builder/Designer/Homeowner | Not re-asserted as distinct workspaces in this lane (legacy buyer params ignored by current marketplace; no design change) — **condition** |
+| 6–9 | Buyer workspaces Fabricator/Builder/Designer/Homeowner | **Out of scope / unresolved pre-existing product gap.** Current marketplace does not provide distinct workspaces; legacy buyer query params are ignored. PR #293 does not introduce or resolve this gap. |
 | 10–12 | Color selection; filter URL restorable; back nav | Pass color selection (Playwright); filter/back covered by existing unit suite |
 | 13–16 | Names/finishes/unnamed/no prices/no hold | Pass via existing JW unit + public HTML contracts |
 | 17–20 | Wishlist + deliberate contact; no browse-opens-contact | Pass via JWStoneMarketplace unit + Playwright contact |
@@ -175,7 +175,7 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 
 | Condition | Disposition |
 | --- | --- |
-| **(a) Legacy buyer-role workspace steps 6–9** (Fabricator / Builder / Designer / Homeowner) | **Out of scope / accepted.** Current `JWStoneMarketplace` does not expose distinct buyer-role UI modes; legacy buyer query params are ignored. No design change in this lane. Manual checklist steps 6–9 were not re-proven as separate workspaces — accepted as a documented condition, not a regression. |
+| **(a) Legacy buyer-role workspace steps 6–9** (Fabricator / Builder / Designer / Homeowner) | **Out of scope / unresolved pre-existing product gap.** The current marketplace does not provide distinct Fabricator, Builder, Designer, Homeowner workspaces, and legacy buyer-role query parameters are ignored. PR #293 does not introduce this gap and does not resolve it. This is not owner acceptance of the current behavior. It remains a separate JW Stone product lane. |
 | **(b) www child-sitemap JW gap** | **Explicit follow-up — not fixed here.** Phase 1 found `sitemap-core.xml` / `sitemap-profiles.xml` did not list `/jw-stone`. This lane intentionally made **no** sitemap, robots, or llms.txt changes. Track as a separate platform SEO lane. |
 
 ## FINAL AUDIT
@@ -203,4 +203,4 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 | Phase 3A focused tests | 32/32 pass |
 | Production-like 4-UA matrix | `PHASE3A_MATRIX_PASS` |
 
-**Final audit verdict: PASS WITH CONDITIONS** — ship-ready for PR review; merge blocked until owner local preview GO. Conditions (a) buyer-role workspaces and (b) sitemap gap are documented above and do not block PR open.
+**Final audit verdict: PASS WITH CONDITIONS** — ship-ready for PR review; merge blocked until owner local preview GO. Condition (b) sitemap gap is an explicit follow-up. Condition (a) buyer-role workspaces remain an unresolved pre-existing product gap — not owner acceptance.
