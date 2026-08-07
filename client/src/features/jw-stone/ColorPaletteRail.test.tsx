@@ -74,7 +74,7 @@ describe("JW Stone compact color swatch selector", () => {
   });
 
   it("has no All chip; re-click clears color filter", () => {
-    expect(COLOR_SWATCH_OPTIONS.some((option) => option.id === "all")).toBe(false);
+    expect(COLOR_SWATCH_OPTIONS.map((option) => option.id as string)).not.toContain("all");
     expect(
       isColorSwatchActive(
         { aesthetic: "warm-earthy", color: null },

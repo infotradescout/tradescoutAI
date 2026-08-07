@@ -3,14 +3,14 @@ import type { MarketplaceUrlState } from "./types";
 
 export const JW_STONE_PLATFORM_MARKETPLACE_BASE = "/jw-stone";
 
-const PUBLIC_TO_SOURCE_MATERIAL = new Map(
+const PUBLIC_TO_SOURCE_MATERIAL = new Map<string, string>(
   JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map((category) => [
     category.publicSlug,
     category.sourceSlug,
   ])
 );
 
-const SOURCE_TO_PUBLIC_MATERIAL = new Map(
+const SOURCE_TO_PUBLIC_MATERIAL = new Map<string, string>(
   JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map((category) => [
     category.sourceSlug,
     category.publicSlug,
