@@ -26338,15 +26338,16 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   // CRITICAL FOUNDATION ENDPOINTS (Phase 0)
   // ============================================================================
 
-  // 1. HEALTH CHECK ENDPOINT
+  // 1. HEALTH CHECK ENDPOINT (public, non-sensitive release contract surface)
   app.get("/api/health", async (req: Request, res: Response) => {
     try {
       const uptime = process.uptime();
       const memoryUsage = process.memoryUsage();
       const timestamp = new Date().toISOString();
+      const commit = buildRevision;
 
       // Quick database connectivity check
-      let dbStatus = "connecting";
+      let dbStatus: "connected" | "disconnected" = "disconnected";
       try {
         const dbCheck = await db.execute(sql`SELECT 1`);
         dbStatus = dbCheck ? "connected" : "disconnected";
@@ -26354,11 +26355,43 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         dbStatus = "disconnected";
       }
 
-      res.json({
-        status: "healthy",
+      let migrations: {
+        compatibility: string;
+        appliedCount: number | null;
+        expectedCount: number | null;
+        requiredSchemaOk: boolean | null;
+      } = {
+        compatibility: "unknown",
+        appliedCount: null,
+        expectedCount: null,
+        requiredSchemaOk: null,
+      };
+
+      if (dbStatus === "connected" && pool) {
+        try {
+          const { getMigrationCompatibilityStatus } =
+            await import("./services/migrationCompatibilityStatus");
+          migrations = await getMigrationCompatibilityStatus(pool);
+        } catch {
+          migrations = {
+            compatibility: "unknown",
+            appliedCount: null,
+            expectedCount: null,
+            requiredSchemaOk: null,
+          };
+        }
+      }
+
+      const migrationOk = migrations.compatibility === "compatible";
+      const status = dbStatus !== "connected" ? "unhealthy" : migrationOk ? "healthy" : "degraded";
+
+      const payload = {
+        status,
         uptime: Math.round(uptime),
         timestamp,
+        commit,
         database: dbStatus,
+        migrations,
         memory: {
           rss: Math.round(memoryUsage.rss / 1024 / 1024), // MB
           heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),
@@ -26368,12 +26401,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           NODE_ENV: process.env.NODE_ENV,
           VERSION: "1.0.0",
         },
-      });
+      };
+
+      if (status === "unhealthy") {
+        return res.status(503).json(payload);
+      }
+      return res.json(payload);
     } catch (error: any) {
       res.status(503).json({
         status: "unhealthy",
         error: error.message,
         timestamp: new Date().toISOString(),
+        commit: buildRevision,
       });
     }
   });

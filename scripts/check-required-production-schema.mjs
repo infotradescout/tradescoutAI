@@ -12,10 +12,19 @@ export const REQUIRED_MIGRATION_PATH = path.resolve(
   process.cwd(),
   "migrations/0072_seo_publication_rules_and_freshness.sql"
 );
-export const REQUIRED_MIGRATION_HASH = crypto
-  .createHash("sha256")
-  .update(fs.readFileSync(REQUIRED_MIGRATION_PATH, "utf8"))
-  .digest("hex");
+
+const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
+
+export function buildLineEndingCompatibleMigrationHashes(sql) {
+  const lf = String(sql).replace(/\r\n?/g, "\n");
+  const crlf = lf.replace(/\n/g, "\r\n");
+  return [...new Set([sha256(lf), sha256(crlf)])];
+}
+
+export const REQUIRED_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
+  fs.readFileSync(REQUIRED_MIGRATION_PATH, "utf8")
+);
+export const REQUIRED_MIGRATION_HASH = REQUIRED_MIGRATION_HASHES[0];
 
 export function evaluateRequiredProductionSchema(check) {
   const missing = [];
@@ -62,8 +71,8 @@ export async function verifyRequiredProductionSchema(client) {
 
   if (check.migrationLedger) {
     const migrationResult = await client.query(
-      "select exists (select 1 from drizzle.__drizzle_migrations where hash = $1) as present",
-      [REQUIRED_MIGRATION_HASH]
+      "select exists (select 1 from drizzle.__drizzle_migrations where hash = any($1::text[])) as present",
+      [REQUIRED_MIGRATION_HASHES]
     );
     check.migrationRecorded = Boolean(migrationResult.rows?.[0]?.present);
   }

@@ -18,6 +18,7 @@ ssl
 repo-pack.md
 logs/repo-pack.md
 artifacts/import/
+artifacts/release-contract/
 logs/eslint-warnings*.json
 scout-dev*.log
 *.log

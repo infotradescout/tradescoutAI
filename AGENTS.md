@@ -7,6 +7,7 @@ This repo is TradeScout only. Never import MealScout/Trader’s Corner assets, c
 - Merge/push to `main` **is** the production release path. See `RELEASE_CONTROL.md`.
 - Render Auto-Deploy for production must stay **On** (On Commit).
 - GitHub Actions is not used. Local verification against the exact commit is the release evidence.
+- Minimum executable gate: `npm run gate:minimum-release` (see `docs/release/MINIMUM_RELEASE_CONTRACT.md`). Do not reintroduce `.github/workflows/` for this gate without owner approval; use local attestation commit status `tradescout/minimum-release-contract` instead.
 - Every pull request must record the commands run, results, known baseline failures, and any unexecuted DB/browser/production proof.
 - Do not reintroduce `.github/workflows/` without explicit owner approval.
 
