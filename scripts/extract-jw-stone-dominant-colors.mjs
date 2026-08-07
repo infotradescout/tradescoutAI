@@ -1,5 +1,6 @@
 /**
  * Precompute adaptive 3–5 dominant colors from each stone's cover (full-slab-first) photo.
+ * Prefer saved face slivers when present (see scripts/build-jw-stone-color-slivers.mjs).
  * Output: client/src/data/jwStoneDominantColors.generated.json
  *
  * Usage: node scripts/extract-jw-stone-dominant-colors.mjs
@@ -7,7 +8,7 @@
  * Sampling strategy:
  * - Same cover ranking as client coverImages.ts (full-slab preferred, hand demoted)
  * - Among near-tied covers, prefer richer slab-face chroma (veins / flash)
- * - Extract a slab-face region from the original, then resize (preserve thin veins)
+ * - Prefer color-slivers/{slug}.webp when built; else extract a slab-face region
  * - Hand covers bias to the upper face (hands usually bottom) + skin reject
  * - Mask center slab face; drop clamp/crane yellow, sky, foliage-edge, ground, glare
  * - Body LAB histogram + outlier/accent pass; adaptive 3–5 distinct swatches
@@ -15,7 +16,10 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+
+const __filename = fileURLToPath(import.meta.url);
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
 const inventoryPath = path.join(
@@ -35,6 +39,11 @@ const outPath = path.join(
   "client/src/data/jwStoneDominantColors.generated.json"
 );
 const publicRoot = path.join(repoRoot, "client/public");
+const sliverDir = path.join(
+  publicRoot,
+  "images/businesses/jw-stone/color-slivers"
+);
+const SLIVER_PUBLIC_PREFIX = "/images/businesses/jw-stone/color-slivers";
 
 /** Keep in sync with client/src/features/jw-stone/coverImages.ts */
 const PREFERRED_COVER_FILE_IDS = {
@@ -46,12 +55,15 @@ const PREFERRED_COVER_FILE_IDS = {
   "bianco-superiory": "1-1U8FEyCh3N2_DOxRhNKT_lUW72Jh_RQ",
   "calacatta-amala": "1-8YRVJ9x4_lEyoLWh7RpAY0oFPbJHcFa",
   "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
-  "picasso": "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
-  "bronzonite": "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
+  picasso: "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
+  bronzonite: "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
   "shadow-storm": "1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8",
   "aspen-white": "1PGDSTn70sheqEx3u39VgzuJNodBJW0xe",
   // Face-true white — prior BLOCK#22129 lead was yard/sky blue-washed.
   "alabama-white": "1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso",
+  // Slab-face band crop — raw lead has clamp + photographer reflection.
+  "black-pearl": "black-pearl-slab-face",
+  "taj-mahal": "1gDJPWKTjG68NRvI4NXDW3pM3v-oqItXh",
 };
 
 /** Keep in sync with client/src/features/jw-stone/coverImages.ts */
@@ -72,6 +84,25 @@ const HAND_COVER_FILE_IDS = new Set([
   "15V13zBDRJlRIWJPRHNwyEEhBj5YFRo7m",
   "1n3tCkEbpG8cwAZqp3rsULP5Npm0fYptH",
   "1aiC_duaWb8dY1HHKkGeK9UjbUMRqnPY0",
+  "11_8FYGX-hKzb7MMljH8LGukCR6ofFcaz",
+  "1_jxbwi-xAV-_3Zs2ivWlzwNXFnyRgRxL",
+  "101ftcLyGe6pWSzuCPcrs94AanpuG5Dnb",
+  "1POZ36aWL-ASV2uQSMS_5w11Q22X5nQgY",
+  "130CuUhmYEbsQwGynnQ8R6lDIW34E9qKc",
+  "1XHgYqAJR548-hOlxH8rx7oCQ8q8feIRP",
+  "1sD8kGUwsGE5tymxjMEr6QPEFP9TlRorr",
+  "1CtB0-MY_RP50AEdeSHvwHYJzSwGYs8Ae",
+  "1T9OTfK4VWe5j0wMuIof2BUdeo7RZ57_R",
+  "1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE",
+  "1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK",
+  "1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs",
+  "black-pearl-face-1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs",
+  "16683MPLP7Tbr_zWA29ito0eVct7ooffq",
+  "1QJ3LbaifHqRv24aZ5hWSnmlU_IL1XjfX",
+  "1wca7RSqaHX7QSKjERH3zQLUT9-dVr8rW",
+  "1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b",
+  "1L42L_3HT_2rFzdCTWT46k_AS_ytajWF-",
+  "1KlXD4-B96IBcvKjfCPGTM-aR8AwmD446",
 ]);
 
 const SAMPLE = 512;
@@ -715,7 +746,10 @@ async function pickCoverImage(images, stoneSlug) {
   return scored[0].candidate.imagePath;
 }
 
-async function extractDominantColors(absPath, { handBias = false } = {}) {
+async function extractDominantColorsFromBuffer(
+  absPath,
+  { handBias = false, alreadyFaceCrop = false } = {}
+) {
   const meta = await sharp(absPath).metadata();
   if (!meta.width || !meta.height) {
     return {
@@ -724,9 +758,12 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
     };
   }
 
-  const box = slabExtractBox(meta.width, meta.height, handBias);
-  const { data, info } = await sharp(absPath)
-    .extract(box)
+  let pipeline = sharp(absPath);
+  if (!alreadyFaceCrop) {
+    const box = slabExtractBox(meta.width, meta.height, handBias);
+    pipeline = pipeline.extract(box);
+  }
+  const { data, info } = await pipeline
     .resize(SAMPLE, SAMPLE, { fit: "fill" })
     .ensureAlpha()
     .raw()
@@ -836,7 +873,21 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
     handBias,
   });
 
-  const swatches = picks.map((p) => {
+  // Mid/dark faces: drop residual glare / sky-bounce swatches that slipped past filters.
+  // (Black Pearl and similar yard polishes often read mid-gray median but still flash pale.)
+  const cleaned = picks.filter((p) => {
+    const { l, s, h } = rgbToHsl(p.r, p.g, p.b);
+    if (isDarkStone && l > 0.52) return false;
+    if (!isLightStone && medianL < 0.55 && l > 0.72) return false;
+    if (!isLightStone && medianL < 0.55 && l > 0.62 && s < 0.22) return false;
+    // Pale industrial / bounce yellow-green on dark bodies.
+    if (!isLightStone && medianL < 0.55 && l > 0.68 && h >= 45 && h <= 110) return false;
+    return true;
+  });
+  // Prefer cleaned even if under MIN_N — never reintroduce pale glare just to pad count.
+  const finalPicks = cleaned.length ? cleaned : picks;
+
+  const swatches = finalPicks.map((p) => {
     const hex = rgbToHex(p.r, p.g, p.b);
     const bucket = bucketColor(p.r, p.g, p.b);
     return { hex, bucket, share: Number(p.share.toFixed(4)) };
@@ -850,11 +901,20 @@ async function extractDominantColors(absPath, { handBias = false } = {}) {
   return { swatches: swatches.map(({ hex, bucket }) => ({ hex, bucket })), buckets };
 }
 
+async function extractDominantColors(absPath, { handBias = false } = {}) {
+  return extractDominantColorsFromBuffer(absPath, { handBias, alreadyFaceCrop: false });
+}
+
+function sliverPathForSlug(slug) {
+  return path.join(sliverDir, `${slug}.webp`);
+}
+
 async function main() {
   const stones = buildMarketplaceStones();
   const result = {};
   let ok = 0;
   let missing = 0;
+  let fromSliver = 0;
   const samples = [];
   const spotlight = [
     "cristallo",
@@ -870,61 +930,107 @@ async function main() {
     "juparana-blue",
     "beverly-blue",
     "bronzonite",
+    "alabama-white",
   ];
 
   for (const stone of stones) {
     const cover = await pickCoverImage(stone.images, stone.slug);
-    if (!cover) {
+    const absSliver = sliverPathForSlug(stone.slug);
+    const hasSliver = fs.existsSync(absSliver);
+
+    if (!cover && !hasSliver) {
       missing += 1;
       result[stone.slug] = {
         cover: null,
+        sliver: null,
         swatches: [{ hex: "#888888", bucket: "gray" }],
         buckets: ["gray"],
       };
       continue;
     }
 
-    const abs = path.join(publicRoot, cover.replace(/^\//, ""));
-    if (!fs.existsSync(abs)) {
-      missing += 1;
-      console.warn("missing file", stone.slug, abs);
+    if (hasSliver) {
+      const palette = await extractDominantColorsFromBuffer(absSliver, {
+        alreadyFaceCrop: true,
+        handBias: false,
+      });
+      result[stone.slug] = {
+        cover: cover || null,
+        sliver: `${SLIVER_PUBLIC_PREFIX}/${stone.slug}.webp`,
+        swatches: palette.swatches,
+        buckets: palette.buckets,
+      };
+      ok += 1;
+      fromSliver += 1;
+    } else {
+      const abs = path.join(publicRoot, cover.replace(/^\//, ""));
+      if (!fs.existsSync(abs)) {
+        missing += 1;
+        console.warn("missing file", stone.slug, abs);
+        result[stone.slug] = {
+          cover,
+          sliver: null,
+          swatches: [{ hex: "#888888", bucket: "gray" }],
+          buckets: ["gray"],
+        };
+        continue;
+      }
+
+      const handBias = isHandScaleCoverImage(cover);
+      const palette = await extractDominantColors(abs, { handBias });
       result[stone.slug] = {
         cover,
-        swatches: [{ hex: "#888888", bucket: "gray" }],
-        buckets: ["gray"],
+        sliver: null,
+        swatches: palette.swatches,
+        buckets: palette.buckets,
       };
-      continue;
+      ok += 1;
     }
 
-    const handBias = isHandScaleCoverImage(cover);
-
-    const palette = await extractDominantColors(abs, { handBias });
-    result[stone.slug] = {
-      cover,
-      swatches: palette.swatches,
-      buckets: palette.buckets,
-    };
-    ok += 1;
-
     if (spotlight.includes(stone.slug)) {
-      samples.push({ slug: stone.slug, handBias, ...result[stone.slug] });
+      samples.push({ slug: stone.slug, ...result[stone.slug] });
     }
   }
 
   const payload = {
     generatedAt: new Date().toISOString(),
-    method:
-      "center slab-face extract + LAB body/accent histogram (sharp 512px); hand skin filter; clamp/crane/sky/foliage/ground/glare rejects; adaptive 3–5 distinct; buckets from HSL",
+    method: hasAnySliverMethod(fromSliver)
+      ? "prefer color-slivers/{slug}.webp face crops + LAB body/accent histogram; fallback center slab-face extract; adaptive 3–5; buckets from HSL"
+      : "center slab-face extract + LAB body/accent histogram (sharp 512px); hand skin filter; clamp/crane/sky/foliage/ground/glare rejects; adaptive 3–5 distinct; buckets from HSL",
     stones: result,
   };
 
   fs.writeFileSync(outPath, JSON.stringify(payload, null, 2) + "\n", "utf8");
   console.log(`Wrote ${outPath}`);
-  console.log(`ok=${ok} missing=${missing} total=${stones.length}`);
+  console.log(
+    `ok=${ok} fromSliver=${fromSliver} missing=${missing} total=${stones.length}`
+  );
   console.log("samples:", JSON.stringify(samples, null, 2));
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+function hasAnySliverMethod(fromSliver) {
+  return fromSliver > 0;
+}
+
+export {
+  buildMarketplaceStones,
+  pickCoverImage,
+  isHandScaleCoverImage,
+  slabExtractBox,
+  extractDominantColors,
+  extractDominantColorsFromBuffer,
+  publicRoot,
+  outPath,
+  sliverDir,
+  SLIVER_PUBLIC_PREFIX,
+};
+
+const isDirectRun =
+  Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(__filename);
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

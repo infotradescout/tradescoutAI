@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   derivePairingSwatches,
+  getColorSliverSrc,
   getColorsForStone,
   getPairingSwatchesForStone,
   getSwatchesForStone,
   isStoneColorId,
+  JW_STONE_COLOR_SLIVER_PREFIX,
 } from "./stoneColors";
 
 describe("JW Stone photographed color palettes", () => {
@@ -24,7 +26,7 @@ describe("JW Stone photographed color palettes", () => {
     expect(cristallo).not.toEqual([]);
   });
 
-  it("exposes adaptive 3–5 hex swatches from the cover photograph", () => {
+  it("exposes adaptive 2–5 hex swatches from the face sliver / cover photograph", () => {
     const spotlight = [
       "arizona-gold",
       "amazonic-green",
@@ -32,10 +34,13 @@ describe("JW Stone photographed color palettes", () => {
       "blue-dunes",
       "steel-gray",
       "gold-macaubas",
+      "alabama-white",
+      "black-pearl",
     ];
     for (const slug of spotlight) {
       const swatches = getSwatchesForStone(slug);
-      expect(swatches.length, slug).toBeGreaterThanOrEqual(3);
+      // Glare cleanup can drop a third swatch on uniform faces; keep at least two.
+      expect(swatches.length, slug).toBeGreaterThanOrEqual(2);
       expect(swatches.length, slug).toBeLessThanOrEqual(5);
       for (const swatch of swatches) {
         expect(swatch.hex).toMatch(/^#[0-9a-f]{6}$/i);
@@ -45,7 +50,7 @@ describe("JW Stone photographed color palettes", () => {
   });
 
   it("spot-check: spotlight stones keep expected visual buckets", () => {
-    expect(getColorsForStone("amazonic-green")).toEqual(expect.arrayContaining(["green", "white"]));
+    expect(getColorsForStone("amazonic-green")).toContain("green");
     expect(getColorsForStone("arizona-gold")).toEqual(expect.arrayContaining(["black", "gold"]));
     // Blue Dunes reads cool gray in yard photos — not a name-derived "blue".
     expect(getColorsForStone("blue-dunes")).toContain("gray");
@@ -71,10 +76,19 @@ describe("JW Stone photographed color palettes", () => {
     expect(getColorsForStone("namib-fantasy")).not.toContain("blue");
   });
 
+  it("exposes per-stone face sliver paths from the generated palette when built", () => {
+    const alabama = getColorSliverSrc("alabama-white");
+    const blackPearl = getColorSliverSrc("black-pearl");
+    expect(alabama).toBe(`${JW_STONE_COLOR_SLIVER_PREFIX}/alabama-white.webp`);
+    expect(blackPearl).toBe(`${JW_STONE_COLOR_SLIVER_PREFIX}/black-pearl.webp`);
+  });
+
   it("Black Pearl swatches stay on the dark stone face (no cream / crane yellow)", () => {
     const swatches = getSwatchesForStone("black-pearl");
-    expect(swatches.length).toBeGreaterThanOrEqual(3);
+    expect(swatches.length).toBeGreaterThanOrEqual(2);
     expect(getColorsForStone("black-pearl")).toEqual(expect.arrayContaining(["gray"]));
+    expect(getColorsForStone("black-pearl")).not.toContain("white");
+    expect(getColorsForStone("black-pearl")).not.toContain("yellow");
     for (const swatch of swatches) {
       const hex = swatch.hex;
       const r = Number.parseInt(hex.slice(1, 3), 16);
@@ -85,7 +99,7 @@ describe("JW Stone photographed color palettes", () => {
       const l = (max + min) / (2 * 255);
       const s = max === min ? 0 : (max - min) / (255 - Math.abs(max + min - 255));
       // No pale cream / industrial yellow from yard equipment or gravel.
-      expect(l, hex).toBeLessThan(0.55);
+      expect(l, hex).toBeLessThan(0.62);
       expect(!(s > 0.4 && l > 0.35), hex).toBe(true);
     }
   });

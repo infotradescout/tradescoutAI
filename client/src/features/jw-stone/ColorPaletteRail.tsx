@@ -8,7 +8,7 @@ import { MaterialStonePager } from "./MaterialStonePager";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import type { StoneColorId } from "./stoneColors";
 
-const COLOR_FACE_VERSION = "face-4";
+const COLOR_FACE_VERSION = "face-5";
 
 /**
  * Compact shopper color families → existing aesthetic / color URL filters.

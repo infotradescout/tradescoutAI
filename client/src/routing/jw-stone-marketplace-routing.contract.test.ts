@@ -57,6 +57,8 @@ describe("JW Stone marketplace routing contract", () => {
     expect(pageSource).toContain(
       'import JWStoneMarketplace from "../features/jw-stone/JWStoneMarketplace";'
     );
+    expect(pageSource).toContain("ColorSliverReview");
+    expect(pageSource).toContain("/jw-stone/dev/color-slivers");
     expect(marketplaceSource).toContain('import { StoneCollection } from "./StoneCollection";');
     expect(marketplaceSource).not.toContain("MarketplaceTrustSection");
     expect(marketplaceSource).not.toMatch(/CustomerPathGuide|BuyerJourney|BuyerWorkspace/);

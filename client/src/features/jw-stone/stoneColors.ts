@@ -1,8 +1,9 @@
 /**
  * Literal Color filter vocabulary + photo-derived palettes.
  *
- * Swatches and filter buckets come from cover-image sampling
- * (see scripts/extract-jw-stone-dominant-colors.mjs). Stone names/slugs
+ * Swatches and filter buckets come from face-sliver / cover sampling
+ * (see scripts/build-jw-stone-color-slivers.mjs and
+ * scripts/extract-jw-stone-dominant-colors.mjs). Stone names/slugs
  * are never used as color truth.
  *
  * "Pairs with" swatches are derived with simple color theory from the
@@ -33,9 +34,13 @@ export type StoneColorSwatch = Readonly<{
 
 type DominantColorStone = {
   cover: string | null;
+  sliver?: string | null;
   swatches: ReadonlyArray<{ hex: string; bucket: string }>;
   buckets: readonly string[];
 };
+
+export const JW_STONE_COLOR_SLIVER_PREFIX =
+  "/images/businesses/jw-stone/color-slivers" as const;
 
 type DominantColorFile = {
   stones: Record<string, DominantColorStone>;
@@ -65,6 +70,8 @@ export const JW_STONE_FACE_TRUE_COLOR_OVERRIDES: Readonly<Record<string, readonl
     "alabama-white": Object.freeze(["white", "gray"] as const),
     "dallas-white": Object.freeze(["white", "gray"] as const),
     "namib-fantasy": Object.freeze(["white", "gray"] as const),
+    // Polished dark face — pale yard bounce must not become a filter bucket.
+    "black-pearl": Object.freeze(["gray", "black"] as const),
   });
 
 export function isStoneColorId(value: unknown): value is StoneColorId {
@@ -85,9 +92,22 @@ function asSwatches(raw: DominantColorStone | undefined): readonly StoneColorSwa
   return Object.freeze(swatches);
 }
 
-/** Top visual swatches from the stone's cover photograph (precomputed, 3–5). */
+/** Top visual swatches from the stone's face sliver / cover photograph (precomputed, 3–5). */
 export function getSwatchesForStone(stoneId: string): readonly StoneColorSwatch[] {
   return asSwatches(PALETTE_BY_ID[stoneId]);
+}
+
+/**
+ * Public path to the saved vertical face sliver for a stone, when built.
+ * Used by the owner review gallery and (eventually) color chips.
+ * Null when the pipeline did not write a sliver for this slug.
+ */
+export function getColorSliverSrc(stoneId: string): string | null {
+  const raw = PALETTE_BY_ID[stoneId];
+  if (raw?.sliver && typeof raw.sliver === "string" && raw.sliver.startsWith("/")) {
+    return raw.sliver;
+  }
+  return null;
 }
 
 /**

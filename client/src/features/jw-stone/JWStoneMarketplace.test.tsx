@@ -181,7 +181,7 @@ describe("JW Stone marketplace luxury layout", () => {
     ).map((img) => img.getAttribute("src") || "");
     expect(collageSrcs).toHaveLength(8);
     expect(collageSrcs.every((src) => src.includes("/color-collage/"))).toBe(true);
-    expect(collageSrcs.every((src) => src.includes("v=face-4"))).toBe(true);
+    expect(collageSrcs.every((src) => src.includes("v=face-5"))).toBe(true);
     expect(collageSrcs.some((src) => src.includes("04-black.webp"))).toBe(true);
     expect(collageSrcs.some((src) => src.includes("07-blue.webp"))).toBe(true);
     expect(collageSrcs.some((src) => src.includes("08-red.webp"))).toBe(true);
