@@ -88,6 +88,57 @@ test.describe("JW Phase 3A hydration / browser equivalence", () => {
     expect(JSON.stringify(landingBodies[0])).not.toMatch(/utm_campaign|phone|mechanism/i);
   });
 
+  test("utm_source attribution survives URL canonicalization", async ({ page }) => {
+    test.setTimeout(180_000);
+    const runtimeErrors = watchRuntime(page);
+    const landingBodies: unknown[] = [];
+
+    await page.route("**/api/auth/user", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ authenticated: false }),
+      })
+    );
+    await page.route("**/api/analytics/shell", async (route) => {
+      const postData = route.request().postDataJSON();
+      if (postData?.type === "discovery_landing") {
+        landingBodies.push(postData);
+      }
+      await route.fulfill({ status: 204, body: "" });
+    });
+
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.goto("/jw-stone?utm_source=chatgpt.com&utm_content=secret-thread&phone=555", {
+      waitUntil: "networkidle",
+    });
+
+    await expect(
+      page.getByRole("heading", { name: "Natural stone, selected at the source." })
+    ).toBeVisible();
+    await expect(page.getByTestId("jw-marketplace-header")).toBeVisible();
+    await expect(page.getByTestId("jw-marketplace-hero")).toBeVisible();
+
+    // Filter canonicalization may strip utm from the visible URL after attribution capture.
+    await expect(page).toHaveURL(/\/jw-stone(\?|$)/);
+    expect(page.url()).not.toContain("utm_source");
+
+    expect(runtimeErrors.filter((e) => /hydration/i.test(e))).toEqual([]);
+    expect(landingBodies.length).toBe(1);
+    expect(landingBodies[0]).toMatchObject({
+      type: "discovery_landing",
+      businessSlug: "jw-stone",
+      entityType: "business_marketplace",
+      canonicalRoute: "/jw-stone",
+      sourceHint: "chatgpt",
+    });
+    const payload = JSON.stringify(landingBodies[0]);
+    expect(payload).not.toContain("utm_content");
+    expect(payload).not.toContain("secret-thread");
+    expect(payload).not.toContain("phone");
+    expect(payload).not.toMatch(/utm_source=chatgpt/i);
+  });
+
   test("analytics failure does not block JW browsing", async ({ page }) => {
     test.setTimeout(120_000);
     await page.route("**/api/auth/user", (route) =>

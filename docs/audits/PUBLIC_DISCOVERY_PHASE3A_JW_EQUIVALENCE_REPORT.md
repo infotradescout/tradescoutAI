@@ -142,7 +142,7 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 | 10–12 | Color selection; filter URL restorable; back nav | Pass color selection (Playwright); filter/back covered by existing unit suite |
 | 13–16 | Names/finishes/unnamed/no prices/no hold | Pass via existing JW unit + public HTML contracts |
 | 17–20 | Wishlist + deliberate contact; no browse-opens-contact | Pass via JWStoneMarketplace unit + Playwright contact |
-| 21–23 | `utm_source=chatgpt.com` UX unchanged; one sanitized event | Pass (sanitize/dedupe tests + Playwright landing capture) |
+| 21–23 | `utm_source=chatgpt.com` UX unchanged; one sanitized event | **Previously invalid at owner preview** — race: `useMarketplaceUrlState` stripped utm before tracker read `window.location.search`. Fixed: capture landing search in `useLayoutEffect` before filter canonicalization; Playwright UTM test asserts `sourceHint: chatgpt`. **Owner preview PASS not claimed.** |
 | 24–25 | Analytics fail; browse/contact still work | Pass (Playwright abort route) |
 | 26 | No private fields in HTML/JSON-LD/event | Pass (matrix + sanitize tests) |
 
@@ -158,7 +158,7 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 | `git diff --check` | clean |
 | `npm run check` | pass |
 | Focused Phase 3A + JW tests | pass (68) |
-| Playwright hydration | pass (2) |
+| Playwright hydration | pass (3 — includes UTM attribution) |
 | `npm run build` | pass |
 | Production-like matrix | `PHASE3A_MATRIX_PASS` |
 | Schema/migration | none |
@@ -169,7 +169,15 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 - Release-gate branch (`codex/release-gate-minimum-contract-20260807`) untouched — zero files changed on that lane
 - Product verdict: JW public initial HTML now fact-equivalent across browser + crawler UAs; luxury experience preserved after mount; sanitized discovery_landing added without mechanism claims
 - Technical verdict: **PASS WITH CONDITIONS** (see Conditions disposition below)
-- Recommended next posture: owner local preview on `/jw-stone`; explicit GO before merge
+- Recommended next posture: owner re-preview on `/jw-stone?utm_source=chatgpt.com`; explicit GO before merge
+
+### UTM attribution race (owner preview FAIL → fix)
+
+**Bug:** On mount, `useMarketplaceUrlState()` `useEffect` rewrote `/jw-stone?utm_source=chatgpt.com` → `/jw-stone` before `discovery_landing` read `window.location.search`, omitting `sourceHint: "chatgpt"`. Unit tests passed by passing `search` explicitly; prior Playwright did not open UTM URL.
+
+**Fix:** `JWStoneMarketplace` captures `window.location.search` in `useLayoutEffect` (runs before filter canonicalization `useEffect`) and passes it explicitly to `trackDiscoveryLandingOnce`. Visible URL may safely become `/jw-stone` after attribution is captured. Playwright test opens `/jw-stone?utm_source=chatgpt.com` and asserts one sanitized event with `sourceHint: "chatgpt"`.
+
+**Owner preview:** FAIL recorded at preview gate; fix committed — **OWNER PREVIEW: PASS not claimed** pending Thomas re-review.
 
 ## Conditions disposition
 

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
@@ -53,14 +53,16 @@ export default function JWStoneMarketplace() {
     }
   }, []);
 
-  // Sanitized discovery_landing — once per landing key; never blocks UX.
-  useEffect(() => {
+  // Capture landing attribution before useMarketplaceUrlState canonicalizes the URL
+  // (filter params only — utm_* is not in marketplace state and would be stripped).
+  useLayoutEffect(() => {
+    const landingSearch = window.location.search;
     const canonicalRoute = isJwStoneMarketplaceDomainSurface()
       ? window.location.pathname || "/"
       : window.location.pathname.startsWith(marketplaceBasePath())
         ? window.location.pathname
         : marketplaceBasePath() || "/jw-stone";
-    void trackDiscoveryLandingOnce({ canonicalRoute });
+    void trackDiscoveryLandingOnce({ canonicalRoute, search: landingSearch });
   }, []);
 
   // Prefer URL-named stone, else explicit override (First Cut photo / anonymous catalog).
