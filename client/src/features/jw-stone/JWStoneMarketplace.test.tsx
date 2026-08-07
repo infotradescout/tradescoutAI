@@ -438,19 +438,18 @@ describe("JW Stone marketplace luxury layout", () => {
     click(container.querySelector('[data-testid="jw-palette-warm-neutrals"]'));
     click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-material-quartzite"]'));
-    // Color-first then material is AND inside the material section — inventory stays closed.
+    // Material browse clears color/aesthetic — material-first, no color gate.
     expect(window.location.pathname).toContain("/materials/quartzite");
-    expect(window.location.search).toContain("aesthetic=warm-earthy");
+    expect(window.location.search).not.toContain("aesthetic=");
+    expect(window.location.search).not.toContain("color=");
     expect(
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("false");
   });
 
   it("clears browse refinements when Full inventory opens", () => {
-    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
-    click(container.querySelector('[data-testid="jw-material-granite"]'));
-    click(container.querySelector('[data-testid="jw-material-color-green"]'));
-    expect(window.location.pathname).toContain("/materials/granite");
+    click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
+    click(container.querySelector('[data-testid="jw-palette-green"]'));
     expect(window.location.search).toContain("color=green");
 
     click(container.querySelector('[data-testid="jw-inventory-toggle"]'));
@@ -553,15 +552,21 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).not.toBeNull();
   });
 
-  it("does not auto-open Browse by color when material refine writes a color", () => {
+  it("does not open Browse by color or write color params when a material is selected", () => {
     click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-material-granite"]'));
-    click(container.querySelector('[data-testid="jw-material-color-green"]'));
-    expect(window.location.search).toContain("color=green");
+    expect(window.location.pathname).toContain("/materials/granite");
+    expect(window.location.search).not.toContain("color=");
+    expect(window.location.search).not.toContain("aesthetic=");
+    expect(container.querySelector('[data-testid="jw-material-color-refine-granite"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-material-stone-rail-granite"]')
+    ).not.toBeNull();
     expect(
       container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
     ).toBe("false");
     expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-palette-chip-row"]')).toBeNull();
   });
 
   it("keeps Browse by color collapsed on color deep-link until the shopper opens it", () => {
@@ -586,45 +591,17 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("true");
   });
 
-  it("lets material-first shoppers refine by color chips inside the material panel", () => {
+  it("lists Onyx and opens its stones without a color gate", () => {
     click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
-    click(container.querySelector('[data-testid="jw-material-granite"]'));
-    expect(window.location.pathname).toContain("/materials/granite");
+    expect(container.querySelector('[data-testid="jw-material-onyx"]')).not.toBeNull();
+    expect(container.textContent).toMatch(/Onyx/);
+
+    click(container.querySelector('[data-testid="jw-material-onyx"]'));
+    expect(window.location.pathname).toContain("/materials/onyx");
     expect(window.location.search).not.toContain("color=");
     expect(window.location.search).not.toContain("aesthetic=");
-
-    expect(
-      container.querySelector('[data-testid="jw-material-color-refine-granite"]')
-    ).not.toBeNull();
-    expect(container.querySelector('[data-testid="jw-material-color-all"]')).toBeNull();
-
-    click(container.querySelector('[data-testid="jw-material-color-green"]'));
-    expect(window.location.pathname).toContain("/materials/granite");
-    expect(window.location.search).toContain("color=green");
-    expect(window.location.search).not.toContain("aesthetic=");
-    expect(
-      container
-        .querySelector('[data-testid="jw-material-color-green"]')
-        ?.getAttribute("aria-pressed")
-    ).toBe("true");
-    // Shared URL color must not steal-open Browse by color.
-    expect(
-      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
-    ).toBe("false");
-
-    // Re-click clears color only — material stays.
-    click(container.querySelector('[data-testid="jw-material-color-green"]'));
-    expect(window.location.pathname).toContain("/materials/granite");
-    expect(window.location.search).not.toContain("color=");
-
-    click(container.querySelector('[data-testid="jw-material-color-warm-neutrals"]'));
-    expect(window.location.pathname).toContain("/materials/granite");
-    expect(window.location.search).toContain("aesthetic=warm-earthy");
-
-    // Collapse material clears material only — color stays.
-    click(container.querySelector('[data-testid="jw-material-granite"]'));
-    expect(window.location.pathname).not.toMatch(/\/materials\//);
-    expect(window.location.search).toContain("aesthetic=warm-earthy");
+    expect(container.querySelector('[data-testid="jw-material-color-refine-onyx"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stone-rail-onyx"]')).not.toBeNull();
     expect(
       container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
     ).toBe("false");

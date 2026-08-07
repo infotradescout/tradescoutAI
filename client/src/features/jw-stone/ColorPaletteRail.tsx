@@ -210,7 +210,7 @@ type ColorSwatchChipRowProps = {
   ariaLabel?: string;
 };
 
-/** Full color-direction chip grid — shared by Browse by color and material refine. */
+/** Full color-direction chip grid for Browse by color. */
 export function ColorSwatchChipRow({
   aesthetic,
   color,
@@ -285,8 +285,8 @@ function activeColorSwatchLabel(aesthetic: ColorDirectionId | null, color: strin
 
 /**
  * Always collapsed on mount — shopper must open the band.
- * Shared URL ?color= / ?aesthetic= (including material refine) must not
- * auto-expand this section. Deep-link filters still apply once opened.
+ * Shared URL ?color= / ?aesthetic= must not auto-expand this section.
+ * Deep-link filters still apply once opened. Material browse never opens this band.
  */
 export function ColorPaletteRail({
   aesthetic,

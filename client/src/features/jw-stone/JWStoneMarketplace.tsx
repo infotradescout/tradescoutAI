@@ -115,14 +115,16 @@ export default function JWStoneMarketplace() {
     });
   };
 
-  /** Material-panel color refine — AND with the active material; stays in the material section. */
-  const selectMaterialColor = (next: ColorSwatchSelection) => {
-    commit({ ...state, aesthetic: next.aesthetic, color: next.color, stone: null });
-  };
-
   const selectMaterial = (material: string | null) => {
-    // Clearing material keeps aesthetic/color; clearing color (via chips) keeps material.
-    commit({ ...state, material, stone: null });
+    // Material browse is material-first: show that material's stones only.
+    // Never carry or write color/aesthetic params that yank shoppers into color UX.
+    commit({
+      ...state,
+      material,
+      aesthetic: material ? null : state.aesthetic,
+      color: material ? null : state.color,
+      stone: null,
+    });
     if (!material) return;
     requestAnimationFrame(() => {
       document
@@ -211,7 +213,6 @@ export default function JWStoneMarketplace() {
         aesthetic={state.aesthetic}
         color={state.color}
         onSelect={selectMaterial}
-        onSelectColor={selectMaterialColor}
         isSaved={wishlist.isSaved}
         onToggleSaved={(stone) => wishlist.toggle(stone.id)}
         onOpen={openStone}
