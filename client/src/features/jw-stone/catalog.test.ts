@@ -23,12 +23,13 @@ const canonicalStones = JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((categ
 );
 
 describe("JW Stone 2.0 catalog projection", () => {
-  it("preserves all 148 reconciled selections (public gallery may omit hand leads)", () => {
+  it("preserves all 148 reconciled selections and every mapped photo in the public gallery", () => {
     const sourceImageCount = canonicalStones.reduce(
       (sum, { stone }) => sum + stone.images.length,
       0
     );
     const publicImageCount = JW_STONE_CATALOG.reduce((sum, stone) => sum + stone.images.length, 0);
+    const multiImageStones = JW_STONE_CATALOG.filter((stone) => stone.images.length > 1).length;
     expect(JW_STONE_CATALOG).toHaveLength(148);
     expect(JW_STONE_NAMED_CATALOG).toHaveLength(110);
     expect(JW_STONE_ANONYMOUS_CATALOG).toHaveLength(38);
@@ -37,8 +38,8 @@ describe("JW Stone 2.0 catalog projection", () => {
       canonicalStones.map(({ stone }) => stone.slug).sort()
     );
     expect(sourceImageCount).toBe(434);
-    expect(publicImageCount).toBeGreaterThan(300);
-    expect(publicImageCount).toBeLessThanOrEqual(sourceImageCount);
+    expect(publicImageCount).toBe(sourceImageCount);
+    expect(multiImageStones).toBeGreaterThan(80);
     expect(getCatalogItemById("amazonic-green")?.displayName).toBe("Amazonic Green");
     expect(getCatalogItemById("steel-gray")?.displayName).toBe("Steel Gray");
     expect(getNamedCatalogItemByShareSlug("versace")?.displayName).toBe("Versace");
@@ -81,13 +82,9 @@ describe("JW Stone 2.0 catalog projection", () => {
 
     for (const projected of JW_STONE_CATALOG) {
       const canonical = canonicalStones.find(({ stone }) => stone.slug === projected.id)!.stone;
-      // Cover ranking may reorder; confirmed hand-scale siblings may be omitted from
-      // the public gallery when a cleaner face exists.
-      expect(projected.images.length).toBeGreaterThan(0);
-      expect(projected.images.length).toBeLessThanOrEqual(canonical.images.length);
-      for (const image of projected.images) {
-        expect(canonical.images).toContain(image);
-      }
+      // Cover ranking may reorder, but every mapped inventory photo stays in the gallery.
+      expect(projected.images.length).toBe(canonical.images.length);
+      expect([...projected.images].sort()).toEqual([...canonical.images].sort());
       expect(projected.finishes).toEqual(canonical.finishes ?? []);
       expect(projected.sourceEvidence?.counts ?? []).toEqual(canonical.slabCounts ?? []);
       expect(Object.prototype.hasOwnProperty.call(projected.sourceEvidence ?? {}, "total")).toBe(

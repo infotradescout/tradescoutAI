@@ -120,7 +120,8 @@ describe("JW Stone marketplace cover image ranking", () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.id === "aspen-white");
     expect(stone).toBeTruthy();
     expect(stone!.images[0]).toContain("1PGDSTn70sheqEx3u39VgzuJNodBJW0xe");
-    expect(stone!.images.every((image) => !isHandScaleCoverImage(image))).toBe(true);
+    expect(isHandScaleCoverImage(stone!.images[0]!)).toBe(false);
+    expect(stone!.images).toEqual(expect.arrayContaining([clampHand, handScale, fullSlab]));
     expect(JW_STONE_PREFERRED_COVER_FILE_IDS["aspen-white"]).toBe(
       driveFileIdFromImagePath(fullSlab)
     );
@@ -137,12 +138,10 @@ describe("JW Stone marketplace cover image ranking", () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.id === "aj-quartz");
     expect(stone).toBeTruthy();
     expect(isHandScaleCoverImage(stone!.images[0]!)).toBe(false);
-    expect(stone!.images.some((image) => image.includes("1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE"))).toBe(
-      false
-    );
-    expect(stone!.images.some((image) => image.includes("1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK"))).toBe(
-      false
-    );
+    // Hand siblings stay in the gallery as extras — they must not win the lead.
+    expect(stone!.images).toEqual(expect.arrayContaining([handA, handB]));
+    expect(stone!.images[0]).not.toContain("1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE");
+    expect(stone!.images[0]).not.toContain("1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK");
   });
 
   it("keeps Black Pearl off outdoor reflection clamp lead", () => {
@@ -206,9 +205,10 @@ describe("JW Stone marketplace cover image ranking", () => {
     expect(JW_STONE_HAND_COVER_FILE_IDS.has(driveFileIdFromImagePath(stone!.images[0]!))).toBe(
       false
     );
-    // Public gallery drops denylisted hand siblings when a clean face exists.
-    expect(stone!.images).toHaveLength(1);
-    expect(stone!.images.every((image) => !isHandScaleCoverImage(image))).toBe(true);
+    // Lead stays clean; hand siblings remain available as gallery extras.
+    expect(stone!.images.length).toBeGreaterThan(1);
+    expect(isHandScaleCoverImage(stone!.images[0]!)).toBe(false);
+    expect(stone!.images.some((image) => isHandScaleCoverImage(image))).toBe(true);
   });
 
   it("keeps catalog covers off known hand-scale leads when a better sibling exists", () => {
