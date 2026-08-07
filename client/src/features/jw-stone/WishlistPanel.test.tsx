@@ -62,12 +62,22 @@ describe("WishlistPanel email copy", () => {
       );
     });
 
-    expect(panelRoot().textContent).toContain("Once saved, you can email yourself a durable copy");
+    expect(panelRoot().textContent).toContain("Nothing saved yet");
+    expect(panelRoot().textContent).toContain(
+      "Bookmark any named stone from the collection to see it here."
+    );
+    expect(panelRoot().textContent).toContain("JW Stone isn’t notified until you Ask.");
+    expect(panelRoot().textContent).not.toContain("Your selection is open");
     expect(
       Array.from(panelRoot().querySelectorAll("button")).find((button) =>
         button.textContent?.includes("Email my saved stones")
       )
     ).toBeUndefined();
+    expect(
+      Array.from(panelRoot().querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("Continue exploring")
+      )
+    ).toBeTruthy();
   });
 
   it("requires email before sending and posts only the saved named stones", async () => {
