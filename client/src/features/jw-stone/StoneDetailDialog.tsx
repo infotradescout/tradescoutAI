@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
+import { isFirstCutDetailStone } from "./firstCut";
 import { JwStoneShareControl } from "./JwStoneShareControl";
-import { stoneShareDestination } from "./marketplaceRoutes";
+import { firstCutShareDestination, stoneShareDestination } from "./marketplaceRoutes";
 import {
   availabilityDetailLabel,
   confirmedFinishes,
@@ -38,9 +39,26 @@ export function StoneDetailDialog({
   const finishes = confirmedFinishes(stone);
   const availability = availabilityDetailLabel(stone);
   const dimensions = formatDimensionsForDisplay(stone.slabDimensions);
+  const firstCut = isFirstCutDetailStone(stone);
   const askLabel = stone.displayName
     ? `Ask JW about ${stone.displayName}`
-    : "Ask JW about this stone";
+    : firstCut
+      ? "Ask JW about this First Cut"
+      : "Ask JW about this stone";
+  const hasConfirmedFacts = Boolean(
+    stone.materialLabel || availability || finishes.length || dimensions || stone.origin
+  );
+  const shareDestination = stone.shareSlug
+    ? stoneShareDestination(stone.shareSlug)
+    : firstCut
+      ? firstCutShareDestination()
+      : null;
+  const shareTitle = stone.displayName || (firstCut ? "JW Stone First Cut" : "JW Stone selection");
+  const shareText = stone.displayName
+    ? `See ${stone.displayName} at JW Stone`
+    : firstCut
+      ? "See this First Cut selection at JW Stone"
+      : "See this stone selection at JW Stone";
 
   const move = (direction: -1 | 1) => {
     if (imageCount < 2) return;
@@ -139,68 +157,80 @@ export function StoneDetailDialog({
                 Image {imageIndex + 1} of {imageCount}. Confirmed stone details and inquiry.
               </DialogDescription>
 
-              <dl className="mt-5 space-y-3 text-sm sm:mt-6">
-                {stone.materialLabel ? (
-                  <div>
-                    <dt className={jw.muted}>Material</dt>
-                    <dd className="mt-0.5 font-medium">{stone.materialLabel}</dd>
-                  </div>
-                ) : null}
-                {availability ? (
-                  <div>
-                    <dt className={jw.muted}>Available now</dt>
-                    <dd className="mt-0.5 font-medium">{availability}</dd>
-                  </div>
-                ) : null}
-                {finishes.length ? (
-                  <div>
-                    <dt className={jw.muted}>Finish</dt>
-                    <dd className="mt-0.5 font-medium">{finishes.join(" / ")}</dd>
-                  </div>
-                ) : null}
-                {dimensions ? (
-                  <div>
-                    <dt className={jw.muted}>Approximate slab dimensions</dt>
-                    <dd className="mt-0.5 font-medium">{dimensions}</dd>
-                  </div>
-                ) : null}
-                {stone.origin ? (
-                  <div>
-                    <dt className={jw.muted}>Origin</dt>
-                    <dd className="mt-0.5 font-medium">{stone.origin.country}</dd>
-                  </div>
-                ) : null}
-              </dl>
+              {hasConfirmedFacts ? (
+                <dl className="mt-5 space-y-3 text-sm sm:mt-6">
+                  {stone.materialLabel ? (
+                    <div>
+                      <dt className={jw.muted}>Material</dt>
+                      <dd className="mt-0.5 font-medium">{stone.materialLabel}</dd>
+                    </div>
+                  ) : null}
+                  {availability ? (
+                    <div>
+                      <dt className={jw.muted}>Available now</dt>
+                      <dd className="mt-0.5 font-medium">{availability}</dd>
+                    </div>
+                  ) : null}
+                  {finishes.length ? (
+                    <div>
+                      <dt className={jw.muted}>Finish</dt>
+                      <dd className="mt-0.5 font-medium">{finishes.join(" / ")}</dd>
+                    </div>
+                  ) : null}
+                  {dimensions ? (
+                    <div>
+                      <dt className={jw.muted}>Approximate slab dimensions</dt>
+                      <dd className="mt-0.5 font-medium">{dimensions}</dd>
+                    </div>
+                  ) : null}
+                  {stone.origin ? (
+                    <div>
+                      <dt className={jw.muted}>Origin</dt>
+                      <dd className="mt-0.5 font-medium">{stone.origin.country}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : (
+                <p
+                  className={`mt-5 max-w-md text-sm leading-6 sm:mt-6 ${jw.muted}`}
+                  data-testid="jw-stone-detail-pending"
+                >
+                  {firstCut
+                    ? "First Cut Exclusive — material, finish, and availability confirmed on request."
+                    : "Details pending — ask JW for material and availability."}
+                </p>
+              )}
             </div>
 
-            {stone.wishlistEligible ? (
-              <div className="sticky bottom-0 mt-8 space-y-3 border-t border-[var(--jw-border)] bg-[var(--jw-bg)] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:mt-10 sm:px-9">
-                <button
-                  type="button"
-                  onClick={() => onAsk(stone)}
-                  className={`inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 ${jw.accentCta}`}
-                >
-                  <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                  {askLabel}
-                </button>
-                {stone.shareSlug ? (
-                  <JwStoneShareControl
-                    destination={stoneShareDestination(stone.shareSlug)}
-                    title={stone.displayName || "JW Stone selection"}
-                    text={
-                      stone.displayName
-                        ? `See ${stone.displayName} at JW Stone`
-                        : "See this stone selection at JW Stone"
-                    }
-                    imageUrl={stone.images[imageIndex] || stone.images[0]}
-                    label="Share this stone"
-                    className={`inline-flex min-h-11 w-full items-center justify-center gap-2 px-5 sm:min-h-12 ${jw.ghostOnLight}`}
-                  />
-                ) : null}
+            <div
+              className="sticky bottom-0 mt-8 space-y-3 border-t border-[var(--jw-border)] bg-[var(--jw-bg)] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:mt-10 sm:px-9"
+              data-testid="jw-stone-detail-actions"
+            >
+              <button
+                type="button"
+                onClick={() => onAsk(stone)}
+                data-testid="jw-stone-detail-ask"
+                className={`inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 ${jw.accentCta}`}
+              >
+                <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                {askLabel}
+              </button>
+              {shareDestination ? (
+                <JwStoneShareControl
+                  destination={shareDestination}
+                  title={shareTitle}
+                  text={shareText}
+                  imageUrl={stone.images[imageIndex] || stone.images[0]}
+                  label="Share this stone"
+                  className={`inline-flex min-h-11 w-full items-center justify-center gap-2 px-5 sm:min-h-12 ${jw.ghostOnLight}`}
+                />
+              ) : null}
+              {stone.wishlistEligible ? (
                 <button
                   type="button"
                   onClick={() => onToggleSaved(stone)}
                   aria-pressed={saved}
+                  data-testid="jw-stone-detail-save"
                   className={`inline-flex min-h-11 w-full items-center justify-center gap-2 px-5 sm:min-h-12 ${jw.ghostOnLight}`}
                 >
                   {saved ? (
@@ -210,10 +240,8 @@ export function StoneDetailDialog({
                   )}
                   {saved ? "Remove from saved stones" : "Save this stone"}
                 </button>
-              </div>
-            ) : (
-              <div className="pb-[max(1.5rem,env(safe-area-inset-bottom))]" />
-            )}
+              ) : null}
+            </div>
           </div>
         </div>
       </DialogContent>

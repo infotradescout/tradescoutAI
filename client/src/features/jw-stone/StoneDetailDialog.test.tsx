@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_CATALOG } from "./catalog";
+import { firstCutPhotoAsDetailStone, JW_STONE_FIRST_CUT_PHOTO_SLOTS } from "./firstCut";
 import { StoneDetailDialog } from "./StoneDetailDialog";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -91,6 +92,42 @@ describe("StoneDetailDialog", () => {
     ).toBe(true);
 
     click(ask);
+    expect(onAsk).toHaveBeenCalledWith(stone);
+  });
+
+  it("keeps Ask and Share for First Cut photos without Save or invented specs", () => {
+    const stone = firstCutPhotoAsDetailStone(JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!);
+    const onAsk = vi.fn();
+
+    act(() =>
+      root.render(
+        <StoneDetailDialog
+          stone={stone}
+          saved={false}
+          onOpenChange={vi.fn()}
+          onToggleSaved={vi.fn()}
+          onAsk={onAsk}
+        />
+      )
+    );
+
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain("First Cut");
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-pending"]')?.textContent).toMatch(
+      /First Cut Exclusive/i
+    );
+    expect(dialog?.querySelector("dl")).toBeNull();
+    expect(dialog?.textContent).not.toContain("Available now");
+    expect(dialog?.textContent).not.toContain("Approximate slab dimensions");
+
+    const ask = dialog?.querySelector('[data-testid="jw-stone-detail-ask"]');
+    expect(ask?.textContent).toContain("Ask JW about this First Cut");
+    expect(dialog?.querySelector('[data-testid="jw-stone-share"]')).not.toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-save"]')).toBeNull();
+    expect(buttonContaining(dialog, "Save this stone")).toBeNull();
+
+    click(ask ?? null);
     expect(onAsk).toHaveBeenCalledWith(stone);
   });
 });

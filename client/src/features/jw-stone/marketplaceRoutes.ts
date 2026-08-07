@@ -84,3 +84,9 @@ export function stoneShareDestination(shareSlug: string): string {
   const base = marketplaceBasePath();
   return `${base}/stones/${encodeURIComponent(shareSlug)}`;
 }
+
+/** Guest-safe share target for First Cut photos (no named stone slug). */
+export function firstCutShareDestination(): string {
+  const base = marketplaceBasePath() || "/";
+  return `${base}#first-cut-title`;
+}

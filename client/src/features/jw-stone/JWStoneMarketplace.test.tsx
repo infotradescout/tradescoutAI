@@ -749,13 +749,24 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(firstCut.className).not.toMatch(/darkBar|jw-dark|--jw-dark/);
   });
 
-  it("opens First Cut photo tiles into stone detail", () => {
+  it("opens First Cut photo tiles into stone detail with Ask and Share", () => {
     expect(document.querySelector('[role="dialog"]')).toBeNull();
     click(container.querySelector('[data-testid="jw-first-cut-photo-first-cut-1"]'));
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain("First Cut");
     expect(dialog?.querySelector("img")?.getAttribute("src")).toContain("/first-cut/05.jpg");
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-actions"]')).not.toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-ask"]')?.textContent).toContain(
+      "Ask JW about this First Cut"
+    );
+    expect(dialog?.querySelector('[data-testid="jw-stone-share"]')).not.toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-save"]')).toBeNull();
+
+    click(dialog?.querySelector('[data-testid="jw-stone-detail-ask"]') ?? null);
+    expect(container.querySelector('[data-testid="direct-connect-panel"]')?.textContent).toContain(
+      "General request"
+    );
   });
 
   it("keeps Full inventory collapsed after a color swatch; expand is a clean slate", () => {
