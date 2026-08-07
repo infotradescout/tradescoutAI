@@ -1,6 +1,9 @@
 services:
   - type: web
     name: tradescout-pro
+    # REQUIRED: live dashboard must stay Node. Docker ignores preDeployCommand and
+    # will serve new code without migrate/verify (RUNTIME_MIGRATIONS_MODE=off).
+    # Owner GO steps: docs/DEPLOYMENT_TARGET.md
     runtime: node
     branch: main
     # main is the release channel: Render auto-deploys on commit.

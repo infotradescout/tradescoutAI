@@ -55,6 +55,9 @@ async function main() {
     console.error(
       `[db:migrate] Failed and auto-repair is skipped because drizzle.__drizzle_migrations has ${count} row(s).`
     );
+    console.error(
+      `[db:migrate] If a later journal tag is already in the ledger while earlier tags are missing (watermark trap), normal migrate will not fill gaps. Recovery: npm run db:migrate:fill-gaps (see docs/runbooks/DB_MIGRATE_FILL_GAPS.md).`
+    );
     process.exit(first);
   }
 

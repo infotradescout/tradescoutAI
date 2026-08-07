@@ -55,6 +55,8 @@
     "db:push:test": "node scripts/bootstrap-test-db.mjs",
     "db:bootstrap:test": "node scripts/bootstrap-test-db.mjs",
     "db:migrate": "node scripts/db-migrate-safe.mjs",
+    "db:migrate:fill-gaps": "node scripts/db-migrate-fill-gaps.mjs",
+    "db:ledger:prune-orphans": "node scripts/db-ledger-prune-orphans.mjs",
     "db:verify:required": "node scripts/check-required-production-schema.mjs",
     "db:apply:sql": "node scripts/apply-sql-migration.mjs",
     "db:apply:tool-discovery": "node scripts/apply-sql-migration.mjs migrations/0046_tool_discovery_tables.sql",
