@@ -3,7 +3,7 @@
 **Branch:** `feature/jw-public-discovery-equivalence-v1-20260807`  
 **Source:** `codex/public-discovery-contract-v1-20260807` @ `d478f7f50869e2a0d14318515a311951475a2b34`  
 **Date:** 2026-08-07  
-**Posture:** local only — no push / PR / merge / deploy
+**Posture:** PR opened — no merge / deploy until owner local preview GO
 
 ## Source posture (pre-edit)
 
@@ -165,8 +165,42 @@ Command: `node scripts/jw-phase3a-response-matrix.mjs http://127.0.0.1:5057` →
 
 ## Governance
 
-- No push / PR / merge / deploy
-- Release-gate branch untouched
+- Branch pushed; PR to `main` opened — **no merge / deploy / Render changes**
+- Release-gate branch (`codex/release-gate-minimum-contract-20260807`) untouched — zero files changed on that lane
 - Product verdict: JW public initial HTML now fact-equivalent across browser + crawler UAs; luxury experience preserved after mount; sanitized discovery_landing added without mechanism claims
-- Technical verdict: **PASS WITH CONDITIONS** (buyer-role workspace steps 6–9 not re-proven as distinct UI modes because current marketplace ignores legacy buyer params; sitemap gap remains follow-up)
-- Recommended next posture: final audit on this branch SHA; keep local-only until owner GO
+- Technical verdict: **PASS WITH CONDITIONS** (see Conditions disposition below)
+- Recommended next posture: owner local preview on `/jw-stone`; explicit GO before merge
+
+## Conditions disposition
+
+| Condition | Disposition |
+| --- | --- |
+| **(a) Legacy buyer-role workspace steps 6–9** (Fabricator / Builder / Designer / Homeowner) | **Out of scope / accepted.** Current `JWStoneMarketplace` does not expose distinct buyer-role UI modes; legacy buyer query params are ignored. No design change in this lane. Manual checklist steps 6–9 were not re-proven as separate workspaces — accepted as a documented condition, not a regression. |
+| **(b) www child-sitemap JW gap** | **Explicit follow-up — not fixed here.** Phase 1 found `sitemap-core.xml` / `sitemap-profiles.xml` did not list `/jw-stone`. This lane intentionally made **no** sitemap, robots, or llms.txt changes. Track as a separate platform SEO lane. |
+
+## FINAL AUDIT
+
+**Audited SHA:** `fee1dd067913bfa6f41227f302cfab34164a7f2c`  
+**Auditor posture:** owner "finish" for Phase 3A — pre-push gate  
+**Date:** 2026-08-07
+
+| Requirement | Verdict | Evidence |
+| --- | --- | --- |
+| **4-UA fact equivalence** (Browser, OAI-SearchBot, GPTBot, ChatGPT-User) | **PASS** | Same canonical, H1, marker, JSON-LD across all four UAs; no empty `#root`-only strip for browser. Contract suite `jw-public-discovery-equivalence.contract.test.ts` (7/7). Live matrix `node scripts/jw-phase3a-response-matrix.mjs` → `PHASE3A_MATRIX_PASS`. |
+| **Hydration / luxury SPA preserved** | **PASS** | Browser retains module scripts; SEO summary paint-suppressed via clip; `createRoot` unchanged. Playwright hydration config (2/2) on prior run; contract tests confirm browser keeps facts + scripts. |
+| **discovery_landing sanitized** | **PASS** | `shared/discoveryLanding.ts` allowlist; server `/api/analytics/shell` branch; client once-per-landing emit. Contract + client tests (9/9). No raw IP/UA/full URL/query persisted. |
+| **No robots / sitemap / llms / schema changes** | **PASS** | Branch diff vs `origin/main`: 15 files — none touch sitemap, robots, llms.txt, or DB schema/migrations. |
+| **Release-gate untouched** | **PASS** | No commits or file changes on `codex/release-gate-minimum-contract-20260807` or release-gate scripts from this lane. |
+| **JW design / copy / inventory unchanged** | **PASS** | Only UA-retention boundary, analytics emit, and tests/docs in diff. |
+
+### Final validation (pre-push)
+
+| Check | Result |
+| --- | --- |
+| `git rev-parse HEAD` | `fee1dd067913bfa6f41227f302cfab34164a7f2c` ✓ |
+| `npm run check` | pass |
+| `npm run build` | pass |
+| Phase 3A focused tests | 32/32 pass |
+| Production-like 4-UA matrix | `PHASE3A_MATRIX_PASS` |
+
+**Final audit verdict: PASS WITH CONDITIONS** — ship-ready for PR review; merge blocked until owner local preview GO. Conditions (a) buyer-role workspaces and (b) sitemap gap are documented above and do not block PR open.
