@@ -9,6 +9,43 @@ const NOSCRIPT_FALLBACK_PATTERN =
 const CLIENT_MODULE_SCRIPT_PATTERN =
   /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
+const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
+/** Clip SEO chrome for human clients so createRoot can replace #root without a crawler-style flash. */
+const JW_STONE_SEO_CLIENT_SUPPRESS =
+  "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0";
+
+export function isJwStonePublicDiscoveryHtml(html: string): boolean {
+  return JW_STONE_PUBLIC_DISCOVERY_MARKER.test(String(html || ""));
+}
+
+/**
+ * Keep JW public facts in the initial HTML for browser UAs while preventing a
+ * visible system-ui SEO document from flashing before the luxury SPA mounts.
+ * Facts remain in the document; presentation is suppressed only for client paint.
+ */
+export function suppressJwStoneSeoSummaryPaint(html: string): string {
+  return String(html || "").replace(
+    /<main\b([^>]*\bdata-seo-jw-stone-marketplace\b[^>]*)>/i,
+    (_match, attrs: string) => {
+      if (/\bstyle\s*=/i.test(attrs)) {
+        const nextAttrs = attrs.replace(
+          /\bstyle\s*=\s*(["'])([\s\S]*?)\1/i,
+          (_styleMatch, quote: string, styleValue: string) => {
+            const trimmed = String(styleValue || "")
+              .trim()
+              .replace(/;?\s*$/, "");
+            const merged = trimmed
+              ? `${trimmed};${JW_STONE_SEO_CLIENT_SUPPRESS}`
+              : JW_STONE_SEO_CLIENT_SUPPRESS;
+            return `style=${quote}${merged}${quote}`;
+          }
+        );
+        return `<main${nextAttrs}>`;
+      }
+      return `<main${attrs} style="${JW_STONE_SEO_CLIENT_SUPPRESS}">`;
+    }
+  );
+}
 
 export function publicSocialMetadataCacheControl(html: string): string | null {
   return SIGNED_SOCIAL_CARD_PATTERN.test(String(html || ""))
@@ -36,7 +73,21 @@ export function preparePublicSeoHtmlForResponse(
 }
 
 export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: string | null): string {
+  const actor = detectActorFromUserAgent(userAgent);
+  const isBot = actor.actorType === "bot";
+
+  // JW Stone Phase 3A: public facts must not depend on crawler UA retention.
+  // Same fact-bearing summary for all UAs; bots keep crawlable visible SSR without
+  // client modules; humans keep client boot and suppress SEO chrome to avoid flash.
+  if (isJwStonePublicDiscoveryHtml(html)) {
+    const upgradedHtml = upgradePublicSocialPreviewHtml(html);
+    if (isBot) {
+      return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
+    }
+    return suppressJwStoneSeoSummaryPaint(upgradedHtml);
+  }
+
   return preparePublicSeoHtmlForResponse(html, {
-    retainSeoSummary: detectActorFromUserAgent(userAgent).actorType === "bot",
+    retainSeoSummary: isBot,
   });
 }

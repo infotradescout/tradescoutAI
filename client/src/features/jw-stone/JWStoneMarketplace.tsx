@@ -1,6 +1,7 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
+import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
@@ -50,6 +51,16 @@ export default function JWStoneMarketplace() {
     if (body.style.overflow === "hidden") {
       body.style.overflow = "";
     }
+  }, []);
+
+  // Sanitized discovery_landing — once per landing key; never blocks UX.
+  useEffect(() => {
+    const canonicalRoute = isJwStoneMarketplaceDomainSurface()
+      ? window.location.pathname || "/"
+      : window.location.pathname.startsWith(marketplaceBasePath())
+        ? window.location.pathname
+        : marketplaceBasePath() || "/jw-stone";
+    void trackDiscoveryLandingOnce({ canonicalRoute });
   }, []);
 
   // Prefer URL-named stone, else explicit override (First Cut photo / anonymous catalog).
