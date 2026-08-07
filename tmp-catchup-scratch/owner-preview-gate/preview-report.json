@@ -1,0 +1,222 @@
+{
+  "baseURL": "http://127.0.0.1:5058",
+  "capturedAt": "2026-08-07T18:12:10.220Z",
+  "results": [
+    {
+      "label": "desktop-jw-stone",
+      "url": "http://127.0.0.1:5058/jw-stone",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "screenshot": "D:\\AAATraderCorner\\TradeScout\\TradeScoutPro\\tmp-catchup-scratch\\owner-preview-gate\\desktop-jw-stone.png",
+      "hasLuxury": true,
+      "hasColorRail": false,
+      "hasJwHeader": true,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "discoveryPosts": [
+        {
+          "type": "identity_session",
+          "isAuthenticated": false,
+          "entryRoute": "other",
+          "userTypesCount": 0,
+          "userTypes": [],
+          "hasCompletedProfileBasics": false
+        },
+        {
+          "type": "progressive_exposure_shadow",
+          "tier": 0,
+          "reasons": [
+            "setup_incomplete",
+            "verification_pending"
+          ],
+          "accountAgeDays": 0,
+          "meaningfulActivityCount": 0,
+          "hasCompletedSetup": false,
+          "hasVerifiedContact": false,
+          "path": "/jw-stone",
+          "ts": "2026-08-07T18:11:53.823Z"
+        },
+        {
+          "type": "discovery_landing",
+          "canonicalRoute": "/jw-stone",
+          "entityType": "business_marketplace",
+          "businessSlug": "jw-stone",
+          "ts": "2026-08-07T18:11:54.422Z"
+        }
+      ],
+      "initialFacts": {
+        "hasCanonical": true,
+        "hasJsonLd": true,
+        "hasSeoMarker": false,
+        "hasH1": true
+      }
+    },
+    {
+      "label": "desktop-jw-stone-chatgpt-utm",
+      "url": "http://127.0.0.1:5058/jw-stone?utm_source=chatgpt.com",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "screenshot": "D:\\AAATraderCorner\\TradeScout\\TradeScoutPro\\tmp-catchup-scratch\\owner-preview-gate\\desktop-jw-stone-chatgpt-utm.png",
+      "hasLuxury": true,
+      "hasColorRail": false,
+      "hasJwHeader": true,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "discoveryPosts": [
+        {
+          "type": "identity_session",
+          "isAuthenticated": false,
+          "entryRoute": "other",
+          "userTypesCount": 0,
+          "userTypes": [],
+          "hasCompletedProfileBasics": false
+        },
+        {
+          "type": "progressive_exposure_shadow",
+          "tier": 0,
+          "reasons": [
+            "setup_incomplete",
+            "verification_pending"
+          ],
+          "accountAgeDays": 0,
+          "meaningfulActivityCount": 0,
+          "hasCompletedSetup": false,
+          "hasVerifiedContact": false,
+          "path": "/jw-stone",
+          "ts": "2026-08-07T18:11:58.796Z"
+        },
+        {
+          "type": "discovery_landing",
+          "canonicalRoute": "/jw-stone",
+          "entityType": "business_marketplace",
+          "businessSlug": "jw-stone",
+          "ts": "2026-08-07T18:11:58.909Z"
+        }
+      ],
+      "initialFacts": {
+        "hasCanonical": true,
+        "hasJsonLd": true,
+        "hasSeoMarker": false,
+        "hasH1": true
+      }
+    },
+    {
+      "label": "mobile-jw-stone",
+      "url": "http://127.0.0.1:5058/jw-stone",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "D:\\AAATraderCorner\\TradeScout\\TradeScoutPro\\tmp-catchup-scratch\\owner-preview-gate\\mobile-jw-stone.png",
+      "hasLuxury": true,
+      "hasColorRail": false,
+      "hasJwHeader": true,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "discoveryPosts": [
+        {
+          "type": "identity_session",
+          "isAuthenticated": false,
+          "entryRoute": "other",
+          "userTypesCount": 0,
+          "userTypes": [],
+          "hasCompletedProfileBasics": false
+        },
+        {
+          "type": "progressive_exposure_shadow",
+          "tier": 0,
+          "reasons": [
+            "setup_incomplete",
+            "verification_pending"
+          ],
+          "accountAgeDays": 0,
+          "meaningfulActivityCount": 0,
+          "hasCompletedSetup": false,
+          "hasVerifiedContact": false,
+          "path": "/jw-stone",
+          "ts": "2026-08-07T18:12:03.065Z"
+        },
+        {
+          "type": "discovery_landing",
+          "canonicalRoute": "/jw-stone",
+          "entityType": "business_marketplace",
+          "businessSlug": "jw-stone",
+          "ts": "2026-08-07T18:12:03.166Z"
+        }
+      ],
+      "initialFacts": {
+        "hasCanonical": true,
+        "hasJsonLd": true,
+        "hasSeoMarker": false,
+        "hasH1": true
+      }
+    },
+    {
+      "label": "mobile-jw-stone-chatgpt-utm",
+      "url": "http://127.0.0.1:5058/jw-stone?utm_source=chatgpt.com",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "screenshot": "D:\\AAATraderCorner\\TradeScout\\TradeScoutPro\\tmp-catchup-scratch\\owner-preview-gate\\mobile-jw-stone-chatgpt-utm.png",
+      "hasLuxury": true,
+      "hasColorRail": false,
+      "hasJwHeader": true,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+        "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+      ],
+      "discoveryPosts": [
+        {
+          "type": "identity_session",
+          "isAuthenticated": false,
+          "entryRoute": "other",
+          "userTypesCount": 0,
+          "userTypes": [],
+          "hasCompletedProfileBasics": false
+        },
+        {
+          "type": "progressive_exposure_shadow",
+          "tier": 0,
+          "reasons": [
+            "setup_incomplete",
+            "verification_pending"
+          ],
+          "accountAgeDays": 0,
+          "meaningfulActivityCount": 0,
+          "hasCompletedSetup": false,
+          "hasVerifiedContact": false,
+          "path": "/jw-stone",
+          "ts": "2026-08-07T18:12:07.182Z"
+        },
+        {
+          "type": "discovery_landing",
+          "canonicalRoute": "/jw-stone",
+          "entityType": "business_marketplace",
+          "businessSlug": "jw-stone",
+          "ts": "2026-08-07T18:12:07.284Z"
+        }
+      ],
+      "initialFacts": {
+        "hasCanonical": true,
+        "hasJsonLd": true,
+        "hasSeoMarker": false,
+        "hasH1": true
+      }
+    }
+  ]
+}
