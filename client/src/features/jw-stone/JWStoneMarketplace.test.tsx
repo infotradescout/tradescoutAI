@@ -505,10 +505,12 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("false");
   });
 
-  it("starts with Browse by color collapsed and no color filter on /jw-stone", () => {
+  it("starts with Browse by color and material collapsed and unselected on /jw-stone", () => {
     expect(window.location.pathname).toBe("/jw-stone");
+    expect(window.location.pathname).not.toMatch(/\/materials\//);
     expect(window.location.search).not.toContain("color=");
     expect(window.location.search).not.toContain("aesthetic=");
+    expect(window.location.search).not.toContain("material=");
     expect(
       container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
     ).toBe("false");
@@ -517,6 +519,38 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("false");
     expect(container.querySelector('[data-testid="jw-palette-results"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-palette-chip-row"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stack"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).toBeNull();
+    expect(container.querySelector('[data-testid^="jw-material-section-"]')).toBeNull();
+  });
+
+  it("keeps Browse by material collapsed on material deep-link until the shopper opens it", () => {
+    act(() => root.unmount());
+    window.history.replaceState(null, "", "/jw-stone/materials/granite");
+    root = createRoot(container);
+    act(() => root.render(<JWStoneMarketplace />));
+
+    expect(window.location.pathname).toContain("/materials/granite");
+    expect(
+      container.querySelector('[data-testid="jw-material-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-material-stack"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).toBeNull();
+    // Color must not regress to auto-open either.
+    expect(
+      container.querySelector('[data-testid="jw-palette-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+
+    click(container.querySelector('[data-testid="jw-material-rail-toggle"]'));
+    expect(
+      container.querySelector('[data-testid="jw-material-rail"]')?.getAttribute("data-expanded")
+    ).toBe("true");
+    expect(
+      container
+        .querySelector('[data-testid="jw-material-section-granite"]')
+        ?.getAttribute("data-expanded")
+    ).toBe("true");
+    expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).not.toBeNull();
   });
 
   it("does not auto-open Browse by color when material refine writes a color", () => {

@@ -99,11 +99,16 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Browse by color" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Browse by material" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Full inventory" })).toBeVisible();
+  await expect(page).toHaveURL(/\/jw-stone\/?$/);
+  await expect(page).not.toHaveURL(/\/materials\//);
+  await expect(page).not.toHaveURL(/[?&]material=/);
+  await expect(page).not.toHaveURL(/[?&]color=/);
   await expect(page.getByTestId("jw-palette-rail")).toHaveAttribute("data-expanded", "false");
   await expect(page.getByTestId("jw-material-rail")).toHaveAttribute("data-expanded", "false");
   await expect(page.getByTestId("jw-inventory")).toHaveAttribute("data-expanded", "false");
   await expect(page.getByTestId("jw-palette-all")).toHaveCount(0);
   await expect(page.getByTestId("jw-material-stack")).toHaveCount(0);
+  await expect(page.getByTestId("jw-material-stone-rail")).toHaveCount(0);
   await expect(page.locator("#current-inventory [data-stone-card]")).toHaveCount(0);
   await expect(page.getByTestId("jw-new-arrivals")).toHaveCount(0);
   await expect(page.getByTestId("jw-marketplace-story")).toHaveCount(1);

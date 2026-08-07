@@ -64,6 +64,28 @@ describe("MaterialCategoryRail", () => {
     }
   });
 
+  it("stays collapsed on mount even when a material is already active", () => {
+    const noop = vi.fn();
+    act(() =>
+      root.render(
+        <MaterialCategoryRail
+          active="granite"
+          onSelect={noop}
+          isSaved={() => false}
+          onToggleSaved={noop}
+          onOpen={noop}
+          onAsk={noop}
+        />
+      )
+    );
+
+    expect(
+      container.querySelector('[data-testid="jw-material-rail"]')?.getAttribute("data-expanded")
+    ).toBe("false");
+    expect(container.querySelector('[data-testid="jw-material-stack"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stone-rail"]')).toBeNull();
+  });
+
   it("stays collapsed in page IA until opened, then expands a paged stone viewer", () => {
     const onSelect = vi.fn();
     const noop = vi.fn();
@@ -211,6 +233,11 @@ describe("MaterialCategoryRail", () => {
           onAsk={noop}
         />
       )
+    );
+    act(() =>
+      container
+        .querySelector('[data-testid="jw-material-rail-toggle"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
 
     const greenChip = container.querySelector('[data-testid="jw-material-color-green"]');
