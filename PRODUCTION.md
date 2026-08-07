@@ -4,8 +4,10 @@ This guide provides instructions for deploying TradeScout AI to a production env
 
 ## Canonical Target
 - Canonical production host is **Render Web Service** (`render.yaml`).
-- `render.yaml` runs `npm run db:migrate` in `preDeployCommand` and starts app with `RUNTIME_MIGRATIONS_MODE=off`.
-- Vercel/Docker/K8s artifacts remain in-repo for experimentation, not as the default production path.
+- **Intended** path: Node runtime; `preDeployCommand` runs `npm run db:migrate && npm run db:verify:required`; start with `RUNTIME_MIGRATIONS_MODE=off`.
+- **Hazard:** a live Docker service (`CMD node dist/index.js`) does **not** honor `render.yaml` preDeploy — migrate can be skipped silently. Align the dashboard to Node (owner GO) per `docs/DEPLOYMENT_TARGET.md`.
+- After a Drizzle watermark trap, use `npm run db:migrate:fill-gaps` (not normal migrate alone). See `docs/runbooks/DB_MIGRATE_FILL_GAPS.md`.
+- Vercel/Docker/K8s artifacts remain in-repo for experimentation unless the live service is explicitly Docker with a proven migrate entrypoint.
 - See `docs/DEPLOYMENT_TARGET.md` for the current deployment decision record.
 
 ## Prerequisites

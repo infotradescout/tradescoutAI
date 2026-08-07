@@ -106,9 +106,15 @@ If production `migrations.compatibility` is not `compatible`, **do not** treat t
 1. Open production web service `tradescout-pro` (tradescoutai.onrender.com).
 2. **Settings → Build & Deploy → Auto-Deploy → On** (On Commit).
 3. Confirm platform health-check path is set to `/api/health` when changing Render settings (Docker `HEALTHCHECK` alone is not the Render probe).
-4. Confirm live service runs `preDeployCommand` when enabling migrate+verify (CRLF verifier fix must be on the deployed commit **before** enabling predeploy with the old verifier).
-5. Use Render Dashboard Manual Deploy only when a manual redeploy is needed.
-6. Verify production with the live build/commit marker and the post-deploy smoke block above.
+4. **Runtime must be Node for `preDeployCommand` to run.** If live is Docker (`CMD node dist/index.js`), `render.yaml` preDeploy is ignored and migrate/verify will not run before traffic. Preferred owner GO: switch to Node with Build=`npm run build`, Pre-Deploy=`npm run db:migrate && npm run db:verify:required`, Start=`npm start`, keep `RUNTIME_MIGRATIONS_MODE=off`. See `docs/DEPLOYMENT_TARGET.md`. Do not mutate Render without explicit GO.
+5. Confirm live service actually executes that pre-Deploy command on the next deploy (deploy logs must show migrate + verify). CRLF verifier fix must be on the deployed commit **before** enabling predeploy with the old verifier.
+6. Use Render Dashboard Manual Deploy only when a manual redeploy is needed.
+7. Verify production with the live build/commit marker and the post-deploy smoke block above.
+
+## Migration recovery (not routine predeploy)
+
+- Default forward migrate: `npm run db:migrate` then `npm run db:verify:required`.
+- If a later journal tag is already in `drizzle.__drizzle_migrations` while earlier tags are missing (**watermark trap**), normal migrate skips the gaps. Recovery: `npm run db:migrate:fill-gaps` (see `docs/runbooks/DB_MIGRATE_FILL_GAPS.md`), then verify. Optional ledger cleanup: `npm run db:ledger:prune-orphans`.
 
 ## Agent rules
 

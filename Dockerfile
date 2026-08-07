@@ -54,4 +54,8 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/scout/health || exit 1
 
+# WARNING: This image starts the app only. It does NOT run db:migrate / db:verify:required.
+# Render Docker runtime also ignores render.yaml preDeployCommand. Production must use the
+# Node + preDeploy path in render.yaml (see docs/DEPLOYMENT_TARGET.md), or an explicit
+# owner-approved entrypoint that runs migrate+verify before exec'ing node.
 CMD ["node", "dist/index.js"]
