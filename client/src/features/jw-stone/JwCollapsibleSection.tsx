@@ -14,9 +14,9 @@ type JwCollapsibleSectionProps = {
    */
   summary?: string;
   /**
-   * Open on first paint only (deep-link filters / material path).
-   * Not reactive — later prop flips must not force-open (e.g. material color
-   * refine must not auto-expand Browse by color).
+   * Open on first paint only when a caller opts in.
+   * Not reactive — later prop flips must not force-open.
+   * Color and material browse bands always pass false (shopper must open).
    */
   defaultExpanded?: boolean;
   /** Fires when expanded flips (toggle or hash jump). */

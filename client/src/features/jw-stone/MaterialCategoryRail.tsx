@@ -139,8 +139,9 @@ function ensureActiveMaterialVisible(
 }
 
 /**
- * Page IA section #2 below First Cut: collapsed "Browse by material".
- * Expanded body = stacked materials; opening a material reveals color refine + paged stones.
+ * Always collapsed on mount — shopper must open the band.
+ * `/materials/:slug` or `?material=` may still select a category in URL state,
+ * but must not auto-expand this section (same contract as Browse by color).
  */
 export function MaterialCategoryRail({
   active,
@@ -185,9 +186,7 @@ export function MaterialCategoryRail({
       testId="jw-material-rail"
       headingId="jw-material-heading"
       title="Browse by material"
-      // Initial paint only (JwCollapsibleSection is not reactive): material path
-      // deep-links may open once. Clean /jw-stone stays collapsed.
-      defaultExpanded={Boolean(active)}
+      defaultExpanded={false}
       background={<MaterialCollageBackground />}
     >
       <ul
