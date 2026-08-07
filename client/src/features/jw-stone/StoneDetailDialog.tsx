@@ -108,6 +108,7 @@ export function StoneDetailDialog({
               <>
                 <button
                   type="button"
+                  data-testid="jw-stone-detail-photo-prev"
                   onClick={() => move(-1)}
                   aria-label="Previous stone image"
                   className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-black/70 text-white"
@@ -116,6 +117,7 @@ export function StoneDetailDialog({
                 </button>
                 <button
                   type="button"
+                  data-testid="jw-stone-detail-photo-next"
                   onClick={() => move(1)}
                   aria-label="Next stone image"
                   className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-black/70 text-white"
@@ -127,12 +129,17 @@ export function StoneDetailDialog({
           </div>
 
           {imageCount > 1 ? (
-            <div className="flex gap-2 overflow-x-auto px-5 py-3 sm:px-9" role="list">
+            <div
+              className="flex gap-2 overflow-x-auto px-5 py-3 sm:px-9"
+              role="list"
+              data-testid="jw-stone-detail-photo-thumbs"
+            >
               {stone.images.map((image, index) => (
                 <button
                   type="button"
                   role="listitem"
                   key={`${image}-${index}`}
+                  data-testid={`jw-stone-detail-photo-thumb-${index}`}
                   onClick={() => setImageIndex(index)}
                   aria-label={`Show image ${index + 1} of ${imageCount}`}
                   aria-current={index === imageIndex ? "true" : undefined}

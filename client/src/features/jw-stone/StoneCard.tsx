@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
 import { stoneShareDestination } from "./marketplaceRoutes";
@@ -12,7 +12,7 @@ type StoneCardProps = {
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
   onAsk: (stone: JwStoneCatalogItem) => void;
-  /** Optional overlays inside the media frame (e.g. carousel prev/next). */
+  /** Optional overlays inside the media frame (e.g. material-pager stone prev/next). */
   mediaChrome?: ReactNode;
 };
 
@@ -20,6 +20,8 @@ type StoneCardProps = {
  * Showroom inventory tile — full-width stone photograph with a centered caption
  * system underneath (not a left-ragged classifieds column).
  * Actions: Save (bookmark), View stone, Ask — no color / Pairs with chrome.
+ * When a stone has multiple mapped photos, shoppers can browse them on the card
+ * (swipe / dots; edge arrows when this card owns the media chrome).
  */
 export function StoneCard({
   stone,
@@ -29,9 +31,26 @@ export function StoneCard({
   onAsk,
   mediaChrome,
 }: StoneCardProps) {
+  const [imageIndex, setImageIndex] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const imageCount = stone.images.length;
+  const selectedImage = stone.images[imageIndex] || stone.images[0];
+  const ownsPhotoArrows = imageCount > 1 && !mediaChrome;
+
+  useEffect(() => setImageIndex(0), [stone.id]);
+
+  const movePhoto = (direction: -1 | 1) => {
+    if (imageCount < 2) return;
+    setImageIndex((current) => (current + direction + imageCount) % imageCount);
+  };
+
   const alt = stone.displayName
-    ? `${stone.displayName} stone photograph`
-    : "Stone selection photograph from JW Stone";
+    ? `${stone.displayName} stone photograph${
+        imageCount > 1 ? `, view ${imageIndex + 1} of ${imageCount}` : ""
+      }`
+    : `Stone selection photograph from JW Stone${
+        imageCount > 1 ? `, view ${imageIndex + 1} of ${imageCount}` : ""
+      }`;
   const meta = materialFinishLine(stone);
   const facts = availabilityDimensionsLine(stone);
   const title = stone.displayName || "";
@@ -41,10 +60,25 @@ export function StoneCard({
     <article
       data-stone-card="true"
       data-stone-id={stone.id}
+      data-photo-count={imageCount}
       className="group"
       data-anonymous={stone.anonymous ? "true" : "false"}
     >
-      <div className="relative bg-[var(--jw-dark)]">
+      <div
+        className="relative bg-[var(--jw-dark)]"
+        onTouchStart={(event) => {
+          if (imageCount < 2) return;
+          touchStartX.current = event.touches[0]?.clientX ?? null;
+        }}
+        onTouchEnd={(event) => {
+          if (imageCount < 2) return;
+          const start = touchStartX.current;
+          const end = event.changedTouches[0]?.clientX;
+          touchStartX.current = null;
+          if (start == null || end == null || Math.abs(start - end) < 45) return;
+          movePhoto(start > end ? 1 : -1);
+        }}
+      >
         <button
           type="button"
           onClick={() => onOpen(stone)}
@@ -52,7 +86,7 @@ export function StoneCard({
           aria-label={`Open ${stone.publicLabel}`}
         >
           <img
-            src={stone.images[0]}
+            src={selectedImage}
             alt={alt}
             loading="lazy"
             className="mx-auto block h-auto w-full object-contain"
@@ -74,6 +108,61 @@ export function StoneCard({
               <Bookmark className="h-5 w-5" aria-hidden="true" />
             )}
           </button>
+        ) : null}
+        {imageCount > 1 ? (
+          <div
+            className="pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5"
+            data-testid="jw-stone-card-photo-dots"
+            role="group"
+            aria-label={`Photo ${imageIndex + 1} of ${imageCount}`}
+          >
+            {stone.images.map((image, index) => (
+              <button
+                key={`${image}-${index}`}
+                type="button"
+                data-testid={`jw-stone-card-photo-dot-${index}`}
+                aria-label={`Show photo ${index + 1} of ${imageCount}`}
+                aria-current={index === imageIndex ? "true" : undefined}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setImageIndex(index);
+                }}
+                className={`pointer-events-auto h-2.5 w-2.5 rounded-full transition-opacity ${
+                  index === imageIndex
+                    ? "bg-white opacity-100"
+                    : "bg-white/55 opacity-80 hover:opacity-100"
+                }`}
+              />
+            ))}
+          </div>
+        ) : null}
+        {ownsPhotoArrows ? (
+          <>
+            <button
+              type="button"
+              data-testid="jw-stone-card-photo-prev"
+              aria-label="Previous stone photo"
+              onClick={(event) => {
+                event.stopPropagation();
+                movePhoto(-1);
+              }}
+              className="absolute left-2 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-[var(--jw-dark)]/75 text-white backdrop-blur-[1px] transition-[background-color,transform] hover:bg-[var(--jw-dark)]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 sm:left-3 sm:h-12 sm:w-12"
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              data-testid="jw-stone-card-photo-next"
+              aria-label="Next stone photo"
+              onClick={(event) => {
+                event.stopPropagation();
+                movePhoto(1);
+              }}
+              className="absolute right-2 top-1/2 z-20 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-[var(--jw-dark)]/75 text-white backdrop-blur-[1px] transition-[background-color,transform] hover:bg-[var(--jw-dark)]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 sm:right-3 sm:h-12 sm:w-12"
+            >
+              <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </>
         ) : null}
         {mediaChrome}
       </div>
@@ -108,7 +197,7 @@ export function StoneCard({
                   ? `See ${stone.displayName} at JW Stone`
                   : "See this stone selection at JW Stone"
               }
-              imageUrl={stone.images[0]}
+              imageUrl={selectedImage}
               label="Share"
               className="inline-flex min-h-9 items-center justify-center gap-1.5 px-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--jw-ink)]"
             />

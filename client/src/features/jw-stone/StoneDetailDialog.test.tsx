@@ -95,6 +95,65 @@ describe("StoneDetailDialog", () => {
     expect(onAsk).toHaveBeenCalledWith(stone);
   });
 
+  it("exposes prev/next and thumbnails when a stone has multiple mapped photos", () => {
+    const stone = JW_STONE_CATALOG.find((entry) => entry.images.length > 1);
+    expect(stone).toBeTruthy();
+    if (!stone) throw new Error("Expected a multi-image stone");
+
+    act(() =>
+      root.render(
+        <StoneDetailDialog
+          stone={stone}
+          saved={false}
+          onOpenChange={vi.fn()}
+          onToggleSaved={vi.fn()}
+          onAsk={vi.fn()}
+        />
+      )
+    );
+
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-prev"]')).not.toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]')).not.toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumbs"]')).not.toBeNull();
+    expect(dialog?.querySelectorAll('[data-testid^="jw-stone-detail-photo-thumb-"]').length).toBe(
+      stone.images.length
+    );
+
+    const leadSrc = dialog?.querySelector("img")?.getAttribute("src");
+    expect(leadSrc).toBe(stone.images[0]);
+
+    click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]') ?? null);
+    expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(stone.images[1]);
+
+    click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumb-0"]') ?? null);
+    expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(stone.images[0]);
+  });
+
+  it("omits gallery chrome for single-image stones", () => {
+    const stone = JW_STONE_CATALOG.find((entry) => entry.images.length === 1);
+    expect(stone).toBeTruthy();
+    if (!stone) throw new Error("Expected a single-image stone");
+
+    act(() =>
+      root.render(
+        <StoneDetailDialog
+          stone={stone}
+          saved={false}
+          onOpenChange={vi.fn()}
+          onToggleSaved={vi.fn()}
+          onAsk={vi.fn()}
+        />
+      )
+    );
+
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-prev"]')).toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]')).toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumbs"]')).toBeNull();
+  });
+
   it("keeps Ask and Share for First Cut photos without Save or invented specs", () => {
     const stone = firstCutPhotoAsDetailStone(JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!);
     const onAsk = vi.fn();
