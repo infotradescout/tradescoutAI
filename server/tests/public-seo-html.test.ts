@@ -2,10 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  isJwStonePublicDiscoveryHtml,
   preparePublicSeoHtmlForResponse,
   preparePublicSeoHtmlForUserAgent,
   publicSocialMetadataCacheControl,
   stripPublicSeoBootPlaceholders,
+  suppressJwStoneSeoSummaryPaint,
 } from "../publicSeoHtml";
 
 const templateHtml = fs.readFileSync(path.resolve(process.cwd(), "client/index.html"), "utf8");
@@ -85,6 +87,37 @@ describe("public SEO response HTML", () => {
     expect(html).toContain('<div id="root"></div>');
     expect(html).not.toContain("Verified profile");
     expect(html).toContain("TradeScout encountered a startup issue");
+  });
+
+  it("retains JW Stone public discovery facts for a generic browser user agent", () => {
+    const jwHtml = templateHtml.replace(
+      '<div id="root"></div>',
+      `<div id="root"><main data-seo-jw-stone-marketplace="true" style="padding:1rem;"><h1>Natural stone, selected at the source.</h1><p>Browse JW Stone's stone collection</p></main></div>`
+    );
+    const withModule = jwHtml.replace(
+      "</body>",
+      '<script type="module" crossorigin src="/assets/index-test.js"></script></body>'
+    );
+
+    expect(isJwStonePublicDiscoveryHtml(jwHtml)).toBe(true);
+
+    const browserHtml = preparePublicSeoHtmlForUserAgent(
+      withModule,
+      "Mozilla/5.0 AppleWebKit/537.36 Chrome/126.0 Safari/537.36"
+    );
+    const botHtml = preparePublicSeoHtmlForUserAgent(
+      withModule,
+      "Mozilla/5.0 AppleWebKit/537.36 (compatible; GPTBot/1.2; +https://openai.com/gptbot)"
+    );
+
+    expect(browserHtml).toContain("Natural stone, selected at the source.");
+    expect(browserHtml).toContain('data-seo-jw-stone-marketplace="true"');
+    expect(browserHtml).toContain('src="/assets/index-test.js"');
+    expect(browserHtml).toContain("clip:rect(0,0,0,0)");
+    expect(botHtml).toContain("Natural stone, selected at the source.");
+    expect(botHtml).not.toContain('src="/assets/index-test.js"');
+    expect(botHtml).not.toContain("clip:rect(0,0,0,0)");
+    expect(suppressJwStoneSeoSummaryPaint(jwHtml)).toContain("clip:rect(0,0,0,0)");
   });
 
   it("leaves ordinary non-SEO HTML unchanged", () => {

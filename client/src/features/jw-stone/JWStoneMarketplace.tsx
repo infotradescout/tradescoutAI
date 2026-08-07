@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
+import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
@@ -50,6 +51,18 @@ export default function JWStoneMarketplace() {
     if (body.style.overflow === "hidden") {
       body.style.overflow = "";
     }
+  }, []);
+
+  // Capture landing attribution before useMarketplaceUrlState canonicalizes the URL
+  // (filter params only — utm_* is not in marketplace state and would be stripped).
+  useLayoutEffect(() => {
+    const landingSearch = window.location.search;
+    const canonicalRoute = isJwStoneMarketplaceDomainSurface()
+      ? window.location.pathname || "/"
+      : window.location.pathname.startsWith(marketplaceBasePath())
+        ? window.location.pathname
+        : marketplaceBasePath() || "/jw-stone";
+    void trackDiscoveryLandingOnce({ canonicalRoute, search: landingSearch });
   }, []);
 
   // Prefer URL-named stone, else explicit override (First Cut photo / anonymous catalog).

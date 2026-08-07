@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
+import { DISCOVERY_LANDING_EVENT, sanitizeDiscoveryLandingEvent } from "@shared/discoveryLanding";
 import { isStaff } from "../auth";
 import { pool } from "../db";
 import { storage } from "../storage";
@@ -381,6 +382,19 @@ export function registerAnalyticsRoutes(app: Express) {
           if (safeEvent) {
             void storage.logEvent(String(safeEvent.eventName), safeEvent).catch((persistError) => {
               console.error("[Analytics][Shell] Failed to persist integrity event", persistError);
+            });
+          }
+          return;
+        }
+
+        // Public discovery landing: allowlisted fields only. Do not attach raw
+        // IP / user-agent / full URL / query string (Contract attribution safety).
+        if (event?.type === DISCOVERY_LANDING_EVENT) {
+          const anonymousSessionId = userId ? null : resolveAnonymousSessionId(req) || null;
+          const safeEvent = sanitizeDiscoveryLandingEvent(event, { anonymousSessionId });
+          if (safeEvent) {
+            void storage.logEvent(DISCOVERY_LANDING_EVENT, safeEvent).catch((persistError) => {
+              console.error("[Analytics][Shell] Failed to persist discovery_landing", persistError);
             });
           }
           return;
