@@ -41,9 +41,17 @@ export const JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT = 3;
 /** @deprecated Kept for legacy test imports — section no longer surfaces pending copy. */
 export const JW_STONE_FIRST_CUT_PENDING_LABEL = "Details pending";
 
+/** True when the detail stone is an ephemeral First Cut photo (not named catalog). */
+export function isFirstCutDetailStone(
+  stone: Pick<JwStoneCatalogItem, "id" | "anonymous">
+): boolean {
+  return stone.anonymous && JW_STONE_FIRST_CUT_PHOTO_SLOTS.some((slot) => slot.id === stone.id);
+}
+
 /**
  * Ephemeral detail identity for unlinked First Cut photos.
  * Opens StoneDetailDialog with First Cut media + pending facts — no invented product name.
+ * Ask + Share stay available in the dialog; Save stays off (not wishlist-eligible).
  */
 export function firstCutPhotoAsDetailStone(slot: FirstCutPhotoSlot): JwStoneCatalogItem {
   return Object.freeze({

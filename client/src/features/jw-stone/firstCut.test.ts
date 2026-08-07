@@ -6,6 +6,7 @@ import {
   JW_STONE_FIRST_CUT_PLACEHOLDER_COUNT,
   buildFirstCutPresentation,
   firstCutPhotoAsDetailStone,
+  isFirstCutDetailStone,
   resolveFirstCutDetailStone,
 } from "./firstCut";
 
@@ -71,6 +72,7 @@ describe("First Cut Exclusives data boundary", () => {
     expect(detail.publicLabel).toBe("First Cut");
     expect(detail.anonymous).toBe(true);
     expect(detail.wishlistEligible).toBe(false);
+    expect(detail.shareSlug).toBeNull();
     expect(detail.images).toEqual([JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!.imageSrc]);
     expect(
       resolveFirstCutDetailStone({
@@ -79,5 +81,11 @@ describe("First Cut Exclusives data boundary", () => {
         imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!.imageSrc,
       }).id
     ).toBe("first-cut-1");
+  });
+
+  it("recognizes First Cut detail stones for Ask/Share chrome", () => {
+    const detail = firstCutPhotoAsDetailStone(JW_STONE_FIRST_CUT_PHOTO_SLOTS[0]!);
+    expect(isFirstCutDetailStone(detail)).toBe(true);
+    expect(isFirstCutDetailStone({ id: "blue-dunes", anonymous: false })).toBe(false);
   });
 });
