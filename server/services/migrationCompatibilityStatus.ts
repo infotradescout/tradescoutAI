@@ -61,7 +61,8 @@ function evaluateCompatibility(input: {
   }
   if (input.appliedCount < input.expectedCount) return "behind";
   if (input.appliedCount > input.expectedCount) return "ahead";
-  return input.requiredSchemaOk === false ? "incompatible" : "compatible";
+  // requiredSchemaOk === false already returned incompatible above
+  return "compatible";
 }
 
 /**
