@@ -3,7 +3,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { COLOR_SWATCH_OPTIONS } from "./ColorPaletteRail";
 import {
   getMaterialRailItems,
   MATERIAL_RAIL_COVER_IMAGES,
@@ -151,17 +150,17 @@ describe("MaterialCategoryRail", () => {
     expect(rail?.querySelector("img")?.className).toMatch(/object-contain/);
   });
 
-  it("exposes color refine chips once a material is active (no All chip)", () => {
+  it("shows material stones immediately without a color pick gate", () => {
     const onSelect = vi.fn();
-    const onSelectColor = vi.fn();
     const noop = vi.fn();
+    const graniteAll = getMaterialRailItems().find((item) => item.materialId === "granite");
+    expect(graniteAll?.count).toBeGreaterThan(1);
 
     act(() =>
       root.render(
         <MaterialCategoryRail
-          active={null}
+          active="granite"
           onSelect={onSelect}
-          onSelectColor={onSelectColor}
           isSaved={() => false}
           onToggleSaved={noop}
           onOpen={noop}
@@ -174,14 +173,37 @@ describe("MaterialCategoryRail", () => {
         .querySelector('[data-testid="jw-material-rail-toggle"]')
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
+
+    expect(container.querySelector('[data-testid="jw-material-color-refine-granite"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-color-prompt"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-color-chip-row"]')).toBeNull();
+    expect(
+      container.querySelector('[data-testid="jw-material-stone-rail-granite"]')
+    ).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent).toBe(
+      `Granite · 1 of ${graniteAll!.count}`
+    );
+  });
+
+  it("keeps Onyx listed even when an unrelated color refinement is active", () => {
+    const items = getMaterialRailItems(undefined, { color: "blue" });
+    expect(items.map((item) => item.materialId)).toContain("onyx");
+    const onyx = items.find((item) => item.materialId === "onyx");
+    expect(onyx?.coverSrc).toContain("/material-covers/onyx");
+    // Blue refine may yield zero onyx stones, but the category must remain.
+    expect(onyx).toBeDefined();
+  });
+
+  it("opens Onyx stones without requiring a color selection", () => {
+    const noop = vi.fn();
+    const onyxAll = getMaterialRailItems().find((item) => item.materialId === "onyx");
+    expect(onyxAll?.count).toBeGreaterThan(0);
 
     act(() =>
       root.render(
         <MaterialCategoryRail
-          active="granite"
-          onSelect={onSelect}
-          onSelectColor={onSelectColor}
+          active="onyx"
+          onSelect={noop}
           isSaved={() => false}
           onToggleSaved={noop}
           onOpen={noop}
@@ -189,29 +211,20 @@ describe("MaterialCategoryRail", () => {
         />
       )
     );
+    act(() =>
+      container
+        .querySelector('[data-testid="jw-material-rail-toggle"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
 
-    expect(
-      container.querySelector('[data-testid="jw-material-color-refine-granite"]')
-    ).not.toBeNull();
-    expect(
-      container.querySelector('[data-testid="jw-material-color-prompt"]')?.textContent
-    ).toContain("Refine by color");
-    const row = container.querySelector('[data-testid="jw-material-color-chip-row"]');
-    expect(row).not.toBeNull();
-    expect(container.querySelector('[data-testid="jw-material-color-all"]')).toBeNull();
-
-    for (const option of COLOR_SWATCH_OPTIONS) {
-      expect(
-        container.querySelector(`[data-testid="jw-material-color-${option.id}"]`)
-      ).not.toBeNull();
-    }
-
-    const green = container.querySelector('[data-testid="jw-material-color-green"]');
-    act(() => green?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(onSelectColor).toHaveBeenCalledWith({ aesthetic: null, color: "green" });
+    expect(container.querySelector('[data-testid="jw-material-onyx"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-color-refine-onyx"]')).toBeNull();
+    expect(container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent).toBe(
+      `Onyx · 1 of ${onyxAll!.count}`
+    );
   });
 
-  it("refines the active material stone pager when color is applied", () => {
+  it("can still scope an active material's pager when color is already in URL state", () => {
     const noop = vi.fn();
     const graniteAll = getMaterialRailItems().find((item) => item.materialId === "granite");
     expect(graniteAll?.count).toBeGreaterThan(1);
@@ -226,7 +239,6 @@ describe("MaterialCategoryRail", () => {
           active="granite"
           color="green"
           onSelect={noop}
-          onSelectColor={noop}
           isSaved={() => false}
           onToggleSaved={noop}
           onOpen={noop}
@@ -240,11 +252,9 @@ describe("MaterialCategoryRail", () => {
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
 
-    const greenChip = container.querySelector('[data-testid="jw-material-color-green"]');
-    expect(greenChip?.getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector('[data-testid="jw-material-color-chip-row"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent).toBe(
       `Granite · 1 of ${greenGranite.length}`
     );
-    expect(container.querySelector('[data-testid="jw-material-color-empty"]')).toBeNull();
   });
 });
