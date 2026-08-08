@@ -84,8 +84,10 @@ describe("public SEO response HTML", () => {
       "Mozilla/5.0 AppleWebKit/537.36 Chrome/126.0 Safari/537.36"
     );
 
-    expect(html).toContain('<div id="root"></div>');
-    expect(html).not.toContain("Verified profile");
+    expect(html).toContain('data-seo-profile="true"');
+    expect(html).toContain("Verified profile");
+    expect(html).toContain("clip:rect(0,0,0,0)");
+    expect(html).toContain('type="module"');
     expect(html).toContain("TradeScout encountered a startup issue");
   });
 
