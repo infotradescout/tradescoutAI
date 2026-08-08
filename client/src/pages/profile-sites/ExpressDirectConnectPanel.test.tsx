@@ -4,6 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
+import { DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY } from "../../lib/discoveryLanding";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -60,6 +61,7 @@ describe("Express Direct Connect anonymous inventory context", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
+    sessionStorage.removeItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY);
     vi.unstubAllGlobals();
   });
 
@@ -76,6 +78,12 @@ describe("Express Direct Connect anonymous inventory context", () => {
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
+    sessionStorage.setItem(
+      DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
+      JSON.stringify({
+        discoveryAttributionToken: "signed-payload.signed-signature",
+      })
+    );
 
     act(() => {
       root.render(
@@ -129,6 +137,7 @@ describe("Express Direct Connect anonymous inventory context", () => {
       requestType: "request_material",
       message: "Customer type: Fabricator.\n\nI'm interested in this stone selection.",
       updatesOptIn: false,
+      discoveryAttributionToken: "signed-payload.signed-signature",
     });
     expect(requestBody).not.toHaveProperty("stoneName");
     expect(requestBody).not.toHaveProperty("customerRole");

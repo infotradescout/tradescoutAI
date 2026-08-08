@@ -25,6 +25,7 @@ import {
 import { hasDirectConnectPhone, normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
+import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { ISSA_BUILD_LEGACY_PROFILE_SLUG, ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { resolveJwStonePublicRequestName } from "@shared/jwStonePresentation";
 import {
@@ -95,6 +96,12 @@ const requestSchema = z
     // Explicit marketing consent. Default unchecked on the client; never
     // treat absence as opt-in.
     updatesOptIn: z.boolean().optional(),
+    discoveryAttributionToken: z
+      .string()
+      .trim()
+      .max(4096)
+      .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/)
+      .optional(),
   })
   .strict();
 
@@ -337,6 +344,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (!target) return res.status(404).json({ message: "Profile not found." });
 
         const body = parsed.data;
+        const verifiedDiscoveryAttribution = body.discoveryAttributionToken
+          ? verifyDiscoveryAttributionToken(body.discoveryAttributionToken, {
+              businessSlug: target.profileSlug,
+            })
+          : null;
+        if (body.discoveryAttributionToken && !verifiedDiscoveryAttribution) {
+          return res.status(400).json({ message: "This discovery link is no longer valid." });
+        }
         if (body.stoneSelections && (body.itemId || body.stoneName)) {
           return res.status(400).json({
             message: "Use either one stone or a saved-stone selection, not both.",
@@ -492,6 +507,10 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 connectionMode: "express",
                 profileId: target.profileId,
                 businessId: target.businessId,
+                businessSlug: target.profileSlug,
+                ...(verifiedDiscoveryAttribution
+                  ? { entryRequestId: verifiedDiscoveryAttribution.entryRequestId }
+                  : {}),
                 requestType: body.requestType,
                 stoneName: publicStoneName,
                 ...(publicStoneSelections.length ? { stoneSelections: publicStoneSelections } : {}),

@@ -4,6 +4,7 @@ import type { SocialPreviewCardContext } from "./socialPreviewCardRenderer";
 
 const DEFAULT_SOCIAL_IMAGE_PATTERN =
   /(?:tradescout-social-preview|tradescout-logo)\.(?:png|jpe?g)(?:[?#]|$)/i;
+const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
 
 type SurfacePresentation = Pick<
   SocialPreviewCardContext,
@@ -296,6 +297,9 @@ function sourceImage(value: string, pageOrigin: string): string | null {
 export function upgradePublicSocialPreviewHtml(html: string): string {
   const existingImage = metaContent(html, "property", "og:image");
   if (!existingImage || /\/images\/social\//i.test(existingImage)) return html;
+  // JW Stone owns a finished brand preview image. Keep that direct asset for
+  // its public link instead of wrapping it in the generic TradeScout card.
+  if (JW_STONE_PUBLIC_DISCOVERY_MARKER.test(html)) return html;
 
   const canonical = canonicalHref(html) || metaContent(html, "property", "og:url");
   const presentation = surfacePresentation(canonical);

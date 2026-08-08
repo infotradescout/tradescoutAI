@@ -4,6 +4,7 @@ import { DISCOVERY_LANDING_EVENT, sanitizeDiscoveryLandingEvent } from "@shared/
 import { isStaff } from "../auth";
 import { pool } from "../db";
 import { storage } from "../storage";
+import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
 import { resolveAnonymousSessionId } from "../utils/anonymousSession";
@@ -391,7 +392,15 @@ export function registerAnalyticsRoutes(app: Express) {
         // IP / user-agent / full URL / query string (Contract attribution safety).
         if (event?.type === DISCOVERY_LANDING_EVENT) {
           const anonymousSessionId = userId ? null : resolveAnonymousSessionId(req) || null;
-          const safeEvent = sanitizeDiscoveryLandingEvent(event, { anonymousSessionId });
+          const verifiedAttribution = verifyDiscoveryAttributionToken(
+            event.discoveryAttributionToken
+          );
+          const safeEvent = verifiedAttribution
+            ? sanitizeDiscoveryLandingEvent(event, {
+                anonymousSessionId,
+                verifiedAttribution,
+              })
+            : null;
           if (safeEvent) {
             void storage.logEvent(DISCOVERY_LANDING_EVENT, safeEvent).catch((persistError) => {
               console.error("[Analytics][Shell] Failed to persist discovery_landing", persistError);

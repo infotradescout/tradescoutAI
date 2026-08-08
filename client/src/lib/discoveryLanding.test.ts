@@ -1,15 +1,37 @@
 /** @vitest-environment jsdom */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resetDiscoveryLandingDedupeForTests, trackDiscoveryLandingOnce } from "./discoveryLanding";
+import {
+  DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
+  resetDiscoveryLandingDedupeForTests,
+  trackDiscoveryLandingOnce,
+} from "./discoveryLanding";
+
+const discoveryAttributionToken = "signed-payload.signed-signature";
 
 describe("trackDiscoveryLandingOnce", () => {
   beforeEach(() => {
     resetDiscoveryLandingDedupeForTests();
+    for (const [name, content] of [
+      ["tradescout-business-slug", "jw-stone"],
+      ["tradescout-business-entity-type", "business_marketplace"],
+      ["tradescout-discovery-attribution", discoveryAttributionToken],
+    ]) {
+      const meta = document.createElement("meta");
+      meta.name = name;
+      meta.content = content;
+      document.head.appendChild(meta);
+    }
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 204 }));
   });
 
   afterEach(() => {
+    document.head
+      .querySelectorAll(
+        'meta[name="tradescout-business-slug"], meta[name="tradescout-business-entity-type"], meta[name="tradescout-discovery-attribution"]'
+      )
+      .forEach((meta) => meta.remove());
+    sessionStorage.removeItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY);
     vi.unstubAllGlobals();
     resetDiscoveryLandingDedupeForTests();
   });
@@ -35,7 +57,9 @@ describe("trackDiscoveryLandingOnce", () => {
       canonicalRoute: "/jw-stone",
       businessSlug: "jw-stone",
       entityType: "business_marketplace",
+      discoveryAttributionToken,
     });
+    expect(body).not.toHaveProperty("entryRequestId");
     expect(body).not.toHaveProperty("sourceHint");
   });
 
@@ -54,6 +78,16 @@ describe("trackDiscoveryLandingOnce", () => {
     expect(JSON.stringify(body)).not.toContain("phone");
     expect(JSON.stringify(body)).not.toContain("utm_content");
     expect(JSON.stringify(body)).not.toContain("/c/abc");
+  });
+
+  it("sends the server-issued envelope rather than a request header id", async () => {
+    await trackDiscoveryLandingOnce({
+      canonicalRoute: "/jw-stone",
+    });
+
+    const body = JSON.parse((fetch as any).mock.calls[0][1].body);
+    expect(body.discoveryAttributionToken).toBe(discoveryAttributionToken);
+    expect(body).not.toHaveProperty("entryRequestId");
   });
 
   it("does not block when analytics fetch fails", async () => {

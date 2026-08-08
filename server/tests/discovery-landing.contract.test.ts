@@ -3,9 +3,15 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildClientDiscoveryLandingPayload,
-  normalizeDiscoverySourceHint,
+  normalizeDiscoveryAttributionToken,
   sanitizeDiscoveryLandingEvent,
 } from "@shared/discoveryLanding";
+import {
+  issueDiscoveryAttributionToken,
+  verifyDiscoveryAttributionToken,
+} from "../utils/discoveryAttribution";
+
+process.env.DISCOVERY_ATTRIBUTION_SECRET = "discovery-landing-contract-secret";
 
 const { logEventMock } = vi.hoisted(() => ({
   logEventMock: vi.fn().mockResolvedValue(undefined),
@@ -19,78 +25,97 @@ vi.mock("../storage", () => ({
 
 import { registerAnalyticsRoutes } from "../routes/analytics-routes";
 
-describe("discovery_landing sanitizer", () => {
-  it("normalizes chatgpt.com utm to chatgpt without mechanism claims", () => {
-    expect(normalizeDiscoverySourceHint("chatgpt.com")).toBe("chatgpt");
-    expect(normalizeDiscoverySourceHint("ChatGPT")).toBe("chatgpt");
+function issueToken(
+  businessSlug: string,
+  canonicalRoute: string,
+  entityType: "business_marketplace" | "business_profile" = "business_profile"
+): string {
+  const token = issueDiscoveryAttributionToken({
+    businessSlug,
+    canonicalRoute,
+    entityType,
+    issuedAt: new Date(Date.now() - 1_000).toISOString(),
+  });
+  if (!token) throw new Error("Expected discovery attribution token");
+  return token;
+}
+
+describe("signed discovery attribution", () => {
+  it("issues a separate identifier instead of reusing an HTTP request id", () => {
+    const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
+    const verified = verifyDiscoveryAttributionToken(token);
+
+    expect(verified).toMatchObject({
+      businessSlug: "jw-stone",
+      entityType: "business_marketplace",
+      canonicalRoute: "/jw-stone",
+    });
+    expect(verified?.entryRequestId).toBeTruthy();
+    expect(verified?.entryRequestId).not.toBe("incoming-http-request-id");
+    expect(normalizeDiscoveryAttributionToken(token)).toBe(token);
   });
 
-  it("builds a sanitized payload without full URL or query string", () => {
+  it("rejects tampered tokens and tokens bound to another business or route", () => {
+    const businessAToken = issueToken("business-a", "/business/business-a");
+    const tamperedToken = `${businessAToken.slice(0, -1)}x`;
+
+    expect(verifyDiscoveryAttributionToken(tamperedToken)).toBeNull();
+    expect(
+      verifyDiscoveryAttributionToken(businessAToken, { businessSlug: "business-b" })
+    ).toBeNull();
+    expect(
+      verifyDiscoveryAttributionToken(businessAToken, {
+        canonicalRoute: "/business/business-b",
+      })
+    ).toBeNull();
+  });
+
+  it("does not accept invented identity without a verified envelope", () => {
+    expect(
+      sanitizeDiscoveryLandingEvent({
+        type: "discovery_landing",
+        canonicalRoute: "/business/acme-stone",
+        entityType: "business_profile",
+        businessSlug: "acme-stone",
+        entryRequestId: "invented-entry-id",
+      })
+    ).toBeNull();
+  });
+
+  it("derives stored identity from the verified envelope and keeps client fields as checks only", () => {
+    const token = issueToken("business-a", "/business/business-a");
+    const verified = verifyDiscoveryAttributionToken(token);
+    expect(verified).not.toBeNull();
+
     const payload = buildClientDiscoveryLandingPayload({
-      canonicalRoute: "/jw-stone",
+      canonicalRoute: "/business/business-a",
+      entityType: "business_profile",
+      businessSlug: "business-a",
+      discoveryAttributionToken: token,
       searchParams: new URLSearchParams(
-        "utm_source=chatgpt.com&utm_campaign=secret&stone=blue-dunes&email=leak@example.com"
+        "utm_source=chatgpt.com&utm_campaign=secret&email=leak@example.com"
       ),
-      referrer: "https://chatgpt.com/c/thread-123?q=stone",
+      referrer: "https://chatgpt.com/c/thread-123?q=business-a",
+      ts: "2099-01-01T00:00:00.000Z",
     });
-    const safe = sanitizeDiscoveryLandingEvent(payload);
+    const safe = sanitizeDiscoveryLandingEvent(payload, {
+      verifiedAttribution: verified,
+    });
 
     expect(safe).toMatchObject({
       type: "discovery_landing",
-      canonicalRoute: "/jw-stone",
-      entityType: "business_marketplace",
-      businessSlug: "jw-stone",
+      canonicalRoute: "/business/business-a",
+      entityType: "business_profile",
+      businessSlug: "business-a",
+      entryRequestId: verified?.entryRequestId,
+      ts: verified?.issuedAt,
       sourceHint: "chatgpt",
       referrerHost: "chatgpt.com",
     });
-    expect(JSON.stringify(safe)).not.toContain("utm_campaign");
-    expect(JSON.stringify(safe)).not.toContain("blue-dunes");
-    expect(JSON.stringify(safe)).not.toContain("leak@example.com");
+    expect(JSON.stringify(safe)).not.toContain("secret");
     expect(JSON.stringify(safe)).not.toContain("thread-123");
-    expect(JSON.stringify(safe)).not.toMatch(
-      /ChatGPT Search definitely|OAI-SearchBot indexed|GPTBot caused/i
-    );
-  });
-
-  it("rejects sensitive or out-of-scope payloads", () => {
-    expect(
-      sanitizeDiscoveryLandingEvent({
-        type: "discovery_landing",
-        canonicalRoute: "/admin",
-        entityType: "business_marketplace",
-        businessSlug: "jw-stone",
-      })
-    ).toBeNull();
-    expect(
-      sanitizeDiscoveryLandingEvent({
-        type: "discovery_landing",
-        canonicalRoute: "/jw-stone",
-        entityType: "business_marketplace",
-        businessSlug: "other-biz",
-      })
-    ).toBeNull();
-    // Query strings are stripped to the path — never persisted as part of the route.
-    expect(
-      sanitizeDiscoveryLandingEvent({
-        type: "discovery_landing",
-        canonicalRoute: "/jw-stone?utm_source=chatgpt.com&phone=555",
-        entityType: "business_marketplace",
-        businessSlug: "jw-stone",
-      })
-    ).toMatchObject({
-      canonicalRoute: "/jw-stone",
-      businessSlug: "jw-stone",
-    });
-    expect(
-      JSON.stringify(
-        sanitizeDiscoveryLandingEvent({
-          type: "discovery_landing",
-          canonicalRoute: "/jw-stone?utm_source=chatgpt.com&phone=555",
-          entityType: "business_marketplace",
-          businessSlug: "jw-stone",
-        })
-      )
-    ).not.toContain("phone");
+    expect(JSON.stringify(safe)).not.toContain("leak@example.com");
+    expect(JSON.stringify(safe)).not.toContain("discoveryAttributionToken");
   });
 });
 
@@ -110,9 +135,9 @@ describe("discovery_landing analytics delivery", () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
-  it("persists one sanitized discovery_landing without raw IP or user-agent", async () => {
-    const app = makeApp();
-    const res = await request(app)
+  it("persists only verified attribution without raw IP or user-agent", async () => {
+    const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
+    const res = await request(makeApp())
       .post("/api/analytics/shell")
       .set("User-Agent", "Mozilla/5.0 SecretBrowser/1.0")
       .set("X-Forwarded-For", "203.0.113.50")
@@ -122,12 +147,12 @@ describe("discovery_landing analytics delivery", () => {
         canonicalRoute: "/jw-stone",
         entityType: "business_marketplace",
         businessSlug: "jw-stone",
+        discoveryAttributionToken: token,
         sourceHint: "chatgpt",
         referrerHost: "chatgpt.com",
-        ts: "2026-08-07T12:00:00.000Z",
-        // Forbidden fields that must be dropped:
-        landingUrl: "https://www.thetradescout.com/jw-stone?utm_source=chatgpt.com&phone=555",
-        queryString: "utm_source=chatgpt.com&phone=555",
+        ts: "2099-01-01T00:00:00.000Z",
+        landingUrl: "https://www.thetradescout.com/jw-stone?phone=555",
+        queryString: "phone=555",
         messageText: "I want this stone",
         phoneNumber: "555-0100",
         email: "buyer@example.com",
@@ -138,6 +163,7 @@ describe("discovery_landing analytics delivery", () => {
     expect(res.status).toBe(204);
     await flushAsyncWork();
 
+    const verified = verifyDiscoveryAttributionToken(token);
     expect(logEventMock).toHaveBeenCalledTimes(1);
     const [eventType, payload] = logEventMock.mock.calls[0];
     expect(eventType).toBe("discovery_landing");
@@ -146,25 +172,92 @@ describe("discovery_landing analytics delivery", () => {
       canonicalRoute: "/jw-stone",
       entityType: "business_marketplace",
       businessSlug: "jw-stone",
+      entryRequestId: verified?.entryRequestId,
       sourceHint: "chatgpt",
       referrerHost: "chatgpt.com",
-      ts: "2026-08-07T12:00:00.000Z",
+      ts: verified?.issuedAt,
     });
     expect(payload).not.toHaveProperty("ipAddress");
     expect(payload).not.toHaveProperty("userAgent");
-    expect(payload).not.toHaveProperty("landingUrl");
-    expect(payload).not.toHaveProperty("queryString");
-    expect(payload).not.toHaveProperty("phoneNumber");
-    expect(JSON.stringify(payload)).not.toMatch(/mechanism|indexed this page|caused this lead/i);
+    expect(payload).not.toHaveProperty("discoveryAttributionToken");
   });
 
-  it("returns 204 and skips persistence when sanitize rejects the event", async () => {
-    const app = makeApp();
-    const res = await request(app).post("/api/analytics/shell").send({
+  it.each([
+    [
+      "missing token",
+      { businessSlug: "invented-business", canonicalRoute: "/business/invented-business" },
+    ],
+    [
+      "tampered token",
+      {
+        discoveryAttributionToken: `${issueToken("business-a", "/business/business-a").slice(0, -1)}x`,
+        businessSlug: "business-a",
+        canonicalRoute: "/business/business-a",
+        entityType: "business_profile",
+      },
+    ],
+    [
+      "changed slug",
+      {
+        discoveryAttributionToken: issueToken("business-a", "/business/business-a"),
+        businessSlug: "business-b",
+        canonicalRoute: "/business/business-a",
+        entityType: "business_profile",
+      },
+    ],
+    [
+      "changed route",
+      {
+        discoveryAttributionToken: issueToken("business-a", "/business/business-a"),
+        businessSlug: "business-a",
+        canonicalRoute: "/business/business-b",
+        entityType: "business_profile",
+      },
+    ],
+    [
+      "business A token submitted to business B",
+      {
+        discoveryAttributionToken: issueToken("business-a", "/business/business-a"),
+        businessSlug: "business-b",
+        canonicalRoute: "/business/business-b",
+        entityType: "business_profile",
+      },
+    ],
+  ])("rejects %s", async (_name, event) => {
+    const res = await request(makeApp())
+      .post("/api/analytics/shell")
+      .send({
+        type: "discovery_landing",
+        ...event,
+      });
+    expect(res.status).toBe(204);
+    await flushAsyncWork();
+    expect(logEventMock).not.toHaveBeenCalled();
+  });
+
+  it("does not persist a direct client entryRequestId", async () => {
+    const token = issueToken("business-a", "/business/business-a");
+    const res = await request(makeApp()).post("/api/analytics/shell").send({
       type: "discovery_landing",
+      canonicalRoute: "/business/business-a",
+      entityType: "business_profile",
+      businessSlug: "business-a",
+      discoveryAttributionToken: token,
+      entryRequestId: "attacker-controlled-id",
+    });
+    expect(res.status).toBe(204);
+    await flushAsyncWork();
+    expect(logEventMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 204 and skips persistence for unrelated routes", async () => {
+    const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
+    const res = await request(makeApp()).post("/api/analytics/shell").send({
+      type: "discovery_landing",
+      discoveryAttributionToken: token,
       canonicalRoute: "/dashboard",
-      entityType: "business_marketplace",
       businessSlug: "jw-stone",
+      entityType: "business_marketplace",
     });
     expect(res.status).toBe(204);
     await flushAsyncWork();
@@ -172,14 +265,14 @@ describe("discovery_landing analytics delivery", () => {
   });
 
   it("stays non-blocking when persistence fails", async () => {
+    const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
     logEventMock.mockRejectedValueOnce(new Error("db down"));
-    const app = makeApp();
-    const res = await request(app).post("/api/analytics/shell").send({
+    const res = await request(makeApp()).post("/api/analytics/shell").send({
       type: "discovery_landing",
       canonicalRoute: "/jw-stone",
       entityType: "business_marketplace",
       businessSlug: "jw-stone",
-      ts: "2026-08-07T12:00:00.000Z",
+      discoveryAttributionToken: token,
     });
     expect(res.status).toBe(204);
     await flushAsyncWork();

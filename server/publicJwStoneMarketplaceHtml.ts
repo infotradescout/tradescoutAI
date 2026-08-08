@@ -257,6 +257,17 @@ export function buildPublicJwStoneMarketplaceHtml(
     html = injectMarketplaceDomainSurface(html);
   }
 
+  html = upsertTag(
+    html,
+    /<meta name="tradescout-business-slug"[^>]*>/i,
+    '<meta name="tradescout-business-slug" content="jw-stone" />'
+  );
+  html = upsertTag(
+    html,
+    /<meta name="tradescout-business-entity-type"[^>]*>/i,
+    '<meta name="tradescout-business-entity-type" content="business_marketplace" />'
+  );
+
   html = injectSummary(html, summary);
   const jsonLd = itemShare
     ? {

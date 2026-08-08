@@ -262,6 +262,16 @@ export async function buildPublicBusinessHtml({
     html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
     html = upsertTag(
       html,
+      /<meta name="tradescout-business-slug"[^>]*>/i,
+      `<meta name="tradescout-business-slug" content="${escapeHtml(String(published.slug || safeSlug))}" />`
+    );
+    html = upsertTag(
+      html,
+      /<meta name="tradescout-business-entity-type"[^>]*>/i,
+      '<meta name="tradescout-business-entity-type" content="business_profile" />'
+    );
+    html = upsertTag(
+      html,
       /<meta name="description"[^>]*>/i,
       `<meta name="description" content="${escapeHtml(meta.description)}" />`
     );
