@@ -95,6 +95,12 @@ const requestSchema = z
     // Explicit marketing consent. Default unchecked on the client; never
     // treat absence as opt-in.
     updatesOptIn: z.boolean().optional(),
+    entryRequestId: z
+      .string()
+      .trim()
+      .max(128)
+      .regex(/^[A-Za-z0-9._:-]+$/)
+      .optional(),
   })
   .strict();
 
@@ -492,6 +498,8 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 connectionMode: "express",
                 profileId: target.profileId,
                 businessId: target.businessId,
+                businessSlug: target.profileSlug,
+                ...(body.entryRequestId ? { entryRequestId: body.entryRequestId } : {}),
                 requestType: body.requestType,
                 stoneName: publicStoneName,
                 ...(publicStoneSelections.length ? { stoneSelections: publicStoneSelections } : {}),

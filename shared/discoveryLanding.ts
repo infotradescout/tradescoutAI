@@ -5,12 +5,14 @@
 
 export const DISCOVERY_LANDING_EVENT = "discovery_landing" as const;
 
-export type DiscoveryLandingEntityType = "business_marketplace";
+export type DiscoveryLandingEntityType = "business_marketplace" | "business_profile";
 
 const MAX_ROUTE_LENGTH = 120;
 const MAX_HINT_LENGTH = 64;
 const MAX_HOST_LENGTH = 253;
 const MAX_ANON_LENGTH = 128;
+const MAX_BUSINESS_SLUG_LENGTH = 64;
+const MAX_REQUEST_ID_LENGTH = 128;
 
 /** utm_source=chatgpt.com → chatgpt. Never claims search/crawler causation. */
 export function normalizeDiscoverySourceHint(raw: unknown): string | undefined {
@@ -48,6 +50,59 @@ function normalizeCanonicalRoute(raw: unknown): string | undefined {
   return pathOnly.replace(/\/{2,}/g, "/");
 }
 
+function normalizeBusinessSlug(raw: unknown): string | undefined {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    !value ||
+    value.length > MAX_BUSINESS_SLUG_LENGTH ||
+    !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(value)
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
+function normalizeEntryRequestId(raw: unknown): string | undefined {
+  const value = String(raw ?? "").trim();
+  if (!value || value.length > MAX_REQUEST_ID_LENGTH || !/^[A-Za-z0-9._:-]+$/.test(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+function isPublicBusinessRoute(route: string): boolean {
+  return (
+    route === "/" ||
+    route === "/jw-stone" ||
+    route.startsWith("/jw-stone/") ||
+    route.startsWith("/stones/") ||
+    route.startsWith("/materials/") ||
+    /^\/(?:business|u|contractors|helpers)\/[^/]+(?:\/.*)?$/.test(route)
+  );
+}
+
+function businessSlugFromPublicRoute(route: string): string | undefined {
+  if (
+    route === "/" ||
+    route === "/jw-stone" ||
+    route.startsWith("/jw-stone/") ||
+    route.startsWith("/stones/") ||
+    route.startsWith("/materials/")
+  ) {
+    return "jw-stone";
+  }
+
+  const match = route.match(/^\/(?:business|u|contractors|helpers)\/([^/]+)/i);
+  if (!match) return undefined;
+  try {
+    return normalizeBusinessSlug(decodeURIComponent(match[1]));
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Allowlisted discovery_landing payload. Rejects unknown types and strips
  * forbidden fields (full URL, query, raw UA/IP, message text, etc.).
@@ -59,31 +114,35 @@ export function sanitizeDiscoveryLandingEvent(
   if (!event || typeof event !== "object") return null;
   if (event.type !== DISCOVERY_LANDING_EVENT) return null;
 
-  const businessSlug = String(event.businessSlug ?? "")
-    .trim()
-    .toLowerCase();
-  if (businessSlug !== "jw-stone") return null;
+  const businessSlug = normalizeBusinessSlug(event.businessSlug);
+  if (!businessSlug) return null;
 
   const entityType = String(event.entityType ?? "").trim();
-  if (entityType !== "business_marketplace") return null;
+  if (entityType !== "business_marketplace" && entityType !== "business_profile") return null;
 
   const canonicalRoute = normalizeCanonicalRoute(event.canonicalRoute ?? event.route);
   if (!canonicalRoute) return null;
 
-  // JW marketplace surfaces only (platform + custom-host collection / deep links).
-  const isJwRoute =
-    canonicalRoute === "/jw-stone" ||
-    canonicalRoute.startsWith("/jw-stone/") ||
-    canonicalRoute === "/" ||
-    canonicalRoute.startsWith("/stones/") ||
-    canonicalRoute.startsWith("/materials/");
-  if (!isJwRoute) return null;
+  if (!isPublicBusinessRoute(canonicalRoute)) return null;
+
+  const routeBusinessSlug = businessSlugFromPublicRoute(canonicalRoute);
+  if (!routeBusinessSlug || routeBusinessSlug !== businessSlug) return null;
+  const expectedEntityType =
+    routeBusinessSlug === "jw-stone" &&
+    (canonicalRoute === "/" ||
+      canonicalRoute === "/jw-stone" ||
+      canonicalRoute.startsWith("/jw-stone/") ||
+      canonicalRoute.startsWith("/stones/") ||
+      canonicalRoute.startsWith("/materials/"))
+      ? "business_marketplace"
+      : "business_profile";
+  if (entityType !== expectedEntityType) return null;
 
   const safe: Record<string, unknown> = {
     type: DISCOVERY_LANDING_EVENT,
     canonicalRoute,
-    entityType: "business_marketplace" satisfies DiscoveryLandingEntityType,
-    businessSlug: "jw-stone",
+    entityType,
+    businessSlug,
     ts:
       typeof event.ts === "string" && event.ts.trim()
         ? event.ts.trim().slice(0, 40)
@@ -108,14 +167,20 @@ export function sanitizeDiscoveryLandingEvent(
     safe.anonymousSessionId = anon.slice(0, MAX_ANON_LENGTH);
   }
 
+  const entryRequestId = normalizeEntryRequestId(event.entryRequestId);
+  if (entryRequestId) safe.entryRequestId = entryRequestId;
+
   return safe;
 }
 
 export function buildClientDiscoveryLandingPayload(args: {
   canonicalRoute: string;
+  businessSlug: string;
+  entityType: DiscoveryLandingEntityType;
   searchParams?: URLSearchParams | { get: (key: string) => string | null };
   referrer?: string | null;
   anonymousSessionId?: string | null;
+  entryRequestId?: string | null;
   ts?: string;
 }): Record<string, unknown> {
   const utmSource =
@@ -126,11 +191,12 @@ export function buildClientDiscoveryLandingPayload(args: {
   return {
     type: DISCOVERY_LANDING_EVENT,
     canonicalRoute: args.canonicalRoute,
-    entityType: "business_marketplace",
-    businessSlug: "jw-stone",
+    entityType: args.entityType,
+    businessSlug: args.businessSlug,
     ts: args.ts || new Date().toISOString(),
     sourceHint: normalizeDiscoverySourceHint(utmSource),
     referrerHost: normalizeReferrerHost(args.referrer),
     anonymousSessionId: args.anonymousSessionId || undefined,
+    entryRequestId: args.entryRequestId || undefined,
   };
 }

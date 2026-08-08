@@ -4,6 +4,7 @@ import {
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
 } from "@/lib/publicProfileItemDestination";
+import { getStoredDiscoveryLandingAttribution } from "@/lib/discoveryLanding";
 import { ArrowLeft, CheckCircle2, Loader2, MessageCircle, Phone, MapPin, X } from "lucide-react";
 import type { DirectConnectMaterialTarget } from "./directConnectMaterial";
 import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
@@ -362,6 +363,7 @@ export default function ExpressDirectConnectPanel({
         requestMode === "materials" && roleLabel
           ? `Customer type: ${roleLabel}.\n\n${form.message}`
           : form.message;
+      const discoveryAttribution = getStoredDiscoveryLandingAttribution(profileSlug);
       const response = await fetch(
         `/api/tradepartner-profiles/${encodeURIComponent(profileSlug)}/express-request`,
         {
@@ -376,6 +378,7 @@ export default function ExpressDirectConnectPanel({
             message: messageWithRole,
             website: form.website,
             updatesOptIn: form.updatesOptIn === true,
+            entryRequestId: discoveryAttribution?.entryRequestId,
             ...materialContext,
             serviceName: selectedServiceName || undefined,
           }),

@@ -28,6 +28,8 @@ describe("discovery_landing sanitizer", () => {
   it("builds a sanitized payload without full URL or query string", () => {
     const payload = buildClientDiscoveryLandingPayload({
       canonicalRoute: "/jw-stone",
+      businessSlug: "jw-stone",
+      entityType: "business_marketplace",
       searchParams: new URLSearchParams(
         "utm_source=chatgpt.com&utm_campaign=secret&stone=blue-dunes&email=leak@example.com"
       ),
@@ -64,8 +66,30 @@ describe("discovery_landing sanitizer", () => {
     expect(
       sanitizeDiscoveryLandingEvent({
         type: "discovery_landing",
-        canonicalRoute: "/jw-stone",
-        entityType: "business_marketplace",
+        canonicalRoute: "/business/acme-stone",
+        entityType: "business_profile",
+        businessSlug: "acme-stone",
+        entryRequestId: "entry-123",
+      })
+    ).toMatchObject({
+      canonicalRoute: "/business/acme-stone",
+      entityType: "business_profile",
+      businessSlug: "acme-stone",
+      entryRequestId: "entry-123",
+    });
+    expect(
+      sanitizeDiscoveryLandingEvent({
+        type: "discovery_landing",
+        canonicalRoute: "/business/acme-stone",
+        entityType: "business_profile",
+        businessSlug: "../other-biz",
+      })
+    ).toBeNull();
+    expect(
+      sanitizeDiscoveryLandingEvent({
+        type: "discovery_landing",
+        canonicalRoute: "/business/acme-stone",
+        entityType: "business_profile",
         businessSlug: "other-biz",
       })
     ).toBeNull();
@@ -124,6 +148,7 @@ describe("discovery_landing analytics delivery", () => {
         businessSlug: "jw-stone",
         sourceHint: "chatgpt",
         referrerHost: "chatgpt.com",
+        entryRequestId: "entry-request-123",
         ts: "2026-08-07T12:00:00.000Z",
         // Forbidden fields that must be dropped:
         landingUrl: "https://www.thetradescout.com/jw-stone?utm_source=chatgpt.com&phone=555",
@@ -148,6 +173,7 @@ describe("discovery_landing analytics delivery", () => {
       businessSlug: "jw-stone",
       sourceHint: "chatgpt",
       referrerHost: "chatgpt.com",
+      entryRequestId: "entry-request-123",
       ts: "2026-08-07T12:00:00.000Z",
     });
     expect(payload).not.toHaveProperty("ipAddress");

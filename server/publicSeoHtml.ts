@@ -10,6 +10,9 @@ const CLIENT_MODULE_SCRIPT_PATTERN =
   /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
+const ENTRY_REQUEST_ID_META_PATTERN =
+  /<meta\b[^>]*\bname\s*=\s*(["'])tradescout-entry-request-id\1[^>]*>/i;
+const SAFE_ENTRY_REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
 /** Clip SEO chrome for human clients so createRoot can replace #root without a crawler-style flash. */
 const JW_STONE_SEO_CLIENT_SUPPRESS =
   "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0";
@@ -60,6 +63,15 @@ export function stripPublicSeoBootPlaceholders(html: string): string {
     .replace(NOSCRIPT_FALLBACK_PATTERN, "");
 }
 
+function attachEntryRequestIdMeta(html: string, entryRequestId?: string | null): string {
+  const value = String(entryRequestId || "").trim();
+  if (!SAFE_ENTRY_REQUEST_ID_PATTERN.test(value)) return html;
+  const tag = `<meta name="tradescout-entry-request-id" content="${value}" />`;
+  return ENTRY_REQUEST_ID_META_PATTERN.test(html)
+    ? html.replace(ENTRY_REQUEST_ID_META_PATTERN, tag)
+    : html.replace(/<\/head>/i, `${tag}\n</head>`);
+}
+
 export function preparePublicSeoHtmlForResponse(
   html: string,
   options: { retainSeoSummary: boolean }
@@ -72,22 +84,27 @@ export function preparePublicSeoHtmlForResponse(
   return upgradedHtml.replace(SEO_ROOT_SUMMARY_PATTERN, '<div id="root"></div>');
 }
 
-export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: string | null): string {
+export function preparePublicSeoHtmlForUserAgent(
+  html: string,
+  userAgent?: string | null,
+  entryRequestId?: string | null
+): string {
+  const htmlWithEntryRequestId = attachEntryRequestIdMeta(html, entryRequestId);
   const actor = detectActorFromUserAgent(userAgent);
   const isBot = actor.actorType === "bot";
 
   // JW Stone Phase 3A: public facts must not depend on crawler UA retention.
   // Same fact-bearing summary for all UAs; bots keep crawlable visible SSR without
   // client modules; humans keep client boot and suppress SEO chrome to avoid flash.
-  if (isJwStonePublicDiscoveryHtml(html)) {
-    const upgradedHtml = upgradePublicSocialPreviewHtml(html);
+  if (isJwStonePublicDiscoveryHtml(htmlWithEntryRequestId)) {
+    const upgradedHtml = upgradePublicSocialPreviewHtml(htmlWithEntryRequestId);
     if (isBot) {
       return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
     }
     return suppressJwStoneSeoSummaryPaint(upgradedHtml);
   }
 
-  return preparePublicSeoHtmlForResponse(html, {
+  return preparePublicSeoHtmlForResponse(htmlWithEntryRequestId, {
     retainSeoSummary: isBot,
   });
 }

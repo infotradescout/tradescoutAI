@@ -104,8 +104,7 @@ describe("public HTML social-preview upgrade", () => {
       expectedCta: "View listing · Connect safely",
     },
     {
-      canonical:
-        "https://www.thetradescout.com/exchange?tab=promotions&promo=summer-roof-special",
+      canonical: "https://www.thetradescout.com/exchange?tab=promotions&promo=summer-roof-special",
       title: "Exchange Promotion | TradeScout",
       expectedKind: "offer",
       expectedBrand: "TradeScout Exchange",
@@ -247,8 +246,7 @@ describe("public HTML social-preview upgrade", () => {
       expectedCta: "View listing · Connect safely",
     },
     {
-      canonical:
-        "https://www.thetradescout.com/exchange?tab=promotions&promo=summer-roof-special",
+      canonical: "https://www.thetradescout.com/exchange?tab=promotions&promo=summer-roof-special",
       title: "Exchange Promotion | TradeScout",
       description: "Check out this exclusive promotion on TradeScout Exchange.",
       expectedKind: "offer",
@@ -273,8 +271,7 @@ describe("public HTML social-preview upgrade", () => {
     "classifies the production-shaped legacy URL $canonical",
     ({ canonical, title, description, expectedKind, expectedCta }) => {
       const encodedCanonical = canonical.replace(/&/g, "&amp;");
-      const genericImage =
-        "https://www.thetradescout.com/tradescout-social-preview.png?v=12";
+      const genericImage = "https://www.thetradescout.com/tradescout-social-preview.png?v=12";
       const input = htmlFor({
         canonical,
         title,
@@ -382,5 +379,22 @@ describe("public HTML social-preview upgrade", () => {
     });
 
     expect(upgradePublicSocialPreviewHtml(input)).toBe(input);
+  });
+
+  it("preserves JW Stone's direct public preview asset", () => {
+    const image =
+      "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
+    const input = htmlFor({
+      canonical: "https://www.thetradescout.com/jw-stone",
+      title: "JW Stone | Stone Discovery",
+      description: "Browse JW Stone's stone collection.",
+      image,
+    }).replace('data-seo-test="true"', 'data-seo-jw-stone-marketplace="true"');
+
+    const upgraded = upgradePublicSocialPreviewHtml(input);
+
+    expect(upgraded).toContain(`<meta property="og:image" content="${image}" />`);
+    expect(upgraded).toContain(`<meta name="twitter:image" content="${image}" />`);
+    expect(upgraded).not.toContain("/images/social/card/");
   });
 });

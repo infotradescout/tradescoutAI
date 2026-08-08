@@ -1023,6 +1023,18 @@ export async function buildPublicProfileHtml({
         : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
     }" />`
   );
+  if (shouldIndexProfile && (!pageCategoryShare || pageCategoryShare.indexable)) {
+    html = upsertTag(
+      html,
+      /<meta name="tradescout-business-slug"[^>]*>/i,
+      `<meta name="tradescout-business-slug" content="${escapeHtml(profileRecord.slug)}" />`
+    );
+    html = upsertTag(
+      html,
+      /<meta name="tradescout-business-entity-type"[^>]*>/i,
+      '<meta name="tradescout-business-entity-type" content="business_profile" />'
+    );
+  }
   html = upsertTag(
     html,
     /<meta property="og:type"[^>]*>/i,

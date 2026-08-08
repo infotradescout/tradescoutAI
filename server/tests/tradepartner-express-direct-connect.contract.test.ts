@@ -46,12 +46,15 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(theme).toContain("startDirectConnectFromTarget");
     expect(theme).toContain("resolveDirectConnectMaterial");
     expect(panel).toContain("itemId: stableItemId || undefined");
+    expect(panel).toContain("getStoredDiscoveryLandingAttribution(profileSlug)");
     expect(panel).toContain('params.set("item", itemParam)');
     expect(route).toContain("sourceRefId: target.profileId");
     expect(route).toContain('source: "tradepartner_profile"');
     expect(route).toContain('connectionMode: "express"');
     expect(route).toContain("profileId: target.profileId");
     expect(route).toContain("businessId: target.businessId");
+    expect(route).toContain("businessSlug: target.profileSlug");
+    expect(route).toContain("entryRequestId: body.entryRequestId");
     expect(route).toContain("requestType: body.requestType");
     expect(route).toContain("resolveJwStonePublicRequestName({");
     expect(route).toContain("stoneName: publicStoneName");
