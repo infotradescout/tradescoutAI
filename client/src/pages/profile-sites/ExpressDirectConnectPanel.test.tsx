@@ -80,7 +80,9 @@ describe("Express Direct Connect anonymous inventory context", () => {
     vi.stubGlobal("fetch", fetchMock);
     sessionStorage.setItem(
       DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
-      JSON.stringify({ businessSlug: "jw-stone", entryRequestId: "entry-123" })
+      JSON.stringify({
+        discoveryAttributionToken: "signed-payload.signed-signature",
+      })
     );
 
     act(() => {
@@ -135,7 +137,7 @@ describe("Express Direct Connect anonymous inventory context", () => {
       requestType: "request_material",
       message: "Customer type: Fabricator.\n\nI'm interested in this stone selection.",
       updatesOptIn: false,
-      entryRequestId: "entry-123",
+      discoveryAttributionToken: "signed-payload.signed-signature",
     });
     expect(requestBody).not.toHaveProperty("stoneName");
     expect(requestBody).not.toHaveProperty("customerRole");

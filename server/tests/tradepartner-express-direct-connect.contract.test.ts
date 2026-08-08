@@ -54,7 +54,10 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("profileId: target.profileId");
     expect(route).toContain("businessId: target.businessId");
     expect(route).toContain("businessSlug: target.profileSlug");
-    expect(route).toContain("entryRequestId: body.entryRequestId");
+    expect(route).toContain("verifyDiscoveryAttributionToken");
+    expect(route).toContain("businessSlug: target.profileSlug");
+    expect(route).toContain("entryRequestId: verifiedDiscoveryAttribution.entryRequestId");
+    expect(route).not.toContain("entryRequestId: body.entryRequestId");
     expect(route).toContain("requestType: body.requestType");
     expect(route).toContain("resolveJwStonePublicRequestName({");
     expect(route).toContain("stoneName: publicStoneName");

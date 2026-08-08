@@ -225,8 +225,7 @@ app.use((req, res, next) => {
     ) {
       const prepared = preparePublicSeoHtmlForUserAgent(
         body,
-        String(req.headers["user-agent"] || ""),
-        String((req as any).requestId || "")
+        String(req.headers["user-agent"] || "")
       );
       const socialMetadataCacheControl = publicSocialMetadataCacheControl(prepared);
       const existingCacheControl = String(res.getHeader("Cache-Control") || "");

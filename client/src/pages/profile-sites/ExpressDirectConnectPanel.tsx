@@ -378,7 +378,7 @@ export default function ExpressDirectConnectPanel({
             message: messageWithRole,
             website: form.website,
             updatesOptIn: form.updatesOptIn === true,
-            entryRequestId: discoveryAttribution?.entryRequestId,
+            discoveryAttributionToken: discoveryAttribution?.discoveryAttributionToken,
             ...materialContext,
             serviceName: selectedServiceName || undefined,
           }),

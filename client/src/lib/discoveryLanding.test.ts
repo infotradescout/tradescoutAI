@@ -7,12 +7,15 @@ import {
   trackDiscoveryLandingOnce,
 } from "./discoveryLanding";
 
+const discoveryAttributionToken = "signed-payload.signed-signature";
+
 describe("trackDiscoveryLandingOnce", () => {
   beforeEach(() => {
     resetDiscoveryLandingDedupeForTests();
     for (const [name, content] of [
       ["tradescout-business-slug", "jw-stone"],
       ["tradescout-business-entity-type", "business_marketplace"],
+      ["tradescout-discovery-attribution", discoveryAttributionToken],
     ]) {
       const meta = document.createElement("meta");
       meta.name = name;
@@ -25,11 +28,10 @@ describe("trackDiscoveryLandingOnce", () => {
   afterEach(() => {
     document.head
       .querySelectorAll(
-        'meta[name="tradescout-business-slug"], meta[name="tradescout-business-entity-type"], meta[name="tradescout-entry-request-id"]'
+        'meta[name="tradescout-business-slug"], meta[name="tradescout-business-entity-type"], meta[name="tradescout-discovery-attribution"]'
       )
       .forEach((meta) => meta.remove());
     sessionStorage.removeItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY);
-    document.head.querySelector('meta[name="tradescout-entry-request-id"]')?.remove();
     vi.unstubAllGlobals();
     resetDiscoveryLandingDedupeForTests();
   });
@@ -55,7 +57,9 @@ describe("trackDiscoveryLandingOnce", () => {
       canonicalRoute: "/jw-stone",
       businessSlug: "jw-stone",
       entityType: "business_marketplace",
+      discoveryAttributionToken,
     });
+    expect(body).not.toHaveProperty("entryRequestId");
     expect(body).not.toHaveProperty("sourceHint");
   });
 
@@ -76,22 +80,14 @@ describe("trackDiscoveryLandingOnce", () => {
     expect(JSON.stringify(body)).not.toContain("/c/abc");
   });
 
-  it("links the landing event to the server request that rendered the page", async () => {
-    const meta = document.createElement("meta");
-    meta.name = "tradescout-entry-request-id";
-    meta.content = "entry-123";
-    document.head.appendChild(meta);
-
+  it("sends the server-issued envelope rather than a request header id", async () => {
     await trackDiscoveryLandingOnce({
       canonicalRoute: "/jw-stone",
     });
 
     const body = JSON.parse((fetch as any).mock.calls[0][1].body);
-    expect(body).toMatchObject({
-      businessSlug: "jw-stone",
-      entityType: "business_marketplace",
-      entryRequestId: "entry-123",
-    });
+    expect(body.discoveryAttributionToken).toBe(discoveryAttributionToken);
+    expect(body).not.toHaveProperty("entryRequestId");
   });
 
   it("does not block when analytics fetch fails", async () => {

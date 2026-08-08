@@ -1,7 +1,7 @@
 import {
   buildClientDiscoveryLandingPayload,
   DISCOVERY_LANDING_EVENT,
-  sanitizeDiscoveryLandingEvent,
+  normalizeDiscoveryAttributionToken,
 } from "@shared/discoveryLanding";
 import type { DiscoveryLandingEntityType } from "@shared/discoveryLanding";
 
@@ -9,15 +9,17 @@ let lastDiscoveryLandingKey: string | null = null;
 export const DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY = "tradescout:discovery-attribution:v1";
 
 export type StoredDiscoveryLandingAttribution = {
-  businessSlug: string;
-  entryRequestId: string;
+  discoveryAttributionToken: string;
 };
 
-function readEntryRequestId(): string | null {
+function readDiscoveryAttributionToken(): string | null {
   if (typeof document === "undefined") return null;
   return (
-    document.querySelector('meta[name="tradescout-entry-request-id"]')?.getAttribute("content") ??
-    null
+    normalizeDiscoveryAttributionToken(
+      document
+        .querySelector('meta[name="tradescout-discovery-attribution"]')
+        ?.getAttribute("content")
+    ) ?? null
   );
 }
 
@@ -40,34 +42,23 @@ export function getPublishedDiscoveryIdentity(): {
 }
 
 export function getStoredDiscoveryLandingAttribution(
-  profileSlug: string
+  _profileSlug: string
 ): StoredDiscoveryLandingAttribution | null {
   if (typeof window === "undefined") return null;
   try {
     const parsed = JSON.parse(
       window.sessionStorage.getItem(DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY) || "null"
     );
-    const businessSlug = String(parsed?.businessSlug || "")
-      .trim()
-      .toLowerCase();
-    const entryRequestId = String(parsed?.entryRequestId || "").trim();
-    if (
-      businessSlug !==
-        String(profileSlug || "")
-          .trim()
-          .toLowerCase() ||
-      !/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(businessSlug) ||
-      !/^[A-Za-z0-9._:-]{1,128}$/.test(entryRequestId)
-    ) {
-      return null;
-    }
-    return { businessSlug, entryRequestId };
+    const discoveryAttributionToken = normalizeDiscoveryAttributionToken(
+      parsed?.discoveryAttributionToken
+    );
+    return discoveryAttributionToken ? { discoveryAttributionToken } : null;
   } catch {
     return null;
   }
 }
 
-/** Test helper — clears in-memory once-per-landing dedupe. */
+/** Test helper - clears in-memory once-per-landing dedupe. */
 export function resetDiscoveryLandingDedupeForTests(): void {
   lastDiscoveryLandingKey = null;
 }
@@ -81,13 +72,13 @@ export async function trackDiscoveryLandingOnce(options: {
   search?: string;
   referrer?: string | null;
   anonymousSessionId?: string | null;
-  entryRequestId?: string | null;
 }): Promise<boolean> {
   try {
     if (typeof window === "undefined") return false;
 
     const identity = getPublishedDiscoveryIdentity();
-    if (!identity) return false;
+    const discoveryAttributionToken = readDiscoveryAttributionToken();
+    if (!identity || !discoveryAttributionToken) return false;
 
     const params = new URLSearchParams(
       options.search ?? (typeof window !== "undefined" ? window.location.search : "")
@@ -96,35 +87,28 @@ export async function trackDiscoveryLandingOnce(options: {
       canonicalRoute: options.canonicalRoute,
       businessSlug: identity.businessSlug,
       entityType: identity.entityType,
+      discoveryAttributionToken,
       searchParams: params,
       referrer:
         options.referrer ?? (typeof document !== "undefined" ? document.referrer || null : null),
       anonymousSessionId: options.anonymousSessionId ?? null,
-      entryRequestId: options.entryRequestId ?? readEntryRequestId(),
     });
-    const safe = sanitizeDiscoveryLandingEvent(raw);
-    if (!safe) return false;
+    if (!raw.discoveryAttributionToken) return false;
 
-    if (safe.entryRequestId) {
-      try {
-        window.sessionStorage.setItem(
-          DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
-          JSON.stringify({
-            businessSlug: safe.businessSlug,
-            entryRequestId: safe.entryRequestId,
-          })
-        );
-      } catch {
-        // Attribution storage is best-effort and never affects the landing UX.
-      }
+    try {
+      window.sessionStorage.setItem(
+        DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
+        JSON.stringify({ discoveryAttributionToken: raw.discoveryAttributionToken })
+      );
+    } catch {
+      // Attribution storage is best-effort and never affects the landing UX.
     }
 
     const dedupeKey = [
-      safe.businessSlug,
-      safe.entityType,
-      safe.canonicalRoute,
-      safe.sourceHint,
-      safe.entryRequestId,
+      raw.discoveryAttributionToken,
+      raw.canonicalRoute,
+      raw.sourceHint,
+      raw.referrerHost,
     ]
       .map((value) => String(value || ""))
       .join("|");
@@ -135,7 +119,7 @@ export async function trackDiscoveryLandingOnce(options: {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(safe),
+      body: JSON.stringify(raw),
     });
     return true;
   } catch {

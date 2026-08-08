@@ -7,12 +7,21 @@ export const DISCOVERY_LANDING_EVENT = "discovery_landing" as const;
 
 export type DiscoveryLandingEntityType = "business_marketplace" | "business_profile";
 
+export type VerifiedDiscoveryAttribution = {
+  entryRequestId: string;
+  businessSlug: string;
+  entityType: DiscoveryLandingEntityType;
+  canonicalRoute: string;
+  issuedAt: string;
+};
+
 const MAX_ROUTE_LENGTH = 120;
 const MAX_HINT_LENGTH = 64;
 const MAX_HOST_LENGTH = 253;
 const MAX_ANON_LENGTH = 128;
 const MAX_BUSINESS_SLUG_LENGTH = 64;
 const MAX_REQUEST_ID_LENGTH = 128;
+const MAX_ATTRIBUTION_TOKEN_LENGTH = 4096;
 
 /** utm_source=chatgpt.com → chatgpt. Never claims search/crawler causation. */
 export function normalizeDiscoverySourceHint(raw: unknown): string | undefined {
@@ -40,7 +49,7 @@ export function normalizeReferrerHost(raw: unknown): string | undefined {
   }
 }
 
-function normalizeCanonicalRoute(raw: unknown): string | undefined {
+export function normalizeDiscoveryCanonicalRoute(raw: unknown): string | undefined {
   const pathOnly = String(raw ?? "")
     .trim()
     .split(/[?#]/)[0];
@@ -50,7 +59,7 @@ function normalizeCanonicalRoute(raw: unknown): string | undefined {
   return pathOnly.replace(/\/{2,}/g, "/");
 }
 
-function normalizeBusinessSlug(raw: unknown): string | undefined {
+export function normalizeDiscoveryBusinessSlug(raw: unknown): string | undefined {
   const value = String(raw ?? "")
     .trim()
     .toLowerCase();
@@ -64,7 +73,7 @@ function normalizeBusinessSlug(raw: unknown): string | undefined {
   return value;
 }
 
-function normalizeEntryRequestId(raw: unknown): string | undefined {
+export function normalizeDiscoveryEntryRequestId(raw: unknown): string | undefined {
   const value = String(raw ?? "").trim();
   if (!value || value.length > MAX_REQUEST_ID_LENGTH || !/^[A-Za-z0-9._:-]+$/.test(value)) {
     return undefined;
@@ -72,7 +81,7 @@ function normalizeEntryRequestId(raw: unknown): string | undefined {
   return value;
 }
 
-function isPublicBusinessRoute(route: string): boolean {
+export function isPublicBusinessRoute(route: string): boolean {
   return (
     route === "/" ||
     route === "/jw-stone" ||
@@ -83,7 +92,7 @@ function isPublicBusinessRoute(route: string): boolean {
   );
 }
 
-function businessSlugFromPublicRoute(route: string): string | undefined {
+export function businessSlugFromPublicRoute(route: string): string | undefined {
   if (
     route === "/" ||
     route === "/jw-stone" ||
@@ -97,10 +106,55 @@ function businessSlugFromPublicRoute(route: string): string | undefined {
   const match = route.match(/^\/(?:business|u|contractors|helpers)\/([^/]+)/i);
   if (!match) return undefined;
   try {
-    return normalizeBusinessSlug(decodeURIComponent(match[1]));
+    return normalizeDiscoveryBusinessSlug(decodeURIComponent(match[1]));
   } catch {
     return undefined;
   }
+}
+
+export function normalizeDiscoveryAttributionToken(raw: unknown): string | undefined {
+  const value = String(raw ?? "").trim();
+  if (
+    !value ||
+    value.length > MAX_ATTRIBUTION_TOKEN_LENGTH ||
+    !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(value)
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
+export function isValidDiscoveryAttributionIdentity(
+  identity: VerifiedDiscoveryAttribution
+): boolean {
+  const businessSlug = normalizeDiscoveryBusinessSlug(identity.businessSlug);
+  const canonicalRoute = normalizeDiscoveryCanonicalRoute(identity.canonicalRoute);
+  const entryRequestId = normalizeDiscoveryEntryRequestId(identity.entryRequestId);
+  if (!businessSlug || !canonicalRoute || !entryRequestId) return false;
+  if (!isPublicBusinessRoute(canonicalRoute)) return false;
+
+  const routeBusinessSlug = businessSlugFromPublicRoute(canonicalRoute);
+  if (routeBusinessSlug && routeBusinessSlug !== businessSlug) return false;
+
+  if (
+    identity.entityType !== "business_marketplace" &&
+    identity.entityType !== "business_profile"
+  ) {
+    return false;
+  }
+
+  const expectedEntityType =
+    businessSlug === "jw-stone" &&
+    (canonicalRoute === "/" ||
+      canonicalRoute === "/jw-stone" ||
+      canonicalRoute.startsWith("/jw-stone/") ||
+      canonicalRoute.startsWith("/stones/") ||
+      canonicalRoute.startsWith("/materials/") ||
+      canonicalRoute === "/u/jw-stone" ||
+      canonicalRoute === "/business/jw-stone")
+      ? "business_marketplace"
+      : "business_profile";
+  return identity.entityType === expectedEntityType;
 }
 
 /**
@@ -109,44 +163,47 @@ function businessSlugFromPublicRoute(route: string): string | undefined {
  */
 export function sanitizeDiscoveryLandingEvent(
   event: Record<string, unknown>,
-  opts?: { anonymousSessionId?: string | null }
+  opts?: {
+    anonymousSessionId?: string | null;
+    verifiedAttribution?: VerifiedDiscoveryAttribution | null;
+  }
 ): Record<string, unknown> | null {
   if (!event || typeof event !== "object") return null;
   if (event.type !== DISCOVERY_LANDING_EVENT) return null;
 
-  const businessSlug = normalizeBusinessSlug(event.businessSlug);
-  if (!businessSlug) return null;
+  const verifiedAttribution = opts?.verifiedAttribution;
+  if (!verifiedAttribution || !isValidDiscoveryAttributionIdentity(verifiedAttribution)) {
+    return null;
+  }
 
-  const entityType = String(event.entityType ?? "").trim();
-  if (entityType !== "business_marketplace" && entityType !== "business_profile") return null;
-
-  const canonicalRoute = normalizeCanonicalRoute(event.canonicalRoute ?? event.route);
-  if (!canonicalRoute) return null;
-
-  if (!isPublicBusinessRoute(canonicalRoute)) return null;
-
-  const routeBusinessSlug = businessSlugFromPublicRoute(canonicalRoute);
-  if (!routeBusinessSlug || routeBusinessSlug !== businessSlug) return null;
-  const expectedEntityType =
-    routeBusinessSlug === "jw-stone" &&
-    (canonicalRoute === "/" ||
-      canonicalRoute === "/jw-stone" ||
-      canonicalRoute.startsWith("/jw-stone/") ||
-      canonicalRoute.startsWith("/stones/") ||
-      canonicalRoute.startsWith("/materials/"))
-      ? "business_marketplace"
-      : "business_profile";
-  if (entityType !== expectedEntityType) return null;
+  // These are client consistency hints only. They may be compared to the
+  // signed envelope, but never become the stored identity fields.
+  const claimedBusinessSlug = normalizeDiscoveryBusinessSlug(event.businessSlug);
+  const claimedEntityType = String(event.entityType ?? "").trim();
+  const claimedCanonicalRoute = normalizeDiscoveryCanonicalRoute(
+    event.canonicalRoute ?? event.route
+  );
+  if (
+    (Object.prototype.hasOwnProperty.call(event, "businessSlug") &&
+      claimedBusinessSlug !== verifiedAttribution.businessSlug) ||
+    (Object.prototype.hasOwnProperty.call(event, "entityType") &&
+      claimedEntityType !== verifiedAttribution.entityType) ||
+    (Object.prototype.hasOwnProperty.call(event, "canonicalRoute") &&
+      claimedCanonicalRoute !== verifiedAttribution.canonicalRoute) ||
+    (Object.prototype.hasOwnProperty.call(event, "route") &&
+      claimedCanonicalRoute !== verifiedAttribution.canonicalRoute) ||
+    Object.prototype.hasOwnProperty.call(event, "entryRequestId")
+  ) {
+    return null;
+  }
 
   const safe: Record<string, unknown> = {
     type: DISCOVERY_LANDING_EVENT,
-    canonicalRoute,
-    entityType,
-    businessSlug,
-    ts:
-      typeof event.ts === "string" && event.ts.trim()
-        ? event.ts.trim().slice(0, 40)
-        : new Date().toISOString(),
+    canonicalRoute: verifiedAttribution.canonicalRoute,
+    entityType: verifiedAttribution.entityType,
+    businessSlug: verifiedAttribution.businessSlug,
+    entryRequestId: verifiedAttribution.entryRequestId,
+    ts: verifiedAttribution.issuedAt,
   };
 
   const sourceHint = normalizeDiscoverySourceHint(
@@ -167,9 +224,6 @@ export function sanitizeDiscoveryLandingEvent(
     safe.anonymousSessionId = anon.slice(0, MAX_ANON_LENGTH);
   }
 
-  const entryRequestId = normalizeEntryRequestId(event.entryRequestId);
-  if (entryRequestId) safe.entryRequestId = entryRequestId;
-
   return safe;
 }
 
@@ -177,10 +231,10 @@ export function buildClientDiscoveryLandingPayload(args: {
   canonicalRoute: string;
   businessSlug: string;
   entityType: DiscoveryLandingEntityType;
+  discoveryAttributionToken: string;
   searchParams?: URLSearchParams | { get: (key: string) => string | null };
   referrer?: string | null;
   anonymousSessionId?: string | null;
-  entryRequestId?: string | null;
   ts?: string;
 }): Record<string, unknown> {
   const utmSource =
@@ -190,13 +244,15 @@ export function buildClientDiscoveryLandingPayload(args: {
 
   return {
     type: DISCOVERY_LANDING_EVENT,
+    // Identity values are consistency hints. The server derives persisted
+    // identity from the verified token, never from these client fields.
     canonicalRoute: args.canonicalRoute,
     entityType: args.entityType,
     businessSlug: args.businessSlug,
+    discoveryAttributionToken: normalizeDiscoveryAttributionToken(args.discoveryAttributionToken),
     ts: args.ts || new Date().toISOString(),
     sourceHint: normalizeDiscoverySourceHint(utmSource),
     referrerHost: normalizeReferrerHost(args.referrer),
     anonymousSessionId: args.anonymousSessionId || undefined,
-    entryRequestId: args.entryRequestId || undefined,
   };
 }
