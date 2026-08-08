@@ -341,7 +341,10 @@ export function buildReport({
     : postRelease
       ? "post_release"
       : "crosses_release_boundary";
-  const releaseMetricsApplicable = !historicalPreRelease;
+  const releaseMetricsApplicable = postRelease;
+  const releaseMetricsNotApplicableReason = historicalPreRelease
+    ? "release was not active during this window"
+    : "window crosses the release boundary; split the window at production activation";
   const profiles = new Map();
   for (const row of catalogRows) {
     const profile = addActivityRow(profiles, row.business_slug, row.display_name);
@@ -520,10 +523,10 @@ export function buildReport({
       productionActivatedAt: productionActivationAtLabel,
       signedAttribution: releaseMetricsApplicable
         ? { status: "measured" }
-        : { status: "not_applicable", reason: "release was not active during this window" },
+        : { status: "not_applicable", reason: releaseMetricsNotApplicableReason },
       discoveryConversion: releaseMetricsApplicable
         ? { status: "measured" }
-        : { status: "not_applicable", reason: "release was not active during this window" },
+        : { status: "not_applicable", reason: releaseMetricsNotApplicableReason },
     },
     definitions: DISCOVERY_PERFORMANCE_DEFINITIONS,
     summary,
@@ -551,7 +554,7 @@ export function buildReport({
         }
       : {
           status: "not_applicable",
-          reason: "release was not active during this window",
+          reason: releaseMetricsNotApplicableReason,
           items: [],
         },
   };
@@ -560,6 +563,7 @@ export function buildReport({
 export function buildMarkdown(report) {
   const formatMetric = (value) => (value === null || value === undefined ? "N/A" : String(value));
   const historicalPreRelease = report.measurement.phase === "historical_pre_release";
+  const crossesReleaseBoundary = report.measurement.phase === "crosses_release_boundary";
   const sourceLabel = historicalPreRelease ? "Historical source proxy" : "Source-attributed";
   const lines = [
     "# TradeScout Discovery Performance Report",
@@ -579,7 +583,9 @@ export function buildMarkdown(report) {
     `- Measurement phase: **${report.measurement.phase}**`,
     historicalPreRelease
       ? "- Signed attribution and discovery conversion are **not applicable** in this pre-release window; no rate or failure percentage is calculated."
-      : "- Signed attribution and discovery conversion are measured only from the production activation boundary.",
+      : crossesReleaseBoundary
+        ? "- Signed attribution and discovery conversion are **not applicable** in this mixed window; split it at the production activation boundary."
+        : "- Signed attribution and discovery conversion are measured only from the production activation boundary.",
     "",
     "## Summary",
     "",
@@ -649,8 +655,8 @@ export function buildMarkdown(report) {
     "- A profile with crawl evidence but no visit evidence is being fetched by a bot without a measured human entry.",
     "- A profile with source-attributed landings has evidence that a visitor arrived from a named source or referrer, but this is not an impression count.",
     "- A source-attributed landing without a verified entryRequestId can be measured as a landing but cannot be joined to a later request.",
-    historicalPreRelease
-      ? "- Signed attribution and discovery conversion are not applicable before the release; the post-release clock begins at the production activation timestamp above."
+    historicalPreRelease || crossesReleaseBoundary
+      ? "- Signed attribution and discovery conversion are not applicable until the selected window starts at or after the production activation timestamp above."
       : "- A request is counted as discovery-converted only when the verified server-issued entryRequestId is present in both the landing event and the created request event.",
     "- Zero values are evidence gaps in this window, not proof that a profile was never crawled, shown, visited, or requested outside the window.",
     ""

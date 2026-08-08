@@ -99,3 +99,34 @@ test("post-release windows measure source attribution and conversion", () => {
   assert.equal(report.requestDistributionByProfile.status, "measured");
   assert.equal(report.requestDistributionByProfile.items[0].requests, 1);
 });
+
+test("windows crossing activation do not measure signed attribution or conversion", () => {
+  const report = buildReport({
+    catalogRows: [
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
+    ],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [{
+      business_slug: "example-business",
+      landing_events: 2,
+      unique_visitors: 2,
+      attributed_landings: 2,
+      source_attributed_landings: 2,
+    }],
+    sourceRows: [{ business_slug: "example-business", source: "utm:chatgpt", attributed_landings: 2 }],
+    profileViewRows: [],
+    conversionRows: [{ business_slug: "example-business", attributed_landings: 2, converted_requests: 1 }],
+    generatedAt: "2026-08-08T18:00:00.000Z",
+    from: new Date("2026-08-08T17:00:00.000Z"),
+    to: new Date("2026-08-08T18:00:00.000Z"),
+    windowDays: 1,
+    productionActivationAt: activationAt,
+  });
+
+  assert.equal(report.measurement.phase, "crosses_release_boundary");
+  assert.equal(report.measurement.signedAttribution.status, "not_applicable");
+  assert.equal(report.measurement.discoveryConversion.status, "not_applicable");
+  assert.equal(report.summary.convertedRequests, null);
+  assert.equal(report.requestDistributionByProfile.status, "not_applicable");
+});
