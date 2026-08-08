@@ -57,7 +57,9 @@ describe("signed discovery attribution", () => {
 
   it("rejects tampered tokens and tokens bound to another business or route", () => {
     const businessAToken = issueToken("business-a", "/business/business-a");
-    const tamperedToken = `${businessAToken.slice(0, -1)}x`;
+    const [payload, signature] = businessAToken.split(".");
+    const tamperedSignature = `${signature[0] === "A" ? "B" : "A"}${signature.slice(1)}`;
+    const tamperedToken = `${payload}.${tamperedSignature}`;
 
     expect(verifyDiscoveryAttributionToken(tamperedToken)).toBeNull();
     expect(

@@ -9,7 +9,9 @@ const read = (relativePath: string) => {
 
 const expectedSitemapLocs = [
   "https://www.thetradescout.com/sitemap-core.xml",
-  "https://www.thetradescout.com/sitemap-profiles.xml",
+  "https://www.thetradescout.com/sitemap-u-profiles.xml",
+  "https://www.thetradescout.com/sitemap-business-profiles.xml",
+  "https://www.thetradescout.com/sitemap-directory-businesses.xml",
   "https://www.thetradescout.com/sitemap-homescout-counties.xml",
   "https://www.thetradescout.com/sitemap-homescout-listings.xml",
   "https://www.thetradescout.com/sitemap-tradepartners.xml",
