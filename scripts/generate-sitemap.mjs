@@ -21,7 +21,9 @@ const OUTPUT_INDEX_PATH = resolve(__dirname, '../client/public/sitemap-index.xml
 
 const SUBMITTED_SITEMAP_TARGETS = [
   '/sitemap-core.xml',
-  '/sitemap-profiles.xml',
+  '/sitemap-u-profiles.xml',
+  '/sitemap-business-profiles.xml',
+  '/sitemap-directory-businesses.xml',
   '/sitemap-homescout-counties.xml',
   '/sitemap-homescout-listings.xml',
   '/sitemap-tradepartners.xml',

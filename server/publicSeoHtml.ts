@@ -11,7 +11,8 @@ const CLIENT_MODULE_SCRIPT_PATTERN =
   /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
-const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
+const FACT_BEARING_PUBLIC_DISCOVERY_MARKER =
+  /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
 const DISCOVERY_ATTRIBUTION_META_PATTERN =
   /<meta\b[^>]*\bname\s*=\s*(['"])tradescout-discovery-attribution\1[^>]*>/i;
 const HTML_META_CONTENT_PATTERN = (name: string) =>
@@ -30,10 +31,33 @@ export function isJwStonePublicDiscoveryHtml(html: string): boolean {
 }
 
 export function isFactBearingPublicDiscoveryHtml(html: string): boolean {
-  return (
-    isJwStonePublicDiscoveryHtml(html) ||
-    FACT_BEARING_PUBLIC_DISCOVERY_MARKER.test(String(html || ""))
-  );
+  const source = String(html || "");
+  return isJwStonePublicDiscoveryHtml(source) || FACT_BEARING_PUBLIC_DISCOVERY_MARKER.test(source);
+}
+
+function mergeSeoSummaryPaintSuppression(attrs: string): string {
+  if (/\bstyle\s*=/i.test(attrs)) {
+    return attrs.replace(
+      /\bstyle\s*=\s*(["'])([\s\S]*?)\1/i,
+      (_styleMatch, quote: string, styleValue: string) => {
+        const trimmed = String(styleValue || "")
+          .trim()
+          .replace(/;?\s*$/, "");
+        const merged = trimmed
+          ? `${trimmed};${JW_STONE_SEO_CLIENT_SUPPRESS}`
+          : JW_STONE_SEO_CLIENT_SUPPRESS;
+        return `style=${quote}${merged}${quote}`;
+      }
+    );
+  }
+  return `${attrs} style="${JW_STONE_SEO_CLIENT_SUPPRESS}"`;
+}
+
+function suppressSeoSummaryPaint(html: string, marker: RegExp): string {
+  return String(html || "").replace(/<main\b([^>]*)>/i, (match, attrs: string) => {
+    if (!marker.test(attrs)) return match;
+    return `<main${mergeSeoSummaryPaintSuppression(attrs)}>`;
+  });
 }
 
 /**
@@ -42,27 +66,11 @@ export function isFactBearingPublicDiscoveryHtml(html: string): boolean {
  * Facts remain in the document; presentation is suppressed only for client paint.
  */
 export function suppressJwStoneSeoSummaryPaint(html: string): string {
-  return String(html || "").replace(
-    /<main\b([^>]*\bdata-seo-jw-stone-marketplace\b[^>]*)>/i,
-    (_match, attrs: string) => {
-      if (/\bstyle\s*=/i.test(attrs)) {
-        const nextAttrs = attrs.replace(
-          /\bstyle\s*=\s*(["'])([\s\S]*?)\1/i,
-          (_styleMatch, quote: string, styleValue: string) => {
-            const trimmed = String(styleValue || "")
-              .trim()
-              .replace(/;?\s*$/, "");
-            const merged = trimmed
-              ? `${trimmed};${JW_STONE_SEO_CLIENT_SUPPRESS}`
-              : JW_STONE_SEO_CLIENT_SUPPRESS;
-            return `style=${quote}${merged}${quote}`;
-          }
-        );
-        return `<main${nextAttrs}>`;
-      }
-      return `<main${attrs} style="${JW_STONE_SEO_CLIENT_SUPPRESS}">`;
-    }
-  );
+  return suppressSeoSummaryPaint(html, JW_STONE_PUBLIC_DISCOVERY_MARKER);
+}
+
+export function suppressPublicSeoSummaryPaint(html: string): string {
+  return suppressSeoSummaryPaint(html, FACT_BEARING_PUBLIC_DISCOVERY_MARKER);
 }
 
 export function publicSocialMetadataCacheControl(html: string): string | null {
@@ -132,16 +140,18 @@ export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: strin
   const htmlWithDiscoveryAttribution = attachDiscoveryAttributionMeta(html);
   const actor = detectActorFromUserAgent(userAgent);
   const isBot = actor.actorType === "bot";
+  const upgradedHtml = upgradePublicSocialPreviewHtml(htmlWithDiscoveryAttribution);
 
-  // JW Stone Phase 3A: public facts must not depend on crawler UA retention.
-  // Same fact-bearing summary for all UAs; bots keep crawlable visible SSR without
-  // client modules; humans keep client boot and suppress SEO chrome to avoid flash.
-  if (isJwStonePublicDiscoveryHtml(htmlWithDiscoveryAttribution)) {
-    const upgradedHtml = upgradePublicSocialPreviewHtml(htmlWithDiscoveryAttribution);
+  // Public facts must not depend on crawler UA retention. Bots keep crawlable
+  // visible SSR without client modules; browsers keep the same facts in the
+  // initial document while suppressing the SEO chrome until React mounts.
+  if (isFactBearingPublicDiscoveryHtml(htmlWithDiscoveryAttribution)) {
     if (isBot) {
       return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
     }
-    return suppressJwStoneSeoSummaryPaint(upgradedHtml);
+    return isJwStonePublicDiscoveryHtml(htmlWithDiscoveryAttribution)
+      ? suppressJwStoneSeoSummaryPaint(upgradedHtml)
+      : suppressPublicSeoSummaryPaint(upgradedHtml);
   }
 
   return preparePublicSeoHtmlForResponse(htmlWithDiscoveryAttribution, {
