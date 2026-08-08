@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "bundleId": "tradescout-wave1-operator-evidence-2026-08-08",
+  "bundleCreatedAt": "2026-08-08T16:45:03Z",
+  "runtimeSeed": false,
+  "automaticImport": false,
+  "importReadiness": "ready_for_explicit_disposable_or_admin_capture",
+  "evidenceBoundary": "This is a timestamped operator evidence bundle, not a production metric or causal claim. Observation precision is day; exact time, location, and device were not captured. Runtime views read current database events only, and this bundle is never automatically imported.",
+  "observations": [
+    {
+      "operatorEvidenceId": "wave1-search-jw-exact-brand",
+      "observedAt": "2026-08-08",
+      "observedAtPrecision": "day",
+      "sourceFreshUntil": "2026-09-05",
+      "sourceFreshUntilPrecision": "day",
+      "source": "permitted_web_search",
+      "surface": "web_search",
+      "queryEvidenceState": "known",
+      "query": "\"JW Stone Logistics\" TradeScout",
+      "resultState": "observed",
+      "entity": { "type": "business", "slug": "jw-stone" },
+      "citedUrl": "https://jwstonelogistics.com/",
+      "supportingFacts": [
+        "The exact brand-plus-TradeScout query surfaced the JW Stone custom domain.",
+        "Material pages for granite, marble, and soapstone were also surfaced."
+      ],
+      "location": null,
+      "device": null,
+      "provenance": {
+        "method": "permitted_web_search",
+        "collector": "independent_wave1_operator"
+      },
+      "causalInference": "none"
+    },
+    {
+      "operatorEvidenceId": "wave1-search-jrs-exact-brand",
+      "observedAt": "2026-08-08",
+      "observedAtPrecision": "day",
+      "sourceFreshUntil": "2026-09-05",
+      "sourceFreshUntilPrecision": "day",
+      "source": "permitted_web_search",
+      "surface": "web_search",
+      "queryEvidenceState": "known",
+      "query": "\"JR's Auto Glass\" TradeScout",
+      "resultState": "not_observed",
+      "entity": { "type": "business", "slug": "jrs-auto-glass" },
+      "citedUrl": null,
+      "supportingFacts": [
+        "No TradeScout result was observed for this query.",
+        "Unrelated same-name businesses dominated the returned results; their relationship is unknown and they are not labeled competitors."
+      ],
+      "location": null,
+      "device": null,
+      "provenance": {
+        "method": "permitted_web_search",
+        "collector": "independent_wave1_operator"
+      },
+      "causalInference": "none"
+    },
+    {
+      "operatorEvidenceId": "wave1-search-jw-tradescout-site",
+      "observedAt": "2026-08-08",
+      "observedAtPrecision": "day",
+      "sourceFreshUntil": "2026-09-05",
+      "sourceFreshUntilPrecision": "day",
+      "source": "permitted_web_search",
+      "surface": "web_search",
+      "queryEvidenceState": "known",
+      "query": "site:thetradescout.com \"JW Stone\"",
+      "resultState": "not_observed",
+      "entity": { "type": "business", "slug": "jw-stone" },
+      "citedUrl": null,
+      "supportingFacts": [
+        "No TradeScout-hosted result was observed for this query.",
+        "This does not conflict with the separate custom-domain observation."
+      ],
+      "location": null,
+      "device": null,
+      "provenance": {
+        "method": "permitted_web_search",
+        "collector": "independent_wave1_operator"
+      },
+      "causalInference": "none"
+    },
+    {
+      "operatorEvidenceId": "wave1-jw-custom-domain-http-parity",
+      "observedAt": "2026-08-08",
+      "observedAtPrecision": "day",
+      "sourceFreshUntil": "2026-09-05",
+      "sourceFreshUntilPrecision": "day",
+      "source": "operator_http_check",
+      "surface": "direct_http",
+      "queryEvidenceState": "unavailable",
+      "query": null,
+      "resultState": "observed",
+      "entity": { "type": "business", "slug": "jw-stone" },
+      "citedUrl": "https://jwstonelogistics.com/",
+      "supportingFacts": [
+        "Root, robots.txt, and sitemap.xml returned HTTP 200 with appropriate HTML, text, and XML content types.",
+        "Browser and Googlebot byte hashes differed.",
+        "Both variants contained the same title, JSON-LD, H1 'Natural stone, selected at the source.', and 'Current Inventory'.",
+        "Semantic parity was observed; byte mismatch alone was not treated as failure."
+      ],
+      "location": null,
+      "device": null,
+      "provenance": {
+        "method": "operator_manual",
+        "collector": "independent_wave1_operator"
+      },
+      "causalInference": "none"
+    }
+  ]
+}

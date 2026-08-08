@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,6 +23,7 @@ import {
 import { StateCountySelector } from "@/components/state-county-selector";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { DirectoryListingLink } from "./DirectoryListingLink";
+import { DISCOVERY_INTERNAL_SEARCH_EVENT } from "@shared/discoveryObservatory";
 
 const BUSINESS_AVATAR_PALETTE = [
   "bg-sky-500/20 text-sky-200",
@@ -152,6 +153,7 @@ export default function DirectConnectPros() {
   const [tradeSlug, setTradeSlug] = useState(routePrefill.tradeSlug || "");
   const [searchQuery, setSearchQuery] = useState(routePrefill.searchQuery || "");
   const [showOutsideArea, setShowOutsideArea] = useState(false);
+  const recordedSearches = useRef(new Set<string>());
 
   const effectiveStateCode = String(stateCode || location.stateCode || "").toUpperCase();
   const effectiveCountyFips = String(countyFips || location.countyFips || "").trim();
@@ -289,6 +291,54 @@ export default function DirectConnectPros() {
       return Array.isArray(payload?.items) ? payload.items : [];
     },
   });
+
+  useEffect(() => {
+    const query = searchQuery.trim() || effectiveTradeSlug;
+    if (!query || !canQueryDirectory || isLoading) return;
+    if (showEmptyState && (directoryFallbackLoading || stateDirectoryFallbackLoading)) return;
+
+    const resultCount =
+      ((contractors as any[]) || []).length +
+      directoryFallback.length +
+      stateDirectoryFallback.length;
+    const key = JSON.stringify([
+      query.toLowerCase(),
+      effectiveStateCode,
+      effectiveCountyFips,
+      effectiveTradeSlug,
+      resultCount,
+    ]);
+    if (recordedSearches.current.has(key)) return;
+    recordedSearches.current.add(key);
+
+    void fetch("/api/analytics/shell", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({
+        type: DISCOVERY_INTERNAL_SEARCH_EVENT,
+        query,
+        resultCount,
+        observedAt: new Date().toISOString(),
+        stateCode: effectiveStateCode || undefined,
+        countyFips: effectiveCountyFips || undefined,
+        tradeSlug: effectiveTradeSlug || undefined,
+      }),
+    }).catch(() => undefined);
+  }, [
+    canQueryDirectory,
+    contractors,
+    directoryFallback,
+    directoryFallbackLoading,
+    effectiveCountyFips,
+    effectiveStateCode,
+    effectiveTradeSlug,
+    isLoading,
+    searchQuery,
+    showEmptyState,
+    stateDirectoryFallback,
+    stateDirectoryFallbackLoading,
+  ]);
 
   const handleStateChange = (value: string) => {
     setStateCode(value);
