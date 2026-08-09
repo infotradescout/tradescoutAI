@@ -155,7 +155,7 @@ const crawlSummarySql = `
   ), normalized AS (
     SELECT
       COALESCE(
-        recorded_profile.business_slug,
+        NULLIF(lower(trim(e.entity_slug)), ''),
         custom_profile.business_slug,
         CASE
           WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
@@ -173,19 +173,18 @@ const crawlSummarySql = `
       e.is_first_seen_url,
       e.is_recrawl
     FROM bot_observation_events e
-    LEFT JOIN published_profiles recorded_profile
-      ON recorded_profile.business_slug = NULLIF(lower(e.entity_slug), '')
     LEFT JOIN unambiguous_custom_domains custom_profile
       ON custom_profile.custom_domain = regexp_replace(
         lower(split_part(COALESCE(e.host, ''), ':', 1)),
         '^www\\.',
         ''
       )
+      AND NULLIF(trim(e.entity_slug), '') IS NULL
       AND lower(COALESCE(e.content_type, '')) LIKE 'text/html%'
     WHERE e.observed_at >= $1
       AND e.observed_at < $2
       AND (
-        recorded_profile.business_slug IS NOT NULL
+        NULLIF(trim(e.entity_slug), '') IS NOT NULL
         OR custom_profile.business_slug IS NOT NULL
         OR e.path LIKE '/u/%'
         OR e.path LIKE '/business/%'
@@ -235,7 +234,7 @@ const crawlFamilySummarySql = `
   ), normalized AS (
     SELECT
       COALESCE(
-        recorded_profile.business_slug,
+        NULLIF(lower(trim(e.entity_slug)), ''),
         custom_profile.business_slug,
         CASE
           WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
@@ -248,19 +247,18 @@ const crawlFamilySummarySql = `
       ) AS business_slug,
       COALESCE(NULLIF(trim(e.bot_family), ''), 'unknown') AS crawler_family
     FROM bot_observation_events e
-    LEFT JOIN published_profiles recorded_profile
-      ON recorded_profile.business_slug = NULLIF(lower(e.entity_slug), '')
     LEFT JOIN unambiguous_custom_domains custom_profile
       ON custom_profile.custom_domain = regexp_replace(
         lower(split_part(COALESCE(e.host, ''), ':', 1)),
         '^www\\.',
         ''
       )
+      AND NULLIF(trim(e.entity_slug), '') IS NULL
       AND lower(COALESCE(e.content_type, '')) LIKE 'text/html%'
     WHERE e.observed_at >= $1
       AND e.observed_at < $2
       AND (
-        recorded_profile.business_slug IS NOT NULL
+        NULLIF(trim(e.entity_slug), '') IS NOT NULL
         OR custom_profile.business_slug IS NOT NULL
         OR e.path LIKE '/u/%'
         OR e.path LIKE '/business/%'
@@ -446,6 +444,39 @@ export function parseDateArgument(args, prefix) {
   if (!raw) {
     throw new Error(`Invalid ${prefix.slice(0, -1)} date: value is required`);
   }
+
+  const match = raw.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|([+-])(\d{2}):(\d{2}))$/
+  );
+  if (!match) {
+    throw new Error(`Invalid ${prefix.slice(0, -1)} date: ${raw}`);
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const offsetHour = match[10] === undefined ? 0 : Number(match[10]);
+  const offsetMinute = match[11] === undefined ? 0 : Number(match[11]);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  if (
+    month < 1
+    || month > 12
+    || day < 1
+    || day > daysInMonth[month - 1]
+    || hour > 23
+    || minute > 59
+    || second > 59
+    || offsetHour > 23
+    || offsetMinute > 59
+  ) {
+    throw new Error(`Invalid ${prefix.slice(0, -1)} date: ${raw}`);
+  }
+
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.getTime())) {
     throw new Error(`Invalid ${prefix.slice(0, -1)} date: ${raw}`);

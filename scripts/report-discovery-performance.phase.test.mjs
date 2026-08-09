@@ -195,6 +195,26 @@ test("custom activation timestamps control both phase and displayed boundary", (
 test("explicit invalid CLI dates and day counts fail closed", () => {
   assert.equal(parseDateArgument([], "--from="), null);
   assert.throws(() => parseDateArgument(["--from=not-a-date"], "--from="), /Invalid --from date/);
+  assert.throws(
+    () => parseDateArgument(["--from=2026-02-30T00:00:00.000Z"], "--from="),
+    /Invalid --from date/
+  );
+  assert.throws(
+    () => parseDateArgument(["--from=2025-02-29T00:00:00.000Z"], "--from="),
+    /Invalid --from date/
+  );
+  assert.throws(
+    () => parseDateArgument(["--from=2026-01-01T24:00:00.000Z"], "--from="),
+    /Invalid --from date/
+  );
+  assert.throws(
+    () => parseDateArgument(["--from=2026-01-01"], "--from="),
+    /Invalid --from date/
+  );
+  assert.equal(
+    parseDateArgument(["--from=2024-02-29T12:30:45.123456Z"], "--from=")?.toISOString(),
+    "2024-02-29T12:30:45.123Z"
+  );
   assert.throws(() => parseDateArgument(["--to="], "--to="), /Invalid --to date/);
   assert.equal(parsePositiveDays([]), 30);
   assert.throws(() => parsePositiveDays(["--days=0.5"]), /Invalid --days value/);

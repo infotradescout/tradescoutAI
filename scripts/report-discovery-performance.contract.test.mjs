@@ -29,9 +29,15 @@ test("uses the four production evidence layers and stays read-only", () => {
   assert.ok(source.includes("e.content_type"));
   assert.ok(source.includes("e.host"));
   assert.ok(source.includes("row.is_publicly_exposable === true"));
-  assert.match(
-    source,
-    /COALESCE\(\s*recorded_profile\.business_slug,\s*custom_profile\.business_slug,/
+  assert.equal(
+    source.match(
+      /COALESCE\(\s*NULLIF\(lower\(trim\(e\.entity_slug\)\), ''\),\s*custom_profile\.business_slug,/g
+    )?.length,
+    2
+  );
+  assert.equal(
+    source.match(/AND NULLIF\(trim\(e\.entity_slug\), ''\) IS NULL/g)?.length,
+    2
   );
   assert.doesNotMatch(source, /\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE)\s+(?:INTO\s+)?[a-z_]+/i);
 });
@@ -51,4 +57,9 @@ test("exposes a repeatable package command", () => {
     packageJson.scripts["report:discovery-performance"],
     "node scripts/report-discovery-performance.mjs"
   );
+  assert.equal(
+    packageJson.scripts["test:discovery-performance"],
+    "node --test scripts/report-discovery-performance.contract.test.mjs scripts/report-discovery-performance.phase.test.mjs"
+  );
+  assert.ok(read("scripts/run-minimum-release-contract.mjs").includes("test:discovery-performance"));
 });
