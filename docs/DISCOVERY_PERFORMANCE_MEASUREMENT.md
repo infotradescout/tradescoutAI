@@ -26,14 +26,15 @@ The command accepts `--from`, `--to`, `--release-at`, `--days`, and `--out-dir`.
 
 ## Definitions
 
-- `crawled`: a bot observation for a published public profile route, grouped by profile and crawler family.
+- `crawled`: a bot observation for a publicly exposable profile route on TradeScout or its unambiguous custom domain, grouped by profile and crawler family. Custom-domain mapping counts HTML routes only, so asset fetches are not misreported as profile crawls.
 - `surfaced`: a post-release verified discovery landing with a source hint or referrer host. This is a source-attributed arrival proxy, not a search-engine impression.
 - `visited`: human-only `profile_view_events` plus discovery landing events where applicable.
 - `converted`: a post-release created work request whose `work_request_events.metadata.entryRequestId` matches a verified discovery landing identity.
-- `uncrawled`: a published profile with no bot observation in the selected window.
-- `unvisited`: a published profile with neither a human profile view nor a discovery landing in the selected window.
+- `publicly exposable`: a published profile that passes the same public visibility, trust-authority, and internal-profile indexing boundaries used by anonymous profile reads and profile sitemaps.
+- `uncrawled`: a publicly exposable profile with no bot observation in the selected window.
+- `unvisited`: a publicly exposable profile with neither a human profile view nor a discovery landing in the selected window.
 
-The output includes aggregate profile coverage, request distribution by profile, and crawl distribution by crawler family. Profile names and slugs are public catalog fields; crawler-family labels are aggregate categories.
+Discovery performance denominators include only publicly exposable profiles. Published rows that fail public visibility, trust authority, or internal-profile indexing rules are listed separately as exclusions and do not count as uncrawled or unvisited public profiles. The output includes aggregate profile coverage, request distribution by profile, and crawl distribution by crawler family. Profile names and slugs are public catalog fields; crawler-family labels are aggregate categories.
 
 ## Separate surfaced-performance follow-up
 
