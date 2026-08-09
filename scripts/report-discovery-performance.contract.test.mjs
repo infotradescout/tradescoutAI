@@ -29,6 +29,10 @@ test("uses the four production evidence layers and stays read-only", () => {
   assert.ok(source.includes("e.content_type"));
   assert.ok(source.includes("e.host"));
   assert.ok(source.includes("row.is_publicly_exposable === true"));
+  assert.match(
+    source,
+    /COALESCE\(\s*recorded_profile\.business_slug,\s*custom_profile\.business_slug,/
+  );
   assert.doesNotMatch(source, /\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE)\s+(?:INTO\s+)?[a-z_]+/i);
 });
 
