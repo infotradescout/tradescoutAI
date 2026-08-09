@@ -15,6 +15,13 @@ function buildHistoricalReport() {
     catalogRows: [
       { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
       { business_slug: "uncrawled-business", display_name: "Uncrawled Business", canonical_route: "/u/uncrawled-business" },
+      {
+        business_slug: "private-business",
+        display_name: "Private Business",
+        canonical_route: "/u/private-business",
+        is_publicly_exposable: false,
+        exclusion_reason: "visibility_not_public",
+      },
     ],
     crawlRows: [
       {
@@ -70,6 +77,17 @@ test("historical windows mark signed attribution and conversion as not applicabl
   ]);
   assert.equal(report.requestDistributionByProfile.status, "not_applicable");
   assert.equal(report.profiles[0].converted.requests, null);
+  assert.equal(report.summary.publishedProfiles, 3);
+  assert.equal(report.summary.catalogProfiles, 2);
+  assert.equal(report.summary.excludedPublishedProfiles, 1);
+  assert.deepEqual(report.coverage.excludedPublishedProfiles, [
+    {
+      slug: "private-business",
+      displayName: "Private Business",
+      reason: "visibility_not_public",
+    },
+  ]);
+  assert.equal(report.profiles.some((profile) => profile.slug === "private-business"), false);
 });
 
 test("post-release windows measure source attribution and conversion", () => {
