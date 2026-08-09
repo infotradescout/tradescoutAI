@@ -9,7 +9,7 @@ Merge/push to `main` **is** production (Render auto-deploy). This contract is th
 | 1 | Exact proposed commit | `git rev-parse HEAD` recorded in evidence |
 | 2 | Clean dependency install | `npm ci` |
 | 3 | Type + build | `npm run check` then `npm run build` |
-| 4 | Relevant contract tests | focused vitest set inside the gate |
+| 4 | Relevant contract tests | focused Vitest set plus discovery-performance Node contract tests inside the gate |
 | 5 | Database compatibility proof | migrate + `db:verify:required` on `TEST_DATABASE_URL` |
 | 6 | Browser proof | `BASE_URL` public-entry smoke **or** manual note |
 | 7 | Health endpoint shape | `/api/health` returns service status, DB connectivity, `commit`, `migrations.*` (no secrets) |

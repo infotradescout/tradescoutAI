@@ -182,13 +182,9 @@ async function main() {
   }
 
   const discoveryPerformanceTests = run(
-    "node",
-    [
-      "--test",
-      "scripts/report-discovery-performance.contract.test.mjs",
-      "scripts/report-discovery-performance.phase.test.mjs",
-    ],
-    { label: "discovery performance contract and phase tests" }
+    "npm",
+    ["run", "test:discovery-performance"],
+    { label: "discovery performance report contract tests" }
   );
   record(
     "4-discovery-performance-tests",

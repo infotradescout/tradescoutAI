@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildMarkdown,
   buildReport,
   DISCOVERY_PERFORMANCE_RELEASE,
+  parseDateArgument,
+  parsePositiveDays,
 } from "./report-discovery-performance.mjs";
 
 const activationAt = new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt);
@@ -10,8 +13,15 @@ const activationAt = new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedA
 function buildHistoricalReport() {
   return buildReport({
     catalogRows: [
-      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
-      { business_slug: "uncrawled-business", display_name: "Uncrawled Business", canonical_route: "/u/uncrawled-business" },
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business", is_publicly_exposable: true },
+      { business_slug: "uncrawled-business", display_name: "Uncrawled Business", canonical_route: "/u/uncrawled-business", is_publicly_exposable: true },
+      {
+        business_slug: "private-business",
+        display_name: "Private Business",
+        canonical_route: "/u/private-business",
+        is_publicly_exposable: false,
+        exclusion_reason: "visibility_not_public",
+      },
     ],
     crawlRows: [
       {
@@ -67,12 +77,23 @@ test("historical windows mark signed attribution and conversion as not applicabl
   ]);
   assert.equal(report.requestDistributionByProfile.status, "not_applicable");
   assert.equal(report.profiles[0].converted.requests, null);
+  assert.equal(report.summary.publishedProfiles, 3);
+  assert.equal(report.summary.catalogProfiles, 2);
+  assert.equal(report.summary.excludedPublishedProfiles, 1);
+  assert.deepEqual(report.coverage.excludedPublishedProfiles, [
+    {
+      slug: "private-business",
+      displayName: "Private Business",
+      reason: "visibility_not_public",
+    },
+  ]);
+  assert.equal(report.profiles.some((profile) => profile.slug === "private-business"), false);
 });
 
 test("post-release windows measure source attribution and conversion", () => {
   const report = buildReport({
     catalogRows: [
-      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business", is_publicly_exposable: true },
     ],
     crawlRows: [],
     crawlFamilyRows: [],
@@ -103,7 +124,7 @@ test("post-release windows measure source attribution and conversion", () => {
 test("windows crossing activation do not measure signed attribution or conversion", () => {
   const report = buildReport({
     catalogRows: [
-      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business", is_publicly_exposable: true },
     ],
     crawlRows: [],
     crawlFamilyRows: [],
@@ -129,4 +150,108 @@ test("windows crossing activation do not measure signed attribution or conversio
   assert.equal(report.measurement.discoveryConversion.status, "not_applicable");
   assert.equal(report.summary.convertedRequests, null);
   assert.equal(report.requestDistributionByProfile.status, "not_applicable");
+});
+
+test("explicit bounds determine the reported duration", () => {
+  const report = buildReport({
+    catalogRows: [],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    generatedAt: "2026-08-08T18:00:00.000Z",
+    from: new Date("2026-08-08T18:00:00.000Z"),
+    to: new Date("2026-08-09T00:00:00.000Z"),
+    windowDays: 30,
+    productionActivationAt: activationAt,
+  });
+
+  assert.equal(report.windowDays, 0.25);
+  assert.match(buildMarkdown(report), /\(0\.25 day\(s\)\)/);
+});
+
+test("custom activation timestamps control both phase and displayed boundary", () => {
+  const customActivationAt = new Date("2026-08-09T12:00:00.000Z");
+  const report = buildReport({
+    catalogRows: [],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    generatedAt: "2026-08-09T13:00:00.000Z",
+    from: new Date("2026-08-09T12:00:00.000Z"),
+    to: new Date("2026-08-09T13:00:00.000Z"),
+    productionActivationAt: customActivationAt,
+  });
+
+  assert.equal(report.measurement.phase, "post_release");
+  assert.equal(report.measurement.productionActivatedAt, customActivationAt.toISOString());
+});
+
+test("explicit invalid CLI dates and day counts fail closed", () => {
+  assert.equal(parseDateArgument([], "--from="), null);
+  assert.throws(() => parseDateArgument(["--from=not-a-date"], "--from="), /Invalid --from date/);
+  assert.throws(
+    () => parseDateArgument(["--from=2026-02-30T00:00:00.000Z"], "--from="),
+    /Invalid --from date/
+  );
+  assert.throws(
+    () => parseDateArgument(["--from=2025-02-29T00:00:00.000Z"], "--from="),
+    /Invalid --from date/
+  );
+  assert.throws(
+    () => parseDateArgument(["--from=2026-01-01T24:00:00.000Z"], "--from="),
+    /Invalid --from date/
+  );
+  assert.throws(
+    () => parseDateArgument(["--from=2026-01-01"], "--from="),
+    /Invalid --from date/
+  );
+  assert.equal(
+    parseDateArgument(["--from=2024-02-29T12:30:45.123456Z"], "--from=")?.toISOString(),
+    "2024-02-29T12:30:45.123Z"
+  );
+  assert.throws(() => parseDateArgument(["--to="], "--to="), /Invalid --to date/);
+  assert.equal(parsePositiveDays([]), 30);
+  assert.throws(() => parsePositiveDays(["--days=0.5"]), /Invalid --days value/);
+  assert.throws(() => parsePositiveDays(["--days=garbage"]), /Invalid --days value/);
+});
+
+test("indeterminate public exposure fails closed", () => {
+  const report = buildReport({
+    catalogRows: [
+      {
+        business_slug: "unknown-exposure",
+        display_name: "Unknown Exposure",
+        canonical_route: "/u/unknown-exposure",
+        is_publicly_exposable: null,
+      },
+    ],
+    crawlRows: [{ business_slug: "unknown-exposure", crawl_hits: 5 }],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    generatedAt: "2026-08-09T13:00:00.000Z",
+    from: new Date("2026-08-09T12:00:00.000Z"),
+    to: new Date("2026-08-09T13:00:00.000Z"),
+    productionActivationAt: activationAt,
+  });
+
+  assert.equal(report.summary.publishedProfiles, 1);
+  assert.equal(report.summary.catalogProfiles, 0);
+  assert.equal(report.summary.excludedPublishedProfiles, 1);
+  assert.equal(report.summary.crawlHits, 0);
+  assert.deepEqual(report.coverage.excludedPublishedProfiles, [
+    {
+      slug: "unknown-exposure",
+      displayName: "Unknown Exposure",
+      reason: "public_exposure_not_authorized",
+    },
+  ]);
 });
