@@ -7,6 +7,7 @@ import "dotenv/config";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "..");
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const DISCOVERY_PERFORMANCE_DEFINITIONS = {
   crawled:
@@ -271,10 +272,15 @@ const conversionSummarySql = `
   GROUP BY l.business_slug;
 `;
 
-function parsePositiveDays(args) {
-  const raw = args.find((arg) => arg.startsWith("--days="))?.split("=")[1];
-  const parsed = Number(raw ?? "30");
-  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 30;
+export function parsePositiveDays(args) {
+  const argument = args.find((arg) => arg.startsWith("--days="));
+  if (argument === undefined) return 30;
+  const raw = argument.slice("--days=".length).trim();
+  const parsed = Number(raw);
+  if (!raw || !Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Invalid --days value: ${raw || "(empty)"}`);
+  }
+  return parsed;
 }
 
 function parseOutputDirectory(args) {
@@ -282,11 +288,18 @@ function parseOutputDirectory(args) {
   return raw?.trim() || "artifacts";
 }
 
-function parseDateArgument(args, prefix) {
-  const raw = args.find((arg) => arg.startsWith(prefix))?.slice(prefix.length);
-  if (!raw) return null;
+export function parseDateArgument(args, prefix) {
+  const argument = args.find((arg) => arg.startsWith(prefix));
+  if (argument === undefined) return null;
+  const raw = argument.slice(prefix.length).trim();
+  if (!raw) {
+    throw new Error(`Invalid ${prefix.slice(0, -1)} date: value is required`);
+  }
   const parsed = new Date(raw);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid ${prefix.slice(0, -1)} date: ${raw}`);
+  }
+  return parsed;
 }
 
 function toCount(value) {
@@ -327,13 +340,24 @@ export function buildReport({
   generatedAt,
   from,
   to,
-  windowDays,
   productionActivationAt = new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt),
-  productionActivationAtLabel = DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt,
+  productionActivationAtLabel = null,
 }) {
   const activationAt = productionActivationAt instanceof Date
     ? productionActivationAt
     : new Date(productionActivationAt);
+  if ([from, to, activationAt].some((date) => !(date instanceof Date) || Number.isNaN(date.getTime()))) {
+    throw new Error("Invalid measurement date");
+  }
+  const windowDurationMilliseconds = to.getTime() - from.getTime();
+  if (windowDurationMilliseconds <= 0) {
+    throw new Error("Measurement window must end after it starts");
+  }
+  const measuredWindowDays = Number((windowDurationMilliseconds / MILLISECONDS_PER_DAY).toFixed(6));
+  const resolvedProductionActivationAtLabel = productionActivationAtLabel
+    || (typeof productionActivationAt === "string"
+      ? productionActivationAt
+      : activationAt.toISOString());
   const historicalPreRelease = to <= activationAt;
   const postRelease = from >= activationAt;
   const phase = historicalPreRelease
@@ -515,12 +539,12 @@ export function buildReport({
 
   return {
     generatedAt,
-    windowDays,
+    windowDays: measuredWindowDays,
     window: { from: from.toISOString(), to: to.toISOString() },
     measurement: {
       phase,
       releaseCommit: DISCOVERY_PERFORMANCE_RELEASE.commit,
-      productionActivatedAt: productionActivationAtLabel,
+      productionActivatedAt: resolvedProductionActivationAtLabel,
       signedAttribution: releaseMetricsApplicable
         ? { status: "measured" }
         : { status: "not_applicable", reason: releaseMetricsNotApplicableReason },
@@ -671,7 +695,7 @@ export async function runDiscoveryPerformanceReport(options = {}) {
     throw new Error("Missing DATABASE_URL");
   }
 
-  const windowDays = Number.isFinite(options.windowDays) && options.windowDays > 0
+  const requestedWindowDays = Number.isFinite(options.windowDays) && options.windowDays > 0
     ? Math.floor(options.windowDays)
     : 30;
   const to = options.to instanceof Date ? options.to : options.to ? new Date(options.to) : new Date();
@@ -679,7 +703,7 @@ export async function runDiscoveryPerformanceReport(options = {}) {
     ? options.from
     : options.from
       ? new Date(options.from)
-      : new Date(to.getTime() - windowDays * 24 * 60 * 60 * 1000);
+      : new Date(to.getTime() - requestedWindowDays * MILLISECONDS_PER_DAY);
   const productionActivationAt = options.productionActivationAt instanceof Date
     ? options.productionActivationAt
     : options.productionActivationAt
@@ -688,6 +712,15 @@ export async function runDiscoveryPerformanceReport(options = {}) {
   if ([from, to, productionActivationAt].some((date) => Number.isNaN(date.getTime()))) {
     throw new Error("Invalid measurement date");
   }
+  if (to <= from) {
+    throw new Error("Measurement window must end after it starts");
+  }
+  const productionActivationAtLabel = options.productionActivationAtLabel
+    || (typeof options.productionActivationAt === "string"
+      ? options.productionActivationAt
+      : options.productionActivationAt instanceof Date
+        ? options.productionActivationAt.toISOString()
+        : DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt);
   const pool = new Pool({ connectionString });
 
   try {
@@ -713,8 +746,8 @@ export async function runDiscoveryPerformanceReport(options = {}) {
       generatedAt: new Date().toISOString(),
       from,
       to,
-      windowDays,
       productionActivationAt,
+      productionActivationAtLabel,
     });
 
     const outputDirectory = path.resolve(root, options.outputDirectory || "artifacts");
@@ -733,13 +766,14 @@ export async function runDiscoveryPerformanceReport(options = {}) {
 const isEntrypoint = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;
 if (isEntrypoint) {
   const args = process.argv.slice(2);
+  const windowDays = parsePositiveDays(args);
   const releaseAt = parseDateArgument(args, "--release-at=") || new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt);
   const releaseAtLabel = args.find((arg) => arg.startsWith("--release-at="))?.slice("--release-at=".length)
     || DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt;
   const to = parseDateArgument(args, "--to=") || new Date();
-  const from = parseDateArgument(args, "--from=") || new Date(to.getTime() - parsePositiveDays(args) * 24 * 60 * 60 * 1000);
+  const from = parseDateArgument(args, "--from=") || new Date(to.getTime() - windowDays * MILLISECONDS_PER_DAY);
   runDiscoveryPerformanceReport({
-    windowDays: parsePositiveDays(args),
+    windowDays,
     from,
     to,
     productionActivationAt: releaseAt,
