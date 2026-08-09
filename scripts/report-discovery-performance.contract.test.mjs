@@ -22,10 +22,13 @@ test("uses the four production evidence layers and stays read-only", () => {
   assert.ok(source.includes("verified_badge"));
   assert.ok(source.includes("internal_admin"));
   assert.ok(source.includes("trust_gate_not_satisfied"));
+  assert.ok(source.includes("unambiguous_profile_domains"));
+  assert.ok(source.includes("profile_domain.configured_domain"));
   assert.ok(source.includes("unambiguous_custom_domains"));
   assert.ok(source.includes("p.seo_meta->>'customDomain'"));
   assert.ok(source.includes("e.content_type"));
   assert.ok(source.includes("e.host"));
+  assert.ok(source.includes("row.is_publicly_exposable === true"));
   assert.doesNotMatch(source, /\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE)\s+(?:INTO\s+)?[a-z_]+/i);
 });
 
