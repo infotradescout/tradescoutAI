@@ -13,8 +13,8 @@ const activationAt = new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedA
 function buildHistoricalReport() {
   return buildReport({
     catalogRows: [
-      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
-      { business_slug: "uncrawled-business", display_name: "Uncrawled Business", canonical_route: "/u/uncrawled-business" },
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business", is_publicly_exposable: true },
+      { business_slug: "uncrawled-business", display_name: "Uncrawled Business", canonical_route: "/u/uncrawled-business", is_publicly_exposable: true },
       {
         business_slug: "private-business",
         display_name: "Private Business",
@@ -93,7 +93,7 @@ test("historical windows mark signed attribution and conversion as not applicabl
 test("post-release windows measure source attribution and conversion", () => {
   const report = buildReport({
     catalogRows: [
-      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business", is_publicly_exposable: true },
     ],
     crawlRows: [],
     crawlFamilyRows: [],
@@ -124,7 +124,7 @@ test("post-release windows measure source attribution and conversion", () => {
 test("windows crossing activation do not measure signed attribution or conversion", () => {
   const report = buildReport({
     catalogRows: [
-      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business" },
+      { business_slug: "example-business", display_name: "Example Business", canonical_route: "/u/example-business", is_publicly_exposable: true },
     ],
     crawlRows: [],
     crawlFamilyRows: [],
@@ -199,4 +199,39 @@ test("explicit invalid CLI dates and day counts fail closed", () => {
   assert.equal(parsePositiveDays([]), 30);
   assert.throws(() => parsePositiveDays(["--days=0.5"]), /Invalid --days value/);
   assert.throws(() => parsePositiveDays(["--days=garbage"]), /Invalid --days value/);
+});
+
+test("indeterminate public exposure fails closed", () => {
+  const report = buildReport({
+    catalogRows: [
+      {
+        business_slug: "unknown-exposure",
+        display_name: "Unknown Exposure",
+        canonical_route: "/u/unknown-exposure",
+        is_publicly_exposable: null,
+      },
+    ],
+    crawlRows: [{ business_slug: "unknown-exposure", crawl_hits: 5 }],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    generatedAt: "2026-08-09T13:00:00.000Z",
+    from: new Date("2026-08-09T12:00:00.000Z"),
+    to: new Date("2026-08-09T13:00:00.000Z"),
+    productionActivationAt: activationAt,
+  });
+
+  assert.equal(report.summary.publishedProfiles, 1);
+  assert.equal(report.summary.catalogProfiles, 0);
+  assert.equal(report.summary.excludedPublishedProfiles, 1);
+  assert.equal(report.summary.crawlHits, 0);
+  assert.deepEqual(report.coverage.excludedPublishedProfiles, [
+    {
+      slug: "unknown-exposure",
+      displayName: "Unknown Exposure",
+      reason: "public_exposure_not_authorized",
+    },
+  ]);
 });
