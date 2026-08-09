@@ -34,7 +34,7 @@ The command accepts `--from`, `--to`, `--release-at`, `--days`, and `--out-dir`.
 - `uncrawled`: a publicly exposable profile with no bot observation in the selected window.
 - `unvisited`: a publicly exposable profile with neither a human profile view nor a discovery landing in the selected window.
 
-Discovery performance denominators include only publicly exposable profiles. Published rows that fail public visibility, trust authority, or internal-profile indexing rules are listed separately as exclusions and do not count as uncrawled or unvisited public profiles. The output includes aggregate profile coverage, request distribution by profile, and crawl distribution by crawler family. Profile names and slugs are public catalog fields; crawler-family labels are aggregate categories.
+Discovery performance denominators include only profiles whose public exposure is affirmatively authorized; missing or indeterminate exposure fails closed. Published rows that fail public visibility, trust authority, or internal-profile indexing rules are listed separately as exclusions and do not count as uncrawled or unvisited public profiles. An unambiguous configured custom domain is shown as the canonical profile route. The output includes aggregate profile coverage, request distribution by profile, and crawl distribution by crawler family. Profile names, slugs, and configured public domains are public catalog fields; crawler-family labels are aggregate categories.
 
 ## Separate surfaced-performance follow-up
 
