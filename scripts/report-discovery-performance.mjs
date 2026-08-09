@@ -28,38 +28,66 @@ export const DISCOVERY_PERFORMANCE_RELEASE = {
 };
 
 const profileCatalogSql = `
-  WITH candidates AS (
+  WITH profile_domains AS (
     SELECT
-      p.slug AS business_slug,
+      lower(p.slug) AS business_slug,
+      NULLIF(lower(trim(COALESCE(p.seo_meta->>'customDomain', ''))), '') AS configured_domain,
+      NULLIF(
+        regexp_replace(
+          lower(trim(COALESCE(p.seo_meta->>'customDomain', ''))),
+          '^www\\.',
+          ''
+        ),
+        ''
+      ) AS custom_domain
+    FROM profiles p
+    WHERE p.status = 'published'
+  ), unambiguous_profile_domains AS (
+    SELECT
+      custom_domain,
+      MIN(configured_domain) AS configured_domain,
+      MIN(business_slug) AS business_slug
+    FROM profile_domains
+    WHERE custom_domain IS NOT NULL
+      AND custom_domain NOT IN ('thetradescout.com', 'tradescoutai.onrender.com', 'localhost', '127.0.0.1')
+    GROUP BY custom_domain
+    HAVING COUNT(DISTINCT business_slug) = 1
+  ), candidates AS (
+    SELECT
+      lower(p.slug) AS business_slug,
       COALESCE(NULLIF(b.name, ''), p.display_name) AS display_name,
-      '/u/' || p.slug AS canonical_route,
+      CASE
+        WHEN profile_domain.configured_domain IS NOT NULL
+          THEN 'https://' || profile_domain.configured_domain || '/'
+        ELSE '/u/' || lower(p.slug)
+      END AS canonical_route,
       lower(p.slug) IN ('tradescout-admin', 'super-admin') AS is_internal_admin,
       (
-        lower(COALESCE(u.preferences->>'profileVisibility', 'private')) = 'public'
+        lower(trim(COALESCE(u.preferences->>'profileVisibility', 'private'))) = 'public'
         OR COALESCE(u.preferences->'publicProfileIds', '[]'::jsonb)
            @> jsonb_build_array(p.id::text)
       ) AS visibility_public,
       (
         p.business_id IS NULL
         OR u.verified_badge = true
-        OR lower(COALESCE(u.verification_status::text, '')) = 'approved'
+        OR lower(trim(COALESCE(u.verification_status::text, ''))) = 'approved'
         OR (
-          b.status = 'active'
+          lower(trim(COALESCE(b.status::text, ''))) = 'active'
           AND b.public_discovery_enabled = false
           AND p.owner_user_id = b.owner_user_id
           AND (
             (
-              p.slug = 'jrs-auto-glass'
+              lower(p.slug) = 'jrs-auto-glass'
               AND COALESCE(b.sources, '[]'::jsonb)
                   @> '["owner_confirmed_profile"]'::jsonb
             )
             OR (
-              p.slug = 'pro-fab-specialty-services'
+              lower(p.slug) = 'pro-fab-specialty-services'
               AND COALESCE(b.sources, '[]'::jsonb)
                   @> '["admin_provisioned_business_profile"]'::jsonb
             )
             OR (
-              p.slug = 'precision-aerial-services'
+              lower(p.slug) = 'precision-aerial-services'
               AND COALESCE(b.sources, '[]'::jsonb)
                   @> '["admin_provisioned_business_profile"]'::jsonb
               AND lower(COALESCE(b.claim_status, '')) = 'unclaimed'
@@ -79,17 +107,22 @@ const profileCatalogSql = `
     FROM profiles p
     INNER JOIN users u ON u.id = p.owner_user_id
     LEFT JOIN businesses b ON b.id = p.business_id
+    LEFT JOIN unambiguous_profile_domains profile_domain
+      ON profile_domain.business_slug = lower(p.slug)
     WHERE p.status = 'published'
   )
   SELECT
     business_slug,
     display_name,
     canonical_route,
-    (NOT is_internal_admin AND visibility_public AND trust_public) AS is_publicly_exposable,
+    COALESCE(
+      NOT is_internal_admin AND visibility_public AND trust_public,
+      false
+    ) AS is_publicly_exposable,
     CASE
       WHEN is_internal_admin THEN 'internal_admin'
-      WHEN NOT visibility_public THEN 'visibility_not_public'
-      WHEN NOT trust_public THEN 'trust_gate_not_satisfied'
+      WHEN NOT COALESCE(visibility_public, false) THEN 'visibility_not_public'
+      WHEN NOT COALESCE(trust_public, false) THEN 'trust_gate_not_satisfied'
       ELSE NULL
     END AS exclusion_reason
   FROM candidates
@@ -484,7 +517,7 @@ export function buildReport({
     ? "release was not active during this window"
     : "window crosses the release boundary; split the window at production activation";
   const excludedPublishedProfiles = catalogRows
-    .filter((row) => row.is_publicly_exposable === false)
+    .filter((row) => row.is_publicly_exposable !== true)
     .map((row) => ({
       slug: normalizeActivitySlug(row.business_slug),
       displayName: row.display_name || null,
@@ -492,7 +525,7 @@ export function buildReport({
     }))
     .filter((row) => row.slug);
   const publiclyExposableCatalogRows = catalogRows.filter(
-    (row) => row.is_publicly_exposable !== false
+    (row) => row.is_publicly_exposable === true
   );
   const profiles = new Map();
   for (const row of publiclyExposableCatalogRows) {
@@ -900,8 +933,9 @@ const isEntrypoint = process.argv[1] && pathToFileURL(path.resolve(process.argv[
 if (isEntrypoint) {
   const args = process.argv.slice(2);
   const windowDays = parsePositiveDays(args);
+  const releaseAtArgument = args.find((arg) => arg.startsWith("--release-at="));
   const releaseAt = parseDateArgument(args, "--release-at=") || new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt);
-  const releaseAtLabel = args.find((arg) => arg.startsWith("--release-at="))?.slice("--release-at=".length)
+  const releaseAtLabel = releaseAtArgument?.slice("--release-at=".length).trim()
     || DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt;
   const to = parseDateArgument(args, "--to=") || new Date();
   const from = parseDateArgument(args, "--from=") || new Date(to.getTime() - windowDays * MILLISECONDS_PER_DAY);
