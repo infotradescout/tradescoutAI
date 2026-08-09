@@ -16,6 +16,16 @@ test("uses the four production evidence layers and stays read-only", () => {
   assert.ok(source.includes("entryRequestId"));
   assert.ok(source.includes("source_attributed_landings"));
   assert.ok(source.includes("Search-engine impression data is not available"));
+  assert.ok(source.includes("is_publicly_exposable"));
+  assert.ok(source.includes("profileVisibility"));
+  assert.ok(source.includes("publicProfileIds"));
+  assert.ok(source.includes("verified_badge"));
+  assert.ok(source.includes("internal_admin"));
+  assert.ok(source.includes("trust_gate_not_satisfied"));
+  assert.ok(source.includes("unambiguous_custom_domains"));
+  assert.ok(source.includes("p.seo_meta->>'customDomain'"));
+  assert.ok(source.includes("e.content_type"));
+  assert.ok(source.includes("e.host"));
   assert.doesNotMatch(source, /\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE)\s+(?:INTO\s+)?[a-z_]+/i);
 });
 
