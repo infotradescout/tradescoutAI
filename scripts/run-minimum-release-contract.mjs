@@ -189,6 +189,22 @@ async function main() {
     process.exit(testRun.status);
   }
 
+  const discoveryPerformanceTests = run(
+    "npm",
+    ["run", "test:discovery-performance"],
+    { label: "discovery performance report contract tests" }
+  );
+  record(
+    "4-discovery-performance-tests",
+    discoveryPerformanceTests.ok ? "pass" : "fail",
+    `exit ${discoveryPerformanceTests.status}`
+  );
+  if (!discoveryPerformanceTests.ok) {
+    evidence.result = "fail";
+    writeEvidence(evidence);
+    process.exit(discoveryPerformanceTests.status);
+  }
+
   // 5. Database compatibility proof
   const testDbUrl = String(process.env.TEST_DATABASE_URL || "").trim();
   if (!testDbUrl) {
