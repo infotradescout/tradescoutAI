@@ -26,6 +26,7 @@ import {
 } from "../../shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import adminToolDiscoveryRouter from "./admin-tool-discovery";
+import adminDiscoveryObservatoryRouter from "./admin-discovery-observatory";
 import { refreshCountyMetrics } from "../services/geographicMetrics";
 import { getCountyCoverageSummary } from "../services/geographicCoverage";
 import { validateRadarEntityMetadata } from "../services/opportunityRadarSourceGuards";
@@ -76,6 +77,7 @@ export function mountAdminRoutes(app: any) {
   // Tool Discovery Admin (super_admin only)
   // ---------------------------------------------------------------------------
   app.use("/api/admin", adminToolDiscoveryRouter);
+  app.use("/api/admin/discovery-observatory", adminDiscoveryObservatoryRouter);
 
   // ---------------------------------------------------------------------------
   // Super Admin OS Health

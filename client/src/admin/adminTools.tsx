@@ -243,6 +243,7 @@ const AdminProfessionalVerification = React.lazy(
 const AdminBusinessOnboardingTelemetry = React.lazy(
   () => import("@/pages/admin-business-onboarding-telemetry")
 );
+const AdminDiscoveryObservatory = React.lazy(() => import("@/pages/admin-discovery-observatory"));
 const AdminVaultContributions = React.lazy(() => import("@/pages/admin-vault-contributions"));
 const AdminProvisioning = React.lazy(() => import("@/pages/admin-provisioning"));
 const AdminPanelContent = React.lazy(() => import("@/pages/admin-panel"));
@@ -892,6 +893,17 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
   {
     section: "Intelligence & Automation",
     items: [
+      tool({
+        id: "discovery-observatory",
+        label: "Discovery Observatory",
+        path: "/admin/discovery-observatory",
+        icon: BarChart3,
+        description:
+          "Follow outside reach through entry, Direct Connect response, and verified outcome with explicit unknowns.",
+        keywords: ["discovery", "reach", "entry", "outcome", "experiment", "query"],
+        visibleIf: { superOnly: true, roles: ["super_admin"] },
+        render: () => <AdminDiscoveryObservatory />,
+      }),
       tool({
         id: "mission-control",
         label: "Mission Control",

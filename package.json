@@ -75,6 +75,7 @@
     "verify:db": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run verify",
     "verify:release": "npm run verify:db && npm run test:release-gates:local",
     "gate:minimum-release": "node scripts/run-minimum-release-contract.mjs",
+    "proof:discovery-observatory": "node --import tsx scripts/discovery-observatory-local-proof.ts",
     "gate:minimum-release:attest": "node scripts/run-minimum-release-contract.mjs --attest",
     "attest:minimum-release": "node scripts/attest-minimum-release-contract.mjs",
     "test:integration": "node scripts/run-integration-tests.mjs",

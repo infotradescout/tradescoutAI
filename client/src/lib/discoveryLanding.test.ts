@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
+  getStoredDiscoveryLandingAttribution,
   resetDiscoveryLandingDedupeForTests,
   trackDiscoveryLandingOnce,
 } from "./discoveryLanding";
@@ -61,6 +62,16 @@ describe("trackDiscoveryLandingOnce", () => {
     });
     expect(body).not.toHaveProperty("entryRequestId");
     expect(body).not.toHaveProperty("sourceHint");
+    expect(getStoredDiscoveryLandingAttribution("jw-stone")).toEqual({
+      discoveryAttributionToken,
+      businessSlug: "jw-stone",
+    });
+  });
+
+  it("does not reuse a stored attribution envelope for another profile", async () => {
+    await trackDiscoveryLandingOnce({ canonicalRoute: "/jw-stone" });
+
+    expect(getStoredDiscoveryLandingAttribution("jrs-auto-glass")).toBeNull();
   });
 
   it("records sanitized chatgpt source hint without full query persistence", async () => {

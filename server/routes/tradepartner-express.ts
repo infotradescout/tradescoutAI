@@ -32,10 +32,15 @@ import {
   JW_STONE_DIRECT_CONNECT_SELECTION_LIMIT,
   sanitizeJwStoneDirectConnectSelections,
 } from "@shared/jwStoneDirectConnect";
+import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 
 type OptionalAuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; [key: string]: any };
 };
+
+const discoveryObservatory = new DiscoveryObservatoryService(pool, async (eventType, data) =>
+  storage.logEvent(eventType, data)
+);
 
 const EXPRESS_REQUEST_TYPES = [
   "request_material",
@@ -552,6 +557,22 @@ export function registerTradePartnerExpressRoutes(app: Express) {
 
         const httpRequestId =
           String((req as any).requestId || req.get("x-request-id") || "").trim() || null;
+        try {
+          await discoveryObservatory.recordRequestAction({
+            workRequestId: String(created.id),
+            businessSlug: target.profileSlug,
+            businessId: target.businessId,
+            entryRequestId: verifiedDiscoveryAttribution?.entryRequestId || null,
+            occurredAt: now,
+          });
+        } catch (observatoryError) {
+          // The request is authoritative and already committed. Observatory
+          // availability may never turn a successful customer action into a failure.
+          console.warn("[tradepartner-express] discovery action capture failed", {
+            requestId: created.id,
+            error: observatoryError,
+          });
+        }
         const emailConfigured = emailService.isConfigured();
         let ownerNotificationStatus: "sent" | "failed" = "sent";
         let businessNotificationEmailStatus: "sent" | "skipped" | "failed" | "not_requested" =
@@ -921,6 +942,25 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           onboardingEmailMessageId,
           requesterEmailPurpose,
         });
+        try {
+          await discoveryObservatory.recordProviderDeliveryAttempt({
+            workRequestId: String(created.id),
+            state:
+              ownerNotificationStatus === "sent" || businessNotificationEmailStatus === "sent"
+                ? "target_delivery_queued_or_sent"
+                : "target_delivery_not_confirmed",
+            details: {
+              ownerNotificationStatus,
+              businessNotificationEmailStatus,
+              deliveryCustody: target.deliveryCustody,
+            },
+          });
+        } catch (observatoryError) {
+          console.warn("[tradepartner-express] discovery delivery capture failed", {
+            requestId: created.id,
+            error: observatoryError,
+          });
+        }
         return res.status(201).json({
           requestId: created.id,
           status: created.status,

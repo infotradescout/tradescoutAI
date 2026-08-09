@@ -10,6 +10,7 @@ export const DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY = "tradescout:discovery-a
 
 export type StoredDiscoveryLandingAttribution = {
   discoveryAttributionToken: string;
+  businessSlug: string;
 };
 
 function readDiscoveryAttributionToken(): string | null {
@@ -42,7 +43,7 @@ export function getPublishedDiscoveryIdentity(): {
 }
 
 export function getStoredDiscoveryLandingAttribution(
-  _profileSlug: string
+  profileSlug: string
 ): StoredDiscoveryLandingAttribution | null {
   if (typeof window === "undefined") return null;
   try {
@@ -52,7 +53,17 @@ export function getStoredDiscoveryLandingAttribution(
     const discoveryAttributionToken = normalizeDiscoveryAttributionToken(
       parsed?.discoveryAttributionToken
     );
-    return discoveryAttributionToken ? { discoveryAttributionToken } : null;
+    const storedBusinessSlug = String(parsed?.businessSlug || "")
+      .trim()
+      .toLowerCase();
+    const expectedBusinessSlug = String(profileSlug || "")
+      .trim()
+      .toLowerCase();
+    return discoveryAttributionToken &&
+      storedBusinessSlug &&
+      storedBusinessSlug === expectedBusinessSlug
+      ? { discoveryAttributionToken, businessSlug: storedBusinessSlug }
+      : null;
   } catch {
     return null;
   }
@@ -98,7 +109,10 @@ export async function trackDiscoveryLandingOnce(options: {
     try {
       window.sessionStorage.setItem(
         DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
-        JSON.stringify({ discoveryAttributionToken: raw.discoveryAttributionToken })
+        JSON.stringify({
+          discoveryAttributionToken: raw.discoveryAttributionToken,
+          businessSlug: identity.businessSlug,
+        })
       );
     } catch {
       // Attribution storage is best-effort and never affects the landing UX.

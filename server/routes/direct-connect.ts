@@ -84,10 +84,16 @@ import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
 import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileRepository";
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
+import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
+import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
+
+const discoveryObservatory = new DiscoveryObservatoryService(pool, async (eventType, data) =>
+  storage.logEvent(eventType, data)
+);
 
 const DIRECT_CONNECT_GIVEAWAY_PROMOTION_KEY = "direct_connect_giveaway_2026_06";
 const DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE = "FL";
@@ -792,6 +798,12 @@ const directConnectRequestSchema = z.object({
   targetContractorIds: z.array(z.string().min(1)).optional(),
   targetProviderIds: z.array(z.string().min(1)).optional(),
   targetProfileSlug: z.string().trim().min(1).max(120).optional(),
+  discoveryAttributionToken: z
+    .string()
+    .trim()
+    .max(4096)
+    .regex(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/)
+    .optional(),
   homeId: z.string().trim().min(1).max(120).optional(),
   assetComponentId: z.string().trim().min(1).max(120).optional(),
   assetComponentType: z
@@ -6258,6 +6270,16 @@ export function registerDirectConnectRoutes(app: Express) {
         } catch (e) {
           console.warn("[direct-connect] Failed to record outcome event for completion", e);
         }
+        try {
+          await discoveryObservatory.recordJourneyOutcome({
+            workRequestId: requestId,
+            kind: "requester_verified_complete",
+            state: "completed",
+            actorAuthority: "authenticated_requester",
+          });
+        } catch (observatoryError) {
+          console.warn("[direct-connect] Discovery completion capture failed", observatoryError);
+        }
         // Notify the accepted provider(s) that the requester marked the job complete.
         try {
           const acceptedAssignments = await db
@@ -6497,6 +6519,19 @@ export function registerDirectConnectRoutes(app: Express) {
             message: "You cannot send a Direct Connect request to your own profile.",
           });
         }
+        const verifiedDiscoveryAttribution = body.discoveryAttributionToken
+          ? targetProfile
+            ? verifyDiscoveryAttributionToken(body.discoveryAttributionToken, {
+                businessSlug: String(targetProfile.slug || ""),
+              })
+            : null
+          : null;
+        if (body.discoveryAttributionToken && !verifiedDiscoveryAttribution) {
+          return res.status(400).json({
+            code: "INVALID_DISCOVERY_ATTRIBUTION",
+            message: "This discovery link is no longer valid.",
+          });
+        }
 
         const targetProviderIds = resolveTargetProviderIds(body);
         if (body.targetProfileSlug && targetProviderIds.length > 0) {
@@ -6535,6 +6570,36 @@ export function registerDirectConnectRoutes(app: Express) {
             tradeId: body.tradeId,
           })
           .returning();
+
+        if (created?.id) {
+          const targetSlug = String(targetProfile?.slug || "")
+            .trim()
+            .toLowerCase();
+          try {
+            await discoveryObservatory.recordRequestAction({
+              workRequestId: String(created.id),
+              ...(targetSlug ? { businessSlug: targetSlug } : {}),
+              entity: targetProfile
+                ? {
+                    type: "profile",
+                    id: String(targetProfile.id),
+                    slug: targetSlug,
+                  }
+                : { type: "platform", slug: "direct-connect" },
+              entityKey: targetProfile ? `profile:${targetSlug}` : "platform:direct-connect",
+              entryRequestId: verifiedDiscoveryAttribution?.entryRequestId || null,
+              source: "primary_direct_connect",
+              occurredAt: new Date(),
+            });
+          } catch (observatoryError) {
+            // The work request is authoritative and already committed. Missing
+            // observatory telemetry must never turn a customer request into a failure.
+            console.warn("[direct-connect] discovery action capture failed", {
+              requestId: created.id,
+              error: observatoryError,
+            });
+          }
+        }
 
         let createdResponse = created;
         const createdRequestId = created?.id ? String(created.id) : undefined;
@@ -9799,6 +9864,20 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (result.status !== 200) {
           return res.status(result.status).json(result.body);
+        }
+        try {
+          const { assignment: updatedAssignment } = result.body as any;
+          await discoveryObservatory.recordJourneyOutcome({
+            workRequestId: String(updatedAssignment.workRequestId || ""),
+            kind: "provider_response",
+            state: updatedAssignment.status === "accepted" ? "accepted" : "declined",
+            actorAuthority: "authenticated_assigned_provider",
+          });
+        } catch (observatoryError) {
+          console.warn(
+            "[direct-connect] Discovery provider-response capture failed",
+            observatoryError
+          );
         }
         try {
           const { assignment: updatedAssignment, responseSummary } = result.body as any;

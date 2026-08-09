@@ -133,6 +133,7 @@ import {
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
 import { resolveDirectConnectDispatchSelection } from "./directConnectDispatchSelection";
+import { getStoredDiscoveryLandingAttribution } from "@/lib/discoveryLanding";
 import {
   buildDirectConnectHref,
   getDirectConnectEntry,
@@ -1905,7 +1906,12 @@ function DirectConnectRequestComposer({
       if (Number.isFinite(max) && max > 0) payload.budgetMax = max;
       if (prefillTradeId?.trim()) payload.tradeId = prefillTradeId.trim();
       if (prefillContextType === "profile" && prefillContextId?.trim()) {
-        payload.targetProfileSlug = prefillContextId.trim();
+        const targetProfileSlug = prefillContextId.trim();
+        const discoveryAttribution = getStoredDiscoveryLandingAttribution(targetProfileSlug);
+        payload.targetProfileSlug = targetProfileSlug;
+        if (discoveryAttribution?.discoveryAttributionToken) {
+          payload.discoveryAttributionToken = discoveryAttribution.discoveryAttributionToken;
+        }
         payload.autoRoute = false;
       }
       if (dispatch?.targetProviderIds?.length) {

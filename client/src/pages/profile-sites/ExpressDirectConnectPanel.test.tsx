@@ -82,6 +82,7 @@ describe("Express Direct Connect anonymous inventory context", () => {
       DISCOVERY_LANDING_ATTRIBUTION_STORAGE_KEY,
       JSON.stringify({
         discoveryAttributionToken: "signed-payload.signed-signature",
+        businessSlug: "jw-stone",
       })
     );
 

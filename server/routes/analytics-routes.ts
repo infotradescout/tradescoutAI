@@ -1,6 +1,10 @@
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { DISCOVERY_LANDING_EVENT, sanitizeDiscoveryLandingEvent } from "@shared/discoveryLanding";
+import {
+  DISCOVERY_INTERNAL_SEARCH_EVENT,
+  sanitizeDiscoveryInternalSearch,
+} from "@shared/discoveryObservatory";
 import { isStaff } from "../auth";
 import { pool } from "../db";
 import { storage } from "../storage";
@@ -405,6 +409,23 @@ export function registerAnalyticsRoutes(app: Express) {
             void storage.logEvent(DISCOVERY_LANDING_EVENT, safeEvent).catch((persistError) => {
               console.error("[Analytics][Shell] Failed to persist discovery_landing", persistError);
             });
+          }
+          return;
+        }
+
+        // First-party directory demand. The shared sanitizer rejects contact
+        // details and URLs; never enrich this lane with IP or user-agent.
+        if (event?.type === DISCOVERY_INTERNAL_SEARCH_EVENT) {
+          const safeEvent = sanitizeDiscoveryInternalSearch(event);
+          if (safeEvent) {
+            void storage
+              .logEvent(DISCOVERY_INTERNAL_SEARCH_EVENT, safeEvent)
+              .catch((persistError) => {
+                console.error(
+                  "[Analytics][Shell] Failed to persist discovery_internal_search",
+                  persistError
+                );
+              });
           }
           return;
         }
