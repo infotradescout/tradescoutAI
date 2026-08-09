@@ -10,8 +10,10 @@ const root = path.resolve(__dirname, "..");
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const DISCOVERY_PERFORMANCE_DEFINITIONS = {
+  publiclyExposable:
+    "A published profile that passes public visibility, trust authority, and internal-indexing exclusions.",
   crawled:
-    "A bot_observation_events request for a published public entity route, grouped by entity slug and response outcome.",
+    "A bot_observation_events request for a publicly exposable entity route, grouped by entity slug and response outcome.",
   surfaced:
     "A verified discovery_landing with a sourceHint or referrerHost. This is a source-attributed entry proxy, not a search-impression count.",
   visited:
@@ -26,48 +28,133 @@ export const DISCOVERY_PERFORMANCE_RELEASE = {
 };
 
 const profileCatalogSql = `
+  WITH candidates AS (
+    SELECT
+      p.slug AS business_slug,
+      COALESCE(NULLIF(b.name, ''), p.display_name) AS display_name,
+      '/u/' || p.slug AS canonical_route,
+      lower(p.slug) IN ('tradescout-admin', 'super-admin') AS is_internal_admin,
+      (
+        lower(COALESCE(u.preferences->>'profileVisibility', 'private')) = 'public'
+        OR COALESCE(u.preferences->'publicProfileIds', '[]'::jsonb)
+           @> jsonb_build_array(p.id::text)
+      ) AS visibility_public,
+      (
+        p.business_id IS NULL
+        OR u.verified_badge = true
+        OR lower(COALESCE(u.verification_status::text, '')) = 'approved'
+        OR (
+          b.status = 'active'
+          AND b.public_discovery_enabled = false
+          AND p.owner_user_id = b.owner_user_id
+          AND (
+            (
+              p.slug = 'jrs-auto-glass'
+              AND COALESCE(b.sources, '[]'::jsonb)
+                  @> '["owner_confirmed_profile"]'::jsonb
+            )
+            OR (
+              p.slug = 'pro-fab-specialty-services'
+              AND COALESCE(b.sources, '[]'::jsonb)
+                  @> '["admin_provisioned_business_profile"]'::jsonb
+            )
+            OR (
+              p.slug = 'precision-aerial-services'
+              AND COALESCE(b.sources, '[]'::jsonb)
+                  @> '["admin_provisioned_business_profile"]'::jsonb
+              AND lower(COALESCE(b.claim_status, '')) = 'unclaimed'
+              AND u.provider = 'admin_provisioned_profile_steward'
+              AND COALESCE(
+                u.preferences->'internalProfileSteward'->>'profileSlug',
+                ''
+              ) = 'precision-aerial-services'
+              AND COALESCE(
+                u.preferences->'internalProfileSteward'->>'source',
+                ''
+              ) = 'admin_provisioned_business_profile'
+            )
+          )
+        )
+      ) AS trust_public
+    FROM profiles p
+    INNER JOIN users u ON u.id = p.owner_user_id
+    LEFT JOIN businesses b ON b.id = p.business_id
+    WHERE p.status = 'published'
+  )
   SELECT
-    p.slug AS business_slug,
-    COALESCE(NULLIF(b.name, ''), p.display_name) AS display_name,
-    '/u/' || p.slug AS canonical_route
-  FROM profiles p
-  LEFT JOIN businesses b ON b.id = p.business_id
-  WHERE p.status = 'published'
-  ORDER BY p.slug ASC;
+    business_slug,
+    display_name,
+    canonical_route,
+    (NOT is_internal_admin AND visibility_public AND trust_public) AS is_publicly_exposable,
+    CASE
+      WHEN is_internal_admin THEN 'internal_admin'
+      WHEN NOT visibility_public THEN 'visibility_not_public'
+      WHEN NOT trust_public THEN 'trust_gate_not_satisfied'
+      ELSE NULL
+    END AS exclusion_reason
+  FROM candidates
+  ORDER BY business_slug ASC;
 `;
 
 const crawlSummarySql = `
   WITH published_profiles AS (
-    SELECT lower(p.slug) AS business_slug
+    SELECT
+      lower(p.slug) AS business_slug,
+      NULLIF(
+        regexp_replace(
+          lower(trim(COALESCE(p.seo_meta->>'customDomain', ''))),
+          '^www\\.',
+          ''
+        ),
+        ''
+      ) AS custom_domain
     FROM profiles p
     WHERE p.status = 'published'
+  ), unambiguous_custom_domains AS (
+    SELECT
+      custom_domain,
+      MIN(business_slug) AS business_slug
+    FROM published_profiles
+    WHERE custom_domain IS NOT NULL
+      AND custom_domain NOT IN ('thetradescout.com', 'tradescoutai.onrender.com', 'localhost', '127.0.0.1')
+    GROUP BY custom_domain
+    HAVING COUNT(DISTINCT business_slug) = 1
   ), normalized AS (
     SELECT
       COALESCE(
-        NULLIF(lower(entity_slug), ''),
+        custom_profile.business_slug,
+        NULLIF(lower(e.entity_slug), ''),
         CASE
-          WHEN split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 1) = 'u'
-            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 2)), '')
-          WHEN split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 1) = 'business'
-            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 2)), '')
-          WHEN lower(split_part(path, '?', 1)) = '/jw-stone' THEN 'jw-stone'
+          WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
+            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 2)), '')
+          WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'business'
+            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 2)), '')
+          WHEN lower(split_part(e.path, '?', 1)) = '/jw-stone' THEN 'jw-stone'
           ELSE NULL
         END
       ) AS business_slug,
-      bot_family,
-      path,
-      status_code,
-      observed_at,
-      is_first_seen_url,
-      is_recrawl
-    FROM bot_observation_events
-    WHERE observed_at >= $1
-      AND observed_at < $2
+      e.bot_family,
+      e.path,
+      e.status_code,
+      e.observed_at,
+      e.is_first_seen_url,
+      e.is_recrawl
+    FROM bot_observation_events e
+    LEFT JOIN unambiguous_custom_domains custom_profile
+      ON custom_profile.custom_domain = regexp_replace(
+        lower(split_part(COALESCE(e.host, ''), ':', 1)),
+        '^www\\.',
+        ''
+      )
+      AND lower(COALESCE(e.content_type, '')) LIKE 'text/html%'
+    WHERE e.observed_at >= $1
+      AND e.observed_at < $2
       AND (
-        entity_slug IS NOT NULL
-        OR path LIKE '/u/%'
-        OR path LIKE '/business/%'
-        OR lower(split_part(path, '?', 1)) = '/jw-stone'
+        custom_profile.business_slug IS NOT NULL
+        OR e.entity_slug IS NOT NULL
+        OR e.path LIKE '/u/%'
+        OR e.path LIKE '/business/%'
+        OR lower(split_part(e.path, '?', 1)) = '/jw-stone'
       )
   )
   SELECT
@@ -89,31 +176,58 @@ const crawlSummarySql = `
 
 const crawlFamilySummarySql = `
   WITH published_profiles AS (
-    SELECT lower(p.slug) AS business_slug
+    SELECT
+      lower(p.slug) AS business_slug,
+      NULLIF(
+        regexp_replace(
+          lower(trim(COALESCE(p.seo_meta->>'customDomain', ''))),
+          '^www\\.',
+          ''
+        ),
+        ''
+      ) AS custom_domain
     FROM profiles p
     WHERE p.status = 'published'
+  ), unambiguous_custom_domains AS (
+    SELECT
+      custom_domain,
+      MIN(business_slug) AS business_slug
+    FROM published_profiles
+    WHERE custom_domain IS NOT NULL
+      AND custom_domain NOT IN ('thetradescout.com', 'tradescoutai.onrender.com', 'localhost', '127.0.0.1')
+    GROUP BY custom_domain
+    HAVING COUNT(DISTINCT business_slug) = 1
   ), normalized AS (
     SELECT
       COALESCE(
-        NULLIF(lower(entity_slug), ''),
+        custom_profile.business_slug,
+        NULLIF(lower(e.entity_slug), ''),
         CASE
-          WHEN split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 1) = 'u'
-            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 2)), '')
-          WHEN split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 1) = 'business'
-            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(path, '?', 1)), '/', 2)), '')
-          WHEN lower(split_part(path, '?', 1)) = '/jw-stone' THEN 'jw-stone'
+          WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
+            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 2)), '')
+          WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'business'
+            THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 2)), '')
+          WHEN lower(split_part(e.path, '?', 1)) = '/jw-stone' THEN 'jw-stone'
           ELSE NULL
         END
       ) AS business_slug,
-      COALESCE(NULLIF(trim(bot_family), ''), 'unknown') AS crawler_family
-    FROM bot_observation_events
-    WHERE observed_at >= $1
-      AND observed_at < $2
+      COALESCE(NULLIF(trim(e.bot_family), ''), 'unknown') AS crawler_family
+    FROM bot_observation_events e
+    LEFT JOIN unambiguous_custom_domains custom_profile
+      ON custom_profile.custom_domain = regexp_replace(
+        lower(split_part(COALESCE(e.host, ''), ':', 1)),
+        '^www\\.',
+        ''
+      )
+      AND lower(COALESCE(e.content_type, '')) LIKE 'text/html%'
+    WHERE e.observed_at >= $1
+      AND e.observed_at < $2
       AND (
-        entity_slug IS NOT NULL
-        OR path LIKE '/u/%'
-        OR path LIKE '/business/%'
-        OR lower(split_part(path, '?', 1)) = '/jw-stone'
+        custom_profile.business_slug IS NOT NULL
+        OR e.entity_slug IS NOT NULL
+        OR e.path LIKE '/u/%'
+        OR e.path LIKE '/business/%'
+        OR lower(split_part(e.path, '?', 1)) = '/jw-stone'
       )
   )
   SELECT
@@ -369,8 +483,19 @@ export function buildReport({
   const releaseMetricsNotApplicableReason = historicalPreRelease
     ? "release was not active during this window"
     : "window crosses the release boundary; split the window at production activation";
+  const excludedPublishedProfiles = catalogRows
+    .filter((row) => row.is_publicly_exposable === false)
+    .map((row) => ({
+      slug: normalizeActivitySlug(row.business_slug),
+      displayName: row.display_name || null,
+      reason: String(row.exclusion_reason || "public_exposure_not_authorized"),
+    }))
+    .filter((row) => row.slug);
+  const publiclyExposableCatalogRows = catalogRows.filter(
+    (row) => row.is_publicly_exposable !== false
+  );
   const profiles = new Map();
-  for (const row of catalogRows) {
+  for (const row of publiclyExposableCatalogRows) {
     const profile = addActivityRow(profiles, row.business_slug, row.display_name);
     if (!profile) continue;
     profile.displayName = row.display_name || profile.displayName;
@@ -499,7 +624,9 @@ export function buildReport({
     });
 
   const summary = {
-    catalogProfiles: catalogRows.length,
+    publishedProfiles: catalogRows.length,
+    catalogProfiles: publiclyExposableCatalogRows.length,
+    excludedPublishedProfiles: excludedPublishedProfiles.length,
     profilesWithCrawl: profileRows.filter((row) => row.crawled.hits > 0).length,
     profilesWithSourceAttributedLanding: releaseMetricsApplicable
       ? profileRows.filter((row) => row.surfaced.sourceAttributedLandings > 0).length
@@ -557,6 +684,7 @@ export function buildReport({
     profiles: profileRows,
     sources,
     coverage: {
+      excludedPublishedProfiles,
       uncrawledProfiles: profileRows
         .filter((profile) => profile.crawled.hits === 0)
         .map(({ slug, displayName }) => ({ slug, displayName })),
@@ -613,6 +741,10 @@ export function buildMarkdown(report) {
     "",
     "## Summary",
     "",
+    `- Published profile rows: ${report.summary.publishedProfiles}`,
+    `- Publicly exposable profiles: ${report.summary.catalogProfiles}`,
+    `- Excluded published profiles: ${report.summary.excludedPublishedProfiles}`,
+    "",
     "| Signal | Profiles with evidence | Total |",
     "| --- | ---: | ---: |",
     `| Crawled | ${formatMetric(report.summary.profilesWithCrawl)} | ${formatMetric(report.summary.crawlHits)} bot requests |`,
@@ -635,6 +767,7 @@ export function buildMarkdown(report) {
 
   lines.push("", "## Coverage", "");
   lines.push(
+    `- Excluded published profiles (${report.coverage.excludedPublishedProfiles.length}): ${report.coverage.excludedPublishedProfiles.length ? report.coverage.excludedPublishedProfiles.map((profile) => `${profile.displayName || profile.slug} (${profile.slug}: ${profile.reason})`).join(", ") : "none"}`,
     `- Uncrawled profiles (${report.coverage.uncrawledProfiles.length}): ${report.coverage.uncrawledProfiles.length ? report.coverage.uncrawledProfiles.map((profile) => `${profile.displayName || profile.slug} (${profile.slug})`).join(", ") : "none"}`,
     `- Unvisited profiles (${report.coverage.unvisitedProfiles.length}): ${report.coverage.unvisitedProfiles.length ? report.coverage.unvisitedProfiles.map((profile) => `${profile.displayName || profile.slug} (${profile.slug})`).join(", ") : "none"}`,
     ""
