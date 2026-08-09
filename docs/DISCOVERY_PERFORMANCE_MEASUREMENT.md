@@ -26,7 +26,7 @@ The command accepts `--from`, `--to`, `--release-at`, `--days`, and `--out-dir`.
 
 ## Definitions
 
-- `crawled`: a bot observation for a publicly exposable profile route on TradeScout or its unambiguous custom domain, grouped by profile and crawler family. A recorded published-profile slug is authoritative for historical attribution; the current custom-domain owner is only a fallback when that identity is absent. Custom-domain mapping counts HTML routes only, so asset fetches are not misreported as profile crawls.
+- `crawled`: a bot observation for a publicly exposable profile route on TradeScout or its unambiguous custom domain, grouped by profile and crawler family. A recorded profile/business identity is authoritative for historical attribution. Generic page identities, such as a stone or material page, still use the unambiguous custom-domain profile mapping. Custom-domain mapping counts HTML routes only, so asset fetches are not misreported as profile crawls.
 - `surfaced`: a post-release verified discovery landing with a source hint or referrer host. This is a source-attributed arrival proxy, not a search-engine impression.
 - `visited`: human-only `profile_view_events` plus discovery landing events where applicable.
 - `converted`: a post-release created work request whose `work_request_events.metadata.entryRequestId` matches a verified discovery landing identity.

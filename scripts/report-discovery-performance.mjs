@@ -155,7 +155,11 @@ const crawlSummarySql = `
   ), normalized AS (
     SELECT
       COALESCE(
-        NULLIF(lower(trim(e.entity_slug)), ''),
+        CASE
+          WHEN lower(trim(COALESCE(e.entity_type, ''))) IN ('profile', 'business')
+            THEN NULLIF(lower(trim(e.entity_slug)), '')
+          ELSE NULL
+        END,
         custom_profile.business_slug,
         CASE
           WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
@@ -179,12 +183,18 @@ const crawlSummarySql = `
         '^www\\.',
         ''
       )
-      AND NULLIF(trim(e.entity_slug), '') IS NULL
+      AND NOT (
+        lower(trim(COALESCE(e.entity_type, ''))) IN ('profile', 'business')
+        AND NULLIF(trim(e.entity_slug), '') IS NOT NULL
+      )
       AND lower(COALESCE(e.content_type, '')) LIKE 'text/html%'
     WHERE e.observed_at >= $1
       AND e.observed_at < $2
       AND (
-        NULLIF(trim(e.entity_slug), '') IS NOT NULL
+        (
+          lower(trim(COALESCE(e.entity_type, ''))) IN ('profile', 'business')
+          AND NULLIF(trim(e.entity_slug), '') IS NOT NULL
+        )
         OR custom_profile.business_slug IS NOT NULL
         OR e.path LIKE '/u/%'
         OR e.path LIKE '/business/%'
@@ -234,7 +244,11 @@ const crawlFamilySummarySql = `
   ), normalized AS (
     SELECT
       COALESCE(
-        NULLIF(lower(trim(e.entity_slug)), ''),
+        CASE
+          WHEN lower(trim(COALESCE(e.entity_type, ''))) IN ('profile', 'business')
+            THEN NULLIF(lower(trim(e.entity_slug)), '')
+          ELSE NULL
+        END,
         custom_profile.business_slug,
         CASE
           WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
@@ -253,12 +267,18 @@ const crawlFamilySummarySql = `
         '^www\\.',
         ''
       )
-      AND NULLIF(trim(e.entity_slug), '') IS NULL
+      AND NOT (
+        lower(trim(COALESCE(e.entity_type, ''))) IN ('profile', 'business')
+        AND NULLIF(trim(e.entity_slug), '') IS NOT NULL
+      )
       AND lower(COALESCE(e.content_type, '')) LIKE 'text/html%'
     WHERE e.observed_at >= $1
       AND e.observed_at < $2
       AND (
-        NULLIF(trim(e.entity_slug), '') IS NOT NULL
+        (
+          lower(trim(COALESCE(e.entity_type, ''))) IN ('profile', 'business')
+          AND NULLIF(trim(e.entity_slug), '') IS NOT NULL
+        )
         OR custom_profile.business_slug IS NOT NULL
         OR e.path LIKE '/u/%'
         OR e.path LIKE '/business/%'

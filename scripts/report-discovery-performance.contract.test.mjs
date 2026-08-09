@@ -28,15 +28,18 @@ test("uses the four production evidence layers and stays read-only", () => {
   assert.ok(source.includes("p.seo_meta->>'customDomain'"));
   assert.ok(source.includes("e.content_type"));
   assert.ok(source.includes("e.host"));
+  assert.ok(source.includes("e.entity_type"));
   assert.ok(source.includes("row.is_publicly_exposable === true"));
   assert.equal(
     source.match(
-      /COALESCE\(\s*NULLIF\(lower\(trim\(e\.entity_slug\)\), ''\),\s*custom_profile\.business_slug,/g
+      /COALESCE\(\s*CASE\s+WHEN lower\(trim\(COALESCE\(e\.entity_type, ''\)\)\) IN \('profile', 'business'\)\s+THEN NULLIF\(lower\(trim\(e\.entity_slug\)\), ''\)\s+ELSE NULL\s+END,\s*custom_profile\.business_slug,/g
     )?.length,
     2
   );
   assert.equal(
-    source.match(/AND NULLIF\(trim\(e\.entity_slug\), ''\) IS NULL/g)?.length,
+    source.match(
+      /AND NOT \(\s*lower\(trim\(COALESCE\(e\.entity_type, ''\)\)\) IN \('profile', 'business'\)\s*AND NULLIF\(trim\(e\.entity_slug\), ''\) IS NOT NULL\s*\)/g
+    )?.length,
     2
   );
   assert.doesNotMatch(source, /\b(?:INSERT|UPDATE|DELETE|ALTER|CREATE)\s+(?:INTO\s+)?[a-z_]+/i);
