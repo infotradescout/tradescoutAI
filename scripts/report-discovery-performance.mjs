@@ -155,8 +155,8 @@ const crawlSummarySql = `
   ), normalized AS (
     SELECT
       COALESCE(
+        recorded_profile.business_slug,
         custom_profile.business_slug,
-        NULLIF(lower(e.entity_slug), ''),
         CASE
           WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
             THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 2)), '')
@@ -173,6 +173,8 @@ const crawlSummarySql = `
       e.is_first_seen_url,
       e.is_recrawl
     FROM bot_observation_events e
+    LEFT JOIN published_profiles recorded_profile
+      ON recorded_profile.business_slug = NULLIF(lower(e.entity_slug), '')
     LEFT JOIN unambiguous_custom_domains custom_profile
       ON custom_profile.custom_domain = regexp_replace(
         lower(split_part(COALESCE(e.host, ''), ':', 1)),
@@ -183,8 +185,8 @@ const crawlSummarySql = `
     WHERE e.observed_at >= $1
       AND e.observed_at < $2
       AND (
-        custom_profile.business_slug IS NOT NULL
-        OR e.entity_slug IS NOT NULL
+        recorded_profile.business_slug IS NOT NULL
+        OR custom_profile.business_slug IS NOT NULL
         OR e.path LIKE '/u/%'
         OR e.path LIKE '/business/%'
         OR lower(split_part(e.path, '?', 1)) = '/jw-stone'
@@ -233,8 +235,8 @@ const crawlFamilySummarySql = `
   ), normalized AS (
     SELECT
       COALESCE(
+        recorded_profile.business_slug,
         custom_profile.business_slug,
-        NULLIF(lower(e.entity_slug), ''),
         CASE
           WHEN split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 1) = 'u'
             THEN NULLIF(lower(split_part(trim(both '/' FROM split_part(e.path, '?', 1)), '/', 2)), '')
@@ -246,6 +248,8 @@ const crawlFamilySummarySql = `
       ) AS business_slug,
       COALESCE(NULLIF(trim(e.bot_family), ''), 'unknown') AS crawler_family
     FROM bot_observation_events e
+    LEFT JOIN published_profiles recorded_profile
+      ON recorded_profile.business_slug = NULLIF(lower(e.entity_slug), '')
     LEFT JOIN unambiguous_custom_domains custom_profile
       ON custom_profile.custom_domain = regexp_replace(
         lower(split_part(COALESCE(e.host, ''), ':', 1)),
@@ -256,8 +260,8 @@ const crawlFamilySummarySql = `
     WHERE e.observed_at >= $1
       AND e.observed_at < $2
       AND (
-        custom_profile.business_slug IS NOT NULL
-        OR e.entity_slug IS NOT NULL
+        recorded_profile.business_slug IS NOT NULL
+        OR custom_profile.business_slug IS NOT NULL
         OR e.path LIKE '/u/%'
         OR e.path LIKE '/business/%'
         OR lower(split_part(e.path, '?', 1)) = '/jw-stone'
