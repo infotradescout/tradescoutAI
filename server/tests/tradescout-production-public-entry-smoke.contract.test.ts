@@ -18,6 +18,7 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
     expect(script()).toContain("TRADESCOUT_PUBLIC_BASE_URL");
     expect(script()).toContain("TRADESCOUT_PRODUCTION_ORIGIN");
     expect(script()).toContain("TRADESCOUT_EXPECTED_COMMIT");
+    expect(script()).toContain("normalizedFinalUrl === normalizedOrigin");
   });
 
   it("checks live public entry routes for current rendered public-entry behavior", () => {
