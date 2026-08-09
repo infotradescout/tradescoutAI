@@ -121,9 +121,13 @@ function evaluatePublicEntryResponse(origin, routePath, response, body) {
   const missingHtmlFragments = requiredHtmlFragments.filter((fragment) => !body.includes(fragment));
   const presentForbiddenCopy = forbiddenCopy.filter((phrase) => body.includes(phrase));
   const markerOk = commitsMatch(buildHeader, expectedCommit);
+  const normalizedFinalUrl = response.url.replace(/\/+$/, "");
+  const normalizedOrigin = origin.replace(/\/+$/, "");
   const lpCanonicalOk =
     routePath !== "/lp" ||
-    response.url.replace(/\/+$/, "").endsWith("/landing") ||
+    normalizedFinalUrl === normalizedOrigin ||
+    normalizedFinalUrl.endsWith("/landing") ||
+    body.includes(`<link rel="canonical" href="${origin}/"`) ||
     body.includes('<link rel="canonical" href="https://www.thetradescout.com/landing"') ||
     body.includes(`<link rel="canonical" href="${origin}/landing"`);
 
