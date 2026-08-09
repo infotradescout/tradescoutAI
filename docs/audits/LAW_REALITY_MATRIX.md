@@ -21,6 +21,7 @@ Any `temporary_exception` must include owner, rationale, and removal date.
 | Claims-first signup; verification is adaptive/contextual | policy_target | `server/utils/onboardingService.ts:72`, `server/routes/contractor-signup.ts:68` | Intent-first onboarding exists, but end-to-end claims contract is not uniformly enforced across all entry paths. |
 | Counties are operational containers (`county_metrics`, `county_entities`, `county_notes`) | enforced | `migrations/0038_county_intelligence_containers.sql:2`, `server/routes/admin.ts:750`, `server/routes/admin.ts:919` | Canonical county intelligence tables and write paths are active. |
 | Target contract: Admin/UI reads precomputed intelligence (read-time derivation only as documented exception) | policy_target | `server/services/marketSignalsSnapshotJob.ts:1`, `server/routes/admin.ts:506`, `server/routes.ts:1147` | Snapshot-backed reads are in place for major surfaces; remaining derived/read-time paths still need explicit deprecation tracking. |
+| Discovery Observatory Wave 1 classifies current public business/profile facts at admin read time | temporary_exception | `server/services/discoveryObservatoryService.ts`, `docs/audits/LAW_EXCEPTIONS_LEDGER.md` (`EXC-2026-08-09-001`) | Owner: TradeScout Platform Engineering. Rationale: the admin-only observatory needs an honest current baseline while the scheduled public-entity intelligence snapshot is built; it reads no contact fields and grants no access or ranking power. Removal date: 2026-09-30. |
 | Trust/CVS governs exposure | policy_target | `server/services/unifiedScoutRouter.ts:398`, `server/services/scoutTrustIntegration.ts:128`, `server/routes/direct-connect.ts:82` | Trust filtering is active, but permissive fallback/bypass posture still needs stronger release guards. |
 | No pay-to-play | enforced | `server/routes.ts:19188` | Paid boost/ranking path is explicitly disabled (`410 PAID_RANKING_DISABLED`). |
 | No lead selling | policy_target | `server/publicLandingHtml.ts:108`, `server/routes.ts:12497` | Product copy and routing are aligned; we still need stronger automated contract tests around lead-like edge behavior. |
@@ -32,7 +33,9 @@ Any `temporary_exception` must include owner, rationale, and removal date.
 
 ## Temporary Exceptions
 
-Current `temporary_exception` entries: none.
+Current `temporary_exception` entries:
+
+- `EXC-2026-08-09-001` — Discovery Observatory Wave 1 public-entity classification. Owner: TradeScout Platform Engineering. Rationale: bounded admin-only bridge to a scheduled snapshot. Removal date: 2026-09-30.
 
 If new temporary exceptions are introduced, they must be logged in:
 - `docs/audits/LAW_EXCEPTIONS_LEDGER.md`

@@ -76,12 +76,7 @@ function gitStatusPorcelain() {
 }
 
 function writeEvidence(evidence) {
-  const dir = path.join(
-    repoRoot,
-    "artifacts",
-    "release-contract",
-    evidence.commit.slice(0, 12)
-  );
+  const dir = path.join(repoRoot, "artifacts", "release-contract", evidence.commit.slice(0, 12));
   fs.mkdirSync(dir, { recursive: true });
   const jsonPath = path.join(dir, "evidence.json");
   const mdPath = path.join(dir, "evidence.md");
@@ -96,8 +91,7 @@ function writeEvidence(evidence) {
     ``,
     `## Steps`,
     ...evidence.steps.map(
-      (step) =>
-        `- ${step.id}: ${step.status}${step.detail ? ` — ${step.detail}` : ""}`
+      (step) => `- ${step.id}: ${step.status}${step.detail ? ` — ${step.detail}` : ""}`
     ),
     ``,
   ];
@@ -127,11 +121,7 @@ async function main() {
 
   record("1-exact-commit", "pass", commit);
   if (dirty) {
-    record(
-      "1-exact-commit-clean-tree",
-      "warn",
-      "working tree dirty; attest only after commit"
-    );
+    record("1-exact-commit-clean-tree", "warn", "working tree dirty; attest only after commit");
   } else {
     record("1-exact-commit-clean-tree", "pass", "clean");
   }
@@ -176,12 +166,14 @@ async function main() {
     "server/tests/migrationCompatibilityStatus.contract.test.ts",
     "server/tests/health-release-contract.contract.test.ts",
     "server/tests/direct-connect-gates.regression.test.ts",
+    "server/tests/discovery-landing.contract.test.ts",
+    "server/tests/discovery-observatory.contract.test.ts",
+    "client/src/lib/discoveryLanding.test.ts",
+    "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
   ];
-  const testRun = run(
-    "npm",
-    ["run", "test:run", "--", ...contractTests],
-    { label: "relevant contract tests" }
-  );
+  const testRun = run("npm", ["run", "test:run", "--", ...contractTests], {
+    label: "relevant contract tests",
+  });
   record("4-contract-tests", testRun.ok ? "pass" : "fail", `exit ${testRun.status}`);
   if (!testRun.ok) {
     evidence.result = "fail";
@@ -189,15 +181,31 @@ async function main() {
     process.exit(testRun.status);
   }
 
+  const discoveryPerformanceTests = run(
+    "node",
+    [
+      "--test",
+      "scripts/report-discovery-performance.contract.test.mjs",
+      "scripts/report-discovery-performance.phase.test.mjs",
+    ],
+    { label: "discovery performance contract and phase tests" }
+  );
+  record(
+    "4-discovery-performance-tests",
+    discoveryPerformanceTests.ok ? "pass" : "fail",
+    `exit ${discoveryPerformanceTests.status}`
+  );
+  if (!discoveryPerformanceTests.ok) {
+    evidence.result = "fail";
+    writeEvidence(evidence);
+    process.exit(discoveryPerformanceTests.status);
+  }
+
   // 5. Database compatibility proof
   const testDbUrl = String(process.env.TEST_DATABASE_URL || "").trim();
   if (!testDbUrl) {
     if (args.allowDbSkip) {
-      record(
-        "5-database-compatibility",
-        "skipped",
-        "TEST_DATABASE_URL missing; --allow-db-skip"
-      );
+      record("5-database-compatibility", "skipped", "TEST_DATABASE_URL missing; --allow-db-skip");
     } else {
       record(
         "5-database-compatibility",
@@ -225,11 +233,7 @@ async function main() {
       env: { ...process.env, DATABASE_URL: testDbUrl },
       label: "db:verify:required (TEST_DATABASE_URL)",
     });
-    record(
-      "5-database-compatibility",
-      verify.ok ? "pass" : "fail",
-      `exit ${verify.status}`
-    );
+    record("5-database-compatibility", verify.ok ? "pass" : "fail", `exit ${verify.status}`);
     if (!verify.ok) {
       evidence.result = "fail";
       writeEvidence(evidence);
@@ -261,19 +265,15 @@ async function main() {
     const baseUrl = String(process.env.BASE_URL || process.env.APP_URL || "").trim();
     const manualNote = String(process.env.BROWSER_PROOF_NOTE || "").trim();
     if (baseUrl) {
-      const smoke = run(
-        "node",
-        ["scripts/tradescout-production-public-entry-smoke.mjs"],
-        {
-          env: {
-            ...process.env,
-            RUN_TRADESCOUT_PRODUCTION_PUBLIC_ENTRY_SMOKE: "1",
-            TRADESCOUT_PUBLIC_BASE_URL: baseUrl,
-            TRADESCOUT_EXPECTED_COMMIT: commit,
-          },
-          label: `public-entry smoke @ ${baseUrl}`,
-        }
-      );
+      const smoke = run("node", ["scripts/tradescout-production-public-entry-smoke.mjs"], {
+        env: {
+          ...process.env,
+          RUN_TRADESCOUT_PRODUCTION_PUBLIC_ENTRY_SMOKE: "1",
+          TRADESCOUT_PUBLIC_BASE_URL: baseUrl,
+          TRADESCOUT_EXPECTED_COMMIT: commit,
+        },
+        label: `public-entry smoke @ ${baseUrl}`,
+      });
       record("6-browser-proof", smoke.ok ? "pass" : "fail", `BASE_URL smoke exit ${smoke.status}`);
       if (!smoke.ok) {
         evidence.result = "fail";

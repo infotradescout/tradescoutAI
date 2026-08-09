@@ -12,6 +12,7 @@ import {
   type DiscoveryQualityRow,
 } from "../../shared/discoveryObservatory";
 import {
+  buildLivingDiscoveryQueries,
   DiscoveryObservatoryService,
   rankDiscoveryExperiments,
   type ObservatoryQueryable,
@@ -541,6 +542,56 @@ describe("disposable Direct Connect proof", () => {
     );
   });
 
+  it("records the primary untargeted Direct Connect path as a platform journey", async () => {
+    const rows: DiscoveryQualityRow[] = [];
+    const service = new DiscoveryObservatoryService(
+      {
+        query: async (text, values = []) => {
+          if (text.includes("event_type = 'discovery_action'")) {
+            const row = rows.find(
+              (item) =>
+                item.eventType === DISCOVERY_ACTION_EVENT && item.data.workRequestId === values[0]
+            );
+            return { rows: row ? [{ data: row.data, created_at: row.createdAt }] : [] };
+          }
+          return { rows: [] };
+        },
+      },
+      async (eventType, data) =>
+        rows.push({ id: `row-${rows.length}`, eventType, data, createdAt: NOW }),
+      () => NOW
+    );
+
+    const context = await service.recordRequestAction({
+      workRequestId: "work-primary-platform",
+      entity: { type: "platform", slug: "direct-connect" },
+      entityKey: "platform:direct-connect",
+      source: "primary_direct_connect",
+    });
+    expect(context).toMatchObject({
+      entity: { type: "platform", slug: "direct-connect" },
+      entityKey: "platform:direct-connect",
+      entryLinkage: "unknown_unavailable",
+    });
+    expect(
+      await service.recordJourneyOutcome({
+        workRequestId: "work-primary-platform",
+        kind: "provider_response",
+        state: "accepted",
+        actorAuthority: "authenticated_assigned_provider",
+      })
+    ).toBe(true);
+    expect(rows[0].data).toMatchObject({
+      source: "primary_direct_connect",
+      entityKey: "platform:direct-connect",
+    });
+    expect(rows[1].data).toMatchObject({
+      entity: { type: "platform", slug: "direct-connect" },
+      entityKey: "platform:direct-connect",
+    });
+    expect(validateDiscoveryRecords(rows, NOW)).toEqual([]);
+  });
+
   it("links only a same-business landing that predates the action within thirty days", async () => {
     let landingCreatedAt = new Date("2026-08-08T16:46:00.000Z");
     const service = new DiscoveryObservatoryService(
@@ -613,6 +664,59 @@ describe("disposable Direct Connect proof", () => {
       })
     ).toBe(false);
     expect(writes).toEqual([]);
+  });
+});
+
+describe("review-feedback release corrections", () => {
+  it("captures the primary Direct Connect route with only server-verified attribution", () => {
+    const route = read("server/routes/direct-connect.ts");
+    const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+
+    expect(route).toContain("verifyDiscoveryAttributionToken(body.discoveryAttributionToken");
+    expect(route).toContain('businessSlug: String(targetProfile.slug || "")');
+    expect(route).toContain("await discoveryObservatory.recordRequestAction({");
+    expect(route).toContain('source: "primary_direct_connect"');
+    expect(route).toContain(
+      'entityKey: targetProfile ? `profile:${targetSlug}` : "platform:direct-connect"'
+    );
+    expect(route).toContain("entryRequestId: verifiedDiscoveryAttribution?.entryRequestId || null");
+    expect(route).not.toContain("entryRequestId: body.entryRequestId");
+    expect(shell).toContain("getStoredDiscoveryLandingAttribution(targetProfileSlug)");
+    expect(shell).toContain(
+      "payload.discoveryAttributionToken = discoveryAttribution.discoveryAttributionToken"
+    );
+  });
+
+  it("documents the bounded read-time intelligence exception in code and both law ledgers", () => {
+    const service = read("server/services/discoveryObservatoryService.ts");
+    const matrix = read("docs/audits/LAW_REALITY_MATRIX.md");
+    const ledger = read("docs/audits/LAW_EXCEPTIONS_LEDGER.md");
+
+    for (const source of [service, matrix, ledger]) {
+      expect(source).toContain("EXC-2026-08-09-001");
+      expect(source).toContain("2026-09-30");
+    }
+    expect(service).toContain("Current public-entity tables (temporary exception)");
+  });
+
+  it("keeps JW inventory strategy out of the platform observatory", () => {
+    const service = read("server/services/discoveryObservatoryService.ts");
+    expect(service).not.toContain("jwStoneCanonicalInventory");
+    expect(service).not.toContain("JW_STONE_CANONICAL_INVENTORY_CATEGORIES");
+    expect(service).not.toContain("confirmed_jw_stone_inventory");
+
+    const queries = buildLivingDiscoveryQueries([
+      {
+        id: "jw-profile",
+        slug: "jw-stone",
+        name: "JW Stone",
+        status: "published",
+        public_discovery_enabled: true,
+        profile_data: { category: "stone", services: [] },
+      },
+    ]);
+    expect(queries.some((query) => query.source === "confirmed_jw_stone_inventory")).toBe(false);
+    expect(queries.some((query) => "itemSlug" in query)).toBe(false);
   });
 });
 

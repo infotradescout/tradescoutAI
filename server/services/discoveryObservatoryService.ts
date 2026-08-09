@@ -1,5 +1,4 @@
 import { createHash, randomUUID } from "node:crypto";
-import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "../jwStoneCanonicalInventory";
 import {
   DISCOVERY_ACTION_EVENT,
   DISCOVERY_DELIVERY_EVENT,
@@ -10,6 +9,7 @@ import {
   DISCOVERY_OUTCOME_EVENT,
   DISCOVERY_WAVE_1_EXPERIMENTS,
   sanitizeDiscoveryObservation,
+  type DiscoveryEntityRef,
   type DiscoveryEntryLinkage,
   type DiscoveryEvidenceStrength,
   type DiscoveryObservation,
@@ -29,8 +29,8 @@ export type DiscoveryEventWriter = (
 type DiscoveryJourneyContext = {
   journeyId: string;
   workRequestId: string;
-  businessSlug: string;
-  businessId?: string;
+  entity: DiscoveryEntityRef;
+  entityKey: string;
   entryRequestId?: string;
   entryLinkage: DiscoveryEntryLinkage;
   actionOccurredAt: string;
@@ -46,6 +46,11 @@ type SourceState = {
 
 const ENTRY_LINK_MAX_LOOKBACK_DAYS = 30;
 const ENTRY_LINK_MAX_LOOKBACK_MS = ENTRY_LINK_MAX_LOOKBACK_DAYS * 24 * 60 * 60 * 1000;
+const ENTITY_INTELLIGENCE_TEMPORARY_EXCEPTION = {
+  id: "EXC-2026-08-09-001",
+  owner: "TradeScout Platform Engineering",
+  removalDate: "2026-09-30",
+} as const;
 
 function recordValue(raw: unknown): Record<string, any> {
   return raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, any>) : {};
@@ -243,19 +248,6 @@ export function buildLivingDiscoveryQueries(surfaces: Array<Record<string, any>>
     }
   }
 
-  const inventoryQueries = JW_STONE_CANONICAL_INVENTORY_CATEGORIES.flatMap((category) =>
-    category.stones
-      .filter((stone) => stone.nameStatus === "source" && String(stone.displayName || "").trim())
-      .slice(0, 4)
-      .map((stone) => ({
-        query: `${stone.displayName} ${category.category} slab`,
-        source: "confirmed_jw_stone_inventory",
-        entitySlug: "jw-stone",
-        itemSlug: stone.slug,
-        intent: "confirmed_inventory",
-      }))
-  );
-
   const requirementQuestions = [
     {
       query: "What permit is required for residential work in Tangipahoa Parish?",
@@ -278,7 +270,7 @@ export function buildLivingDiscoveryQueries(surfaces: Array<Record<string, any>>
   ];
 
   const seen = new Set<string>();
-  return [...candidates, ...inventoryQueries, ...requirementQuestions].filter((item) => {
+  return [...candidates, ...requirementQuestions].filter((item) => {
     const key = String(item.query).toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
@@ -438,22 +430,43 @@ export class DiscoveryObservatoryService {
 
   async recordRequestAction(args: {
     workRequestId: string;
-    businessSlug: string;
+    businessSlug?: string | null;
     businessId?: string | null;
+    entity?: DiscoveryEntityRef;
+    entityKey?: string | null;
     entryRequestId?: string | null;
+    source?: "tradepartner_express_direct_connect" | "primary_direct_connect";
     occurredAt?: Date;
   }): Promise<DiscoveryJourneyContext> {
     const occurredAt = args.occurredAt ?? this.clock();
-    const entryLinkage = await this.resolveEntryRequestLinkage(
-      args.entryRequestId,
-      args.businessSlug,
-      occurredAt
-    );
+    const legacyBusinessSlug = String(args.businessSlug || "")
+      .trim()
+      .toLowerCase();
+    const entity: DiscoveryEntityRef = args.entity || {
+      type: "business",
+      ...(args.businessId ? { id: args.businessId } : {}),
+      ...(legacyBusinessSlug ? { slug: legacyBusinessSlug } : {}),
+    };
+    const entityIdentity = String(entity.slug || entity.id || "").trim();
+    const entityKey =
+      String(args.entityKey || "").trim() ||
+      (entityIdentity ? `${entity.type}:${entityIdentity}` : "");
+    if (!entityKey || (entity.type !== "platform" && !entityIdentity)) {
+      throw new Error("DISCOVERY_ACTION_ENTITY_REQUIRED");
+    }
+    const entryBusinessSlug =
+      legacyBusinessSlug ||
+      String(entity.slug || "")
+        .trim()
+        .toLowerCase();
+    const entryLinkage = entryBusinessSlug
+      ? await this.resolveEntryRequestLinkage(args.entryRequestId, entryBusinessSlug, occurredAt)
+      : "unknown_unavailable";
     const context: DiscoveryJourneyContext = {
       journeyId: `dc:${args.workRequestId}`,
       workRequestId: args.workRequestId,
-      businessSlug: args.businessSlug,
-      ...(args.businessId ? { businessId: args.businessId } : {}),
+      entity,
+      entityKey,
       ...(args.entryRequestId ? { entryRequestId: args.entryRequestId } : {}),
       entryLinkage,
       actionOccurredAt: occurredAt.toISOString(),
@@ -464,13 +477,10 @@ export class DiscoveryObservatoryService {
       stage: "request_submitted",
       journeyId: context.journeyId,
       workRequestId: context.workRequestId,
-      entity: {
-        type: "business",
-        ...(context.businessId ? { id: context.businessId } : {}),
-        slug: context.businessSlug,
-      },
+      entity: context.entity,
+      entityKey: context.entityKey,
       occurredAt: occurredAt.toISOString(),
-      source: "tradepartner_express_direct_connect",
+      source: args.source || "tradepartner_express_direct_connect",
       evidenceStrength: "direct_server_observed",
       entryLinkage,
       entryEvidenceStrength: entryLinkageStrength(entryLinkage),
@@ -494,12 +504,33 @@ export class DiscoveryObservatoryService {
       const data = recordValue(result.rows[0]?.data);
       const entity = recordValue(data.entity);
       const actionOccurredAt = toIso(data.occurredAt || result.rows[0]?.created_at);
-      if (!data.journeyId || !entity.slug || !actionOccurredAt) return null;
+      const entityType = ["business", "profile", "market_page", "platform"].includes(
+        String(entity.type)
+      )
+        ? (String(entity.type) as DiscoveryEntityRef["type"])
+        : "business";
+      const normalizedEntity: DiscoveryEntityRef = {
+        type: entityType,
+        ...(entity.id ? { id: String(entity.id) } : {}),
+        ...(entity.slug ? { slug: String(entity.slug) } : {}),
+      };
+      const entityIdentity = String(normalizedEntity.slug || normalizedEntity.id || "").trim();
+      const entityKey =
+        String(data.entityKey || "").trim() ||
+        (entityIdentity ? `${normalizedEntity.type}:${entityIdentity}` : "");
+      if (
+        !data.journeyId ||
+        !actionOccurredAt ||
+        !entityKey ||
+        (normalizedEntity.type !== "platform" && !entityIdentity)
+      ) {
+        return null;
+      }
       return {
         journeyId: String(data.journeyId),
         workRequestId,
-        businessSlug: String(entity.slug),
-        ...(entity.id ? { businessId: String(entity.id) } : {}),
+        entity: normalizedEntity,
+        entityKey,
         ...(data.entryRequestId ? { entryRequestId: String(data.entryRequestId) } : {}),
         entryLinkage: [
           "server_observed_match",
@@ -537,11 +568,8 @@ export class DiscoveryObservatoryService {
       outcomeState: args.state,
       journeyId: context.journeyId,
       workRequestId: context.workRequestId,
-      entity: {
-        type: "business",
-        ...(context.businessId ? { id: context.businessId } : {}),
-        slug: context.businessSlug,
-      },
+      entity: context.entity,
+      entityKey: context.entityKey,
       occurredAt: occurredAt.toISOString(),
       actorAuthority: args.actorAuthority,
       evidenceStrength: "direct_server_observed",
@@ -568,11 +596,8 @@ export class DiscoveryObservatoryService {
       deliveryState: args.state,
       journeyId: context.journeyId,
       workRequestId: context.workRequestId,
-      entity: {
-        type: "business",
-        ...(context.businessId ? { id: context.businessId } : {}),
-        slug: context.businessSlug,
-      },
+      entity: context.entity,
+      entityKey: context.entityKey,
       occurredAt: occurredAt.toISOString(),
       actorAuthority: "server_delivery_system",
       evidenceStrength: "direct_server_observed",
@@ -760,15 +785,15 @@ export class DiscoveryObservatoryService {
       );
       surfaces = surfaceResult.rows;
       sourceStates.push({
-        source: "Current public-entity tables",
+        source: "Current public-entity tables (temporary exception)",
         status: "current",
         observedAt: now.toISOString(),
         ageSeconds: 0,
-        detail: `${surfaces.length} current business/profile candidates read without contact fields.`,
+        detail: `${surfaces.length} current business/profile candidates read without contact fields. ${ENTITY_INTELLIGENCE_TEMPORARY_EXCEPTION.id} is owned by ${ENTITY_INTELLIGENCE_TEMPORARY_EXCEPTION.owner} and expires ${ENTITY_INTELLIGENCE_TEMPORARY_EXCEPTION.removalDate}; replace this read-time classification with a scheduled snapshot.`,
       });
     } catch (error) {
       sourceStates.push({
-        source: "Current public-entity tables",
+        source: "Current public-entity tables (temporary exception)",
         status: "unavailable",
         observedAt: null,
         ageSeconds: null,
