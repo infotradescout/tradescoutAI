@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildMarkdown,
   buildReport,
   DISCOVERY_PERFORMANCE_RELEASE,
+  parseDateArgument,
+  parsePositiveDays,
 } from "./report-discovery-performance.mjs";
 
 const activationAt = new Date(DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt);
@@ -129,4 +132,53 @@ test("windows crossing activation do not measure signed attribution or conversio
   assert.equal(report.measurement.discoveryConversion.status, "not_applicable");
   assert.equal(report.summary.convertedRequests, null);
   assert.equal(report.requestDistributionByProfile.status, "not_applicable");
+});
+
+test("explicit bounds determine the reported duration", () => {
+  const report = buildReport({
+    catalogRows: [],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    generatedAt: "2026-08-08T18:00:00.000Z",
+    from: new Date("2026-08-08T18:00:00.000Z"),
+    to: new Date("2026-08-09T00:00:00.000Z"),
+    windowDays: 30,
+    productionActivationAt: activationAt,
+  });
+
+  assert.equal(report.windowDays, 0.25);
+  assert.match(buildMarkdown(report), /\(0\.25 day\(s\)\)/);
+});
+
+test("custom activation timestamps control both phase and displayed boundary", () => {
+  const customActivationAt = new Date("2026-08-09T12:00:00.000Z");
+  const report = buildReport({
+    catalogRows: [],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    generatedAt: "2026-08-09T13:00:00.000Z",
+    from: new Date("2026-08-09T12:00:00.000Z"),
+    to: new Date("2026-08-09T13:00:00.000Z"),
+    productionActivationAt: customActivationAt,
+  });
+
+  assert.equal(report.measurement.phase, "post_release");
+  assert.equal(report.measurement.productionActivatedAt, customActivationAt.toISOString());
+});
+
+test("explicit invalid CLI dates and day counts fail closed", () => {
+  assert.equal(parseDateArgument([], "--from="), null);
+  assert.throws(() => parseDateArgument(["--from=not-a-date"], "--from="), /Invalid --from date/);
+  assert.throws(() => parseDateArgument(["--to="], "--to="), /Invalid --to date/);
+  assert.equal(parsePositiveDays([]), 30);
+  assert.throws(() => parsePositiveDays(["--days=0.5"]), /Invalid --days value/);
+  assert.throws(() => parsePositiveDays(["--days=garbage"]), /Invalid --days value/);
 });
