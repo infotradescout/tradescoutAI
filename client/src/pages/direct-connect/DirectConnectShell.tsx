@@ -57,7 +57,6 @@ import {
   trackRepeatedFrictionSignal,
 } from "@/lib/telemetry";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
-import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import { resolveDirectConnectFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
 import {
   trackFirstUseGuidanceViewed,
@@ -341,7 +340,7 @@ const SECTION_META: Record<
   },
   inbox: {
     title: "Inbox",
-    description: "Review responses and open accepted Direct Connect conversations in Messages.",
+    description: "Review incoming opportunities and continue accepted conversations in Messages.",
     actionLabel: "Review my requests",
     actionTarget: "engagements",
   },
@@ -354,7 +353,7 @@ const SECTION_META: Record<
   },
   engagements: {
     title: "My Requests",
-    description: "Follow-up mode keeps request updates and replies together.",
+    description: "See each request's status, replies, and next action in one place.",
     actionLabel: "See replies",
     actionTarget: "inbox",
   },
@@ -5599,8 +5598,7 @@ export default function DirectConnectShell() {
         <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
           {activeSection !== "post" && (
             <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
-              <span className="md:hidden">{mobileTitle}</span>
-              <span className="hidden md:inline">Direct Connect</span>
+              {mobileTitle}
             </h1>
           )}
         </div>
@@ -5608,8 +5606,14 @@ export default function DirectConnectShell() {
         {activeSection !== "post" ? (
           <>
             <FirstUseGuidanceCard
-              title="Start your request."
-              description={DIRECT_CONNECT_GUIDANCE_TEXT}
+              title={
+                activeSection === "engagements"
+                  ? "Track your requests."
+                  : activeSection === "inbox"
+                    ? "Review incoming work."
+                    : `${sectionMeta.title}.`
+              }
+              description={sectionMeta.description}
             />
             <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
               <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">

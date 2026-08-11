@@ -88,15 +88,15 @@ const START_GUIDE_ITEMS: NavItem[] = [
   },
   {
     label: "Check my requests and replies",
-    href: "/direct-connect",
+    href: "/direct-connect/active",
     icon: <ClipboardList className="h-5 w-5" />,
     description: "See what you asked for, who replied, and what needs action.",
   },
   {
-    label: "Manage my business",
+    label: "Set up or manage my business",
     href: "/business-dashboard",
     icon: <Wrench className="h-5 w-5" />,
-    description: "Open your business workspace, profile, and opportunities.",
+    description: "Create a business profile or open its workspace and opportunities.",
   },
   {
     label: "Browse commercial work",
@@ -126,15 +126,31 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
       title: "Start here",
       summary: "Tell Scout what you want to get done and receive a clear next step.",
       actionLabel: "See my requests",
+      actionHref: "/direct-connect/active",
+    };
+  }
+  if (pathname.startsWith("/direct-connect/active")) {
+    return {
+      title: "My requests",
+      summary: "Review what you asked for, read replies, and see what needs your attention.",
+      actionLabel: "Start a new request",
       actionHref: "/direct-connect",
+    };
+  }
+  if (pathname.startsWith("/direct-connect/inbox")) {
+    return {
+      title: "Inbox",
+      summary: "Review incoming opportunities, replies, and conversations that need action.",
+      actionLabel: "Open my requests",
+      actionHref: "/direct-connect/active",
     };
   }
   if (pathname.startsWith("/direct-connect")) {
     return {
-      title: "My requests",
-      summary: "Create a request, review replies, and see what needs your attention.",
-      actionLabel: "Start a request",
-      actionHref: "/direct-connect",
+      title: "Make a request",
+      summary: "Describe what you need, review it, and choose where it goes.",
+      actionLabel: "Open my requests",
+      actionHref: "/direct-connect/active",
     };
   }
   if (pathname.startsWith("/contractors") || pathname.startsWith("/find-local-businesses")) {
@@ -271,9 +287,9 @@ const buildFeatureNav = (opts?: {
     },
     {
       label: "My Requests",
-      href: "/direct-connect",
+      href: "/direct-connect/active",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Create requests and track replies.",
+      description: "Review requests, replies, and next actions.",
     },
     {
       label: "Find Businesses",
@@ -282,7 +298,7 @@ const buildFeatureNav = (opts?: {
       description: "Find businesses by service and location.",
     },
     {
-      label: "Jobs",
+      label: "Commercial Work",
       href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Browse commercial projects and bid packages.",
@@ -385,21 +401,21 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
   const byHref = new globalThis.Map(items.map((item) => [item.href, item]));
   const communityHref = ROUTES.COMMUNITY ?? "/community";
   const scout = byHref.get("/scout");
-  const request = byHref.get("/direct-connect");
+  const request = byHref.get("/direct-connect/active");
   const community = byHref.get(communityHref);
   const inboxHref = "/direct-connect/inbox";
-  const pinnedHrefs = new Set(["/direct-connect", inboxHref, communityHref, "/scout"]);
+  const pinnedHrefs = new Set(["/direct-connect/active", inboxHref, communityHref, "/scout"]);
 
   const primary: NavItem[] = [
     request
       ? {
           ...request,
           label: "Requests",
-          description: "Create a request and track replies.",
+          description: "Track requests, replies, and next actions.",
         }
       : {
-          label: "Direct Connect",
-          href: "/direct-connect",
+          label: "Requests",
+          href: "/direct-connect/active",
           icon: (
             <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
           ),
@@ -533,7 +549,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const desktopPrimaryNav = useMemo(() => {
     const primaryHrefs = new Set([
       "/scout",
-      "/direct-connect",
+      "/direct-connect/active",
       ROUTES.CONTRACTORS ?? "/contractors",
       "/commercial-directory",
       ROUTES.COMMUNITY ?? "/community",

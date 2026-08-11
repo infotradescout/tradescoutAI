@@ -14,10 +14,10 @@ describe("progressive feature gating contracts", () => {
     expect(source).toContain('label: "Start"');
     expect(source).toContain('href: "/scout"');
     expect(source).toContain('label: "My Requests"');
-    expect(source).toContain('href: "/direct-connect"');
+    expect(source).toMatch(/label: "My Requests",\s+href: "\/direct-connect\/active"/);
     expect(source).toContain('label: "Find Businesses"');
     expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
-    expect(source).toContain('label: "Jobs"');
+    expect(source).toContain('label: "Commercial Work"');
     expect(source).toContain('href: "/commercial-directory"');
     expect(source).toContain('label: "Community"');
     expect(source).toContain('href: ROUTES.COMMUNITY ?? "/community"');
@@ -31,10 +31,29 @@ describe("progressive feature gating contracts", () => {
     expect(source).toContain("Get help with a project");
     expect(source).toContain("Find a local business");
     expect(source).toContain("Check my requests and replies");
-    expect(source).toContain("Manage my business");
+    expect(source).toMatch(/label: "Check my requests and replies",\s+href: "\/direct-connect\/active"/);
+    expect(source).toContain("Set up or manage my business");
     expect(source).toContain("Browse commercial work");
     expect(source).toContain("Ask my community");
     expect(source).toContain("Choose one goal. TradeScout will take you to the right place.");
+    expect(source).toContain('title: "Make a request"');
+    expect(source).toContain('actionHref: "/direct-connect/active"');
+  });
+
+  it("keeps request creation, requester history, and provider inbox distinct", () => {
+    const appShellSource = read("client/src/components/layout/AppShell.tsx");
+    const directConnectSource = read(
+      "client/src/pages/direct-connect/DirectConnectShell.tsx"
+    );
+
+    expect(appShellSource).toContain('title: "Make a request"');
+    expect(appShellSource).toContain('title: "My requests"');
+    expect(appShellSource).toContain('title: "Inbox"');
+    expect(directConnectSource).toContain('title: "My Requests"');
+    expect(directConnectSource).toContain('title: "Inbox"');
+    expect(directConnectSource).toContain('"Track your requests."');
+    expect(directConnectSource).toContain('"Review incoming work."');
+    expect(directConnectSource).not.toContain('title="Start your request."');
   });
 
   it("applies action-driven advanced nav filtering in AppShell", () => {
