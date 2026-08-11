@@ -79,6 +79,7 @@ import {
 import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile";
 import {
   isSteelHomePackagesProfileSlug,
+  STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
   STEEL_HOME_PACKAGES_PROFILE_CONTENT,
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
 } from "@shared/steelHomePackagesProfile";
@@ -1619,6 +1620,10 @@ export default function ProfileSiteView() {
       STEEL_HOME_PACKAGES_START_REQUEST_PATH,
       platformBaseHref
     );
+    const steelHomeLaborRequestHref = qualifyPublicProfileItemDestination(
+      STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
+      platformBaseHref
+    );
 
     return (
       <>
@@ -1635,6 +1640,7 @@ export default function ProfileSiteView() {
         {manageChrome}
         <SteelHomePackagesProfile
           requestHref={steelHomeRequestHref}
+          laborRequestHref={steelHomeLaborRequestHref}
           platformBaseHref={platformBaseHref}
         />
       </>
