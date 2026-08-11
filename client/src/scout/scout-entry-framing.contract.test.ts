@@ -258,6 +258,7 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");
     expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
     expect(scoutOsSource).toContain("Findings and recommended paths");
+    expect(scoutOsSource).toContain("Choose Save to keep it for later.");
     expect(scoutOsSource).toContain("Server-provided actions appear with each answer");
     expect(scoutOsSource).toContain("Search saved conversations");
     expect(scoutOsSource).toContain("SAVED_SCOUT_SURFACE_FILTERS");

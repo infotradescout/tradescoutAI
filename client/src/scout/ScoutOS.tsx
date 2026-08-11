@@ -4656,7 +4656,7 @@ export default function ScoutOS() {
                           Findings and recommended paths
                         </p>
                         <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                          This conversation is saved here so you can come back to it later.
+                          This conversation stays here while you work. Choose Save to keep it for later.
                         </p>
                       </span>
                       <span className="flex shrink-0 flex-wrap justify-end gap-1.5">

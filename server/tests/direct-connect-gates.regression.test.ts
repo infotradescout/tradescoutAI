@@ -185,8 +185,13 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Post a request");
     expect(directConnectShellFile).toContain("Manage requests");
     expect(directConnectShellFile).toContain('engagements: "My Requests"');
+    expect(directConnectShellFile).toContain("Track your requests.");
     expect(directConnectShellFile).toContain(
-      "Follow-up mode keeps request updates and replies together."
+      "See each request's status, replies, and next action in one place."
+    );
+    expect(directConnectShellFile).toContain("Review incoming work.");
+    expect(directConnectShellFile).toContain(
+      "Review incoming opportunities and continue accepted conversations in Messages."
     );
     expect(directConnectShellFile).toContain("Send to more pros");
     expect(directConnectShellFile).toContain("Review replies");

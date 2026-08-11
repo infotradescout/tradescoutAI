@@ -57,7 +57,6 @@ import {
   trackRepeatedFrictionSignal,
 } from "@/lib/telemetry";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
-import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import { resolveDirectConnectFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
 import {
   trackFirstUseGuidanceViewed,
@@ -198,7 +197,7 @@ const DIRECT_CONNECT_TABS: Section[] = [
 const SECTION_LABELS: Record<Section, string> = {
   post: "Post",
   board: "Board",
-  employment: "Opportunities",
+  employment: "Jobs",
   inbox: "Inbox",
   pros: "Businesses",
   engagements: "My Requests",
@@ -207,7 +206,7 @@ const SECTION_LABELS: Record<Section, string> = {
 const SECTION_SHORT_LABELS: Record<Section, string> = {
   post: "New",
   board: "Public",
-  employment: "Work",
+  employment: "Jobs",
   inbox: "Inbox",
   pros: "Biz",
   engagements: "Mine",
@@ -334,14 +333,14 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   employment: {
-    title: "Opportunities",
-    description: "Post work, share availability, and keep replies in Direct Connect.",
+    title: "Jobs",
+    description: "Find employment, post a job or resume, apply, and review applicants.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   inbox: {
     title: "Inbox",
-    description: "Review responses and open accepted Direct Connect conversations in Messages.",
+    description: "Review incoming opportunities and continue accepted conversations in Messages.",
     actionLabel: "Review my requests",
     actionTarget: "engagements",
   },
@@ -354,7 +353,7 @@ const SECTION_META: Record<
   },
   engagements: {
     title: "My Requests",
-    description: "Follow-up mode keeps request updates and replies together.",
+    description: "See each request's status, replies, and next action in one place.",
     actionLabel: "See replies",
     actionTarget: "inbox",
   },
@@ -5599,8 +5598,7 @@ export default function DirectConnectShell() {
         <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
           {activeSection !== "post" && (
             <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
-              <span className="md:hidden">{mobileTitle}</span>
-              <span className="hidden md:inline">Direct Connect</span>
+              {mobileTitle}
             </h1>
           )}
         </div>
@@ -5608,10 +5606,17 @@ export default function DirectConnectShell() {
         {activeSection !== "post" ? (
           <>
             <FirstUseGuidanceCard
-              title="Start your request."
-              description={DIRECT_CONNECT_GUIDANCE_TEXT}
+              title={
+                activeSection === "engagements"
+                  ? "Track your requests."
+                  : activeSection === "inbox"
+                    ? "Review incoming work."
+                    : `${sectionMeta.title}.`
+              }
+              description={sectionMeta.description}
             />
-            <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+            {activeSection !== "employment" ? (
+              <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
               <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 <p className="text-sm text-[color:var(--text-primary)]">
                   {directConnectFirstTaskPrompt.message}
@@ -5671,7 +5676,8 @@ export default function DirectConnectShell() {
                   {directConnectFirstTaskPrompt.ctaLabel}
                 </Button>
               </CardContent>
-            </Card>
+              </Card>
+            ) : null}
           </>
         ) : null}
 
