@@ -430,6 +430,7 @@ async function attachLatestTrustSnapshotToUser<T extends Record<string, any> | n
   }
 }
 import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes";
+import { shouldIndexPublicProfileSlug } from "../shared/publicProfileIndexing";
 import { storage } from "./storage";
 import {
   setupAuth,
@@ -5050,6 +5051,9 @@ export async function registerRoutes(app: any) {
           const parts = path.split("/").filter(Boolean);
           const slug = parts[1] ? decodeURIComponent(parts[1]) : "";
           if (!slug) return next();
+          // Exact unlisted/internal profile URLs may render for review, but
+          // clean visits must not create owner-fallback affiliate attribution.
+          if (!shouldIndexPublicProfileSlug(slug)) return next();
 
           const [profileOwner] = await db
             .select({ ownerUserId: profiles.ownerUserId })

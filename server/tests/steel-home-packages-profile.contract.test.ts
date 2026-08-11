@@ -101,6 +101,11 @@ describe("Complete Steel-Home Packages unlisted profile contract", () => {
     const repository = read("server/repositories/profileRepository.ts");
     const html = read("server/publicProfileHtml.ts");
     const route = read("server/routes/profiles.ts");
+    const appRoutes = read("server/routes.ts");
+    const referralAttributionBlock = appRoutes.slice(
+      appRoutes.indexOf("// Referral attribution middleware:"),
+      appRoutes.indexOf("// Locality tracking middleware")
+    );
     const view = read("client/src/pages/ProfileSiteView.tsx");
 
     expect(repository).toContain("publicProfileReleaseExposurePredicate()");
@@ -114,6 +119,12 @@ describe("Complete Steel-Home Packages unlisted profile contract", () => {
     expect(route).toContain("unlistedSteelHomeDirectProfile");
     expect(route).toContain("isSteelHomePackagesUnlistedDirectProfile");
     expect(route).toContain("Temporary admin stewardship is not evidence");
+    expect(appRoutes).toContain("if (!shouldIndexPublicProfileSlug(slug)) return next();");
+    expect(
+      referralAttributionBlock.indexOf("handleExplicitOrExistingReferral(req, res)")
+    ).toBeLessThan(
+      referralAttributionBlock.indexOf("if (!shouldIndexPublicProfileSlug(slug)) return next();")
+    );
     expect(view).toContain("if (isSteelHomePackagesProfileSlug(profile.slug))");
     expect(view).toContain("noIndex");
     expect(view).not.toContain("steelHomeStructuredData");
