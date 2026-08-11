@@ -33,6 +33,8 @@ describe("Direct Connect entry clarity contract", () => {
     expect(source).toContain("entryLocation={directConnectLocation}");
     expect(source).toContain('prefillSubjectType === "product" ? "buy_sell"');
     expect(source).toContain("prefillSubjectType={requestPrefill?.subjectType}");
+    expect(source).toContain("prefillLocation={requestPrefill?.location}");
+    expect(source).toContain("prefillTiming={requestPrefill?.timing}");
     expect(source).toContain("What would you like to know or do with ${prefillTargetLabel}?");
     expect(source).not.toContain(">Project type</label>");
   });

@@ -1,9 +1,17 @@
+import { useRef } from "react";
 import { ArrowDown, ArrowRight, Check, MapPin } from "lucide-react";
 import {
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
 } from "@shared/steelHomePackagesProfile";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
+import SteelHomePackageBuilder, {
+  type SteelHomePackageBuilderHandle,
+} from "./SteelHomePackageBuilder";
+import type {
+  SteelHomePackageKey,
+  SteelHomeStartingPoint,
+} from "./steelHomePackageBuilder";
 
 type Props = {
   requestHref: string;
@@ -11,8 +19,8 @@ type Props = {
   platformBaseHref?: string;
 };
 
-type RequestLinkProps = {
-  href: string;
+type ActionButtonProps = {
+  onClick: () => void;
   label: string;
   testId?: string;
   variant?: "primary" | "outline" | "light" | "dark";
@@ -32,13 +40,13 @@ function scrollToSection(href: string) {
   });
 }
 
-function RequestLink({
-  href,
+function ActionButton({
+  onClick,
   label,
   testId,
   variant = "primary",
   className = "",
-}: RequestLinkProps) {
+}: ActionButtonProps) {
   const variantClass = {
     primary:
       "bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.3)] hover:bg-[#b55732] focus-visible:ring-white",
@@ -50,14 +58,15 @@ function RequestLink({
   }[variant];
 
   return (
-    <a
-      href={href}
+    <button
+      type="button"
+      onClick={onClick}
       className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-center text-sm font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantClass} ${className}`}
       data-testid={testId}
     >
       {label}
       <ArrowRight className="h-4 w-4" aria-hidden="true" />
-    </a>
+    </button>
   );
 }
 
@@ -90,6 +99,14 @@ export default function SteelHomePackagesProfile({
   laborRequestHref,
   platformBaseHref = "",
 }: Props) {
+  const packageBuilderRef = useRef<SteelHomePackageBuilderHandle>(null);
+
+  const startPackage = (options?: {
+    packageKey?: SteelHomePackageKey;
+    startingPoint?: Exclude<SteelHomeStartingPoint, "">;
+  }) => packageBuilderRef.current?.startPackage(options);
+  const startLabor = () => packageBuilderRef.current?.startLabor();
+
   return (
     <main
       className="min-h-screen overflow-x-hidden bg-[#f5f1e8] pt-[72px] text-[#18312f]"
@@ -127,8 +144,8 @@ export default function SteelHomePackagesProfile({
             ))}
           </nav>
 
-          <RequestLink
-            href={requestHref}
+          <ActionButton
+            onClick={() => startPackage()}
             label="Start a request"
             testId="steel-home-start-request"
             variant="dark"
@@ -166,19 +183,19 @@ export default function SteelHomePackagesProfile({
               {content.hero.body}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <RequestLink
-                href={requestHref}
+              <ActionButton
+                onClick={() => startPackage()}
                 label={content.hero.primaryAction}
                 testId="steel-home-start-request"
               />
-              <RequestLink
-                href={requestHref}
+              <ActionButton
+                onClick={() => startPackage({ startingPoint: "plans" })}
                 label={content.hero.plansAction}
                 testId="steel-home-start-request"
                 variant="outline"
               />
-              <RequestLink
-                href={laborRequestHref}
+              <ActionButton
+                onClick={startLabor}
                 label={content.hero.laborAction}
                 testId="steel-home-labor-request"
                 variant="outline"
@@ -214,7 +231,6 @@ export default function SteelHomePackagesProfile({
             </div>
             <div className="grid gap-px overflow-hidden border border-[#18312f]/10 bg-[#18312f]/10 sm:grid-cols-2 lg:grid-cols-4 lg:border-y-0 lg:border-r-0">
               {content.startingPoints.items.map((item) => {
-                const href = item.key === "labor" ? laborRequestHref : requestHref;
                 const testId =
                   item.key === "labor"
                     ? "steel-home-labor-request"
@@ -249,9 +265,18 @@ export default function SteelHomePackagesProfile({
                 }
 
                 return (
-                  <a
+                  <button
                     key={item.key}
-                    href={href}
+                    type="button"
+                    onClick={() => {
+                      if (item.key === "labor") {
+                        startLabor();
+                        return;
+                      }
+                      startPackage({
+                        startingPoint: item.key === "plans" ? "plans" : "three-d",
+                      });
+                    }}
                     data-testid={testId}
                     className={startingPointClassName}
                   >
@@ -269,7 +294,7 @@ export default function SteelHomePackagesProfile({
                         aria-hidden="true"
                       />
                     </span>
-                  </a>
+                  </button>
                 );
               })}
             </div>
@@ -338,51 +363,12 @@ export default function SteelHomePackagesProfile({
             centered
           />
 
-          <div className="mt-14 grid gap-6 lg:grid-cols-3">
-            {content.package.items.map((item) => (
-              <article
-                key={item.key}
-                className="group flex min-h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#18312f]/10 bg-white shadow-[0_22px_65px_rgba(28,47,44,0.08)]"
-                data-testid={`steel-home-package-${item.key}`}
-              >
-                <div className="relative aspect-[4/3] overflow-hidden bg-[#d8d5cc]">
-                  <img
-                    src={item.image}
-                    alt={item.imageAlt}
-                    className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <span className="absolute left-5 top-5 rounded-full bg-[#18312f]/90 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
-                    {item.label}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-6 sm:p-8">
-                  <h3 className="font-editorial text-4xl font-semibold tracking-[-0.035em]">
-                    {item.title}
-                  </h3>
-                  <p className="mt-4 text-sm leading-6 text-[#65706c]">{item.body}</p>
-                  <ul className="mt-6 space-y-3 border-t border-[#18312f]/10 pt-6">
-                    {item.details.map((detail) => (
-                      <li key={detail} className="flex items-start gap-3 text-sm font-semibold">
-                        <Check
-                          className="mt-0.5 h-4 w-4 shrink-0 text-[#a94f2e]"
-                          aria-hidden="true"
-                        />
-                        {detail}
-                      </li>
-                    ))}
-                  </ul>
-                  <RequestLink
-                    href={requestHref}
-                    label={item.action}
-                    testId="steel-home-start-request"
-                    variant="dark"
-                    className="mt-8 self-start"
-                  />
-                </div>
-              </article>
-            ))}
+          <div className="mt-14">
+            <SteelHomePackageBuilder
+              ref={packageBuilderRef}
+              requestHref={requestHref}
+              laborRequestHref={laborRequestHref}
+            />
           </div>
         </div>
       </section>
@@ -429,8 +415,8 @@ export default function SteelHomePackagesProfile({
             <p className="mt-6 max-w-3xl border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-white/[0.84] sm:text-base">
               {content.labor.support}
             </p>
-            <RequestLink
-              href={laborRequestHref}
+            <ActionButton
+              onClick={startLabor}
               label={content.labor.action}
               testId="steel-home-labor-request"
               variant="light"
@@ -482,14 +468,14 @@ export default function SteelHomePackagesProfile({
               {content.finalAction.body}
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-              <RequestLink
-                href={requestHref}
+              <ActionButton
+                onClick={() => startPackage()}
                 label={content.finalAction.packageAction}
                 testId="steel-home-start-request"
                 variant="dark"
               />
-              <RequestLink
-                href={laborRequestHref}
+              <ActionButton
+                onClick={startLabor}
                 label={content.finalAction.laborAction}
                 testId="steel-home-labor-request"
                 variant="outline"

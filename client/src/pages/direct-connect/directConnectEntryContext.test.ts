@@ -97,6 +97,18 @@ describe("directConnectEntryContext", () => {
     });
   });
 
+  it("carries deliberate project location and timing into the request composer", () => {
+    expect(
+      parseDirectConnectEntryContext(
+        "/direct-connect?subject=product&location=Natalbany%2C%20LA%2070451&when=Within%206%20months"
+      )
+    ).toMatchObject({
+      subjectType: "product",
+      location: "Natalbany, LA 70451",
+      timing: "Within 6 months",
+    });
+  });
+
   it("creates a readable fallback label without inventing identity", () => {
     const context = parseDirectConnectEntryContext("/direct-connect?profile=jane-doe");
     expect(getDirectConnectContextLabel(context)).toBe("jane doe");
