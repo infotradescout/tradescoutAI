@@ -134,10 +134,26 @@ describe("SteelHomePackagesProfile", () => {
       expect(link.getAttribute("href")).toBe(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
     }
 
-    expect(container.querySelector<HTMLAnchorElement>('a[href="#home-ideas"]')).not.toBeNull();
-    const outsideLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[href]"))
-      .map((link) => link.getAttribute("href") || "")
-      .filter((href) => /^https?:\/\//i.test(href));
+    const ideaButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (button) => button.textContent?.includes("Browse home ideas")
+    );
+    expect(ideaButton).toBeDefined();
+    const homeIdeasSection = container.querySelector<HTMLElement>("#home-ideas");
+    expect(homeIdeasSection).not.toBeNull();
+    const scrollIntoView = vi.fn();
+    if (homeIdeasSection) homeIdeasSection.scrollIntoView = scrollIntoView;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: true }),
+    });
+    act(() => ideaButton?.click());
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+
+    const allLinkHrefs = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[href]")).map(
+      (link) => link.getAttribute("href") || ""
+    );
+    expect(allLinkHrefs.filter((href) => href.startsWith("#"))).toEqual([]);
+    const outsideLinks = allLinkHrefs.filter((href) => /^https?:\/\//i.test(href));
     expect(outsideLinks).toEqual([]);
 
     const images = Array.from(container.querySelectorAll<HTMLImageElement>("img"));
