@@ -1347,12 +1347,12 @@ function DirectConnectRequestComposer({
   const [reviewAttempted, setReviewAttempted] = useState(false);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
-  >({
-    what: "",
+  >(() => ({
+    what: prefillTitle?.trim() || "",
     where: "",
     when: "",
-    details: "",
-  });
+    details: prefillDescription?.trim() || "",
+  }));
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
