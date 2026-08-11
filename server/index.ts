@@ -1335,7 +1335,7 @@ app.use(landingContractHeaders);
     await provisionProfile("ProFab", provisionProFabProfile);
     await provisionProfile("Precision Aerial", provisionPrecisionAerialProfile);
     await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile);
-    await provisionProfile("Steel Home Packages", provisionSteelHomePackagesProfile);
+    await provisionProfile("Steel Home TradePartners", provisionSteelHomePackagesProfile);
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();

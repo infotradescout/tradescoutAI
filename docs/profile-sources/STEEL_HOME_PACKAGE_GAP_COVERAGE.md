@@ -1,4 +1,4 @@
-# Steel Home Studio gap-coverage pipeline
+# Steel Home TradePartners gap-coverage pipeline
 
 Checked: 2026-08-11
 
@@ -41,7 +41,7 @@ An affiliate link is not complete coverage: it normally sends the customer to so
 
 ## Affiliate-only fallback pool
 
-Use these only to test demand, capture a temporary commission, or open a commercial conversation. Do not put them on the current Steel Home Studio page, and do not describe them as TradeScout-controlled fulfillment.
+Use these only to test demand, capture a temporary commission, or open a commercial conversation. Do not add them to the current Phase 1 TradePartner showcase, and do not describe them as TradeScout-controlled fulfillment.
 
 | Category | Public program | Published signal | Limitation |
 | --- | --- | --- | --- |

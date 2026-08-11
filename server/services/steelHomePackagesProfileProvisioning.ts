@@ -15,7 +15,7 @@ function recordValue(value: unknown): Record<string, any> {
 }
 
 /**
- * Idempotently installs the operator-approved steel-home package draft.
+ * Idempotently installs the operator-approved steel-home TradePartner showcase.
  *
  * The profiles table has only draft/published states and only published rows
  * can render. This record therefore uses `published` strictly as the existing
@@ -51,7 +51,7 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
       .limit(2);
 
     if (matchingBusinesses.length > 1 || matchingProfiles.length > 1) {
-      throw new Error("Steel-home package canonical and temporary records conflict");
+      throw new Error("Steel-home TradePartner canonical and temporary records conflict");
     }
 
     const existingBusiness = matchingBusinesses[0];
@@ -64,17 +64,17 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
       existingProfileOwnerId &&
       existingBusinessOwnerId !== existingProfileOwnerId
     ) {
-      throw new Error("Steel-home package business and profile ownership records disagree");
+      throw new Error("Steel-home TradePartner business and profile ownership records disagree");
     }
     if (
       existingBusiness &&
       existingProfile?.businessId &&
       String(existingProfile.businessId) !== String(existingBusiness.id)
     ) {
-      throw new Error("Steel-home package profile is linked to a different business");
+      throw new Error("Steel-home TradePartner profile is linked to a different business");
     }
     if (!existingBusiness && existingProfile?.businessId) {
-      throw new Error("Steel-home package profile is already linked to another business");
+      throw new Error("Steel-home TradePartner profile is already linked to another business");
     }
 
     const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
@@ -102,7 +102,7 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
       existingProfileOwnerId || existingBusinessOwnerId || String(steward?.id || "");
 
     if (!ownerUserId) {
-      throw new Error("Steel-home package draft needs a verified admin steward");
+      throw new Error("Steel-home TradePartner showcase needs a verified admin steward");
     }
 
     const existingProfileData = recordValue(existingBusiness?.profileData);
@@ -120,8 +120,12 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
         ...existingProfileData,
         tagline: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.headline,
         description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body,
-        category: "Steel home material packages",
-        services: ["Custom metal structure", "Natural stone", "Cabinet packages"],
+        category: "Steel home TradePartner showcase",
+        services: [
+          "Worldwide Steel Buildings structure",
+          "JW Stone Logistics natural stone",
+          "A+ Cabinets cabinetry",
+        ],
         publicContactEnabled: false,
         publicLocationEnabled: false,
         publicWebsiteEnabled: false,
@@ -154,7 +158,7 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
           .insert(businesses)
           .values(businessValues as any)
           .returning();
-    if (!business) throw new Error("Steel-home package business provisioning failed");
+    if (!business) throw new Error("Steel-home TradePartner business provisioning failed");
 
     const profileValues = {
       ownerUserId,
@@ -190,6 +194,6 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
           .insert(profiles)
           .values(profileValues as any)
           .returning();
-    if (!profile) throw new Error("Steel-home package profile provisioning failed");
+    if (!profile) throw new Error("Steel-home TradePartner profile provisioning failed");
   });
 }

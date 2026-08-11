@@ -1,17 +1,13 @@
-import { useRef } from "react";
-import { ArrowDown, ArrowRight, Check, MapPin } from "lucide-react";
+import { ArrowDown, ArrowRight, BadgeCheck, Check, ExternalLink, MapPin } from "lucide-react";
+import { getCatalogItemById } from "@/features/jw-stone/catalog";
+import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 import {
+  JW_STONE_MARKETPLACE_PATH,
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
+  buildSteelHomeTradePartnerRequestHref,
 } from "@shared/steelHomePackagesProfile";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
-import SteelHomePackageBuilder, {
-  type SteelHomePackageBuilderHandle,
-} from "./SteelHomePackageBuilder";
-import type {
-  SteelHomePackageKey,
-  SteelHomeStartingPoint,
-} from "./steelHomePackageBuilder";
 
 type Props = {
   requestHref: string;
@@ -19,53 +15,107 @@ type Props = {
   platformBaseHref?: string;
 };
 
-type ActionButtonProps = {
-  onClick: () => void;
-  label: string;
-  testId?: string;
-  variant?: "primary" | "outline" | "light" | "dark";
-  className?: string;
-};
+type LinkVariant = "primary" | "outline" | "light" | "dark";
 
-const startingPointClassName =
-  "group flex min-h-56 w-full flex-col bg-[#fbf8f1] p-6 text-left transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#18312f]";
+const partnerSectionByCardKey = {
+  structure: "#worldwide-steel",
+  stone: "#jw-stone",
+  cabinets: "#a-plus-cabinets",
+} as const;
+
+const featuredStones = content.tradePartners.jwStone.featuredStoneIds
+  .map((stoneId) => getCatalogItemById(stoneId))
+  .filter((stone): stone is NonNullable<ReturnType<typeof getCatalogItemById>> => Boolean(stone));
 
 function scrollToSection(href: string) {
   const target = document.getElementById(href.replace(/^#/, ""));
   if (!target) return;
 
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   target.scrollIntoView({
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    behavior: prefersReducedMotion ? "auto" : "smooth",
     block: "start",
   });
 }
 
-function ActionButton({
-  onClick,
+function actionClass(variant: LinkVariant, className = "") {
+  const variantClass = {
+    primary:
+      "bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.26)] hover:bg-[#b55732] focus-visible:ring-[#c9683d]",
+    outline:
+      "border border-[#18312f]/30 bg-transparent text-[#18312f] hover:border-[#18312f] hover:bg-white/40 focus-visible:ring-[#18312f]",
+    light:
+      "bg-[#f7f2e9] text-[#18312f] shadow-[0_16px_45px_rgba(0,0,0,0.18)] hover:bg-white focus-visible:ring-white",
+    dark: "bg-[#18312f] text-white hover:bg-[#264946] focus-visible:ring-[#18312f]",
+  }[variant];
+
+  return `inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-center text-sm font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantClass} ${className}`;
+}
+
+function ActionLink({
+  href,
+  label,
+  testId,
+  variant = "primary",
+  external = false,
+  className = "",
+}: {
+  href: string;
+  label: string;
+  testId?: string;
+  variant?: LinkVariant;
+  external?: boolean;
+  className?: string;
+}) {
+  return (
+    <a
+      href={href}
+      data-testid={testId}
+      className={actionClass(variant, className)}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noreferrer noopener" : undefined}
+    >
+      {label}
+      {external ? (
+        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+      ) : (
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      )}
+    </a>
+  );
+}
+
+function ScrollButton({
+  target,
   label,
   testId,
   variant = "primary",
   className = "",
-}: ActionButtonProps) {
-  const variantClass = {
-    primary:
-      "bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.3)] hover:bg-[#b55732] focus-visible:ring-white",
-    outline:
-      "border border-white/45 bg-black/10 text-white hover:border-white hover:bg-white/10 focus-visible:ring-white",
-    light:
-      "bg-[#f7f2e9] text-[#18312f] shadow-[0_16px_45px_rgba(0,0,0,0.2)] hover:bg-white focus-visible:ring-white",
-    dark: "bg-[#18312f] text-white hover:bg-[#264946] focus-visible:ring-[#18312f]",
-  }[variant];
-
+  down = false,
+}: {
+  target: string;
+  label: string;
+  testId?: string;
+  variant?: LinkVariant;
+  className?: string;
+  down?: boolean;
+}) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-center text-sm font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantClass} ${className}`}
+      onClick={() => scrollToSection(target)}
       data-testid={testId}
+      className={actionClass(variant, className)}
     >
       {label}
-      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      {down ? (
+        <ArrowDown className="h-4 w-4" aria-hidden="true" />
+      ) : (
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      )}
     </button>
   );
 }
@@ -74,23 +124,76 @@ function SectionIntro({
   eyebrow,
   title,
   body,
+  light = false,
   centered = false,
 }: {
   eyebrow: string;
   title: string;
   body?: string;
+  light?: boolean;
   centered?: boolean;
 }) {
   return (
-    <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">{eyebrow}</p>
-      <h2 className="mt-4 font-editorial text-4xl font-semibold leading-[0.98] tracking-[-0.035em] text-[#18312f] sm:text-6xl">
+    <div className={centered ? "mx-auto max-w-4xl text-center" : "max-w-4xl"}>
+      <p
+        className={`text-xs font-bold uppercase tracking-[0.22em] ${
+          light ? "text-[#f0b392]" : "text-[#a94f2e]"
+        }`}
+      >
+        {eyebrow}
+      </p>
+      <h2
+        className={`mt-4 font-editorial text-4xl font-semibold leading-[0.94] tracking-[-0.04em] sm:text-6xl lg:text-7xl ${
+          light ? "text-white" : "text-[#18312f]"
+        }`}
+      >
         {title}
       </h2>
       {body ? (
-        <p className="mt-6 text-base leading-7 text-[#5e6965] sm:text-lg sm:leading-8">{body}</p>
+        <p
+          className={`mt-6 text-base leading-7 sm:text-lg sm:leading-8 ${
+            light ? "text-white/70" : "text-[#5e6965]"
+          }`}
+        >
+          {body}
+        </p>
       ) : null}
     </div>
+  );
+}
+
+function PartnerMark({ number, light = false }: { number: string; light?: boolean }) {
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.68rem] font-black uppercase tracking-[0.16em] ${
+        light
+          ? "border-white/20 bg-white/[0.07] text-white/[0.85]"
+          : "border-[#18312f]/[0.15] bg-white/[0.55] text-[#18312f]"
+      }`}
+    >
+      <BadgeCheck className="h-4 w-4 text-[#c9683d]" aria-hidden="true" />
+      TradePartner {number}
+    </div>
+  );
+}
+
+function FactList({ items, light = false }: { items: readonly string[]; light?: boolean }) {
+  return (
+    <ul className="mt-7 grid gap-3 sm:grid-cols-3">
+      {items.map((item) => (
+        <li
+          key={item}
+          className={`flex min-h-20 items-start gap-3 rounded-2xl border p-4 text-sm font-semibold leading-6 ${
+            light
+              ? "border-white/[0.12] bg-white/[0.06] text-white/[0.85]"
+              : "border-[#18312f]/10 bg-white/60 text-[#41514d]"
+          }`}
+        >
+          <Check className="mt-1 h-4 w-4 shrink-0 text-[#c9683d]" aria-hidden="true" />
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -99,13 +202,19 @@ export default function SteelHomePackagesProfile({
   laborRequestHref,
   platformBaseHref = "",
 }: Props) {
-  const packageBuilderRef = useRef<SteelHomePackageBuilderHandle>(null);
-
-  const startPackage = (options?: {
-    packageKey?: SteelHomePackageKey;
-    startingPoint?: Exclude<SteelHomeStartingPoint, "">;
-  }) => packageBuilderRef.current?.startPackage(options);
-  const startLabor = () => packageBuilderRef.current?.startLabor();
+  const worldwideRequestHref = buildSteelHomeTradePartnerRequestHref(
+    requestHref,
+    "worldwide-steel-buildings"
+  );
+  const jwStoneRequestHref = buildSteelHomeTradePartnerRequestHref(
+    requestHref,
+    "jw-stone-logistics"
+  );
+  const aPlusRequestHref = buildSteelHomeTradePartnerRequestHref(requestHref, "a-plus-cabinets");
+  const jwStoneCollectionHref = qualifyPublicProfileItemDestination(
+    JW_STONE_MARKETPLACE_PATH,
+    platformBaseHref
+  );
 
   return (
     <main
@@ -120,7 +229,7 @@ export default function SteelHomePackagesProfile({
             type="button"
             onClick={() => scrollToSection("#top")}
             className="flex min-w-0 items-baseline gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
-            aria-label="Steel Home Studio, back to top"
+            aria-label="Steel Home TradePartners, back to top"
           >
             <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
               TradeScout
@@ -131,7 +240,7 @@ export default function SteelHomePackagesProfile({
             </span>
           </button>
 
-          <nav className="hidden items-center gap-7 lg:flex" aria-label="Steel Home Studio">
+          <nav className="hidden items-center gap-6 xl:flex" aria-label="Steel Home TradePartners">
             {content.header.navigation.map((item) => (
               <button
                 key={item.href}
@@ -144,10 +253,10 @@ export default function SteelHomePackagesProfile({
             ))}
           </nav>
 
-          <ActionButton
-            onClick={() => startPackage()}
-            label="Start a request"
-            testId="steel-home-start-request"
+          <ScrollButton
+            target="#tradepartners"
+            label="Meet the partners"
+            testId="steel-home-header-partners"
             variant="dark"
             className="hidden min-h-10 px-5 sm:inline-flex"
           />
@@ -156,233 +265,355 @@ export default function SteelHomePackagesProfile({
 
       <section
         id="top"
-        className="relative isolate flex min-h-[730px] scroll-mt-20 items-end overflow-hidden bg-[#152a29] text-white sm:min-h-[820px]"
+        className="scroll-mt-20 bg-[#132827] text-white"
         data-testid="steel-home-hero"
       >
-        <img
-          src={content.hero.image}
-          alt={content.hero.imageAlt}
-          className="absolute inset-0 -z-20 h-full w-full object-cover object-[58%_center]"
-          loading="eager"
-          decoding="async"
-        />
-        <div
-          className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,22,22,0.9)_0%,rgba(8,22,22,0.62)_46%,rgba(8,22,22,0.12)_78%),linear-gradient(0deg,rgba(8,22,22,0.72)_0%,transparent_48%)]"
-          aria-hidden="true"
-        />
-
-        <div className="mx-auto w-full max-w-[1440px] px-4 pb-14 pt-28 sm:px-6 sm:pb-20 lg:px-10 lg:pb-24">
-          <div className="max-w-4xl">
+        <div className="mx-auto grid max-w-[1440px] gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[0.86fr_1.14fr] lg:items-center lg:gap-16 lg:px-10 lg:py-24">
+          <div className="max-w-3xl">
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f0b392]">
               {content.hero.eyebrow}
             </p>
-            <h1 className="mt-6 max-w-4xl font-editorial text-6xl font-semibold leading-[0.86] tracking-[-0.055em] text-white sm:text-8xl lg:text-[7.4rem]">
+            <h1 className="mt-6 font-editorial text-6xl font-semibold leading-[0.85] tracking-[-0.055em] text-white sm:text-8xl lg:text-[6.9rem]">
               {content.hero.headline}
             </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/[0.82] sm:text-xl sm:leading-9">
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/75 sm:text-xl sm:leading-9">
               {content.hero.body}
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <ActionButton
-                onClick={() => startPackage()}
+              <ScrollButton
+                target="#tradepartners"
                 label={content.hero.primaryAction}
-                testId="steel-home-start-request"
+                testId="steel-home-hero-partners"
+                down
               />
-              <ActionButton
-                onClick={() => startPackage({ startingPoint: "plans" })}
-                label={content.hero.plansAction}
-                testId="steel-home-start-request"
-                variant="outline"
-              />
-              <ActionButton
-                onClick={startLabor}
+              <ActionLink
+                href={laborRequestHref}
                 label={content.hero.laborAction}
-                testId="steel-home-labor-request"
-                variant="outline"
+                testId="steel-home-hero-labor"
+                variant="light"
               />
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => scrollToSection("#starting-point")}
-            className="mt-12 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/75 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            Explore your options
-            <ArrowDown className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <div className="grid min-h-[620px] grid-cols-2 grid-rows-2 gap-3 sm:min-h-[700px]">
+            {content.hero.visuals.map((visual, index) => (
+              <button
+                key={visual.key}
+                type="button"
+                onClick={() => scrollToSection(partnerSectionByCardKey[visual.key])}
+                className={`group relative isolate overflow-hidden rounded-[1.6rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b392] ${
+                  index === 0 ? "col-span-2 sm:col-span-1 sm:row-span-2" : "col-span-1"
+                }`}
+                data-testid={`steel-home-hero-partner-${visual.key}`}
+              >
+                <img
+                  src={visual.image}
+                  alt={visual.imageAlt}
+                  className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-[1.03]"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+                <span
+                  className="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-black/10 to-transparent"
+                  aria-hidden="true"
+                />
+                <span className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+                  <span className="block text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#f0b392]">
+                    {visual.label}
+                  </span>
+                  <span className="mt-2 flex items-end justify-between gap-3 font-editorial text-2xl font-semibold leading-none text-white sm:text-3xl">
+                    {visual.title}
+                    <ArrowRight
+                      className="h-5 w-5 shrink-0 transition group-hover:translate-x-1"
+                      aria-hidden="true"
+                    />
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section
-        id="starting-point"
-        className="scroll-mt-20 border-b border-[#18312f]/10 bg-[#fbf8f1]"
-        data-testid="steel-home-starting"
+        id="tradepartners"
+        className="scroll-mt-20 border-b border-[#18312f]/10 bg-[#f5f1e8]"
+        data-testid="steel-home-partners"
       >
-        <div className="mx-auto max-w-[1440px] px-4 py-14 sm:px-6 lg:px-10 lg:py-0">
-          <div className="grid lg:grid-cols-[.8fr_3.2fr]">
-            <div className="border-[#18312f]/10 pb-8 lg:border-r lg:py-10 lg:pr-8">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-                {content.startingPoints.eyebrow}
-              </p>
-              <h2 className="mt-3 font-editorial text-3xl font-semibold tracking-[-0.03em]">
-                {content.startingPoints.title}
-              </h2>
-            </div>
-            <div className="grid gap-px overflow-hidden border border-[#18312f]/10 bg-[#18312f]/10 sm:grid-cols-2 lg:grid-cols-4 lg:border-y-0 lg:border-r-0">
-              {content.startingPoints.items.map((item) => {
-                const testId =
-                  item.key === "labor"
-                    ? "steel-home-labor-request"
-                    : item.key === "ideas"
-                      ? undefined
-                      : "steel-home-start-request";
+        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
+          <SectionIntro
+            eyebrow={content.partnerIntro.eyebrow}
+            title={content.partnerIntro.title}
+            body={content.partnerIntro.body}
+          />
 
-                if (item.key === "ideas") {
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={() => scrollToSection("#home-ideas")}
-                      className={startingPointClassName}
-                    >
-                      <span className="text-xs font-bold tracking-[0.18em] text-[#a94f2e]">
-                        {item.number}
-                      </span>
-                      <h3 className="mt-7 text-lg font-bold leading-6 tracking-[-0.02em]">
-                        {item.title}
-                      </h3>
-                      <p className="mt-3 flex-1 text-sm leading-6 text-[#66716d]">{item.body}</p>
-                      <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#18312f]">
-                        {item.action}
-                        <ArrowRight
-                          className="h-4 w-4 transition group-hover:translate-x-1"
-                          aria-hidden="true"
-                        />
-                      </span>
-                    </button>
-                  );
-                }
-
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => {
-                      if (item.key === "labor") {
-                        startLabor();
-                        return;
-                      }
-                      startPackage({
-                        startingPoint: item.key === "plans" ? "plans" : "three-d",
-                      });
-                    }}
-                    data-testid={testId}
-                    className={startingPointClassName}
-                  >
-                    <span className="text-xs font-bold tracking-[0.18em] text-[#a94f2e]">
-                      {item.number}
+          <div className="mt-14 grid gap-5 lg:grid-cols-3">
+            {content.tradePartners.cards.map((partner) => (
+              <article
+                key={partner.partnerKey}
+                className="group overflow-hidden rounded-[1.8rem] border border-[#18312f]/10 bg-[#fbf8f1] shadow-[0_20px_70px_rgba(24,49,47,0.07)]"
+                data-testid={`steel-home-tradepartner-${partner.partnerKey}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => scrollToSection(partnerSectionByCardKey[partner.key])}
+                  className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a94f2e]"
+                >
+                  <span className="relative block aspect-[4/3] overflow-hidden">
+                    <img
+                      src={partner.image}
+                      alt={partner.imageAlt}
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <span className="absolute left-5 top-5">
+                      <PartnerMark number={partner.number} light />
                     </span>
-                    <h3 className="mt-7 text-lg font-bold leading-6 tracking-[-0.02em]">
-                      {item.title}
-                    </h3>
-                    <p className="mt-3 flex-1 text-sm leading-6 text-[#66716d]">{item.body}</p>
-                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#18312f]">
-                      {item.action}
+                  </span>
+                  <span className="block p-6 sm:p-7">
+                    <span className="block text-xs font-bold uppercase tracking-[0.2em] text-[#a94f2e]">
+                      {partner.label}
+                    </span>
+                    <span className="mt-3 block font-editorial text-4xl font-semibold leading-none tracking-[-0.035em]">
+                      {partner.title}
+                    </span>
+                    <span className="mt-4 block text-sm leading-6 text-[#66716d]">
+                      {partner.body}
+                    </span>
+                    <span className="mt-7 inline-flex items-center gap-2 text-sm font-bold">
+                      {partner.action}
                       <ArrowRight
                         className="h-4 w-4 transition group-hover:translate-x-1"
                         aria-hidden="true"
                       />
                     </span>
-                  </button>
-                );
-              })}
-            </div>
+                  </span>
+                </button>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
       <section
-        id="home-ideas"
-        className="scroll-mt-20 bg-[#f5f1e8]"
-        data-testid="steel-home-home-ideas"
+        id="worldwide-steel"
+        className="scroll-mt-20 bg-[#fbf8f1]"
+        data-testid="steel-home-worldwide"
+      >
+        <div className="mx-auto grid max-w-[1440px] gap-12 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[1.02fr_.98fr] lg:items-center lg:gap-16 lg:px-10">
+          <figure className="relative overflow-hidden rounded-[2rem] bg-[#263c3a] shadow-[0_24px_80px_rgba(24,49,47,0.14)]">
+            <img
+              src={content.tradePartners.worldwide.image}
+              alt={content.tradePartners.worldwide.imageAlt}
+              className="aspect-[4/5] h-full w-full object-cover sm:aspect-[5/4] lg:aspect-[4/5]"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/[0.85] to-transparent px-6 pb-6 pt-24 text-xs leading-5 text-white/75 sm:px-8 sm:pb-8">
+              Structure inspiration shown for the Worldwide Steel Buildings scope.
+            </figcaption>
+          </figure>
+
+          <div>
+            <PartnerMark number={content.tradePartners.worldwide.number} />
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+              {content.tradePartners.worldwide.eyebrow}
+            </p>
+            <h2 className="mt-3 font-editorial text-5xl font-semibold leading-[0.9] tracking-[-0.045em] sm:text-7xl">
+              {content.tradePartners.worldwide.name}
+            </h2>
+            <h3 className="mt-6 text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
+              {content.tradePartners.worldwide.headline}
+            </h3>
+            <p className="mt-5 text-base leading-8 text-[#5e6965] sm:text-lg">
+              {content.tradePartners.worldwide.body}
+            </p>
+
+            <FactList items={content.tradePartners.worldwide.facts} />
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <ActionLink
+                href={worldwideRequestHref}
+                label={content.tradePartners.worldwide.requestAction}
+                testId="steel-home-worldwide-request"
+              />
+              <ActionLink
+                href={content.tradePartners.worldwide.designerHref}
+                label={content.tradePartners.worldwide.designerAction}
+                testId="steel-home-worldwide-designer"
+                variant="dark"
+                external
+              />
+            </div>
+
+            <a
+              href={content.tradePartners.worldwide.galleryHref}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-testid="steel-home-worldwide-gallery"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#a94f2e] underline decoration-[rgba(169,79,46,0.35)] underline-offset-4 transition hover:decoration-[#a94f2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e]"
+            >
+              {content.tradePartners.worldwide.galleryAction}
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
+
+            <p className="mt-7 border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-[#63706c]">
+              {content.tradePartners.worldwide.scopeNote}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="jw-stone"
+        className="scroll-mt-20 bg-[#17201f] text-white"
+        data-testid="steel-home-jw-stone"
       >
         <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-          <SectionIntro
-            eyebrow={content.inspiration.eyebrow}
-            title={content.inspiration.title}
-            body={content.inspiration.body}
-          />
-
-          <div className="mt-12 grid gap-4 lg:grid-cols-[1.45fr_.8fr] lg:grid-rows-2">
-            {content.inspiration.items.map((item, index) => (
-              <figure
-                key={item.key}
-                className={`group relative isolate min-h-[360px] overflow-hidden rounded-[1.75rem] bg-[#243d3a] ${
-                  index === 0 ? "lg:row-span-2 lg:min-h-[720px]" : "lg:min-h-0"
-                }`}
-              >
-                <img
-                  src={item.image}
-                  alt={item.imageAlt}
-                  className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div
-                  className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/5 to-transparent"
-                  aria-hidden="true"
-                />
-                <figcaption className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f0b392]">
-                    {item.label}
-                  </p>
-                  <h3 className="mt-2 font-editorial text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
-                    {item.title}
-                  </h3>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="grid gap-10 lg:grid-cols-[.84fr_1.16fr] lg:items-end">
+            <div>
+              <PartnerMark number={content.tradePartners.jwStone.number} light />
+              <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
+                {content.tradePartners.jwStone.eyebrow}
+              </p>
+              <h2 className="mt-3 font-editorial text-5xl font-semibold leading-[0.9] tracking-[-0.045em] sm:text-7xl">
+                {content.tradePartners.jwStone.name}
+              </h2>
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
+                {content.tradePartners.jwStone.headline}
+              </h3>
+              <p className="mt-5 max-w-3xl text-base leading-8 text-white/[0.68] sm:text-lg">
+                {content.tradePartners.jwStone.body}
+              </p>
+            </div>
           </div>
-          <p className="mt-5 max-w-3xl text-xs leading-5 text-[#75807c]">
-            {content.inspiration.note}
+
+          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredStones.map((stone) => {
+              const stoneHref = qualifyPublicProfileItemDestination(
+                `${JW_STONE_MARKETPLACE_PATH}/stones/${encodeURIComponent(stone.shareSlug || stone.id)}`,
+                platformBaseHref
+              );
+
+              return (
+                <a
+                  key={stone.id}
+                  href={stoneHref}
+                  data-testid={`steel-home-jw-stone-${stone.id}`}
+                  className="group overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.05] transition hover:-translate-y-1 hover:border-[#f0b392]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b392]"
+                >
+                  <span className="block aspect-[3/4] overflow-hidden bg-[#2a3432]">
+                    <img
+                      src={stone.images[0]}
+                      alt={`${stone.publicLabel} from the JW Stone Logistics collection`}
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </span>
+                  <span className="block p-5">
+                    <span className="block text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#f0b392]">
+                      {stone.materialLabel || "Natural stone"}
+                    </span>
+                    <span className="mt-2 flex items-end justify-between gap-3 font-editorial text-2xl font-semibold leading-none text-white">
+                      {stone.publicLabel}
+                      <ArrowRight
+                        className="h-4 w-4 shrink-0 transition group-hover:translate-x-1"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </span>
+                </a>
+              );
+            })}
+          </div>
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <ActionLink
+              href={jwStoneCollectionHref}
+              label={content.tradePartners.jwStone.collectionAction}
+              testId="steel-home-jw-stone-collection"
+              variant="light"
+            />
+            <ActionLink
+              href={jwStoneRequestHref}
+              label={content.tradePartners.jwStone.requestAction}
+              testId="steel-home-jw-stone-request"
+              variant="primary"
+            />
+          </div>
+          <p className="mt-7 max-w-5xl border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-white/60">
+            {content.tradePartners.jwStone.scopeNote}
           </p>
         </div>
       </section>
 
       <section
-        id="build-your-package"
-        className="scroll-mt-20 border-y border-[#18312f]/10 bg-[#fbf8f1]"
-        data-testid="steel-home-package"
+        id="a-plus-cabinets"
+        className="scroll-mt-20 bg-[#e7dfd1]"
+        data-testid="steel-home-a-plus"
       >
-        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-          <SectionIntro
-            eyebrow={content.package.eyebrow}
-            title={content.package.title}
-            body={content.package.body}
-            centered
-          />
+        <div className="mx-auto grid max-w-[1440px] gap-12 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[.94fr_1.06fr] lg:items-center lg:gap-16 lg:px-10">
+          <div className="order-2 lg:order-1">
+            <PartnerMark number={content.tradePartners.aPlusCabinets.number} />
+            <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+              {content.tradePartners.aPlusCabinets.eyebrow}
+            </p>
+            <h2 className="mt-3 font-editorial text-5xl font-semibold leading-[0.9] tracking-[-0.045em] sm:text-7xl">
+              {content.tradePartners.aPlusCabinets.name}
+            </h2>
+            <p className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#4b5b57]">
+              <MapPin className="h-4 w-4 text-[#c9683d]" aria-hidden="true" />
+              {content.tradePartners.aPlusCabinets.location}
+            </p>
+            <h3 className="mt-7 text-2xl font-bold tracking-[-0.025em] sm:text-3xl">
+              {content.tradePartners.aPlusCabinets.headline}
+            </h3>
+            <p className="mt-5 text-base leading-8 text-[#5e6965] sm:text-lg">
+              {content.tradePartners.aPlusCabinets.body}
+            </p>
 
-          <div className="mt-14">
-            <SteelHomePackageBuilder
-              ref={packageBuilderRef}
-              requestHref={requestHref}
-              laborRequestHref={laborRequestHref}
+            <FactList items={content.tradePartners.aPlusCabinets.facts} />
+
+            <ActionLink
+              href={aPlusRequestHref}
+              label={content.tradePartners.aPlusCabinets.requestAction}
+              testId="steel-home-a-plus-request"
+              className="mt-9"
             />
+            <p className="mt-7 border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-[#63706c]">
+              {content.tradePartners.aPlusCabinets.scopeNote}
+            </p>
           </div>
+
+          <figure className="order-1 overflow-hidden rounded-[2rem] bg-[#cbbca7] shadow-[0_24px_80px_rgba(75,55,36,0.14)] lg:order-2">
+            <img
+              src={content.tradePartners.aPlusCabinets.image}
+              alt={content.tradePartners.aPlusCabinets.imageAlt}
+              className="aspect-[5/4] h-full w-full object-cover lg:aspect-[4/5]"
+              loading="lazy"
+              decoding="async"
+            />
+            <figcaption className="border-t border-[#18312f]/10 bg-[#f4eee4] px-5 py-4 text-xs leading-5 text-[#68736f]">
+              {content.tradePartners.aPlusCabinets.imageNote}
+            </figcaption>
+          </figure>
         </div>
       </section>
 
-      <section
-        id="how-it-works"
-        className="scroll-mt-20 bg-[#e6e2d8]"
-        data-testid="steel-home-process"
-      >
+      <section className="bg-[#f5f1e8]" data-testid="steel-home-integration">
         <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-          <SectionIntro eyebrow={content.process.eyebrow} title={content.process.title} />
-          <ol className="mt-14 grid gap-px overflow-hidden rounded-[1.75rem] border border-[#18312f]/10 bg-[#18312f]/10 md:grid-cols-2 xl:grid-cols-4">
-            {content.process.items.map((item, index) => (
-              <li key={item.title} className="bg-[#f8f5ee] p-7 sm:p-9">
+          <SectionIntro
+            eyebrow={content.integration.eyebrow}
+            title={content.integration.title}
+            centered
+          />
+          <ol className="mt-14 grid gap-px overflow-hidden rounded-[1.8rem] border border-[#18312f]/10 bg-[#18312f]/10 md:grid-cols-3">
+            {content.integration.items.map((item, index) => (
+              <li key={item.title} className="bg-[#fbf8f1] p-7 sm:p-9">
                 <span className="font-editorial text-4xl font-semibold text-[#a94f2e]">
                   {String(index + 1).padStart(2, "0")}
                 </span>
@@ -403,20 +634,17 @@ export default function SteelHomePackagesProfile({
       >
         <div className="mx-auto grid max-w-[1440px] gap-12 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[1.15fr_.85fr] lg:items-center lg:px-10">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
-              {content.labor.eyebrow}
-            </p>
-            <h2 className="mt-5 max-w-4xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] sm:text-7xl">
-              {content.labor.title}
-            </h2>
-            <p className="mt-7 max-w-3xl text-base leading-8 text-white/[0.72] sm:text-lg">
-              {content.labor.body}
-            </p>
-            <p className="mt-6 max-w-3xl border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-white/[0.84] sm:text-base">
+            <SectionIntro
+              eyebrow={content.labor.eyebrow}
+              title={content.labor.title}
+              body={content.labor.body}
+              light
+            />
+            <p className="mt-6 max-w-3xl border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-white/[0.82] sm:text-base">
               {content.labor.support}
             </p>
-            <ActionButton
-              onClick={startLabor}
+            <ActionLink
+              href={laborRequestHref}
               label={content.labor.action}
               testId="steel-home-labor-request"
               variant="light"
@@ -424,16 +652,16 @@ export default function SteelHomePackagesProfile({
             />
           </div>
 
-          <div className="rounded-[1.75rem] border border-white/12 bg-white/[0.06] p-6 sm:p-9">
-            <div className="flex items-center gap-3 border-b border-white/12 pb-6">
+          <div className="rounded-[1.75rem] border border-white/[0.12] bg-white/[0.06] p-6 sm:p-9">
+            <div className="flex items-center gap-3 border-b border-white/[0.12] pb-6">
               <span className="grid h-11 w-11 place-items-center rounded-full bg-[#c9683d]">
                 <MapPin className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f0b392]">
-                  Based on your jobsite
+                  Based on the jobsite
                 </p>
-                <p className="mt-1 text-sm text-white/65">A separate location-aware request</p>
+                <p className="mt-1 text-sm text-white/[0.65]">A separate location-aware request</p>
               </div>
             </div>
             <ul className="mt-6 space-y-3">
@@ -451,48 +679,15 @@ export default function SteelHomePackagesProfile({
         </div>
       </section>
 
-      <section className="bg-[#f5f1e8]" data-testid="steel-home-final-action">
-        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-          <div className="relative isolate overflow-hidden rounded-[2rem] bg-[#d8d1c2] px-6 py-16 text-center sm:px-12 sm:py-20">
-            <div
-              className="absolute inset-0 -z-10 opacity-35 [background-image:radial-gradient(circle_at_center,rgba(24,49,47,0.42)_1px,transparent_1.5px)] [background-size:24px_24px]"
-              aria-hidden="true"
-            />
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-              {content.finalAction.eyebrow}
-            </p>
-            <h2 className="mx-auto mt-5 max-w-5xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] sm:text-7xl">
-              {content.finalAction.headline}
-            </h2>
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#596763] sm:text-lg">
-              {content.finalAction.body}
-            </p>
-            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-              <ActionButton
-                onClick={() => startPackage()}
-                label={content.finalAction.packageAction}
-                testId="steel-home-start-request"
-                variant="dark"
-              />
-              <ActionButton
-                onClick={startLabor}
-                label={content.finalAction.laborAction}
-                testId="steel-home-labor-request"
-                variant="outline"
-                className="border-[#18312f]/40 text-[#18312f] hover:border-[#18312f] hover:bg-white/30 focus-visible:ring-[#18312f]"
-              />
-            </div>
-          </div>
-
-          <aside
-            className="mx-auto mt-9 max-w-5xl text-center"
-            aria-label="Project disclosure"
-            data-testid="steel-home-disclosure"
-          >
-            <p className="text-xs leading-6 text-[#727c78]">{content.disclosure}</p>
-          </aside>
+      <aside
+        className="border-b border-[#18312f]/10 bg-[#eee8dc]"
+        aria-label="TradePartner scope disclosure"
+        data-testid="steel-home-disclosure"
+      >
+        <div className="mx-auto max-w-5xl px-4 py-9 text-center sm:px-6">
+          <p className="text-xs leading-6 text-[#68736f]">{content.disclosure}</p>
         </div>
-      </section>
+      </aside>
 
       <TradeScoutProfileHandoff
         profileSlug={identity.slug}
