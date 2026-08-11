@@ -2,7 +2,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_IDENTITY = {
   internalKey: "steel-home-packages",
   temporarySlug: "steel-home-packages",
   slug: "steel-home-packages",
-  displayLabel: "Complete Steel-Home Packages",
+  displayLabel: "Steel Home Packages",
   publicRoute: "/u/steel-home-packages",
   releaseState: "unlisted",
   publiclyReleased: false,
@@ -11,59 +11,93 @@ export const STEEL_HOME_PACKAGES_PROFILE_IDENTITY = {
 export const STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE =
   "operator_approved_unlisted_profile" as const;
 
+const STEEL_HOME_PACKAGE_REQUEST_DESCRIPTION = [
+  "Project location:",
+  "Plans or Worldwide Steel Buildings design reference:",
+  "Phase 1 materials needed (metal structure, natural stone, cabinets, or a combination):",
+  "Current project stage:",
+  "Desired timing:",
+  "Additional details:",
+].join("\n");
+
+const STEEL_HOME_LABOR_REQUEST_DESCRIPTION = [
+  "Project location:",
+  "Labor needed (site work, foundation, steel erection, stone fabrication or installation, cabinet installation, or other):",
+  "Plans or material package selected:",
+  "Labor pricing only or labor plus Phase 1 materials:",
+  "Desired timing:",
+  "Additional details:",
+].join("\n");
+
 export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
   `/direct-connect?profile=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug)}` +
   `&profileName=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel)}` +
-  "&source=profile_site&intent=fix_improve&subject=service";
+  "&source=steel_home_packages_phase1" +
+  "&intent=fix_improve&subject=service" +
+  `&title=${encodeURIComponent("Phase 1 metal structure, stone, and cabinet package")}` +
+  `&description=${encodeURIComponent(STEEL_HOME_PACKAGE_REQUEST_DESCRIPTION)}`;
+
+/**
+ * Opens the canonical Direct Connect work-request composer without targeting
+ * the package profile. Labor-only visitors need location-aware TradeScout
+ * matching, not a request assigned to one of the three material suppliers.
+ */
+export const STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH =
+  "/direct-connect?source=steel_home_packages_phase1_labor" +
+  "&intent=hire&subject=service" +
+  `&title=${encodeURIComponent("Steel-home labor or installation request")}` +
+  `&description=${encodeURIComponent(STEEL_HOME_LABOR_REQUEST_DESCRIPTION)}`;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
-  version: 1,
+  version: 2,
   header: {
     audience: "For owner-builders, builders, and contractors",
-    status: "Early project intake",
+    status: "Phase 1",
   },
   hero: {
-    headline: "One place to start your steel home.",
-    body: "Start with the steel structure, cabinets, and natural stone we already source. We are building one coordinated path for the additional partner-supplied systems needed to complete the home.",
-    audience: "Built first for self-contracting homeowners, builders, and contractors.",
-    primaryAction: "Start a Request",
-    secondaryAction: "See what is available now",
+    headline: "The structure. The stone. The cabinets.",
+    body: "Phase 1 brings together the three supply relationships already in place: a custom metal structure through Worldwide Steel Buildings, natural stone through JW Stone Logistics, and cabinets through A+ Cabinets in Ocean Springs.",
+    audience: "A focused first package for real steel-home projects.",
+    primaryAction: "Start a Package Request",
+    laborAction: "Start a Labor Request",
+    secondaryAction: "See the Phase 1 package",
   },
-  currentCapabilities: {
-    title: "Start with what is already available",
-    intro: "These are the supply categories currently at the center of the business.",
+  phaseOnePackage: {
+    title: "Three parts. One Phase 1 starting point.",
+    intro:
+      "This page covers only the metal structure, natural stone, and cabinets. Other material systems are not part of the Phase 1 offer.",
     items: [
       {
-        title: "Steel structures and metal-building packages",
-        body: "Begin with the engineered structural package suited to the project, supplier, plans, and destination requirements.",
+        key: "structure",
+        title: "Metal structure",
+        partner: "Worldwide Steel Buildings",
+        partnerDetail: "Structural and roofing partner",
+        body: "Shape the custom metal structure, roof system, openings, colors, and structure-specific options around the project location and plans. Save the Worldwide design so it can follow the package request.",
+        action: {
+          label: "Open the 3D Building Designer",
+          href: "https://www.worldwidesteelbuildings.com/3d-building-designer/",
+          external: true,
+        },
       },
       {
-        title: "Cabinet packages",
-        body: "Kitchen, bathroom, laundry, pantry, storage, and other cabinet needs can be included in the project request.",
-      },
-      {
+        key: "stone",
         title: "Natural stone",
-        body: "Request natural stone slabs, containers, or blocks for countertops, showers, walls, fireplaces, floors, and other approved uses.",
-      },
-    ],
-  },
-  housingPaths: {
-    title: "Three steel-home paths",
-    items: [
-      {
-        title: "Full-size steel homes",
-        status: "First focus",
-        body: "Permanent steel-home packages built around the property, selected plans, approved engineering, and the needs of the homeowner or builder.",
+        partner: "JW Stone Logistics",
+        partnerDetail: "Natural-stone partner",
+        body: "Request natural stone slabs, containers, or blocks for countertops, showers, walls, fireplaces, floors, and other suitable project uses.",
+        action: {
+          label: "Explore natural stone",
+          href: "/jw-stone",
+          external: false,
+        },
       },
       {
-        title: "Next-generation single-wide homes",
-        status: "In development",
-        body: "A redesigned steel single-wide home line is planned. Final construction classification, dimensions, layouts, and production details are not yet being published.",
-      },
-      {
-        title: "Steel tiny homes",
-        status: "Future line",
-        body: "Compact steel homes designed around useful living space, efficient mechanical layouts, and destination-specific requirements.",
+        key: "cabinets",
+        title: "Cabinets",
+        partner: "A+ Cabinets",
+        partnerDetail: "Ocean Springs",
+        body: "Include cabinet needs for the kitchen, bathrooms, laundry, pantry, storage, and other planned cabinet areas in the same Phase 1 request.",
+        action: null,
       },
     ],
   },
@@ -72,80 +106,72 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
     items: [
       {
         title: "Owner-builders",
-        body: "Act as your own project manager where local law, financing, and project conditions allow. Start with a coordinated package instead of finding every supplier separately.",
+        body: "Coordinate the three Phase 1 supply categories while acting as your own project manager where local rules and project conditions allow.",
       },
       {
         title: "Builders",
-        body: "Bring an existing plan or project and use one request to organize the major package categories and supplier handoff.",
+        body: "Bring the plans and jobsite requirements, then organize the metal structure, stone, and cabinets through one request.",
       },
       {
         title: "Contractors",
-        body: "Request a complete project package or a focused stage such as the structure, cabinets, stone, or another supported category.",
+        body: "Request one supported category or coordinate all three around the construction sequence and the customer’s plan.",
       },
     ],
   },
   process: {
-    title: "One customer-facing path",
+    title: "A clear path from the idea to three real quotes",
     items: [
       {
-        title: "Start with the property and project",
-        body: "Share the project location, intended home type, plans if available, current stage, and the role you will have in the build.",
+        title: "Start with the jobsite and plan",
+        body: "Share the project location, plans or sketch, current stage, and whether you are the owner-builder, builder, or contractor.",
       },
       {
-        title: "Build the package",
-        body: "The request is organized around current supply categories and qualified partner-supplied components as those relationships and project requirements are confirmed.",
+        title: "Choose the Phase 1 scope",
+        body: "Select the metal structure, natural stone, cabinets, or any combination of the three. Nothing else is added to the material package by assumption.",
       },
       {
-        title: "Confirm scope and funding",
-        body: "The final scope identifies what is included, what is excluded, who supplies each part, and what remains the responsibility of the homeowner, contractor, or builder.",
+        title: "Confirm each partner quote",
+        body: "Each quote identifies what that partner supplies, the project-specific selections, timing, delivery terms, and the items that remain outside its scope.",
       },
       {
-        title: "Release and hand off",
-        body: "After the required payment or approved funding is complete, supplier orders can be released and the package formally handed to the customer or builder.",
+        title: "Add local labor when needed",
+        body: "Use a separate TradeScout labor request for site work, foundation, erection, fabrication, installation, or other local work. The material suppliers are not treated as the labor crew.",
       },
     ],
   },
-  mechanical: {
-    title: "Use space for the home, not wasted mechanical rooms",
-    body: "Mini-split heating and cooling is preferred where the project layout, load calculation, climate, code, and manufacturer requirements support it. Electric or gas tankless water heating is also preferred where the available utilities and project conditions support it.",
+  labor: {
+    title: "Need labor only, or labor pricing with the package?",
+    body: "Start a separate express work request. Tell TradeScout where the project is and what work is needed, and we will help find the right local professionals without confusing the labor request with the three-part material package.",
     support:
-      "The goal is to reduce unnecessary duct runs and oversized equipment closets so more of the floor plan can serve the people living in the home.",
+      "You can request labor even if you buy no Phase 1 materials, or ask for labor pricing alongside a structure, stone, or cabinet request.",
+    examples: [
+      "Site work and foundation",
+      "Metal-structure erection",
+      "Stone fabrication and installation",
+      "Cabinet installation",
+      "Other local construction work",
+    ],
+    action: "Start a Labor Request",
   },
   location: {
-    title: "The package starts with where the home will be built",
-    body: "Building requirements change by location. Final package decisions may depend on local codes, amendments, zoning, structural loads, flood conditions, energy rules, utilities, engineering, permits, and inspections.",
+    title: "The jobsite controls the structure and the labor match",
+    body: "Building requirements and available trade professionals change by location. Share the real jobsite so the metal structure can reflect the required loads and the labor request can reach appropriate professionals serving that area.",
     responsibility:
-      "Final construction, engineering, permitting, inspection, and code approval remain with the appropriate licensed professionals, manufacturers, builders, and local authorities.",
-  },
-  homeId: {
-    title: "A home record that can stay with the property",
-    body: "Plans, product information, equipment records, warranties, inspections, repairs, and maintenance should not disappear after construction. The long-term goal is to preserve the home’s verified history through HomeID.",
-    status: "Long-term goal",
+      "Final engineering, foundation design, construction, permitting, inspections, and code approval remain with the responsible manufacturers, design professionals, contractors, builders, and local authorities.",
   },
   finalAction: {
-    headline: "Start with the property, plan, or idea you already have.",
-    body: "Tell us what you want to build, where it will go, and whether you are acting as the homeowner, owner-builder, contractor, or builder.",
-    supportingLine: "Already working with a builder? Include them in the project information.",
+    headline: "Choose the request that matches what you need.",
+    packageTitle: "Buy Phase 1 materials",
+    packageBody:
+      "Start here for the metal structure, natural stone, cabinets, or a combination of those three.",
+    laborTitle: "Find local labor",
+    laborBody:
+      "Start here for labor only, labor pricing, installation help, or the local work needed around your material package.",
+    supportingLine:
+      "Need both? Submit the package request first, then use the labor request so each scope stays clear.",
   },
-  projectInterests: [
-    "Full-size steel home",
-    "Next-generation single-wide interest",
-    "Steel tiny-home interest",
-    "Steel structure or metal-building package",
-    "Cabinet package",
-    "Natural stone",
-    "Multiple package categories",
-  ],
-  customerRoles: [
-    "Self-contracting homeowner or owner-builder",
-    "Homeowner using a builder",
-    "Builder",
-    "Contractor",
-    "Developer or landowner",
-    "Other",
-  ],
   disclosure:
-    "We coordinate material and partner-supplied package requests. Construction, engineering, permitting, inspections, financing, insurance, warranties, and other regulated services are performed or approved by the appropriate qualified providers and authorities. Availability depends on project location, supplier coverage, and final project requirements.",
+    "Phase 1 coordinates requests for a metal structure, natural stone, and cabinets. Labor is requested separately through TradeScout. Quotes, availability, delivery, engineering, installation, warranties, permits, inspections, and final responsibility remain subject to the written scope and the appropriate supplier, qualified professional, builder, and local authority.",
 } as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT_BLOCKS = [
