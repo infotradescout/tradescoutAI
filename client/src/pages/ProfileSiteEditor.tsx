@@ -249,7 +249,26 @@ export default function ProfileSiteEditor() {
       try {
         // apiRequest already returns parsed JSON (not a Fetch Response).
         const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
-        const found = list.find((p) => p.slug === slug);
+        let found = list.find((p) => p.slug === slug);
+
+        // Owners discover drafts through their private profile list. Staff profile
+        // managers can already preview and manage any specific draft through the
+        // server's existing authorization checks, so use that scoped response as
+        // a fallback without broadening the private profile list.
+        if (!found) {
+          try {
+            const managedPreview = (await apiRequest(
+              "GET",
+              `/api/u/${encodeURIComponent(slug)}`
+            )) as { profile?: OwnedProfile };
+            if (managedPreview.profile?.id && managedPreview.profile.slug === slug) {
+              found = managedPreview.profile;
+            }
+          } catch {
+            // Preserve the existing not-found state for unauthorized viewers.
+          }
+        }
+
         if (!found) {
           setProfile(null);
           return;
