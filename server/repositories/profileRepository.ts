@@ -14,7 +14,7 @@ import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig
 import {
   ADMIN_MANAGED_PROFILE_SOURCE,
   canExposeProviderProfileOnPublicMap,
-  canExposePublishedProfilePublicly,
+  canServePublishedProfileAtDirectRoute,
   JRS_PROFILE_SLUG,
   OWNER_CONFIRMED_PROFILE_SOURCE,
   PRO_FAB_PROFILE_SLUG,
@@ -24,6 +24,10 @@ import {
   PRECISION_AERIAL_PROFILE_SLUG,
   PRECISION_AERIAL_STEWARD_PROVIDER,
 } from "@shared/precisionAerialProfile";
+import {
+  isSteelHomePackagesProfilePubliclyReleased,
+  STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
+} from "@shared/steelHomePackagesProfile";
 
 export type PublicProfileRecord = {
   id: string;
@@ -149,6 +153,11 @@ function publicProfileVisibilityPredicate() {
   )`;
 }
 
+function publicProfileReleaseExposurePredicate() {
+  if (isSteelHomePackagesProfilePubliclyReleased()) return sql`true`;
+  return sql`${profiles.slug} <> ${STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug}`;
+}
+
 export class ProfileRepository {
   private async generateUniqueProfileSlug(base: string): Promise<string> {
     const baseSlug = slugify(base);
@@ -269,7 +278,7 @@ export class ProfileRepository {
     const row = await this.getProfileBySlugPublishedRecord(slug);
     if (!row) return undefined;
     if (
-      !canExposePublishedProfilePublicly({
+      !canServePublishedProfileAtDirectRoute({
         profileId: row.id,
         businessId: row.businessId,
         profileSlug: row.slug,
@@ -316,6 +325,7 @@ export class ProfileRepository {
         and(
           eq(profiles.status, "published" as any),
           publicProfileVisibilityPredicate(),
+          publicProfileReleaseExposurePredicate(),
           sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`,
           publicProfileSearchExposurePredicate()
         )

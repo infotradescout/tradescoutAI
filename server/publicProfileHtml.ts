@@ -33,10 +33,7 @@ import {
   JW_STONE_SOCIAL_PRESENTATION,
 } from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
-import {
-  isInternalAdminProfileSlug,
-  shouldIndexPublicProfileSlug,
-} from "@shared/publicProfileIndexing";
+import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -204,6 +201,7 @@ export async function buildPublicProfileLlmsText({
   slug,
   origin,
 }: PublicProfileLlmsTextOptions): Promise<string | null> {
+  if (!shouldIndexPublicProfileSlug(slug)) return null;
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
 
@@ -273,7 +271,7 @@ export async function buildPublicProfileSitemapXml({
 }: PublicProfileSitemapOptions): Promise<string | null> {
   const publicOrigin = normalizePublicOrigin(origin);
   if (!publicOrigin) return null;
-  if (isInternalAdminProfileSlug(slug)) return null;
+  if (!shouldIndexPublicProfileSlug(slug)) return null;
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
 
@@ -1266,6 +1264,8 @@ export async function buildPublicProfileHtml({
 </main>`;
 
   html = injectProfileSummary(html, rootSummary);
-  html = injectJsonLd(html, jsonLd);
+  if (shouldIndexProfile) {
+    html = injectJsonLd(html, jsonLd);
+  }
   return html;
 }

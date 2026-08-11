@@ -32,6 +32,7 @@ import {
   hasTradeScoutPendingOwnerCustody,
   isOwnerConfirmedDirectProfile,
   isPubliclyVerifiedProfileOwner,
+  isSteelHomePackagesUnlistedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
 import {
   isExactPublicProfileContractorBindingCandidate,
@@ -1394,10 +1395,7 @@ async function getPublicProfileContractorBinding(
         or(
           eq(contractors.userId, normalizedOwnerUserId),
           and(
-            eq(
-              contractors.id,
-              JW_STONE_RECOMMENDATION_COMPATIBILITY.contractorId
-            ),
+            eq(contractors.id, JW_STONE_RECOMMENDATION_COMPATIBILITY.contractorId),
             isNull(contractors.userId),
             eq(contractors.isActive, false),
             eq(contractors.verifiedLicensed, false),
@@ -1775,6 +1773,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
+  let unlistedSteelHomeDirectProfile = false;
   let directConnectDeliveryCustody: "business" | "tradescout_pending_owner" = "business";
   let hasGatedDirectConnectPhone = false;
   if (profile.businessId) {
@@ -1804,13 +1803,15 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       ownerPreferences: ownerUser.preferences,
     };
     ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile(directProfileCandidate);
+    unlistedSteelHomeDirectProfile =
+      isSteelHomePackagesUnlistedDirectProfile(directProfileCandidate);
     directConnectDeliveryCustody = hasTradeScoutPendingOwnerCustody(directProfileCandidate)
       ? "tradescout_pending_owner"
       : "business";
     if (
       !canServeLinkedBusinessProfileToViewer({
         ownerUser,
-        ownerConfirmedDirectProfile,
+        ownerConfirmedDirectProfile: ownerConfirmedDirectProfile || unlistedSteelHomeDirectProfile,
         authenticatedViewerCanManage,
       })
     ) {
@@ -1832,23 +1833,32 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
         services: business.services || [],
         serviceAreas: business.serviceAreas || [],
         tradePartner: business.tradePartner === true,
-        verificationStatus: publicVerificationStatus || null,
-        verifiedBadge: isPubliclyVerified,
-        cvsScore: publicCvsScore,
-        cvsPerformanceScore: publicCvsPerformanceScore,
-        cvsBoostPoints: publicCvsBoostPoints,
-        trustComputedAt: latestTrustSnapshot?.computedAt?.toISOString?.() || null,
-        communityVerification: {
-          score: publicCvsScore,
-          scoreHistoryStartsAt: firstTrustSnapshot?.computedAt?.toISOString?.() || null,
-          lifetimeScoreChange: publicLifetimeScoreChange,
-          scoreChange30d: publicScoreChange30d,
-          scoreChange30dComparedAt: prior30DayTrustSnapshot?.computedAt?.toISOString?.() || null,
-          activePolicyBoostPoints: publicCvsBoostPoints,
-          activeBoosts: activeCvsBoosts,
-          badges: publicProfileBadges,
-          computedAt: latestTrustSnapshot?.computedAt?.toISOString?.() || null,
-        },
+        // Temporary admin stewardship is not evidence about the steel-home
+        // package business. Never project the steward's trust state onto it.
+        verificationStatus: unlistedSteelHomeDirectProfile
+          ? null
+          : publicVerificationStatus || null,
+        verifiedBadge: unlistedSteelHomeDirectProfile ? false : isPubliclyVerified,
+        cvsScore: unlistedSteelHomeDirectProfile ? null : publicCvsScore,
+        cvsPerformanceScore: unlistedSteelHomeDirectProfile ? null : publicCvsPerformanceScore,
+        cvsBoostPoints: unlistedSteelHomeDirectProfile ? null : publicCvsBoostPoints,
+        trustComputedAt: unlistedSteelHomeDirectProfile
+          ? null
+          : latestTrustSnapshot?.computedAt?.toISOString?.() || null,
+        communityVerification: unlistedSteelHomeDirectProfile
+          ? null
+          : {
+              score: publicCvsScore,
+              scoreHistoryStartsAt: firstTrustSnapshot?.computedAt?.toISOString?.() || null,
+              lifetimeScoreChange: publicLifetimeScoreChange,
+              scoreChange30d: publicScoreChange30d,
+              scoreChange30dComparedAt:
+                prior30DayTrustSnapshot?.computedAt?.toISOString?.() || null,
+              activePolicyBoostPoints: publicCvsBoostPoints,
+              activeBoosts: activeCvsBoosts,
+              badges: publicProfileBadges,
+              computedAt: latestTrustSnapshot?.computedAt?.toISOString?.() || null,
+            },
         expressContactCapabilities: {
           // Public profiles always preserve the Direct Connect gate. A phone
           // number stored for private routing never becomes a bypass.
