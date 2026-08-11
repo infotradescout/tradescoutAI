@@ -11,16 +11,30 @@ describe("progressive feature gating contracts", () => {
   it("keeps core nav features stable and always present in AppShell", () => {
     const source = read("client/src/components/layout/AppShell.tsx");
 
-    expect(source).toContain('label: "Scout"');
+    expect(source).toContain('label: "Start"');
     expect(source).toContain('href: "/scout"');
-    expect(source).toContain('label: "Direct Connect"');
+    expect(source).toContain('label: "My Requests"');
     expect(source).toContain('href: "/direct-connect"');
-    expect(source).toContain('label: "Businesses"');
+    expect(source).toContain('label: "Find Businesses"');
     expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
-    expect(source).toContain('label: "Commercial Jobs"');
+    expect(source).toContain('label: "Jobs"');
     expect(source).toContain('href: "/commercial-directory"');
     expect(source).toContain('label: "Community"');
     expect(source).toContain('href: ROUTES.COMMUNITY ?? "/community"');
+  });
+
+  it("provides one plain-language start guide across desktop and mobile", () => {
+    const source = read("client/src/components/layout/AppShell.tsx");
+
+    expect(source).toContain('const START_GUIDE_SEEN_KEY = "ts:start-guide-seen-v1"');
+    expect(source).toContain("What do you want to get done?");
+    expect(source).toContain("Get help with a project");
+    expect(source).toContain("Find a local business");
+    expect(source).toContain("Check my requests and replies");
+    expect(source).toContain("Manage my business");
+    expect(source).toContain("Browse commercial work");
+    expect(source).toContain("Ask my community");
+    expect(source).toContain("Choose one goal. TradeScout will take you to the right place.");
   });
 
   it("applies action-driven advanced nav filtering in AppShell", () => {

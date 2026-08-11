@@ -26,6 +26,8 @@ import {
   UserCircle,
   BadgeCheck,
   LockKeyhole,
+  ArrowRight,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -45,7 +47,6 @@ import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progressiveFeatureUnlocks";
-import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
 import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
@@ -70,6 +71,47 @@ type SurfaceOrientation = {
   actionHref?: string;
 };
 
+const START_GUIDE_SEEN_KEY = "ts:start-guide-seen-v1";
+
+const START_GUIDE_ITEMS: NavItem[] = [
+  {
+    label: "Get help with a project",
+    href: "/scout",
+    icon: <Compass className="h-5 w-5" />,
+    description: "Tell Scout what you need and get a clear next step.",
+  },
+  {
+    label: "Find a local business",
+    href: ROUTES.CONTRACTORS ?? "/contractors",
+    icon: <Building className="h-5 w-5" />,
+    description: "Browse businesses by service and location.",
+  },
+  {
+    label: "Check my requests and replies",
+    href: "/direct-connect",
+    icon: <ClipboardList className="h-5 w-5" />,
+    description: "See what you asked for, who replied, and what needs action.",
+  },
+  {
+    label: "Manage my business",
+    href: "/business-dashboard",
+    icon: <Wrench className="h-5 w-5" />,
+    description: "Open your business workspace, profile, and opportunities.",
+  },
+  {
+    label: "Browse commercial work",
+    href: "/commercial-directory",
+    icon: <ShoppingBag className="h-5 w-5" />,
+    description: "Review published commercial projects and bid packages.",
+  },
+  {
+    label: "Ask my community",
+    href: ROUTES.COMMUNITY ?? "/community",
+    icon: <Users className="h-5 w-5" />,
+    description: "See nearby activity, share an update, or ask around.",
+  },
+];
+
 function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null {
   if (pathname.startsWith("/admin")) {
     return {
@@ -81,23 +123,55 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/scout") || pathname === "/") {
     return {
-      title: "Scout",
-      summary: "Describe what you need and get the right next step.",
-      actionLabel: "Go to Direct Connect",
+      title: "Start here",
+      summary: "Tell Scout what you want to get done and receive a clear next step.",
+      actionLabel: "See my requests",
       actionHref: "/direct-connect",
     };
   }
   if (pathname.startsWith("/direct-connect")) {
     return {
-      title: "Direct Connect",
-      summary: "Post requests, review replies, and track what needs action.",
-      actionLabel: "Post a request",
+      title: "My requests",
+      summary: "Create a request, review replies, and see what needs your attention.",
+      actionLabel: "Start a request",
       actionHref: "/direct-connect",
+    };
+  }
+  if (pathname.startsWith("/contractors") || pathname.startsWith("/find-local-businesses")) {
+    return {
+      title: "Find businesses",
+      summary: "Browse local businesses by the work you need and the area they serve.",
+      actionLabel: "Tell Scout what I need",
+      actionHref: "/scout",
+    };
+  }
+  if (pathname.startsWith("/commercial-directory")) {
+    return {
+      title: "Commercial work",
+      summary: "Review published projects and open the work that fits your business.",
+      actionLabel: "Open my business",
+      actionHref: "/business-dashboard",
+    };
+  }
+  if (pathname.startsWith("/business-dashboard") || pathname.startsWith("/contractor-dashboard")) {
+    return {
+      title: "My business",
+      summary: "Manage your profile, requests, work, and business activity from one place.",
+      actionLabel: "View incoming requests",
+      actionHref: "/direct-connect/inbox",
+    };
+  }
+  if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
+    return {
+      title: "My account",
+      summary: "Manage your profile, preferences, permissions, privacy, and security.",
+      actionLabel: "Open my profile",
+      actionHref: "/profile",
     };
   }
   if (pathname.startsWith("/exchange")) {
     return {
-      title: "Exchange",
+      title: "Buy and sell",
       summary: "Buy and sell listings. Switch scope to near me, state, or nationwide.",
       actionLabel: "List an item",
       actionHref: "/marketplace-listing",
@@ -123,7 +197,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
     pathname.startsWith("/homescout/new")
   ) {
     return {
-      title: "Asset Management",
+      title: "My homes and vehicles",
       summary:
         "Track inspections, maintenance, upgrades, and project history across assets with a home-first focus.",
       actionLabel: "Open Asset Management",
@@ -140,7 +214,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/trade-deals")) {
     return {
-      title: "TradeDeals",
+      title: "Offers",
       summary: "Browse partner offers and active campaigns in your market.",
       actionLabel: "View Cumulus campaign",
       actionHref: "/tradepartners/cumulus-media",
@@ -164,7 +238,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/foundation")) {
     return {
-      title: "Local vaults",
+      title: "Community projects",
       summary: "See local contributions and what community builders are funding nearby.",
       actionLabel: "View contribution dashboard",
       actionHref: "/community-builder/dashboard",
@@ -190,28 +264,28 @@ const buildFeatureNav = (opts?: {
 }): NavItem[] => {
   const coreNav: NavItem[] = [
     {
-      label: "Direct Connect",
-      href: "/direct-connect",
-      icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Post requests and track replies.",
-    },
-    {
-      label: "Scout",
+      label: "Start",
       href: "/scout",
       icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Open Scout to review what to do next.",
+      description: "Tell Scout what you want to get done.",
     },
     {
-      label: "Businesses",
+      label: "My Requests",
+      href: "/direct-connect",
+      icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Create requests and track replies.",
+    },
+    {
+      label: "Find Businesses",
       href: ROUTES.CONTRACTORS ?? "/contractors",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Find businesses that serve your area.",
+      description: "Find businesses by service and location.",
     },
     {
-      label: "Commercial Jobs",
+      label: "Jobs",
       href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Review published commercial projects and bid packages.",
+      description: "Browse commercial projects and bid packages.",
     },
     {
       label: "Community",
@@ -219,50 +293,50 @@ const buildFeatureNav = (opts?: {
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "See nearby posts and updates.",
     },
-    {
-      label: "Share",
-      href: "/share",
-      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Copy and publish your best links.",
-    },
   ];
 
   const advancedNav: NavItem[] = [
     {
-      label: "TradeDeals",
+      label: "Offers",
       href: "/trade-deals",
       icon: <Sparkles className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Check partner offers and campaigns.",
     },
     {
-      label: "Exchange",
+      label: "Buy & Sell",
       href: ROUTES.EXCHANGE ?? "/exchange",
       icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Browse and post marketplace listings.",
     },
     {
-      label: "Asset Management",
+      label: "Homes & Vehicles",
       href: "/homes",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Home-first inspections, maintenance, and upgrade history.",
     },
     {
-      label: "Maps",
+      label: "Map",
       href: "/maps",
       icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Explore local and service coverage.",
     },
     {
-      label: "Leaderboard",
+      label: "Local Trust",
       href: "/leaderboard",
       icon: <Trophy className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Track local trust momentum.",
     },
     {
-      label: "Community Builders",
+      label: "Community Projects",
       href: "/foundation",
       icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "See local funding and impact.",
+    },
+    {
+      label: "Share",
+      href: "/share",
+      icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Copy and publish your best links.",
     },
   ];
 
@@ -292,7 +366,7 @@ const buildFeatureNav = (opts?: {
 };
 
 function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
-  const desiredPrimaryLabels = ["Direct Connect", "Community", "Scout"];
+  const desiredPrimaryLabels = ["Start", "My Requests", "Community"];
   const byLabel = new globalThis.Map(items.map((item) => [item.label, item]));
   const primary = desiredPrimaryLabels
     .map((label) => byLabel.get(label))
@@ -320,8 +394,8 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
     request
       ? {
           ...request,
-          label: "Direct Connect",
-          description: "Ask local people and businesses for help.",
+          label: "Requests",
+          description: "Create a request and track replies.",
         }
       : {
           label: "Direct Connect",
@@ -345,9 +419,9 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
           icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
         },
     scout
-      ? { ...scout, label: "Scout", description: "Open Scout to review what to do next." }
+      ? { ...scout, label: "Start", description: "Tell Scout what you want to get done." }
       : {
-          label: "Scout",
+          label: "Start",
           href: "/scout",
           icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
         },
@@ -363,6 +437,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isImpersonating = user?.isImpersonating || user?.impersonating;
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const [isStartGuideOpen, setIsStartGuideOpen] = useState(false);
   const [isMobileUnlockablesOpen, setIsMobileUnlockablesOpen] = useState(false);
   const RIGHT_TOOLS_COLLAPSED_KEY = "ts:rightToolsCollapsed";
   const RIGHT_TOOLS_COLLAPSED_W = "56px";
@@ -404,7 +479,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           .toLowerCase()
       : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
-  const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? DEFAULT_LANDING : "/";
+  const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? "/scout" : "/";
   const hasAdminAccess = hasAdminUiAccess(user);
   const verificationBypass = user?.verificationBypass;
   const hasAdminAliasBypass =
@@ -559,8 +634,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   );
 
   const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
-  const showSurfaceOrientation =
-    String(import.meta.env.VITE_SURFACE_ORIENTATION_V1 ?? "false") === "true";
+  const showSurfaceOrientation = true;
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const currentPath = location.split("?")[0].split("#")[0];
   const publicProfileContinuation = useMemo(
@@ -667,6 +741,40 @@ export function AppShell({ children, footer }: AppShellProps) {
     if (!isToolsOpen) setIsMobileUnlockablesOpen(false);
   }, [isToolsOpen]);
 
+  useEffect(() => {
+    if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
+    try {
+      if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
+        setIsStartGuideOpen(true);
+      }
+    } catch {
+      setIsStartGuideOpen(true);
+    }
+  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface]);
+
+  useEffect(() => {
+    if (!isStartGuideOpen) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsStartGuideOpen(false);
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isStartGuideOpen]);
+
+  const closeStartGuide = () => {
+    setIsStartGuideOpen(false);
+    try {
+      window.localStorage.setItem(START_GUIDE_SEEN_KEY, "1");
+    } catch {
+      // ignore
+    }
+  };
+
+  const navigateFromStartGuide = (href: string) => {
+    closeStartGuide();
+    navigate(href);
+  };
+
   const toggleRightToolsCollapsed = () => {
     setIsRightToolsCollapsed((prev) => {
       const next = !prev;
@@ -690,7 +798,9 @@ export function AppShell({ children, footer }: AppShellProps) {
       </p>
       {!isLoggedIn && (
         <div className="mt-2 space-y-1.5">
-          <p className="text-[11px] text-secondary">Contact requires an account to prevent spam.</p>
+          <p className="text-[11px] text-secondary">
+            Create an account to save requests and keep replies together.
+          </p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -824,6 +934,22 @@ export function AppShell({ children, footer }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            {!isAuthOrSetupSurface && (
+              <button
+                type="button"
+                onClick={() => setIsStartGuideOpen(true)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold"
+                style={{
+                  borderColor: "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
+                  backgroundColor: "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                  color: "var(--theme-accent-primary)",
+                }}
+                aria-label="Open Start here guide"
+              >
+                <Compass className="h-4 w-4" />
+                Start
+              </button>
+            )}
             {!isMobileSimplified && !isLoggedIn && !isAuthOrSetupSurface && (
               <>
                 <button
@@ -912,7 +1038,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         >
           {/* Brand */}
           <Link
-            href="/"
+            href={mobileBrandHref}
             className={`flex shrink-0 items-center gap-3 cursor-pointer ${
               handedness === "left" ? "justify-end" : ""
             }`}
@@ -947,7 +1073,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     key={`desktop-nav-${item.href}`}
                     href={item.href}
                     data-active={isActive ? "true" : "false"}
-                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 max-w-[148px] items-center gap-2 rounded-md border px-3 text-xs font-medium no-underline transition-colors"
+                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 items-center gap-2 whitespace-nowrap rounded-md border px-3 text-xs font-medium no-underline transition-colors"
                     style={{
                       borderColor: isActive
                         ? "color-mix(in oklab, var(--theme-accent-primary) 44%, transparent)"
@@ -963,7 +1089,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                         {item.icon}
                       </span>
                     ) : null}
-                    <span className="truncate">{item.label}</span>
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}
@@ -998,6 +1124,21 @@ export function AppShell({ children, footer }: AppShellProps) {
 
             {!isAuthOrSetupSurface && (
               <>
+                <button
+                  type="button"
+                  onClick={() => setIsStartGuideOpen(true)}
+                  className="hidden h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors xl:inline-flex"
+                  style={{
+                    borderColor:
+                      "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
+                    backgroundColor:
+                      "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                    color: "var(--theme-accent-primary)",
+                  }}
+                >
+                  <CircleHelp className="h-4 w-4" />
+                  What can I do?
+                </button>
                 {showInstallAction && (
                   <button
                     type="button"
@@ -1226,6 +1367,122 @@ export function AppShell({ children, footer }: AppShellProps) {
               onNavigate={() => setIsToolsOpen(false)}
             />
           </aside>
+        </div>
+      )}
+
+      {isStartGuideOpen && !isAuthOrSetupSurface && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6">
+          <button
+            type="button"
+            aria-label="Close Start here guide"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={closeStartGuide}
+          />
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="start-guide-title"
+            className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-5 shadow-2xl sm:p-8"
+            style={{
+              borderColor: "color-mix(in oklab, var(--theme-accent-primary) 35%, transparent)",
+              background:
+                "radial-gradient(circle at 90% 5%, color-mix(in oklab, var(--theme-accent-primary) 14%, transparent), transparent 32%), var(--surface-card)",
+              color: "var(--text-primary)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.24em]"
+                  style={{ color: "var(--theme-accent-primary)" }}
+                >
+                  Start here
+                </p>
+                <h2 id="start-guide-title" className="mt-2 text-2xl font-bold sm:text-3xl">
+                  What do you want to get done?
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--text-secondary)" }}>
+                  Choose one goal. TradeScout will take you to the right place.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeStartGuide}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
+                style={{ borderColor: "var(--border-primary)", color: "var(--text-secondary)" }}
+                aria-label="Close Start here guide"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {START_GUIDE_ITEMS.map((item) => (
+                <button
+                  key={`start-guide-${item.href}`}
+                  type="button"
+                  onClick={() => navigateFromStartGuide(item.href)}
+                  className="group flex min-h-[142px] flex-col rounded-2xl border p-4 text-left transition hover:-translate-y-0.5"
+                  style={{
+                    borderColor: "var(--border-primary)",
+                    backgroundColor:
+                      "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                  }}
+                >
+                  <span
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl"
+                    style={{
+                      backgroundColor:
+                        "color-mix(in oklab, var(--theme-accent-primary) 14%, transparent)",
+                      color: "var(--theme-accent-primary)",
+                    }}
+                  >
+                    {item.icon}
+                  </span>
+                  <span className="mt-4 flex w-full items-start justify-between gap-3">
+                    <span className="font-semibold">{item.label}</span>
+                    <ArrowRight
+                      className="mt-0.5 h-4 w-4 shrink-0 transition group-hover:translate-x-0.5"
+                      style={{ color: "var(--theme-accent-primary)" }}
+                    />
+                  </span>
+                  <span className="mt-1 text-xs leading-5" style={{ color: "var(--text-secondary)" }}>
+                    {item.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div
+              className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4"
+              style={{ borderColor: "var(--border-primary)" }}
+            >
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                You can reopen this guide anytime from the top navigation.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigateFromStartGuide("/profile")}
+                  className="rounded-full border px-3 py-2 text-xs font-semibold"
+                  style={{ borderColor: "var(--border-primary)" }}
+                >
+                  My profile
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigateFromStartGuide(ROUTES.HELP ?? "/help")}
+                  className="rounded-full border px-3 py-2 text-xs font-semibold"
+                  style={{
+                    borderColor: "var(--theme-accent-primary)",
+                    color: "var(--theme-accent-primary)",
+                  }}
+                >
+                  Help center
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
       )}
 
