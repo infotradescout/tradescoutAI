@@ -299,7 +299,7 @@ const buildFeatureNav = (opts?: {
     },
     {
       label: "Jobs",
-      href: "/commercial-directory",
+      href: "/direct-connect/opportunities",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Browse commercial projects and bid packages.",
     },

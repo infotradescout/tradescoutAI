@@ -18,7 +18,7 @@ describe("progressive feature gating contracts", () => {
     expect(source).toContain('label: "Find Businesses"');
     expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
     expect(source).toContain('label: "Jobs"');
-    expect(source).toContain('href: "/commercial-directory"');
+    expect(source).toContain('href: "/direct-connect/opportunities"');
     expect(source).toContain('label: "Community"');
     expect(source).toContain('href: ROUTES.COMMUNITY ?? "/community"');
   });

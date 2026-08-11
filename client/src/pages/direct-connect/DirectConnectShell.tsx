@@ -197,7 +197,7 @@ const DIRECT_CONNECT_TABS: Section[] = [
 const SECTION_LABELS: Record<Section, string> = {
   post: "Post",
   board: "Board",
-  employment: "Opportunities",
+  employment: "Jobs",
   inbox: "Inbox",
   pros: "Businesses",
   engagements: "My Requests",
@@ -206,7 +206,7 @@ const SECTION_LABELS: Record<Section, string> = {
 const SECTION_SHORT_LABELS: Record<Section, string> = {
   post: "New",
   board: "Public",
-  employment: "Work",
+  employment: "Jobs",
   inbox: "Inbox",
   pros: "Biz",
   engagements: "Mine",
@@ -333,8 +333,8 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   employment: {
-    title: "Opportunities",
-    description: "Post work, share availability, and keep replies in Direct Connect.",
+    title: "Jobs",
+    description: "Find employment, post a job or resume, apply, and review applicants.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
