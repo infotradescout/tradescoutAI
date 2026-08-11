@@ -6,7 +6,7 @@
  *
  * V1 selectable gallery (anyone can pick and run):
  *   wholesaler | auto-glass | plumbing-company | electrician-solo | videographer |
- *   investment-partner
+ *   financial-advisor
  *
  * `default` is the canonical launch profile used by onboarding and by profiles
  * that have not purchased or selected a specialized theme. It stays out of the
@@ -36,7 +36,7 @@ export const PROFILE_SITE_TEMPLATE_IDS = [
   "plumbing-company",
   "electrician-solo",
   "videographer",
-  "investment-partner",
+  "financial-advisor",
   "default",
 ] as const;
 
@@ -49,7 +49,7 @@ export const PROFILE_SITE_TEMPLATE_GALLERY_IDS = [
   "plumbing-company",
   "electrician-solo",
   "videographer",
-  "investment-partner",
+  "financial-advisor",
 ] as const satisfies ReadonlyArray<Exclude<ProfileSiteTemplateId, "default">>;
 
 export type ProfileSiteTemplateGalleryId = (typeof PROFILE_SITE_TEMPLATE_GALLERY_IDS)[number];
@@ -114,7 +114,7 @@ export const PROFILE_SITE_TEMPLATES: ProfileSiteTemplateMeta[] = [
     selectable: true,
   },
   {
-    id: "investment-partner",
+    id: "financial-advisor",
     label: "Investment partner",
     description: "Editorial profile for investment, acquisition, and capital professionals.",
     bestFor: "Real estate investment, acquisitions, wealth, and capital advisory professionals",
@@ -202,7 +202,7 @@ export function resolveSiteTemplateId(input: ResolveSiteTemplateInput): ProfileS
   if (slug === "jw-stone" || slug === "issa-build" || slug === "honey-onyx") return "wholesaler";
   if (slug === "jrs-auto-glass") return "auto-glass";
   if (slug === "la-plumbing-solutions") return "plumbing-company";
-  if (slug === "dean-damaskos") return "investment-partner";
+  if (slug === "dean-damaskos") return "financial-advisor";
   if (input.hasLocalServicePresentation) return "plumbing-company";
   if (input.tradePartner === true) return "wholesaler";
   return "default";
@@ -523,7 +523,7 @@ export function seedBlocksForTemplate(
         data: {
           title: name,
           ...(templateId === "videographer" ? { text: "Photo and video." } : {}),
-          ...(templateId === "investment-partner"
+          ...(templateId === "financial-advisor"
             ? { text: "Investment, acquisition, and capital expertise." }
             : {}),
         },
@@ -562,7 +562,7 @@ export function seedBlocksForTemplate(
     }
   }
 
-  if (templateId === "investment-partner") {
+  if (templateId === "financial-advisor") {
     const hasServices = next.some((block) => block?.type === "services");
     if (!hasServices) {
       next.push({

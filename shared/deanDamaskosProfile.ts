@@ -1,105 +1,95 @@
 export const DEAN_DAMASKOS_PROFILE_SLUG = "dean-damaskos" as const;
 
 export const DEAN_DAMASKOS_PROFILE_CONTENT = {
-  companyName: "Aureus Crown Investments",
-  roleLine: "Co-Founder | Partner | Acquisitions Specialist",
-  locationLabel: "Saratoga Springs, New York",
-  heroTitle: "Disciplined acquisitions. Human relationships. Full-cycle focus.",
+  companyName: "Financial Planning",
+  roleLine: "Financial Advisor",
+  locationLabel: "New York",
+  heroTitle: "Build wealth with intention. Protect the life around it.",
   heroText:
-    "Dean Damaskos brings an operator's eye to multifamily real estate - sourcing opportunities, testing the details, coordinating the deal team, and staying focused through disposition.",
+    "Dean helps individuals and business owners bring retirement planning, wealth accumulation, and asset protection into one clearer financial conversation.",
   portraitUrl: "/images/profiles/dean-damaskos/dean-damaskos.webp",
   portraitAlt: "Dean Damaskos",
-  architectureImageUrl: "/images/profiles/dean-damaskos/multifamily-architecture.webp",
-  architectureImageAlt: "Multifamily residential architecture",
   focusAreas: [
     {
-      eyebrow: "01 / Source",
-      title: "Opportunity sourcing",
-      body: "Locate multifamily opportunities that fit the team's published acquisition discipline and long-range business plan.",
+      eyebrow: "01 / Future",
+      title: "Retirement planning",
+      body: "Clarify the life you want to fund, organize the decisions ahead, and build a retirement strategy around your priorities and timeline.",
     },
     {
-      eyebrow: "02 / Analyze",
-      title: "Deal analysis",
-      body: "Review the market, property condition, operating picture, financing context, and value-add thesis before a decision moves forward.",
+      eyebrow: "02 / Enterprise",
+      title: "Business owner strategies",
+      body: "Connect business decisions with personal financial goals so growth, continuity, and the owner's long-term plan are considered together.",
     },
     {
-      eyebrow: "03 / Execute",
-      title: "Negotiation and coordination",
-      body: "Work across brokers, lenders, attorneys, partners, and due-diligence specialists to keep the transaction clear and accountable.",
+      eyebrow: "03 / Growth",
+      title: "Wealth accumulation",
+      body: "Create a deliberate framework for building wealth over time while keeping risk, liquidity, and changing goals in view.",
     },
     {
-      eyebrow: "04 / Complete",
-      title: "Full-cycle disposition",
-      body: "Carry the acquisition thesis through the asset's business plan and lead the disposition process when the property reaches its exit stage.",
+      eyebrow: "04 / Resilience",
+      title: "Asset protection",
+      body: "Identify exposures, organize safeguards, and coordinate the right professional conversations around the assets you have worked to build.",
     },
   ],
   process: [
     {
-      step: "Market",
-      detail: "Population, jobs, supply, demand, and local economic direction.",
+      step: "Listen",
+      detail: "Start with your goals, responsibilities, concerns, and the decisions already on your mind.",
     },
     {
-      step: "Property",
-      detail: "Physical condition, operations, renovation scope, and value-add potential.",
+      step: "Map",
+      detail: "Bring the moving parts into one view: retirement, business, wealth, protection, and timing.",
     },
     {
-      step: "Capital",
-      detail: "Debt, equity, hold period, and alignment with the asset's business plan.",
+      step: "Plan",
+      detail: "Turn priorities into a practical sequence of decisions instead of a stack of disconnected products.",
     },
     {
-      step: "Execution",
-      detail: "Due diligence, negotiation, closing coordination, and full-cycle follow-through.",
+      step: "Review",
+      detail: "Revisit the plan as life, business conditions, responsibilities, and opportunities change.",
     },
   ],
   biography: [
-    "Dean is a co-founder of Aureus Crown Investments and leads acquisition work across locating, analyzing, negotiating, and processing multifamily commercial real estate opportunities.",
-    "His earlier work as an automotive mechanic and network engineer shaped a practical approach: understand the system, test the assumptions, find the failure points, and solve the real problem before moving forward.",
-    "That same precision carries into the relationships behind a transaction - brokers, lenders, attorneys, operators, and partners working from one clear picture.",
+    "Dean's financial-services focus covers retirement planning, business owner strategies, wealth accumulation, and asset protection.",
+    "For a business owner, the company and the household rarely live in separate financial worlds. Planning needs to account for both without losing sight of the people, responsibilities, and future the work is meant to support.",
+    "Dean's role is to help make that picture easier to discuss and the next decision easier to understand. The starting point is a real conversation about what matters, what is changing, and what needs attention now.",
   ],
   principles: [
-    { title: "Integrity", body: "Tell the truth about the opportunity and the work." },
-    { title: "Commitment", body: "Stay accountable from first review through the full cycle." },
-    { title: "Precision", body: "Make the details earn the decision." },
+    { title: "Clarity", body: "Make the choices and tradeoffs understandable." },
+    { title: "Stewardship", body: "Treat the plan as personal, because it is." },
+    { title: "Continuity", body: "Keep the strategy connected as life and business evolve." },
   ],
   sourceBasis: [
     {
-      label: "Aureus Crown Investments - Dean Damaskos",
-      url: "https://aureuscrowninvestments.com/about-us",
-    },
-    {
-      label: "Aureus Crown Investments - Investment strategy",
-      url: "https://aureuscrowninvestments.com/investment-strategy",
-    },
-    {
-      label: "Dean Damaskos - LinkedIn",
+      label: "Dean Damaskos - professional background",
       url: "https://www.linkedin.com/in/dean-damaskos",
     },
   ],
   disclosure:
-    "This profile is informational only. It is not an offer to sell or a solicitation to buy any security or investment interest, and it is not investment, tax, or legal advice. Any offering is made only through its controlling offering documents and applicable eligibility requirements.",
+    "This profile provides general information, not personalized financial, investment, tax, insurance, or legal advice. Services, products, professional affiliations, registrations, and availability should be confirmed directly with Dean before making a financial decision.",
 } as const;
 
 export const DEAN_DAMASKOS_PROFILE_BLOCKS = [
-  { type: "siteTemplate", data: { id: "investment-partner" } },
+  { type: "siteTemplate", data: { id: "financial-advisor" } },
   {
     type: "hero",
     data: {
       title: DEAN_DAMASKOS_PROFILE_CONTENT.heroTitle,
       text: DEAN_DAMASKOS_PROFILE_CONTENT.heroText,
-      imageUrl: DEAN_DAMASKOS_PROFILE_CONTENT.architectureImageUrl,
+      imageUrl: DEAN_DAMASKOS_PROFILE_CONTENT.portraitUrl,
       operatorName: "Dean Damaskos",
       locationLabel: DEAN_DAMASKOS_PROFILE_CONTENT.locationLabel,
     },
   },
-  { type: "investmentProfile", data: DEAN_DAMASKOS_PROFILE_CONTENT },
+  { type: "financialAdvisorProfile", data: DEAN_DAMASKOS_PROFILE_CONTENT },
   {
     type: "services",
     data: {
       items: [
-        "Multifamily opportunity sourcing",
-        "Acquisition analysis",
-        "Deal negotiation and coordination",
-        "Full-cycle disposition planning",
+        "Retirement planning",
+        "Business owner strategies",
+        "Wealth accumulation",
+        "Asset protection",
       ],
     },
   },

@@ -344,7 +344,7 @@ export function suggestTemplateFromBusinessType(
       haystack
     )
   ) {
-    return "investment-partner";
+    return "financial-advisor";
   }
   if (
     /\b(?:video(?:grapher|graphy)?|photo(?:grapher|graphy)?|film(?:maker|making|ography)?|aerial|drone|media\s+production|content\s+creator)\b/.test(

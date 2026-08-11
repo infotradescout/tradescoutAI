@@ -19,7 +19,7 @@ describe("profile site templates", () => {
       "plumbing-company",
       "electrician-solo",
       "videographer",
-      "investment-partner",
+      "financial-advisor",
     ]);
   });
 
@@ -53,7 +53,7 @@ describe("profile site templates", () => {
     expect(resolveSiteTemplateId({ slug: "jw-stone" })).toBe("wholesaler");
     expect(resolveSiteTemplateId({ slug: "jrs-auto-glass" })).toBe("auto-glass");
     expect(resolveSiteTemplateId({ slug: "la-plumbing-solutions" })).toBe("plumbing-company");
-    expect(resolveSiteTemplateId({ slug: "dean-damaskos" })).toBe("investment-partner");
+    expect(resolveSiteTemplateId({ slug: "dean-damaskos" })).toBe("financial-advisor");
     expect(resolveSiteTemplateId({ slug: "unknown-shop" })).toBe("default");
   });
 
@@ -119,14 +119,14 @@ describe("profile site templates", () => {
     });
   });
 
-  it("seeds investment partners with editable acquisition services", () => {
-    const seeded = seedBlocksForTemplate("investment-partner", [], {
+  it("seeds financial advisors with editable acquisition services", () => {
+    const seeded = seedBlocksForTemplate("financial-advisor", [], {
       displayName: "Acquisition Partner",
     });
 
     expect(seeded).toContainEqual({
       type: "siteTemplate",
-      data: { id: "investment-partner" },
+      data: { id: "financial-advisor" },
     });
     expect(seeded).toContainEqual({
       type: "services",
@@ -134,8 +134,8 @@ describe("profile site templates", () => {
         items: ["Opportunity review", "Acquisition analysis", "Transaction coordination"],
       },
     });
-    expect(suggestTemplateFromBusinessType("Multifamily acquisitions")).toBe(
-      "investment-partner"
+    expect(suggestTemplateFromBusinessType("Financial planning priorities")).toBe(
+      "financial-advisor"
     );
   });
 

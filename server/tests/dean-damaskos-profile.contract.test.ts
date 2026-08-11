@@ -7,7 +7,7 @@ const read = (relativePath: string) =>
 
 describe("Dean Damaskos profile experience", () => {
   const profile = read("shared/deanDamaskosProfile.ts");
-  const theme = read("client/src/pages/profile-sites/InvestmentPartnerProfileTheme.tsx");
+  const theme = read("client/src/pages/profile-sites/FinancialAdvisorProfileTheme.tsx");
   const adapter = read("client/src/data/profileSiteContentAdapters.ts");
   const view = read("client/src/pages/ProfileSiteView.tsx");
 
@@ -35,12 +35,12 @@ describe("Dean Damaskos profile experience", () => {
   });
 
   it("ships the required profile law chrome and the dedicated renderer", () => {
-    expect(theme).toContain('data-testid="investment-partner-profile"');
+    expect(theme).toContain('data-testid="financial-advisor-profile"');
     expect(theme).toContain('data-testid="profile-trust-section"');
     expect(theme).toContain("TradeScoutProfileHandoff");
     expect(adapter).toContain("DEAN_DAMASKOS_PROFILE_SLUG");
-    expect(view).toContain('siteTemplate === "investment-partner"');
-    expect(view).toContain("<InvestmentPartnerProfileTheme");
+    expect(view).toContain('siteTemplate === "financial-advisor"');
+    expect(view).toContain("<FinancialAdvisorProfileTheme");
     expect(view).toContain("<ExpressDirectConnectPanel");
   });
 

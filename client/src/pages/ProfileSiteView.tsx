@@ -32,7 +32,7 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
-import InvestmentPartnerProfileTheme from "@/pages/profile-sites/InvestmentPartnerProfileTheme";
+import FinancialAdvisorProfileTheme from "@/pages/profile-sites/FinancialAdvisorProfileTheme";
 import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
 import SteelHomePackagesProfile from "@/pages/profile-sites/SteelHomePackagesProfile";
 import LocalServiceProfileTheme, {
@@ -1879,7 +1879,7 @@ export default function ProfileSiteView() {
     );
   }
 
-  if (siteTemplate === "investment-partner") {
+  if (siteTemplate === "financial-advisor") {
     return (
       <>
         <SEOHelmet
@@ -1895,7 +1895,7 @@ export default function ProfileSiteView() {
         />
         {manageChrome}
         {templateIndependentInventoryContext}
-        <InvestmentPartnerProfileTheme
+        <FinancialAdvisorProfileTheme
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
           businessName={displayName}
