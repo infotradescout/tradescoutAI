@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  buildSteelHomeTradePartnerRequestHref,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
   STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
@@ -38,12 +39,12 @@ const safeUnlistedCandidate = {
   ownerPreferences: { profileVisibility: "public" },
 };
 
-describe("Steel Home Packages unlisted profile contract", () => {
+describe("Steel Home TradePartners unlisted profile contract", () => {
   it("centralizes the temporary identity and keeps search-engine release off", () => {
     expect(identity).toMatchObject({
       slug: "steel-home-packages",
       temporarySlug: "steel-home-packages",
-      displayLabel: "Steel Home Packages",
+      displayLabel: "Steel Home TradePartners",
       publicRoute: "/u/steel-home-packages",
       releaseState: "unlisted",
       publiclyReleased: false,
@@ -75,22 +76,22 @@ describe("Steel Home Packages unlisted profile contract", () => {
     }
   });
 
-  it("separates the targeted package request from the location-routed labor request", () => {
-    const packageContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
-    expect(packageContext).toMatchObject({
+  it("separates the targeted TradePartner request from location-routed labor", () => {
+    const partnerContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
+    expect(partnerContext).toMatchObject({
       contextType: "profile",
       contextId: identity.slug,
       targetSelector: identity.slug,
       targetName: identity.displayLabel,
-      source: "steel_home_packages_phase1",
+      source: "steel_home_tradepartners",
       subjectType: "product",
-      title: "Steel home structure, stone, and cabinet package",
+      title: "Steel-home TradePartner request",
     });
     expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBeNull();
 
     const laborContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
     expect(laborContext).toMatchObject({
-      source: "steel_home_packages_phase1_labor",
+      source: "steel_home_tradepartners_labor",
       subjectType: "service",
       title: "Steel-home labor or installation request",
     });
@@ -116,6 +117,48 @@ describe("Steel Home Packages unlisted profile contract", () => {
     }
   });
 
+  it("builds a distinct useful request for every named TradePartner", () => {
+    const expected = [
+      {
+        key: "worldwide-steel-buildings" as const,
+        source: "steel_home_tradepartners_worldwide",
+        title: "Worldwide Steel Buildings structure request",
+        partner: "Worldwide Steel Buildings",
+      },
+      {
+        key: "jw-stone-logistics" as const,
+        source: "steel_home_tradepartners_jw_stone",
+        title: "JW Stone Logistics natural-stone request",
+        partner: "JW Stone Logistics",
+      },
+      {
+        key: "a-plus-cabinets" as const,
+        source: "steel_home_tradepartners_a_plus_cabinets",
+        title: "A+ Cabinets project request",
+        partner: "A+ Cabinets",
+      },
+    ];
+
+    for (const item of expected) {
+      const href = buildSteelHomeTradePartnerRequestHref(
+        STEEL_HOME_PACKAGES_START_REQUEST_PATH,
+        item.key
+      );
+      const context = parseDirectConnectEntryContext(href);
+      expect(context).toMatchObject({
+        contextType: "profile",
+        contextId: identity.slug,
+        targetSelector: identity.slug,
+        targetName: identity.displayLabel,
+        subjectType: "product",
+        source: item.source,
+        title: item.title,
+      });
+      expect(context.description).toContain(`TradePartner: ${item.partner}`);
+      expect(getDirectConnectIntent(href)).toBeNull();
+    }
+  });
+
   it("renders express URL prefill inside the intent-specific request fields", () => {
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(composer).toContain('what: prefillTitle?.trim() || ""');
@@ -124,26 +167,33 @@ describe("Steel Home Packages unlisted profile contract", () => {
     expect(composer).toContain('when: prefillTiming?.trim() || ""');
   });
 
-  it("locks the public package to three TradeScout-coordinated material choices", () => {
-    expect(content.version).toBe(4);
-    expect(content.package.items.map((item) => [item.key, item.label])).toEqual([
-      ["structure", "01 • Metal structure"],
-      ["stone", "02 • Natural stone"],
-      ["cabinets", "03 • Cabinets"],
+  it("locks the public page to three named TradePartners and separate scopes", () => {
+    expect(content.version).toBe(5);
+    expect(content.tradePartners.cards.map((item) => [item.key, item.title])).toEqual([
+      ["structure", "Worldwide Steel Buildings"],
+      ["stone", "JW Stone Logistics"],
+      ["cabinets", "A+ Cabinets"],
     ]);
 
     const serialized = JSON.stringify(content);
-    for (const privateRelationshipCopy of [
+    for (const requiredPublicTruth of [
       "Worldwide Steel Buildings",
       "JW Stone Logistics",
       "A+ Cabinets",
-      "Ocean Springs",
-      "partner",
-      "supplier",
-      "affiliate",
-      "referral",
+      "Ocean Springs, Mississippi",
+      "three separate specialties",
     ]) {
-      expect(serialized.toLowerCase()).not.toContain(privateRelationshipCopy.toLowerCase());
+      expect(serialized.toLowerCase()).toContain(requiredPublicTruth.toLowerCase());
+    }
+    for (const falseProductCopy of [
+      "Steel Home Studio",
+      "one clear package",
+      "one coordinated package",
+      "one package quote",
+      "complete home package",
+      "turnkey home",
+    ]) {
+      expect(serialized.toLowerCase()).not.toContain(falseProductCopy.toLowerCase());
     }
     for (const futurePhaseCopy of [
       "single-wide",
@@ -164,13 +214,10 @@ describe("Steel Home Packages unlisted profile contract", () => {
     expect(source).toContain("publicDiscoveryEnabled: false");
     expect(source).toContain("STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE");
     expect(source).toContain('status: "published" as const');
-    expect(source).toContain('category: "Steel home material packages"');
-    expect(source).toContain(
-      'services: ["Custom metal structure", "Natural stone", "Cabinet packages"]'
-    );
-    expect(source).not.toContain("Worldwide Steel Buildings");
-    expect(source).not.toContain("JW Stone Logistics");
-    expect(source).not.toContain("A+ Cabinets");
+    expect(source).toContain('category: "Steel home TradePartner showcase"');
+    expect(source).toContain('"Worldwide Steel Buildings structure"');
+    expect(source).toContain('"JW Stone Logistics natural stone"');
+    expect(source).toContain('"A+ Cabinets cabinetry"');
     expect(source).not.toContain(".update(users)");
     expect(source).not.toContain("activeProfileId");
     expect(source).not.toContain("activeBusinessId");

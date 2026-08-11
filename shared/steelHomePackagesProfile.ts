@@ -2,7 +2,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_IDENTITY = {
   internalKey: "steel-home-packages",
   temporarySlug: "steel-home-packages",
   slug: "steel-home-packages",
-  displayLabel: "Steel Home Packages",
+  displayLabel: "Steel Home TradePartners",
   publicRoute: "/u/steel-home-packages",
   releaseState: "unlisted",
   publiclyReleased: false,
@@ -11,24 +11,90 @@ export const STEEL_HOME_PACKAGES_PROFILE_IDENTITY = {
 export const STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE =
   "operator_approved_unlisted_profile" as const;
 
-const STEEL_HOME_PACKAGE_REQUEST_DESCRIPTION = [
+export const WORLDWIDE_STEEL_BUILDINGS_3D_DESIGNER_URL =
+  "https://www.worldwidesteelbuildings.com/3d-building-designer/" as const;
+export const WORLDWIDE_STEEL_BUILDINGS_RESIDENTIAL_GALLERY_URL =
+  "https://www.worldwidesteelbuildings.com/projects/type/residential-barndominiums/" as const;
+export const JW_STONE_MARKETPLACE_PATH = "/jw-stone" as const;
+
+export const STEEL_HOME_TRADEPARTNER_KEYS = [
+  "worldwide-steel-buildings",
+  "jw-stone-logistics",
+  "a-plus-cabinets",
+] as const;
+
+export type SteelHomeTradePartnerKey = (typeof STEEL_HOME_TRADEPARTNER_KEYS)[number];
+
+const STEEL_HOME_TRADEPARTNER_REQUESTS: Readonly<
+  Record<
+    SteelHomeTradePartnerKey,
+    {
+      source: string;
+      title: string;
+      description: string;
+    }
+  >
+> = {
+  "worldwide-steel-buildings": {
+    source: "steel_home_tradepartners_worldwide",
+    title: "Worldwide Steel Buildings structure request",
+    description: [
+      "TradePartner: Worldwide Steel Buildings",
+      "Project location:",
+      "Intended building use:",
+      "3D Designer reference, screenshots, plans, or sketch:",
+      "Approximate width, length, and height:",
+      "Roof style, porches, overhangs, doors, windows, and colors:",
+      "Known local load or permit requirements:",
+      "Desired timing:",
+      "Questions or additional details:",
+    ].join("\n"),
+  },
+  "jw-stone-logistics": {
+    source: "steel_home_tradepartners_jw_stone",
+    title: "JW Stone Logistics natural-stone request",
+    description: [
+      "TradePartner: JW Stone Logistics",
+      "Project location:",
+      "Stone name, saved selection, or collection link:",
+      "Rooms or planned uses:",
+      "Approximate measurements or quantity:",
+      "Fabrication or installation help needed:",
+      "Desired timing:",
+      "Questions or additional details:",
+    ].join("\n"),
+  },
+  "a-plus-cabinets": {
+    source: "steel_home_tradepartners_a_plus_cabinets",
+    title: "A+ Cabinets project request",
+    description: [
+      "TradePartner: A+ Cabinets — Ocean Springs, Mississippi",
+      "Project location:",
+      "Rooms needing cabinets:",
+      "Plans, measurements, cabinet schedule, or inspiration available:",
+      "Preferred door style, color, or finish:",
+      "Known appliance sizes or special storage needs:",
+      "Delivery or installation help needed:",
+      "Desired timing:",
+      "Questions or additional details:",
+    ].join("\n"),
+  },
+};
+
+const STEEL_HOME_TRADEPARTNERS_REQUEST_DESCRIPTION = [
+  "TradePartner requested (Worldwide Steel Buildings, JW Stone Logistics, or A+ Cabinets):",
   "Project location:",
-  "Starting point (plans, 3D concept, sketch, photos, or an idea):",
-  "Package choices (metal structure, natural stone, cabinets, or a combination):",
-  "Preferred exterior direction:",
-  "Rooms or features needing natural stone:",
-  "Rooms needing cabinets:",
-  "Current project stage:",
+  "Product or material needed:",
+  "Plans, 3D design, saved stone, measurements, photos, or reference links:",
   "Desired timing:",
-  "Files or reference links:",
   "Questions or additional details:",
 ].join("\n");
 
 const STEEL_HOME_LABOR_REQUEST_DESCRIPTION = [
   "Project location:",
   "Labor needed (site work, foundation, steel erection, stone fabrication or installation, cabinet installation, or other):",
-  "Plans or material package selected:",
-  "Labor pricing only or labor plus package materials:",
+  "TradePartner or material already selected:",
+  "Labor pricing only or labor plus materials:",
   "Desired timing:",
   "Additional details:",
 ].join("\n");
@@ -36,178 +102,206 @@ const STEEL_HOME_LABOR_REQUEST_DESCRIPTION = [
 export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
   `/direct-connect?profile=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug)}` +
   `&profileName=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel)}` +
-  "&source=steel_home_packages_phase1" +
+  "&source=steel_home_tradepartners" +
   "&subject=product" +
-  `&title=${encodeURIComponent("Steel home structure, stone, and cabinet package")}` +
-  `&description=${encodeURIComponent(STEEL_HOME_PACKAGE_REQUEST_DESCRIPTION)}`;
+  `&title=${encodeURIComponent("Steel-home TradePartner request")}` +
+  `&description=${encodeURIComponent(STEEL_HOME_TRADEPARTNERS_REQUEST_DESCRIPTION)}`;
+
+/**
+ * Retargets the shared TradeScout request entry to one named TradePartner while
+ * keeping the customer inside the Steel Home TradePartners coordination profile.
+ */
+export function buildSteelHomeTradePartnerRequestHref(
+  baseHref: string,
+  partnerKey: SteelHomeTradePartnerKey
+): string {
+  const request = STEEL_HOME_TRADEPARTNER_REQUESTS[partnerKey];
+  const isAbsolute = /^https?:\/\//i.test(baseHref);
+  const url = new URL(baseHref, "https://tradescout.local");
+
+  url.searchParams.set("profile", STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug);
+  url.searchParams.set("profileName", STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel);
+  url.searchParams.set("source", request.source);
+  url.searchParams.set("subject", "product");
+  url.searchParams.set("title", request.title);
+  url.searchParams.set("description", request.description);
+  url.searchParams.delete("intent");
+
+  return isAbsolute ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
+}
 
 /**
  * Opens the canonical Direct Connect work-request composer without targeting
- * the package profile. Labor-only visitors need location-aware TradeScout
- * matching, not a request assigned to the material package team.
+ * any material TradePartner. Labor-only visitors need location-aware matching.
  */
 export const STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH =
-  "/direct-connect?source=steel_home_packages_phase1_labor" +
+  "/direct-connect?source=steel_home_tradepartners_labor" +
   "&subject=service" +
   `&title=${encodeURIComponent("Steel-home labor or installation request")}` +
   `&description=${encodeURIComponent(STEEL_HOME_LABOR_REQUEST_DESCRIPTION)}`;
 
+const STEEL_HOME_TRADEPARTNER_CARDS = [
+  {
+    key: "structure",
+    partnerKey: "worldwide-steel-buildings",
+    number: "01",
+    label: "Metal structure and roofing",
+    title: "Worldwide Steel Buildings",
+    body: "Explore the steel-building system, use Worldwide's real 3D Designer, then bring the saved design or project reference into a TradeScout request.",
+    image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
+    imageAlt: "Steel-home exterior inspiration for the Worldwide Steel Buildings section",
+    details: [
+      "Custom steel building kit",
+      "3D size and exterior configuration",
+      "Project-specific structural requirements",
+    ],
+    action: "Explore Worldwide",
+  },
+  {
+    key: "stone",
+    partnerKey: "jw-stone-logistics",
+    number: "02",
+    label: "Natural stone",
+    title: "JW Stone Logistics",
+    body: "Browse the live TradeScout stone collection, open exact named-stone galleries, save favorites, and carry the selection into a project request.",
+    image: "/images/businesses/jw-stone/inventory/quartzite/cristallo/1.webp",
+    imageAlt: "Cristallo natural quartzite from the JW Stone Logistics collection",
+    details: [
+      "Photographed natural-stone collection",
+      "Exact stone galleries",
+      "Saved selections and project requests",
+    ],
+    action: "Explore JW Stone",
+  },
+  {
+    key: "cabinets",
+    partnerKey: "a-plus-cabinets",
+    number: "03",
+    label: "Cabinetry",
+    title: "A+ Cabinets",
+    body: "Start a cabinet conversation for kitchens, vanities, pantries, built-ins, and other planned storage with the Ocean Springs TradePartner.",
+    image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
+    imageAlt: "Warm cabinet design inspiration for the A+ Cabinets section",
+    details: ["Kitchen cabinets", "Bathroom vanities", "Pantries and built-ins"],
+    action: "Explore A+ Cabinets",
+  },
+] as const;
+
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
-  version: 4,
+  version: 5,
   header: {
-    label: "Steel Home Studio",
+    label: "Steel Home TradePartners",
     navigation: [
-      { label: "Home ideas", href: "#home-ideas" },
-      { label: "Build your package", href: "#build-your-package" },
-      { label: "How it works", href: "#how-it-works" },
-      { label: "Find local labor", href: "#local-labor" },
+      { label: "TradePartners", href: "#tradepartners" },
+      { label: "Worldwide", href: "#worldwide-steel" },
+      { label: "JW Stone", href: "#jw-stone" },
+      { label: "A+ Cabinets", href: "#a-plus-cabinets" },
+      { label: "Local labor", href: "#local-labor" },
     ],
   },
   hero: {
-    eyebrow: "Metal structure • natural stone • cabinets",
-    headline: "A steel home, built around your life.",
-    body: "Bring your plans, a sketch, or a starting idea. TradeScout coordinates the metal structure, natural stone, and cabinets into one clear package with one point of contact.",
-    primaryAction: "Start your package",
-    plansAction: "I already have plans",
+    eyebrow: "Phase 1 • Metal structure • Natural stone • Cabinets",
+    headline: "The right TradePartner for each part.",
+    body: "Explore Worldwide Steel Buildings, JW Stone Logistics, and A+ Cabinets as three separate specialties. See what each company brings to the project, then start the exact request you need through TradeScout.",
+    primaryAction: "Meet the TradePartners",
     laborAction: "Find local labor",
     image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
-    imageAlt:
-      "Design inspiration for a charcoal steel home with a wood porch and natural-stone accents",
+    imageAlt: "Steel-home structure inspiration with metal roofing and natural-stone accents",
+    visuals: STEEL_HOME_TRADEPARTNER_CARDS.map((partner) => ({
+      key: partner.key,
+      label: partner.label,
+      title: partner.title,
+      image: partner.image,
+      imageAlt: partner.imageAlt,
+    })),
   },
-  startingPoints: {
-    eyebrow: "How are you starting?",
-    title: "Start where you are.",
+  partnerIntro: {
+    eyebrow: "Our Phase 1 TradePartners",
+    title: "Three companies. Three clear scopes.",
+    body: "Each TradePartner is shown by name, with its own specialty, real project starting point, and useful next step. Choose the company that matches the part of the project you are working on.",
+  },
+  tradePartners: {
+    cards: STEEL_HOME_TRADEPARTNER_CARDS,
+    worldwide: {
+      key: "worldwide-steel-buildings",
+      number: "01",
+      eyebrow: "TradePartner • Metal structure and roofing",
+      name: "Worldwide Steel Buildings",
+      headline: "Start with the steel building system.",
+      body: "Worldwide manufactures custom steel building kits. Its 3D Designer lets you explore the building size, roof style and rise, porches or overhangs, doors, windows, garage doors, and exterior colors before the structure request moves forward.",
+      image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
+      imageAlt: "Steel-home exterior inspiration representing the structure scope",
+      facts: [
+        "Custom steel building kit and roofing system",
+        "Real 3D size, roof, opening, accessory, and color controls",
+        "Building drawings shaped around the jobsite requirements",
+      ],
+      requestAction: "Start a Worldwide structure request",
+      designerAction: "Open Worldwide's 3D Designer",
+      galleryAction: "View Worldwide residential examples",
+      designerHref: WORLDWIDE_STEEL_BUILDINGS_3D_DESIGNER_URL,
+      galleryHref: WORLDWIDE_STEEL_BUILDINGS_RESIDENTIAL_GALLERY_URL,
+      scopeNote:
+        "The steel-building tool and structural scope are not a complete residential plan. Floor plans, site design, foundation adaptation, utilities, energy compliance, permits, and construction remain separate unless identified in writing.",
+    },
+    jwStone: {
+      key: "jw-stone-logistics",
+      number: "02",
+      eyebrow: "TradePartner • Natural stone",
+      name: "JW Stone Logistics",
+      headline: "Browse real stone, not sample promises.",
+      body: "The JW Stone experience is already integrated into TradeScout. Open current named selections, see the exact photographs, save favorites, and ask about the material tied to the project.",
+      featuredStoneIds: ["cristallo", "amazonic-green", "taj-mahal", "blue-goias"],
+      collectionAction: "Open the full JW Stone collection",
+      requestAction: "Start a JW Stone project request",
+      scopeNote:
+        "Current availability, quantity, size, finish, freight, fabrication, and installation are confirmed for the selected material before approval.",
+    },
+    aPlusCabinets: {
+      key: "a-plus-cabinets",
+      number: "03",
+      eyebrow: "TradePartner • Cabinetry",
+      name: "A+ Cabinets",
+      location: "Ocean Springs, Mississippi",
+      headline: "Plan the cabinets around the real rooms.",
+      body: "Bring the kitchen plan, room measurements, cabinet schedule, appliance sizes, or a starting direction. The request stays focused on cabinetry for the spaces that actually need it.",
+      image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
+      imageAlt: "Warm kitchen cabinet design direction with island and full-height storage",
+      facts: [
+        "Kitchen cabinets and islands",
+        "Bathroom vanities",
+        "Pantries, built-ins, and storage",
+      ],
+      requestAction: "Start an A+ Cabinets request",
+      imageNote: "Cabinet design inspiration—not A+ completed-project photography.",
+      scopeNote:
+        "Available cabinet lines, construction, finishes, measurements, lead times, delivery, and installation are confirmed for the project in writing.",
+    },
+  },
+  integration: {
+    eyebrow: "Fully connected through TradeScout",
+    title: "Explore the partner. Keep the request useful.",
     items: [
       {
-        key: "ideas",
-        number: "01",
-        title: "I need a starting direction",
-        body: "Explore finished-home looks before choosing the parts.",
-        action: "Browse home ideas",
+        title: "Use the real partner experience",
+        body: "Open Worldwide's 3D tool, browse JW Stone's live collection, or begin the A+ cabinet brief.",
       },
       {
-        key: "plans",
-        number: "02",
-        title: "I already have plans",
-        body: "Attach the plan set, sketch, or photos to your request.",
-        action: "Start with my plans",
+        title: "Carry the exact starting point",
+        body: "Bring the design reference, stone link, plans, measurements, photos, or room list into the request.",
       },
       {
-        key: "design",
-        number: "03",
-        title: "I have a 3D concept",
-        body: "Bring the file, screenshots, or reference and continue with us.",
-        action: "Continue my design",
-      },
-      {
-        key: "labor",
-        number: "04",
-        title: "I need local labor",
-        body: "Request crews or labor pricing wherever the project is located.",
-        action: "Find local crews",
-      },
-    ],
-  },
-  inspiration: {
-    eyebrow: "Explore the look",
-    title: "See the home before choosing the parts.",
-    body: "Start with the feeling you want. The real package is then shaped around your property, plans, selections, local requirements, and written quote.",
-    items: [
-      {
-        key: "exterior",
-        label: "Exterior direction",
-        title: "Warm modern steel home",
-        image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
-        imageAlt:
-          "Design inspiration for a warm modern steel home with a deep porch and attached garage",
-      },
-      {
-        key: "stone",
-        label: "Natural-stone direction",
-        title: "Quiet natural luxury",
-        image: "/images/businesses/jw-stone/story/taj-living-room.webp",
-        imageAlt: "Natural-stone interior direction with a full-height quartzite feature wall",
-      },
-      {
-        key: "cabinets",
-        label: "Cabinet direction",
-        title: "Warm, useful, finished",
-        image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
-        imageAlt:
-          "Cabinet design inspiration with white-oak storage walls and a large working island",
-      },
-    ],
-    note: "These scenes show design direction, not a completed TradeScout project portfolio.",
-  },
-  package: {
-    eyebrow: "Your package",
-    title: "Choose one, two, or all three.",
-    body: "TradeScout handles sourcing, ordering, delivery coordination, and problem-solving behind the scenes. You receive one coordinated package quote and one place to call.",
-    items: [
-      {
-        key: "structure",
-        label: "01 • Metal structure",
-        title: "Shape the home",
-        body: "Choose the footprint, roofline, openings, exterior colors, and structural options around the real property and plan.",
-        image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
-        imageAlt: "Charcoal metal-home exterior with wood porch columns and stone accents",
-        details: ["Size and footprint", "Roofline and overhangs", "Openings and exterior colors"],
-        action: "Configure structure",
-      },
-      {
-        key: "stone",
-        label: "02 • Natural stone",
-        title: "Choose the surfaces",
-        body: "Select slabs, containers, or blocks for the kitchen, bathrooms, fireplaces, feature walls, floors, and other suitable uses.",
-        image: "/images/businesses/jw-stone/inventory/quartzite/cristallo/1.webp",
-        imageAlt: "Backlit natural quartzite slab from the TradeScout stone collection",
-        details: [
-          "Slabs, containers, or blocks",
-          "Kitchen and bathroom surfaces",
-          "Fireplaces, walls, and floors",
-        ],
-        action: "Select natural stone",
-      },
-      {
-        key: "cabinets",
-        label: "03 • Cabinets",
-        title: "Plan the storage",
-        body: "Build a coordinated cabinet list for kitchens, bathrooms, laundry rooms, pantries, storage walls, and other planned areas.",
-        image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
-        imageAlt: "White-oak kitchen cabinet direction with pantry storage and island drawers",
-        details: ["Kitchen and island", "Bathrooms and laundry", "Pantry and storage areas"],
-        action: "Plan cabinets",
-      },
-    ],
-  },
-  process: {
-    eyebrow: "How it works",
-    title: "One conversation. One coordinated package.",
-    items: [
-      {
-        title: "Show us where you are starting",
-        body: "Share the jobsite, plans, 3D concept, sketch, photos, or just the idea you have in mind.",
-      },
-      {
-        title: "Build the right scope",
-        body: "Choose the structure, stone, cabinets, or any combination. Nothing else is added by assumption.",
-      },
-      {
-        title: "Receive one clear quote",
-        body: "The written package identifies products, specifications, availability, freight, warranty terms, exclusions, and timing before approval.",
-      },
-      {
-        title: "Keep one point of contact",
-        body: "You work with TradeScout. We handle the outside ordering and coordination and help resolve package problems.",
+        title: "Keep each scope separate",
+        body: "Structure, stone, cabinets, and local labor remain distinct so nobody is promised work that has not been quoted.",
       },
     ],
   },
   labor: {
     eyebrow: "Express Direct Connect work request",
-    title: "Need the people to build it too?",
-    body: "Start a separate location-based work request for site work, foundation, steel erection, stone fabrication, cabinet installation, finish work, or labor pricing.",
+    title: "Need local labor for one of these scopes?",
+    body: "Start a separate location-based request for site work, foundation, steel erection, stone fabrication or installation, cabinet installation, or labor pricing.",
     support:
-      "Labor can be requested by itself or alongside the material package. TradeScout uses the real project location to help find the right local professionals.",
+      "The labor request is not assigned to a material TradePartner. TradeScout uses the real jobsite and the work selected to help find the right local professionals.",
     examples: [
       "Site work and foundation",
       "Steel-structure erection",
@@ -215,17 +309,18 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
       "Cabinet installation",
       "Other local construction work",
     ],
-    action: "Start a labor request",
-  },
-  finalAction: {
-    eyebrow: "Ready when you are",
-    headline: "Bring the plan—or bring the idea.",
-    body: "Tell us where the home will be and what you want to start with. We will help turn it into a clear package request.",
-    packageAction: "Start your package",
-    laborAction: "Find local labor",
+    action: "Start a local labor request",
   },
   disclosure:
-    "TradeScout is your package contact. Product makers, model numbers, certifications, written warranty parties, delivery terms, exclusions, and local professional responsibilities are identified in the final written scope. Project design, engineering, permits, inspections, installation, and code approval remain subject to the responsible licensed professionals and local authorities.",
+    "Each TradePartner keeps its own product scope, specifications, written warranty, availability, pricing, delivery, and fulfillment terms. Residential design, site work, permits, inspections, and installation are separate unless included in a written scope. Local labor is requested separately through Express Direct Connect.",
+  // Compatibility data for the earlier package-builder component. The current
+  // public page renders the named TradePartner experience above instead.
+  package: {
+    eyebrow: "Phase 1 TradePartners",
+    title: "Start with the TradePartner you need.",
+    body: "Each company covers a separate scope and receives a partner-specific project request.",
+    items: STEEL_HOME_TRADEPARTNER_CARDS,
+  },
 } as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT_BLOCKS = [

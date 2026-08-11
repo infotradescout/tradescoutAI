@@ -4,9 +4,12 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  JW_STONE_MARKETPLACE_PATH,
   STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
+  WORLDWIDE_STEEL_BUILDINGS_3D_DESIGNER_URL,
+  WORLDWIDE_STEEL_BUILDINGS_RESIDENTIAL_GALLERY_URL,
 } from "@shared/steelHomePackagesProfile";
 import SteelHomePackagesProfile from "./SteelHomePackagesProfile";
 
@@ -22,14 +25,6 @@ describe("SteelHomePackagesProfile", () => {
   let root: Root;
 
   beforeEach(() => {
-    window.localStorage.clear();
-    Object.defineProperty(window, "requestAnimationFrame", {
-      configurable: true,
-      value: (callback: FrameRequestCallback) => {
-        callback(0);
-        return 1;
-      },
-    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -40,29 +35,28 @@ describe("SteelHomePackagesProfile", () => {
     container.remove();
   });
 
-  function renderProfile() {
+  function renderProfile(platformBaseHref = "") {
     act(() => {
       root.render(
         <SteelHomePackagesProfile
           requestHref={STEEL_HOME_PACKAGES_START_REQUEST_PATH}
           laborRequestHref={STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH}
+          platformBaseHref={platformBaseHref}
         />
       );
     });
   }
 
-  it("presents TradeScout as the single customer-facing package contact", () => {
+  it("renders a premium three-TradePartner showcase without a homebuilder claim", () => {
     renderProfile();
 
     const text = container.textContent || "";
     expect(text).toContain(content.hero.headline);
-    expect(text).toContain(content.hero.body);
-    expect(text).toContain("Metal structure");
-    expect(text).toContain("Natural stone");
-    expect(text).toContain("Cabinets");
-    expect(text).toContain("one clear package with one point of contact");
-    expect(text).toContain("one coordinated package quote and one place to call");
-    expect(text).toContain("You work with TradeScout");
+    expect(text).toContain("Worldwide Steel Buildings");
+    expect(text).toContain("JW Stone Logistics");
+    expect(text).toContain("A+ Cabinets");
+    expect(text).toContain("Ocean Springs, Mississippi");
+    expect(text).toContain("Three companies. Three clear scopes.");
     expect(text).toContain(content.labor.body);
     expect(text).toContain(content.disclosure);
 
@@ -72,26 +66,29 @@ describe("SteelHomePackagesProfile", () => {
     expect(profile?.className).toContain("pt-[72px]");
     expect(profile?.querySelector("header")?.className).toContain("fixed");
 
-    const packageCards = Array.from(
-      container.querySelectorAll<HTMLElement>('[data-testid^="steel-home-package-"]')
-    );
-    expect(packageCards.map((card) => card.dataset.testid)).toEqual([
-      "steel-home-package-structure",
-      "steel-home-package-stone",
-      "steel-home-package-cabinets",
+    expect(
+      Array.from(
+        container.querySelectorAll<HTMLElement>('[data-testid^="steel-home-tradepartner-"]')
+      ).map((card) => card.dataset.testid)
+    ).toEqual([
+      "steel-home-tradepartner-worldwide-steel-buildings",
+      "steel-home-tradepartner-jw-stone-logistics",
+      "steel-home-tradepartner-a-plus-cabinets",
     ]);
 
-    for (const privateRelationshipCopy of [
-      "Worldwide Steel Buildings",
-      "JW Stone Logistics",
-      "A+ Cabinets",
-      "Ocean Springs",
-      "partner",
-      "supplier",
-      "affiliate",
-      "referral",
+    for (const falseProductCopy of [
+      "Steel Home Studio",
+      "A steel home, built around your life",
+      "Build your package",
+      "Start your package",
+      "one clear package",
+      "one coordinated package",
+      "one package quote",
+      "complete home package",
+      "turnkey home",
+      "monthly payment",
     ]) {
-      expect(text.toLowerCase()).not.toContain(privateRelationshipCopy.toLowerCase());
+      expect(text.toLowerCase()).not.toContain(falseProductCopy.toLowerCase());
     }
 
     for (const futureCategory of [
@@ -103,7 +100,6 @@ describe("SteelHomePackagesProfile", () => {
       "whole-home warranty",
       "plumbing package",
       "electrical package",
-      "drywall",
       "HomeID",
     ]) {
       expect(text.toLowerCase()).not.toContain(futureCategory.toLowerCase());
@@ -111,12 +107,12 @@ describe("SteelHomePackagesProfile", () => {
 
     const orderedSectionIds = [
       "steel-home-hero",
-      "steel-home-starting",
-      "steel-home-home-ideas",
-      "steel-home-package",
-      "steel-home-process",
+      "steel-home-partners",
+      "steel-home-worldwide",
+      "steel-home-jw-stone",
+      "steel-home-a-plus",
+      "steel-home-integration",
       "steel-home-labor",
-      "steel-home-final-action",
       "steel-home-disclosure",
     ];
     const sections = orderedSectionIds.map((testId) =>
@@ -129,128 +125,135 @@ describe("SteelHomePackagesProfile", () => {
     }
   });
 
-  it("builds useful package and labor handoffs without sending visitors to outside companies", () => {
+  it("connects each named partner to a real tool, collection, or partner-specific request", () => {
     renderProfile();
 
-    expect(
-      container.querySelector('[data-testid="steel-home-builder-package-continue"]')
-    ).toBeNull();
-    expect(
-      container.querySelector('[data-testid="steel-home-builder-package-continue-disabled"]')
-    ).not.toBeNull();
-
-    const location = container.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-builder-location"]'
+    const worldwideRequest = container.querySelector<HTMLAnchorElement>(
+      '[data-testid="steel-home-worldwide-request"]'
     );
-    const setInputValue = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      "value"
-    )?.set;
-    act(() => {
-      setInputValue?.call(location, "Hammond, LA 70401");
-      location?.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-
-    const structureToggle = container.querySelector<HTMLButtonElement>(
-      '[data-testid="steel-home-builder-toggle-structure"]'
-    );
-    act(() => structureToggle?.click());
-
-    const packageContinue = container.querySelector<HTMLAnchorElement>(
-      '[data-testid="steel-home-builder-package-continue"]'
-    );
-    expect(packageContinue).not.toBeNull();
-    const packageUrl = new URL(
-      packageContinue?.getAttribute("href") || "",
+    const worldwideRequestUrl = new URL(
+      worldwideRequest?.getAttribute("href") || "",
       "https://www.thetradescout.com"
     );
-    expect(packageUrl.pathname).toBe("/direct-connect");
-    expect(packageUrl.searchParams.get("subject")).toBe("product");
-    expect(packageUrl.searchParams.has("intent")).toBe(false);
-    expect(packageUrl.searchParams.get("location")).toBe("Hammond, LA 70401");
-    expect(packageUrl.searchParams.get("description")).toContain("Metal structure");
+    expect(worldwideRequestUrl.pathname).toBe("/direct-connect");
+    expect(worldwideRequestUrl.searchParams.get("profile")).toBe("steel-home-packages");
+    expect(worldwideRequestUrl.searchParams.get("subject")).toBe("product");
+    expect(worldwideRequestUrl.searchParams.get("source")).toBe(
+      "steel_home_tradepartners_worldwide"
+    );
+    expect(worldwideRequestUrl.searchParams.get("title")).toBe(
+      "Worldwide Steel Buildings structure request"
+    );
+    expect(worldwideRequestUrl.searchParams.get("description")).toContain(
+      "TradePartner: Worldwide Steel Buildings"
+    );
 
-    const stoneToggle = container.querySelector<HTMLButtonElement>(
-      '[data-testid="steel-home-builder-toggle-stone"]'
+    const worldwideDesigner = container.querySelector<HTMLAnchorElement>(
+      '[data-testid="steel-home-worldwide-designer"]'
     );
-    act(() => stoneToggle?.click());
-    const cristallo = container.querySelector<HTMLButtonElement>(
-      '[data-testid="steel-home-stone-cristallo"]'
+    expect(worldwideDesigner?.href).toBe(WORLDWIDE_STEEL_BUILDINGS_3D_DESIGNER_URL);
+    expect(worldwideDesigner?.target).toBe("_blank");
+    expect(worldwideDesigner?.rel).toContain("noopener");
+
+    const worldwideGallery = container.querySelector<HTMLAnchorElement>(
+      '[data-testid="steel-home-worldwide-gallery"]'
     );
-    expect(cristallo).not.toBeNull();
-    act(() => cristallo?.click());
-    const updatedPackageUrl = new URL(
+    expect(worldwideGallery?.href).toBe(WORLDWIDE_STEEL_BUILDINGS_RESIDENTIAL_GALLERY_URL);
+
+    const collection = container.querySelector<HTMLAnchorElement>(
+      '[data-testid="steel-home-jw-stone-collection"]'
+    );
+    expect(collection?.getAttribute("href")).toBe(JW_STONE_MARKETPLACE_PATH);
+
+    for (const stoneId of content.tradePartners.jwStone.featuredStoneIds) {
+      const stoneLink = container.querySelector<HTMLAnchorElement>(
+        `[data-testid="steel-home-jw-stone-${stoneId}"]`
+      );
+      expect(stoneLink?.getAttribute("href")).toBe(`/jw-stone/stones/${stoneId}`);
+    }
+
+    const jwRequestUrl = new URL(
       container
-        .querySelector<HTMLAnchorElement>('[data-testid="steel-home-builder-package-continue"]')
+        .querySelector<HTMLAnchorElement>('[data-testid="steel-home-jw-stone-request"]')
         ?.getAttribute("href") || "",
       "https://www.thetradescout.com"
     );
-    expect(updatedPackageUrl.searchParams.get("description")).toContain("Cristallo");
-
-    const laborTrade = Array.from(
-      container.querySelectorAll<HTMLButtonElement>('#steel-home-labor-builder button')
-    ).find((button) => button.textContent?.includes("Steel erection"));
-    act(() => laborTrade?.click());
-    const laborContinue = container.querySelector<HTMLAnchorElement>(
-      '[data-testid="steel-home-builder-labor-continue"]'
+    expect(jwRequestUrl.searchParams.get("profile")).toBe("steel-home-packages");
+    expect(jwRequestUrl.searchParams.get("source")).toBe("steel_home_tradepartners_jw_stone");
+    expect(jwRequestUrl.searchParams.get("description")).toContain(
+      "TradePartner: JW Stone Logistics"
     );
-    expect(laborContinue).not.toBeNull();
+
+    const aPlusRequestUrl = new URL(
+      container
+        .querySelector<HTMLAnchorElement>('[data-testid="steel-home-a-plus-request"]')
+        ?.getAttribute("href") || "",
+      "https://www.thetradescout.com"
+    );
+    expect(aPlusRequestUrl.searchParams.get("profile")).toBe("steel-home-packages");
+    expect(aPlusRequestUrl.searchParams.get("source")).toBe(
+      "steel_home_tradepartners_a_plus_cabinets"
+    );
+    expect(aPlusRequestUrl.searchParams.get("description")).toContain(
+      "TradePartner: A+ Cabinets — Ocean Springs, Mississippi"
+    );
+
     const laborUrl = new URL(
-      laborContinue?.getAttribute("href") || "",
+      container
+        .querySelector<HTMLAnchorElement>('[data-testid="steel-home-labor-request"]')
+        ?.getAttribute("href") || "",
       "https://www.thetradescout.com"
     );
     expect(laborUrl.searchParams.get("subject")).toBe("service");
     expect(laborUrl.searchParams.has("profile")).toBe(false);
-    expect(laborUrl.searchParams.get("location")).toBe("Hammond, LA 70401");
-    expect(laborUrl.searchParams.get("description")).toContain("Steel erection");
-
-    const ideaButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
-      (button) => button.textContent?.includes("Browse home ideas")
-    );
-    expect(ideaButton).toBeDefined();
-    const homeIdeasSection = container.querySelector<HTMLElement>("#home-ideas");
-    expect(homeIdeasSection).not.toBeNull();
-    const scrollIntoView = vi.fn();
-    if (homeIdeasSection) homeIdeasSection.scrollIntoView = scrollIntoView;
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      value: vi.fn().mockReturnValue({ matches: true }),
-    });
-    act(() => ideaButton?.click());
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
-
-    const allLinkHrefs = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[href]")).map(
-      (link) => link.getAttribute("href") || ""
-    );
-    expect(allLinkHrefs.filter((href) => href.startsWith("#"))).toEqual([]);
-    const outsideLinks = allLinkHrefs.filter((href) => /^https?:\/\//i.test(href));
-    expect(outsideLinks).toEqual([]);
+    expect(laborUrl.searchParams.has("target")).toBe(false);
 
     const images = Array.from(container.querySelectorAll<HTMLImageElement>("img"));
-    expect(images.length).toBeGreaterThan(7);
+    expect(images.length).toBeGreaterThanOrEqual(11);
     expect(images.every((image) => Boolean(image.getAttribute("alt")?.trim()))).toBe(true);
     expect(images.map((image) => image.getAttribute("src"))).toEqual(
       expect.arrayContaining([
         "/images/businesses/steel-home-packages/steel-home-hero.webp",
         "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
-        "/images/businesses/jw-stone/story/taj-living-room.webp",
         "/images/businesses/jw-stone/inventory/quartzite/cristallo/1.webp",
       ])
     );
 
     const text = container.textContent || "";
-    for (const unsupportedClaim of [
-      "starting at",
-      "monthly payment",
-      "nationwide delivery",
-      "five-star",
-      "exclusive",
-      "guaranteed approval",
-      "licensed and insured",
-      "AI-generated",
-    ]) {
-      expect(text.toLowerCase()).not.toContain(unsupportedClaim.toLowerCase());
-    }
     expect(text).not.toMatch(/\$\s?\d/);
+  });
+
+  it("keeps in-page controls on the profile and qualifies TradeScout links when needed", () => {
+    renderProfile("https://www.thetradescout.com");
+
+    const worldwideSection = container.querySelector<HTMLElement>("#worldwide-steel");
+    expect(worldwideSection).not.toBeNull();
+    const scrollIntoView = vi.fn();
+    if (worldwideSection) worldwideSection.scrollIntoView = scrollIntoView;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: true }),
+    });
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-hero-partner-structure"]')
+        ?.click();
+    });
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
+
+    expect(
+      container
+        .querySelector<HTMLAnchorElement>('[data-testid="steel-home-jw-stone-collection"]')
+        ?.getAttribute("href")
+    ).toBe("https://www.thetradescout.com/jw-stone");
+    expect(
+      container
+        .querySelector<HTMLAnchorElement>('[data-testid="steel-home-jw-stone-cristallo"]')
+        ?.getAttribute("href")
+    ).toBe("https://www.thetradescout.com/jw-stone/stones/cristallo");
+
+    const hashLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>('a[href^="#"]'));
+    expect(hashLinks).toHaveLength(0);
   });
 });
