@@ -19,6 +19,19 @@ type RequestLinkProps = {
   className?: string;
 };
 
+const startingPointClassName =
+  "group flex min-h-56 w-full flex-col bg-[#fbf8f1] p-6 text-left transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#18312f]";
+
+function scrollToSection(href: string) {
+  const target = document.getElementById(href.replace(/^#/, ""));
+  if (!target) return;
+
+  target.scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    block: "start",
+  });
+}
+
 function RequestLink({
   href,
   label,
@@ -86,8 +99,9 @@ export default function SteelHomePackagesProfile({
     >
       <header className="sticky top-0 z-50 border-b border-[#18312f]/10 bg-[#f7f3eb]/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-[72px] max-w-[1440px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-10">
-          <a
-            href="#top"
+          <button
+            type="button"
+            onClick={() => scrollToSection("#top")}
             className="flex min-w-0 items-baseline gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
             aria-label="Steel Home Studio, back to top"
           >
@@ -98,17 +112,18 @@ export default function SteelHomePackagesProfile({
             <span className="truncate font-editorial text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
               {content.header.label}
             </span>
-          </a>
+          </button>
 
           <nav className="hidden items-center gap-7 lg:flex" aria-label="Steel Home Studio">
             {content.header.navigation.map((item) => (
-              <a
+              <button
                 key={item.href}
-                href={item.href}
+                type="button"
+                onClick={() => scrollToSection(item.href)}
                 className="text-sm font-semibold text-[#41514d] transition hover:text-[#a94f2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
               >
                 {item.label}
-              </a>
+              </button>
             ))}
           </nav>
 
@@ -171,13 +186,14 @@ export default function SteelHomePackagesProfile({
             </div>
           </div>
 
-          <a
-            href="#starting-point"
+          <button
+            type="button"
+            onClick={() => scrollToSection("#starting-point")}
             className="mt-12 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/75 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             Explore your options
             <ArrowDown className="h-4 w-4" aria-hidden="true" />
-          </a>
+          </button>
         </div>
       </section>
 
@@ -198,12 +214,7 @@ export default function SteelHomePackagesProfile({
             </div>
             <div className="grid gap-px overflow-hidden border border-[#18312f]/10 bg-[#18312f]/10 sm:grid-cols-2 lg:grid-cols-4 lg:border-y-0 lg:border-r-0">
               {content.startingPoints.items.map((item) => {
-                const href =
-                  item.key === "ideas"
-                    ? "#home-ideas"
-                    : item.key === "labor"
-                      ? laborRequestHref
-                      : requestHref;
+                const href = item.key === "labor" ? laborRequestHref : requestHref;
                 const testId =
                   item.key === "labor"
                     ? "steel-home-labor-request"
@@ -211,12 +222,38 @@ export default function SteelHomePackagesProfile({
                       ? undefined
                       : "steel-home-start-request";
 
+                if (item.key === "ideas") {
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => scrollToSection("#home-ideas")}
+                      className={startingPointClassName}
+                    >
+                      <span className="text-xs font-bold tracking-[0.18em] text-[#a94f2e]">
+                        {item.number}
+                      </span>
+                      <h3 className="mt-7 text-lg font-bold leading-6 tracking-[-0.02em]">
+                        {item.title}
+                      </h3>
+                      <p className="mt-3 flex-1 text-sm leading-6 text-[#66716d]">{item.body}</p>
+                      <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#18312f]">
+                        {item.action}
+                        <ArrowRight
+                          className="h-4 w-4 transition group-hover:translate-x-1"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </button>
+                  );
+                }
+
                 return (
                   <a
                     key={item.key}
                     href={href}
                     data-testid={testId}
-                    className="group flex min-h-56 flex-col bg-[#fbf8f1] p-6 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#18312f]"
+                    className={startingPointClassName}
                   >
                     <span className="text-xs font-bold tracking-[0.18em] text-[#a94f2e]">
                       {item.number}
