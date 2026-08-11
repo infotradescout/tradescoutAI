@@ -8,6 +8,10 @@ import {
   readFeaturedStoneSlugs,
   readInventoryLeadImageBySlug,
 } from "@shared/profileSiteTemplates";
+import {
+  DEAN_DAMASKOS_PROFILE_BLOCKS,
+  DEAN_DAMASKOS_PROFILE_SLUG,
+} from "@shared/deanDamaskosProfile";
 
 type ProfileContentBlock = {
   type: string;
@@ -69,6 +73,15 @@ const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
   ];
 };
 
+const deanDamaskosContentAdapter: ProfileSiteContentAdapter = (blocks) => {
+  const existingTypes = new Set(blocks.map((block) => block?.type).filter(Boolean));
+  const defaults = DEAN_DAMASKOS_PROFILE_BLOCKS.map((block) => ({
+    type: block.type,
+    data: { ...block.data },
+  })) as ProfileContentBlock[];
+  return [...blocks, ...defaults.filter((block) => !existingTypes.has(block.type))];
+};
+
 /**
  * Source-data wiring belongs here, outside shared profile renderers.
  * Unknown profiles pass through byte-for-byte; registered profiles may hydrate
@@ -76,6 +89,7 @@ const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
  */
 const PROFILE_SITE_CONTENT_ADAPTERS: Record<string, ProfileSiteContentAdapter> = {
   "jw-stone": jwStoneContentAdapter,
+  [DEAN_DAMASKOS_PROFILE_SLUG]: deanDamaskosContentAdapter,
 };
 
 export function applyProfileSiteContentAdapter(args: {

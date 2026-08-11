@@ -340,6 +340,13 @@ export function suggestTemplateFromBusinessType(
   if (/plumb/.test(haystack)) return "plumbing-company";
   if (/electr/.test(haystack)) return "electrician-solo";
   if (
+    /\b(?:financial|finance|investment|investor|wealth|capital|multifamily|commercial\s+real\s+estate|acquisition)\b/.test(
+      haystack
+    )
+  ) {
+    return "investment-partner";
+  }
+  if (
     /\b(?:video(?:grapher|graphy)?|photo(?:grapher|graphy)?|film(?:maker|making|ography)?|aerial|drone|media\s+production|content\s+creator)\b/.test(
       haystack
     )

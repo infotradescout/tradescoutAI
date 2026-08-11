@@ -1171,8 +1171,9 @@ export default function ProfileSiteEditor() {
             <div className="space-y-2">
               <Label className="text-white/70">Template</Label>
               <p className="text-xs text-white/55">
-                Wholesaler, Auto glass, Plumbing company, Electrician (solo), or Videographer. More
-                business templates are planned in the profile template taxonomy.
+                Wholesaler, Auto glass, Plumbing company, Electrician (solo), Investment partner,
+                or Videographer. More business templates are planned in the profile template
+                taxonomy.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {listSelectableProfileSiteTemplates().map((template) => (

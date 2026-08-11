@@ -19,6 +19,7 @@ describe("profile site templates", () => {
       "plumbing-company",
       "electrician-solo",
       "videographer",
+      "investment-partner",
     ]);
   });
 
@@ -52,6 +53,7 @@ describe("profile site templates", () => {
     expect(resolveSiteTemplateId({ slug: "jw-stone" })).toBe("wholesaler");
     expect(resolveSiteTemplateId({ slug: "jrs-auto-glass" })).toBe("auto-glass");
     expect(resolveSiteTemplateId({ slug: "la-plumbing-solutions" })).toBe("plumbing-company");
+    expect(resolveSiteTemplateId({ slug: "dean-damaskos" })).toBe("investment-partner");
     expect(resolveSiteTemplateId({ slug: "unknown-shop" })).toBe("default");
   });
 
@@ -115,6 +117,26 @@ describe("profile site templates", () => {
       type: "services",
       data: { items: ["Photo and video"] },
     });
+  });
+
+  it("seeds investment partners with editable acquisition services", () => {
+    const seeded = seedBlocksForTemplate("investment-partner", [], {
+      displayName: "Acquisition Partner",
+    });
+
+    expect(seeded).toContainEqual({
+      type: "siteTemplate",
+      data: { id: "investment-partner" },
+    });
+    expect(seeded).toContainEqual({
+      type: "services",
+      data: {
+        items: ["Opportunity review", "Acquisition analysis", "Transaction coordination"],
+      },
+    });
+    expect(suggestTemplateFromBusinessType("Multifamily acquisitions")).toBe(
+      "investment-partner"
+    );
   });
 
   it("detects videographer lanes without matching unrelated word fragments", () => {

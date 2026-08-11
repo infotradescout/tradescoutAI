@@ -32,6 +32,7 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
+import InvestmentPartnerProfileTheme from "@/pages/profile-sites/InvestmentPartnerProfileTheme";
 import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
 import SteelHomePackagesProfile from "@/pages/profile-sites/SteelHomePackagesProfile";
 import LocalServiceProfileTheme, {
@@ -1873,6 +1874,62 @@ export default function ProfileSiteView() {
           initialStoneName={expressInventoryContext?.itemName}
           initialItemId={expressInventoryContext?.itemId}
           initialRequestType={expressInventoryContext ? "request_material" : null}
+        />
+      </>
+    );
+  }
+
+  if (siteTemplate === "investment-partner") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={pageOgType}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+          noIndex={categoryNoIndex}
+        />
+        {manageChrome}
+        {templateIndependentInventoryContext}
+        <InvestmentPartnerProfileTheme
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          headline={publicHeadline}
+          contentBlocks={contentBlocks}
+          services={serviceTags}
+          serviceAreas={serviceAreas}
+          aboutText={aboutText}
+          profileShareDestination={profileShareDestination}
+          onDirectConnect={openServiceDirectConnect}
+          trustActions={renderProfileTrustActions("light")}
+          profileItems={
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems
+                items={profileItems}
+                profileSections={profileSections}
+                platformBaseHref={platformBaseHref}
+              />
+            ) : null
+          }
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          businessName={displayName}
+          businessAddress={publicBusinessAddress}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+          initialServiceName={expressServiceContext}
+          initialRequestType={expressServiceContext ? "request_service" : null}
+          deliveryCustody={business?.expressContactCapabilities?.deliveryCustody}
         />
       </>
     );
