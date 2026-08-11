@@ -581,6 +581,10 @@ export class DatabaseStorage extends CrmAndDealsStorageRepository implements ISt
     return this.profileRepository.getProfileBySlugPublic(slug);
   }
 
+  async getProfileBySlugForManagement(slug: string): Promise<PublicProfileRecord | undefined> {
+    return this.profileRepository.getProfileBySlugForManagement(slug);
+  }
+
   async getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined> {
     return this.profileRepository.getProfileBySlugPublished(slug);
   }

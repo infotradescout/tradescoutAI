@@ -407,6 +407,7 @@ export interface IStorage {
   getProfileByIdForOwner(ownerUserId: string, profileId: string): Promise<Profile | undefined>;
   /** Return the owner user id for a given profile id, or null if missing. */
   getProfileOwnerUserId(profileId: string): Promise<string | null>;
+  getProfileBySlugForManagement(slug: string): Promise<PublicProfileRecord | undefined>;
   getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined>;
   getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined>;
   listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>>;
