@@ -58,6 +58,12 @@ describe("SteelHomePackagesProfile", () => {
     expect(text).toContain(content.labor.body);
     expect(text).toContain(content.disclosure);
 
+    const profile = container.querySelector<HTMLElement>(
+      '[data-testid="steel-home-packages-profile"]'
+    );
+    expect(profile?.className).toContain("pt-[72px]");
+    expect(profile?.querySelector("header")?.className).toContain("fixed");
+
     const packageCards = Array.from(
       container.querySelectorAll<HTMLElement>('[data-testid^="steel-home-package-"]')
     );

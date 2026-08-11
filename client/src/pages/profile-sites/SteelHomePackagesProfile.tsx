@@ -92,12 +92,12 @@ export default function SteelHomePackagesProfile({
 }: Props) {
   return (
     <main
-      className="min-h-screen overflow-x-hidden bg-[#f5f1e8] text-[#18312f]"
+      className="min-h-screen overflow-x-hidden bg-[#f5f1e8] pt-[72px] text-[#18312f]"
       data-testid="steel-home-packages-profile"
       data-profile-slug={identity.slug}
       data-release-state={identity.releaseState}
     >
-      <header className="sticky top-0 z-50 border-b border-[#18312f]/10 bg-[#f7f3eb]/95 backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#18312f]/10 bg-[#f7f3eb]/95 backdrop-blur-xl">
         <div className="mx-auto flex min-h-[72px] max-w-[1440px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-10">
           <button
             type="button"
