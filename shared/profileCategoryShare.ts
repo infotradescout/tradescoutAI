@@ -24,6 +24,7 @@ type PublicCategoryConfig = {
   leadItemSlug?: unknown;
   indexable?: unknown;
   excluded?: unknown;
+  collectionKind?: unknown;
 };
 
 export type ResolvedProfileInventoryCategory = {
@@ -35,6 +36,8 @@ export type ResolvedProfileInventoryCategory = {
   itemCount: number;
   itemSlugs: string[];
   imageUrl: string;
+  hasPublicSummary?: true;
+  collectionKind?: "offerings";
 };
 
 export type ProfileInventoryCategoryShareMetadata = {
@@ -49,6 +52,8 @@ export type ProfileInventoryCategoryShareMetadata = {
   imageUrl: string;
   imageAlt: string;
   canonical: string;
+  hasPublicSummary?: true;
+  collectionKind?: "offerings";
 };
 
 function firstValue(value: unknown): string {
@@ -119,10 +124,7 @@ export function listProfileInventoryCategories(
 ): ResolvedProfileInventoryCategory[] {
   if (!Array.isArray(categories)) return [];
   const configs = readPublicCategoryConfigs(contentBlocks);
-  const configuredBySourceSlug = new Map<
-    string,
-    { config: PublicCategoryConfig; order: number }
-  >();
+  const configuredBySourceSlug = new Map<string, { config: PublicCategoryConfig; order: number }>();
   configs.forEach((config, order) => {
     const sourceSlug = normalizeSlug(config?.sourceSlug);
     if (sourceSlug && !configuredBySourceSlug.has(sourceSlug)) {
@@ -162,9 +164,11 @@ export function listProfileInventoryCategories(
     }
     const slug = normalizeSlug(config?.publicSlug || sourceSlug);
     const name = cleanPublicText(config?.title || rawName, 100);
+    const configuredSummary = cleanPublicText(config?.summary, 500);
     const summary =
-      cleanPublicText(config?.summary, 500) ||
+      configuredSummary ||
       `Explore the current ${name} collection published on this profile, compare exact items and imagery, and continue through Direct Connect when ready.`;
+    const collectionKind = firstValue(config?.collectionKind).toLowerCase();
     const leadItemSlug = normalizeSlug(config?.leadItemSlug);
     if (!slug || !name || seen.has(slug)) continue;
 
@@ -196,6 +200,8 @@ export function listProfileInventoryCategories(
         .map((stone) => normalizeSlug(stone.slug))
         .filter((itemSlug): itemSlug is string => Boolean(itemSlug)),
       imageUrl: leadImage,
+      ...(configuredSummary ? { hasPublicSummary: true as const } : {}),
+      ...(collectionKind === "offerings" ? { collectionKind: "offerings" as const } : {}),
     });
     if (resolved.length >= MAX_PUBLIC_CATEGORIES) break;
   }
@@ -250,11 +256,18 @@ export function createProfileInventoryCategoryShareMetadata(args: {
       indexable: category.indexable,
       title: `${category.name} | ${profileName}`,
       description:
-        `${category.summary} Browse ${category.itemCount} current ${itemLabel}, then request ` +
-        `pricing or availability from ${profileName} through TradeScout Direct Connect.`,
+        category.collectionKind === "offerings"
+          ? category.summary
+          : `${category.summary} Browse ${category.itemCount} current ${itemLabel}, then request ` +
+            `pricing or availability from ${profileName} through TradeScout Direct Connect.`,
       imageUrl: new URL(category.imageUrl, args.assetOrigin).toString(),
-      imageAlt: `${category.name} inventory at ${profileName}`,
+      imageAlt:
+        category.collectionKind === "offerings"
+          ? `${category.name} materials from ${profileName}`
+          : `${category.name} inventory at ${profileName}`,
       canonical,
+      ...(category.hasPublicSummary ? { hasPublicSummary: true as const } : {}),
+      ...(category.collectionKind === "offerings" ? { collectionKind: "offerings" as const } : {}),
     };
   } catch {
     return null;

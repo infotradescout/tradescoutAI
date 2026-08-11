@@ -40,6 +40,7 @@ describe("ISSA Build public profile contract", () => {
     const provisioner = read("server/services/issaBuildProfileProvisioning.ts");
     const businessRepository = read("server/repositories/businessRepository.ts");
     const entry = read("server/index.ts");
+    const sourceRecord = read("docs/profile-sources/ISSA_BUILD.md");
     const recommendationInsertStart = provisioner.indexOf("} else if (hasNoRecommendationBinding)");
     const recommendationUpdateStart = provisioner.indexOf(
       "} else {",
@@ -107,6 +108,9 @@ describe("ISSA Build public profile contract", () => {
     expect(existingRecommendationTargetPath).not.toContain("isActive:");
     expect(provisioner).not.toContain("activeBusinessId");
     expect(provisioner).not.toContain("activeProfileId");
+    expect(sourceRecord).toContain("the intended Levon routing pair");
+    expect(sourceRecord).toContain("never emit either value in public HTML");
+    expect(sourceRecord).not.toMatch(/@thetradescout\.com|\b\d{3}[-.)\s]+\d{3}[-.\s]+\d{4}\b/i);
     expect(fs.existsSync(path.resolve(process.cwd(), "shared/honeyOnyxProfile.ts"))).toBe(false);
     expect(
       fs.existsSync(path.resolve(process.cwd(), "server/services/honeyOnyxProfileProvisioning.ts"))
@@ -128,13 +132,36 @@ describe("ISSA Build public profile contract", () => {
     const inventoryBlock = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find(
       (block) => block.type === "inventoryCatalog"
     );
+    const publicDiscoveryBlock = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find(
+      (block) => block.type === "publicDiscovery"
+    );
     const stones = (inventoryBlock?.data as any)?.categories?.[0]?.stones || [];
+    expect((publicDiscoveryBlock?.data as any)?.sitemap).toEqual({
+      inventory: true,
+      categories: true,
+    });
+    expect((publicDiscoveryBlock?.data as any)?.categories).toEqual([
+      expect.objectContaining({
+        sourceSlug: "onyx",
+        publicSlug: "onyx",
+        indexable: true,
+        collectionKind: "offerings",
+      }),
+    ]);
     expect(stones.map((stone: any) => [stone.name, stone.slug])).toEqual([
       ["Honey Onyx", "honey-onyx"],
       ["Multi Green Onyx", "multi-green-onyx"],
     ]);
     expect(stones[0]?.images).toEqual([...ISSA_BUILD_HONEY_ONYX_IMAGES]);
     expect(stones[1]?.images).toEqual([...ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES]);
+    expect(stones.map((stone: any) => stone.publicKind)).toEqual(["offering", "offering"]);
+    expect(stones.map((stone: any) => stone.publicSummary)).toEqual([
+      expect.stringContaining("Honey Onyx from ISSA Build"),
+      expect.stringContaining("Multi Green Onyx from ISSA Build"),
+    ]);
+    expect(stones.map((stone: any) => stone.publicSummary).join(" ")).not.toMatch(
+      /current inventory|pricing|availability/i
+    );
     expect(stones[0]?.images.length).toBeGreaterThanOrEqual(6);
     expect(stones[1]?.images.length).toBeGreaterThanOrEqual(6);
     expect(new Set(stones[0]?.images).size).toBe(stones[0]?.images.length);

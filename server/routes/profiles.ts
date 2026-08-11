@@ -83,6 +83,7 @@ import {
   combineIndexNowChangeUrls,
 } from "../services/indexNowPublicationEvents";
 import { shouldIndexPublicProfileSlug } from "../../shared/publicProfileIndexing";
+import { buildOptInProfileSitemapUrls } from "../profileSitemapDiscovery";
 
 const router = Router();
 
@@ -197,6 +198,7 @@ type PublishedProfileSitemapTarget = {
   profileSlug: string;
   businessSlug: string | null;
   customDomain: string | null;
+  contentBlocks: unknown;
   isPublic: boolean;
   updatedAt: unknown;
 };
@@ -324,6 +326,7 @@ async function listPublishedProfileSitemapTargets(
             p.owner_user_id AS profile_owner_user_id,
             b.slug AS business_slug,
             NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
+            p.content_blocks,
             u.verified_badge AS owner_verified_badge,
             u.verification_status AS owner_verification_status,
             u.provider AS owner_provider,
@@ -353,6 +356,7 @@ async function listPublishedProfileSitemapTargets(
         profileSlug,
         businessSlug: String(row.business_slug || "").trim() || null,
         customDomain: normalizeSitemapCustomDomain(row.custom_domain),
+        contentBlocks: row.content_blocks,
         isPublic: isPublishedProfileSitemapTargetPublic(row),
         updatedAt: row.updated_at ?? null,
       };
@@ -2655,6 +2659,12 @@ router.get("/llms.txt", async (req, res) => {
       "Primary public profile pattern:",
       `${baseUrl}/u/{slug}`,
       "",
+      "ISSA Build translucent onyx:",
+      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}`,
+      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}/categories/onyx`,
+      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/honey-onyx`,
+      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/multi-green-onyx`,
+      "",
       "Local recommendation patterns:",
       `${baseUrl}/business/{slug}`,
       `${baseUrl}/trade/{tradeSlug}/{stateCode}/{countySlug}`,
@@ -2831,16 +2841,19 @@ router.get("/sitemap-u-profiles.xml", async (req, res) => {
       profileTargets = [];
     }
 
-    const urls = profileTargets
-      .map((target) => {
-        const loc = canonicalPublishedProfileSitemapLoc(baseUrl, target);
-        if (!loc) return null;
-        return {
-          loc,
-          lastmod: toYmd(target.updatedAt, today),
-        };
-      })
-      .filter((entry): entry is { loc: string; lastmod: string } => Boolean(entry));
+    const urls = profileTargets.flatMap((target) => {
+      const profileLoc = canonicalPublishedProfileSitemapLoc(baseUrl, target);
+      if (!profileLoc) return [];
+      const lastmod = toYmd(target.updatedAt, today);
+      return [
+        profileLoc,
+        ...buildOptInProfileSitemapUrls({
+          profileSlug: target.profileSlug,
+          profileUrl: profileLoc,
+          contentBlocks: target.contentBlocks,
+        }),
+      ].map((loc) => ({ loc, lastmod }));
+    });
 
     res.type("application/xml");
     res.send(buildUrlSet(urls));

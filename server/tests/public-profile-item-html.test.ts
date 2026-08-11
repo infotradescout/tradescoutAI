@@ -4,6 +4,7 @@ import { listProfileInventoryCategories } from "@shared/profileCategoryShare";
 import { listProfileInventoryItems } from "@shared/profileItemShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+import { ISSA_BUILD_PROFILE_CONTENT_BLOCKS } from "@shared/issaBuildProfile";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "../../client/src/data/jwStoneProfilePresentation";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
 
@@ -160,6 +161,54 @@ describe("public profile item HTML", () => {
     expect(html).toContain(`<img src="${sourceImageUrl}"`);
     expect(html).toContain('"brand":{"@id":"https://jwstonelogistics.com/#identity"}');
     expect(html).not.toContain('"brand":{"@type":"Organization"');
+  });
+
+  it("renders ISSA Build materials as permanent offerings with owned search language", async () => {
+    profileRecord.slug = "issa-build";
+    profileRecord.displayName = "ISSA Build";
+    profileRecord.headline = "Crafted for light.";
+    profileRecord.roleContext = "business_owner";
+    profileRecord.servicesDescription = "Custom translucent onyx for interiors.";
+    profileRecord.seoMeta.title = "ISSA Build | Luxury Translucent Onyx";
+    profileRecord.seoMeta.description =
+      "Honey Onyx and Multi Green Onyx for residential and commercial interiors.";
+    profileRecord.seoMeta.customDomain = "";
+    profileRecord.contentBlocks = [...ISSA_BUILD_PROFILE_CONTENT_BLOCKS] as any[];
+    businessRecord.name = "ISSA Build";
+    businessRecord.categories = ["Natural Onyx"];
+    businessRecord.serviceAreas = [];
+
+    const itemHtml = await buildPublicProfileHtml({
+      slug: "issa-build",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      itemSlug: "honey-onyx",
+    });
+    const categoryHtml = await buildPublicProfileHtml({
+      slug: "issa-build",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      categorySlug: "onyx",
+    });
+
+    expect(itemHtml).toContain('property="og:title" content="Honey Onyx | ISSA Build"');
+    expect(itemHtml).toContain(
+      'property="og:description" content="Warm amber, translucent Honey Onyx from ISSA Build for custom backlit counters, walls, floors, stairs, and residential or commercial interiors."'
+    );
+    expect(itemHtml).toContain('"@type":"Product"');
+    expect(itemHtml).toContain("Featured materials");
+    expect(itemHtml).toContain("Explore materials");
+    expect(itemHtml).not.toMatch(/Honey Onyx Onyx|current inventory|pricing or availability/i);
+
+    expect(categoryHtml).toContain('property="og:title" content="Translucent Onyx | ISSA Build"');
+    expect(categoryHtml).toContain(
+      "Explore ISSA Build&#39;s Honey Onyx and Multi Green Onyx as distinct translucent materials"
+    );
+    expect(categoryHtml).toContain("2 published materials");
+    expect(categoryHtml).not.toMatch(/current inventory|pricing or availability/i);
+    expect(`${itemHtml}\n${categoryHtml}`).not.toMatch(
+      /@thetradescout\.com|\b\d{3}[-.)\s]+\d{3}[-.\s]+\d{4}\b/i
+    );
   });
 
   it("keeps a synthetic JW stone route public without inventing a public item name", async () => {

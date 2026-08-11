@@ -1,5 +1,10 @@
 import { listProfileInventoryItems } from "../../shared/profileItemShare";
-import { buildProfilePublicItemPath } from "../../shared/profilePublicItemRoute";
+import { listProfileInventoryCategories } from "../../shared/profileCategoryShare";
+import {
+  buildProfilePublicCategoryPath,
+  buildProfilePublicItemPath,
+  readProfilePublicSitemapConfig,
+} from "../../shared/profilePublicItemRoute";
 import { buildProfileServiceOfferPath } from "../../shared/profileOfferShare";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
 
@@ -46,6 +51,19 @@ export function collectProfileIndexNowUrls(
   const profileBasePath = `/u/${encodeURIComponent(slug)}`;
   const urls = new Set<string>([profileBasePath]);
   const categories = inventoryCategoriesForProfile(slug, profile?.contentBlocks);
+  const sitemapConfig = readProfilePublicSitemapConfig(profile?.contentBlocks);
+
+  if (sitemapConfig.categories) {
+    for (const category of listProfileInventoryCategories(categories, profile?.contentBlocks)) {
+      if (!category.indexable) continue;
+      const categoryPath = buildProfilePublicCategoryPath({
+        profileBasePath,
+        categorySlug: category.slug,
+        contentBlocks: profile?.contentBlocks,
+      });
+      if (categoryPath) urls.add(categoryPath);
+    }
+  }
 
   for (const item of listProfileInventoryItems(categories)) {
     const itemPath = buildProfilePublicItemPath({

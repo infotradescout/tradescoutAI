@@ -817,15 +817,18 @@ function buildMeta(
   );
   const description = capDescriptionLength(
     cleanPublicProfileText(
-      itemShare || categoryShare
-        ? buildProfileSocialDescription({
-            brandName: publicBrandName,
-            itemType: itemShare?.itemType || "category",
-            itemName: itemName || categoryShare?.categoryName,
-            category: itemShare?.itemType === "inventory" ? itemShare.category : null,
-            fallbackDescription,
-          })
-        : fallbackDescription,
+      (itemShare?.itemType === "inventory" && itemShare.hasPublicSummary === true) ||
+        categoryShare?.collectionKind === "offerings"
+        ? fallbackDescription
+        : itemShare || categoryShare
+          ? buildProfileSocialDescription({
+              brandName: publicBrandName,
+              itemType: itemShare?.itemType || "category",
+              itemName: itemName || categoryShare?.categoryName,
+              category: itemShare?.itemType === "inventory" ? itemShare.category : null,
+              fallbackDescription,
+            })
+          : fallbackDescription,
       1000
     )
   );
@@ -1188,11 +1191,18 @@ export async function buildPublicProfileHtml({
         contentBlocks: data.profile.contentBlocks,
       });
       return url
-        ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} inventory</a> — ${category.itemCount} current ${category.itemCount === 1 ? "selection" : "selections"}</li>`
+        ? category.collectionKind === "offerings"
+          ? `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} materials</a> — ${category.itemCount} ${category.itemCount === 1 ? "offering" : "offerings"}</li>`
+          : `<li><a href="${escapeHtml(url)}">${escapeHtml(category.name)} inventory</a> — ${category.itemCount} current ${category.itemCount === 1 ? "selection" : "selections"}</li>`
         : "";
     })
     .filter(Boolean)
     .join("");
+  const categorySectionHeading =
+    inventoryCategories.length > 0 &&
+    inventoryCategories.every((category) => category.collectionKind === "offerings")
+      ? "Explore materials"
+      : "Shop natural stone by material";
   const priorityItemSlugs =
     data.profile.slug === "jw-stone"
       ? ["taj-mahal", "cristallo", "blue-goias", "blue-dunes", "rhino-white", "titanium-leathered"]
@@ -1219,6 +1229,11 @@ export async function buildPublicProfileHtml({
     })
     .filter(Boolean)
     .join("");
+  const inventorySectionHeading =
+    featuredInventoryItems.length > 0 &&
+    featuredInventoryItems.every((item) => item.publicKind === "offering")
+      ? "Featured materials"
+      : "Featured stone inventory";
   const servicesSummary = cleanPublicProfileText(profileRecord.servicesDescription, 1000);
   const itemSummary = itemShare
     ? `<section data-seo-profile-item="${itemShare.itemType}">
@@ -1241,8 +1256,14 @@ export async function buildPublicProfileHtml({
       <h2>${escapeHtml(cleanPublicProfileText(pageCategoryShare.categoryName, 200))}</h2>
       <img src="${escapeHtml(pageCategoryShare.imageUrl)}" alt="${escapeHtml(cleanPublicProfileText(pageCategoryShare.imageAlt, 240))}" />
       <p>${escapeHtml(cleanPublicProfileText(pageCategoryShare.description, 500))}</p>
-      <p>${pageCategoryShare.itemCount} current ${
-        pageCategoryShare.itemCount === 1 ? "selection" : "selections"
+      <p>${pageCategoryShare.itemCount} ${
+        pageCategoryShare.collectionKind === "offerings"
+          ? pageCategoryShare.itemCount === 1
+            ? "published material"
+            : "published materials"
+          : pageCategoryShare.itemCount === 1
+            ? "current selection"
+            : "current selections"
       }</p>
     </section>`
     : "";
@@ -1256,8 +1277,8 @@ export async function buildPublicProfileHtml({
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${servicesSummary ? `<p>${escapeHtml(servicesSummary)}</p>` : ""}
-    ${categoryLinks ? `<section><h2>Shop natural stone by material</h2><ul>${categoryLinks}</ul></section>` : ""}
-    ${inventoryLinks ? `<section><h2>Featured stone inventory</h2><ul>${inventoryLinks}</ul></section>` : ""}
+    ${categoryLinks ? `<section><h2>${categorySectionHeading}</h2><ul>${categoryLinks}</ul></section>` : ""}
+    ${inventoryLinks ? `<section><h2>${inventorySectionHeading}</h2><ul>${inventoryLinks}</ul></section>` : ""}
     ${bookingSummary ? `<p>${escapeHtml(bookingSummary)}</p>` : ""}
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
   </article>
