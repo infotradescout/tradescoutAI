@@ -83,10 +83,10 @@ describe("Steel Home Packages unlisted profile contract", () => {
       targetSelector: identity.slug,
       targetName: identity.displayLabel,
       source: "steel_home_packages_phase1",
-      subjectType: "service",
+      subjectType: "product",
       title: "Steel home structure, stone, and cabinet package",
     });
-    expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBe("fix_improve");
+    expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBeNull();
 
     const laborContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
     expect(laborContext).toMatchObject({
@@ -99,7 +99,7 @@ describe("Steel Home Packages unlisted profile contract", () => {
     expect(laborContext.targetSelector).toBeUndefined();
     expect(laborContext.targetUserId).toBeUndefined();
     expect(laborContext.targetProviderId).toBeUndefined();
-    expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH)).toBe("fix_improve");
+    expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH)).toBeNull();
 
     const laborParams = new URL(
       STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
@@ -120,10 +120,12 @@ describe("Steel Home Packages unlisted profile contract", () => {
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(composer).toContain('what: prefillTitle?.trim() || ""');
     expect(composer).toContain('details: prefillDescription?.trim() || ""');
+    expect(composer).toContain('where: prefillLocation?.trim() || ""');
+    expect(composer).toContain('when: prefillTiming?.trim() || ""');
   });
 
   it("locks the public package to three TradeScout-coordinated material choices", () => {
-    expect(content.version).toBe(3);
+    expect(content.version).toBe(4);
     expect(content.package.items.map((item) => [item.key, item.label])).toEqual([
       ["structure", "01 • Metal structure"],
       ["stone", "02 • Natural stone"],

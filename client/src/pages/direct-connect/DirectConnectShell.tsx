@@ -1248,6 +1248,8 @@ function DirectConnectRequestComposer({
   prefillDescription,
   prefillBudgetMin,
   prefillBudgetMax,
+  prefillLocation,
+  prefillTiming,
   prefillTradeId,
 }: {
   entryLocation?: string;
@@ -1264,6 +1266,8 @@ function DirectConnectRequestComposer({
   prefillDescription?: string;
   prefillBudgetMin?: string;
   prefillBudgetMax?: string;
+  prefillLocation?: string;
+  prefillTiming?: string;
   prefillTradeId?: string;
 }) {
   const { user, isAuthenticated } = useAuth();
@@ -1348,8 +1352,8 @@ function DirectConnectRequestComposer({
     Record<"what" | "where" | "when" | "details", string>
   >(() => ({
     what: prefillTitle?.trim() || "",
-    where: "",
-    when: "",
+    where: prefillLocation?.trim() || "",
+    when: prefillTiming?.trim() || "",
     details: prefillDescription?.trim() || "",
   }));
   const hasAppliedIntentDefaultsRef = useRef(false);
@@ -1486,10 +1490,10 @@ function DirectConnectRequestComposer({
     setDraftAttachmentKeys(Array.from(new Set(parsedAttachmentKeys)).slice(0, 6));
     if (parsed.detailAnswers) {
       setDetailAnswers({
-        what: String(parsed.detailAnswers.what || ""),
-        where: String(parsed.detailAnswers.where || ""),
-        when: String(parsed.detailAnswers.when || ""),
-        details: String(parsed.detailAnswers.details || ""),
+        what: String(parsed.detailAnswers.what || prefillTitle?.trim() || ""),
+        where: String(parsed.detailAnswers.where || prefillLocation?.trim() || ""),
+        when: String(parsed.detailAnswers.when || prefillTiming?.trim() || ""),
+        details: String(parsed.detailAnswers.details || prefillDescription?.trim() || ""),
       });
     }
     clearDirectConnectDraft();
@@ -5493,6 +5497,8 @@ export default function DirectConnectShell() {
           prefillDescription={requestPrefill?.description}
           prefillBudgetMin={requestPrefill?.budgetMin}
           prefillBudgetMax={requestPrefill?.budgetMax}
+          prefillLocation={requestPrefill?.location}
+          prefillTiming={requestPrefill?.timing}
           prefillTradeId={requestPrefill?.tradeId}
         />
       );

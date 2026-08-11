@@ -32,6 +32,8 @@ export type DirectConnectEntryContext = {
   description?: string;
   budgetMin?: string;
   budgetMax?: string;
+  location?: string;
+  timing?: string;
   tradeId?: string;
   contextType?: DirectConnectEntryContextType;
   contextId?: string;
@@ -162,6 +164,8 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     description: readFirst(params, "description"),
     budgetMin: readFirst(params, "budgetMin"),
     budgetMax: readFirst(params, "budgetMax"),
+    location: readFirst(params, "location", "where"),
+    timing: readFirst(params, "when", "timing"),
     tradeId: readFirst(params, "trade", "tradeId", "category"),
     contextType,
     contextId,

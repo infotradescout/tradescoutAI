@@ -37,7 +37,7 @@ export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
   `/direct-connect?profile=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug)}` +
   `&profileName=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel)}` +
   "&source=steel_home_packages_phase1" +
-  "&intent=fix_improve&subject=service" +
+  "&subject=product" +
   `&title=${encodeURIComponent("Steel home structure, stone, and cabinet package")}` +
   `&description=${encodeURIComponent(STEEL_HOME_PACKAGE_REQUEST_DESCRIPTION)}`;
 
@@ -48,12 +48,12 @@ export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
  */
 export const STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH =
   "/direct-connect?source=steel_home_packages_phase1_labor" +
-  "&intent=hire&subject=service" +
+  "&subject=service" +
   `&title=${encodeURIComponent("Steel-home labor or installation request")}` +
   `&description=${encodeURIComponent(STEEL_HOME_LABOR_REQUEST_DESCRIPTION)}`;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
-  version: 3,
+  version: 4,
   header: {
     label: "Steel Home Studio",
     navigation: [
@@ -152,7 +152,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
         image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
         imageAlt: "Charcoal metal-home exterior with wood porch columns and stone accents",
         details: ["Size and footprint", "Roofline and overhangs", "Openings and exterior colors"],
-        action: "Add the structure",
+        action: "Configure structure",
       },
       {
         key: "stone",
@@ -166,7 +166,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
           "Kitchen and bathroom surfaces",
           "Fireplaces, walls, and floors",
         ],
-        action: "Add natural stone",
+        action: "Select natural stone",
       },
       {
         key: "cabinets",
@@ -176,7 +176,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
         image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
         imageAlt: "White-oak kitchen cabinet direction with pantry storage and island drawers",
         details: ["Kitchen and island", "Bathrooms and laundry", "Pantry and storage areas"],
-        action: "Add cabinets",
+        action: "Plan cabinets",
       },
     ],
   },
