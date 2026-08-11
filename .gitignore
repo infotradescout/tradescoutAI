@@ -67,3 +67,7 @@ test-db-connection.js
 
 # Local recovery secrets
 render-recovery.env
+
+# Google Search Console raw exports (commit only reviewed aggregate output)
+search-console-exports/
+artifacts/search-console/raw/

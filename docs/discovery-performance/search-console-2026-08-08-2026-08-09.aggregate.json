@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "source": "google_search_console",
+  "property": "sc-domain:thetradescout.com",
+  "searchType": "Web",
+  "dataRange": {
+    "from": "2026-08-08",
+    "to": "2026-08-09"
+  },
+  "totals": {
+    "clicks": 0,
+    "impressions": 22,
+    "ctrPercent": 0,
+    "averagePosition": 64.78
+  },
+  "daily": [
+    {
+      "date": "2026-08-08",
+      "clicks": 0,
+      "impressions": 8,
+      "position": 72.1,
+      "ctrPercent": 0
+    },
+    {
+      "date": "2026-08-09",
+      "clicks": 0,
+      "impressions": 14,
+      "position": 60.6,
+      "ctrPercent": 0
+    }
+  ],
+  "pages": [
+    {
+      "path": "/",
+      "url": "https://thetradescout.com/",
+      "clicks": 0,
+      "impressions": 7,
+      "position": 39.43,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/insulation-contractor/me",
+      "url": "https://thetradescout.com/trade/insulation-contractor/me",
+      "clicks": 0,
+      "impressions": 4,
+      "position": 80.5,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/general-contractor/ky",
+      "url": "https://thetradescout.com/trade/general-contractor/ky",
+      "clicks": 0,
+      "impressions": 3,
+      "position": 50.33,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/laminate-flooring/ia/dubuque",
+      "url": "https://thetradescout.com/trade/laminate-flooring/ia/dubuque",
+      "clicks": 0,
+      "impressions": 2,
+      "position": 79.5,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/outdoor-lighting/ma",
+      "url": "https://thetradescout.com/trade/outdoor-lighting/ma",
+      "clicks": 0,
+      "impressions": 2,
+      "position": 94,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/remodeling-contractor/ut",
+      "url": "https://thetradescout.com/trade/remodeling-contractor/ut",
+      "clicks": 0,
+      "impressions": 2,
+      "position": 86,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/compare",
+      "url": "https://thetradescout.com/compare",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 8,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/compare/coordination",
+      "url": "https://thetradescout.com/compare/coordination",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 10,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/direct-connect",
+      "url": "https://thetradescout.com/direct-connect",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 4,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/help",
+      "url": "https://thetradescout.com/help",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 6,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/landing/contractor-interior-painting",
+      "url": "https://thetradescout.com/landing/contractor-interior-painting",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 1,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/landing/realtor-siding-contractor",
+      "url": "https://thetradescout.com/landing/realtor-siding-contractor",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 2,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/exterior-painting/ga",
+      "url": "https://thetradescout.com/trade/exterior-painting/ga",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 9,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/handyman/md/prince-georges",
+      "url": "https://thetradescout.com/trade/handyman/md/prince-georges",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 69,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/landscaping/wa",
+      "url": "https://thetradescout.com/trade/landscaping/wa",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 90,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/lawn-care/sd",
+      "url": "https://thetradescout.com/trade/lawn-care/sd",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 3,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/siding-contractor/wv",
+      "url": "https://thetradescout.com/trade/siding-contractor/wv",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 7,
+      "ctrPercent": 0
+    },
+    {
+      "path": "/trade/smart-home/ne",
+      "url": "https://thetradescout.com/trade/smart-home/ne",
+      "clicks": 0,
+      "impressions": 1,
+      "position": 5,
+      "ctrPercent": 0
+    }
+  ],
+  "queryCoverage": {
+    "visibleRows": 13,
+    "visibleClicks": 0,
+    "visibleImpressions": 17,
+    "withheldOrAnonymizedImpressions": 5,
+    "rawQueriesIncluded": false
+  },
+  "privacy": {
+    "rawQueriesIncluded": false,
+    "rawExportPathsIncluded": false,
+    "queryStringsIncluded": false
+  }
+}

@@ -38,6 +38,22 @@ Discovery performance denominators include only profiles whose public exposure i
 
 ## Separate surfaced-performance follow-up
 
+### Connected Search Console import
+
+TradeScout accepts a privacy-safe aggregate generated from an authenticated Google Search Console Performance export. Raw exports remain local and uncommitted.
+
+```powershell
+npm run import:search-console-performance -- --source-dir=C:\path\to\unzipped-export --out=artifacts\search-console\aggregate.json --property=sc-domain:thetradescout.com
+$env:DISCOVERY_SEARCH_CONSOLE_AGGREGATE = "artifacts\search-console\aggregate.json"
+npm run report:discovery-performance -- --from=2026-08-08T17:36:32.672607Z
+```
+
+The safe aggregate contains daily and canonical public-page metrics, but never raw query values, raw source paths, page query strings, or fragments. Query coverage is published only as row and impression counts, including impressions withheld or anonymized by Search Console.
+
+Search Console reports calendar days. Build `6a63fd41e86811815184905c0626cf64e6a904a7` activated at `2026-08-08T17:36:32.672607Z`, so August 8 mixes pre-release and post-release hours and is excluded from clean post-release surfaced-performance claims. The first clean Search Console date is `2026-08-09`.
+
+Google Search Console measures Google impressions, clicks, queries, and pages. It does not provide a ChatGPT impression metric. ChatGPT reporting remains limited to `OAI-SearchBot` crawl activity, verified `utm_source=chatgpt.com` landings, and signed-attribution requests.
+
 Application telemetry cannot provide search impressions, clicks, queries, or indexed pages. The surfaced-performance follow-up must use Google Search Console for:
 
 - impressions
