@@ -11,11 +11,11 @@ describe("progressive feature gating contracts", () => {
   it("keeps core nav features stable and always present in AppShell", () => {
     const source = read("client/src/components/layout/AppShell.tsx");
 
-    expect(source).toContain('label: "Start"');
+    expect(source).toContain('label: "Scout"');
     expect(source).toContain('href: "/scout"');
-    expect(source).toContain('label: "My Requests"');
-    expect(source).toMatch(/label: "My Requests",\s+href: "\/direct-connect\/active"/);
-    expect(source).toContain('label: "Find Businesses"');
+    expect(source).toContain('label: "Direct Connect"');
+    expect(source).toMatch(/label: "Direct Connect",\s+href: "\/direct-connect"/);
+    expect(source).toContain('label: "Businesses"');
     expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
     expect(source).toContain('label: "Jobs"');
     expect(source).toContain('href: "/direct-connect/opportunities"');

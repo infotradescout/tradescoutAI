@@ -290,22 +290,22 @@ const buildFeatureNav = (opts?: {
 }): NavItem[] => {
   const coreNav: NavItem[] = [
     {
-      label: "Start",
+      label: "Scout",
       href: "/scout",
       icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Tell Scout what you want to get done.",
+      description: "Open Scout to review what to do next.",
     },
     {
-      label: "My Requests",
-      href: "/direct-connect/active",
+      label: "Direct Connect",
+      href: "/direct-connect",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Review requests, replies, and next actions.",
+      description: "Post requests and track replies.",
     },
     {
-      label: "Find Businesses",
+      label: "Businesses",
       href: ROUTES.CONTRACTORS ?? "/contractors",
       icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Find businesses by service and location.",
+      description: "Find businesses that serve your area.",
     },
     {
       label: "Jobs",
@@ -392,7 +392,7 @@ const buildFeatureNav = (opts?: {
 };
 
 function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
-  const desiredPrimaryLabels = ["Start", "My Requests", "Community"];
+  const desiredPrimaryLabels = ["Direct Connect", "Community", "Scout"];
   const byLabel = new globalThis.Map(items.map((item) => [item.label, item]));
   const primary = desiredPrimaryLabels
     .map((label) => byLabel.get(label))
@@ -559,7 +559,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const desktopPrimaryNav = useMemo(() => {
     const primaryHrefs = new Set([
       "/scout",
-      "/direct-connect/active",
+      "/direct-connect",
       ROUTES.CONTRACTORS ?? "/contractors",
       "/direct-connect/opportunities",
       ROUTES.COMMUNITY ?? "/community",
