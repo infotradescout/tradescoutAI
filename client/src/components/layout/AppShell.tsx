@@ -100,6 +100,12 @@ const START_GUIDE_ITEMS: NavItem[] = [
     description: "Create a business profile or open its workspace and opportunities.",
   },
   {
+    label: "Find work or hire",
+    href: "/direct-connect/opportunities",
+    icon: <ClipboardList className="h-5 w-5" />,
+    description: "Browse jobs and resumes, post an opening, or apply.",
+  },
+  {
     label: "Browse commercial work",
     href: "/commercial-directory",
     icon: <ShoppingBag className="h-5 w-5" />,

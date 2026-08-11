@@ -5615,7 +5615,8 @@ export default function DirectConnectShell() {
               }
               description={sectionMeta.description}
             />
-            <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+            {activeSection !== "employment" ? (
+              <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
               <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 <p className="text-sm text-[color:var(--text-primary)]">
                   {directConnectFirstTaskPrompt.message}
@@ -5675,7 +5676,8 @@ export default function DirectConnectShell() {
                   {directConnectFirstTaskPrompt.ctaLabel}
                 </Button>
               </CardContent>
-            </Card>
+              </Card>
+            ) : null}
           </>
         ) : null}
 
