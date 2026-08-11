@@ -62,7 +62,7 @@ test("exposes a repeatable package command", () => {
   );
   assert.equal(
     packageJson.scripts["test:discovery-performance"],
-    "node --test scripts/report-discovery-performance.contract.test.mjs scripts/report-discovery-performance.phase.test.mjs"
+    "node --test scripts/report-discovery-performance.contract.test.mjs scripts/report-discovery-performance.phase.test.mjs scripts/search-console-performance.contract.test.mjs"
   );
   assert.ok(read("scripts/run-minimum-release-contract.mjs").includes("test:discovery-performance"));
 });

@@ -2,6 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Pool } from "@neondatabase/serverless";
+import {
+  loadSearchConsoleAggregate,
+  renderSearchConsoleMarkdownSection,
+  summarizeSearchConsoleForReport,
+} from "./import-search-console-performance.mjs";
 import "dotenv/config";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -975,8 +980,23 @@ export async function runDiscoveryPerformanceReport(options = {}) {
     fs.mkdirSync(outputDirectory, { recursive: true });
     const jsonPath = path.join(outputDirectory, "discovery-performance.json");
     const markdownPath = path.join(outputDirectory, "discovery-performance.md");
+    const searchConsoleAggregatePath =
+      options.searchConsoleAggregate ?? process.env.DISCOVERY_SEARCH_CONSOLE_AGGREGATE;
+    if (searchConsoleAggregatePath) {
+      report.searchConsole = summarizeSearchConsoleForReport(
+        loadSearchConsoleAggregate(searchConsoleAggregatePath),
+        {
+          releaseAt: options.releaseAt ?? DISCOVERY_PERFORMANCE_RELEASE.productionActivatedAt,
+          windowFrom: report.window?.from ?? report.window?.start ?? options.from,
+          windowTo: report.window?.to ?? report.window?.end ?? options.to,
+        },
+      );
+    }
+    const markdown = report.searchConsole
+      ? `${buildMarkdown(report).trimEnd()}\n\n${renderSearchConsoleMarkdownSection(report.searchConsole)}\n`
+      : `${buildMarkdown(report)}\n`;
     fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-    fs.writeFileSync(markdownPath, `${buildMarkdown(report)}\n`, "utf8");
+    fs.writeFileSync(markdownPath, markdown, "utf8");
 
     return { report, jsonPath, markdownPath };
   } finally {
