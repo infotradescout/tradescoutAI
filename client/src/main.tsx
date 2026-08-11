@@ -288,6 +288,7 @@ async function bootstrap() {
     const RECOVERY_SOFT_FLAG = "ts_chunk_recovery_soft_v2";
     const RECOVERY_HARD_FLAG = "ts_chunk_recovery_hard_v2";
     void RECOVERY_FLAG; // referenced for contract compatibility
+    let chunkRecoveryInFlight = false;
 
     const coerceErrorMessage = (err: unknown): string => {
       if (typeof err === "string") return err;
@@ -316,6 +317,9 @@ async function bootstrap() {
     };
 
     const recoverFromChunkError = async (err: unknown) => {
+      if (chunkRecoveryInFlight) return;
+      chunkRecoveryInFlight = true;
+
       let softAttempted = false;
       let hardAttempted = false;
       try {
@@ -395,16 +399,26 @@ async function bootstrap() {
       );
     };
 
+    // Vite emits this cancellable event before a failed dynamic import is
+    // rethrown. Handle it directly so React never receives a deleted chunk
+    // error from a previous deployment and multiple missing chunks cannot
+    // start competing recovery navigations.
+    window.addEventListener("vite:preloadError", (event: Event) => {
+      const preloadEvent = event as Event & { payload?: unknown };
+      event.preventDefault();
+      void recoverFromChunkError(preloadEvent.payload);
+    });
+
     window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
       if (isLikelyChunkLoadError(event.reason)) {
-        recoverFromChunkError(event.reason);
+        void recoverFromChunkError(event.reason);
       }
     });
 
     window.addEventListener("error", (event: ErrorEvent) => {
       const candidate = event.error ?? event.message;
       if (isLikelyChunkLoadError(candidate)) {
-        recoverFromChunkError(candidate);
+        void recoverFromChunkError(candidate);
       }
     });
   }
