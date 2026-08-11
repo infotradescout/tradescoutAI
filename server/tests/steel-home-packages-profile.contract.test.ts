@@ -84,7 +84,7 @@ describe("Steel Home Packages unlisted profile contract", () => {
       targetName: identity.displayLabel,
       source: "steel_home_packages_phase1",
       subjectType: "service",
-      title: "Phase 1 metal structure, stone, and cabinet package",
+      title: "Steel home structure, stone, and cabinet package",
     });
     expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBe("fix_improve");
 
@@ -122,16 +122,27 @@ describe("Steel Home Packages unlisted profile contract", () => {
     expect(composer).toContain('details: prefillDescription?.trim() || ""');
   });
 
-  it("locks the Phase 1 material scope to the three owner-confirmed partners", () => {
-    expect(content.version).toBe(2);
-    expect(content.phaseOnePackage.items.map((item) => [item.title, item.partner])).toEqual([
-      ["Metal structure", "Worldwide Steel Buildings"],
-      ["Natural stone", "JW Stone Logistics"],
-      ["Cabinets", "A+ Cabinets"],
+  it("locks the public package to three TradeScout-coordinated material choices", () => {
+    expect(content.version).toBe(3);
+    expect(content.package.items.map((item) => [item.key, item.label])).toEqual([
+      ["structure", "01 • Metal structure"],
+      ["stone", "02 • Natural stone"],
+      ["cabinets", "03 • Cabinets"],
     ]);
-    expect(content.phaseOnePackage.items[2]?.partnerDetail).toBe("Ocean Springs");
 
     const serialized = JSON.stringify(content);
+    for (const privateRelationshipCopy of [
+      "Worldwide Steel Buildings",
+      "JW Stone Logistics",
+      "A+ Cabinets",
+      "Ocean Springs",
+      "partner",
+      "supplier",
+      "affiliate",
+      "referral",
+    ]) {
+      expect(serialized.toLowerCase()).not.toContain(privateRelationshipCopy.toLowerCase());
+    }
     for (const futurePhaseCopy of [
       "single-wide",
       "tiny home",
@@ -151,9 +162,13 @@ describe("Steel Home Packages unlisted profile contract", () => {
     expect(source).toContain("publicDiscoveryEnabled: false");
     expect(source).toContain("STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE");
     expect(source).toContain('status: "published" as const');
-    expect(source).toContain("Metal structure through Worldwide Steel Buildings");
-    expect(source).toContain("Natural stone through JW Stone Logistics");
-    expect(source).toContain("Cabinets through A+ Cabinets");
+    expect(source).toContain('category: "Steel home material packages"');
+    expect(source).toContain(
+      'services: ["Custom metal structure", "Natural stone", "Cabinet packages"]'
+    );
+    expect(source).not.toContain("Worldwide Steel Buildings");
+    expect(source).not.toContain("JW Stone Logistics");
+    expect(source).not.toContain("A+ Cabinets");
     expect(source).not.toContain(".update(users)");
     expect(source).not.toContain("activeProfileId");
     expect(source).not.toContain("activeBusinessId");

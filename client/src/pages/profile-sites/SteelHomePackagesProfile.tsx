@@ -1,27 +1,9 @@
-import type { ComponentType, SVGProps } from "react";
-import {
-  ArrowDown,
-  ArrowRight,
-  Boxes,
-  Building2,
-  ExternalLink,
-  FileCheck2,
-  Gem,
-  Hammer,
-  HardHat,
-  Home,
-  MapPin,
-  Ruler,
-  Wrench,
-} from "lucide-react";
-import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
+import { ArrowDown, ArrowRight, Check, MapPin } from "lucide-react";
 import {
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
 } from "@shared/steelHomePackagesProfile";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
-
-type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 type Props = {
   requestHref: string;
@@ -32,25 +14,10 @@ type Props = {
 type RequestLinkProps = {
   href: string;
   label: string;
-  testId: string;
-  variant?: "primary" | "outline" | "light";
+  testId?: string;
+  variant?: "primary" | "outline" | "light" | "dark";
   className?: string;
 };
-
-const phaseOneIcons: Icon[] = [Building2, Gem, Boxes];
-const audienceIcons: Icon[] = [Home, HardHat, Wrench];
-
-function SectionIntro({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
-  return (
-    <div className="max-w-3xl">
-      <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b24d28]">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-black leading-[1.02] tracking-[-0.045em] text-[#142b33] sm:text-5xl">
-        {title}
-      </h2>
-      {body ? <p className="mt-5 text-base leading-7 text-[#51636a] sm:text-lg">{body}</p> : null}
-    </div>
-  );
-}
 
 function RequestLink({
   href,
@@ -59,22 +26,49 @@ function RequestLink({
   variant = "primary",
   className = "",
 }: RequestLinkProps) {
-  const variantClass =
-    variant === "light"
-      ? "bg-white text-[#173640] shadow-[0_14px_34px_rgba(0,0,0,0.18)] hover:bg-[#f4f1ea] focus-visible:ring-white"
-      : variant === "outline"
-        ? "border border-[#142b33]/25 bg-transparent text-[#142b33] hover:border-[#142b33]/55 hover:bg-white/45 focus-visible:ring-[#142b33]"
-        : "bg-[#c8562f] text-white shadow-[0_14px_34px_rgba(114,49,27,0.2)] hover:bg-[#a94324] focus-visible:ring-[#142b33]";
+  const variantClass = {
+    primary:
+      "bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.3)] hover:bg-[#b55732] focus-visible:ring-white",
+    outline:
+      "border border-white/45 bg-black/10 text-white hover:border-white hover:bg-white/10 focus-visible:ring-white",
+    light:
+      "bg-[#f7f2e9] text-[#18312f] shadow-[0_16px_45px_rgba(0,0,0,0.2)] hover:bg-white focus-visible:ring-white",
+    dark: "bg-[#18312f] text-white hover:bg-[#264946] focus-visible:ring-[#18312f]",
+  }[variant];
 
   return (
     <a
       href={href}
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-center text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantClass} ${className}`}
+      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-center text-sm font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantClass} ${className}`}
       data-testid={testId}
     >
       {label}
-      <ArrowRight className="h-4 w-4" />
+      <ArrowRight className="h-4 w-4" aria-hidden="true" />
     </a>
+  );
+}
+
+function SectionIntro({
+  eyebrow,
+  title,
+  body,
+  centered = false,
+}: {
+  eyebrow: string;
+  title: string;
+  body?: string;
+  centered?: boolean;
+}) {
+  return (
+    <div className={centered ? "mx-auto max-w-3xl text-center" : "max-w-3xl"}>
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">{eyebrow}</p>
+      <h2 className="mt-4 font-editorial text-4xl font-semibold leading-[0.98] tracking-[-0.035em] text-[#18312f] sm:text-6xl">
+        {title}
+      </h2>
+      {body ? (
+        <p className="mt-6 text-base leading-7 text-[#5e6965] sm:text-lg sm:leading-8">{body}</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -85,44 +79,88 @@ export default function SteelHomePackagesProfile({
 }: Props) {
   return (
     <main
-      className="min-h-screen overflow-x-hidden bg-[#f4f1ea] text-[#142b33]"
+      className="min-h-screen overflow-x-hidden bg-[#f5f1e8] text-[#18312f]"
       data-testid="steel-home-packages-profile"
       data-profile-slug={identity.slug}
       data-release-state={identity.releaseState}
     >
-      <header className="border-b border-[#142b33]/10 bg-[#f4f1ea]/95 backdrop-blur-lg">
-        <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-black tracking-[-0.01em] text-[#142b33] sm:text-base">
-              {identity.displayLabel}
-            </p>
-            <p className="mt-0.5 truncate text-[11px] font-semibold text-[#617179]">
-              {content.header.audience}
-            </p>
-          </div>
-          <span className="shrink-0 rounded-full border border-[#b24d28]/25 bg-[#b24d28]/[0.07] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#9b4022]">
-            {content.header.status}
-          </span>
+      <header className="sticky top-0 z-50 border-b border-[#18312f]/10 bg-[#f7f3eb]/95 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[72px] max-w-[1440px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-10">
+          <a
+            href="#top"
+            className="flex min-w-0 items-baseline gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
+            aria-label="Steel Home Studio, back to top"
+          >
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
+              TradeScout
+            </span>
+            <span className="hidden h-4 w-px bg-[#18312f]/25 sm:block" aria-hidden="true" />
+            <span className="truncate font-editorial text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
+              {content.header.label}
+            </span>
+          </a>
+
+          <nav className="hidden items-center gap-7 lg:flex" aria-label="Steel Home Studio">
+            {content.header.navigation.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="text-sm font-semibold text-[#41514d] transition hover:text-[#a94f2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <RequestLink
+            href={requestHref}
+            label="Start a request"
+            testId="steel-home-start-request"
+            variant="dark"
+            className="hidden min-h-10 px-5 sm:inline-flex"
+          />
         </div>
       </header>
 
-      <section className="border-b border-[#142b33]/10" data-testid="steel-home-hero">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:gap-16 lg:px-8 lg:py-28">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b24d28]">
-              {content.hero.audience}
+      <section
+        id="top"
+        className="relative isolate flex min-h-[730px] scroll-mt-20 items-end overflow-hidden bg-[#152a29] text-white sm:min-h-[820px]"
+        data-testid="steel-home-hero"
+      >
+        <img
+          src={content.hero.image}
+          alt={content.hero.imageAlt}
+          className="absolute inset-0 -z-20 h-full w-full object-cover object-[58%_center]"
+          loading="eager"
+          decoding="async"
+        />
+        <div
+          className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(8,22,22,0.9)_0%,rgba(8,22,22,0.62)_46%,rgba(8,22,22,0.12)_78%),linear-gradient(0deg,rgba(8,22,22,0.72)_0%,transparent_48%)]"
+          aria-hidden="true"
+        />
+
+        <div className="mx-auto w-full max-w-[1440px] px-4 pb-14 pt-28 sm:px-6 sm:pb-20 lg:px-10 lg:pb-24">
+          <div className="max-w-4xl">
+            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f0b392]">
+              {content.hero.eyebrow}
             </p>
-            <h1 className="mt-5 max-w-4xl text-5xl font-black leading-[0.92] tracking-[-0.065em] text-[#142b33] sm:text-7xl lg:text-[5.7rem]">
+            <h1 className="mt-6 max-w-4xl font-editorial text-6xl font-semibold leading-[0.86] tracking-[-0.055em] text-white sm:text-8xl lg:text-[7.4rem]">
               {content.hero.headline}
             </h1>
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-[#4e626a] sm:text-xl">
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/[0.82] sm:text-xl sm:leading-9">
               {content.hero.body}
             </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <RequestLink
                 href={requestHref}
                 label={content.hero.primaryAction}
                 testId="steel-home-start-request"
+              />
+              <RequestLink
+                href={requestHref}
+                label={content.hero.plansAction}
+                testId="steel-home-start-request"
+                variant="outline"
               />
               <RequestLink
                 href={laborRequestHref}
@@ -130,185 +168,228 @@ export default function SteelHomePackagesProfile({
                 testId="steel-home-labor-request"
                 variant="outline"
               />
-              <a
-                href="#available-now"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-4 text-sm font-black text-[#365963] transition hover:text-[#142b33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#142b33] focus-visible:ring-offset-2"
-              >
-                {content.hero.secondaryAction}
-                <ArrowDown className="h-4 w-4" />
-              </a>
             </div>
           </div>
 
-          <div
-            className="relative overflow-hidden rounded-[2rem] border border-[#14333d]/15 bg-[#dce6e1] p-6 shadow-[0_28px_80px_rgba(37,57,61,0.16)] sm:p-9"
-            aria-label="Phase 1 supplier overview"
+          <a
+            href="#starting-point"
+            className="mt-12 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-white/75 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(20,51,61,0.18)_1px,transparent_1.5px)] bg-[size:24px_24px] opacity-50"
-            />
-            <div className="relative">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#365963]">
-                  Phase 1 package
-                </p>
-                <Ruler className="h-5 w-5 text-[#b24d28]" />
-              </div>
-              <div className="mt-9 space-y-3">
-                {content.phaseOnePackage.items.map((item, index) => {
-                  const Icon = phaseOneIcons[index] || Hammer;
-                  return (
-                    <div
-                      key={item.key}
-                      className="grid grid-cols-[44px_1fr] gap-4 rounded-2xl border border-[#14333d]/15 bg-[#f4f1ea]/90 p-4 shadow-[0_10px_24px_rgba(45,68,70,0.08)] sm:p-5"
-                    >
-                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#173640] text-white">
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="font-black tracking-[-0.02em] text-[#18343d]">{item.title}</p>
-                        <p className="mt-1 text-xs font-bold text-[#b24d28]">{item.partner}</p>
-                        <p className="mt-1 text-[11px] leading-5 text-[#60757b]">
-                          {item.partnerDetail}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="mt-7 max-w-md border-l-2 border-[#b24d28] pl-4 text-sm font-semibold leading-6 text-[#47636b]">
-                Material purchasing and local labor are kept as separate requests so every quote has
-                a clear owner and scope.
+            Explore your options
+            <ArrowDown className="h-4 w-4" aria-hidden="true" />
+          </a>
+        </div>
+      </section>
+
+      <section
+        id="starting-point"
+        className="scroll-mt-20 border-b border-[#18312f]/10 bg-[#fbf8f1]"
+        data-testid="steel-home-starting"
+      >
+        <div className="mx-auto max-w-[1440px] px-4 py-14 sm:px-6 lg:px-10 lg:py-0">
+          <div className="grid lg:grid-cols-[.8fr_3.2fr]">
+            <div className="border-[#18312f]/10 pb-8 lg:border-r lg:py-10 lg:pr-8">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+                {content.startingPoints.eyebrow}
               </p>
+              <h2 className="mt-3 font-editorial text-3xl font-semibold tracking-[-0.03em]">
+                {content.startingPoints.title}
+              </h2>
+            </div>
+            <div className="grid gap-px overflow-hidden border border-[#18312f]/10 bg-[#18312f]/10 sm:grid-cols-2 lg:grid-cols-4 lg:border-y-0 lg:border-r-0">
+              {content.startingPoints.items.map((item) => {
+                const href =
+                  item.key === "ideas"
+                    ? "#home-ideas"
+                    : item.key === "labor"
+                      ? laborRequestHref
+                      : requestHref;
+                const testId =
+                  item.key === "labor"
+                    ? "steel-home-labor-request"
+                    : item.key === "ideas"
+                      ? undefined
+                      : "steel-home-start-request";
+
+                return (
+                  <a
+                    key={item.key}
+                    href={href}
+                    data-testid={testId}
+                    className="group flex min-h-56 flex-col bg-[#fbf8f1] p-6 transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#18312f]"
+                  >
+                    <span className="text-xs font-bold tracking-[0.18em] text-[#a94f2e]">
+                      {item.number}
+                    </span>
+                    <h3 className="mt-7 text-lg font-bold leading-6 tracking-[-0.02em]">
+                      {item.title}
+                    </h3>
+                    <p className="mt-3 flex-1 text-sm leading-6 text-[#66716d]">{item.body}</p>
+                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#18312f]">
+                      {item.action}
+                      <ArrowRight
+                        className="h-4 w-4 transition group-hover:translate-x-1"
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </a>
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
 
       <section
-        id="available-now"
-        className="scroll-mt-6 border-b border-[#142b33]/10 bg-[#faf8f3]"
-        data-testid="steel-home-available-now"
+        id="home-ideas"
+        className="scroll-mt-20 bg-[#f5f1e8]"
+        data-testid="steel-home-home-ideas"
       >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
           <SectionIntro
-            eyebrow="Phase 1"
-            title={content.phaseOnePackage.title}
-            body={content.phaseOnePackage.intro}
+            eyebrow={content.inspiration.eyebrow}
+            title={content.inspiration.title}
+            body={content.inspiration.body}
           />
-          <div className="mt-12 grid gap-5 lg:grid-cols-3">
-            {content.phaseOnePackage.items.map((item, index) => {
-              const Icon = phaseOneIcons[index] || Hammer;
-              const actionHref = item.action
-                ? item.action.external
-                  ? item.action.href
-                  : qualifyPublicProfileItemDestination(item.action.href, platformBaseHref)
-                : null;
 
-              return (
-                <article
-                  key={item.key}
-                  className="flex min-h-full flex-col rounded-[1.6rem] border border-[#142b33]/12 bg-white p-6 shadow-[0_16px_45px_rgba(34,53,58,0.07)] sm:p-8"
-                  data-testid={`steel-home-partner-${item.key}`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <Icon className="h-7 w-7 text-[#b24d28]" />
-                    <span className="rounded-full bg-[#e7ece8] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#365963]">
-                      {item.partnerDetail}
-                    </span>
-                  </div>
-                  <p className="mt-8 text-xs font-black uppercase tracking-[0.16em] text-[#b24d28]">
-                    {item.partner}
+          <div className="mt-12 grid gap-4 lg:grid-cols-[1.45fr_.8fr] lg:grid-rows-2">
+            {content.inspiration.items.map((item, index) => (
+              <figure
+                key={item.key}
+                className={`group relative isolate min-h-[360px] overflow-hidden rounded-[1.75rem] bg-[#243d3a] ${
+                  index === 0 ? "lg:row-span-2 lg:min-h-[720px]" : "lg:min-h-0"
+                }`}
+              >
+                <img
+                  src={item.image}
+                  alt={item.imageAlt}
+                  className="absolute inset-0 -z-20 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div
+                  className="absolute inset-0 -z-10 bg-gradient-to-t from-black/75 via-black/5 to-transparent"
+                  aria-hidden="true"
+                />
+                <figcaption className="absolute inset-x-0 bottom-0 p-6 text-white sm:p-8">
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f0b392]">
+                    {item.label}
                   </p>
-                  <h3 className="mt-3 text-2xl font-black leading-tight tracking-[-0.035em] text-[#18343d]">
+                  <h3 className="mt-2 font-editorial text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
                     {item.title}
                   </h3>
-                  <p className="mt-4 flex-1 text-sm leading-6 text-[#5a6d73]">{item.body}</p>
-                  {item.action && actionHref ? (
-                    <a
-                      href={actionHref}
-                      target={item.action.external ? "_blank" : undefined}
-                      rel={item.action.external ? "noreferrer" : undefined}
-                      className="mt-7 inline-flex min-h-11 items-center gap-2 self-start rounded-full border border-[#142b33]/20 px-4 text-sm font-black text-[#18343d] transition hover:border-[#142b33]/45 hover:bg-[#f4f1ea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#142b33] focus-visible:ring-offset-2"
-                    >
-                      {item.action.label}
-                      {item.action.external ? (
-                        <ExternalLink className="h-4 w-4" />
-                      ) : (
-                        <ArrowRight className="h-4 w-4" />
-                      )}
-                    </a>
-                  ) : (
-                    <span className="mt-7 inline-flex min-h-11 items-center self-start rounded-full bg-[#e7ece8] px-4 text-sm font-black text-[#365963]">
-                      Included in the package request
-                    </span>
-                  )}
-                </article>
-              );
-            })}
+                </figcaption>
+              </figure>
+            ))}
           </div>
+          <p className="mt-5 max-w-3xl text-xs leading-5 text-[#75807c]">
+            {content.inspiration.note}
+          </p>
         </div>
       </section>
 
       <section
-        className="border-b border-[#142b33]/10 bg-[#e7ece8]"
-        data-testid="steel-home-audiences"
+        id="build-your-package"
+        className="scroll-mt-20 border-y border-[#18312f]/10 bg-[#fbf8f1]"
+        data-testid="steel-home-package"
       >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <SectionIntro eyebrow="Who this is for" title={content.audiences.title} />
-          <div className="mt-12 grid gap-8 lg:grid-cols-3">
-            {content.audiences.items.map((item, index) => {
-              const Icon = audienceIcons[index] || Hammer;
-              return (
-                <article key={item.title} className="border-l-2 border-[#b24d28]/45 pl-5 sm:pl-7">
-                  <Icon className="h-6 w-6 text-[#365963]" />
-                  <h3 className="mt-7 text-2xl font-black tracking-[-0.035em] text-[#18343d]">
+        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
+          <SectionIntro
+            eyebrow={content.package.eyebrow}
+            title={content.package.title}
+            body={content.package.body}
+            centered
+          />
+
+          <div className="mt-14 grid gap-6 lg:grid-cols-3">
+            {content.package.items.map((item) => (
+              <article
+                key={item.key}
+                className="group flex min-h-full flex-col overflow-hidden rounded-[1.75rem] border border-[#18312f]/10 bg-white shadow-[0_22px_65px_rgba(28,47,44,0.08)]"
+                data-testid={`steel-home-package-${item.key}`}
+              >
+                <div className="relative aspect-[4/3] overflow-hidden bg-[#d8d5cc]">
+                  <img
+                    src={item.image}
+                    alt={item.imageAlt}
+                    className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span className="absolute left-5 top-5 rounded-full bg-[#18312f]/90 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur">
+                    {item.label}
+                  </span>
+                </div>
+                <div className="flex flex-1 flex-col p-6 sm:p-8">
+                  <h3 className="font-editorial text-4xl font-semibold tracking-[-0.035em]">
                     {item.title}
                   </h3>
-                  <p className="mt-4 text-sm leading-6 text-[#556970]">{item.body}</p>
-                </article>
-              );
-            })}
+                  <p className="mt-4 text-sm leading-6 text-[#65706c]">{item.body}</p>
+                  <ul className="mt-6 space-y-3 border-t border-[#18312f]/10 pt-6">
+                    {item.details.map((detail) => (
+                      <li key={detail} className="flex items-start gap-3 text-sm font-semibold">
+                        <Check
+                          className="mt-0.5 h-4 w-4 shrink-0 text-[#a94f2e]"
+                          aria-hidden="true"
+                        />
+                        {detail}
+                      </li>
+                    ))}
+                  </ul>
+                  <RequestLink
+                    href={requestHref}
+                    label={item.action}
+                    testId="steel-home-start-request"
+                    variant="dark"
+                    className="mt-8 self-start"
+                  />
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
       <section
-        className="border-b border-[#142b33]/10 bg-[#faf8f3]"
+        id="how-it-works"
+        className="scroll-mt-20 bg-[#e6e2d8]"
         data-testid="steel-home-process"
       >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <SectionIntro eyebrow="How it works" title={content.process.title} />
-          <ol className="mt-12 grid gap-px overflow-hidden rounded-[1.75rem] border border-[#142b33]/12 bg-[#142b33]/12 md:grid-cols-2">
+        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
+          <SectionIntro eyebrow={content.process.eyebrow} title={content.process.title} />
+          <ol className="mt-14 grid gap-px overflow-hidden rounded-[1.75rem] border border-[#18312f]/10 bg-[#18312f]/10 md:grid-cols-2 xl:grid-cols-4">
             {content.process.items.map((item, index) => (
-              <li key={item.title} className="bg-white p-6 sm:p-9">
-                <span className="text-xs font-black tracking-[0.18em] text-[#b24d28]">
-                  Step {index + 1}
+              <li key={item.title} className="bg-[#f8f5ee] p-7 sm:p-9">
+                <span className="font-editorial text-4xl font-semibold text-[#a94f2e]">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
-                <h3 className="mt-5 text-xl font-black tracking-[-0.03em] text-[#18343d]">
+                <h3 className="mt-8 text-xl font-bold leading-7 tracking-[-0.025em]">
                   {item.title}
                 </h3>
-                <p className="mt-3 text-sm leading-6 text-[#5a6d73]">{item.body}</p>
+                <p className="mt-4 text-sm leading-6 text-[#66716d]">{item.body}</p>
               </li>
             ))}
           </ol>
         </div>
       </section>
 
-      <section className="bg-[#173640] text-white" data-testid="steel-home-labor">
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:px-8">
+      <section
+        id="local-labor"
+        className="scroll-mt-20 bg-[#18312f] text-white"
+        data-testid="steel-home-labor"
+      >
+        <div className="mx-auto grid max-w-[1440px] gap-12 px-4 py-20 sm:px-6 sm:py-28 lg:grid-cols-[1.15fr_.85fr] lg:items-center lg:px-10">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#f0a386]">
-              Express Direct Connect work request
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
+              {content.labor.eyebrow}
             </p>
-            <h2 className="mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-[-0.055em] sm:text-6xl">
+            <h2 className="mt-5 max-w-4xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] sm:text-7xl">
               {content.labor.title}
             </h2>
-            <p className="mt-7 max-w-3xl text-base leading-8 text-white/75 sm:text-lg">
+            <p className="mt-7 max-w-3xl text-base leading-8 text-white/[0.72] sm:text-lg">
               {content.labor.body}
             </p>
-            <p className="mt-6 max-w-3xl border-l-2 border-[#f0a386] pl-5 text-sm leading-7 text-white/85 sm:text-base">
+            <p className="mt-6 max-w-3xl border-l-2 border-[#c9683d] pl-5 text-sm leading-7 text-white/[0.84] sm:text-base">
               {content.labor.support}
             </p>
             <RequestLink
@@ -316,118 +397,76 @@ export default function SteelHomePackagesProfile({
               label={content.labor.action}
               testId="steel-home-labor-request"
               variant="light"
-              className="mt-8"
+              className="mt-9"
             />
           </div>
 
-          <div className="rounded-[1.75rem] border border-white/15 bg-[#214550] p-7 sm:p-9">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#f0a386]">
-              Local work can include
-            </p>
+          <div className="rounded-[1.75rem] border border-white/12 bg-white/[0.06] p-6 sm:p-9">
+            <div className="flex items-center gap-3 border-b border-white/12 pb-6">
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#c9683d]">
+                <MapPin className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f0b392]">
+                  Based on your jobsite
+                </p>
+                <p className="mt-1 text-sm text-white/65">A separate location-aware request</p>
+              </div>
+            </div>
             <ul className="mt-6 space-y-3">
               {content.labor.examples.map((item) => (
                 <li
                   key={item}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm font-bold text-white/90"
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm font-semibold text-white/[0.88]"
                 >
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#f0a386]" />
+                  <Check className="h-4 w-4 shrink-0 text-[#f0b392]" aria-hidden="true" />
                   {item}
                 </li>
               ))}
             </ul>
-            <p className="mt-6 text-xs leading-6 text-white/60">
-              A request can be labor-only. Buying the Phase 1 package is not required.
-            </p>
           </div>
         </div>
       </section>
 
-      <section
-        className="border-b border-[#142b33]/10 bg-[#faf8f3]"
-        data-testid="steel-home-location"
-      >
-        <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[.9fr_1.1fr] lg:px-8">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b24d28]">
-              Location and code
+      <section className="bg-[#f5f1e8]" data-testid="steel-home-final-action">
+        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
+          <div className="relative isolate overflow-hidden rounded-[2rem] bg-[#d8d1c2] px-6 py-16 text-center sm:px-12 sm:py-20">
+            <div
+              className="absolute inset-0 -z-10 opacity-35 [background-image:radial-gradient(circle_at_center,rgba(24,49,47,0.42)_1px,transparent_1.5px)] [background-size:24px_24px]"
+              aria-hidden="true"
+            />
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+              {content.finalAction.eyebrow}
             </p>
-            <MapPin className="mt-7 h-10 w-10 text-[#365963]" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-black leading-[1.02] tracking-[-0.045em] text-[#142b33] sm:text-5xl">
-              {content.location.title}
+            <h2 className="mx-auto mt-5 max-w-5xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] sm:text-7xl">
+              {content.finalAction.headline}
             </h2>
-            <p className="mt-6 text-base leading-8 text-[#52666d]">{content.location.body}</p>
-            <div className="mt-8 rounded-2xl border border-[#142b33]/14 bg-[#edf1ed] p-5 sm:p-6">
-              <div className="flex items-start gap-4">
-                <FileCheck2 className="mt-0.5 h-6 w-6 shrink-0 text-[#b24d28]" />
-                <p className="text-sm font-semibold leading-7 text-[#29454e]">
-                  {content.location.responsibility}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-[#f4f1ea]" data-testid="steel-home-final-action">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <div className="overflow-hidden rounded-[2rem] bg-[#dce6e1] shadow-[0_28px_80px_rgba(37,57,61,0.13)]">
-            <div className="p-6 sm:p-10 lg:p-14">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#b24d28]">
-                Start a Request
-              </p>
-              <h2 className="mt-4 max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.055em] text-[#142b33] sm:text-6xl">
-                {content.finalAction.headline}
-              </h2>
-
-              <div className="mt-10 grid gap-5 lg:grid-cols-2">
-                <article className="flex flex-col rounded-[1.5rem] bg-white p-6 sm:p-8">
-                  <Building2 className="h-7 w-7 text-[#b24d28]" />
-                  <h3 className="mt-6 text-2xl font-black tracking-[-0.035em] text-[#18343d]">
-                    {content.finalAction.packageTitle}
-                  </h3>
-                  <p className="mt-4 flex-1 text-sm leading-6 text-[#5a6d73]">
-                    {content.finalAction.packageBody}
-                  </p>
-                  <RequestLink
-                    href={requestHref}
-                    label={content.hero.primaryAction}
-                    testId="steel-home-start-request"
-                    className="mt-7 self-start"
-                  />
-                </article>
-
-                <article className="flex flex-col rounded-[1.5rem] bg-[#173640] p-6 text-white sm:p-8">
-                  <Wrench className="h-7 w-7 text-[#f0a386]" />
-                  <h3 className="mt-6 text-2xl font-black tracking-[-0.035em]">
-                    {content.finalAction.laborTitle}
-                  </h3>
-                  <p className="mt-4 flex-1 text-sm leading-6 text-white/70">
-                    {content.finalAction.laborBody}
-                  </p>
-                  <RequestLink
-                    href={laborRequestHref}
-                    label={content.hero.laborAction}
-                    testId="steel-home-labor-request"
-                    variant="light"
-                    className="mt-7 self-start"
-                  />
-                </article>
-              </div>
-
-              <p className="mt-6 text-sm font-semibold text-[#365963]">
-                {content.finalAction.supportingLine}
-              </p>
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#596763] sm:text-lg">
+              {content.finalAction.body}
+            </p>
+            <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+              <RequestLink
+                href={requestHref}
+                label={content.finalAction.packageAction}
+                testId="steel-home-start-request"
+                variant="dark"
+              />
+              <RequestLink
+                href={laborRequestHref}
+                label={content.finalAction.laborAction}
+                testId="steel-home-labor-request"
+                variant="outline"
+                className="border-[#18312f]/40 text-[#18312f] hover:border-[#18312f] hover:bg-white/30 focus-visible:ring-[#18312f]"
+              />
             </div>
           </div>
 
           <aside
-            className="mx-auto mt-10 max-w-5xl text-center"
+            className="mx-auto mt-9 max-w-5xl text-center"
             aria-label="Project disclosure"
             data-testid="steel-home-disclosure"
           >
-            <p className="text-xs leading-6 text-[#66777d]">{content.disclosure}</p>
+            <p className="text-xs leading-6 text-[#727c78]">{content.disclosure}</p>
           </aside>
         </div>
       </section>

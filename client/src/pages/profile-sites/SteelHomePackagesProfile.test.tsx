@@ -43,37 +43,44 @@ describe("SteelHomePackagesProfile", () => {
     });
   }
 
-  it("renders only the three approved Phase 1 material relationships", () => {
+  it("presents TradeScout as the single customer-facing package contact", () => {
     renderProfile();
 
     const text = container.textContent || "";
     expect(text).toContain(content.hero.headline);
     expect(text).toContain(content.hero.body);
     expect(text).toContain("Metal structure");
-    expect(text).toContain("Worldwide Steel Buildings");
     expect(text).toContain("Natural stone");
-    expect(text).toContain("JW Stone Logistics");
     expect(text).toContain("Cabinets");
-    expect(text).toContain("A+ Cabinets");
-    expect(text).toContain("Ocean Springs");
-    expect(text).toContain("Owner-builders");
-    expect(text).toContain("Builders");
-    expect(text).toContain("Contractors");
+    expect(text).toContain("one clear package with one point of contact");
+    expect(text).toContain("one coordinated package quote and one place to call");
+    expect(text).toContain("You work with TradeScout");
     expect(text).toContain(content.labor.body);
-    expect(text).toContain("A request can be labor-only");
-    expect(text).toContain(content.location.responsibility);
     expect(text).toContain(content.disclosure);
 
-    const partnerCards = Array.from(
-      container.querySelectorAll<HTMLElement>('[data-testid^="steel-home-partner-"]')
+    const packageCards = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid^="steel-home-package-"]')
     );
-    expect(partnerCards.map((card) => card.dataset.testid)).toEqual([
-      "steel-home-partner-structure",
-      "steel-home-partner-stone",
-      "steel-home-partner-cabinets",
+    expect(packageCards.map((card) => card.dataset.testid)).toEqual([
+      "steel-home-package-structure",
+      "steel-home-package-stone",
+      "steel-home-package-cabinets",
     ]);
 
-    for (const futurePhaseCopy of [
+    for (const privateRelationshipCopy of [
+      "Worldwide Steel Buildings",
+      "JW Stone Logistics",
+      "A+ Cabinets",
+      "Ocean Springs",
+      "partner",
+      "supplier",
+      "affiliate",
+      "referral",
+    ]) {
+      expect(text.toLowerCase()).not.toContain(privateRelationshipCopy.toLowerCase());
+    }
+
+    for (const futureCategory of [
       "single-wide",
       "tiny home",
       "mini-split",
@@ -85,16 +92,16 @@ describe("SteelHomePackagesProfile", () => {
       "drywall",
       "HomeID",
     ]) {
-      expect(text.toLowerCase()).not.toContain(futurePhaseCopy.toLowerCase());
+      expect(text.toLowerCase()).not.toContain(futureCategory.toLowerCase());
     }
 
     const orderedSectionIds = [
       "steel-home-hero",
-      "steel-home-available-now",
-      "steel-home-audiences",
+      "steel-home-starting",
+      "steel-home-home-ideas",
+      "steel-home-package",
       "steel-home-process",
       "steel-home-labor",
-      "steel-home-location",
       "steel-home-final-action",
       "steel-home-disclosure",
     ];
@@ -108,13 +115,13 @@ describe("SteelHomePackagesProfile", () => {
     }
   });
 
-  it("keeps package purchasing and local labor as separate Direct Connect paths", () => {
+  it("keeps package and labor requests separate without sending visitors to outside companies", () => {
     renderProfile();
 
     const packageRequestLinks = Array.from(
       container.querySelectorAll<HTMLAnchorElement>('[data-testid="steel-home-start-request"]')
     );
-    expect(packageRequestLinks).toHaveLength(2);
+    expect(packageRequestLinks.length).toBeGreaterThanOrEqual(2);
     for (const link of packageRequestLinks) {
       expect(link.getAttribute("href")).toBe(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
     }
@@ -122,19 +129,28 @@ describe("SteelHomePackagesProfile", () => {
     const laborRequestLinks = Array.from(
       container.querySelectorAll<HTMLAnchorElement>('[data-testid="steel-home-labor-request"]')
     );
-    expect(laborRequestLinks).toHaveLength(3);
+    expect(laborRequestLinks.length).toBeGreaterThanOrEqual(2);
     for (const link of laborRequestLinks) {
       expect(link.getAttribute("href")).toBe(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
     }
 
-    expect(container.querySelector<HTMLAnchorElement>('a[href="#available-now"]')).not.toBeNull();
-    expect(
-      container.querySelector<HTMLAnchorElement>(
-        'a[href="https://www.worldwidesteelbuildings.com/3d-building-designer/"]'
-      )
-    ).not.toBeNull();
-    expect(container.querySelector<HTMLAnchorElement>('a[href="/jw-stone"]')).not.toBeNull();
-    expect(container.querySelectorAll("img, picture, video")).toHaveLength(0);
+    expect(container.querySelector<HTMLAnchorElement>('a[href="#home-ideas"]')).not.toBeNull();
+    const outsideLinks = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[href]"))
+      .map((link) => link.getAttribute("href") || "")
+      .filter((href) => /^https?:\/\//i.test(href));
+    expect(outsideLinks).toEqual([]);
+
+    const images = Array.from(container.querySelectorAll<HTMLImageElement>("img"));
+    expect(images).toHaveLength(7);
+    expect(images.every((image) => Boolean(image.getAttribute("alt")?.trim()))).toBe(true);
+    expect(images.map((image) => image.getAttribute("src"))).toEqual(
+      expect.arrayContaining([
+        "/images/businesses/steel-home-packages/steel-home-hero.webp",
+        "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
+        "/images/businesses/jw-stone/story/taj-living-room.webp",
+        "/images/businesses/jw-stone/inventory/quartzite/cristallo/1.webp",
+      ])
+    );
 
     const text = container.textContent || "";
     for (const unsupportedClaim of [
@@ -142,7 +158,7 @@ describe("SteelHomePackagesProfile", () => {
       "monthly payment",
       "nationwide delivery",
       "five-star",
-      "exclusive partner",
+      "exclusive",
       "guaranteed approval",
       "licensed and insured",
       "AI-generated",
