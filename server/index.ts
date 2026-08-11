@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 33728)
-Total output lines: 3184
-
 // Load dotenv configuration before anything else (safe in all envs)
 import "dotenv/config";
 
@@ -1577,7 +1574,323 @@ app.use(landingContractHeaders);
 
               // Emergency client reset endpoint:
               // Clears browser caches / SW / storage so users can recover from a stale bundle after deploys.
-              // This is intentionally a simple HTML resp…3728 tokens truncated… profile HTML:", error);
+              // This is intentionally a simple HTML response with a standards-based clear instruction.
+              app.all("/reset", (_req, res) => {
+                const fresh = Date.now();
+                res.setHeader("Cache-Control", "no-store");
+                res.setHeader("Clear-Site-Data", '"cache", "storage", "executionContexts"');
+                res.status(200).type("html").send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="2;url=/?__fresh=${fresh}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resetting TradeScout…</title>
+    <style>
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;padding:24px;max-width:720px;margin:0 auto;line-height:1.5}
+      code{background:#1118270d;padding:2px 6px;border-radius:6px}
+    </style>
+  </head>
+  <body>
+    <h1>Resetting TradeScout…</h1>
+    <p>Your browser cache and service worker are being cleared.</p>
+    <p>If you are not redirected automatically, open <a href="/?__fresh=${fresh}">the homepage</a>.</p>
+  </body>
+</html>`);
+              });
+
+              // Emergency appearance reset endpoint:
+              // Resets saved color scheme + theme preference back to default.
+              app.all("/reset-theme", (_req, res) => {
+                const fresh = Date.now();
+                res.setHeader("Cache-Control", "no-store");
+                res.status(200).type("html").send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Resetting Theme…</title>
+    <style>
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;padding:24px;max-width:720px;margin:0 auto;line-height:1.5}
+      code{background:#1118270d;padding:2px 6px;border-radius:6px}
+      .muted{opacity:.75}
+    </style>
+  </head>
+  <body>
+    <h1>Resetting theme…</h1>
+    <p class="muted">Resetting your saved color scheme + theme preference back to default.</p>
+    <pre id="log" class="muted">Working…</pre>
+    <script>
+      (async () => {
+        const logEl = document.getElementById('log');
+        const log = (msg) => { try { logEl.textContent += '\\n' + msg; } catch {} };
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          const r1 = await fetch('/api/users/color-scheme', { method: 'PATCH', headers, credentials: 'include', body: JSON.stringify({ preset: 'default' }) });
+          log('color-scheme: ' + r1.status);
+        } catch {
+          log('color-scheme: failed');
+        }
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          const r2 = await fetch('/api/user/theme', { method: 'PATCH', headers, credentials: 'include', body: JSON.stringify({ themePreference: 'default', customThemeColors: null }) });
+          log('theme: ' + r2.status);
+        } catch {
+          log('theme: failed');
+        }
+        window.location.replace('/reset?__fresh=${fresh}');
+      })();
+    </script>
+    <noscript>
+      <p>JavaScript is required. Alternative: open <code>/profile-settings</code> and set Color Scheme preset to <code>default</code>.</p>
+    </noscript>
+  </body>
+</html>`);
+              });
+
+              // 1) Serve hashed asset chunks with long cache first
+              const assetsPath = path.join(publicDistPath, "assets");
+              if (fs.existsSync(assetsPath)) {
+                // Vite's preload dependency map contains "assets/<file>" values.
+                // Browsers run Vite's helper and request "/assets/<file>", while
+                // static JS crawlers can resolve the raw value relative to the
+                // entry chunk and request "/assets/assets/<file>". Permanently
+                // canonicalize only an existing hashed build artifact.
+                app.get("/assets/assets/:assetName", (req, res, next) => {
+                  const canonicalAssetPath = resolveCanonicalDuplicatedAssetPath(
+                    publicDistPath,
+                    req.path || ""
+                  );
+                  if (!canonicalAssetPath) return next();
+
+                  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+                  res.setHeader("CDN-Cache-Control", "public, max-age=31536000, immutable");
+                  res.setHeader("Surrogate-Control", "public, max-age=31536000, immutable");
+                  res.setHeader("X-TradeScout-Asset-Recovery", "duplicate-prefix-canonical");
+                  return res.redirect(308, canonicalAssetPath);
+                });
+
+                app.use(
+                  "/assets",
+                  express.static(assetsPath, {
+                    immutable: true,
+                    maxAge: "1y",
+                    setHeaders: (res, filePath) => {
+                      const lower = filePath.toLowerCase();
+                      // Prevent stale camera/admin chunks from sticking on mobile clients.
+                      // Hashed assets are usually safe to cache long-term, but these routes
+                      // are actively iterated and must pick up fresh logic immediately.
+                      if (
+                        lower.includes("zero-base-fee-camera-") ||
+                        lower.includes("admin-observability-")
+                      ) {
+                        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+                        res.setHeader("CDN-Cache-Control", "public, max-age=0, must-revalidate");
+                        res.setHeader("Surrogate-Control", "public, max-age=0, must-revalidate");
+                      }
+                    },
+                  })
+                );
+
+                // A tab left open across a deploy can still request the prior
+                // entry CSS hash. Serve the current entry stylesheet for that
+                // narrow case so custom domains do not render unstyled. Never
+                // substitute arbitrary JS chunks: their module graph may differ.
+                app.get("/assets/:assetName", (req, res, next) => {
+                  const currentStylesheet = resolveCurrentEntryStylesheet(
+                    publicDistPath,
+                    req.path || ""
+                  );
+                  if (!currentStylesheet) return next();
+
+                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader("CDN-Cache-Control", "no-store");
+                  res.setHeader("Surrogate-Control", "no-store");
+                  res.setHeader("X-TradeScout-Asset-Recovery", "current-entry-css");
+                  res.type("text/css");
+                  return res.sendFile(currentStylesheet);
+                });
+              }
+
+              // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
+              const identityAssets = new Set([
+                "/favicon.ico",
+                "/favicon.svg",
+                "/favicon-16x16.png",
+                "/favicon-32x32.png",
+                "/favicon-48x48.png",
+                "/apple-touch-icon.png",
+                "/apple-touch-icon-precomposed.png",
+                "/manifest.json",
+                "/site.webmanifest",
+                "/icon-192.png",
+                "/icon-512.png",
+                "/icon-192-maskable.png",
+                "/icon-512-maskable.png",
+                "/logo.png",
+                "/tradescout-logo.png",
+                "/tradescout-logo.jpg",
+                "/sw.js",
+                "/service-worker.js",
+              ]);
+
+              // Legacy social preview image path compatibility.
+              app.get("/tradescout-logo.jpg", (_req, res) => {
+                res.redirect(301, "/tradescout-social-preview.png?v=12");
+              });
+
+              app.get(Array.from(identityAssets), (req, res, next) => {
+                const filePath = path.join(publicDistPath, req.path);
+                if (!fs.existsSync(filePath)) return next();
+                if (req.path === "/sw.js" || req.path === "/service-worker.js") {
+                  res.setHeader("Cache-Control", "no-store");
+                } else {
+                  res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+                }
+                res.sendFile(filePath);
+              });
+
+              // Public entry HTML must run before express.static. The built app also contains
+              // /landing assets, and static directory handling can otherwise serve the SPA shell
+              // before the server-rendered CTA fallback is injected.
+              app.get(
+                ["/", "/landing", "/landing/", "/landing/:variant", "/lp", "/lp/", "/lp/:variant"],
+                async (req, res) => {
+                  try {
+                    const requestPath = (req.path || "/").replace(/\/+$/, "") || "/";
+                    if (requestPath === "/landing" || requestPath === "/lp") {
+                      return res.redirect(301, `/${requestSearchSuffix(req)}`);
+                    }
+                    if (requestPath.startsWith("/lp/")) {
+                      return res.redirect(
+                        301,
+                        `${requestPath.replace(/^\/lp\//, "/landing/")}${requestSearchSuffix(req)}`
+                      );
+                    }
+
+                    const landingPath = path.join(publicDistPath, "landing.html");
+                    const templateHtml = getCachedTemplate(landingPath);
+                    if (!templateHtml) return res.status(404).send("Application files not found");
+
+                    const origin = resolvePublicOrigin(req);
+                    const variant =
+                      typeof req.params.variant === "string" ? req.params.variant : null;
+                    const html = await buildPublicLandingHtml({
+                      origin,
+                      templateHtml,
+                      requestPath: req.originalUrl || req.path,
+                      variant,
+                    });
+
+                    res.setHeader(
+                      "Cache-Control",
+                      "public, max-age=300, stale-while-revalidate=86400"
+                    );
+                    res.send(html);
+                  } catch (err) {
+                    console.error("Error rendering landing HTML:", err);
+                    res.status(500).send("Failed to render landing page");
+                  }
+                }
+              );
+
+              // 2) Serve other static files (index.html, icons, etc.)
+              app.use(
+                express.static(publicDistPath, {
+                  index: false,
+                  setHeaders: (res, filePath) => {
+                    if (filePath.endsWith(".html")) {
+                      res.setHeader("Cache-Control", "no-store");
+                    }
+                  },
+                })
+              );
+
+              // JW Stone marketplace on the TradeScout host. Custom-domain
+              // authority still owns jwstonelogistics.com and now serves this
+              // same marketplace shell there (see serveJwStoneMarketplaceCustomDomainPath).
+              const sendJwStoneMarketplaceHtml = async (
+                req: Request,
+                res: Response,
+                opts: { stoneSlug?: string; materialSlug?: string } = {}
+              ) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(503).send("Application temporarily unavailable");
+                  }
+
+                  const html = buildPublicJwStoneMarketplaceHtml({
+                    templateHtml,
+                    origin: "https://www.thetradescout.com",
+                    collectionUrl: "https://www.thetradescout.com/jw-stone",
+                    stoneSlug: opts.stoneSlug,
+                    photo: req.query.photo,
+                    materialSlug: opts.materialSlug,
+                  });
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering JW Stone marketplace HTML:", err);
+                  return sendPublicPageRenderFailure(res, "Failed to render JW Stone marketplace");
+                }
+              };
+
+              app.get("/jw-stone", async (req, res) => {
+                const legacyStone =
+                  typeof req.query.stone === "string" ? req.query.stone.trim().toLowerCase() : "";
+                if (legacyStone) {
+                  const photo =
+                    typeof req.query.photo === "string" && /^\d+$/.test(req.query.photo)
+                      ? `?photo=${req.query.photo}`
+                      : "";
+                  return res.redirect(
+                    301,
+                    `/jw-stone/stones/${encodeURIComponent(legacyStone)}${photo}`
+                  );
+                }
+                return sendJwStoneMarketplaceHtml(req, res);
+              });
+              app.get("/jw-stone/stones/:stoneSlug", async (req, res) =>
+                sendJwStoneMarketplaceHtml(req, res, {
+                  stoneSlug: String(req.params.stoneSlug || ""),
+                })
+              );
+              app.get("/jw-stone/materials/:materialSlug", async (req, res) =>
+                sendJwStoneMarketplaceHtml(req, res, {
+                  materialSlug: String(req.params.materialSlug || ""),
+                })
+              );
+
+              // Public helper profiles: server-rendered metadata lets shared
+              // portfolio links advertise the exact work photo before React loads.
+              app.get("/helpers/:workerId", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(503).send("Application temporarily unavailable");
+                  }
+
+                  const html = await buildPublicHelperProfileHtml({
+                    workerId: String(req.params.workerId || ""),
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                    portfolioSlug: req.query.portfolio,
+                  });
+
+                  if (!html) return res.status(404).send("Helper not found");
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
+                } catch (error) {
+                  console.error("Error rendering public helper profile HTML:", error);
                   res.status(500).send("Failed to render helper profile");
                 }
               });
