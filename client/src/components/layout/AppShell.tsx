@@ -47,6 +47,7 @@ import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progressiveFeatureUnlocks";
+import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
 import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
@@ -145,6 +146,15 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
       actionHref: "/direct-connect/active",
     };
   }
+  if (
+    pathname.startsWith("/direct-connect/opportunities") ||
+    pathname.startsWith("/direct-connect/employment")
+  ) {
+    return {
+      title: "Jobs",
+      summary: "Find employment, post a job or resume, apply, and review applicants.",
+    };
+  }
   if (pathname.startsWith("/direct-connect")) {
     return {
       title: "Make a request",
@@ -187,7 +197,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/exchange")) {
     return {
-      title: "Buy and sell",
+      title: "Exchange",
       summary: "Buy and sell listings. Switch scope to near me, state, or nationwide.",
       actionLabel: "List an item",
       actionHref: "/marketplace-listing",
@@ -213,7 +223,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
     pathname.startsWith("/homescout/new")
   ) {
     return {
-      title: "My homes and vehicles",
+      title: "Asset Management",
       summary:
         "Track inspections, maintenance, upgrades, and project history across assets with a home-first focus.",
       actionLabel: "Open Asset Management",
@@ -230,7 +240,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/trade-deals")) {
     return {
-      title: "Offers",
+      title: "TradeDeals",
       summary: "Browse partner offers and active campaigns in your market.",
       actionLabel: "View Cumulus campaign",
       actionHref: "/tradepartners/cumulus-media",
@@ -254,7 +264,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/foundation")) {
     return {
-      title: "Community projects",
+      title: "Local vaults",
       summary: "See local contributions and what community builders are funding nearby.",
       actionLabel: "View contribution dashboard",
       actionHref: "/community-builder/dashboard",
@@ -301,7 +311,7 @@ const buildFeatureNav = (opts?: {
       label: "Jobs",
       href: "/direct-connect/opportunities",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Browse commercial projects and bid packages.",
+      description: "Find work, post jobs or resumes, and manage applicants.",
     },
     {
       label: "Community",
@@ -309,50 +319,50 @@ const buildFeatureNav = (opts?: {
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "See nearby posts and updates.",
     },
-  ];
-
-  const advancedNav: NavItem[] = [
-    {
-      label: "Offers",
-      href: "/trade-deals",
-      icon: <Sparkles className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Check partner offers and campaigns.",
-    },
-    {
-      label: "Buy & Sell",
-      href: ROUTES.EXCHANGE ?? "/exchange",
-      icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Browse and post marketplace listings.",
-    },
-    {
-      label: "Homes & Vehicles",
-      href: "/homes",
-      icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Home-first inspections, maintenance, and upgrade history.",
-    },
-    {
-      label: "Map",
-      href: "/maps",
-      icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Explore local and service coverage.",
-    },
-    {
-      label: "Local Trust",
-      href: "/leaderboard",
-      icon: <Trophy className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Track local trust momentum.",
-    },
-    {
-      label: "Community Projects",
-      href: "/foundation",
-      icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "See local funding and impact.",
-    },
     {
       label: "Share",
       href: "/share",
       icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Copy and publish your best links.",
+    },
+  ];
+
+  const advancedNav: NavItem[] = [
+    {
+      label: "TradeDeals",
+      href: "/trade-deals",
+      icon: <Sparkles className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Check partner offers and campaigns.",
+    },
+    {
+      label: "Exchange",
+      href: ROUTES.EXCHANGE ?? "/exchange",
+      icon: <ShoppingBag className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Browse and post marketplace listings.",
+    },
+    {
+      label: "Asset Management",
+      href: "/homes",
+      icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Home-first inspections, maintenance, and upgrade history.",
+    },
+    {
+      label: "Maps",
+      href: "/maps",
+      icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Explore local and service coverage.",
+    },
+    {
+      label: "Leaderboard",
+      href: "/leaderboard",
+      icon: <Trophy className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Track local trust momentum.",
+    },
+    {
+      label: "Community Builders",
+      href: "/foundation",
+      icon: <Heart className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "See local funding and impact.",
     },
   ];
 
@@ -495,7 +505,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           .toLowerCase()
       : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
-  const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? "/scout" : "/";
+  const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? DEFAULT_LANDING : "/";
   const hasAdminAccess = hasAdminUiAccess(user);
   const verificationBypass = user?.verificationBypass;
   const hasAdminAliasBypass =
@@ -551,7 +561,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       "/scout",
       "/direct-connect/active",
       ROUTES.CONTRACTORS ?? "/contractors",
-      "/commercial-directory",
+      "/direct-connect/opportunities",
       ROUTES.COMMUNITY ?? "/community",
       "/share",
     ]);

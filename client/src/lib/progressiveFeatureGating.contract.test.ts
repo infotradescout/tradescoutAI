@@ -23,6 +23,19 @@ describe("progressive feature gating contracts", () => {
     expect(source).toContain('href: ROUTES.COMMUNITY ?? "/community"');
   });
 
+  it("preserves established product names and signed-in landing behavior", () => {
+    const source = read("client/src/components/layout/AppShell.tsx");
+
+    expect(source).toContain('label: "TradeDeals"');
+    expect(source).toContain('label: "Exchange"');
+    expect(source).toContain('label: "Asset Management"');
+    expect(source).toContain('label: "Maps"');
+    expect(source).toContain('label: "Leaderboard"');
+    expect(source).toContain('label: "Community Builders"');
+    expect(source).toContain('label: "Share"');
+    expect(source).toContain('isLoggedIn ? DEFAULT_LANDING : "/"');
+  });
+
   it("provides one plain-language start guide across desktop and mobile", () => {
     const source = read("client/src/components/layout/AppShell.tsx");
 
@@ -51,6 +64,10 @@ describe("progressive feature gating contracts", () => {
     expect(appShellSource).toContain('title: "Inbox"');
     expect(directConnectSource).toContain('title: "My Requests"');
     expect(directConnectSource).toContain('title: "Inbox"');
+    expect(directConnectSource).toContain('employment: "Jobs"');
+    expect(directConnectSource).toContain(
+      'description: "Find employment, post a job or resume, apply, and review applicants."'
+    );
     expect(directConnectSource).toContain('"Track your requests."');
     expect(directConnectSource).toContain('"Review incoming work."');
     expect(directConnectSource).not.toContain('title="Start your request."');
