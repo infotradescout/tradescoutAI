@@ -298,7 +298,7 @@ const buildFeatureNav = (opts?: {
       description: "Find businesses by service and location.",
     },
     {
-      label: "Commercial Work",
+      label: "Jobs",
       href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Browse commercial projects and bid packages.",
