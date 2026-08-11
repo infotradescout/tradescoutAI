@@ -198,7 +198,10 @@ export class ProfileRepository {
     return rows[0];
   }
 
-  private async getProfileBySlugPublishedRecord(slug: string): Promise<any | undefined> {
+  private async getProfileBySlugRecord(
+    slug: string,
+    publishedOnly: boolean
+  ): Promise<any | undefined> {
     const rows = await db
       .select({
         id: profiles.id,
@@ -234,7 +237,11 @@ export class ProfileRepository {
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
       .leftJoin(businesses, eq(profiles.businessId, businesses.id))
-      .where(and(eq(profiles.slug, slug), eq(profiles.status, "published" as any)))
+      .where(
+        publishedOnly
+          ? and(eq(profiles.slug, slug), eq(profiles.status, "published" as any))
+          : eq(profiles.slug, slug)
+      )
       .limit(1);
     return rows[0];
   }
@@ -265,17 +272,20 @@ export class ProfileRepository {
     };
   }
 
-  /**
-   * Internal published-profile read used only by the authenticated API preview
-   * path, which applies owner/staff authorization after resolving ownership.
-   */
+  /** Internal draft-capable read for an already-authorized owner/staff manager. */
+  async getProfileBySlugForManagement(slug: string): Promise<PublicProfileRecord | undefined> {
+    const row = await this.getProfileBySlugRecord(slug, false);
+    return row ? this.toPublicProfileRecord(row) : undefined;
+  }
+
+  /** Internal published-profile read for callers that bypass public business visibility rules. */
   async getProfileBySlugPublished(slug: string): Promise<PublicProfileRecord | undefined> {
-    const row = await this.getProfileBySlugPublishedRecord(slug);
+    const row = await this.getProfileBySlugRecord(slug, true);
     return row ? this.toPublicProfileRecord(row) : undefined;
   }
 
   async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
-    const row = await this.getProfileBySlugPublishedRecord(slug);
+    const row = await this.getProfileBySlugRecord(slug, true);
     if (!row) return undefined;
     if (
       !canServePublishedProfileAtDirectRoute({

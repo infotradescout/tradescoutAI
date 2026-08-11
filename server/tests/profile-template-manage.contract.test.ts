@@ -6,6 +6,10 @@ const profilesRoute = fs.readFileSync(
   path.resolve(process.cwd(), "server/routes/profiles.ts"),
   "utf8"
 );
+const profileRepository = fs.readFileSync(
+  path.resolve(process.cwd(), "server/repositories/profileRepository.ts"),
+  "utf8"
+);
 const profileView = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/ProfileSiteView.tsx"),
   "utf8"
@@ -33,6 +37,14 @@ describe("profile template manage surface contracts", () => {
     expect(profilesRoute).toContain("siteTemplate");
     expect(profilesRoute).toContain("isSuperAdminRequester");
     expect(profilesRoute).toContain("updateProfileById");
+  });
+
+  it("lets authorized managers resolve drafts without weakening public profile reads", () => {
+    expect(profilesRoute).toContain("storage.getProfileBySlugForManagement(slug)");
+    expect(profilesRoute).toContain("storage.getProfileBySlugPublic(slug)");
+    expect(profileRepository).toContain("async getProfileBySlugForManagement");
+    expect(profileRepository).toContain("this.getProfileBySlugRecord(slug, false)");
+    expect(profileRepository.match(/this\.getProfileBySlugRecord\(slug, true\)/g)).toHaveLength(2);
   });
 
   it("routes live profiles by resolved siteTemplate ids", () => {

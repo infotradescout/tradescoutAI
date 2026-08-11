@@ -1465,11 +1465,11 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   const authenticatedViewerCanManage = Boolean(
     req && canAuthenticatedViewerPreviewProfile(req, ownerUserId)
   );
-  // Only a proven owner/staff manager may use the visibility-bypassing
-  // published read. Anonymous and unrelated authenticated viewers always use
+  // Only a proven owner/staff manager may use the draft-capable management
+  // read. Anonymous and unrelated authenticated viewers always use
   // the complete profile-scoped visibility + business trust boundary.
   const profile = authenticatedViewerCanManage
-    ? await storage.getProfileBySlugPublished(slug)
+    ? await storage.getProfileBySlugForManagement(slug)
     : await storage.getProfileBySlugPublic(slug);
   if (!profile || String(profile.id) !== String(profileOwner?.profileId || "")) {
     res.setHeader("Cache-Control", "private, no-store");
