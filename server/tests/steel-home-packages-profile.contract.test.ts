@@ -116,6 +116,12 @@ describe("Steel Home Packages unlisted profile contract", () => {
     }
   });
 
+  it("renders express URL prefill inside the intent-specific request fields", () => {
+    const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(composer).toContain('what: prefillTitle?.trim() || ""');
+    expect(composer).toContain('details: prefillDescription?.trim() || ""');
+  });
+
   it("locks the Phase 1 material scope to the three owner-confirmed partners", () => {
     expect(content.version).toBe(2);
     expect(content.phaseOnePackage.items.map((item) => [item.title, item.partner])).toEqual([
