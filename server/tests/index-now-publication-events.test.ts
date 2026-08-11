@@ -12,6 +12,7 @@ const inventoryBlock = {
     categories: [
       {
         category: "Granite",
+        categorySlug: "granite",
         stones: [
           {
             name: "Blue Pearl",
@@ -55,6 +56,37 @@ describe("IndexNow public operating-system publication events", () => {
         ["/u/new-slug"]
       )
     ).toEqual(["/u/old-slug", "/u/old-slug/inventory/retired-item", "/u/new-slug"]);
+  });
+
+  it("includes indexable category routes only after a profile-owned sitemap opt-in", () => {
+    const profile = {
+      slug: "stone-and-tile",
+      status: "published",
+      contentBlocks: [
+        {
+          type: "publicDiscovery",
+          data: {
+            sitemap: { categories: true },
+            categories: [
+              {
+                sourceSlug: "granite",
+                publicSlug: "natural-granite",
+                title: "Natural Granite",
+                summary: "Explore named natural granite materials published by Stone and Tile.",
+                indexable: true,
+              },
+            ],
+          },
+        },
+        inventoryBlock,
+      ],
+    };
+
+    expect(collectProfileIndexNowUrls(profile, true)).toEqual([
+      "/u/stone-and-tile",
+      "/u/stone-and-tile/categories/natural-granite",
+      "/u/stone-and-tile/inventory/blue-pearl",
+    ]);
   });
 
   it("publishes only public, authority-eligible business pages", () => {

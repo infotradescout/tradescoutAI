@@ -1,4 +1,5 @@
 import { buildProfilePublicItemUrl } from "./profilePublicItemRoute";
+import { sanitizePublicDiscoveryText } from "./publicListingSafety";
 
 const PROFILE_ITEM_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_PROFILE_ITEM_SLUG_LENGTH = 120;
@@ -12,6 +13,8 @@ type RawInventoryStone = {
   slug?: unknown;
   images?: unknown;
   shareImageOrder?: unknown;
+  publicSummary?: unknown;
+  publicKind?: unknown;
 };
 
 type RawInventoryCategory = {
@@ -28,6 +31,8 @@ export type ResolvedProfileInventoryItem = {
   images: string[];
   imageIndex: number;
   shareImageIndex: number;
+  publicSummary?: string;
+  publicKind?: "offering";
 };
 
 export type ProfileInventoryItemShareMetadata = {
@@ -43,6 +48,8 @@ export type ProfileInventoryItemShareMetadata = {
   imageUrl: string;
   imageAlt: string;
   canonical: string;
+  hasPublicSummary?: true;
+  publicKind?: "offering";
 };
 
 function firstQueryValue(value: unknown): string {
@@ -54,6 +61,27 @@ function capDescription(description: string): string {
   if (description.length <= MAX_PROFILE_ITEM_DESCRIPTION_LENGTH) return description;
   const truncated = description.slice(0, MAX_PROFILE_ITEM_DESCRIPTION_LENGTH - 1).trimEnd();
   return `${truncated}…`;
+}
+
+function normalizePublicSummary(value: unknown): string | null {
+  const summary = sanitizePublicDiscoveryText(value, 300)
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
+  return summary || null;
+}
+
+function publicDiscoveryFields(rawStone: RawInventoryStone): {
+  publicSummary?: string;
+  publicKind?: "offering";
+} {
+  const publicSummary = normalizePublicSummary(rawStone.publicSummary);
+  const publicKind = firstQueryValue(rawStone.publicKind).toLowerCase();
+  return {
+    ...(publicSummary ? { publicSummary } : {}),
+    ...(publicKind === "offering" ? { publicKind: "offering" as const } : {}),
+  };
 }
 
 function normalizePublicImageReference(value: unknown): string | null {
@@ -189,6 +217,7 @@ export function resolveProfileInventoryItem(
         images,
         imageIndex: displayImageIndex,
         shareImageIndex,
+        ...publicDiscoveryFields(rawStone),
       };
     }
   }
@@ -224,6 +253,7 @@ export function listProfileInventoryItems(categories: unknown): ResolvedProfileI
         images,
         imageIndex: shareImageOrder[0] ?? 0,
         shareImageIndex: 0,
+        ...publicDiscoveryFields(rawStone),
       });
       if (items.length >= MAX_PROFILE_INVENTORY_ITEMS) return items;
     }
@@ -289,15 +319,20 @@ export function createProfileInventoryItemShareMetadata(args: {
       shareImageIndex: item.shareImageIndex,
       title: itemIsProfile ? `${item.name} | TradeScout` : `${item.name} at ${profileName}`,
       description: capDescription(
-        itemIsProfile
-          ? `View ${item.name}${categoryDetail} and explore the material photos.`
-          : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo.`
+        item.publicSummary ||
+          (itemIsProfile
+            ? `View ${item.name}${categoryDetail} and explore the material photos.`
+            : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo.`)
       ),
       imageUrl,
       imageAlt: itemIsProfile
         ? `${item.name} material photo ${item.shareImageIndex + 1}`
-        : `${item.name} — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
+        : item.publicKind === "offering"
+          ? `${item.name} — ${profileName} material photo ${item.shareImageIndex + 1}`
+          : `${item.name} — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
       canonical,
+      ...(item.publicSummary ? { hasPublicSummary: true as const } : {}),
+      ...(item.publicKind === "offering" ? { publicKind: "offering" as const } : {}),
     };
   } catch {
     return null;

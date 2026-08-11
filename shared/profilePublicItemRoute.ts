@@ -17,6 +17,12 @@ export type ResolvedProfilePublicCategoryRoute = {
   routeSegment: string;
 };
 
+export type ProfilePublicSitemapConfig = {
+  inventory: boolean;
+  categories: boolean;
+  gallery: boolean;
+};
+
 const DEFAULT_ROUTE_SEGMENTS: ProfilePublicItemRouteSegments = {
   inventory: "inventory",
   gallery: "gallery",
@@ -71,11 +77,7 @@ function cleanRouteSegment(value: unknown, fallback: string): string {
   return segment;
 }
 
-function distinctRouteSegment(
-  configured: unknown,
-  fallbacks: string[],
-  used: Set<string>
-): string {
+function distinctRouteSegment(configured: unknown, fallbacks: string[], used: Set<string>): string {
   const preferred = cleanRouteSegment(configured, fallbacks[0]);
   for (const candidate of [preferred, ...fallbacks]) {
     if (!used.has(candidate) && !RESERVED_ROUTE_SEGMENTS.has(candidate)) return candidate;
@@ -145,6 +147,33 @@ export function readProfilePublicItemRouteSegments(
   );
 
   return { inventory, gallery, categories };
+}
+
+/**
+ * Child profile URLs are sitemap opt-ins. A published profile stays in the
+ * base profile sitemap, while material/category/gallery detail routes are only
+ * enumerated when profile-owned publicDiscovery data explicitly enables them.
+ */
+export function readProfilePublicSitemapConfig(contentBlocks: unknown): ProfilePublicSitemapConfig {
+  if (!Array.isArray(contentBlocks)) {
+    return { inventory: false, categories: false, gallery: false };
+  }
+  const block = (contentBlocks as PublicDiscoveryBlock[]).find(
+    (entry) => String(entry?.type || "").trim() === "publicDiscovery"
+  );
+  const data =
+    block?.data && typeof block.data === "object" && !Array.isArray(block.data)
+      ? (block.data as Record<string, unknown>)
+      : null;
+  const sitemap =
+    data?.sitemap && typeof data.sitemap === "object" && !Array.isArray(data.sitemap)
+      ? (data.sitemap as Record<string, unknown>)
+      : null;
+  return {
+    inventory: sitemap?.inventory === true,
+    categories: sitemap?.categories === true,
+    gallery: sitemap?.gallery === true,
+  };
 }
 
 export function buildProfilePublicItemPath(args: {

@@ -290,6 +290,27 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
     } satisfies PremiumProductProfileData,
   },
   {
+    type: "publicDiscovery",
+    data: {
+      sitemap: {
+        inventory: true,
+        categories: true,
+      },
+      categories: [
+        {
+          sourceSlug: "onyx",
+          publicSlug: "onyx",
+          title: "Translucent Onyx",
+          summary:
+            "Explore ISSA Build's Honey Onyx and Multi Green Onyx as distinct translucent materials for custom backlit residential and commercial interiors.",
+          leadItemSlug: "honey-onyx",
+          indexable: true,
+          collectionKind: "offerings",
+        },
+      ],
+    },
+  },
+  {
     // Identity + Direct Connect resolution only — not a public inventory browser.
     type: "inventoryCatalog",
     data: {
@@ -304,6 +325,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
               name: "Honey Onyx",
               slug: "honey-onyx",
               images: [...ISSA_BUILD_HONEY_ONYX_IMAGES],
+              publicKind: "offering",
+              publicSummary:
+                "Warm amber, translucent Honey Onyx from ISSA Build for custom backlit counters, walls, floors, stairs, and residential or commercial interiors.",
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
               hideFinishDetails: true,
@@ -314,6 +338,9 @@ export const ISSA_BUILD_PROFILE_CONTENT_BLOCKS = [
               name: "Multi Green Onyx",
               slug: "multi-green-onyx",
               images: [...ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES],
+              publicKind: "offering",
+              publicSummary:
+                "Layered green, translucent Multi Green Onyx from ISSA Build for custom backlit feature walls, baths, counters, floors, stairs, and other interiors.",
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
               hideFinishDetails: true,

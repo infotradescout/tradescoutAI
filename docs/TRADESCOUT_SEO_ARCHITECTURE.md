@@ -84,6 +84,7 @@ Implemented as SSR-injected JSON-LD:
 `/sitemap.xml` is an index sitemap pointing to:
 - Core routes: `/sitemap-core.xml`
 - Profiles: `/sitemap-profiles.xml`
+  - `/sitemap-u-profiles.xml` always lists eligible same-host profile canonicals and may also list child material/category/gallery canonicals only when that profile's `publicDiscovery.sitemap` data explicitly opts them in.
 - Directory businesses: `/sitemap-directory-businesses.xml` (paged)
 - Directory counties/cities: `/sitemap-directory-counties.xml`, `/sitemap-directory-cities.xml`
 - Trade scopes: `/sitemap-directory-trades.xml`, `/sitemap-directory-trade-cities.xml` (from snapshot tables)

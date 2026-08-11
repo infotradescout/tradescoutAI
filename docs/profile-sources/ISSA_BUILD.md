@@ -1,6 +1,6 @@
 # ISSA Build profile source record (operator)
 
-Last reviewed: 2026-07-22
+Last reviewed: 2026-08-11
 
 Operator-only. Do not surface co-tenancy, other businesses, or private contact into public profile copy.
 
@@ -33,8 +33,8 @@ Operator-only. Do not surface co-tenancy, other businesses, or private contact i
 - Contact stays gated: Intent → Decision Card → Contact.
 - Material requests retain all five intents: request material, match stone to a project, ask about a bundle, schedule a showroom visit, and something else.
 - The selected offering remains attached to the profile request source context.
-- Private phone / notification email are fields on the ISSA Build record only — never copied from another business, never emitted in the public profile payload.
-- Until the owner attaches routing, stewardship may leave private fields empty rather than invent contact data.
+- Operator confirmation (2026-08-11): the existing private TradeScout notification email and phone on the ISSA Build record are the intended Levon routing pair. Preserve that exact pair on ISSA Build.
+- The approved pair remains stored on the ISSA Build record itself; provisioning must not depend on another business record at runtime and must never emit either value in public HTML, structured data, sitemaps, or AI guidance.
 
 ## Share behavior
 

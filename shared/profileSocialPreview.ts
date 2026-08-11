@@ -204,7 +204,19 @@ export function buildProfileSocialTitle(args: {
   if (!itemName) return brandName;
 
   const category = args.itemType === "inventory" ? normalizedCategory(args.category) : "";
-  const itemLabel = [itemName, category].filter(Boolean).join(" ");
+  const normalizedItemName = itemName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  const normalizedCategoryName = category
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  const categoryAlreadyNamed =
+    Boolean(normalizedCategoryName) &&
+    (normalizedItemName === normalizedCategoryName ||
+      normalizedItemName.endsWith(` ${normalizedCategoryName}`));
+  const itemLabel = [itemName, categoryAlreadyNamed ? "" : category].filter(Boolean).join(" ");
   return `${itemLabel} | ${brandName}`.slice(0, 160);
 }
 

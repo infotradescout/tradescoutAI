@@ -79,7 +79,10 @@ describe("sitemap contracts", () => {
     expect(source).toContain("canonicalBusinessPresenceSitemapLoc");
     expect(source).toContain("p.status = 'published'");
     expect(source).toContain("p.id AS profile_id");
+    expect(source).toContain("p.content_blocks");
     expect(source).toContain("isPublishedProfileSitemapTargetPublic(row)");
+    expect(source).toContain("buildOptInProfileSitemapUrls({");
+    expect(source).toContain("profileUrl: profileLoc");
     expect(source).toContain("if (args.linkedProfile?.isPublic)");
     expect(source).toContain("if (target.customDomain) return null");
     expect(source).toContain("return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`");

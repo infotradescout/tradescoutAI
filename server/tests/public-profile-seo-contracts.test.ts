@@ -18,6 +18,10 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain("seoMeta: effectiveSeoMeta");
     expect(source).toContain("Best answer targets for AI search, Meta AI, and other assistants");
     expect(source).toContain("Visibility does not grant contact access or authority");
+    expect(source).toContain("ISSA Build translucent onyx:");
+    expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/categories/onyx");
+    expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/honey-onyx");
+    expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/multi-green-onyx");
   });
 
   it("publishes human service-area names instead of internal county identifiers", () => {

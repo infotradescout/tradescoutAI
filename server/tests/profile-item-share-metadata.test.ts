@@ -58,6 +58,41 @@ describe("profile inventory item sharing", () => {
     expect(metadata?.description).not.toContain("protected");
   });
 
+  it("uses profile-owned offering language without inventing inventory availability", () => {
+    const metadata = createProfileInventoryItemShareMetadata({
+      profileName: "ISSA Build",
+      profileUrl: "https://www.thetradescout.com/u/issa-build",
+      assetOrigin: "https://www.thetradescout.com",
+      categories: [
+        {
+          category: "Onyx",
+          categorySlug: "onyx",
+          stones: [
+            {
+              name: "Honey Onyx",
+              slug: "honey-onyx",
+              images: ["/images/businesses/issa-build/applications/03.jpg"],
+              publicKind: "offering",
+              publicSummary:
+                "Warm amber, translucent Honey Onyx from ISSA Build for custom backlit interiors.",
+            },
+          ],
+        },
+      ],
+      itemSlug: "honey-onyx",
+    });
+
+    expect(metadata).toMatchObject({
+      itemName: "Honey Onyx",
+      description:
+        "Warm amber, translucent Honey Onyx from ISSA Build for custom backlit interiors.",
+      imageAlt: "Honey Onyx — ISSA Build material photo 1",
+      hasPublicSummary: true,
+      publicKind: "offering",
+    });
+    expect(metadata?.description).not.toMatch(/current inventory|pricing|availability/i);
+  });
+
   it("keeps exact-photo URLs stable when presentation order changes", () => {
     const displayImages = ["/images/full-slab.webp", "/images/detail.webp", "/images/yard.webp"];
     const shareImageOrder = [1, 2, 0];
