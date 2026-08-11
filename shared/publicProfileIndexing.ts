@@ -1,3 +1,8 @@
+import {
+  isSteelHomePackagesProfilePubliclyReleased,
+  isSteelHomePackagesProfileSlug,
+} from "./steelHomePackagesProfile";
+
 export const INTERNAL_ADMIN_PROFILE_SLUGS = ["tradescout-admin", "super-admin"] as const;
 
 const internalAdminProfileSlugs = new Set<string>(INTERNAL_ADMIN_PROFILE_SLUGS);
@@ -11,5 +16,9 @@ export function isInternalAdminProfileSlug(slug: unknown): boolean {
 }
 
 export function shouldIndexPublicProfileSlug(slug: unknown): boolean {
-  return !isInternalAdminProfileSlug(slug);
+  if (isInternalAdminProfileSlug(slug)) return false;
+  if (isSteelHomePackagesProfileSlug(slug) && !isSteelHomePackagesProfilePubliclyReleased()) {
+    return false;
+  }
+  return true;
 }

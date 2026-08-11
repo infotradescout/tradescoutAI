@@ -3,6 +3,11 @@ import {
   PRECISION_AERIAL_STEWARD_PROVIDER,
 } from "@shared/precisionAerialProfile";
 import { isProfileVisibilityPublic as isSharedProfileVisibilityPublic } from "@shared/profileVisibility";
+import {
+  isSteelHomePackagesProfilePubliclyReleased,
+  isSteelHomePackagesProfileSlug,
+  STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
+} from "@shared/steelHomePackagesProfile";
 
 export const JRS_PROFILE_SLUG = "jrs-auto-glass";
 export const OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile";
@@ -96,6 +101,35 @@ function hasBaseDirectProfileAuthority(
 }
 
 /**
+ * The steel-home package page is intentionally reachable only by its exact
+ * URL while its operator-approved content and ownership are being finalized.
+ * A draft linked business prevents directory discovery; the published profile
+ * state is solely the existing schema's renderability switch.
+ */
+export function isSteelHomePackagesUnlistedDirectProfile(
+  candidate: OwnerConfirmedDirectProfileCandidate
+): boolean {
+  const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
+  const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
+
+  return (
+    isSteelHomePackagesProfileSlug(candidate.profileSlug) &&
+    !isSteelHomePackagesProfilePubliclyReleased() &&
+    String(candidate.profileStatus || "")
+      .trim()
+      .toLowerCase() === "published" &&
+    String(candidate.businessStatus || "")
+      .trim()
+      .toLowerCase() === "draft" &&
+    candidate.publicDiscoveryEnabled === false &&
+    profileOwnerUserId.length > 0 &&
+    profileOwnerUserId === businessOwnerUserId &&
+    Array.isArray(candidate.businessSources) &&
+    candidate.businessSources.includes(STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE)
+  );
+}
+
+/**
  * Direct profiles are deliberately narrow exceptions to general directory
  * exposure. A profile may be viewed and contacted only while its published
  * profile, active business, owner, and explicit provisioning authority remain
@@ -162,7 +196,28 @@ export function canExposePublishedProfilePublicly(
   ) {
     return false;
   }
+  if (
+    isSteelHomePackagesProfileSlug(candidate.profileSlug) &&
+    !isSteelHomePackagesProfilePubliclyReleased()
+  ) {
+    return false;
+  }
   return isProfileVisibilityPublic(candidate) && canExposeLinkedBusinessProfilePublicly(candidate);
+}
+
+/**
+ * Canonical read boundary for an exact profile URL. Normal profiles must pass
+ * the full public-exposure gate. The operator-approved steel-home draft gets
+ * one narrow unlisted exception so its URL and Direct Connect destination can
+ * be reviewed without entering search, maps, sitemaps, or index metadata.
+ */
+export function canServePublishedProfileAtDirectRoute(
+  candidate: PublishedProfileExposureCandidate
+): boolean {
+  return (
+    isSteelHomePackagesUnlistedDirectProfile(candidate) ||
+    canExposePublishedProfilePublicly(candidate)
+  );
 }
 
 /**

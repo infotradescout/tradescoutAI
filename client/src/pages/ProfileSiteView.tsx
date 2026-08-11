@@ -33,6 +33,7 @@ import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileT
 import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
 import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
+import SteelHomePackagesProfile from "@/pages/profile-sites/SteelHomePackagesProfile";
 import LocalServiceProfileTheme, {
   type PublicCommunityVerification,
 } from "@/pages/profile-sites/LocalServiceProfileTheme";
@@ -76,6 +77,11 @@ import {
   type LocalServiceProfilePresentation,
 } from "@shared/localServiceProfile";
 import { PRECISION_AERIAL_PROFILE_SLUG } from "@shared/precisionAerialProfile";
+import {
+  isSteelHomePackagesProfileSlug,
+  STEEL_HOME_PACKAGES_PROFILE_CONTENT,
+  STEEL_HOME_PACKAGES_START_REQUEST_PATH,
+} from "@shared/steelHomePackagesProfile";
 import {
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
@@ -1607,6 +1613,33 @@ export default function ProfileSiteView() {
         </div>
       </section>
     ) : null;
+
+  if (isSteelHomePackagesProfileSlug(profile.slug)) {
+    const steelHomeRequestHref = qualifyPublicProfileItemDestination(
+      STEEL_HOME_PACKAGES_START_REQUEST_PATH,
+      platformBaseHref
+    );
+
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          socialTitle={socialTitle}
+          description={
+            profile.seoMeta?.description || STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body
+          }
+          canonical={seoCanonical}
+          ogType="website"
+          noIndex
+        />
+        {manageChrome}
+        <SteelHomePackagesProfile
+          requestHref={steelHomeRequestHref}
+          platformBaseHref={platformBaseHref}
+        />
+      </>
+    );
+  }
 
   if (profile.slug === PRECISION_AERIAL_PROFILE_SLUG) {
     return (
