@@ -89,6 +89,7 @@ import {
   seedBlocksForTemplate,
   type ProfileSiteTemplateId,
 } from "@shared/profileSiteTemplates";
+import { buildPublicProfileAppManifestPath } from "@shared/publicProfileApp";
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
 import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
@@ -699,6 +700,43 @@ export default function ProfileSiteView() {
 
     run();
   }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
+
+  // Full profile loads receive the profile manifest from server-rendered HTML.
+  // Keep client-side transitions correct too so installing from an in-app
+  // profile visit never falls back to the generic TradeScout app identity.
+  useEffect(() => {
+    if (!data?.profile?.slug || typeof document === "undefined") return;
+    const manifestPath = buildPublicProfileAppManifestPath(data.profile.slug);
+    if (!manifestPath) return;
+
+    let manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    const created = !manifestLink;
+    if (!manifestLink) {
+      manifestLink = document.createElement("link");
+      manifestLink.rel = "manifest";
+      document.head.appendChild(manifestLink);
+    }
+    const previousHref = manifestLink.getAttribute("href");
+    const previousPlatformHref = manifestLink.getAttribute("data-platform-manifest-href");
+    const platformManifestHref =
+      previousPlatformHref ||
+      (previousHref && previousHref !== manifestPath ? previousHref : "/manifest.json");
+    manifestLink.setAttribute("data-platform-manifest-href", platformManifestHref);
+    manifestLink.setAttribute("href", manifestPath);
+
+    return () => {
+      if (!manifestLink || manifestLink.getAttribute("href") !== manifestPath) return;
+      if (created) manifestLink.remove();
+      else {
+        manifestLink.setAttribute("href", platformManifestHref);
+        if (previousPlatformHref) {
+          manifestLink.setAttribute("data-platform-manifest-href", previousPlatformHref);
+        } else {
+          manifestLink.removeAttribute("data-platform-manifest-href");
+        }
+      }
+    };
+  }, [data?.profile?.slug]);
 
   useEffect(() => {
     if (!data || typeof window === "undefined") return;

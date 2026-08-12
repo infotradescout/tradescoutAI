@@ -34,6 +34,7 @@ import {
 } from "@shared/jwStonePresentation";
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
+import { buildPublicProfileAppManifestPath } from "@shared/publicProfileApp";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -348,6 +349,22 @@ function injectFaviconOverride(html: string, imageUrl: string): string {
     .replace(/<link rel="apple-touch-icon"[^>]*>\s*/gi, "");
   const tag = `<link rel="icon" href="${escapeHtml(imageUrl)}" />\n    <link rel="apple-touch-icon" href="${escapeHtml(imageUrl)}" />`;
   return withoutIcons.replace("</head>", `${tag}\n</head>`);
+}
+
+function injectProfileAppManifest(html: string, slug: string): string {
+  const manifestPath = buildPublicProfileAppManifestPath(slug);
+  if (!manifestPath) return html;
+  const manifestTagPattern = /<link\b(?=[^>]*\brel\s*=\s*(["'])manifest\1)[^>]*>\s*/i;
+  const currentManifestTag = html.match(manifestTagPattern)?.[0] || "";
+  const platformManifestHref =
+    currentManifestTag.match(/\bhref\s*=\s*(["'])(.*?)\1/i)?.[2] || "/manifest.json";
+  return upsertTag(
+    html,
+    manifestTagPattern,
+    `<link rel="manifest" href="${escapeHtml(
+      manifestPath
+    )}" data-platform-manifest-href="${escapeHtml(platformManifestHref)}" />`
+  );
 }
 
 // The client-side router only recognizes profile pages by URL path
@@ -1127,6 +1144,7 @@ export async function buildPublicProfileHtml({
     /<link rel="canonical"[^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
+  html = injectProfileAppManifest(html, profileRecord.slug);
   if (meta.faviconUrl) {
     html = injectFaviconOverride(html, meta.faviconUrl);
   }

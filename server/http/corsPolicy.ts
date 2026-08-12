@@ -5,6 +5,8 @@ const CORS_NEUTRAL_PUBLIC_PREFIXES = [
   "/fonts/",
   "/icons/",
   "/landing/",
+  "/profile-app-icons/",
+  "/profile-manifests/",
   "/scoutfitters/",
 ];
 
