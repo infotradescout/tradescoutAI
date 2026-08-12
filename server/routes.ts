@@ -40,6 +40,7 @@ import { registerBusinessContactRoutes } from "./routes/business-contact";
 import { registerTradePartnerExpressRoutes } from "./routes/tradepartner-express";
 import { registerJwStoneSavedStonesEmailRoutes } from "./routes/jw-stone-saved-stones-email";
 import { registerJwStoneExpressRoutes } from "./routes/jw-stone-express";
+import { registerStoneDesignerImageRoutes } from "./routes/stone-designer-images";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
 import { registerTutorialRoutes } from "./routes/tutorials";
@@ -1417,6 +1418,7 @@ const DEFAULT_FIRST_INTRO_APPENDIX =
   'TradeScout is a community operating system that keeps projects and dollars local. Homeowners and contractors can connect, message, and run the full job flow—quotes, scheduling, invoices, and payments (including off-site work). Beyond jobs, TradeScout includes a local marketplace, community feed and groups, and real neighborhood tools so communities can manage vendors, requests, budgets, and decisions with total transparency. Community Builders and the foundation layer add public accountability and local reinvestment—so TradeScout isn’t just "find a pro," it’s how a town organizes and improves itself.';
 
 export async function registerRoutes(app: any) {
+  registerStoneDesignerImageRoutes(app);
   const buildRevision = resolveBuildRevision();
 
   // Setup authentication

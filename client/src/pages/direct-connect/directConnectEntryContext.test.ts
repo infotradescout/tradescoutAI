@@ -100,11 +100,13 @@ describe("directConnectEntryContext", () => {
   it("carries deliberate project location and timing into the request composer", () => {
     expect(
       parseDirectConnectEntryContext(
-        "/direct-connect?subject=product&location=Natalbany%2C%20LA%2070451&when=Within%206%20months"
+        "/direct-connect?subject=product&location=Natalbany%2C%20LA%2070451&county=22105&state=la&when=Within%206%20months"
       )
     ).toMatchObject({
       subjectType: "product",
       location: "Natalbany, LA 70451",
+      countyFips: "22105",
+      stateCode: "LA",
       timing: "Within 6 months",
     });
   });

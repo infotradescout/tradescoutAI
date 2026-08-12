@@ -86,6 +86,9 @@ import { loadCanonicalPublicMapProfileUrls } from "../repositories/profileReposi
 import { registerDirectConnectJobLifecycleRoutes } from "./direct-connect/job-lifecycle";
 import { DiscoveryObservatoryService } from "../services/discoveryObservatoryService";
 import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
+import { hasVerifiedTradeScoutAdminCustody } from "../services/ownerConfirmedDirectProfile";
+import { isSteelHomePackagesProfileSlug } from "@shared/steelHomePackagesProfile";
+import { getCountyByFips as getStaticCountyByFips } from "@shared/states-counties";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -6494,6 +6497,28 @@ export function registerDirectConnectRoutes(app: Express) {
         const attachments = normalizeAttachmentKeys(body.attachments);
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
+        if (bodyCounty) {
+          const jobsiteCounty = await storage.getCountyByFips(bodyCounty);
+          const staticJobsiteCounty = getStaticCountyByFips(bodyCounty);
+          const countyStateCode = String(
+            jobsiteCounty?.stateCode || staticJobsiteCounty?.state || ""
+          )
+            .trim()
+            .toUpperCase();
+          if ((!jobsiteCounty && !staticJobsiteCounty) || !/^[A-Z]{2}$/.test(countyStateCode)) {
+            return res.status(400).json({
+              code: "INVALID_JOBSITE_COUNTY",
+              message: "Choose a valid jobsite county before posting this request.",
+            });
+          }
+          if (bodyState && bodyState !== countyStateCode) {
+            return res.status(400).json({
+              code: "JOBSITE_LOCATION_MISMATCH",
+              message: "The jobsite state and county do not match.",
+            });
+          }
+          stateCode = countyStateCode;
+        }
 
         const targetProfile = body.targetProfileSlug
           ? await storage.getProfileBySlugPublic(body.targetProfileSlug)
@@ -6512,6 +6537,25 @@ export function registerDirectConnectRoutes(app: Express) {
             code: "TARGET_PROFILE_NOT_FOUND",
             message: "This profile is no longer available for Direct Connect requests.",
           });
+        }
+        if (targetProfile && isSteelHomePackagesProfileSlug(targetProfile.slug)) {
+          const targetOwner = targetProfileOwnerUserId
+            ? await storage.getUser(targetProfileOwnerUserId)
+            : undefined;
+          if (
+            !targetOwner ||
+            !hasVerifiedTradeScoutAdminCustody({
+              ownerRole: targetOwner.role,
+              ownerRoles: targetOwner.roles,
+              ownerVerifiedBadge: targetOwner.verifiedBadge,
+              ownerVerificationStatus: targetOwner.verificationStatus,
+            })
+          ) {
+            return res.status(404).json({
+              code: "TARGET_PROFILE_NOT_FOUND",
+              message: "This profile is no longer available for Direct Connect requests.",
+            });
+          }
         }
         if (targetProfileOwnerUserId === ownerUserId) {
           return res.status(400).json({

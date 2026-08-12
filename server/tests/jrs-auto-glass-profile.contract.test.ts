@@ -172,7 +172,8 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileView).toContain("Vehicle year, make, model, and VIN (if available)");
     expect(profileView).toContain("Camera or sensors near the glass");
     expect(profileView).toContain("Insurance claim or self-pay");
-    expect(composer).toContain("payload.targetProfileSlug = prefillContextId.trim()");
+    expect(composer).toContain("const targetProfileSlug = prefillContextId.trim()");
+    expect(composer).toContain("payload.targetProfileSlug = targetProfileSlug");
     expect(route).toContain("targetProfileSlug:");
     expect(route).toContain("await storage.getProfileBySlugPublic(body.targetProfileSlug)");
     expect(route).toContain('scope: isExplicitTarget ? "personal" : "community"');

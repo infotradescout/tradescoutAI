@@ -1803,6 +1803,10 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
       businessSources: linkedBusiness?.sources,
       businessClaimStatus: linkedBusiness?.claimStatus,
+      ownerRole: ownerUser.role,
+      ownerRoles: ownerUser.roles,
+      ownerVerifiedBadge: ownerUser.verifiedBadge,
+      ownerVerificationStatus: ownerUser.verificationStatus,
       ownerProvider: ownerUser.provider,
       ownerPreferences: ownerUser.preferences,
     };

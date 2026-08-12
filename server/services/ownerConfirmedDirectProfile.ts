@@ -29,6 +29,10 @@ export type OwnerConfirmedDirectProfileCandidate = {
   publicDiscoveryEnabled: unknown;
   businessSources: unknown;
   businessClaimStatus?: unknown;
+  ownerRole?: unknown;
+  ownerRoles?: unknown;
+  ownerVerifiedBadge?: unknown;
+  ownerVerificationStatus?: unknown;
   ownerProvider?: unknown;
   ownerPreferences?: unknown;
 };
@@ -43,10 +47,37 @@ export type PublishedProfileExposureCandidate = LinkedBusinessProfileExposureCan
   profileId: unknown;
 };
 
-function recordValue(value: unknown): Record<string, any> {
+function recordValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, any>)
+    ? (value as Record<string, unknown>)
     : {};
+}
+
+function normalizeRole(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+export function hasVerifiedTradeScoutAdminCustody(candidate: {
+  ownerRole?: unknown;
+  ownerRoles?: unknown;
+  ownerVerifiedBadge?: unknown;
+  ownerVerificationStatus?: unknown;
+}): boolean {
+  const roles = [
+    normalizeRole(candidate.ownerRole),
+    ...(Array.isArray(candidate.ownerRoles) ? candidate.ownerRoles.map(normalizeRole) : []),
+  ];
+  const hasStaffAdminRole = roles.some((role) => role === "super_admin" || role === "head_admin");
+
+  return (
+    hasStaffAdminRole &&
+    isPubliclyVerifiedProfileOwner({
+      ownerVerifiedBadge: candidate.ownerVerifiedBadge,
+      ownerVerificationStatus: candidate.ownerVerificationStatus,
+    })
+  );
 }
 
 function hasExactPrecisionStewardAuthority(
@@ -122,6 +153,7 @@ export function isSteelHomePackagesUnlistedDirectProfile(
       .trim()
       .toLowerCase() === "draft" &&
     candidate.publicDiscoveryEnabled === false &&
+    hasVerifiedTradeScoutAdminCustody(candidate) &&
     profileOwnerUserId.length > 0 &&
     profileOwnerUserId === businessOwnerUserId &&
     Array.isArray(candidate.businessSources) &&

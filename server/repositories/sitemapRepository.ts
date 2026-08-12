@@ -45,6 +45,8 @@ export class SitemapRepository {
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
+        ownerRole: users.role,
+        ownerRoles: users.roles,
         ownerProvider: users.provider,
         ownerPreferences: users.preferences,
         businessStatus: businesses.status,
