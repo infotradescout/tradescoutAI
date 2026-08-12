@@ -23,6 +23,7 @@ export type DirectConnectEntryContextType =
 
 export type DirectConnectEntryContext = {
   countyFips?: string;
+  stateCode?: string;
   targetProviderId?: string;
   targetUserId?: string;
   targetName?: string;
@@ -155,6 +156,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
 
   return {
     countyFips: readFirst(params, "county", "prefill_countyFips"),
+    stateCode: readFirst(params, "state", "stateCode", "prefill_stateCode")?.toUpperCase(),
     targetProviderId: providerId,
     targetUserId: readFirst(params, "target"),
     targetName: readFirst(params, "targetName", "prefill_businessName") || itemName || profileName,

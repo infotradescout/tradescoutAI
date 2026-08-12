@@ -1236,6 +1236,7 @@ function RequestAttachmentStrip({
 function DirectConnectRequestComposer({
   entryLocation,
   defaultCountyFips,
+  defaultStateCode,
   prefillTargetUserId,
   prefillTargetProviderId,
   prefillTargetName,
@@ -1254,6 +1255,7 @@ function DirectConnectRequestComposer({
 }: {
   entryLocation?: string;
   defaultCountyFips?: string;
+  defaultStateCode?: string;
   prefillTargetUserId?: string;
   prefillTargetProviderId?: string;
   prefillTargetName?: string;
@@ -1899,8 +1901,14 @@ function DirectConnectRequestComposer({
       };
 
       if (defaultCountyFips) payload.countyFips = defaultCountyFips;
-      const stateCode =
+      const requestedStateCode = String(defaultStateCode || "")
+        .trim()
+        .toUpperCase();
+      const viewerStateCode =
         typeof (user as any)?.stateCode === "string" ? String((user as any).stateCode) : "";
+      const stateCode = /^[A-Z]{2}$/.test(requestedStateCode)
+        ? requestedStateCode
+        : viewerStateCode;
       if (stateCode.trim().length === 2) payload.stateCode = stateCode.trim().toUpperCase();
 
       const min = Number(budgetMin);
@@ -5221,6 +5229,7 @@ export default function DirectConnectShell() {
     [directConnectLocation]
   );
   const defaultCountyFips = requestPrefill?.countyFips;
+  const defaultStateCode = requestPrefill?.stateCode;
 
   // Deep links from the Messages job-assist card (e.g. ?jobWorkspaceId=...&action=create_estimate)
   // land here with no handling; surface the matching panel above the section content.
@@ -5485,6 +5494,7 @@ export default function DirectConnectShell() {
         <DirectConnectRequestComposer
           entryLocation={directConnectLocation}
           defaultCountyFips={defaultCountyFips}
+          defaultStateCode={defaultStateCode}
           prefillTargetUserId={requestPrefill?.targetUserId}
           prefillTargetProviderId={requestPrefill?.targetProviderId}
           prefillTargetName={requestPrefill?.targetName}
@@ -5623,30 +5633,52 @@ export default function DirectConnectShell() {
             />
             {activeSection !== "employment" ? (
               <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
-                <p className="text-sm text-[color:var(--text-primary)]">
-                  {directConnectFirstTaskPrompt.message}
-                </p>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-[color:var(--border-subtle)]"
-                  onClick={() => {
-                    let targetRoute = "/direct-connect";
-                    trackRepeatedFrictionSignal({
-                      key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
-                      type: "direct_connect_repeated_cta_click",
-                      threshold: 3,
-                      windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
-                      payload: {
-                        source: location || "/direct-connect",
-                        section: "first_task_prompt",
-                        reason: directConnectFirstTaskPrompt.ctaLabel,
-                        blocked: false,
-                      },
-                    });
-                    if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
-                      targetRoute = "/homes";
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                  <p className="text-sm text-[color:var(--text-primary)]">
+                    {directConnectFirstTaskPrompt.message}
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-[color:var(--border-subtle)]"
+                    onClick={() => {
+                      let targetRoute = "/direct-connect";
+                      trackRepeatedFrictionSignal({
+                        key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
+                        type: "direct_connect_repeated_cta_click",
+                        threshold: 3,
+                        windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
+                        payload: {
+                          source: location || "/direct-connect",
+                          section: "first_task_prompt",
+                          reason: directConnectFirstTaskPrompt.ctaLabel,
+                          blocked: false,
+                        },
+                      });
+                      if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
+                        targetRoute = "/homes";
+                        trackFirstUseTaskPromptClicked({
+                          surface: "direct_connect",
+                          promptMessage: directConnectFirstTaskPrompt.message,
+                          ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                          targetRoute,
+                          userState: firstUseUserState,
+                        });
+                        navigate("/homes");
+                        return;
+                      }
+                      if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
+                        targetRoute = "/direct-connect/active";
+                        trackFirstUseTaskPromptClicked({
+                          surface: "direct_connect",
+                          promptMessage: directConnectFirstTaskPrompt.message,
+                          ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                          targetRoute,
+                          userState: firstUseUserState,
+                        });
+                        navigate("/direct-connect/active");
+                        return;
+                      }
                       trackFirstUseTaskPromptClicked({
                         surface: "direct_connect",
                         promptMessage: directConnectFirstTaskPrompt.message,
@@ -5654,34 +5686,12 @@ export default function DirectConnectShell() {
                         targetRoute,
                         userState: firstUseUserState,
                       });
-                      navigate("/homes");
-                      return;
-                    }
-                    if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
-                      targetRoute = "/direct-connect/active";
-                      trackFirstUseTaskPromptClicked({
-                        surface: "direct_connect",
-                        promptMessage: directConnectFirstTaskPrompt.message,
-                        ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                        targetRoute,
-                        userState: firstUseUserState,
-                      });
-                      navigate("/direct-connect/active");
-                      return;
-                    }
-                    trackFirstUseTaskPromptClicked({
-                      surface: "direct_connect",
-                      promptMessage: directConnectFirstTaskPrompt.message,
-                      ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                      targetRoute,
-                      userState: firstUseUserState,
-                    });
-                    navigate("/direct-connect");
-                  }}
-                >
-                  {directConnectFirstTaskPrompt.ctaLabel}
-                </Button>
-              </CardContent>
+                      navigate("/direct-connect");
+                    }}
+                  >
+                    {directConnectFirstTaskPrompt.ctaLabel}
+                  </Button>
+                </CardContent>
               </Card>
             ) : null}
           </>

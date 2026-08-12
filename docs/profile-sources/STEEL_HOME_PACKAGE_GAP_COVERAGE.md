@@ -1,8 +1,15 @@
-# Steel Home TradePartners gap-coverage pipeline
+# Steel Home Project Tools gap-coverage pipeline
 
 Checked: 2026-08-11
 
 Internal sourcing research only. Inclusion means the company publicly describes a relevant program; it does not mean TradeScout has been accepted, has negotiated terms, or may use the company's name in public marketing.
+
+## Public visibility boundary
+
+- This record may retain company names for private sourcing and negotiation work.
+- The customer-facing Steel Home Project Tools page, designer labels, saved briefs, image URLs, and initial Direct Connect handoffs remain TradeScout-only and do not expose those names.
+- A fulfillment identity appears later only when a final manufacturer specification, certification, warranty, quote, order, invoice, delivery, or required disclosure needs it.
+- Gap coverage expands private operations; it does not turn the public tools into an all-in-one home package or authorize combined-price, turnkey, or complete-home claims.
 
 ## Decision rule
 
@@ -62,7 +69,7 @@ Before moving any gap from research to a TradeScout quote:
 - document minimum orders, advertised-pricing rules, branding, blind shipping, lead times, freight terms, damaged-goods claims, cancellations, returns, and chargebacks;
 - identify the actual manufacturer, warrantor, service administrator, license holder, and installer responsibilities in the written customer scope;
 - build an internal escalation owner so the customer can stay with TradeScout when an outside order has a problem;
-- keep the category off the public package page until the operational owner approves both the commercial terms and the claim language.
+- keep the category off the public project-tools page until the operational owner approves both the commercial terms and the claim language.
 
 ## Recommended outreach order
 
