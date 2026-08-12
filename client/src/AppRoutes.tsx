@@ -1308,7 +1308,12 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={CountyTransparency} />
               </Route>
 
-              {/* Admin routes (gated by user.isAdmin === true) */}
+              {/* Admin routes; the JW offer workspace also admits its exact profile owner server-side. */}
+              <Route path="/admin/jw-stone-offers">
+                <ProtectedRoute>
+                  <LazyPage Component={AdminShell} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/admin">
                 <ProtectedRoute adminOnly>
                   <LazyPage Component={AdminShell} />

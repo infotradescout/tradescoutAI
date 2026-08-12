@@ -178,6 +178,15 @@ class EmailService {
         purpose === "tradepartner_request_confirmation" ||
         // Customer-only copy of JW Stone browser-saved stones (not a JW notify).
         purpose === "jw_stone_saved_stones_copy" ||
+        // JW Stone Express Account and sealed-offer delivery is durable in the
+        // JW outbox. These explicit purposes must remain available in the
+        // production account-only mode; suppressing them would strand account
+        // verification, recovery, and already-committed private offers.
+        purpose === "jw_stone_express_verification" ||
+        purpose === "jw_stone_express_password_reset" ||
+        purpose === "jw_stone_offer_confirmation" ||
+        purpose === "jw_stone_offer_staff_alert" ||
+        purpose === "jw_stone_offer_status" ||
         purpose === "property_participant_invite";
       if (!allowed) {
         console.warn("[email] send suppressed by EMAIL_MODE=account_creation_only", baseLog);

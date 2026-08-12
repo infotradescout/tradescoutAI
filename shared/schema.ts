@@ -11539,3 +11539,7 @@ export type ToolProposalEvidence = typeof toolProposalEvidence.$inferSelect;
 export type InsertToolProposalEvidence = typeof toolProposalEvidence.$inferInsert;
 export type ToolProposalDecision = typeof toolProposalDecisions.$inferSelect;
 export type InsertToolProposalDecision = typeof toolProposalDecisions.$inferInsert;
+
+// JW Stone Express Account and sealed private-offer records are intentionally
+// independent from TradeScout user identity. The module owns that boundary.
+export * from "./schema/jwStoneExpress";

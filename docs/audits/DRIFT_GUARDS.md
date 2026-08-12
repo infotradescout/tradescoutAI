@@ -14,6 +14,7 @@ Create a maintained map:
 - `LAW_ID_TRUST_EXPOSURE` -> trust snapshots job + trust filtering + direct-connect gating.
 - `LAW_ID_GLOBAL_READ_ONLY` -> community global scope read and local interaction blocks.
 - `LAW_ID_NO_PAY_TO_PLAY` -> disabled boost endpoint + ordering constraints.
+- `LAW_ID_JW_PRIVATE_OFFER_GATING` -> `server/routes/jw-stone-express.ts`, `server/routes/admin-jw-stone-offers.ts`, immutable offer events, and JW-only Express identity tables.
 
 Definition: every law must map to at least one runtime enforcement point and at least one test.
 
@@ -48,6 +49,11 @@ Add checks to CI:
 4. Positioning scope check:
    - Flag new general-purpose public copy that frames TradeScout as contractor-only or homeowner-only unless the surface is explicitly a contractor campaign, homeowner campaign, trade-specific SEO page, HomeID/HomeScout context, or legacy compatibility surface.
    - Preferred broad framing: local opportunity infrastructure, verified intent, connection, local exchange, people, businesses, providers, and communities.
+5. JW Stone private-offer boundary check:
+   - Reject any link from JW Express accounts or offers to TradeScout `users` identity.
+   - Keep `pending_verification` offers out of operator queues and keep customer contact masked until an audited reveal action.
+   - Keep container priority server-owned and private: amount descending, current submission time ascending, immutable offer ID ascending.
+   - Reject public offer counts, ranks, competing amounts, auction language, payment capture, reservation claims, or acceptance-as-sale behavior without an explicitly approved contract change.
 
 ## 4) Runtime Telemetry Guards
 

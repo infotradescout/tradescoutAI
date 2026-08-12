@@ -4,98 +4,118 @@
   "project": {
     "id": "jw-stone-2-0",
     "name": "JW Stone 2.0",
-    "profile": "standard"
+    "profile": "high_assurance"
   },
   "release": {
-    "id": "jw-stone-2-0-r1",
-    "version": "1.1.1",
-    "smallest_complete_loop": "A visitor opens the separate JW Stone route, immediately browses and opens real supplied catalog selections under the approved Current Inventory heading without treating them as live-stock claims, optionally uses independent refinements or one compact customer-path guide with sourced knowledge and evidence-linked real items, saves named stones without an account, returns to the saved selection, and deliberately starts an inquiry when ready."
+    "id": "jw-stone-private-offers-r1",
+    "version": "2.0.0",
+    "smallest_complete_loop": "A visitor opens JW Stone, chooses any real Current Inventory listing or published container, creates or signs into a JW-only Express Account, submits and manages a sealed private USD offer, and an authorized JW operator reviews the masked offer, deliberately reveals contact, and processes container opportunities in highest-offer-first order without exposing competing bids or creating a TradeScout customer account."
   },
   "active_build": {
-    "id": "jw-stone-marketplace",
-    "contract": "builds/jw-stone-marketplace/contract.md",
-    "evidence": "builds/jw-stone-marketplace/evidence.md"
+    "id": "jw-stone-private-offers",
+    "contract": "builds/jw-stone-private-offers/contract.md",
+    "evidence": "builds/jw-stone-private-offers/evidence.md"
   },
   "authority": {
     "governing_sources": [
-      "The user's explicit corrections and execution brief in the current JW Stone 2.0 workstream",
-      "Canonical repository inventory and profile behavior at base revision 999481b602c2f99499c69a0c90b3840d4af0a158",
-      "Existing TradeScout privacy, identity, routing, and Direct Connect contracts"
+      "The product owner's explicit JW Stone private-offer, Express Account, and container-priority request received 2026-08-11",
+      "Canonical repository architecture and JW marketplace behavior at base revision 29f9bdd8d0b012220b966f719b54f4a61df31e78",
+      "Existing TradeScout Intent to Decision Card to Contact law, adapted without reusing TradeScout customer identity"
     ],
     "decision_owners": {
       "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
       "technical": "The implementing Codex agent within the locked product and repository boundaries",
-      "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      "legal_or_regulated": "Existing TradeScout privacy and contact boundaries remain authoritative; offer acceptance is explicitly non-payment and non-binding until separately contracted"
     }
   },
   "verdicts": {
     "intent": "locked",
     "definition": "locked",
-    "build": "blocked",
-    "as_built": "partial",
+    "build": "aligned",
+    "as_built": "not_started",
     "release": "blocked"
   },
   "material_blockers": [],
   "artifacts": [
     {
       "path": "intent-contract.md",
-      "version": "1.1.1",
-      "sha256": "36d31feee88f638725b9196f16a0358eb78ae81865d9b5c2697ca89b7616bc34"
+      "version": "2.0.0",
+      "sha256": "af9b8be9c72e4b02747338dd00d82ec54aac35f6e0c6cc01e1cf25268361ee93"
     },
     {
       "path": "scope-release.md",
-      "version": "1.1.1",
-      "sha256": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9"
+      "version": "2.0.0",
+      "sha256": "b67d72c29ed7c4ef7c106a79f813915d93e7909035231d26cbf44d33a0928191"
     },
     {
       "path": "experience-surfaces.md",
-      "version": "1.1.1",
-      "sha256": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36"
+      "version": "2.0.0",
+      "sha256": "4af6ba68ea4789037e6e370620fbe341df11da159956ac03bc6a3d8c63a453da"
     },
     {
       "path": "architecture-contract.md",
-      "version": "1.1.1",
-      "sha256": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788"
+      "version": "2.0.0",
+      "sha256": "37aaf7d8ac000d91ce4be8b862160579f8124b41a448b92f7326230423b0c9d0"
     },
     {
       "path": "data-contract.md",
-      "version": "1.1.1",
-      "sha256": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af"
+      "version": "2.0.0",
+      "sha256": "84dc1a976895052dfa3b5588a329bde6a425d209bb4d4f1efbf339f883d55a73"
     },
     {
       "path": "api-integrations.md",
-      "version": "1.1.1",
-      "sha256": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b"
+      "version": "2.0.0",
+      "sha256": "fbeb40a9b7711674d207c4223b7535259c33930e2db79c6520ba7864e3b9bade"
     },
     {
       "path": "security-operations.md",
-      "version": "1.1.1",
-      "sha256": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769"
+      "version": "2.0.0",
+      "sha256": "bdf20c0ab5310dbec847430974d84b3539529bffc01af925cc62307ff6f35828"
     },
     {
       "path": "delivery-map.md",
-      "version": "1.1.1",
-      "sha256": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c"
+      "version": "2.0.0",
+      "sha256": "b06b1fcbbbda88b56e50b354cf06db984b7db82501ca87d8efe0767bb88c6870"
     },
     {
       "path": "traceability.md",
-      "version": "1.1.1",
-      "sha256": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358"
+      "version": "2.0.0",
+      "sha256": "77e992eb7fdc592bd920f942765d45546ad5b757b5eb65af40ceadae42754a37"
     },
     {
       "path": "decisions-changes.md",
-      "version": "1.1.1",
-      "sha256": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090"
+      "version": "2.0.0",
+      "sha256": "5b6eb71d326f36ca435f10d404fb3603ab72942fb89c33606ad32e29ab31baec"
     },
     {
       "path": "builds/jw-stone-marketplace/contract.md",
       "version": "1.1.1",
-      "sha256": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd"
+      "sha256": "940d2b8e0de90ca32480054d3c65c9e0f3b6699ddabfdcbfd03bf08ec6647ab4"
     },
     {
       "path": "builds/jw-stone-marketplace/evidence.md",
       "version": "1.1.1",
-      "sha256": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
+      "sha256": "67af589c1da6ece357dc146102db4cc6dd923b8a3d198a31144459a5888a758f"
+    },
+    {
+      "path": "private-offers-amendment.md",
+      "version": "2.0.0",
+      "sha256": "8787c0567823857c7206d348dbc37ac86a609f1b6daa8c4105b141a62d120501"
+    },
+    {
+      "path": "builds/jw-stone-private-offers/contract.md",
+      "version": "2.0.0",
+      "sha256": "7559afbc4a0bdd4666d4f2823e0cfe2506e04e594dd773c09e607757f3576729"
+    },
+    {
+      "path": "builds/jw-stone-private-offers/evidence.md",
+      "version": "2.0.0",
+      "sha256": "992f8b0945a335b2fe5c88485f37f735bdb6abbc4f5c6584556144e7db135eeb"
+    },
+    {
+      "path": "builds/jw-stone-private-offers/definition-review.md",
+      "version": "2.0.0",
+      "sha256": "8d96799c8eb8dad83be6dda720116eb3173a73cfd633fefef23a98c16def889e"
     }
   ],
   "requirements": [
@@ -350,12 +370,231 @@
       "acceptance": "The final evidence names exact commands, counts, revision, screenshots, diff review, branch, commit, push state, and every genuine blocker.",
       "owner": "existing-jw-profile",
       "proof": "Exact-head release gate, git diff and route audits, browser evidence ledger, and draft PR state with no production release."
+    },
+    {
+      "id": "JW-OFFER-ENTRY",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-INVENTORY",
+        "JW-CARDS"
+      ],
+      "owners": [
+        "jw-stone-offer-ui",
+        "jw-stone-marketplace-data"
+      ],
+      "actor": "A visitor evaluating a real JW Current Inventory listing",
+      "trigger": "The visitor selects Make An Offer on a card or detail",
+      "behavior": "Every real Current Inventory record, including a publicly anonymous listing, opens the JW Express offer flow with a server-validated safe target reference.",
+      "constraints": "The action is distinct from Ask and is present on card and detail surfaces at desktop and mobile sizes.",
+      "negative": "First Cut placeholders, unknown identifiers, internal anonymous names, and invented availability never enter the offer flow.",
+      "unchanged": "Catalog truth, ordering, wishlist, sharing, Ask, and Direct Connect behavior remain unchanged.",
+      "acceptance": "Catalog reconciliation proves exactly every real listing is offerable and no placeholder is; component and browser journeys prove both entry points.",
+      "owner": "jw-stone-offer-ui",
+      "proof": "Catalog contract tests, component assertions, and desktop/mobile browser evidence."
+    },
+    {
+      "id": "JW-EXPRESS-IDENTITY",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [],
+      "owners": [
+        "jw-stone-express-identity"
+      ],
+      "actor": "A person making a private JW Stone offer",
+      "trigger": "The person creates or signs into a JW Stone Express Account",
+      "behavior": "JW stores a separate account with name, normalized email and phone, business status, optional business name, bcrypt password, verification state, and JW-only host session; onboarding may retain one non-active pending-verification offer until the email is verified.",
+      "constraints": "Credentials work on platform and custom-domain hosts while sessions remain host-only; authenticated mutations require JW CSRF state; verification promotes the pending offer to submitted, while an unverified account cannot submit or revise another offer or receive acceptance.",
+      "negative": "No TradeScout users row, Passport principal, TradeScout cookie, work-request owner, plaintext credential, raw token, or TradeScout onboarding message is created or reused.",
+      "unchanged": "TradeScout authentication and customer records behave exactly as before, including when the same email exists in both systems.",
+      "acceptance": "Schema, duplicate-email, cookie separation, authentication isolation, password, CSRF, and rate-limit tests all pass.",
+      "owner": "jw-stone-express-identity",
+      "proof": "Empty/upgrade migration proof plus focused identity and security integration tests."
+    },
+    {
+      "id": "JW-PRIVATE-OFFERS",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-OFFER-ENTRY",
+        "JW-EXPRESS-IDENTITY"
+      ],
+      "owners": [
+        "jw-stone-private-offers"
+      ],
+      "actor": "A signed-in JW Express customer",
+      "trigger": "The customer submits, revises, views, or withdraws an offer",
+      "behavior": "The server stores immutable USD-cent offer versions, one current active offer per account and target, requester-scoped history, idempotency receipts, and audited state transitions; initial onboarding may create a pending-verification version that is not active or operator-visible.",
+      "constraints": "Optional posted minimums are enforced server-side; verification promotes the pending current version; revisions supersede rather than rewrite prior terms and use their commit time as the new submitted_at priority timestamp.",
+      "negative": "No floating-point money, duplicate active offer, cross-account access, payment, reservation, binding-sale claim, rank, competing offer, or automatic contact is allowed.",
+      "unchanged": "Public discovery remains usable without an account until the person chooses Make An Offer.",
+      "acceptance": "Ownership, minimum, replay/conflict, revision, withdrawal, concurrency, and terminal-state tests pass.",
+      "owner": "jw-stone-private-offers",
+      "proof": "Transactional service and API integration tests with exact request/response assertions."
+    },
+    {
+      "id": "JW-CONTAINERS",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-EXPRESS-IDENTITY",
+        "JW-PRIVATE-OFFERS"
+      ],
+      "owners": [
+        "jw-stone-containers",
+        "jw-stone-offer-ui"
+      ],
+      "actor": "A visitor or authorized JW operator",
+      "trigger": "An operator manages a container or a visitor reaches the Containers section",
+      "behavior": "Operators create durable draft container records and explicitly publish or close them; the storefront renders only published truth and an honest empty state otherwise.",
+      "constraints": "A container has a stable slug, title, optional verified description/media, currency, optional posted minimum, accepting state, and lifecycle timestamps.",
+      "negative": "Repository image counts, slab counts, placeholder copy, or generated records never imply a container, availability, contents, condition, origin, or price.",
+      "unchanged": "Current Inventory and First Cut identities remain separate from containers.",
+      "acceptance": "Publication, validation, empty-state, close/reopen, and public leakage tests plus browser evidence pass.",
+      "owner": "jw-stone-containers",
+      "proof": "Operator API tests, public contract tests, and desktop/mobile section captures."
+    },
+    {
+      "id": "JW-OFFER-PRIORITY",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-CONTAINERS",
+        "JW-PRIVATE-OFFERS"
+      ],
+      "owners": [
+        "jw-stone-offer-operations"
+      ],
+      "actor": "An authorized JW operator processing a container",
+      "trigger": "The operator reviews or accepts a current container offer",
+      "behavior": "Eligible container offers are current submitted or under-review versions for an accepting container and non-closed account, ordered by amount descending, current-version submission time ascending, and ID ascending; acceptance is allowed only for the highest-priority current offer.",
+      "constraints": "Pending-verification, accepted, declined, withdrawn, and expired versions are ineligible; revisions re-enter ordering at their commit timestamp; ordering and acceptance execute from server-owned current versions inside a transaction with target and offer locks.",
+      "negative": "Client ordering, stale amounts, manual rank override, private rank exposure, and lower-priority acceptance while a higher eligible offer remains active are forbidden.",
+      "unchanged": "Stone offers may be reviewed without an auction rank and all customer views remain sealed.",
+      "acceptance": "Tie, revision, withdrawal, close, and concurrent-accept tests prove deterministic order and invariant enforcement.",
+      "owner": "jw-stone-offer-operations",
+      "proof": "Database-backed priority and concurrency integration tests."
+    },
+    {
+      "id": "JW-OFFER-STAFF",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-CONTAINERS",
+        "JW-OFFER-PRIORITY",
+        "JW-OFFER-PRIVACY"
+      ],
+      "owners": [
+        "jw-stone-offer-operations",
+        "jw-stone-admin-ui"
+      ],
+      "actor": "The exact JW owner or a narrowly authorized superadmin or operations principal",
+      "trigger": "The operator opens /admin/jw-stone-offers",
+      "behavior": "A dedicated queue supports target policy, container lifecycle, masked review, contact decision, status actions, event history, and notification retry.",
+      "constraints": "Every mutation records the acting TradeScout staff principal only as an audit actor; it never changes JW customer identity.",
+      "negative": "General staff, public users, and JW customers cannot access the queue, full contact, actor IDs, private amounts, or delivery diagnostics.",
+      "unchanged": "Existing Admin OS tools and Direct Connect operations remain separate.",
+      "acceptance": "Exact-role authorization, masking, transition, audit, and admin browser tests pass.",
+      "owner": "jw-stone-admin-ui",
+      "proof": "Role-scoped operator API tests and rendered admin workflow evidence."
+    },
+    {
+      "id": "JW-OFFER-NOTIFICATIONS",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-EXPRESS-IDENTITY",
+        "JW-PRIVATE-OFFERS"
+      ],
+      "owners": [
+        "jw-stone-offer-notifications"
+      ],
+      "actor": "A JW Express customer or authorized JW operator",
+      "trigger": "Account, recovery, offer, or status events require email",
+      "behavior": "The same transaction persists redacted outbox work for verification, recovery, confirmation, staff alert, and status notifications; an authorized worker atomically claims due rows after commit, records attempts, and moves exhausted work to terminal failed while operator retry creates new work without altering the account or offer.",
+      "constraints": "Email purposes are explicitly allowlisted, branded JW Stone, correlation-safe, and staff alerts omit customer contact details; retries occur after 1 minute, 5 minutes, 30 minutes, 2 hours, and 12 hours using row claims that prevent duplicate delivery work.",
+      "negative": "Email failure cannot roll back or erase a saved account or offer, and logs never expose address, phone, token, password, offer amount, or provider secret.",
+      "unchanged": "Existing email transport and non-JW purpose behavior remain unchanged.",
+      "acceptance": "Mode allowlist, persist-before-send, failure, retry, redaction, and recipient/content contract tests pass.",
+      "owner": "jw-stone-offer-notifications",
+      "proof": "Email service unit tests and database-backed outbox integration tests."
+    },
+    {
+      "id": "JW-OFFER-PRIVACY",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-PRIVATE-OFFERS"
+      ],
+      "owners": [
+        "jw-stone-offer-privacy"
+      ],
+      "actor": "A customer, public visitor, or authorized operator",
+      "trigger": "Offer or contact data is read or an operator considers contact",
+      "behavior": "Public and requester responses contain no competing private data; operator queues mask contact until a distinct authorized reveal action appends an immutable decision event.",
+      "constraints": "Offer visibility is intent only; reveal and offer acceptance are separate decisions and neither initiates payment.",
+      "negative": "Submitted amounts, ranks, bidder identities, contact details, account existence, event actors, tokens, or delivery diagnostics cannot leak through APIs, HTML, metadata, logs, errors, analytics, or caching.",
+      "unchanged": "TradeScout Intent to Decision Card to Contact law remains enforced without creating a TradeScout customer account.",
+      "acceptance": "Cross-account 404, redaction, reveal audit, SSR/metadata, cache, log, and acceptance-with-contact-closed tests pass.",
+      "owner": "jw-stone-offer-privacy",
+      "proof": "Privacy contract scans and role-scoped integration tests."
+    },
+    {
+      "id": "JW-OFFER-RECOVERY",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-EXPRESS-IDENTITY",
+        "JW-PRIVATE-OFFERS"
+      ],
+      "owners": [
+        "jw-stone-express-identity"
+      ],
+      "actor": "A JW Express account holder",
+      "trigger": "The holder verifies email, resets a password, signs out, or closes the account",
+      "behavior": "Durable random hashed one-use tokens support verification and recovery; reset revokes sessions, while closure withdraws active or pending offers and transactionally nulls or irreversibly replaces all direct identity and credential fields.",
+      "constraints": "Token consumption is atomic, responses resist account discovery, and retained offer/event audit references only a non-reversible closure-specific pseudonym with no recoverable name, normalized email, phone, business name, password hash, session, or unconsumed token.",
+      "negative": "No process-memory token, Math.random secret, reusable token, stale session, orphaned active offer, or identity resurrection is allowed.",
+      "unchanged": "TradeScout verification, reset, and privacy workflows are not reused or altered.",
+      "acceptance": "Expiry, one-use, parallel-consumption, revocation, anonymization, and deleted-account access tests pass.",
+      "owner": "jw-stone-express-identity",
+      "proof": "Token, session, and account-lifecycle integration tests."
+    },
+    {
+      "id": "JW-OFFER-PROTECT",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-OFFER-ENTRY",
+        "JW-EXPRESS-IDENTITY",
+        "JW-PRIVATE-OFFERS",
+        "JW-CONTAINERS",
+        "JW-OFFER-PRIORITY",
+        "JW-OFFER-STAFF",
+        "JW-OFFER-NOTIFICATIONS",
+        "JW-OFFER-PRIVACY",
+        "JW-OFFER-RECOVERY",
+        "JW-PROTECT"
+      ],
+      "owners": [
+        "jw-stone-offer-release",
+        "existing-jw-profile"
+      ],
+      "actor": "A release reviewer",
+      "trigger": "The private-offer branch is considered complete or publishable",
+      "behavior": "The exact commit must reconcile migrations, focused contracts, existing JW/Direct Connect regressions, typecheck/build, browser journeys, leakage scans, minimum release gate, and independent council review.",
+      "constraints": "Draft PR publication is allowed after evidence; merge, production migration, and deployment require later explicit GO.",
+      "negative": "No skipped security/law suite, fabricated email/browser proof, weakened assertion, unrelated product edit, main merge, or production mutation is permitted.",
+      "unchanged": "Production, main, DNS, existing data, unrelated TradeScout lanes, and current JW behavior remain untouched until authorized release.",
+      "acceptance": "The ledger names exact commands, results, revision, environment, browser routes, email mode, known baselines, council findings, and unexecuted production proof.",
+      "owner": "jw-stone-offer-release",
+      "proof": "Build evidence, git diff audit, browser captures, minimum gate, and documented draft PR."
     }
   ],
   "builds": [
     {
       "id": "jw-stone-marketplace",
-      "status": "interrupted",
+      "status": "superseded",
       "base_revision": "10cbc151c6952904cdd32a5d6205fee890614d9a",
       "lock_version": "1.1.1",
       "requirements": [
@@ -385,6 +624,41 @@
       "overlap_approved_with": [],
       "contract": "builds/jw-stone-marketplace/contract.md",
       "evidence": "builds/jw-stone-marketplace/evidence.md"
+    },
+    {
+      "id": "jw-stone-private-offers",
+      "status": "in_progress",
+      "base_revision": "29f9bdd8d0b012220b966f719b54f4a61df31e78",
+      "lock_version": "2.0.0",
+      "requirements": [
+        "JW-OFFER-ENTRY",
+        "JW-EXPRESS-IDENTITY",
+        "JW-PRIVATE-OFFERS",
+        "JW-CONTAINERS",
+        "JW-OFFER-PRIORITY",
+        "JW-OFFER-STAFF",
+        "JW-OFFER-NOTIFICATIONS",
+        "JW-OFFER-PRIVACY",
+        "JW-OFFER-RECOVERY",
+        "JW-OFFER-PROTECT"
+      ],
+      "claimed_owners": [
+        "jw-stone-offer-ui",
+        "jw-stone-express-identity",
+        "jw-stone-private-offers",
+        "jw-stone-containers",
+        "jw-stone-offer-operations",
+        "jw-stone-admin-ui",
+        "jw-stone-offer-notifications",
+        "jw-stone-offer-privacy",
+        "jw-stone-offer-release"
+      ],
+      "depends_on": [
+        "jw-stone-marketplace"
+      ],
+      "overlap_approved_with": [],
+      "contract": "builds/jw-stone-private-offers/contract.md",
+      "evidence": "builds/jw-stone-private-offers/evidence.md"
     }
   ],
   "external_facts": [
@@ -417,8 +691,8 @@
       "id": "DEC-NO-PRICE",
       "class": "product_invariant",
       "status": "accepted",
-      "statement": "JW Stone 2.0 exposes no public price value or price-derived metadata, filter, sort, label, or contact context.",
-      "authority": "Thomas's explicit no-public-price requirement"
+      "statement": "JW Stone exposes no seller asking price, submitted offer, private rank, or price-derived public sort; the only allowed public price-related value is an operator-configured offer minimum displayed on its exact target.",
+      "authority": "The product owner's explicit 2026-08-11 private-offer request, amending the prior no-public-price rule"
     },
     {
       "id": "DEC-AUDIENCE-LENS",
@@ -447,6 +721,55 @@
       "status": "accepted",
       "statement": "This build may end in a durable draft pull request but cannot merge or deploy without exact-head desktop and mobile rendered proof.",
       "authority": "Repository release policy and the user's demand for truthful visual proof"
+    },
+    {
+      "id": "DEC-JW-EXPRESS-BOUNDARY",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "A JW Stone Express Account is a separate customer identity with no TradeScout users row, Passport principal, shared customer session, work-request ownership, or TradeScout account messaging.",
+      "authority": "The product owner's explicit statement that the account is with JW Stone, not TradeScout"
+    },
+    {
+      "id": "DEC-SEALED-OFFERS",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "Offers are private sealed commercial intents; customers never see competing amounts, identities, counts, rank, or outbid prompts, and acceptance is not payment or a binding sale.",
+      "authority": "The product owner's explicit private-not-against-each-other bidding requirement"
+    },
+    {
+      "id": "DEC-POSTED-MINIMUM",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "A target may have no minimum or one public enforced minimum; hidden reserves are forbidden.",
+      "authority": "The product owner's explicit may-or-may-not-have-a-minimum requirement plus truthful-customer behavior law"
+    },
+    {
+      "id": "DEC-CONTAINER-PRIORITY",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "Container opportunities are processed by highest active amount first with deterministic earliest-submission and ID tie breaks, and lower-priority acceptance is server-rejected while a higher eligible offer remains active.",
+      "authority": "The product owner's explicit containers-available-in-order-of-price-offered-first requirement"
+    },
+    {
+      "id": "DEC-CONTAINER-SECTION",
+      "class": "reversible_choice",
+      "status": "accepted",
+      "statement": "The first release presents published containers in one storefront section without standalone container SEO pages, because the request names a section and no authoritative container content exists yet.",
+      "authority": "Technical implementation judgment within the product owner's requested scope"
+    },
+    {
+      "id": "DEC-CONTACT-REVEAL",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "Offer submission and acceptance do not reveal contact; an authorized staff review and immutable reveal event are required before full contact is returned.",
+      "authority": "TradeScout platform law preserved inside the JW-only customer identity boundary"
+    },
+    {
+      "id": "DEC-NO-OFFER-PAYMENT",
+      "class": "release_commitment",
+      "status": "accepted",
+      "statement": "This release introduces no deposit, checkout, payment authorization, reservation, entitlement, or title-transfer path.",
+      "authority": "Bounded interpretation of the product owner's offer request and repository release law"
     }
   ],
   "amendments": [
@@ -523,32 +846,82 @@
         "JW-PROTECT"
       ],
       "approval_evidence": "decisions-changes.md"
+    },
+    {
+      "id": "AMEND-JW-PRIVATE-OFFERS",
+      "authority": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+      "reason": "The product owner explicitly requested Make An Offer on each JW listing, a separate JW Stone Express Account, sealed private offers with optional minimums, a Containers section, and highest-price-first container processing.",
+      "created_at": "2026-08-12T01:23:04Z",
+      "changes": {
+        "added": [
+          "Make An Offer on every real Current Inventory listing",
+          "Staff-published Containers storefront section",
+          "JW-only Express Account identity and host sessions",
+          "Immutable sealed private offers with requester history",
+          "Optional public enforced offer minimums",
+          "Highest-active-amount-first container processing",
+          "Restricted masked operator queue and audited contact reveal",
+          "Durable transactional JW email outbox"
+        ],
+        "modified": [
+          "The no-price rule permits only an optional public offer minimum while asking prices and submitted amounts remain private",
+          "The no-database and no-authentication architecture is superseded for this bounded persistent lane",
+          "The protected storefront order includes Containers between First Cut and Current Inventory"
+        ],
+        "removed": [
+          "Any assumption that current TradeScout Express accounts can be relabeled as JW accounts",
+          "Any hidden reserve, public rank, public competing bid, or automatic contact behavior"
+        ],
+        "renamed": [
+          "Express Account in this lane means JW Stone Express Account, not TradeScout Express Profile"
+        ],
+        "unchanged": [
+          "Canonical catalog and anonymous-name truth",
+          "First Cut placeholders are not products",
+          "Wishlist and Ask or Direct Connect behavior",
+          "No public asking price, payment, reservation, or invented availability",
+          "No main merge, production migration, or deployment without explicit GO"
+        ]
+      },
+      "impacted_requirements": [
+        "JW-INVENTORY",
+        "JW-CARDS",
+        "JW-DIRECT-CONNECT",
+        "JW-SEO",
+        "JW-PROTECT",
+        "JW-OFFER-ENTRY",
+        "JW-EXPRESS-IDENTITY",
+        "JW-PRIVATE-OFFERS",
+        "JW-CONTAINERS",
+        "JW-OFFER-PRIORITY",
+        "JW-OFFER-STAFF",
+        "JW-OFFER-NOTIFICATIONS",
+        "JW-OFFER-PRIVACY",
+        "JW-OFFER-RECOVERY",
+        "JW-OFFER-PROTECT"
+      ],
+      "approval_evidence": "private-offers-amendment.md"
     }
   ],
-  "invalidated_requirements": [
-    "JW-JOURNEY",
-    "JW-GUIDANCE",
-    "JW-INVENTORY",
-    "JW-CARDS",
-    "JW-A11Y",
-    "JW-SEO",
-    "JW-PROTECT"
-  ],
+  "invalidated_requirements": [],
   "risk_triggers": [
-    "public_mutation"
+    "sensitive_data",
+    "public_mutation",
+    "external_integrations",
+    "production_deployment"
   ],
   "independent_review": {
     "required": true,
     "status": "verified",
-    "evidence": "builds/jw-stone-marketplace/evidence.md",
-    "reviewer": "Independent truth Objector /root/jw_knowledge_audit; audience-lens Objector /root/competitor_paths",
-    "reviewed_at": "2026-08-03T13:00:20-05:00",
-    "scope": "Verified supplied-catalog versus live-availability boundary, approved Current Inventory wording, owner-authorized non-product First Cut placeholders, and the previously verified audience-lens definition",
-    "revision": "f8a59e47d1a3e822084f1654b04298debd49b0a6"
+    "evidence": "builds/jw-stone-private-offers/definition-review.md",
+    "reviewer": "Rawls, independent Definition Objector 019ff39f-6c86-7b70-aada-b07cbd85e289",
+    "reviewed_at": "2026-08-12T01:41:24Z",
+    "scope": "Independent high-assurance review of JW-only identity isolation, sealed-offer privacy, contact gating, container priority, minimum truth, email durability, lifecycle, and release boundaries",
+    "revision": "29f9bdd8d0b012220b966f719b54f4a61df31e78"
   },
-  "sealed_at": "2026-08-03T18:55:32+00:00",
-  "semantic_digest": "f82fd65c2ace71cf043f52efa403d9daafa4f79e7d633467d3f49760b3a60ef4",
-  "control_digest": "e38377a81b1784e0ebad8d0b9498491261e1c4a6a5914374ed03bcd66eea3aca",
+  "sealed_at": "2026-08-12T04:03:19+00:00",
+  "semantic_digest": "8516b55d769152e5b3c630c69b1a7e2c13930fff14b84c5f810d83bcb96c8817",
+  "control_digest": "f50384ea602af2e84606e904021e707d6622565151f46dd9aabd88c186a499ab",
   "seal_history": [
     {
       "sealed_at": "2026-08-02T17:44:59+00:00",
@@ -999,6 +1372,111 @@
         "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
         "technical": "The implementing Codex agent within the locked product and repository boundaries",
         "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-12T01:42:02+00:00",
+      "amendment": "AMEND-JW-PRIVATE-OFFERS",
+      "transition": "definition",
+      "checkpoint": false,
+      "active_build": "jw-stone-private-offers",
+      "lock_version": "2.0.0",
+      "build_status": "planned",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [],
+      "semantic_digest": "8516b55d769152e5b3c630c69b1a7e2c13930fff14b84c5f810d83bcb96c8817",
+      "artifact_digests": {
+        "intent-contract.md": "af9b8be9c72e4b02747338dd00d82ec54aac35f6e0c6cc01e1cf25268361ee93",
+        "scope-release.md": "b67d72c29ed7c4ef7c106a79f813915d93e7909035231d26cbf44d33a0928191",
+        "experience-surfaces.md": "4af6ba68ea4789037e6e370620fbe341df11da159956ac03bc6a3d8c63a453da",
+        "architecture-contract.md": "37aaf7d8ac000d91ce4be8b862160579f8124b41a448b92f7326230423b0c9d0",
+        "data-contract.md": "84dc1a976895052dfa3b5588a329bde6a425d209bb4d4f1efbf339f883d55a73",
+        "api-integrations.md": "fbeb40a9b7711674d207c4223b7535259c33930e2db79c6520ba7864e3b9bade",
+        "security-operations.md": "bdf20c0ab5310dbec847430974d84b3539529bffc01af925cc62307ff6f35828",
+        "delivery-map.md": "b06b1fcbbbda88b56e50b354cf06db984b7db82501ca87d8efe0767bb88c6870",
+        "traceability.md": "77e992eb7fdc592bd920f942765d45546ad5b757b5eb65af40ceadae42754a37",
+        "decisions-changes.md": "5b6eb71d326f36ca435f10d404fb3603ab72942fb89c33606ad32e29ab31baec",
+        "builds/jw-stone-marketplace/contract.md": "940d2b8e0de90ca32480054d3c65c9e0f3b6699ddabfdcbfd03bf08ec6647ab4",
+        "builds/jw-stone-marketplace/evidence.md": "67af589c1da6ece357dc146102db4cc6dd923b8a3d198a31144459a5888a758f",
+        "private-offers-amendment.md": "8787c0567823857c7206d348dbc37ac86a609f1b6daa8c4105b141a62d120501",
+        "builds/jw-stone-private-offers/contract.md": "7559afbc4a0bdd4666d4f2823e0cfe2506e04e594dd773c09e607757f3576729",
+        "builds/jw-stone-private-offers/evidence.md": "e597ce61c5d1e797479b7815a5e5b076b12adcb686ba3d831e9c016d5981d4d6",
+        "builds/jw-stone-private-offers/definition-review.md": "8d96799c8eb8dad83be6dda720116eb3173a73cfd633fefef23a98c16def889e"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "Existing TradeScout privacy and contact boundaries remain authoritative; offer acceptance is explicitly non-payment and non-binding until separately contracted"
+      }
+    },
+    {
+      "sealed_at": "2026-08-12T01:42:26+00:00",
+      "amendment": null,
+      "transition": "build",
+      "checkpoint": false,
+      "active_build": "jw-stone-private-offers",
+      "lock_version": "2.0.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [],
+      "semantic_digest": "8516b55d769152e5b3c630c69b1a7e2c13930fff14b84c5f810d83bcb96c8817",
+      "artifact_digests": {
+        "intent-contract.md": "af9b8be9c72e4b02747338dd00d82ec54aac35f6e0c6cc01e1cf25268361ee93",
+        "scope-release.md": "b67d72c29ed7c4ef7c106a79f813915d93e7909035231d26cbf44d33a0928191",
+        "experience-surfaces.md": "4af6ba68ea4789037e6e370620fbe341df11da159956ac03bc6a3d8c63a453da",
+        "architecture-contract.md": "37aaf7d8ac000d91ce4be8b862160579f8124b41a448b92f7326230423b0c9d0",
+        "data-contract.md": "84dc1a976895052dfa3b5588a329bde6a425d209bb4d4f1efbf339f883d55a73",
+        "api-integrations.md": "fbeb40a9b7711674d207c4223b7535259c33930e2db79c6520ba7864e3b9bade",
+        "security-operations.md": "bdf20c0ab5310dbec847430974d84b3539529bffc01af925cc62307ff6f35828",
+        "delivery-map.md": "b06b1fcbbbda88b56e50b354cf06db984b7db82501ca87d8efe0767bb88c6870",
+        "traceability.md": "77e992eb7fdc592bd920f942765d45546ad5b757b5eb65af40ceadae42754a37",
+        "decisions-changes.md": "5b6eb71d326f36ca435f10d404fb3603ab72942fb89c33606ad32e29ab31baec",
+        "builds/jw-stone-marketplace/contract.md": "940d2b8e0de90ca32480054d3c65c9e0f3b6699ddabfdcbfd03bf08ec6647ab4",
+        "builds/jw-stone-marketplace/evidence.md": "67af589c1da6ece357dc146102db4cc6dd923b8a3d198a31144459a5888a758f",
+        "private-offers-amendment.md": "8787c0567823857c7206d348dbc37ac86a609f1b6daa8c4105b141a62d120501",
+        "builds/jw-stone-private-offers/contract.md": "7559afbc4a0bdd4666d4f2823e0cfe2506e04e594dd773c09e607757f3576729",
+        "builds/jw-stone-private-offers/evidence.md": "e597ce61c5d1e797479b7815a5e5b076b12adcb686ba3d831e9c016d5981d4d6",
+        "builds/jw-stone-private-offers/definition-review.md": "8d96799c8eb8dad83be6dda720116eb3173a73cfd633fefef23a98c16def889e"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "Existing TradeScout privacy and contact boundaries remain authoritative; offer acceptance is explicitly non-payment and non-binding until separately contracted"
+      }
+    },
+    {
+      "sealed_at": "2026-08-12T04:03:19+00:00",
+      "amendment": null,
+      "transition": null,
+      "checkpoint": true,
+      "active_build": "jw-stone-private-offers",
+      "lock_version": "2.0.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [],
+      "semantic_digest": "8516b55d769152e5b3c630c69b1a7e2c13930fff14b84c5f810d83bcb96c8817",
+      "artifact_digests": {
+        "intent-contract.md": "af9b8be9c72e4b02747338dd00d82ec54aac35f6e0c6cc01e1cf25268361ee93",
+        "scope-release.md": "b67d72c29ed7c4ef7c106a79f813915d93e7909035231d26cbf44d33a0928191",
+        "experience-surfaces.md": "4af6ba68ea4789037e6e370620fbe341df11da159956ac03bc6a3d8c63a453da",
+        "architecture-contract.md": "37aaf7d8ac000d91ce4be8b862160579f8124b41a448b92f7326230423b0c9d0",
+        "data-contract.md": "84dc1a976895052dfa3b5588a329bde6a425d209bb4d4f1efbf339f883d55a73",
+        "api-integrations.md": "fbeb40a9b7711674d207c4223b7535259c33930e2db79c6520ba7864e3b9bade",
+        "security-operations.md": "bdf20c0ab5310dbec847430974d84b3539529bffc01af925cc62307ff6f35828",
+        "delivery-map.md": "b06b1fcbbbda88b56e50b354cf06db984b7db82501ca87d8efe0767bb88c6870",
+        "traceability.md": "77e992eb7fdc592bd920f942765d45546ad5b757b5eb65af40ceadae42754a37",
+        "decisions-changes.md": "5b6eb71d326f36ca435f10d404fb3603ab72942fb89c33606ad32e29ab31baec",
+        "builds/jw-stone-marketplace/contract.md": "940d2b8e0de90ca32480054d3c65c9e0f3b6699ddabfdcbfd03bf08ec6647ab4",
+        "builds/jw-stone-marketplace/evidence.md": "67af589c1da6ece357dc146102db4cc6dd923b8a3d198a31144459a5888a758f",
+        "private-offers-amendment.md": "8787c0567823857c7206d348dbc37ac86a609f1b6daa8c4105b141a62d120501",
+        "builds/jw-stone-private-offers/contract.md": "7559afbc4a0bdd4666d4f2823e0cfe2506e04e594dd773c09e607757f3576729",
+        "builds/jw-stone-private-offers/evidence.md": "992f8b0945a335b2fe5c88485f37f735bdb6abbc4f5c6584556144e7db135eeb",
+        "builds/jw-stone-private-offers/definition-review.md": "8d96799c8eb8dad83be6dda720116eb3173a73cfd633fefef23a98c16def889e"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "Existing TradeScout privacy and contact boundaries remain authoritative; offer acceptance is explicitly non-payment and non-binding until separately contracted"
       }
     }
   ]

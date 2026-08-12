@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
@@ -21,9 +21,19 @@ import { WishlistPanel } from "./WishlistPanel";
 import type { JwStoneCatalogItem } from "./types";
 import { useJwStoneWishlist } from "./useJwStoneWishlist";
 import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
+import { ContainersSection } from "./express/ContainersSection";
+import { ExpressAccountActionPanel } from "./express/ExpressAccountActionPanel";
+import { ExpressOfferEntryProvider } from "./express/ExpressOfferEntryContext";
+import { JWExpressOfferPanel, type JwExpressPanelEntry } from "./express/JWExpressOfferPanel";
+import { useJwExpressAccountAction } from "./express/useJwExpressAccountAction";
 
 const JW_STONE_DESCRIPTION =
   "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+const JW_STONE_CURRENT_INVENTORY_IDS: ReadonlySet<string> = new Set(
+  JW_STONE_CATALOG.map((stone) => stone.id)
+);
+const canMakeCurrentInventoryOffer = (stone: JwStoneCatalogItem) =>
+  JW_STONE_CURRENT_INVENTORY_IDS.has(stone.id);
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
@@ -40,6 +50,32 @@ export default function JWStoneMarketplace() {
   /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
   const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
+  const [expressEntry, setExpressEntry] = useState<JwExpressPanelEntry | null>(null);
+  const [canOperatePrivateOffers, setCanOperatePrivateOffers] = useState(false);
+  const accountAction = useJwExpressAccountAction();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCanOperatePrivateOffers(false);
+      return;
+    }
+    const controller = new AbortController();
+    void fetch("/api/admin/jw-stone/offers/access", {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return false;
+        const payload = (await response.json()) as { authorized?: boolean };
+        return payload.authorized === true;
+      })
+      .then((authorized) => setCanOperatePrivateOffers(authorized))
+      .catch((error) => {
+        if ((error as Error)?.name !== "AbortError") setCanOperatePrivateOffers(false);
+      });
+    return () => controller.abort();
+  }, [isAuthenticated]);
 
   // Ensure unlock while this page is mounted; AppLayout owns route-level cleanup
   // so Strict Mode remounts do not briefly strip the class mid-route.
@@ -79,10 +115,10 @@ export default function JWStoneMarketplace() {
     [requestContext]
   );
 
-  const closeStone = () => {
+  const closeStone = useCallback(() => {
     setDetailOverride(null);
     if (state.stone) commit({ ...state, stone: null }, { replace: true });
-  };
+  }, [commit, state]);
 
   const openStone = (stone: JwStoneCatalogItem) => {
     if (stone.anonymous || !stone.shareSlug) {
@@ -110,6 +146,14 @@ export default function JWStoneMarketplace() {
   const askAboutStone = (stone: JwStoneCatalogItem) => {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
+
+  const makeOfferForStone = useCallback(
+    (stone: JwStoneCatalogItem) => {
+      closeStone();
+      setExpressEntry({ kind: "stone", stone });
+    },
+    [closeStone]
+  );
 
   /** Browse by color — never invents or keeps a material refinement; results show in the color section. */
   const selectPalette = (next: ColorSwatchSelection) => {
@@ -191,7 +235,9 @@ export default function JWStoneMarketplace() {
       <MarketplaceHeader
         wishlistCount={wishlist.count}
         onOpenWishlist={() => setWishlistOpen(true)}
+        onOpenExpress={() => setExpressEntry({ kind: "account" })}
         onStartRequest={() => startRequest([])}
+        operatorHref={canOperatePrivateOffers ? "/admin/jw-stone-offers" : null}
       />
       <p className="sr-only" aria-live="polite">
         {wishlist.count} {wishlist.count === 1 ? "stone" : "stones"} saved
@@ -199,54 +245,67 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
       <FirstCutSection onOpen={openStone} />
-      <StoneCollection
-        state={state}
-        isSaved={wishlist.isSaved}
-        onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
-        onEnterFullInventory={enterFullInventory}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-        onSourceRequest={() => startRequest([])}
-        catalog={JW_STONE_CATALOG}
-      />
-      <ColorPaletteRail
-        aesthetic={state.aesthetic}
-        color={state.color}
-        material={null}
-        origin={state.origin}
-        onSelect={selectPalette}
-        isSaved={wishlist.isSaved}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-      />
-      <MaterialCategoryRail
-        active={state.material}
-        aesthetic={state.aesthetic}
-        color={state.color}
-        onSelect={selectMaterial}
-        isSaved={wishlist.isSaved}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onOpen={openStone}
-        onAsk={askAboutStone}
-        catalog={JW_STONE_CATALOG}
-      />
+      <ExpressOfferEntryProvider
+        canMakeOffer={canMakeCurrentInventoryOffer}
+        makeOffer={makeOfferForStone}
+      >
+        <StoneCollection
+          state={state}
+          isSaved={wishlist.isSaved}
+          onUpdateFilters={(filters) => commit({ ...state, ...filters, stone: null })}
+          onEnterFullInventory={enterFullInventory}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onOpen={openStone}
+          onAsk={askAboutStone}
+          onSourceRequest={() => startRequest([])}
+          catalog={JW_STONE_CATALOG}
+        />
+        <ContainersSection onMakeOffer={(target) => setExpressEntry({ kind: "target", target })} />
+        <ColorPaletteRail
+          aesthetic={state.aesthetic}
+          color={state.color}
+          material={null}
+          origin={state.origin}
+          onSelect={selectPalette}
+          isSaved={wishlist.isSaved}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onOpen={openStone}
+          onAsk={askAboutStone}
+        />
+        <MaterialCategoryRail
+          active={state.material}
+          aesthetic={state.aesthetic}
+          color={state.color}
+          onSelect={selectMaterial}
+          isSaved={wishlist.isSaved}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onOpen={openStone}
+          onAsk={askAboutStone}
+          catalog={JW_STONE_CATALOG}
+        />
 
-      <JwStoneStorySection />
+        <JwStoneStorySection />
 
-      <MarketplaceFooter />
+        <MarketplaceFooter />
 
-      <JwStoneRequestBand onStartRequest={() => startRequest([])} />
+        <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
-      <StoneDetailDialog
-        stone={activeStone}
-        saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
-        onOpenChange={(open) => {
-          if (!open) closeStone();
-        }}
-        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
-        onAsk={askAboutStone}
+        <StoneDetailDialog
+          stone={activeStone}
+          saved={activeStone ? wishlist.isSaved(activeStone.id) : false}
+          onOpenChange={(open) => {
+            if (!open) closeStone();
+          }}
+          onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+          onAsk={askAboutStone}
+        />
+      </ExpressOfferEntryProvider>
+
+      <JWExpressOfferPanel entry={expressEntry} onClose={() => setExpressEntry(null)} />
+      <ExpressAccountActionPanel
+        state={accountAction.state}
+        onDismiss={accountAction.dismiss}
+        onCompleteReset={accountAction.completeReset}
       />
 
       <WishlistPanel

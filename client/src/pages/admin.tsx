@@ -15,13 +15,50 @@ type AdminHealthResponse = {
   isSuperAdmin: boolean;
 };
 
+type JwStoneOperatorAccessResponse = {
+  authorized: boolean;
+  operatorRole: "jw_stone_owner" | "ops_admin" | "super_admin";
+};
+
+const AdminJwStoneOffers = React.lazy(() => import("./admin-jw-stone-offers"));
+
 export default function AdminShell() {
+  const [location] = useLocation();
+  const isJwStoneOfferWorkspace = (location || "").split(/[?#]/, 1)[0] === "/admin/jw-stone-offers";
   const { data, isLoading, error } = useQuery<AdminHealthResponse>({
     queryKey: ["/api/admin/health"],
   });
+  const { data: jwStoneAccess, isLoading: jwStoneAccessLoading } =
+    useQuery<JwStoneOperatorAccessResponse>({
+      queryKey: ["/api/admin/jw-stone/offers/access"],
+      enabled: isJwStoneOfferWorkspace,
+      retry: false,
+    });
 
-  if (isLoading) {
+  if (isLoading || (isJwStoneOfferWorkspace && jwStoneAccessLoading)) {
     return <PageLoadingSpinner message="Verifying admin access..." />;
+  }
+
+  if (!data?.ok && isJwStoneOfferWorkspace && jwStoneAccess?.authorized) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="border-b border-border bg-card px-4 py-3 sm:px-6">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+            <p className="text-sm font-semibold text-foreground">
+              JW Stone private-offer operations
+            </p>
+            <Link href="/jw-stone">
+              <Button variant="outline" size="sm">
+                Back to JW Stone
+              </Button>
+            </Link>
+          </div>
+        </div>
+        <Suspense fallback={<PageLoadingSpinner message="Loading JW Stone offers..." />}>
+          <AdminJwStoneOffers />
+        </Suspense>
+      </div>
+    );
   }
 
   if (error || !data?.ok) {

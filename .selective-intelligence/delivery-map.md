@@ -1,5 +1,15 @@
 # Delivery and Impact Map
 
+## Amendment 2.0.0 delivery order
+
+1. Seal the independent high-assurance definition review.
+2. Add migration/schema, JW-only identity/session security, offer/container state machines, idempotency, contact decisions, and email outbox.
+3. Add public containers, card/detail offer entry, Express account/offer history, and restricted operator queue.
+4. Prove empty/upgrade migrations, security/race/privacy/API/email contracts, existing JW regressions, and desktop/mobile flows.
+5. Reconcile independent Objector, Aligner, and Verifier findings; run the exact-commit minimum release gate; commit, push, and open a documented draft PR without merging or deploying.
+
+The complete impact and unchanged boundaries are in `private-offers-amendment.md`.
+
 ## Dependency-ordered vertical slices
 
 1. Lock the separate route, canonical ownership, truth rules, and protected existing profile behavior.

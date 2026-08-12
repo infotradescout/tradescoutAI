@@ -71,3 +71,7 @@ render-recovery.env
 # Google Search Console raw exports (commit only reviewed aggregate output)
 search-console-exports/
 artifacts/search-console/raw/
+
+# Selective Intelligence local prompt handoff cache
+.selective-intelligence/prompt-queue.jsonl
+.selective-intelligence/prompt-queue-snapshot.json

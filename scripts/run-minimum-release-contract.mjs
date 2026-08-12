@@ -168,8 +168,17 @@ async function main() {
     "server/tests/direct-connect-gates.regression.test.ts",
     "server/tests/discovery-landing.contract.test.ts",
     "server/tests/discovery-observatory.contract.test.ts",
+    "server/tests/jw-stone-private-offers-schema.contract.test.ts",
+    "server/tests/jw-stone-private-offer-email.contract.test.ts",
+    "server/tests/jw-stone-email-templates.test.ts",
+    "server/tests/jw-stone-public-discovery.test.ts",
+    "server/tests/public-jw-stone-marketplace-html.test.ts",
+    "server/tests/public-profile-domain-routing.runtime.test.ts",
     "client/src/lib/discoveryLanding.test.ts",
     "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
+    "client/src/features/jw-stone/express/offerEligibility.test.tsx",
+    "client/src/features/jw-stone/express/accountFragments.test.tsx",
+    "client/src/pages/admin-jw-stone-offers.test.tsx",
   ];
   const testRun = run("npm", ["run", "test:run", "--", ...contractTests], {
     label: "relevant contract tests",
@@ -234,6 +243,30 @@ async function main() {
       evidence.result = "fail";
       writeEvidence(evidence);
       process.exit(verify.status);
+    }
+
+    const jwStonePrivateOffers = run(
+      "npm",
+      ["run", "test:run", "--", "server/tests/jw-stone-private-offers.integration.test.ts"],
+      {
+        env: {
+          ...process.env,
+          DATABASE_URL: "",
+          TEST_DATABASE_URL: testDbUrl,
+          JW_STONE_OUTBOX_WORKER_DISABLED: "1",
+        },
+        label: "JW Stone private-offer disposable database integration",
+      }
+    );
+    record(
+      "5-jw-stone-private-offers-integration",
+      jwStonePrivateOffers.ok ? "pass" : "fail",
+      `exit ${jwStonePrivateOffers.status}`
+    );
+    if (!jwStonePrivateOffers.ok) {
+      evidence.result = "fail";
+      writeEvidence(evidence);
+      process.exit(jwStonePrivateOffers.status);
     }
   }
 

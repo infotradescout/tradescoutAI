@@ -1,5 +1,9 @@
 # Architecture and Canonical Ownership
 
+## Amendment 2.0.0 topology
+
+The private-offer lane adds JW-owned database tables, APIs, a host-only JW session, account/offer UI, an operator tool, and a durable email outbox. It reuses database connectivity, bcrypt helpers, email transport, rate-limiting patterns, canonical JW inventory validation, and the Admin OS, but does not reuse TradeScout customer `users`, Passport, `tradescout.sid`, work-request ownership, or account-completion messaging. Platform and custom-domain hosts share credentials but issue separate host-only sessions. `private-offers-amendment.md` supersedes the earlier no-service/no-table/no-authentication restriction for this bounded lane.
+
 ## Operating envelope and topology
 
 JW Stone 2.0 is a standalone public React route inside the existing TradeScout application. It consumes the checked-in canonical JW inventory projection, local browser state, safe URL state, and the existing Direct Connect component. A dedicated server HTML helper owns marketplace metadata. No new service, database table, migration, authentication mode, deployment target, or custom domain is introduced.

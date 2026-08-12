@@ -1,5 +1,18 @@
 # Traceability
 
+## Amendment 2.0.0 trace additions
+
+| Intent or prohibition | Requirement | Surface | Canonical owner | Planned proof |
+| --- | --- | --- | --- | --- |
+| Offer on every real listing, never First Cut | JW-OFFER-ENTRY | Cards, details, offer overlay | `jw-stone-offer-ui` | Catalog reconciliation and component/browser coverage |
+| JW account is not TradeScout identity | JW-EXPRESS-IDENTITY | Express create/sign-in/recovery | `jw-stone-express-identity` | Schema isolation, cookie/auth and duplicate-email tests |
+| Sealed requester-owned offers | JW-PRIVATE-OFFERS | Offer form and account history | `jw-stone-private-offers` | Idempotency, ownership, revision/withdraw and race tests |
+| Truthful published containers | JW-CONTAINERS | Containers section and operator editor | `jw-stone-containers` | Empty-state, publication, validation and leakage tests |
+| Highest amount first for containers | JW-OFFER-PRIORITY | Private operator queue | `jw-stone-offer-operations` | Deterministic ordering and lower-priority acceptance rejection |
+| Deliberate contact decision | JW-OFFER-PRIVACY | Masked queue and reveal action | `jw-stone-offer-privacy` | Redaction, authorization and immutable event tests |
+| Durable truthful email | JW-OFFER-NOTIFICATIONS | Outbox and delivery state | `jw-stone-offer-notifications` | Persist-before-send, allowlist, failure/retry tests |
+| Exact-head release evidence | JW-OFFER-PROTECT | Build ledger and draft PR | `jw-stone-offer-release` | Migration, tests, browser, gate and council evidence |
+
 Trace: intent/prohibition → requirement → journey → canonical owner → data/API → acceptance → test → feature state → evidence.
 
 | Intent or prohibition | Requirement | Journey and surface | Canonical owner | Data or API | Planned acceptance proof |

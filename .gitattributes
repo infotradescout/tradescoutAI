@@ -1,0 +1,4 @@
+# Selective Intelligence seals hash exact artifact bytes. Preserve those bytes
+# across Windows and POSIX checkouts so CRLF conversion cannot invalidate a
+# verified definition or evidence ledger after commit.
+.selective-intelligence/** -text -whitespace

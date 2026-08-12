@@ -247,6 +247,7 @@ const AdminDiscoveryObservatory = React.lazy(() => import("@/pages/admin-discove
 const AdminVaultContributions = React.lazy(() => import("@/pages/admin-vault-contributions"));
 const AdminProvisioning = React.lazy(() => import("@/pages/admin-provisioning"));
 const AdminPanelContent = React.lazy(() => import("@/pages/admin-panel"));
+const AdminJwStoneOffers = React.lazy(() => import("@/pages/admin-jw-stone-offers"));
 const PaymentProcessing = React.lazy(() => import("@/pages/payment-processing"));
 const AdminProcurement = React.lazy(() => import("@/pages/admin-procurement"));
 const AdminProcurementDetail = React.lazy(() => import("@/pages/admin-procurement-detail"));
@@ -506,6 +507,17 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         keywords: ["exchange", "approval", "marketplace"],
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         render: () => <AdminListings />,
+      }),
+      tool({
+        id: "jw-stone-offers",
+        label: "JW Stone Offers",
+        path: "/admin/jw-stone-offers",
+        icon: DollarSign,
+        description:
+          "Operate authorized JW private-offer review, contact reveal, notifications, and target intake.",
+        keywords: ["jw stone", "private offers", "containers", "operator"],
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <AdminJwStoneOffers />,
       }),
       tool({
         id: "procurement",

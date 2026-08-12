@@ -11,6 +11,7 @@ TradeScout platform law, contact gating, county intelligence, and non-JW profile
 | [BRANCH_LANES.md](./BRANCH_LANES.md) | Branch naming, merge rules, what must not land on `main` casually |
 | [CLOSED_LOOP_STRATEGY.md](./CLOSED_LOOP_STRATEGY.md) | Corrected closed-loop market plan (JW sources; Levon sells; five customer bases) |
 | [MARKETPLACE_DOMAIN_CUTOVER.md](./MARKETPLACE_DOMAIN_CUTOVER.md) | Custom domain → marketplace replace-profile cutover |
+| [PRIVATE_OFFERS_AND_CONTAINERS.md](./PRIVATE_OFFERS_AND_CONTAINERS.md) | JW-only Express Accounts, sealed offers, container priority, contact gating, and release proof |
 
 ## Related repo areas (already on `main` — change only from `jw-stone/*`)
 

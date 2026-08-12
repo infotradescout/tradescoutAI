@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  BookmarkCheck,
+  HandCoins,
+  MessageCircle,
+} from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { isFirstCutDetailStone } from "./firstCut";
@@ -11,6 +18,7 @@ import {
   formatDimensionsForDisplay,
 } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
+import { useExpressOfferEntry } from "./express/ExpressOfferEntryContext";
 
 type StoneDetailDialogProps = {
   stone: JwStoneCatalogItem | null;
@@ -27,6 +35,7 @@ export function StoneDetailDialog({
   onToggleSaved,
   onAsk,
 }: StoneDetailDialogProps) {
+  const expressOffer = useExpressOfferEntry();
   const [imageIndex, setImageIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
@@ -40,6 +49,7 @@ export function StoneDetailDialog({
   const availability = availabilityDetailLabel(stone);
   const dimensions = formatDimensionsForDisplay(stone.slabDimensions);
   const firstCut = isFirstCutDetailStone(stone);
+  const canMakeOffer = !firstCut && expressOffer?.canMakeOffer(stone) === true;
   const askLabel = stone.displayName
     ? `Ask JW about ${stone.displayName}`
     : firstCut
@@ -213,6 +223,17 @@ export function StoneDetailDialog({
               className="sticky bottom-0 mt-8 space-y-3 border-t border-[var(--jw-border)] bg-[var(--jw-bg)] px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:mt-10 sm:px-9"
               data-testid="jw-stone-detail-actions"
             >
+              {canMakeOffer ? (
+                <button
+                  type="button"
+                  onClick={() => expressOffer?.makeOffer(stone)}
+                  data-testid="jw-stone-detail-make-offer"
+                  className={`inline-flex min-h-12 w-full items-center justify-center gap-2 px-5 ${jw.accentCta}`}
+                >
+                  <HandCoins className="h-5 w-5" aria-hidden="true" />
+                  Make An Offer
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => onAsk(stone)}

@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  BookmarkCheck,
+  HandCoins,
+  MessageCircle,
+} from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
 import { stoneShareDestination } from "./marketplaceRoutes";
 import { availabilityDimensionsLine, materialFinishLine } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
+import { useExpressOfferEntry } from "./express/ExpressOfferEntryContext";
 
 type StoneCardProps = {
   stone: JwStoneCatalogItem;
@@ -31,6 +39,7 @@ export function StoneCard({
   onAsk,
   mediaChrome,
 }: StoneCardProps) {
+  const expressOffer = useExpressOfferEntry();
   const [imageIndex, setImageIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const imageCount = stone.images.length;
@@ -55,6 +64,7 @@ export function StoneCard({
   const facts = availabilityDimensionsLine(stone);
   const title = stone.displayName || "";
   const caption = [meta, facts].filter(Boolean).join(" · ");
+  const canMakeOffer = expressOffer?.canMakeOffer(stone) === true;
 
   return (
     <article
@@ -210,6 +220,17 @@ export function StoneCard({
             >
               <MessageCircle className="h-3.5 w-3.5" aria-hidden="true" />
               Ask
+            </button>
+          ) : null}
+          {canMakeOffer ? (
+            <button
+              type="button"
+              onClick={() => expressOffer?.makeOffer(stone)}
+              data-testid="jw-stone-card-make-offer"
+              className={`inline-flex min-h-9 items-center justify-center gap-1.5 px-3.5 text-[11px] font-semibold uppercase tracking-[0.16em] sm:min-h-10 sm:px-4 ${jw.accentCta}`}
+            >
+              <HandCoins className="h-3.5 w-3.5" aria-hidden="true" />
+              Make An Offer
             </button>
           ) : null}
         </div>

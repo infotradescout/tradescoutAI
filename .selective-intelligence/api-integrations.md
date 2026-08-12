@@ -1,5 +1,9 @@
 # API and Integration Contract
 
+## Amendment 2.0.0 API boundary
+
+The lane introduces separate public target-policy/container reads, JW Express identity/session mutations, requester-owned offer mutations, and restricted operator APIs. Authenticated mutations require a JW session CSRF token and same-origin JSON checks. All offer mutations are idempotent and transactional with immutable events and outbox work. The operator API returns masked contact until an explicit audited reveal. Existing Direct Connect stays separate and unchanged. No new external provider or key is introduced. See `private-offers-amendment.md`.
+
 ## Interfaces, schemas, consumers, auth, errors, and versioning
 
 Discovery uses checked-in client data and requires no new API. The only mutation path is the existing Direct Connect flow, opened after an explicit inquiry action. The marketplace supplies safe public context through optional backward-compatible props: a stable eligible item ID and safe public label for a single stone, or a bounded selection of eligible named stones for a wishlist request if the existing payload supports that context.

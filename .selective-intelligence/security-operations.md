@@ -1,5 +1,9 @@
 # Security and Operations
 
+## Amendment 2.0.0 high-assurance boundary
+
+JW Express is a parallel identity system with host-only `__Host-jw-express.sid` cookies, hashed opaque sessions/tokens, bcrypt passwords, CSRF and origin checks, PII-safe rate-limit keys, generic account-discovery-safe errors, session revocation on reset/closure, row/version locking for races, cross-account 404 behavior, and redacted logs. Offer visibility grants no contact authority. Contact reveal is a separate audited operator decision. Persistent offer and account state commits independently of email delivery; notification work remains durable and retryable. See `private-offers-amendment.md`.
+
 ## Trust boundaries, threat and abuse cases, access/session lifecycle
 
 The public route trusts only checked-in canonical inventory and explicitly parsed URL values. Query parameters are allowlisted and length-bounded before use. Stone labels originate from safe public-name helpers; anonymous internal labels are excluded from URLs, storage, metadata, accessible text, analytics labels, and inquiry copy.

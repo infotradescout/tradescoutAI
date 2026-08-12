@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_CATALOG } from "./catalog";
 import { firstCutPhotoAsDetailStone, JW_STONE_FIRST_CUT_PHOTO_SLOTS } from "./firstCut";
 import { StoneDetailDialog } from "./StoneDetailDialog";
+import { ExpressOfferEntryProvider } from "./express/ExpressOfferEntryContext";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -51,13 +52,15 @@ describe("StoneDetailDialog", () => {
 
     act(() =>
       root.render(
-        <StoneDetailDialog
-          stone={stone}
-          saved={false}
-          onOpenChange={vi.fn()}
-          onToggleSaved={onToggleSaved}
-          onAsk={onAsk}
-        />
+        <ExpressOfferEntryProvider canMakeOffer={() => true} makeOffer={vi.fn()}>
+          <StoneDetailDialog
+            stone={stone}
+            saved={false}
+            onOpenChange={vi.fn()}
+            onToggleSaved={onToggleSaved}
+            onAsk={onAsk}
+          />
+        </ExpressOfferEntryProvider>
       )
     );
 
@@ -86,6 +89,7 @@ describe("StoneDetailDialog", () => {
       /Recorded source counts|Full slabs vary|Learn about stone/i
     );
     expect(dialog?.textContent).not.toMatch(/Dual Finish/i);
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-make-offer"]')).not.toBeNull();
 
     expect(
       ask && save && (ask.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
@@ -160,13 +164,15 @@ describe("StoneDetailDialog", () => {
 
     act(() =>
       root.render(
-        <StoneDetailDialog
-          stone={stone}
-          saved={false}
-          onOpenChange={vi.fn()}
-          onToggleSaved={vi.fn()}
-          onAsk={onAsk}
-        />
+        <ExpressOfferEntryProvider canMakeOffer={() => true} makeOffer={vi.fn()}>
+          <StoneDetailDialog
+            stone={stone}
+            saved={false}
+            onOpenChange={vi.fn()}
+            onToggleSaved={vi.fn()}
+            onAsk={onAsk}
+          />
+        </ExpressOfferEntryProvider>
       )
     );
 
@@ -185,6 +191,7 @@ describe("StoneDetailDialog", () => {
     expect(dialog?.querySelector('[data-testid="jw-stone-share"]')).not.toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-save"]')).toBeNull();
     expect(buttonContaining(dialog, "Save this stone")).toBeNull();
+    expect(dialog?.querySelector('[data-testid="jw-stone-detail-make-offer"]')).toBeNull();
 
     click(ask ?? null);
     expect(onAsk).toHaveBeenCalledWith(stone);

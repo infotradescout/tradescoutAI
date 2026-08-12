@@ -1,5 +1,9 @@
 # Experience Surfaces — JW Stone marketplace (amendment 1.3.0)
 
+## Amendment 2.0.0 surfaces
+
+The protected storefront order becomes MarketplaceHeader → hero → First Cut → Containers → Current Inventory → MarketplaceFooter. Published containers and every real Current Inventory card/detail expose **Make An Offer**; First Cut does not. The JW Express overlay owns create account, sign in, verification/recovery, offer submission, and account history. The dedicated operator surface is `/admin/jw-stone-offers`. Customers never see another offer, rank, offer count, bidder, contact detail, or delivery diagnostic. Full behavior is locked in `private-offers-amendment.md`.
+
 Every visitor begins in the same image-led introduction with a real sticky header, sees First Cut beneath it, reaches New Arrivals and Current Inventory without making a buyer-path choice, and ends on a real footer. Customer role is collected only inside the request form.
 
 ## Section order

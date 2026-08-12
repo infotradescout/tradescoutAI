@@ -1,5 +1,18 @@
 # Decisions & Changes — JW Stone marketplace amendment 1.3.0
 
+## Owner amendment 2.0.0 (2026-08-11)
+
+- ADDED: Make An Offer on every real Current Inventory listing, including publicly anonymous catalog listings.
+- ADDED: staff-published Containers section with no synthetic seed records.
+- ADDED: JW Stone Express Account isolated from TradeScout customer identity.
+- ADDED: sealed private offer history, optional posted minimums, highest-offer-first container processing, masked contact, audited reveal, and durable email outbox.
+- MODIFIED: the no-price rule now permits only an optional public offer minimum; seller asking prices and submitted amounts remain private.
+- MODIFIED: the earlier no-database/no-authentication architecture is superseded for this bounded persistent lane.
+- UNCHANGED: Ask/Direct Connect separation, catalog truth, First Cut non-product status, wishlist, custom-domain behavior, no payment, no merge/deploy without GO.
+- DEFERRED: real container publication content remains operator-entered because no authoritative container inventory exists in the repository.
+
+Authority, exact behavior, and proof are recorded in `private-offers-amendment.md`.
+
 ## Owner override (2026-08-04)
 
 Owner chat is product authority over stale SI locks for this recovery slice.

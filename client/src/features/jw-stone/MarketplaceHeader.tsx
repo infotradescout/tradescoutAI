@@ -1,12 +1,14 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Bookmark, Menu, X } from "lucide-react";
+import { Bookmark, CircleDollarSign, Menu, X } from "lucide-react";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
   onOpenWishlist: () => void;
+  onOpenExpress: () => void;
   onStartRequest: () => void;
+  operatorHref?: string | null;
 };
 
 /**
@@ -16,7 +18,9 @@ type MarketplaceHeaderProps = {
 export function MarketplaceHeader({
   wishlistCount,
   onOpenWishlist,
+  onOpenExpress,
   onStartRequest,
+  operatorHref,
 }: MarketplaceHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
@@ -65,6 +69,15 @@ export function MarketplaceHeader({
         <nav aria-label="JW Stone actions" className="flex items-center gap-1 sm:gap-1.5">
           <button
             type="button"
+            onClick={onOpenExpress}
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
+            aria-label="Open JW Express private offers"
+          >
+            <CircleDollarSign className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Offers</span>
+          </button>
+          <button
+            type="button"
             onClick={onOpenWishlist}
             className={`relative inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
             aria-label={`Open saved stones, ${wishlistCount} saved`}
@@ -106,6 +119,20 @@ export function MarketplaceHeader({
                 className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}
               >
                 <nav aria-label="JW Stone menu" className="flex flex-col gap-0.5 text-sm">
+                  <a
+                    href="#jw-containers"
+                    onClick={() => closeAnd()}
+                    className="px-3 py-2.5 text-left font-medium text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    Containers
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => closeAnd(onOpenExpress)}
+                    className="px-3 py-2.5 text-left font-medium text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    Private offers
+                  </button>
                   <button
                     type="button"
                     onClick={() => closeAnd(onStartRequest)}
@@ -113,6 +140,15 @@ export function MarketplaceHeader({
                   >
                     Connect
                   </button>
+                  {operatorHref ? (
+                    <a
+                      href={operatorHref}
+                      onClick={() => closeAnd()}
+                      className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                    >
+                      Manage private offers
+                    </a>
+                  ) : null}
                 </nav>
               </div>
             ) : null}

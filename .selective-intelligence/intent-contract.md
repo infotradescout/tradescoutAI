@@ -1,5 +1,9 @@
 # Actual Intent Lock
 
+## Amendment 2.0.0 — private offers and containers (2026-08-11)
+
+The product owner has now authorized a genuine JW Stone offer lane. Every real Current Inventory listing receives **Make An Offer**, and the storefront receives a staff-published Containers section. A bidder creates a JW Stone Express Account—not a TradeScout account—with name, email, phone, business status, password, and offer. Offers are sealed, private, optionally subject to a posted minimum, and never competitive public bidding. Container opportunity is processed internally by highest active amount first. The complete superseding contract is `private-offers-amendment.md`; older no-database, no-authentication, and blanket no-price statements do not apply to this lane. Public asking prices and submitted amounts remain forbidden.
+
 Project: JW Stone 2.0  
 Release: jw-stone-2-0-r1 / amendment 1.3.0 (owner chat authority, 2026-08-04)  
 Status: locked for definition

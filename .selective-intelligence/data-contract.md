@@ -1,5 +1,9 @@
 # Data Contract
 
+## Amendment 2.0.0 persistent model
+
+New JW-owned records cover Express accounts, hashed sessions, hashed one-use account tokens, published containers, per-stone offer settings, immutable offer versions, offer events, idempotency receipts, and a transactional email outbox. No customer table references TradeScout `users`. Money is integer USD cents. A requester has one current active offer per target; revisions supersede rather than overwrite. Container order is amount descending, submission time ascending, then ID. Account closure removes direct identifiers, revokes credentials, withdraws active offers, and preserves pseudonymized audit facts. Full constraints are in `private-offers-amendment.md`.
+
 ## Entities, relationships, constraints, indexes, and canonical ownership
 
 The canonical inventory entity is the existing `JwStoneInventoryStone`. JW Stone 2.0 creates a route-local read-only catalog projection with canonical slug, safe public name, images, image finish associations, supported finishes, material status, source-count evidence, anonymous flag, editorial visual color direction, and nullable verified origin. The reconciled marketplace projection preserves all 433 supplied source images as 148 presentation groups while leaving the existing JW profile projection unchanged.

@@ -59,6 +59,10 @@ describe("JW Stone marketplace luxury layout", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/jw-stone");
     window.localStorage.clear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => undefined))
+    );
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
