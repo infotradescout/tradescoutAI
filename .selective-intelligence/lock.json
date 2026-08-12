@@ -32,7 +32,7 @@
     "intent": "locked",
     "definition": "locked",
     "build": "aligned",
-    "as_built": "not_started",
+    "as_built": "reconciled",
     "release": "blocked"
   },
   "material_blockers": [],
@@ -110,7 +110,7 @@
     {
       "path": "builds/jw-stone-private-offers/evidence.md",
       "version": "2.0.0",
-      "sha256": "992f8b0945a335b2fe5c88485f37f735bdb6abbc4f5c6584556144e7db135eeb"
+      "sha256": "b9881b462796d63b1cc001bcdc39428cafd370f7992be402d668ccca21ea2a48"
     },
     {
       "path": "builds/jw-stone-private-offers/definition-review.md",
@@ -627,7 +627,7 @@
     },
     {
       "id": "jw-stone-private-offers",
-      "status": "in_progress",
+      "status": "reconciled",
       "base_revision": "29f9bdd8d0b012220b966f719b54f4a61df31e78",
       "lock_version": "2.0.0",
       "requirements": [
@@ -658,7 +658,18 @@
       ],
       "overlap_approved_with": [],
       "contract": "builds/jw-stone-private-offers/contract.md",
-      "evidence": "builds/jw-stone-private-offers/evidence.md"
+      "evidence": "builds/jw-stone-private-offers/evidence.md",
+      "evidence_context": {
+        "revision": "1b3a4805524a85ff25312387a6707118eda15372 exact feature commit; the enclosing seal commit changes evidence only",
+        "environment": "Isolated Windows worktree with disposable PostgreSQL 16 on loopback and local platform/custom-domain browser routing",
+        "configuration": "JW outbox worker disabled for database tests; provider unconfigured or mocked; no production credentials or traffic",
+        "role": "Public visitor, JW Express customer, authorized JW operator, and independent Objector, Aligner, and Verifier",
+        "fixture": "110 Current Inventory listings, zero First Cut offer actions, honest empty Containers state, and synthetic disposable accounts and offers",
+        "observed_at": "2026-08-12T04:09:28.1749365Z",
+        "expected": "All sealed JW private-offer requirements pass locally while production delivery and release remain held",
+        "actual": "Exact feature-commit gate passed with independent review, migrations, tests, build, and browser proof; release remains blocked",
+        "flaky": false
+      }
     }
   ],
   "external_facts": [
@@ -919,9 +930,9 @@
     "scope": "Independent high-assurance review of JW-only identity isolation, sealed-offer privacy, contact gating, container priority, minimum truth, email durability, lifecycle, and release boundaries",
     "revision": "29f9bdd8d0b012220b966f719b54f4a61df31e78"
   },
-  "sealed_at": "2026-08-12T04:03:19+00:00",
+  "sealed_at": "2026-08-12T04:10:04+00:00",
   "semantic_digest": "8516b55d769152e5b3c630c69b1a7e2c13930fff14b84c5f810d83bcb96c8817",
-  "control_digest": "f50384ea602af2e84606e904021e707d6622565151f46dd9aabd88c186a499ab",
+  "control_digest": "2bb56f4ccd21dff02fe2c72be3bedfca861fb5188c3d33bc6c16a5812fbb1551",
   "seal_history": [
     {
       "sealed_at": "2026-08-02T17:44:59+00:00",
@@ -1471,6 +1482,41 @@
         "private-offers-amendment.md": "8787c0567823857c7206d348dbc37ac86a609f1b6daa8c4105b141a62d120501",
         "builds/jw-stone-private-offers/contract.md": "7559afbc4a0bdd4666d4f2823e0cfe2506e04e594dd773c09e607757f3576729",
         "builds/jw-stone-private-offers/evidence.md": "992f8b0945a335b2fe5c88485f37f735bdb6abbc4f5c6584556144e7db135eeb",
+        "builds/jw-stone-private-offers/definition-review.md": "8d96799c8eb8dad83be6dda720116eb3173a73cfd633fefef23a98c16def889e"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "Existing TradeScout privacy and contact boundaries remain authoritative; offer acceptance is explicitly non-payment and non-binding until separately contracted"
+      }
+    },
+    {
+      "sealed_at": "2026-08-12T04:10:04+00:00",
+      "amendment": null,
+      "transition": "as-built",
+      "checkpoint": false,
+      "active_build": "jw-stone-private-offers",
+      "lock_version": "2.0.0",
+      "build_status": "reconciled",
+      "as_built_verdict": "reconciled",
+      "invalidated_requirements": [],
+      "semantic_digest": "8516b55d769152e5b3c630c69b1a7e2c13930fff14b84c5f810d83bcb96c8817",
+      "artifact_digests": {
+        "intent-contract.md": "af9b8be9c72e4b02747338dd00d82ec54aac35f6e0c6cc01e1cf25268361ee93",
+        "scope-release.md": "b67d72c29ed7c4ef7c106a79f813915d93e7909035231d26cbf44d33a0928191",
+        "experience-surfaces.md": "4af6ba68ea4789037e6e370620fbe341df11da159956ac03bc6a3d8c63a453da",
+        "architecture-contract.md": "37aaf7d8ac000d91ce4be8b862160579f8124b41a448b92f7326230423b0c9d0",
+        "data-contract.md": "84dc1a976895052dfa3b5588a329bde6a425d209bb4d4f1efbf339f883d55a73",
+        "api-integrations.md": "fbeb40a9b7711674d207c4223b7535259c33930e2db79c6520ba7864e3b9bade",
+        "security-operations.md": "bdf20c0ab5310dbec847430974d84b3539529bffc01af925cc62307ff6f35828",
+        "delivery-map.md": "b06b1fcbbbda88b56e50b354cf06db984b7db82501ca87d8efe0767bb88c6870",
+        "traceability.md": "77e992eb7fdc592bd920f942765d45546ad5b757b5eb65af40ceadae42754a37",
+        "decisions-changes.md": "5b6eb71d326f36ca435f10d404fb3603ab72942fb89c33606ad32e29ab31baec",
+        "builds/jw-stone-marketplace/contract.md": "940d2b8e0de90ca32480054d3c65c9e0f3b6699ddabfdcbfd03bf08ec6647ab4",
+        "builds/jw-stone-marketplace/evidence.md": "67af589c1da6ece357dc146102db4cc6dd923b8a3d198a31144459a5888a758f",
+        "private-offers-amendment.md": "8787c0567823857c7206d348dbc37ac86a609f1b6daa8c4105b141a62d120501",
+        "builds/jw-stone-private-offers/contract.md": "7559afbc4a0bdd4666d4f2823e0cfe2506e04e594dd773c09e607757f3576729",
+        "builds/jw-stone-private-offers/evidence.md": "b9881b462796d63b1cc001bcdc39428cafd370f7992be402d668ccca21ea2a48",
         "builds/jw-stone-private-offers/definition-review.md": "8d96799c8eb8dad83be6dda720116eb3173a73cfd633fefef23a98c16def889e"
       },
       "decision_authorities": {

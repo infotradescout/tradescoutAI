@@ -1,7 +1,7 @@
 # Build Evidence: JW Stone Private Offers and Containers
 
-Status: implementation and independent as-built review complete; exact-commit release gate in progress  
-Revision under test: uncommitted working tree based on `29f9bdd8d0b012220b966f719b54f4a61df31e78`  
+Status: implementation, independent as-built review, and exact feature-commit release gate complete; final evidence seal in progress  
+Revision under test: exact feature commit `1b3a4805524a85ff25312387a6707118eda15372` based on `29f9bdd8d0b012220b966f719b54f4a61df31e78`  
 Environment: isolated clean-base worktree at `D:/AAATraderCorner/TradeScout/_wt/jwo-20260811`
 
 ## Definition evidence
@@ -43,6 +43,7 @@ Environment: isolated clean-base worktree at `D:/AAATraderCorner/TradeScout/_wt/
 - Latest focused storefront, Express account, operator, schema, discovery/SSR, email, and disposable-database run: 25 files and 174 tests PASS. The 12-test integration suite also passed independently against both full-chain and 0113-upgrade databases.
 - Integration coverage includes pending-verification event/queue invisibility, one-use verification, deterministic login replay/conflict, negative operator authorization and CSRF, cross-account denial, duplicate-signup serialization, verification-token races, submit idempotency, amount/time ordering, concurrent high/low acceptance, verification/late-submit/container-award safety, closure/acceptance serialization, closure replay and complete PII erasure scans, in-flight email fencing, stale-claim scheduling, exact retry exhaustion, and provider-accepted send recording.
 - `npm run build`: PASS; Vite transformed 4,024 modules, public startup/bundle checks passed, 548 JavaScript bundles and 13 HTML asset references were verified, and the server bundle completed.
+- `npm run gate:minimum-release -- --skip-ci --browser-proof=manual ...`: PASS on exact clean commit `1b3a4805524a85ff25312387a6707118eda15372`. Gate proof included typecheck, production build, 20 contract files/132 tests, 15 discovery/Search Console performance contracts, disposable DB migration and required-schema checks, 12 integration tests, manual browser evidence, and health-contract shape. `npm ci` was skipped only in this exact run because the clean `npm ci` proof above already passed in the same isolated worktree.
 - `git diff --check`: PASS. Locked Selective Intelligence artifacts retain their byte-preserving and whitespace-check-safe `.gitattributes` treatment.
 - Scoped wording scans found no auction/outbid/public-rank claims in the customer or operator implementation; references to payment appear only in explicit no-payment/non-binding disclaimers.
 
@@ -70,6 +71,6 @@ Environment: isolated clean-base worktree at `D:/AAATraderCorner/TradeScout/_wt/
 - As-built Objector: initial FAIL identified four actionable gaps; all were corrected. Independent re-review: PASS with no remaining P0/P1/P2 findings.
 - Aligner: ALIGNED; no requirement conflicts found. Exact-commit gate, live provider delivery, and production release remain explicit held proof states.
 - Verifier: VERIFIED FOR HELD DRAFT; no remaining P0/P1/P2 issue found. Exact-commit gate, live provider delivery, production migration/deployment, and merge remain held.
-- Exact-commit `gate:minimum-release`: pending the final review corrections and commit.
-- Draft pull request: pending exact-commit gate.
+- Exact feature-commit `gate:minimum-release`: PASS at `1b3a4805524a85ff25312387a6707118eda15372`; a second run is required on the evidence-only seal commit before push.
+- Draft pull request: pending final as-built seal, post-seal exact gate, and push.
 - No merge to `main`, production migration, deployment, provider reconfiguration, or production data mutation has occurred. Release remains blocked until explicit owner authorization.
