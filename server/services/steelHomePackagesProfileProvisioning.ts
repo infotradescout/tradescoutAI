@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Provisioning preserves schema-owned JSON and legacy row types. */
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import {
@@ -7,6 +8,7 @@ import {
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
 import { db } from "../db";
+import { hasVerifiedTradeScoutAdminCustody } from "./ownerConfirmedDirectProfile";
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -15,7 +17,7 @@ function recordValue(value: unknown): Record<string, any> {
 }
 
 /**
- * Idempotently installs the operator-approved steel-home TradePartner showcase.
+ * Idempotently installs the operator-approved steel-home project tools profile.
  *
  * The profiles table has only draft/published states and only published rows
  * can render. This record therefore uses `published` strictly as the existing
@@ -25,7 +27,8 @@ function recordValue(value: unknown): Record<string, any> {
  *
  * This provisioner never mutates the steward's preferences, roles, contact
  * data, active business, or active profile. Existing matching ownership is
- * preserved so an eventual account transfer is not silently undone.
+ * preserved only while it remains under a verified TradeScout admin; any
+ * other transfer fails closed instead of changing the public recipient label.
  */
 export async function provisionSteelHomePackagesProfile(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
@@ -51,7 +54,7 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
       .limit(2);
 
     if (matchingBusinesses.length > 1 || matchingProfiles.length > 1) {
-      throw new Error("Steel-home TradePartner canonical and temporary records conflict");
+      throw new Error("Steel-home project tools canonical and temporary records conflict");
     }
 
     const existingBusiness = matchingBusinesses[0];
@@ -64,17 +67,17 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
       existingProfileOwnerId &&
       existingBusinessOwnerId !== existingProfileOwnerId
     ) {
-      throw new Error("Steel-home TradePartner business and profile ownership records disagree");
+      throw new Error("Steel-home project tools business and profile ownership records disagree");
     }
     if (
       existingBusiness &&
       existingProfile?.businessId &&
       String(existingProfile.businessId) !== String(existingBusiness.id)
     ) {
-      throw new Error("Steel-home TradePartner profile is linked to a different business");
+      throw new Error("Steel-home project tools profile is linked to a different business");
     }
     if (!existingBusiness && existingProfile?.businessId) {
-      throw new Error("Steel-home TradePartner profile is already linked to another business");
+      throw new Error("Steel-home project tools profile is already linked to another business");
     }
 
     const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
@@ -102,7 +105,29 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
       existingProfileOwnerId || existingBusinessOwnerId || String(steward?.id || "");
 
     if (!ownerUserId) {
-      throw new Error("Steel-home TradePartner showcase needs a verified admin steward");
+      throw new Error("Steel-home project tools need a verified admin steward");
+    }
+
+    const [selectedOwner] = await tx
+      .select({
+        role: users.role,
+        roles: users.roles,
+        verifiedBadge: users.verifiedBadge,
+        verificationStatus: users.verificationStatus,
+      })
+      .from(users)
+      .where(eq(users.id, ownerUserId))
+      .limit(1);
+    if (
+      !selectedOwner ||
+      !hasVerifiedTradeScoutAdminCustody({
+        ownerRole: selectedOwner.role,
+        ownerRoles: selectedOwner.roles,
+        ownerVerifiedBadge: selectedOwner.verifiedBadge,
+        ownerVerificationStatus: selectedOwner.verificationStatus,
+      })
+    ) {
+      throw new Error("Steel-home project tools owner must remain a verified TradeScout admin");
     }
 
     const existingProfileData = recordValue(existingBusiness?.profileData);
@@ -120,11 +145,11 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
         ...existingProfileData,
         tagline: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.headline,
         description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body,
-        category: "Steel home TradePartner showcase",
+        category: "Steel-home project tools",
         services: [
-          "Worldwide Steel Buildings structure",
-          "JW Stone Logistics natural stone",
-          "A+ Cabinets cabinetry",
+          "Steel building concept design",
+          "Natural-stone countertop planning",
+          "Cabinet layout planning",
         ],
         publicContactEnabled: false,
         publicLocationEnabled: false,
@@ -158,7 +183,7 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
           .insert(businesses)
           .values(businessValues as any)
           .returning();
-    if (!business) throw new Error("Steel-home TradePartner business provisioning failed");
+    if (!business) throw new Error("Steel-home project tools business provisioning failed");
 
     const profileValues = {
       ownerUserId,
@@ -194,6 +219,6 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
           .insert(profiles)
           .values(profileValues as any)
           .returning();
-    if (!profile) throw new Error("Steel-home TradePartner profile provisioning failed");
+    if (!profile) throw new Error("Steel-home project tools profile provisioning failed");
   });
 }
