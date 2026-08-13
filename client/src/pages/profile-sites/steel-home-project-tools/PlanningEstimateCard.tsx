@@ -33,7 +33,7 @@ export default function PlanningEstimateCard({
             }`}
           >
             <CircleDollarSign className="h-4 w-4" aria-hidden="true" />
-            Early materials estimate
+            Early price estimate
           </span>
           <p className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
             {formatPlanningRange(estimate.range)}

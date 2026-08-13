@@ -1,4 +1,5 @@
-import { Building2, DoorOpen, Warehouse, Wind } from "lucide-react";
+import { useState } from "react";
+import { Building2, ChevronDown, DoorOpen, Send, Warehouse, Wind } from "lucide-react";
 import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
 import {
   BUILDING_COLOR_OPTIONS,
@@ -7,11 +8,11 @@ import {
   BUILDING_ROOF_PITCH_OPTIONS,
   BUILDING_USE_OPTIONS,
   calculateBuildingPlanningEstimate,
+  formatPlanningRange,
   type SteelHomeBuildingDesign,
 } from "./projectModel";
 import PlanningEstimateCard from "./PlanningEstimateCard";
 import {
-  IncludeDesignButton,
   PROJECT_TEXTAREA_CLASS,
   ProjectColorField,
   ProjectNumberField,
@@ -22,6 +23,7 @@ import {
 type Props = {
   design: SteelHomeBuildingDesign;
   onChange: (design: SteelHomeBuildingDesign) => void;
+  onRequest: () => void;
 };
 
 function colorHex(value: string): string {
@@ -319,9 +321,14 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
   );
 }
 
-export default function BuildingDesigner({ design, onChange }: Props) {
+export default function BuildingDesigner({ design, onChange, onRequest }: Props) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const update = (values: Partial<SteelHomeBuildingDesign>) => onChange({ ...design, ...values });
   const planningEstimate = calculateBuildingPlanningEstimate(design);
+  const startRequest = () => {
+    onChange({ ...design, included: true });
+    onRequest();
+  };
 
   return (
     <section
@@ -329,61 +336,88 @@ export default function BuildingDesigner({ design, onChange }: Props) {
       className="bg-[#fbf8f1]"
       data-testid="steel-home-building-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
+        <div className="mb-5 lg:hidden">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+            Metal Building Planner
+          </p>
+          <h2 className="mt-2 font-editorial text-3xl font-semibold leading-none tracking-[-0.04em] text-[#18312f]">
+            Plan the metal building and see an early estimate.
+          </h2>
+        </div>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
-          <div className="lg:sticky lg:top-6">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-              {content.tools.building.eyebrow}
-            </p>
-            <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
-              {content.tools.building.title}
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
-              {content.tools.building.body}
-            </p>
-
-            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#edf0eb] shadow-[0_18px_55px_rgba(24,49,47,0.1)]">
-              <BuildingPreview design={design} />
+          <div className="order-1 lg:sticky lg:top-[9.5rem]">
+            <div className="hidden lg:block">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+                {content.tools.building.eyebrow}
+              </p>
+              <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
+                {content.tools.building.title}
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
+                Enter the size, roof, openings, porch, and colors. The preview and early estimate
+                update as you work.
+              </p>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
-                <Building2 className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Footprint</p>
-                <p className="mt-1 text-sm text-[#68736f]">
-                  {(design.widthFt * design.lengthFt).toLocaleString()} sq. ft.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
-                <DoorOpen className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Openings</p>
-                <p className="mt-1 text-sm text-[#68736f]">
-                  {design.garageDoors + design.walkDoors + design.windows} total
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
-                <Warehouse className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Porch</p>
-                <p className="mt-1 text-sm text-[#68736f]">
-                  {BUILDING_PORCH_OPTIONS.find((item) => item.value === design.porch)?.label}
-                </p>
-              </div>
-            </div>
+            <button
+              type="button"
+              aria-expanded={previewOpen}
+              onClick={() => setPreviewOpen((open) => !open)}
+              className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-[#18312f]/15 bg-white px-4 text-sm font-black lg:hidden"
+              data-testid="steel-home-building-preview-toggle"
+            >
+              View live preview and estimate
+              <ChevronDown
+                className={`h-4 w-4 transition ${previewOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
 
-            <PlanningEstimateCard
-              estimate={planningEstimate}
-              testId="steel-home-building-planning-estimate"
-              roofIncluded
-            />
+            <div className={`${previewOpen ? "block" : "hidden"} lg:block`}>
+              <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#edf0eb] shadow-[0_18px_55px_rgba(24,49,47,0.1)]">
+                <BuildingPreview design={design} />
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
+                  <Building2 className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Footprint</p>
+                  <p className="mt-1 text-sm text-[#68736f]">
+                    {(design.widthFt * design.lengthFt).toLocaleString()} sq. ft.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
+                  <DoorOpen className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Openings</p>
+                  <p className="mt-1 text-sm text-[#68736f]">
+                    {design.garageDoors + design.walkDoors + design.windows} total
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
+                  <Warehouse className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Porch</p>
+                  <p className="mt-1 text-sm text-[#68736f]">
+                    {BUILDING_PORCH_OPTIONS.find((item) => item.value === design.porch)?.label}
+                  </p>
+                </div>
+              </div>
+
+              <PlanningEstimateCard
+                estimate={planningEstimate}
+                testId="steel-home-building-planning-estimate"
+                roofIncluded
+              />
+            </div>
           </div>
 
-          <div className="rounded-[2rem] border border-[#18312f]/10 bg-[#efe9de] p-5 shadow-[0_24px_80px_rgba(24,49,47,0.08)] sm:p-8">
+          <div className="order-3 rounded-[2rem] border border-[#18312f]/10 bg-[#efe9de] p-5 shadow-[0_24px_80px_rgba(24,49,47,0.08)] sm:p-8 lg:order-2">
             <div className="flex items-center gap-3 border-b border-[#18312f]/10 pb-6">
               <span className="grid h-11 w-11 place-items-center rounded-full bg-[#18312f] text-white">
                 <Wind className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
-                <p className="text-sm font-bold text-[#18312f]">Building details</p>
+                <p className="text-sm font-bold text-[#18312f]">Metal building details</p>
                 <p className="mt-1 text-xs text-[#6d7874]">Enter the size and options you want.</p>
               </div>
             </div>
@@ -509,7 +543,7 @@ export default function BuildingDesigner({ design, onChange }: Props) {
             </div>
 
             <label className="mt-7 block space-y-2 text-sm font-bold text-[#18312f]">
-              <span>Building notes</span>
+              <span>Metal building notes</span>
               <textarea
                 value={design.notes}
                 maxLength={240}
@@ -519,17 +553,39 @@ export default function BuildingDesigner({ design, onChange }: Props) {
               />
             </label>
 
-            <div className="mt-8 flex flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7">
-              <IncludeDesignButton
-                included={design.included}
-                onClick={() => update({ included: !design.included })}
-                label="Include building + roof"
-                testId="steel-home-building-include"
-              />
+            <div className="mt-8 hidden flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7 lg:flex">
+              <button
+                type="button"
+                onClick={startRequest}
+                data-testid="steel-home-building-include"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#a94f2e] px-6 text-sm font-black text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] transition hover:bg-[#8f3f25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] focus-visible:ring-offset-2"
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                Start a Request
+              </button>
               <p className="text-xs leading-5 text-[#68736f]">
                 These choices are saved on this device.
               </p>
             </div>
+          </div>
+
+          <div className="sticky bottom-0 z-30 order-2 -mx-4 flex items-center justify-between gap-3 border-y border-[#18312f]/10 bg-[#f7f3eb]/95 px-4 py-3 shadow-[0_-14px_35px_rgba(24,49,47,.12)] backdrop-blur lg:hidden">
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#a94f2e]">
+                Early price estimate
+              </p>
+              <p className="truncate text-sm font-black">
+                {formatPlanningRange(planningEstimate.range)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={startRequest}
+              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#a94f2e] px-5 text-sm font-black text-white"
+              data-testid="steel-home-building-mobile-request"
+            >
+              Start a Request
+            </button>
           </div>
         </div>
       </div>

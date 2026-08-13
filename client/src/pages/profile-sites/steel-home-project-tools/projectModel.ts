@@ -1,5 +1,10 @@
 import { JW_STONE_NAMED_IDS, getCatalogItemById } from "@/features/jw-stone/catalog";
 import { getCountyByFips } from "@shared/states-counties";
+import {
+  STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE,
+  STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
+  STEEL_HOME_PACKAGES_REQUEST_SOURCE,
+} from "@shared/steelHomePackagesProfile";
 
 export const STEEL_HOME_PROJECT_DRAFT_VERSION = 5 as const;
 export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v5";
@@ -22,22 +27,22 @@ export const PROJECT_ROLE_OPTIONS = [
   {
     value: "self-contracted",
     label: "Self-contracted homeowner",
-    description: "Plan the packages and list the trades you need.",
+    description: "Use the planners while managing the project yourself.",
   },
   {
     value: "has-builder",
     label: "Homeowner with a builder",
-    description: "Plan the packages to review with your builder.",
+    description: "Use the planners to prepare choices for your builder.",
   },
   {
     value: "builder-or-contractor",
     label: "Builder or contractor",
-    description: "Plan the packages for your customer's project.",
+    description: "Use the planners to prepare choices for your customer's project.",
   },
   {
     value: "whole-build-help",
-    label: "Need help managing the full build",
-    description: "Include the packages and local trades the project needs.",
+    label: "Need help managing the project",
+    description: "Use the planners first, then explain the management help you need.",
   },
 ] as const;
 
@@ -820,7 +825,7 @@ export function calculateBuildingPlanningEstimate(
 
   addEstimateLine(lines, {
     key: "building-shell-with-roof",
-    label: "Building shell with base roof",
+    label: "Metal building shell with base roof",
     quantity: footprintSquareFeet,
     unit: "sq. ft.",
     lowerRate: shellAllowance.lower,
@@ -910,7 +915,7 @@ export function calculateBuildingPlanningEstimate(
 
   return {
     key: "building",
-    label: "Building package early estimate",
+    label: "Metal building package early estimate",
     range: sumEstimateLines(lines),
     breakdown: lines,
     disclaimer: BUILDING_PLANNING_DISCLAIMER,
@@ -1063,11 +1068,6 @@ export function getSteelHomeProjectEstimateSummary(
       `${stone?.publicLabel || "Selected surface"}: material, fabrication, edge work, cutouts, delivery, and installation`
     );
   }
-  for (const value of draft.additionalScopes) {
-    const option = ADDITIONAL_PROJECT_SCOPE_OPTIONS.find((item) => item.value === value);
-    if (option) quoteRequired.push(option.label);
-  }
-
   return {
     planningRange,
     planningEstimates,
@@ -1114,9 +1114,9 @@ export function formatSteelHomeProjectLocation(draftInput: SteelHomeProjectDraft
 export function getIncludedProjectScopes(draftInput: SteelHomeProjectDraft): string[] {
   const draft = reconcileSteelHomeProjectDraft(draftInput);
   return [
-    draft.building.included ? "Building + roof" : "",
     draft.countertops.included ? "Countertops" : "",
     draft.cabinets.included ? "Cabinets" : "",
+    draft.building.included ? "Metal Building" : "",
   ].filter(Boolean);
 }
 
@@ -1124,10 +1124,11 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
   const draft = reconcileSteelHomeProjectDraft(draftInput);
   const scopes = getIncludedProjectScopes(draft);
   const estimateSummary = getSteelHomeProjectEstimateSummary(draft);
+  const plannerLabel = scopes.length === 1 ? "Planner" : "Planners";
   const lines = [
-    "TradeScout Steel Home Project Request",
+    "TradeScout Steel Home Planning Request",
     `Project location: ${formatSteelHomeProjectLocation(draft)}`,
-    `Selected packages: ${scopes.join(", ") || "None selected"}`,
+    `${plannerLabel}: ${scopes.join(", ") || "None selected"}`,
   ];
   addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
   addLine(
@@ -1140,7 +1141,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
 
   if (draft.building.included) {
     const building = draft.building;
-    lines.push("", "Building + Roof Details");
+    lines.push("", "Metal Building Details");
     addLine(lines, "Use", labelFromOptions(building.use, BUILDING_USE_OPTIONS));
     addLine(
       lines,
@@ -1268,13 +1269,13 @@ export function buildSteelHomeProjectRequestHref(
   return updateRequestHref(
     baseHref,
     {
-      profile: "steel-home-packages",
-      profileName: "Steel Home Project Workspace",
-      source: "steel_home_project_center",
+      profile: STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug,
+      profileName: STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel,
+      source: STEEL_HOME_PACKAGES_REQUEST_SOURCE,
       subject: "product",
       title: scopes.length
-        ? `TradeScout Steel Home Project Request — ${scopes.join(", ")}`
-        : "TradeScout Steel Home Project Request",
+        ? `TradeScout Steel Home Planning Request — ${scopes.join(", ")}`
+        : "TradeScout Steel Home Planning Request",
       description: buildSteelHomeProjectDescription(draft),
       location: draft.location,
       county: draft.countyFips,
@@ -1297,17 +1298,12 @@ export function buildSteelHomeLaborRequestHref(
     `Work needed: ${draft.labor.trades.join(", ") || "Not selected"}`,
   ];
   addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
-  addLine(
-    lines,
-    "Other home needs requiring a quote",
-    getAdditionalProjectScopeLabels(draft).join(", ")
-  );
-  addLine(lines, "Related packages", scopes.join(", "));
+  addLine(lines, scopes.length === 1 ? "Related planner" : "Related planners", scopes.join(", "));
   addLine(lines, "Desired timing", draft.timing);
   if (draft.building.included) {
     addLine(
       lines,
-      "Building + roof details",
+      "Metal building details",
       `${draft.building.widthFt}' × ${draft.building.lengthFt}' × ${draft.building.eaveHeightFt}' eave; ${labelFromOptions(draft.building.roofStyle, BUILDING_ROOF_OPTIONS)}`
     );
   }
@@ -1331,7 +1327,7 @@ export function buildSteelHomeLaborRequestHref(
   return updateRequestHref(
     baseHref,
     {
-      source: "steel_home_project_tools_labor",
+      source: STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE,
       subject: "service",
       title: draft.labor.trades.length
         ? `TradeScout Local Trade Request — ${draft.labor.trades.join(", ")}`
@@ -1358,7 +1354,7 @@ export function buildSteelHomeLaborRequestHref(
 export function getSteelHomeProjectReadiness(draftInput: SteelHomeProjectDraft) {
   const draft = reconcileSteelHomeProjectDraft(draftInput);
   const scopes = getIncludedProjectScopes(draft);
-  const hasProjectScope = scopes.length > 0 || draft.additionalScopes.length > 0;
+  const hasProjectScope = scopes.length > 0;
   const hasProjectRole = Boolean(draft.projectRole);
   const hasRoutingLocation =
     draft.location.length >= 2 &&

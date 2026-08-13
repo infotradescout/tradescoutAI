@@ -1,5 +1,13 @@
 import { useId, useMemo, useState } from "react";
-import { CheckCircle2, CircleDollarSign, Ruler, Scissors, Sparkles } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronDown,
+  CircleDollarSign,
+  Ruler,
+  Scissors,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import { JW_STONE_NAMED_CATALOG, getCatalogItemById } from "@/features/jw-stone/catalog";
 import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
 import {
@@ -13,7 +21,6 @@ import {
   type SteelHomeCountertopDesign,
 } from "./projectModel";
 import {
-  IncludeDesignButton,
   PROJECT_FIELD_CLASS,
   PROJECT_TEXTAREA_CLASS,
   ProjectNumberField,
@@ -26,15 +33,16 @@ import { buildStoneDesignerImageHref } from "./stoneDesignerImages";
 type Props = {
   design: SteelHomeCountertopDesign;
   onChange: (design: SteelHomeCountertopDesign) => void;
+  onRequest: () => void;
 };
 
 const QUICK_STONE_IDS = [
   "cristallo",
   "taj-mahal",
+  "aj-quartz",
   "amazonic-green",
   "blue-goias",
   "rhino-white",
-  "gold-macaubas",
 ] as const;
 
 const quickStones = QUICK_STONE_IDS.map((id) => getCatalogItemById(id)).filter(
@@ -216,9 +224,10 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
   );
 }
 
-export default function CountertopDesigner({ design, onChange }: Props) {
+export default function CountertopDesigner({ design, onChange, onRequest }: Props) {
   const [stoneSearch, setStoneSearch] = useState("");
   const [materialFilter, setMaterialFilter] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
   const update = (values: Partial<SteelHomeCountertopDesign>) => onChange({ ...design, ...values });
   const selectedStone = getCatalogItemById(design.stoneId);
   const squareFeet = calculateCountertopSquareFeet(design);
@@ -237,6 +246,10 @@ export default function CountertopDesigner({ design, onChange }: Props) {
     selectedStone && !matchingStones.some((stone) => stone.id === selectedStone.id)
       ? [selectedStone, ...matchingStones]
       : matchingStones;
+  const startRequest = () => {
+    onChange({ ...design, included: true });
+    onRequest();
+  };
 
   return (
     <section
@@ -244,59 +257,88 @@ export default function CountertopDesigner({ design, onChange }: Props) {
       className="bg-[#17201f] text-white"
       data-testid="steel-home-countertop-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
+        <div className="mb-5 lg:hidden">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
+            Countertop Planner
+          </p>
+          <h2 className="mt-2 font-editorial text-3xl font-semibold leading-none tracking-[-0.04em] text-white">
+            Choose a surface and estimate the countertop area.
+          </h2>
+        </div>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
-          <div className="lg:sticky lg:top-6">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
-              {content.tools.countertops.eyebrow}
-            </p>
-            <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-white sm:text-5xl">
-              {content.tools.countertops.title}
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/[0.68] sm:text-base">
-              {content.tools.countertops.body}
-            </p>
-
-            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#ded8cb] shadow-[0_18px_55px_rgba(0,0,0,0.26)]">
-              <CountertopPreview design={design} />
+          <div className="order-1 lg:sticky lg:top-[9.5rem]">
+            <div className="hidden lg:block">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
+                {content.tools.countertops.eyebrow}
+              </p>
+              <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-white sm:text-5xl">
+                {content.tools.countertops.title}
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/[0.68] sm:text-base">
+                Choose Quartzite, Engineered Quartz, or another available surface from real photos,
+                then enter the layout and cutouts to see the approximate area.
+              </p>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-                <Sparkles className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
-                  Selected surface
-                </p>
-                <p className="mt-1 text-sm text-white/[0.65]">{selectedStone?.publicLabel}</p>
+            <button
+              type="button"
+              aria-expanded={previewOpen}
+              onClick={() => setPreviewOpen((open) => !open)}
+              className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-white/15 bg-white/[0.08] px-4 text-sm font-black text-white lg:hidden"
+              data-testid="steel-home-countertop-preview-toggle"
+            >
+              View live preview and area
+              <ChevronDown
+                className={`h-4 w-4 transition ${previewOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
+
+            <div className={`${previewOpen ? "block" : "hidden"} lg:block`}>
+              <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#ded8cb] shadow-[0_18px_55px_rgba(0,0,0,0.26)]">
+                <CountertopPreview design={design} />
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-                <Ruler className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Estimated area</p>
-                <p className="mt-1 text-sm text-white/[0.65]">{squareFeet} sq. ft.</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-                <Scissors className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Cutouts</p>
-                <p className="mt-1 text-sm text-white/[0.65]">
-                  {[
-                    design.sink !== "None" ? "Sink" : "",
-                    design.cooktop !== "None" ? "Cooktop" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" + ") || "None"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-                <CircleDollarSign className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
-                  Countertop price
-                </p>
-                <p className="mt-1 text-sm text-white/[0.65]">Quote needed</p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                  <Sparkles className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
+                    Selected surface
+                  </p>
+                  <p className="mt-1 text-sm text-white/[0.65]">{selectedStone?.publicLabel}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                  <Ruler className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
+                    Estimated area
+                  </p>
+                  <p className="mt-1 text-sm text-white/[0.65]">{squareFeet} sq. ft.</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                  <Scissors className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Cutouts</p>
+                  <p className="mt-1 text-sm text-white/[0.65]">
+                    {[
+                      design.sink !== "None" ? "Sink" : "",
+                      design.cooktop !== "None" ? "Cooktop" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" + ") || "None"}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                  <CircleDollarSign className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
+                    Countertop price
+                  </p>
+                  <p className="mt-1 text-sm text-white/[0.65]">Quote needed</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-[#f4efe6] p-5 text-[#18312f] shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-8">
+          <div className="order-3 rounded-[2rem] border border-white/10 bg-[#f4efe6] p-5 text-[#18312f] shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-8 lg:order-2">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
                 Choose a surface
@@ -305,13 +347,17 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                 Choose a surface and see it on the layout.
               </h3>
               <p className="mt-3 text-sm leading-6 text-[#68736f]">
-                Choose quartzite, engineered quartz, or another natural-stone surface from the
-                photos. We confirm availability, finish, dimensions, fabrication, delivery, and
-                price before ordering.
+                Choose Quartzite, Engineered Quartz, or another available surface from the photos.
+                We confirm availability, finish, dimensions, fabrication, delivery, and price before
+                ordering.
               </p>
             </div>
 
-            <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div
+              className="mt-7 flex snap-x gap-3 overflow-x-auto pb-2"
+              aria-label="Quick surface choices"
+              data-testid="steel-home-countertop-quick-rail"
+            >
               {quickStones.map((stone) => {
                 const selected = stone.id === design.stoneId;
                 return (
@@ -321,7 +367,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                     aria-pressed={selected}
                     onClick={() => update({ stoneId: stone.id })}
                     data-testid={`steel-home-countertop-stone-${stone.id}`}
-                    className={`group overflow-hidden rounded-2xl border bg-white text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] ${
+                    className={`group w-40 shrink-0 snap-start overflow-hidden rounded-2xl border bg-white text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] sm:w-44 ${
                       selected
                         ? "border-[#a94f2e] ring-2 ring-[#a94f2e]/20"
                         : "border-[#18312f]/10 hover:border-[#a94f2e]/60"
@@ -352,7 +398,14 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               })}
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <a
+              href="#steel-home-countertop-browse-all"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-black text-[#8b4b33] underline decoration-[#a94f2e]/40 underline-offset-4"
+            >
+              Browse all surfaces
+            </a>
+
+            <div id="steel-home-countertop-browse-all" className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="block space-y-2 text-sm font-bold">
                 <span>Search surfaces</span>
                 <input
@@ -523,17 +576,37 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               />
             </label>
 
-            <div className="mt-8 flex flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7">
-              <IncludeDesignButton
-                included={design.included}
-                onClick={() => update({ included: !design.included })}
-                label="Include countertops"
-                testId="steel-home-countertop-include"
-              />
+            <div className="mt-8 hidden flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7 lg:flex">
+              <button
+                type="button"
+                onClick={startRequest}
+                data-testid="steel-home-countertop-include"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#a94f2e] px-6 text-sm font-black text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] transition hover:bg-[#8f3f25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] focus-visible:ring-offset-2"
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                Start a Request
+              </button>
               <p className="text-xs leading-5 text-[#68736f]">
                 These choices are saved on this device.
               </p>
             </div>
+          </div>
+
+          <div className="sticky bottom-0 z-30 order-2 -mx-4 flex items-center justify-between gap-3 border-y border-white/10 bg-[#17201f]/95 px-4 py-3 shadow-[0_-14px_35px_rgba(0,0,0,.25)] backdrop-blur lg:hidden">
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#f0b392]">
+                Approximate area · Quote needed
+              </p>
+              <p className="truncate text-sm font-black text-white">About {squareFeet} sq. ft.</p>
+            </div>
+            <button
+              type="button"
+              onClick={startRequest}
+              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#d66d42] px-5 text-sm font-black text-white"
+              data-testid="steel-home-countertop-mobile-request"
+            >
+              Start a Request
+            </button>
           </div>
         </div>
       </div>

@@ -161,24 +161,24 @@ describe("steel-home project model", () => {
     expect(PROJECT_ROLE_OPTIONS[0]).toMatchObject({
       value: "self-contracted",
       label: "Self-contracted homeowner",
-      description: "Plan the packages and list the trades you need.",
+      description: "Use the planners while managing the project yourself.",
     });
     expect(PROJECT_ROLE_OPTIONS.map(({ label, description }) => ({ label, description }))).toEqual([
       {
         label: "Self-contracted homeowner",
-        description: "Plan the packages and list the trades you need.",
+        description: "Use the planners while managing the project yourself.",
       },
       {
         label: "Homeowner with a builder",
-        description: "Plan the packages to review with your builder.",
+        description: "Use the planners to prepare choices for your builder.",
       },
       {
         label: "Builder or contractor",
-        description: "Plan the packages for your customer's project.",
+        description: "Use the planners to prepare choices for your customer's project.",
       },
       {
-        label: "Need help managing the full build",
-        description: "Include the packages and local trades the project needs.",
+        label: "Need help managing the project",
+        description: "Use the planners first, then explain the management help you need.",
       },
     ]);
     expect(PROJECT_TIMING_OPTIONS).toEqual([
@@ -333,13 +333,13 @@ describe("steel-home project model", () => {
 
     expect(estimate).toMatchObject({
       key: "building",
-      label: "Building package early estimate",
+      label: "Metal building package early estimate",
       range: { lower: 80400, high: 124050 },
     });
     expect(formatPlanningRange(estimate.range)).toBe("$80,400–$124,050");
     expect(estimate.breakdown[0]).toMatchObject({
       key: "building-shell-with-roof",
-      label: "Building shell with base roof",
+      label: "Metal building shell with base roof",
       quantity: 2400,
       unit: "sq. ft.",
       range: { lower: 64800, high: 96000 },
@@ -425,7 +425,7 @@ describe("steel-home project model", () => {
     }
   });
 
-  it("keeps quote-needed stone and added categories outside the numeric estimated total", () => {
+  it("keeps quote-needed countertops outside the numeric estimated total", () => {
     const draft = createEmptySteelHomeProjectDraft();
     expect(getSteelHomeProjectEstimateSummary(draft)).toMatchObject({
       planningRange: null,
@@ -447,9 +447,6 @@ describe("steel-home project model", () => {
     expect(summary.planningRange).toEqual({ lower: 96050, high: 151000 });
     expect(summary.quoteRequired).toEqual([
       "Taj Mahal: material, fabrication, edge work, cutouts, delivery, and installation",
-      "Insulation",
-      "Mini-split heating and cooling",
-      "Foundation and site work",
     ]);
     expect(JSON.stringify(summary.quoteRequired)).not.toContain("$0");
     expect(summary.disclaimer).toContain("not included in the estimated total");
@@ -465,10 +462,10 @@ describe("steel-home project model", () => {
     quoteOnlyDraft.additionalScopes = ["appliances"];
     const quoteOnlySummary = getSteelHomeProjectEstimateSummary(quoteOnlyDraft);
     expect(quoteOnlySummary.planningRange).toBeNull();
-    expect(quoteOnlySummary.quoteRequired).toHaveLength(2);
+    expect(quoteOnlySummary.quoteRequired).toHaveLength(1);
   });
 
-  it("requires a role and location but accepts an added home need without a designer", () => {
+  it("requires a role, location, and one of the three current planners", () => {
     const draft = createEmptySteelHomeProjectDraft();
     draft.location = "Ocean Springs, MS";
     draft.stateCode = "MS";
@@ -480,15 +477,21 @@ describe("steel-home project model", () => {
       projectReady: false,
       needsRole: true,
       needsLocation: false,
-      needsDesign: false,
+      needsDesign: true,
       additionalScopeLabels: ["Mini-split heating and cooling"],
     });
 
     draft.projectRole = "self-contracted";
     expect(getSteelHomeProjectReadiness(draft)).toMatchObject({
-      projectReady: true,
+      projectReady: false,
       needsRole: false,
       needsLocation: false,
+      needsDesign: true,
+    });
+
+    draft.building.included = true;
+    expect(getSteelHomeProjectReadiness(draft)).toMatchObject({
+      projectReady: true,
       needsDesign: false,
     });
   });
@@ -511,21 +514,21 @@ describe("steel-home project model", () => {
     draft.cabinets.doorStyle = "Slab";
 
     const description = buildSteelHomeProjectDescription(draft);
-    expect(description).toMatch(/^TradeScout Steel Home Project Request\n/);
+    expect(description).toMatch(/^TradeScout Steel Home Planning Request\n/);
     expect(description).toContain("54' wide × 60' long × 14' eave");
     expect(description).toContain("Project location: Ocean Springs, MS 39564 — Jackson County, MS");
     expect(description).toContain("Contracting setup: Self-contracted homeowner");
     expect(description).toMatch(/Early estimated total: \$[\d,]+–\$[\d,]+/);
     expect(description).toContain("Quote needed: Taj Mahal:");
-    expect(description).toContain("Insulation");
-    expect(description).toContain("Tankless water heating");
+    expect(description).not.toContain("Insulation");
+    expect(description).not.toContain("Tankless water heating");
     expect(description).toContain("Taj Mahal — Quartzite");
-    expect(description).toContain("Selected packages: Building + roof, Countertops, Cabinets");
+    expect(description).toContain("Planners: Countertops, Cabinets, Metal Building");
     expect(description).not.toContain("Stone record:");
     expect(description).not.toContain("Stone image:");
     expect(description).toContain('Wall runs: 132" × 96"');
     expect(description).toContain("Style: Slab");
-    expect(description).toContain("Building + Roof Details");
+    expect(description).toContain("Metal Building Details");
     expect(description).toContain("Cabinet Details");
     expect(description).toContain('Main wall used: 198" of 216"');
     expect(description).toContain("Estimated area: About 60.4 sq. ft.");
@@ -541,14 +544,15 @@ describe("steel-home project model", () => {
     expect(engineeredQuartzDescription).toContain(
       "Selected surface: AJ Quartz — Engineered Quartz"
     );
-    expect(engineeredQuartzDescription).toContain("Selected packages: Countertops");
+    expect(engineeredQuartzDescription).toContain("Planner: Countertops");
+    expect(engineeredQuartzDescription).not.toContain("Planners:");
     expect(engineeredQuartzDescription).not.toContain("Stone + quartz");
 
     const graniteDraft = createEmptySteelHomeProjectDraft();
     graniteDraft.countertops.included = true;
     graniteDraft.countertops.stoneId = "blue-goias";
     const graniteDescription = buildSteelHomeProjectDescription(graniteDraft);
-    expect(graniteDescription).toContain("Selected packages: Countertops");
+    expect(graniteDescription).toContain("Planner: Countertops");
     expect(graniteDescription).toContain("Selected surface: Blue Goias — Granite");
     expect(graniteDescription).not.toContain("Quartzite / engineered quartz");
 
@@ -559,11 +563,11 @@ describe("steel-home project model", () => {
     const url = new URL(href, "https://www.thetradescout.com");
     expect(url.pathname).toBe("/direct-connect");
     expect(url.searchParams.get("profile")).toBe("steel-home-packages");
-    expect(url.searchParams.get("profileName")).toBe("Steel Home Project Workspace");
-    expect(url.searchParams.get("source")).toBe("steel_home_project_center");
+    expect(url.searchParams.get("profileName")).toBe("Steel Home Planning Tools");
+    expect(url.searchParams.get("source")).toBe("steel_home_planning_tools");
     expect(url.searchParams.get("subject")).toBe("product");
     expect(url.searchParams.get("title")).toBe(
-      "TradeScout Steel Home Project Request — Building + roof, Countertops, Cabinets"
+      "TradeScout Steel Home Planning Request — Countertops, Cabinets, Metal Building"
     );
     expect(url.searchParams.get("description")).toBe(description);
     expect(url.searchParams.get("location")).toBe("Ocean Springs, MS 39564");
@@ -600,14 +604,14 @@ describe("steel-home project model", () => {
     draft.cabinets.notes = `CABINET-${"C".repeat(232)}`;
 
     const description = buildSteelHomeProjectDescription(draft);
-    expect(description).toContain("Building + Roof Details");
+    expect(description).toContain("Metal Building Details");
     expect(description).toContain("Countertop Details");
     expect(description).toContain("Cabinet Details");
     expect(description).toContain(draft.building.notes);
     expect(description).toContain(draft.countertops.notes);
     expect(description).toContain(draft.cabinets.notes);
     expect(description).toContain("This request is not a quote");
-    expect(description).toContain("Installation and trade work");
+    expect(description).not.toContain("Installation and trade work");
     expect(description.length).toBeLessThanOrEqual(5000);
   });
 
@@ -629,7 +633,7 @@ describe("steel-home project model", () => {
     );
     const url = new URL(href, "https://www.thetradescout.com");
     expect(url.searchParams.get("subject")).toBe("service");
-    expect(url.searchParams.get("source")).toBe("steel_home_project_tools_labor");
+    expect(url.searchParams.get("source")).toBe("steel_home_planning_tools_labor");
     expect(url.searchParams.get("county")).toBe("28047");
     expect(url.searchParams.get("state")).toBe("MS");
     expect(url.searchParams.get("description")).toContain(
@@ -645,10 +649,9 @@ describe("steel-home project model", () => {
     expect(url.searchParams.get("description")).toContain(
       "Contracting setup: Homeowner with a builder"
     );
-    expect(url.searchParams.get("description")).toContain(
-      "Other home needs requiring a quote: Windows and exterior doors, Appliance warranty or service plan"
-    );
-    expect(url.searchParams.get("description")).toContain("Related packages: Countertops");
+    expect(url.searchParams.get("description")).not.toContain("Windows and exterior doors");
+    expect(url.searchParams.get("description")).not.toContain("Appliance warranty or service plan");
+    expect(url.searchParams.get("description")).toContain("Related planner: Countertops");
     expect(url.searchParams.get("title")?.toLowerCase()).not.toContain("labor");
     expect(url.searchParams.get("description")?.toLowerCase()).not.toContain("labor");
     for (const target of ["profile", "profileName", "target", "targetProviderId", "contractorId"]) {
