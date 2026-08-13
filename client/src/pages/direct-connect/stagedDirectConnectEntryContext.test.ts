@@ -51,18 +51,22 @@ describe("stagedDirectConnectEntryContext", () => {
     });
   });
 
-  it("uses staging on the same origin but never stages or leaks context across origins", () => {
+  it("uses staging on the same origin and keeps only safe routing across origins", () => {
     const sameOriginDestination = `${window.location.origin}/direct-connect?source=profile`;
     const sameOriginPath = stageDirectConnectEntryContext(
       { title: "Same-origin private project" },
       sameOriginDestination
     );
-    expect(sameOriginPath).toMatch(/^\/direct-connect\?staged=[a-f0-9]{64}$/);
+    const sameOriginUrl = new URL(sameOriginPath, window.location.origin);
+    expect(sameOriginUrl.pathname).toBe("/direct-connect");
+    expect(sameOriginUrl.searchParams.get("source")).toBe("profile");
+    expect(sameOriginUrl.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+    expect(sameOriginUrl.searchParams.has("title")).toBe(false);
     expect(window.sessionStorage.length).toBe(1);
 
     window.sessionStorage.clear();
     const platformDestination =
-      "https://www.thetradescout.com/direct-connect?title=Must%20not%20leak";
+      "https://www.thetradescout.com/direct-connect?profile=steel-home-packages&profileName=Steel%20Home%20Project%20Workspace&source=steel_home_project_center&subject=product&title=Must%20not%20leak&description=Private%20details";
     const crossOriginPath = stageDirectConnectEntryContext(
       {
         title: "Must not leak",
@@ -71,11 +75,15 @@ describe("stagedDirectConnectEntryContext", () => {
       platformDestination
     );
 
-    expect(getDirectConnectEntryFallbackHref(platformDestination)).toBe(
-      "https://www.thetradescout.com/direct-connect"
-    );
-    expect(crossOriginPath).toBe("https://www.thetradescout.com/direct-connect");
-    expect(crossOriginPath).not.toContain("?");
+    const fallbackUrl = new URL(getDirectConnectEntryFallbackHref(platformDestination));
+    expect(fallbackUrl.origin).toBe("https://www.thetradescout.com");
+    expect(fallbackUrl.pathname).toBe("/direct-connect");
+    expect(fallbackUrl.searchParams.get("profile")).toBe("steel-home-packages");
+    expect(fallbackUrl.searchParams.get("source")).toBe("steel_home_project_center");
+    expect(fallbackUrl.searchParams.get("subject")).toBe("product");
+    expect(fallbackUrl.searchParams.has("title")).toBe(false);
+    expect(fallbackUrl.searchParams.has("description")).toBe(false);
+    expect(crossOriginPath).toBe(fallbackUrl.toString());
     expect(crossOriginPath).not.toContain("Must");
     expect(window.sessionStorage.length).toBe(0);
   });
@@ -105,7 +113,10 @@ describe("stagedDirectConnectEntryContext", () => {
   });
 
   it("expires the staged context after ten minutes and removes it", () => {
-    const path = stageDirectConnectEntryContext({ title: "Short-lived project" });
+    const path = stageDirectConnectEntryContext(
+      { title: "Short-lived project" },
+      "/direct-connect?profile=steel-home-packages&profileName=Steel%20Home%20Project%20Workspace&source=steel_home_project_center&subject=product"
+    );
 
     vi.advanceTimersByTime(10 * 60 * 1000 - 1);
     expect(readStagedDirectConnectEntryContext(path)?.title).toBe("Short-lived project");
@@ -113,6 +124,11 @@ describe("stagedDirectConnectEntryContext", () => {
     vi.advanceTimersByTime(1);
     expect(readStagedDirectConnectEntryContext(path)).toBeNull();
     expect(window.sessionStorage.length).toBe(0);
+    expect(resolveDirectConnectEntryContext(path)).toMatchObject({
+      targetName: "Steel Home Project Workspace",
+      source: "steel_home_project_center",
+      subjectType: "product",
+    });
   });
 
   it("enforces field bounds and drops invalid geography, budgets, enums, and unknown data", () => {

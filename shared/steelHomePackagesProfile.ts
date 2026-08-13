@@ -2,7 +2,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_IDENTITY = {
   internalKey: "steel-home-packages",
   temporarySlug: "steel-home-packages",
   slug: "steel-home-packages",
-  displayLabel: "Steel Home Project Center",
+  displayLabel: "Steel Home Project Workspace",
   publicRoute: "/u/steel-home-packages",
   releaseState: "unlisted",
   publiclyReleased: false,
@@ -12,19 +12,19 @@ export const STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE =
   "operator_approved_unlisted_profile" as const;
 
 const STEEL_HOME_PROJECT_REQUEST_FALLBACK = [
-  "TradeScout steel-home project review",
+  "Steel Home Package Request",
   "Project location:",
-  "How I am building:",
-  "Building, stone, cabinet, or whole-home scopes selected:",
+  "Contracting setup:",
+  "Packages and home needs requested:",
   "Desired timing:",
   "Questions or additional details:",
 ].join("\n");
 
 const STEEL_HOME_LABOR_REQUEST_FALLBACK = [
-  "TradeScout steel-home local labor request",
+  "Steel Home Local Trade Request",
   "Project location:",
-  "Labor needed:",
-  "Related building, countertop, or cabinet design:",
+  "Work needed:",
+  "Related project plans:",
   "Desired timing:",
   "Additional details:",
 ].join("\n");
@@ -38,7 +38,7 @@ export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
   `&profileName=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel)}` +
   "&source=steel_home_project_center" +
   "&subject=product" +
-  `&title=${encodeURIComponent("Steel-home project review")}` +
+  `&title=${encodeURIComponent("Steel home package request")}` +
   `&description=${encodeURIComponent(STEEL_HOME_PROJECT_REQUEST_FALLBACK)}`;
 
 /**
@@ -48,60 +48,61 @@ export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
 export const STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH =
   "/direct-connect?source=steel_home_project_tools_labor" +
   "&subject=service" +
-  `&title=${encodeURIComponent("Steel-home local labor request")}` +
+  `&title=${encodeURIComponent("Steel home local trade request")}` +
   `&description=${encodeURIComponent(STEEL_HOME_LABOR_REQUEST_FALLBACK)}`;
 
 const STEEL_HOME_PROJECT_TOOL_CARDS = [
   {
     key: "building",
     number: "01",
-    label: "Metal structure",
-    title: "Building designer",
-    body: "Set the building dimensions, roof, openings, porch, and exterior colors while the concept updates on screen.",
+    label: "Building + roof",
+    title: "Building Package Planner",
+    body: "Enter the building size, roof, openings, porch, and exterior colors. The preview and early materials estimate update with your choices.",
     image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
-    imageAlt: "Steel building exterior concept with a dark metal roof",
-    action: "Design the building",
+    imageAlt: "Steel building exterior preview with a dark metal roof",
+    action: "Open building planner",
   },
   {
     key: "countertops",
     number: "02",
-    label: "Stone + quartz",
-    title: "Countertop designer",
-    body: "Choose a photographed stone or quartz surface, map the countertop shape, add measurements and cutouts, and see the planning area.",
+    label: "Countertops",
+    title: "Countertop Planner",
+    body: "Choose quartzite, engineered quartz, or another available surface from the photos, enter the room layout and cutouts, and see the approximate countertop area.",
     image: "/images/stone-designer/cristallo/1.webp",
-    imageAlt: "Cristallo natural stone photographed for material selection",
-    action: "Design the countertops",
+    imageAlt: "Cristallo quartzite surface",
+    action: "Open countertop planner",
   },
   {
     key: "cabinets",
     number: "03",
     label: "Cabinetry",
-    title: "Cabinet designer",
-    body: "Plan the main cabinet wall, appliances, storage modules, island, style direction, and finish in one elevation.",
+    title: "Cabinet Planner",
+    body: "Enter the room measurements, appliances, storage, island, cabinet style, and finish. The preview shows how the plan fits the primary wall.",
     image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
     imageAlt: "Warm kitchen cabinet design inspiration with an island",
-    action: "Design the cabinets",
+    action: "Open cabinet planner",
   },
 ] as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
-  version: 7,
+  version: 9,
   header: {
-    label: "Steel Home Project Center",
+    label: "Steel Home Project Workspace",
     navigation: [
-      { label: "Start", href: "#project-start" },
-      { label: "Building + roof", href: "#building-designer" },
-      { label: "Stone + quartz", href: "#countertop-designer" },
-      { label: "Cabinets", href: "#cabinet-designer" },
-      { label: "My plan", href: "#project-review" },
+      { key: "project", label: "Project Setup" },
+      { key: "building", label: "Building + Roof" },
+      { key: "countertops", label: "Countertops" },
+      { key: "cabinets", label: "Cabinets" },
+      { key: "whole-home", label: "Whole Home" },
+      { key: "review", label: "Summary & Request" },
     ],
   },
   hero: {
-    eyebrow: "For owner-builders, builders, and contractors",
-    headline: "Shape the project before anyone starts guessing.",
-    body: "Design the steel building and included roof, plan the cabinets and photographed stone or quartz, add the rest of the home scope, and bring one clear plan to TradeScout for pricing and local review.",
+    eyebrow: "For self-contracted homeowners, builders, and contractors",
+    headline: "Plan packages, compare estimates, and request quotes.",
+    body: "Enter the building and roof, countertop, cabinet, and whole-home details. Building and cabinet estimates update as you work. Countertops and other items are marked for quotes.",
     primaryAction: "Start a Request",
-    reviewAction: "Review my plan",
+    reviewAction: "Open project summary",
     visuals: STEEL_HOME_PROJECT_TOOL_CARDS.map((tool) => ({
       key: tool.key,
       label: tool.label,
@@ -111,50 +112,50 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
     })),
   },
   toolIntro: {
-    eyebrow: "Design the project",
-    title: "Work through the decisions that drive the build.",
-    body: "The building, countertop, and cabinet tools update as you make choices. Add any design to the same saved plan, then bring the rest of the home scope in for exact review.",
+    eyebrow: "Project workspace",
+    title: "Build one complete request.",
+    body: "Work through each package, add the other parts of the home, and review everything together before sending it.",
   },
   projectStart: {
-    eyebrow: "Start with your build",
-    title: "Tell us how you are building.",
-    body: "Choose the path that fits you. The tools stay the same, while the final plan makes your role and the help you need clear.",
+    eyebrow: "Project Setup",
+    title: "Set up the project.",
+    body: "Tell us who is managing the build, where the jobsite is, and when you want to start.",
   },
   additionalScopes: {
-    eyebrow: "Complete the request",
-    title: "Add the systems, finishes, and support you still need.",
-    body: "Add house plans, windows, insulation, interior walls, fixtures, flooring, mini-split heating and cooling, tankless water heating, appliances, protection, site work, utilities, or installation support. Unknown categories stay marked Price after review and are never hidden in the estimate as zero-dollar items.",
+    eyebrow: "Whole Home",
+    title: "Add the rest of the home.",
+    body: "Select the plans, materials, equipment, site work, utilities, and local trade help you still need. Items without a current estimate are marked Quote needed.",
   },
   tools: {
     cards: STEEL_HOME_PROJECT_TOOL_CARDS,
     building: {
-      eyebrow: "Project tool 01 • Building and included roof",
-      title: "Shape the steel building package.",
-      body: "Adjust the core dimensions, roof, openings, porch, and colors while the planning range updates. The roof is included once with the building package.",
+      eyebrow: "Building + Roof",
+      title: "Plan the building package.",
+      body: "Enter the size, roof, openings, porch, and colors. The preview and early materials estimate update as you work.",
     },
     countertops: {
-      eyebrow: "Project tool 02 • Stone and quartz",
-      title: "Turn a surface choice into a measured countertop brief.",
-      body: "Choose a stone or quartz surface from real material photos, set the layout and cutouts, and carry your selected surface and planning measurements into the project.",
+      eyebrow: "Countertops",
+      title: "Plan the countertops and choose a surface.",
+      body: "Choose quartzite, engineered quartz, or another available surface from real photos, enter the room layout and cutouts, and see the approximate area.",
     },
     cabinets: {
-      eyebrow: "Project tool 03 • Cabinetry",
-      title: "Plan the cabinet wall around the room.",
-      body: "Set the room and wall dimensions, place the major appliances and storage groups, choose a style direction, and use the planning range to shape the budget.",
+      eyebrow: "Cabinets",
+      title: "Plan the main cabinet wall.",
+      body: "Enter the room measurements, cabinet sizes, appliances, storage, island, cabinet style, and finish. The preview and early materials estimate update as you work.",
     },
   },
   review: {
-    eyebrow: "My build plan",
-    title: "Review the project before you send it.",
-    body: "Add the project location, check the designs and added scopes, and see what has a planning range versus what still needs an exact price.",
+    eyebrow: "Summary & Request",
+    title: "Check everything before you send it.",
+    body: "Review the contracting setup, jobsite, selected packages, home needs, estimates, and quotes still needed.",
   },
   labor: {
-    eyebrow: "Optional local labor",
-    title: "Carry the design context into a local labor request.",
-    body: "Select the jobsite work you need and keep the related design details with the request for local review.",
+    eyebrow: "Local Trade Help",
+    title: "Request the work needed at the jobsite.",
+    body: "Select the work you need and send it with the project details and jobsite location.",
   },
   disclosure:
-    "Materials planning ranges are early budgeting guides, not quotes. Taxes, site work, foundation, and installation are not included unless a line says otherwise. Final measurements, engineering, local code and permit requirements, specifications, availability, delivery, and fabrication are confirmed in writing before approval.",
+    "Early materials estimates are not quotes. They exclude tax, site work, foundations, and installation unless stated otherwise. Final pricing depends on measurements, engineering, permits, product availability, delivery, fabrication, and installation.",
 } as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT_BLOCKS = [

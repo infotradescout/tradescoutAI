@@ -1,24 +1,25 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ArrowDown,
-  ArrowRight,
-  CheckCircle2,
-  DraftingCompass,
-  Layers3,
-  Ruler,
-  Save,
-  Sparkles,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, Save } from "lucide-react";
 import {
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
 } from "@shared/steelHomePackagesProfile";
-import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import BuildingDesigner from "./steel-home-project-tools/BuildingDesigner";
 import CabinetDesigner from "./steel-home-project-tools/CabinetDesigner";
 import CountertopDesigner from "./steel-home-project-tools/CountertopDesigner";
 import ProjectStart from "./steel-home-project-tools/ProjectStart";
 import SteelHomeProjectReview from "./steel-home-project-tools/SteelHomeProjectReview";
+import WholeHomePlanner from "./steel-home-project-tools/WholeHomePlanner";
+import SteelHomeProjectSummary, {
+  getSteelHomeWorkspaceStatuses,
+} from "./steel-home-project-tools/SteelHomeProjectSummary";
+import SteelHomeWorkspaceNav, {
+  STEEL_HOME_WORKSPACES,
+  STEEL_HOME_WORKSPACE_HASH,
+  type SteelHomeWorkspace,
+  workspaceFromHash,
+  workspacePanelId,
+} from "./steel-home-project-tools/SteelHomeWorkspaceNav";
 import {
   clearSteelHomeProjectDraft,
   createEmptySteelHomeProjectDraft,
@@ -34,85 +35,23 @@ type Props = {
   platformBaseHref?: string;
 };
 
-type LinkVariant = "primary" | "outline" | "light" | "dark";
-
-const TOOL_TARGETS = {
-  building: "#building-designer",
-  countertops: "#countertop-designer",
-  cabinets: "#cabinet-designer",
-} as const;
-
-const TOOL_ICONS = {
-  building: DraftingCompass,
-  countertops: Sparkles,
-  cabinets: Layers3,
-} as const;
-
-function scrollToSection(target: string) {
-  const element = document.getElementById(target.replace(/^#/, ""));
-  if (!element) return;
-  const reducedMotion =
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+function initialWorkspace(): SteelHomeWorkspace {
+  return typeof window === "undefined" ? "project" : workspaceFromHash(window.location.hash);
 }
 
-function actionClass(variant: LinkVariant, className = "") {
-  const variantClass = {
-    primary:
-      "bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.26)] hover:bg-[#b55732] focus-visible:ring-[#c9683d]",
-    outline:
-      "border border-[#18312f]/30 bg-transparent text-[#18312f] hover:border-[#18312f] hover:bg-white/40 focus-visible:ring-[#18312f]",
-    light:
-      "bg-[#f7f2e9] text-[#18312f] shadow-[0_16px_45px_rgba(0,0,0,0.18)] hover:bg-white focus-visible:ring-white",
-    dark: "bg-[#18312f] text-white hover:bg-[#264946] focus-visible:ring-[#18312f]",
-  }[variant];
-  return `inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-center text-sm font-bold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${variantClass} ${className}`;
-}
-
-function ScrollButton({
-  target,
-  label,
-  testId,
-  variant = "primary",
-  className = "",
-  down = false,
-}: {
-  target: string;
-  label: string;
-  testId?: string;
-  variant?: LinkVariant;
-  className?: string;
-  down?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => scrollToSection(target)}
-      data-testid={testId}
-      className={actionClass(variant, className)}
-    >
-      {label}
-      {down ? (
-        <ArrowDown className="h-4 w-4" aria-hidden="true" />
-      ) : (
-        <ArrowRight className="h-4 w-4" aria-hidden="true" />
-      )}
-    </button>
-  );
-}
-
-export default function SteelHomePackagesProfile({
-  requestHref,
-  laborRequestHref,
-  platformBaseHref = "",
-}: Props) {
+export default function SteelHomePackagesProfile({ requestHref, laborRequestHref }: Props) {
   const [draft, setDraft] = useState<SteelHomeProjectDraft>(() =>
     createEmptySteelHomeProjectDraft()
   );
   const [storageReady, setStorageReady] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [activeWorkspace, setActiveWorkspace] = useState<SteelHomeWorkspace>(initialWorkspace);
+  const [visitedWorkspaces, setVisitedWorkspaces] = useState<Set<SteelHomeWorkspace>>(
+    () => new Set([initialWorkspace()])
+  );
+  const [resetGeneration, setResetGeneration] = useState(0);
   const skipNextSave = useRef(false);
+  const workbenchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storage = typeof window === "undefined" ? null : window.localStorage;
@@ -129,6 +68,25 @@ export default function SteelHomePackagesProfile({
     }
     setSaved(saveSteelHomeProjectDraft(window.localStorage, draft));
   }, [draft, storageReady]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const restoreWorkspace = () => {
+      const next = workspaceFromHash(window.location.hash);
+      setActiveWorkspace(next);
+      setVisitedWorkspaces((current) => new Set(current).add(next));
+      window.requestAnimationFrame(() => {
+        workbenchRef.current?.scrollTo?.({ top: 0 });
+        window.scrollTo?.({ top: 0 });
+      });
+    };
+    window.addEventListener("hashchange", restoreWorkspace);
+    window.addEventListener("popstate", restoreWorkspace);
+    return () => {
+      window.removeEventListener("hashchange", restoreWorkspace);
+      window.removeEventListener("popstate", restoreWorkspace);
+    };
+  }, []);
 
   const updateDraft = useCallback((nextDraft: SteelHomeProjectDraft) => {
     setSaved(false);
@@ -150,225 +108,62 @@ export default function SteelHomePackagesProfile({
     setDraft((current) => reconcileSteelHomeProjectDraft({ ...current, cabinets }));
   }, []);
 
+  const openWorkspace = useCallback(
+    (workspace: SteelHomeWorkspace, replace = false, focusPanel = false) => {
+      setActiveWorkspace(workspace);
+      setVisitedWorkspaces((current) => new Set(current).add(workspace));
+      if (typeof window !== "undefined") {
+        const nextHash = STEEL_HOME_WORKSPACE_HASH[workspace];
+        const nextUrl = `${window.location.pathname}${window.location.search}${nextHash}`;
+        if (window.location.hash !== nextHash) {
+          if (replace) window.history.replaceState(null, "", nextUrl);
+          else window.history.pushState(null, "", nextUrl);
+        }
+        window.requestAnimationFrame(() => {
+          workbenchRef.current?.scrollTo?.({ top: 0 });
+          window.scrollTo?.({ top: 0 });
+          if (focusPanel) document.getElementById(workspacePanelId(workspace))?.focus();
+        });
+      }
+    },
+    []
+  );
+
   const resetDraft = useCallback(() => {
     const confirmed =
       typeof window === "undefined" ||
       typeof window.confirm !== "function" ||
-      window.confirm("Reset the building, countertop, cabinet, and labor planning draft?");
+      window.confirm("Clear all project choices, measurements, and trade selections?");
     if (!confirmed) return;
 
     skipNextSave.current = true;
     if (typeof window !== "undefined") clearSteelHomeProjectDraft(window.localStorage);
     setDraft(createEmptySteelHomeProjectDraft());
     setSaved(true);
-  }, []);
+    setResetGeneration((current) => current + 1);
+    setVisitedWorkspaces(new Set(["project"]));
+    openWorkspace("project", true);
+  }, [openWorkspace]);
 
-  return (
-    <main
-      className="min-h-screen overflow-x-hidden bg-[#f5f1e8] pb-20 pt-[72px] text-[#18312f] sm:pb-0"
-      data-testid="steel-home-packages-profile"
-      data-profile-slug={identity.slug}
-      data-release-state={identity.releaseState}
-    >
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#18312f]/10 bg-[#f7f3eb]/95 backdrop-blur-xl">
-        <div className="mx-auto flex min-h-[72px] max-w-[1440px] items-center justify-between gap-6 px-4 sm:px-6 lg:px-10">
-          <button
-            type="button"
-            onClick={() => scrollToSection("#top")}
-            className="flex min-w-0 items-baseline gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
-            aria-label={`${content.header.label}, back to top`}
-          >
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-              TradeScout
-            </span>
-            <span className="hidden h-4 w-px bg-[#18312f]/25 sm:block" aria-hidden="true" />
-            <span className="truncate font-editorial text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
-              {content.header.label}
-            </span>
-          </button>
+  const statuses = useMemo(() => getSteelHomeWorkspaceStatuses(draft), [draft]);
+  const activeIndex = STEEL_HOME_WORKSPACES.findIndex((item) => item.key === activeWorkspace);
+  const previousWorkspace = activeIndex > 0 ? STEEL_HOME_WORKSPACES[activeIndex - 1] : null;
+  const nextWorkspace =
+    activeIndex < STEEL_HOME_WORKSPACES.length - 1 ? STEEL_HOME_WORKSPACES[activeIndex + 1] : null;
 
-          <nav className="hidden items-center gap-6 xl:flex" aria-label="Project tools">
-            {content.header.navigation.map((item) => (
-              <button
-                key={item.href}
-                type="button"
-                onClick={() => scrollToSection(item.href)}
-                className="text-sm font-semibold text-[#41514d] transition hover:text-[#a94f2e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
-
-          <ScrollButton
-            target="#project-review"
-            label="My build plan"
-            testId="steel-home-header-review"
-            variant="dark"
-            className="hidden sm:inline-flex"
-          />
-        </div>
-      </header>
-
-      <section
-        id="top"
-        className="relative scroll-mt-24 overflow-hidden bg-[#18312f] text-white"
-        data-testid="steel-home-hero"
-      >
-        <div className="absolute inset-0 opacity-30" aria-hidden="true">
-          <div className="absolute -left-20 top-16 h-72 w-72 rounded-full bg-[#c9683d]/[0.35] blur-3xl" />
-          <div className="absolute right-0 top-0 h-[34rem] w-[34rem] rounded-full bg-[#78958d]/[0.35] blur-3xl" />
-        </div>
-        <div className="relative mx-auto grid min-h-[calc(100vh-72px)] max-w-[1440px] gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[minmax(0,.82fr)_minmax(520px,1.18fr)] lg:items-center lg:px-10">
-          <div className="max-w-4xl">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f0b392]">
-              {content.hero.eyebrow}
-            </p>
-            <h1 className="mt-6 font-editorial text-[clamp(3.7rem,7.4vw,8rem)] font-semibold leading-[0.82] tracking-[-0.055em]">
-              {content.hero.headline}
-            </h1>
-            <p className="mt-8 max-w-2xl text-base leading-8 text-white/[0.72] sm:text-xl">
-              {content.hero.body}
-            </p>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <ScrollButton
-                target="#project-start"
-                label={content.hero.primaryAction}
-                testId="steel-home-hero-tools"
-                variant="light"
-                down
-              />
-              <ScrollButton
-                target="#project-review"
-                label={content.hero.reviewAction}
-                testId="steel-home-hero-review"
-                variant="outline"
-                className="border-white/30 text-white hover:border-white hover:bg-white/10 focus-visible:ring-white"
-              />
-            </div>
-            <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-white/60">
-              <span className="inline-flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-[#f0b392]" aria-hidden="true" />
-                Explore without an account
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Ruler className="h-4 w-4 text-[#f0b392]" aria-hidden="true" />
-                Roof included with building
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <Save className="h-4 w-4 text-[#f0b392]" aria-hidden="true" />
-                Real photographed surfaces
-              </span>
-            </div>
-          </div>
-
-          <div
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6"
-            aria-label="Available project tools"
-          >
-            {content.hero.visuals.map((visual, index) => {
-              const target = TOOL_TARGETS[visual.key];
-              return (
-                <button
-                  key={visual.key}
-                  type="button"
-                  onClick={() => scrollToSection(target)}
-                  data-testid={`steel-home-hero-tool-${visual.key}`}
-                  className={`group relative min-h-[16rem] overflow-hidden rounded-[2rem] border border-white/10 text-left shadow-[0_24px_80px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0b392] ${
-                    index === 0 ? "sm:col-span-2 lg:col-span-6" : "lg:col-span-3"
-                  }`}
-                >
-                  <img
-                    src={visual.image}
-                    alt={visual.imageAlt}
-                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
-                    decoding="async"
-                    loading={index === 0 ? "eager" : "lazy"}
-                  />
-                  <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-                  <span className="absolute inset-x-0 bottom-0 p-6">
-                    <span className="block text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#f0b392]">
-                      {visual.label}
-                    </span>
-                    <span className="mt-2 flex items-end justify-between gap-4">
-                      <span className="font-editorial text-3xl font-semibold tracking-[-0.03em] text-white">
-                        {visual.title}
-                      </span>
-                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-[#18312f] transition group-hover:translate-x-1">
-                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <ProjectStart draft={draft} onChange={updateDraft} onNavigate={scrollToSection} />
-
-      <section
-        id="project-tools"
-        className="scroll-mt-24 bg-[#f5f1e8]"
-        data-testid="steel-home-tools-intro"
-      >
-        <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-          <div className="mx-auto max-w-5xl text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-              {content.toolIntro.eyebrow}
-            </p>
-            <h2 className="mt-4 font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] text-[#18312f] sm:text-7xl">
-              {content.toolIntro.title}
-            </h2>
-            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[#5e6965] sm:text-lg">
-              {content.toolIntro.body}
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-4 lg:grid-cols-3">
-            {content.tools.cards.map((tool) => {
-              const Icon = TOOL_ICONS[tool.key];
-              return (
-                <button
-                  key={tool.key}
-                  type="button"
-                  onClick={() => scrollToSection(TOOL_TARGETS[tool.key])}
-                  data-testid={`steel-home-tool-card-${tool.key}`}
-                  className="group rounded-[2rem] border border-[#18312f]/10 bg-white/[0.65] p-6 text-left transition hover:-translate-y-1 hover:bg-white hover:shadow-[0_22px_70px_rgba(24,49,47,0.11)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] sm:p-8"
-                >
-                  <span className="flex items-center justify-between gap-4">
-                    <span className="grid h-12 w-12 place-items-center rounded-full bg-[#18312f] text-white">
-                      <Icon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                    <span className="font-editorial text-4xl font-semibold text-[#18312f]/20">
-                      {tool.number}
-                    </span>
-                  </span>
-                  <span className="mt-7 block text-xs font-black uppercase tracking-[0.16em] text-[#a94f2e]">
-                    {tool.label}
-                  </span>
-                  <span className="mt-2 block font-editorial text-3xl font-semibold tracking-[-0.03em]">
-                    {tool.title}
-                  </span>
-                  <span className="mt-4 block text-sm leading-7 text-[#68736f]">{tool.body}</span>
-                  <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#18312f]">
-                    {tool.action}
-                    <ArrowRight
-                      className="h-4 w-4 transition group-hover:translate-x-1"
-                      aria-hidden="true"
-                    />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <BuildingDesigner design={draft.building} onChange={updateBuilding} />
-      <CountertopDesigner design={draft.countertops} onChange={updateCountertops} />
-      <CabinetDesigner design={draft.cabinets} onChange={updateCabinets} />
+  const workspacePanels: Record<SteelHomeWorkspace, ReactNode> = {
+    project: <ProjectStart draft={draft} onChange={updateDraft} />,
+    building: <BuildingDesigner design={draft.building} onChange={updateBuilding} />,
+    countertops: (
+      <CountertopDesigner
+        key={`countertops-${resetGeneration}`}
+        design={draft.countertops}
+        onChange={updateCountertops}
+      />
+    ),
+    cabinets: <CabinetDesigner design={draft.cabinets} onChange={updateCabinets} />,
+    "whole-home": <WholeHomePlanner draft={draft} onChange={updateDraft} />,
+    review: (
       <SteelHomeProjectReview
         draft={draft}
         requestHref={requestHref}
@@ -377,30 +172,142 @@ export default function SteelHomePackagesProfile({
         onChange={updateDraft}
         onReset={resetDraft}
       />
+    ),
+  };
 
-      <TradeScoutProfileHandoff
-        profileSlug={identity.slug}
-        profileName={identity.displayLabel}
-        itemName="Steel Home Project Center"
-        platformBaseHref={platformBaseHref}
+  return (
+    <main
+      className="min-h-screen overflow-x-clip bg-[#f5f1e8] pb-24 text-[#18312f] xl:h-screen xl:min-h-0 xl:overflow-hidden xl:pb-0"
+      data-testid="steel-home-packages-profile"
+      data-profile-slug={identity.slug}
+      data-release-state={identity.releaseState}
+    >
+      <header className="sticky top-0 z-50 flex min-h-16 items-center justify-between gap-4 border-b border-[#18312f]/10 bg-[#f7f3eb] px-4 sm:px-6 xl:static">
+        <div className="min-w-0">
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#a94f2e]">
+              TradeScout
+            </span>
+            <span className="hidden h-4 w-px bg-[#18312f]/25 sm:block" aria-hidden="true" />
+            <h1 className="truncate font-editorial text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
+              {content.header.label}
+            </h1>
+          </div>
+          <p className="mt-0.5 hidden text-xs text-[#68736f] sm:block">
+            Plan packages, compare estimates, and request quotes.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-semibold text-[#68736f]">
+          <Save className="h-4 w-4 text-[#a94f2e]" aria-hidden="true" />
+          <span className="hidden sm:inline">
+            {saved ? "Saved on this device" : "Saving changes"}
+          </span>
+        </div>
+      </header>
+
+      <SteelHomeWorkspaceNav
+        mobile
+        activeWorkspace={activeWorkspace}
+        statuses={statuses}
+        onChange={openWorkspace}
       />
 
-      <div className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-2 gap-2 border-t border-[#18312f]/10 bg-[#f7f3eb]/95 p-3 shadow-[0_-12px_34px_rgba(24,49,47,0.12)] backdrop-blur-xl sm:hidden">
-        <button
-          type="button"
-          onClick={() => scrollToSection("#project-review")}
-          className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#18312f]/20 bg-white text-sm font-bold text-[#18312f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
-        >
-          My build plan
-        </button>
-        <button
-          type="button"
-          onClick={() => scrollToSection("#project-start")}
-          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#c9683d] text-sm font-bold text-white shadow-[0_12px_28px_rgba(84,35,18,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9683d]"
-        >
-          Start a Request
-        </button>
+      <div className="xl:grid xl:h-[calc(100vh-64px)] xl:grid-cols-[248px_minmax(0,1fr)] 2xl:grid-cols-[248px_minmax(0,1fr)_304px]">
+        <aside className="hidden min-h-0 flex-col border-r border-[#18312f]/10 bg-[#eee7dc] p-4 xl:flex">
+          <SteelHomeWorkspaceNav
+            activeWorkspace={activeWorkspace}
+            statuses={statuses}
+            onChange={openWorkspace}
+          />
+          <p className="mt-5 border-t border-[#18312f]/10 pt-4 text-xs leading-5 text-[#68736f]">
+            Connection Without Compromise
+          </p>
+        </aside>
+
+        <div className="min-h-0 min-w-0 bg-[#f5f1e8] xl:flex xl:h-full xl:flex-col xl:overflow-hidden">
+          <SteelHomeProjectSummary
+            draft={draft}
+            saved={saved}
+            onOpenReview={() => openWorkspace("review", false, true)}
+            layout="strip"
+          />
+          <div
+            ref={workbenchRef}
+            className="min-h-0 flex-1 xl:overflow-y-auto"
+            data-testid="steel-home-workbench"
+          >
+            {!storageReady ? (
+              <div className="grid min-h-[60vh] place-items-center p-8 text-sm font-semibold text-[#68736f]">
+                Opening your project…
+              </div>
+            ) : (
+              <>
+                {STEEL_HOME_WORKSPACES.map((workspace) => {
+                  const active = activeWorkspace === workspace.key;
+                  return (
+                    <div
+                      key={workspace.key}
+                      id={workspacePanelId(workspace.key)}
+                      role="tabpanel"
+                      aria-label={workspace.label}
+                      hidden={!active}
+                      tabIndex={-1}
+                      data-testid={workspacePanelId(workspace.key)}
+                      className="min-h-full"
+                    >
+                      {active || visitedWorkspaces.has(workspace.key)
+                        ? workspacePanels[workspace.key]
+                        : null}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+
+          {storageReady ? (
+            <div className="flex shrink-0 items-center justify-between gap-4 border-t border-[#18312f]/10 bg-[#f7f3eb] px-4 py-3 sm:px-6">
+              {previousWorkspace ? (
+                <button
+                  type="button"
+                  onClick={() => openWorkspace(previousWorkspace.key, false, true)}
+                  aria-label={`Previous: ${previousWorkspace.label}`}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#18312f]/20 px-5 text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
+                >
+                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  {previousWorkspace.label}
+                </button>
+              ) : (
+                <span />
+              )}
+              {nextWorkspace ? (
+                <button
+                  type="button"
+                  onClick={() => openWorkspace(nextWorkspace.key, false, true)}
+                  aria-label={`Next: ${nextWorkspace.label}`}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#18312f] px-5 text-sm font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
+                >
+                  {nextWorkspace.label}
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <SteelHomeProjectSummary
+          draft={draft}
+          saved={saved}
+          onOpenReview={() => openWorkspace("review", false, true)}
+        />
       </div>
+
+      <SteelHomeProjectSummary
+        draft={draft}
+        saved={saved}
+        onOpenReview={() => openWorkspace("review", false, true)}
+        layout="mobile"
+      />
     </main>
   );
 }

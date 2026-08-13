@@ -1,39 +1,43 @@
 import { JW_STONE_NAMED_IDS, getCatalogItemById } from "@/features/jw-stone/catalog";
 import { getCountyByFips } from "@shared/states-counties";
 
-export const STEEL_HOME_PROJECT_DRAFT_VERSION = 4 as const;
-export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v4";
-const LEGACY_STEEL_HOME_PROJECT_DRAFT_VERSION = 3;
-const LEGACY_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v3";
+export const STEEL_HOME_PROJECT_DRAFT_VERSION = 5 as const;
+export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v5";
+const LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_VERSION = 4;
+const LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v4";
+const LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_VERSION = 3;
+const LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v3";
 
 export const PROJECT_TIMING_OPTIONS = [
-  "As soon as practical",
+  "As soon as possible",
   "Within 3 months",
   "Within 6 months",
   "Within 12 months",
-  "Planning ahead",
+  "More than 12 months away",
 ] as const;
 
 export const PROJECT_ROLE_OPTIONS = [
   {
-    value: "owner-builder",
-    label: "I'm owner-building",
-    description: "Plan material packages, build stages, and the local trade help you may need.",
+    value: "self-contracted",
+    label: "Self-contracted homeowner",
+    description: "Plan the packages and list the trades you need.",
   },
   {
     value: "has-builder",
-    label: "I already have a builder",
-    description: "Create a clear package plan you can review and share with your builder.",
+    label: "Homeowner with a builder",
+    description: "Plan the packages to review with your builder.",
   },
   {
     value: "builder-or-contractor",
-    label: "I'm a builder or contractor",
-    description: "Prepare a coordinated package around your customer's project requirements.",
+    label: "Builder or contractor",
+    description: "Plan the packages for your customer's project.",
   },
   {
     value: "whole-build-help",
-    label: "I need help with the whole build",
-    description: "Include local trade and installation needs in the project review.",
+    label: "Need help managing the full build",
+    description: "Include the packages and local trades the project needs.",
   },
 ] as const;
 
@@ -42,7 +46,7 @@ export const ADDITIONAL_PROJECT_SCOPE_OPTIONS = [
     value: "house-plans-and-layout",
     label: "House plans and layout",
     description:
-      "Plan licensing, room layout, modifications, engineering, and local adaptation require review.",
+      "Plan licensing, room layout, modifications, engineering, and location requirements must be confirmed before pricing.",
   },
   {
     value: "windows-and-doors",
@@ -64,17 +68,18 @@ export const ADDITIONAL_PROJECT_SCOPE_OPTIONS = [
     value: "interior-framing-and-drywall",
     label: "Interior framing and drywall",
     description:
-      "Wall layout, ceiling assemblies, moisture needs, quantities, delivery, and labor require review.",
+      "Wall layout, ceiling assemblies, moisture needs, quantities, delivery, and installation work require a quote.",
   },
   {
     value: "flooring",
     label: "Flooring",
-    description: "Rooms, material direction, quantities, and exact products are reviewed together.",
+    description:
+      "Rooms, material direction, quantities, and exact products are confirmed together.",
   },
   {
     value: "plumbing-fixtures",
     label: "Plumbing fixtures",
-    description: "Fixture selections, utility fit, delivery, and installation need exact review.",
+    description: "Fixture selections, utility fit, delivery, and installation need a quote.",
   },
   {
     value: "electrical-fixtures",
@@ -84,7 +89,7 @@ export const ADDITIONAL_PROJECT_SCOPE_OPTIONS = [
   {
     value: "mini-split-hvac",
     label: "Mini-split heating and cooling",
-    description: "Room loads, equipment size, electrical needs, and installation require review.",
+    description: "Room loads, equipment size, electrical needs, and installation require a quote.",
   },
   {
     value: "tankless-water-heating",
@@ -100,30 +105,32 @@ export const ADDITIONAL_PROJECT_SCOPE_OPTIONS = [
   },
   {
     value: "appliance-protection",
-    label: "Appliance protection",
-    description: "Available plans, coverage, exclusions, and price are reviewed before selection.",
+    label: "Appliance warranty or service plan",
+    description: "Available plans, coverage, exclusions, and price are confirmed before selection.",
   },
   {
     value: "home-and-systems-protection",
-    label: "Home and systems protection",
+    label: "Home warranty or systems service plan",
     description:
-      "Availability, provider, covered systems, exclusions, service terms, and price require review.",
+      "Availability, provider, covered systems, exclusions, service terms, and price require a quote.",
   },
   {
     value: "foundation-and-site-work",
     label: "Foundation and site work",
-    description: "Engineering, soil, grading, drainage, access, and concrete require site review.",
+    description:
+      "Engineering, soil, grading, drainage, access, and concrete depend on the site and location requirements.",
   },
   {
     value: "septic-and-utilities",
-    label: "Septic and utility coordination",
+    label: "Septic and utility connections",
     description:
       "Local rules, existing service, capacity, routing, and exact work are confirmed later.",
   },
   {
     value: "installation-and-trade-support",
-    label: "Installation and trade support",
-    description: "Needed trades, qualifications, availability, scope, and schedule require review.",
+    label: "Installation and trade work",
+    description:
+      "The work needed, trade qualifications, availability, and schedule require a quote.",
   },
 ] as const;
 
@@ -497,6 +504,16 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
   const canonicalCounty = /^\d{5}$/.test(requestedCountyFips)
     ? getCountyByFips(requestedCountyFips)
     : undefined;
+  const requestedProjectRole =
+    candidate.projectRole === ("owner-builder" as string)
+      ? "self-contracted"
+      : candidate.projectRole;
+  const requestedProjectTiming =
+    candidate.timing === "As soon as practical"
+      ? "As soon as possible"
+      : candidate.timing === "Planning ahead"
+        ? "More than 12 months away"
+        : candidate.timing;
 
   return {
     version: STEEL_HOME_PROJECT_DRAFT_VERSION,
@@ -505,8 +522,8 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
       canonicalCounty?.state || (/^[A-Z]{2}$/.test(requestedStateCode) ? requestedStateCode : ""),
     countyFips: canonicalCounty?.fipsCode || "",
     countyName: canonicalCounty?.name || "",
-    timing: cleanLabel(candidate.timing, PROJECT_TIMING_OPTIONS, ""),
-    projectRole: cleanEnum(candidate.projectRole, PROJECT_ROLES, ""),
+    timing: cleanLabel(requestedProjectTiming, PROJECT_TIMING_OPTIONS, ""),
+    projectRole: cleanEnum(requestedProjectRole, PROJECT_ROLES, ""),
     additionalScopes: cleanAllowedStrings(
       candidate.additionalScopes,
       ADDITIONAL_PROJECT_SCOPE_OPTIONS.map((option) => option.value)
@@ -626,26 +643,33 @@ export function loadSteelHomeProjectDraft(
   if (!storage) return createEmptySteelHomeProjectDraft();
   try {
     const currentRaw = storage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    const legacyRaw = currentRaw
+    const legacyV4Raw = currentRaw
       ? null
-      : storage.getItem(LEGACY_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    const raw = currentRaw || legacyRaw;
+      : storage.getItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    const legacyV3Raw =
+      currentRaw || legacyV4Raw
+        ? null
+        : storage.getItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    const raw = currentRaw || legacyV4Raw || legacyV3Raw;
     if (!raw) return createEmptySteelHomeProjectDraft();
     const parsed = JSON.parse(raw) as { version?: unknown };
     const isCurrentDraft = parsed.version === STEEL_HOME_PROJECT_DRAFT_VERSION;
-    const isLegacyDraft =
-      Boolean(legacyRaw) && parsed.version === LEGACY_STEEL_HOME_PROJECT_DRAFT_VERSION;
-    if (!isCurrentDraft && !isLegacyDraft) {
+    const isLegacyV4Draft =
+      Boolean(legacyV4Raw) && parsed.version === LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_VERSION;
+    const isLegacyV3Draft =
+      Boolean(legacyV3Raw) && parsed.version === LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_VERSION;
+    if (!isCurrentDraft && !isLegacyV4Draft && !isLegacyV3Draft) {
       return createEmptySteelHomeProjectDraft();
     }
     const reconciled = reconcileSteelHomeProjectDraft(parsed);
-    if (isLegacyDraft && usesDeployedV3CabinetModuleDefaults(parsed)) {
+    if (isLegacyV3Draft && usesDeployedV3CabinetModuleDefaults(parsed)) {
       reconciled.cabinets.primaryWallIn = createEmptySteelHomeProjectDraft().cabinets.primaryWallIn;
     }
-    if (isLegacyDraft) {
+    if (isLegacyV4Draft || isLegacyV3Draft) {
       try {
         storage.setItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY, JSON.stringify(reconciled));
-        storage.removeItem(LEGACY_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+        storage.removeItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+        storage.removeItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
       } catch {
         // A readable legacy draft remains usable even when migration writes are blocked.
       }
@@ -683,7 +707,8 @@ export function clearSteelHomeProjectDraft(
   if (!storage) return;
   try {
     storage.removeItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    storage.removeItem(LEGACY_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    storage.removeItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    storage.removeItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
   } catch {
     // Clearing the in-memory state is still sufficient for the current session.
   }
@@ -725,13 +750,13 @@ const BUILDING_SHELL_PLANNING_ALLOWANCES: Record<BuildingUse, PlanningRange> = {
 };
 
 const BUILDING_PLANNING_DISCLAIMER =
-  "Materials planning estimate only. The base metal roof is included with the building shell. Site work, foundation, engineering, taxes, and installation are not included; confirmed specifications, location, and delivery can change the final quote.";
+  "Early materials estimate only. The base metal roof is included with the building shell. Site work, foundation, engineering, taxes, and installation are not included. Final specifications, location requirements, and delivery can change the written quote.";
 
 const CABINET_PLANNING_DISCLAIMER =
-  "Cabinet-materials planning estimate only. This range includes general cabinet, hardware, trim, and delivery allowances; countertops, field measurement, taxes, and installation are not included. Exact products and options are confirmed in the written quote.";
+  "Early cabinet-materials estimate only. This estimated range includes cabinets, hardware, trim, and delivery. Countertops, field measurement, taxes, and installation are not included. Exact products and options are confirmed in the written quote.";
 
 const PROJECT_ESTIMATE_DISCLAIMER =
-  "Materials planning ranges cover only the listed building and cabinet allowances. Quote-required selections, taxes, site work, foundation, and installation are not included in the planning total.";
+  "Estimated ranges cover only the listed building and cabinet items. Items marked Quote needed, taxes, site work, foundation, and installation are not included in the estimated total.";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -801,19 +826,19 @@ export function calculateBuildingPlanningEstimate(
     lowerRate: shellAllowance.lower,
     highRate: shellAllowance.high,
     detail:
-      "Provisional package allowance for the selected use. The base metal roof is included once in this line.",
+      "Early estimated price for the selected use. The base metal roof is included once in this line.",
   });
 
   const extraWallSquareFeet =
     Math.max(0, design.eaveHeightFt - 12) * (design.widthFt + design.lengthFt) * 2;
   addEstimateLine(lines, {
     key: "eave-height",
-    label: "Additional eave-height allowance",
+    label: "Additional eave height",
     quantity: extraWallSquareFeet,
     unit: "sq. ft. of added wall",
     lowerRate: 4,
     highRate: 7,
-    detail: "Allowance for wall area above the 12-foot planning baseline.",
+    detail: "Estimated price for wall area above the 12-foot starting height.",
   });
 
   const roofStyleRate =
@@ -824,13 +849,13 @@ export function calculateBuildingPlanningEstimate(
   const roofOptionHighRate = roofStyleRate * 1.75 + pitchSteps * 1.2;
   addEstimateLine(lines, {
     key: "roof-options",
-    label: "Selected roof-design allowance",
+    label: "Selected roof design",
     quantity: footprintSquareFeet,
     unit: "sq. ft.",
     lowerRate: roofOptionLowerRate,
     highRate: roofOptionHighRate,
     detail:
-      "Allowance for the selected roof style or pitch beyond the base roof; this is not a second roof charge.",
+      "Estimated added price for the selected roof style or pitch beyond the base roof; this is not a second roof charge.",
   });
 
   addEstimateLine(lines, {
@@ -840,16 +865,16 @@ export function calculateBuildingPlanningEstimate(
     unit: design.garageDoors === 1 ? "opening" : "openings",
     lowerRate: 1850,
     highRate: 3400,
-    detail: "Provisional allowance for the selected number of framed garage-door openings.",
+    detail: "Early estimated price for the selected number of framed garage-door openings.",
   });
   addEstimateLine(lines, {
     key: "walk-doors",
-    label: "Walk doors",
+    label: "Exterior entry doors",
     quantity: design.walkDoors,
     unit: design.walkDoors === 1 ? "door" : "doors",
     lowerRate: 450,
     highRate: 850,
-    detail: "Provisional allowance for the selected exterior walk doors.",
+    detail: "Early estimated price for the selected exterior entry doors.",
   });
   addEstimateLine(lines, {
     key: "windows",
@@ -858,7 +883,7 @@ export function calculateBuildingPlanningEstimate(
     unit: design.windows === 1 ? "window" : "windows",
     lowerRate: 425,
     highRate: 850,
-    detail: "Provisional allowance for the selected framed windows.",
+    detail: "Early estimated price for the selected framed windows.",
   });
 
   const porchSquareFeet =
@@ -875,17 +900,17 @@ export function calculateBuildingPlanningEstimate(
           : 0;
   addEstimateLine(lines, {
     key: "porch",
-    label: "Selected porch allowance",
+    label: "Selected porch",
     quantity: porchSquareFeet,
     unit: "sq. ft.",
     lowerRate: 18,
     highRate: 30,
-    detail: "Early package allowance based on the selected porch position and depth.",
+    detail: "Early estimated price based on the selected porch position and depth.",
   });
 
   return {
     key: "building",
-    label: "Building package planning estimate",
+    label: "Building package early estimate",
     range: sumEstimateLines(lines),
     breakdown: lines,
     disclaimer: BUILDING_PLANNING_DISCLAIMER,
@@ -924,7 +949,7 @@ export function calculateCabinetPlanningEstimate(
     unit: "linear ft.",
     lowerRate: standardRunAllowance.lower,
     highRate: standardRunAllowance.high,
-    detail: `Linear planning allowance with ${design.upperHeightIn}-inch upper cabinets after selected openings and dedicated modules.`,
+    detail: `Estimated linear price with ${design.upperHeightIn}-inch upper cabinets after selected openings and dedicated modules.`,
   });
   addEstimateLine(lines, {
     key: "sink-base",
@@ -933,7 +958,7 @@ export function calculateCabinetPlanningEstimate(
     unit: "module",
     lowerRate: 650,
     highRate: 1050,
-    detail: `Per-module allowance for the selected ${design.sinkBaseWidthIn}-inch sink base.`,
+    detail: `Estimated price for the selected ${design.sinkBaseWidthIn}-inch sink-base cabinet.`,
   });
   addEstimateLine(lines, {
     key: "pantry-modules",
@@ -942,7 +967,7 @@ export function calculateCabinetPlanningEstimate(
     unit: design.pantryCount === 1 ? "module" : "modules",
     lowerRate: 950,
     highRate: 1650,
-    detail: "Per-module allowance for the selected tall pantry cabinets.",
+    detail: "Estimated price for the selected tall pantry cabinets.",
   });
   addEstimateLine(lines, {
     key: "drawer-base-modules",
@@ -951,7 +976,7 @@ export function calculateCabinetPlanningEstimate(
     unit: design.drawerBaseCount === 1 ? "module" : "modules",
     lowerRate: 800,
     highRate: 1350,
-    detail: "Per-module allowance for the selected drawer-base cabinets.",
+    detail: "Estimated price for the selected drawer-base cabinets.",
   });
 
   const islandRunFeet = design.island ? design.islandLengthIn / 12 : 0;
@@ -962,7 +987,8 @@ export function calculateCabinetPlanningEstimate(
     unit: "linear ft.",
     lowerRate: 525,
     highRate: 850,
-    detail: "Linear allowance for island cabinet boxes, finished ends, and basic support panels.",
+    detail:
+      "Estimated linear price for island cabinet boxes, finished ends, and basic support panels.",
   });
 
   const estimatedModuleCount =
@@ -973,35 +999,35 @@ export function calculateCabinetPlanningEstimate(
     Math.ceil(islandRunFeet / 2);
   addEstimateLine(lines, {
     key: "cabinet-hardware",
-    label: "Cabinet hardware allowance",
+    label: "Cabinet hardware",
     quantity: estimatedModuleCount,
     unit: estimatedModuleCount === 1 ? "cabinet section" : "cabinet sections",
     lowerRate: 40,
     highRate: 95,
-    detail: `General allowance for ${design.hardware.toLowerCase()} hardware based on the planned cabinet sections.`,
+    detail: `Estimated price for ${design.hardware.toLowerCase()} hardware based on the selected cabinet sections.`,
   });
   addEstimateLine(lines, {
     key: "fillers-and-trim",
-    label: "Fillers, panels, and trim allowance",
+    label: "Fillers, panels, and trim",
     quantity: wallRunInches / 12,
     unit: "linear ft. of wall run",
     lowerRate: 65,
     highRate: 130,
-    detail: "Linear planning allowance for ordinary fillers, finished panels, and trim pieces.",
+    detail: "Estimated linear price for ordinary fillers, finished panels, and trim pieces.",
   });
   addEstimateLine(lines, {
     key: "cabinet-delivery",
-    label: "Cabinet delivery planning allowance",
+    label: "Cabinet delivery",
     quantity: 1,
     unit: "project",
     lowerRate: 600,
     highRate: 1400,
-    detail: "Early delivery allowance; the exact jobsite and access must be reviewed.",
+    detail: "Early delivery estimate; the exact jobsite and access must be confirmed.",
   });
 
   return {
     key: "cabinets",
-    label: "Cabinet planning estimate",
+    label: "Cabinet early estimate",
     range: sumEstimateLines(lines),
     breakdown: lines,
     disclaimer: CABINET_PLANNING_DISCLAIMER,
@@ -1089,7 +1115,7 @@ export function getIncludedProjectScopes(draftInput: SteelHomeProjectDraft): str
   const draft = reconcileSteelHomeProjectDraft(draftInput);
   return [
     draft.building.included ? "Building + roof" : "",
-    draft.countertops.included ? "Stone + quartz" : "",
+    draft.countertops.included ? "Countertops" : "",
     draft.cabinets.included ? "Cabinets" : "",
   ].filter(Boolean);
 }
@@ -1099,22 +1125,22 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
   const scopes = getIncludedProjectScopes(draft);
   const estimateSummary = getSteelHomeProjectEstimateSummary(draft);
   const lines = [
-    "TRADESCOUT STEEL-HOME PROJECT BRIEF",
+    "TradeScout Steel Home Project Request",
     `Project location: ${formatSteelHomeProjectLocation(draft)}`,
-    `Designs ready for review: ${scopes.join(", ") || "None selected"}`,
+    `Selected packages: ${scopes.join(", ") || "None selected"}`,
   ];
-  addLine(lines, "Project role", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
+  addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
   addLine(
     lines,
-    "Visible planning range",
+    "Early estimated total",
     estimateSummary.planningRange ? formatPlanningRange(estimateSummary.planningRange) : ""
   );
-  addLine(lines, "Price after review", estimateSummary.quoteRequired.join(", "));
+  addLine(lines, "Quote needed", estimateSummary.quoteRequired.join(", "));
   addLine(lines, "Desired timing", draft.timing);
 
   if (draft.building.included) {
     const building = draft.building;
-    lines.push("", "BUILDING CONCEPT");
+    lines.push("", "Building + Roof Details");
     addLine(lines, "Use", labelFromOptions(building.use, BUILDING_USE_OPTIONS));
     addLine(
       lines,
@@ -1129,7 +1155,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     addLine(
       lines,
       "Openings",
-      `${building.garageDoors} garage, ${building.walkDoors} walk door, ${building.windows} windows`
+      `${building.garageDoors} ${building.garageDoors === 1 ? "garage-door opening" : "garage-door openings"}, ${building.walkDoors} ${building.walkDoors === 1 ? "exterior entry door" : "exterior entry doors"}, ${building.windows} ${building.windows === 1 ? "window" : "windows"}`
     );
     addLine(
       lines,
@@ -1149,7 +1175,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
   if (draft.countertops.included) {
     const countertops = draft.countertops;
     const stone = getCatalogItemById(countertops.stoneId);
-    lines.push("", "COUNTERTOP CONCEPT");
+    lines.push("", "Countertop Details");
     addLine(
       lines,
       "Room and layout",
@@ -1176,11 +1202,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
       "Details",
       `${countertops.edge} edge; ${countertops.backsplash} backsplash; ${countertops.sink} sink; ${countertops.cooktop} cooktop`
     );
-    addLine(
-      lines,
-      "Planning area",
-      `${calculateCountertopSquareFeet(countertops)} sq. ft. approximate`
-    );
+    addLine(lines, "Estimated area", `About ${calculateCountertopSquareFeet(countertops)} sq. ft.`);
     addLine(lines, "Notes", briefNote(countertops.notes));
   }
 
@@ -1188,7 +1210,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     const cabinets = draft.cabinets;
     const finish = labelFromOptions(cabinets.finish, CABINET_FINISH_OPTIONS);
     const plannedWidth = calculateCabinetPlannedWidth(cabinets);
-    lines.push("", "CABINET CONCEPT");
+    lines.push("", "Cabinet Details");
     addLine(
       lines,
       "Room and layout",
@@ -1197,12 +1219,12 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     addLine(
       lines,
       "Room dimensions",
-      `${cabinets.primaryWallIn}\" primary wall; ${cabinets.returnWallIn}\" return; ${cabinets.ceilingHeightIn}\" ceiling`
+      `${cabinets.primaryWallIn}\" main wall; ${cabinets.returnWallIn}\" return; ${cabinets.ceilingHeightIn}\" ceiling`
     );
     addLine(lines, "Style", `${cabinets.doorStyle}; ${finish}; ${cabinets.hardware}`);
     addLine(
       lines,
-      "Major modules",
+      "Appliances and storage",
       `${cabinets.refrigeratorWidthIn}\" refrigerator; ${cabinets.rangeWidthIn}\" range; ${cabinets.sinkBaseWidthIn}\" sink base; ${cabinets.pantryCount} pantry; ${cabinets.drawerBaseCount} drawer base`
     );
     addLine(lines, "Upper cabinets", `${cabinets.upperHeightIn}\" high`);
@@ -1211,17 +1233,13 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
       "Island",
       cabinets.island ? `${cabinets.islandLengthIn}\" × ${cabinets.islandWidthIn}\"` : "None"
     );
-    addLine(
-      lines,
-      "Planned primary-wall modules",
-      `${plannedWidth}\" of ${cabinets.primaryWallIn}\"`
-    );
+    addLine(lines, "Main wall used", `${plannedWidth}\" of ${cabinets.primaryWallIn}\"`);
     addLine(lines, "Notes", briefNote(cabinets.notes));
   }
 
   lines.push(
     "",
-    "Planning concept only. Final field measurements, engineering, foundation, local requirements, product specifications, availability, taxes, delivery, fabrication, and installation are confirmed in the written quote."
+    "This request is not a quote. Final pricing depends on field measurements, engineering, site and permit requirements, product availability, tax, delivery, fabrication, and installation."
   );
   return lines.join("\n");
 }
@@ -1251,12 +1269,12 @@ export function buildSteelHomeProjectRequestHref(
     baseHref,
     {
       profile: "steel-home-packages",
-      profileName: "Steel Home Project Center",
+      profileName: "Steel Home Project Workspace",
       source: "steel_home_project_center",
       subject: "product",
       title: scopes.length
-        ? `Steel-home project review: ${scopes.join(" + ")}`
-        : "Steel-home project review",
+        ? `TradeScout Steel Home Project Request — ${scopes.join(", ")}`
+        : "TradeScout Steel Home Project Request",
       description: buildSteelHomeProjectDescription(draft),
       location: draft.location,
       county: draft.countyFips,
@@ -1274,22 +1292,22 @@ export function buildSteelHomeLaborRequestHref(
   const draft = reconcileSteelHomeProjectDraft(draftInput);
   const scopes = getIncludedProjectScopes(draft);
   const lines = [
-    "TRADESCOUT STEEL-HOME LOCAL LABOR BRIEF",
+    "TradeScout Local Trade Request",
     `Project location: ${formatSteelHomeProjectLocation(draft)}`,
-    `Labor needed: ${draft.labor.trades.join(", ") || "Not selected"}`,
+    `Work needed: ${draft.labor.trades.join(", ") || "Not selected"}`,
   ];
-  addLine(lines, "Project role", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
+  addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
   addLine(
     lines,
-    "Additional scopes needing a quote",
+    "Other home needs requiring a quote",
     getAdditionalProjectScopeLabels(draft).join(", ")
   );
-  addLine(lines, "Related saved designs", scopes.join(", "));
+  addLine(lines, "Related packages", scopes.join(", "));
   addLine(lines, "Desired timing", draft.timing);
   if (draft.building.included) {
     addLine(
       lines,
-      "Building concept",
+      "Building + roof details",
       `${draft.building.widthFt}' × ${draft.building.lengthFt}' × ${draft.building.eaveHeightFt}' eave; ${labelFromOptions(draft.building.roofStyle, BUILDING_ROOF_OPTIONS)}`
     );
   }
@@ -1297,18 +1315,18 @@ export function buildSteelHomeLaborRequestHref(
     const stone = getCatalogItemById(draft.countertops.stoneId);
     addLine(
       lines,
-      "Countertop concept",
-      `${draft.countertops.room}; ${stone?.publicLabel || "surface selected"}; ${calculateCountertopSquareFeet(draft.countertops)} sq. ft. approximate`
+      "Countertop details",
+      `${draft.countertops.room}; ${stone ? `${stone.publicLabel}${stone.materialLabel ? ` — ${stone.materialLabel}` : ""}` : "surface selected"}; About ${calculateCountertopSquareFeet(draft.countertops)} sq. ft.`
     );
   }
   if (draft.cabinets.included) {
     addLine(
       lines,
-      "Cabinet concept",
-      `${draft.cabinets.room}; ${labelFromOptions(draft.cabinets.layout, CABINET_LAYOUT_OPTIONS)}; ${draft.cabinets.primaryWallIn}\" primary wall`
+      "Cabinet details",
+      `${draft.cabinets.room}; ${labelFromOptions(draft.cabinets.layout, CABINET_LAYOUT_OPTIONS)}; ${draft.cabinets.primaryWallIn}\" main wall`
     );
   }
-  addLine(lines, "Labor notes", briefNote(draft.labor.notes));
+  addLine(lines, "Local trade notes", briefNote(draft.labor.notes));
 
   return updateRequestHref(
     baseHref,
@@ -1316,8 +1334,8 @@ export function buildSteelHomeLaborRequestHref(
       source: "steel_home_project_tools_labor",
       subject: "service",
       title: draft.labor.trades.length
-        ? `Steel-home labor: ${draft.labor.trades.join(", ")}`
-        : "Steel-home local labor request",
+        ? `TradeScout Local Trade Request — ${draft.labor.trades.join(", ")}`
+        : "TradeScout Local Trade Request",
       description: lines.join("\n"),
       location: draft.location,
       county: draft.countyFips,
