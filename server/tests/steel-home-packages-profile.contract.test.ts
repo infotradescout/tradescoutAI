@@ -10,8 +10,10 @@ import {
 import {
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
   STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
+  STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE,
   STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
+  STEEL_HOME_PACKAGES_REQUEST_SOURCE,
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
 } from "@shared/steelHomePackagesProfile";
 import { shouldIndexPublicProfileSlug } from "@shared/publicProfileIndexing";
@@ -56,17 +58,19 @@ const safeUnlistedCandidate = {
   ownerPreferences: { profileVisibility: "public" },
 };
 
-describe("Steel Home Project Workspace unlisted profile contract", () => {
+describe("Steel Home Planning Tools unlisted profile contract", () => {
   it("centralizes the TradeScout-owned identity and keeps search-engine release off", () => {
     expect(identity).toMatchObject({
       slug: "steel-home-packages",
       temporarySlug: "steel-home-packages",
-      displayLabel: "Steel Home Project Workspace",
+      displayLabel: "Steel Home Planning Tools",
       publicRoute: "/u/steel-home-packages",
       releaseState: "unlisted",
       publiclyReleased: false,
     });
     expect(shouldIndexPublicProfileSlug(identity.slug)).toBe(false);
+    expect(STEEL_HOME_PACKAGES_REQUEST_SOURCE).toBe("steel_home_planning_tools");
+    expect(STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE).toBe("steel_home_planning_tools_labor");
   });
 
   it("keeps the exact URL reviewable without granting public discovery authority", () => {
@@ -101,17 +105,17 @@ describe("Steel Home Project Workspace unlisted profile contract", () => {
       contextType: "profile",
       contextId: identity.slug,
       targetSelector: identity.slug,
-      targetName: "Steel Home Project Workspace",
-      source: "steel_home_project_center",
+      targetName: "Steel Home Planning Tools",
+      source: "steel_home_planning_tools",
       subjectType: "product",
-      title: "Steel home package request",
+      title: "Steel home planner request",
     });
     expect(projectContext.description).toContain("Project location:");
     expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBeNull();
 
     const laborContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
     expect(laborContext).toMatchObject({
-      source: "steel_home_project_tools_labor",
+      source: "steel_home_planning_tools_labor",
       subjectType: "service",
       title: "Steel home local trade request",
     });
@@ -157,28 +161,23 @@ describe("Steel Home Project Workspace unlisted profile contract", () => {
     expect(composer).toContain('when: prefillTiming?.trim() || ""');
   });
 
-  it("locks the workspace and customer copy without exposing internal routing language", () => {
-    expect(content.version).toBe(9);
-    expect(content.header.navigation.map((item) => item.key)).toEqual([
-      "project",
-      "building",
-      "countertops",
-      "cabinets",
-      "whole-home",
-      "review",
+  it("locks exactly three separate planners without exposing future or internal language", () => {
+    expect(content.version).toBe(11);
+    expect(content.header.navigation.map((item) => [item.key, item.label])).toEqual([
+      ["countertops", "Countertops"],
+      ["cabinets", "Cabinets"],
+      ["building", "Metal Buildings"],
     ]);
     expect(content.header.navigation.every((item) => !("href" in item))).toBe(true);
     expect(content.tools.cards.map((item) => [item.key, item.title])).toEqual([
-      ["building", "Building Package Planner"],
-      ["countertops", "Countertop Planner"],
-      ["cabinets", "Cabinet Planner"],
+      ["countertops", "Countertop Planner & Area Estimator"],
+      ["cabinets", "Cabinet Planner & Estimator"],
+      ["building", "Metal Building Planner & Estimator"],
     ]);
     expect(content.tools.cards.find((item) => item.key === "countertops")?.label).toBe(
       "Countertops"
     );
-    expect(content.projectStart.body).toBe(
-      "Tell us who is managing the build, where the jobsite is, and when you want to start."
-    );
+    expect(content.header.label).toBe("Steel Home Planning Tools");
 
     const projectContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
     const laborContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
@@ -195,14 +194,14 @@ describe("Steel Home Project Workspace unlisted profile contract", () => {
     for (const requiredPublicTruth of [
       "self-contracted homeowners, builders, and contractors",
       "Start a Request",
-      "Project Setup",
-      "Whole Home",
-      "Summary & Request",
+      "three separate tools",
+      "Countertop Planner & Area Estimator",
+      "Cabinet Planner & Estimator",
+      "Metal Building Planner & Estimator",
       "real photos",
-      "quartzite, engineered quartz",
-      "early materials estimate",
+      "Quartzite, Engineered Quartz",
+      "early price estimate",
       "Quote needed",
-      "jobsite location",
     ]) {
       expect(customerCopy.toLowerCase()).toContain(requiredPublicTruth.toLowerCase());
     }
@@ -212,6 +211,10 @@ describe("Steel Home Project Workspace unlisted profile contract", () => {
       "A+ Cabinets",
       "TradePartner",
       "Steel Home Studio",
+      "Steel Home Project Workspace",
+      "Project Setup",
+      "Whole Home",
+      "Summary & Request",
       "one clear package",
       "one coordinated package",
       "one package quote",
@@ -313,11 +316,11 @@ describe("Steel Home Project Workspace unlisted profile contract", () => {
     expect(source).toContain('status: "published" as const');
     expect(source).toContain("hasVerifiedTradeScoutAdminCustody");
     expect(source).toContain("owner must remain a verified TradeScout admin");
-    expect(source).toContain('category: "Steel-home project workspace"');
-    expect(source).toContain('"Steel building and roof package estimates"');
-    expect(source).toContain('"Countertop surface selection and measurements"');
-    expect(source).toContain('"Cabinet layout and package estimates"');
-    expect(source).toContain('"Other home needs and location requirements"');
+    expect(source).toContain('category: "Steel-home planning tools"');
+    expect(source).toContain('"Metal building planner and early price estimates"');
+    expect(source).toContain('"Countertop planner and area estimates"');
+    expect(source).toContain('"Cabinet planner and early price estimates"');
+    expect(source).not.toContain('"Other home needs and location requirements"');
     expect(source).not.toContain("Worldwide Steel Buildings");
     expect(source).not.toContain("JW Stone Logistics");
     expect(source).not.toContain("A+ Cabinets");

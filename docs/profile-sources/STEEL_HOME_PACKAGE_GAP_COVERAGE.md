@@ -1,15 +1,17 @@
-# Steel Home Project Tools gap-coverage pipeline
+# Future steel-home package gap-coverage research
 
-Checked: 2026-08-12
+Checked: 2026-08-13
 
 Internal sourcing research only. Inclusion means the company publicly describes a relevant program; it does not mean TradeScout has been accepted, has negotiated terms, or may use the company's name in public marketing.
+
+This is future operating research. None of these categories, companies, programs, or combined-package ideas are part of the current Steel Home Planning Tools release. The current release is exactly three separate planners in this order: Countertops, Cabinets, and Metal Buildings.
 
 ## Public visibility boundary
 
 - This record may retain company names for private sourcing and negotiation work.
-- The customer-facing Steel Home Project Tools page, designer labels, saved briefs, image URLs, and initial Direct Connect handoffs remain TradeScout-only and do not expose those names.
+- The customer-facing Steel Home Planning Tools page, planner labels, image URLs, and initial Direct Connect requests remain TradeScout-only and do not expose those names.
 - A fulfillment identity appears later only when a final manufacturer specification, certification, warranty, quote, order, invoice, delivery, or required disclosure needs it.
-- Gap coverage expands private operations; it does not turn the public tools into an all-in-one home package or authorize combined-price, turnkey, or complete-home claims.
+- This research may inform a separately approved future unified or whole-home product. It does not add a whole-home planner, dashboard, public category, combined price, turnkey claim, or complete-home claim to the current release.
 
 ## Decision rule
 
@@ -48,7 +50,7 @@ An affiliate link is not complete coverage: it normally sends the customer to so
 
 ## Affiliate-only fallback pool
 
-Use these only to test demand, capture a temporary commission, or open a commercial conversation. Do not add them to the current Phase 1 TradePartner showcase, and do not describe them as TradeScout-controlled fulfillment.
+Use these only to test future demand, capture a temporary commission, or open a commercial conversation. Do not add them to the current three planners, and do not describe them as TradeScout-controlled fulfillment.
 
 | Category | Public program | Published signal | Limitation |
 | --- | --- | --- | --- |
@@ -69,7 +71,7 @@ Before moving any gap from research to a TradeScout quote:
 - document minimum orders, advertised-pricing rules, branding, blind shipping, lead times, freight terms, damaged-goods claims, cancellations, returns, and chargebacks;
 - identify the actual manufacturer, warrantor, service administrator, license holder, and installer responsibilities in the written customer scope;
 - build an internal escalation owner so the customer can stay with TradeScout when an outside order has a problem;
-- a customer may select the category as a **Price after review** request scope before commercial approval, but keep product names, availability, numeric prices, fulfillment promises, and transaction claims off the public page until the operational owner approves the commercial terms and claim language.
+- future customer selection rules must be approved separately; until then, keep these categories, product names, availability, numeric prices, fulfillment promises, and transaction claims out of the current public planning tools.
 
 ## Recommended outreach order
 

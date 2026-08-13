@@ -17,7 +17,7 @@ function recordValue(value: unknown): Record<string, any> {
 }
 
 /**
- * Idempotently installs the operator-approved steel-home project tools profile.
+ * Idempotently installs the operator-approved steel-home planning tools profile.
  *
  * The profiles table has only draft/published states and only published rows
  * can render. This record therefore uses `published` strictly as the existing
@@ -145,12 +145,11 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
         ...existingProfileData,
         tagline: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.headline,
         description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body,
-        category: "Steel-home project workspace",
+        category: "Steel-home planning tools",
         services: [
-          "Steel building and roof package estimates",
-          "Countertop surface selection and measurements",
-          "Cabinet layout and package estimates",
-          "Other home needs and location requirements",
+          "Countertop planner and area estimates",
+          "Cabinet planner and early price estimates",
+          "Metal building planner and early price estimates",
         ],
         publicContactEnabled: false,
         publicLocationEnabled: false,

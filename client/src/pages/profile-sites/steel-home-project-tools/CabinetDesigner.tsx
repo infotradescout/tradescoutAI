@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-syntax -- Live SVG fills must reflect the selected cabinet finish. */
-import { AlertTriangle, Boxes, ChefHat, Ruler } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Boxes, ChefHat, ChevronDown, Ruler, Send } from "lucide-react";
 import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
 import {
   CABINET_DOOR_STYLE_OPTIONS,
@@ -9,11 +10,11 @@ import {
   CABINET_ROOM_OPTIONS,
   calculateCabinetPlanningEstimate,
   calculateCabinetPlannedWidth,
+  formatPlanningRange,
   type SteelHomeCabinetDesign,
 } from "./projectModel";
 import PlanningEstimateCard from "./PlanningEstimateCard";
 import {
-  IncludeDesignButton,
   PROJECT_TEXTAREA_CLASS,
   ProjectColorField,
   ProjectNumberField,
@@ -25,6 +26,7 @@ import {
 type Props = {
   design: SteelHomeCabinetDesign;
   onChange: (design: SteelHomeCabinetDesign) => void;
+  onRequest: () => void;
 };
 
 type CabinetModule = {
@@ -328,11 +330,16 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
   );
 }
 
-export default function CabinetDesigner({ design, onChange }: Props) {
+export default function CabinetDesigner({ design, onChange, onRequest }: Props) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const update = (values: Partial<SteelHomeCabinetDesign>) => onChange({ ...design, ...values });
   const plannedWidth = calculateCabinetPlannedWidth(design);
   const remainingWidth = design.primaryWallIn - plannedWidth;
   const planningEstimate = calculateCabinetPlanningEstimate(design);
+  const startRequest = () => {
+    onChange({ ...design, included: true });
+    onRequest();
+  };
 
   return (
     <section
@@ -340,61 +347,88 @@ export default function CabinetDesigner({ design, onChange }: Props) {
       className="bg-[#e8dfd1]"
       data-testid="steel-home-cabinet-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
+        <div className="mb-5 lg:hidden">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+            Cabinet Planner
+          </p>
+          <h2 className="mt-2 font-editorial text-3xl font-semibold leading-none tracking-[-0.04em] text-[#18312f]">
+            Fit the cabinets and see an early estimate.
+          </h2>
+        </div>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
-          <div className="lg:sticky lg:top-6">
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-              {content.tools.cabinets.eyebrow}
-            </p>
-            <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
-              {content.tools.cabinets.title}
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
-              {content.tools.cabinets.body}
-            </p>
-
-            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#eee8dd] shadow-[0_18px_55px_rgba(77,57,38,0.14)]">
-              <CabinetPreview design={design} />
+          <div className="order-1 lg:sticky lg:top-[9.5rem]">
+            <div className="hidden lg:block">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
+                {content.tools.cabinets.eyebrow}
+              </p>
+              <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
+                {content.tools.cabinets.title}
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
+                Enter the room, cabinet sizes, appliances, storage, island, style, and finish. The
+                preview and early estimate update as you work.
+              </p>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
-                <Ruler className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Wall fit</p>
-                <p
-                  className={`mt-1 text-sm ${remainingWidth < 0 ? "font-bold text-[#a1392e]" : "text-[#68736f]"}`}
-                >
-                  {remainingWidth >= 0
-                    ? `${remainingWidth}\" remaining`
-                    : `${Math.abs(remainingWidth)}\" too wide`}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
-                <Boxes className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Storage</p>
-                <p className="mt-1 text-sm text-[#68736f]">
-                  {design.pantryCount} pantry • {design.drawerBaseCount} drawer
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
-                <ChefHat className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Island</p>
-                <p className="mt-1 text-sm text-[#68736f]">
-                  {design.island
-                    ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"`
-                    : "None"}
-                </p>
-              </div>
-            </div>
+            <button
+              type="button"
+              aria-expanded={previewOpen}
+              onClick={() => setPreviewOpen((open) => !open)}
+              className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-[#18312f]/15 bg-white/70 px-4 text-sm font-black lg:hidden"
+              data-testid="steel-home-cabinet-preview-toggle"
+            >
+              View live preview and estimate
+              <ChevronDown
+                className={`h-4 w-4 transition ${previewOpen ? "rotate-180" : ""}`}
+                aria-hidden="true"
+              />
+            </button>
 
-            <PlanningEstimateCard
-              estimate={planningEstimate}
-              testId="steel-home-cabinet-planning-estimate"
-              theme="light"
-            />
+            <div className={`${previewOpen ? "block" : "hidden"} lg:block`}>
+              <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#eee8dd] shadow-[0_18px_55px_rgba(77,57,38,0.14)]">
+                <CabinetPreview design={design} />
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
+                  <Ruler className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Wall fit</p>
+                  <p
+                    className={`mt-1 text-sm ${remainingWidth < 0 ? "font-bold text-[#a1392e]" : "text-[#68736f]"}`}
+                  >
+                    {remainingWidth >= 0
+                      ? `${remainingWidth}\" remaining`
+                      : `${Math.abs(remainingWidth)}\" too wide`}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
+                  <Boxes className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Storage</p>
+                  <p className="mt-1 text-sm text-[#68736f]">
+                    {design.pantryCount} pantry • {design.drawerBaseCount} drawer
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
+                  <ChefHat className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Island</p>
+                  <p className="mt-1 text-sm text-[#68736f]">
+                    {design.island
+                      ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"`
+                      : "None"}
+                  </p>
+                </div>
+              </div>
+
+              <PlanningEstimateCard
+                estimate={planningEstimate}
+                testId="steel-home-cabinet-planning-estimate"
+                theme="light"
+              />
+            </div>
           </div>
 
-          <div className="rounded-[2rem] border border-[#18312f]/10 bg-[#f7f2e9] p-5 shadow-[0_24px_80px_rgba(77,57,38,0.1)] sm:p-8">
+          <div className="order-3 rounded-[2rem] border border-[#18312f]/10 bg-[#f7f2e9] p-5 shadow-[0_24px_80px_rgba(77,57,38,0.1)] sm:p-8 lg:order-2">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
                 Room measurements
@@ -575,19 +609,41 @@ export default function CabinetDesigner({ design, onChange }: Props) {
               />
             </label>
 
-            <div className="mt-8 flex flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7">
-              <IncludeDesignButton
-                included={design.included}
-                onClick={() => update({ included: !design.included })}
-                label="Include cabinets"
-                testId="steel-home-cabinet-include"
-              />
+            <div className="mt-8 hidden flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7 lg:flex">
+              <button
+                type="button"
+                onClick={startRequest}
+                data-testid="steel-home-cabinet-include"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#a94f2e] px-6 text-sm font-black text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] transition hover:bg-[#8f3f25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] focus-visible:ring-offset-2"
+              >
+                <Send className="h-4 w-4" aria-hidden="true" />
+                Start a Request
+              </button>
               <p className="text-xs leading-5 text-[#68736f]">
                 This is an early cabinet estimate. Final price requires exact measurements, cabinet
                 specifications, fillers, panels, clearances, delivery, taxes, and installation
                 choices.
               </p>
             </div>
+          </div>
+
+          <div className="sticky bottom-0 z-30 order-2 -mx-4 flex items-center justify-between gap-3 border-y border-[#18312f]/10 bg-[#f7f2e9]/95 px-4 py-3 shadow-[0_-14px_35px_rgba(77,57,38,.14)] backdrop-blur lg:hidden">
+            <div className="min-w-0">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#a94f2e]">
+                Early price estimate
+              </p>
+              <p className="truncate text-sm font-black">
+                {formatPlanningRange(planningEstimate.range)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={startRequest}
+              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#a94f2e] px-5 text-sm font-black text-white"
+              data-testid="steel-home-cabinet-mobile-request"
+            >
+              Start a Request
+            </button>
           </div>
         </div>
       </div>

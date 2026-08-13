@@ -4,20 +4,23 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_ANONYMOUS_CATALOG, JW_STONE_NAMED_CATALOG } from "@/features/jw-stone/catalog";
+import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
+import { readStagedDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 import {
   STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
 } from "@shared/steelHomePackagesProfile";
-import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
-import { readStagedDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 import SteelHomePackagesProfile from "./SteelHomePackagesProfile";
 import {
-  STEEL_HOME_WORKSPACES,
-  type SteelHomeWorkspace,
-  workspacePanelId,
-  workspaceTabId,
-} from "./steel-home-project-tools/SteelHomeWorkspaceNav";
-import { STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY } from "./steel-home-project-tools/projectModel";
+  STEEL_HOME_PLANNERS,
+  type SteelHomePlanner,
+  plannerPanelId,
+  plannerTabId,
+} from "./steel-home-project-tools/SteelHomePlannerNav";
+import {
+  STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY,
+  createEmptySteelHomeProjectDraft,
+} from "./steel-home-project-tools/projectModel";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -27,42 +30,31 @@ const FORBIDDEN_PUBLIC_COPY = [
   "JW Stone Logistics",
   "A+ Cabinets",
   "TradePartner",
-  "complete home package",
-  "turnkey home",
-  "one package quote",
   "supplier cost",
   "wholesale cost",
   "markup",
   "margin",
   "commission",
-];
-
-const FORBIDDEN_CUSTOMER_JARGON = [
   "owner-builder",
   "owner builder",
   "owner-built",
   "owner built",
-  "owner-building",
-  "owner building",
-  "scope",
-  "brief",
+  "project dashboard",
+  "project setup",
+  "whole home",
+  "whole-home",
+  "summary & request",
+  "project workspace",
+  "previous planner",
+  "next planner",
+  "selected packages",
   "handoff",
   "staged",
   "payload",
-  "context",
-  "target provider",
   "provider id",
   "profile slug",
   "release state",
   "fips",
-  "record id",
-  "fulfillment",
-  "planning range",
-  "planning estimate",
-  "allowance",
-  "concept",
-  "local review",
-  "price after review",
 ];
 
 function setControlValue(control: HTMLInputElement | HTMLTextAreaElement, value: string) {
@@ -75,6 +67,13 @@ function setControlValue(control: HTMLInputElement | HTMLTextAreaElement, value:
     setter?.call(control, value);
     control.dispatchEvent(new Event("input", { bubbles: true }));
   });
+}
+
+function typeCharacterByCharacter(control: HTMLInputElement, value: string) {
+  setControlValue(control, "");
+  for (const character of value) {
+    setControlValue(control, `${control.value}${character}`);
+  }
 }
 
 function setSelectValue(control: HTMLSelectElement, value: string) {
@@ -98,7 +97,21 @@ async function flushUi() {
   });
 }
 
-describe("SteelHomePackagesProfile workspace", () => {
+function userFacingText(container: HTMLElement): string {
+  return [
+    container.textContent || "",
+    ...Array.from(container.querySelectorAll<HTMLElement>("[aria-label], [title]"), (item) =>
+      [item.getAttribute("aria-label"), item.getAttribute("title")].filter(Boolean).join(" ")
+    ),
+    ...Array.from(
+      container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[placeholder]"),
+      (item) => item.placeholder
+    ),
+    ...Array.from(container.querySelectorAll<HTMLImageElement>("img[alt]"), (item) => item.alt),
+  ].join("\n");
+}
+
+describe("SteelHomePackagesProfile three-planner experience", () => {
   let container: HTMLDivElement;
   let root: Root;
 
@@ -111,11 +124,6 @@ describe("SteelHomePackagesProfile workspace", () => {
       return 1;
     });
     vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
-    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
-      configurable: true,
-      writable: true,
-      value: vi.fn(),
-    });
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -126,7 +134,7 @@ describe("SteelHomePackagesProfile workspace", () => {
     container.remove();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    delete (HTMLElement.prototype as unknown as { scrollTo?: unknown }).scrollTo;
+    document.body.style.overflow = "";
   });
 
   function renderProfile(platformBaseHref = "") {
@@ -159,700 +167,287 @@ describe("SteelHomePackagesProfile workspace", () => {
     return panels[0];
   }
 
-  function openWorkspace(workspace: SteelHomeWorkspace, mobile = false) {
+  function openPlanner(planner: SteelHomePlanner) {
     const tab = container.querySelector<HTMLButtonElement>(
-      `[data-testid="${workspaceTabId(workspace, mobile)}"]`
+      `[data-testid="${plannerTabId(planner)}"]`
     );
-    if (!tab) throw new Error(`${workspace} workspace tab missing`);
+    if (!tab) throw new Error(`${planner} planner tab missing`);
     act(() => tab.click());
 
-    const panel = container.querySelector<HTMLElement>(`#${workspacePanelId(workspace)}`);
-    if (!panel) throw new Error(`${workspace} workspace panel missing`);
+    const panel = container.querySelector<HTMLElement>(`#${plannerPanelId(planner)}`);
+    if (!panel) throw new Error(`${planner} planner panel missing`);
     expect(panel.hidden).toBe(false);
     expect(activePanel()).toBe(panel);
-    expect(
-      container
-        .querySelector(`[data-testid="${workspaceTabId(workspace)}"]`)
-        ?.getAttribute("aria-selected")
-    ).toBe("true");
-    expect(
-      container
-        .querySelector(`[data-testid="${workspaceTabId(workspace, true)}"]`)
-        ?.getAttribute("aria-selected")
-    ).toBe("true");
+    expect(tab.getAttribute("aria-selected")).toBe("true");
     return panel;
   }
 
-  it("starts in Project only and exposes matching desktop and mobile workspace tabs", () => {
+  function startRequest(planner: SteelHomePlanner) {
+    const panel = openPlanner(planner);
+    const plannerName =
+      planner === "countertops" ? "countertop" : planner === "cabinets" ? "cabinet" : "building";
+    const button = panel.querySelector<HTMLButtonElement>(
+      `[data-testid="steel-home-${plannerName}-include"]`
+    );
+    if (!button) throw new Error(`${planner} Start a Request button missing`);
+    expect(button.textContent).toContain("Start a Request");
+    act(() => button.click());
+    const drawer = container.querySelector<HTMLElement>(
+      '[data-testid="steel-home-planner-request"]'
+    );
+    if (!drawer) throw new Error(`${planner} request drawer missing`);
+    expect(drawer.querySelector('[role="dialog"]')?.getAttribute("data-planner")).toBe(planner);
+    return drawer;
+  }
+
+  function closeRequest() {
+    const close = container.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-planner-request-close"]'
+    );
+    if (!close) throw new Error("Request drawer close button missing");
+    act(() => close.click());
+    expect(container.querySelector('[data-testid="steel-home-planner-request"]')).toBeNull();
+  }
+
+  function completeRequestDetails(drawer: HTMLElement, locationText: string) {
+    const role = drawer.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-project-role-self-contracted"]'
+    );
+    const location = drawer.querySelector<HTMLInputElement>(
+      '[data-testid="steel-home-project-location"]'
+    );
+    const state = drawer.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-project-state"]'
+    );
+    if (!role || !location || !state) throw new Error("Request intake controls missing");
+
+    expect(role.textContent).toContain("Self-contracted homeowner");
+    act(() => role.click());
+    typeCharacterByCharacter(location, locationText);
+    expect(location.value).toBe(locationText);
+    setSelectValue(state, "MS");
+
+    const county = drawer.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-project-county"]'
+    );
+    if (!county) throw new Error("County control missing");
+    setSelectValue(county, "28059");
+  }
+
+  it("renders Countertops, Cabinets, and Metal Buildings in that order and defaults to Countertops", async () => {
     renderProfile();
+    await flushUi();
 
     const profile = container.querySelector<HTMLElement>(
       '[data-testid="steel-home-packages-profile"]'
     );
-    expect(profile?.dataset.releaseState).toBe("unlisted");
-    expect(profile?.className).toContain("xl:h-screen");
-    expect(profile?.querySelector("header")?.className).not.toContain("fixed");
+    const nav = container.querySelector<HTMLElement>('[data-testid="steel-home-planner-tabs"]');
+    if (!profile || !nav) throw new Error("Three-planner shell missing");
+    expect(profile.dataset.releaseState).toBe("unlisted");
+    expect(profile.textContent).toContain("Steel Home Planning Tools");
+    expect(profile.textContent).toContain("Three separate planners");
+    expect(nav.getAttribute("aria-label")).toBe("Steel home planners");
 
-    const initialPanels = container.querySelectorAll<HTMLElement>('[role="tabpanel"]');
-    expect(initialPanels).toHaveLength(STEEL_HOME_WORKSPACES.length);
-    expect(initialPanels[0]?.id).toBe(workspacePanelId("project"));
-    expect(initialPanels[0]?.hidden).toBe(false);
-    expect(initialPanels[0]?.getAttribute("aria-label")).toBe("Project Setup");
-    expect(
-      Array.from(initialPanels)
-        .slice(1)
-        .every((panel) => panel.hidden)
-    ).toBe(true);
-
-    for (const mobile of [false, true]) {
-      const nav = container.querySelector<HTMLElement>(
-        `[data-testid="${mobile ? "steel-home-mobile-nav" : "steel-home-workspace-tabs"}"]`
-      );
-      if (!nav) throw new Error(`${mobile ? "Mobile" : "Desktop"} workspace navigation missing`);
-      expect(nav.getAttribute("aria-label")).toBe("Project sections");
-      const tablist = nav.querySelector<HTMLElement>('[role="tablist"]');
-      expect(tablist?.getAttribute("aria-orientation")).toBe(mobile ? "horizontal" : "vertical");
-
-      const tabs = Array.from(nav.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-      expect(tabs.map((tab) => tab.id)).toEqual(
-        STEEL_HOME_WORKSPACES.map((workspace) => workspaceTabId(workspace.key, mobile))
-      );
-      tabs.forEach((tab, index) => {
-        const workspace = STEEL_HOME_WORKSPACES[index];
-        expect(tab.textContent).toContain(mobile ? workspace.shortLabel : workspace.label);
-        expect(tab.getAttribute("aria-controls")).toBe(workspacePanelId(workspace.key));
-        expect(tab.getAttribute("aria-selected")).toBe(index === 0 ? "true" : "false");
-        expect(tab.tabIndex).toBe(index === 0 ? 0 : -1);
-        expect(tab.getAttribute("aria-current")).toBe(mobile && index === 0 ? "page" : null);
-      });
-    }
-
-    const expectedToolByWorkspace: Partial<Record<SteelHomeWorkspace, string>> = {
-      building: "steel-home-building-designer",
-      countertops: "steel-home-countertop-designer",
-      cabinets: "steel-home-cabinet-designer",
-      "whole-home": "steel-home-whole-home",
-      review: "steel-home-project-review",
-    };
-    for (const workspace of STEEL_HOME_WORKSPACES.slice(1)) {
-      const panel = openWorkspace(workspace.key);
-      const toolTestId = expectedToolByWorkspace[workspace.key];
-      expect(panel.querySelector(`[data-testid="${toolTestId}"]`)).not.toBeNull();
-    }
-
-    expect(container.querySelectorAll<HTMLElement>('[role="tabpanel"]')).toHaveLength(
-      STEEL_HOME_WORKSPACES.length
+    const tabs = Array.from(nav.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+    expect(tabs).toHaveLength(3);
+    expect(tabs.map((tab) => tab.id)).toEqual(
+      STEEL_HOME_PLANNERS.map((planner) => plannerTabId(planner.key))
     );
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      "CountertopsCountertop Planner",
+      "CabinetsCabinet Planner",
+      "Metal BuildingsMetal Building Planner",
+    ]);
+    tabs.forEach((tab, index) => {
+      const planner = STEEL_HOME_PLANNERS[index];
+      expect(tab.getAttribute("aria-controls")).toBe(plannerPanelId(planner.key));
+      expect(tab.getAttribute("aria-selected")).toBe(index === 0 ? "true" : "false");
+      expect(tab.tabIndex).toBe(index === 0 ? 0 : -1);
+    });
+
+    const panels = Array.from(container.querySelectorAll<HTMLElement>('[role="tabpanel"]'));
+    expect(panels).toHaveLength(3);
+    expect(activePanel().id).toBe(plannerPanelId("countertops"));
+    expect(
+      activePanel().querySelector('[data-testid="steel-home-countertop-designer"]')
+    ).not.toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-building-designer"]')).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-cabinet-designer"]')).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-project-location"]')).toBeNull();
+    expect(container.querySelector('[role="progressbar"]')).toBeNull();
+    expect(container.querySelector("aside")).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-project-summary"]')).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-project-review"]')).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-whole-home"]')).toBeNull();
+    expect(
+      Array.from(container.querySelectorAll("button, a")).some((item) =>
+        /^(?:previous|next)(?::|\s)/i.test(
+          item.getAttribute("aria-label") || item.textContent || ""
+        )
+      )
+    ).toBe(false);
+  });
+
+  it("keeps hash, browser history, and keyboard tab behavior aligned", async () => {
+    renderProfile();
+    await flushUi();
+    const pushState = vi.spyOn(window.history, "pushState");
+
+    const panel = openPlanner("cabinets");
+    expect(panel.id).toBe(plannerPanelId("cabinets"));
+    expect(window.location.hash).toBe("#cabinets");
+    expect(pushState).toHaveBeenLastCalledWith(null, "", "/u/steel-home-packages#cabinets");
+
+    let tab = container.querySelector<HTMLButtonElement>(
+      `[data-testid="${plannerTabId("cabinets")}"]`
+    );
+    if (!tab) throw new Error("Cabinet tab missing");
+    tab.focus();
+    pressKey(tab, "ArrowRight");
+    tab = container.querySelector<HTMLButtonElement>(`[data-testid="${plannerTabId("building")}"]`);
+    expect(activePanel().id).toBe(plannerPanelId("building"));
+    expect(document.activeElement).toBe(tab);
+
+    if (!tab) throw new Error("Metal building tab missing");
+    pressKey(tab, "Home");
+    tab = container.querySelector<HTMLButtonElement>(
+      `[data-testid="${plannerTabId("countertops")}"]`
+    );
+    expect(activePanel().id).toBe(plannerPanelId("countertops"));
+    expect(document.activeElement).toBe(tab);
+
+    if (!tab) throw new Error("Countertop tab missing");
+    pressKey(tab, "ArrowLeft");
+    expect(activePanel().id).toBe(plannerPanelId("building"));
+
+    act(() => {
+      window.history.replaceState(null, "", "/u/steel-home-packages#countertops");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(activePanel().id).toBe(plannerPanelId("countertops"));
+
+    act(() => {
+      window.history.replaceState(null, "", "/u/steel-home-packages#cabinet-designer");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(activePanel().id).toBe(plannerPanelId("cabinets"));
     expect(visiblePanels()).toHaveLength(1);
   });
 
-  it("activates tabs with arrows, Home, and End in both navigation layouts", () => {
-    renderProfile();
-
-    for (const mobile of [false, true]) {
-      openWorkspace("project", mobile);
-      let tab = container.querySelector<HTMLButtonElement>(
-        `[data-testid="${workspaceTabId("project", mobile)}"]`
-      );
-      if (!tab) throw new Error("Project tab missing");
-      tab.focus();
-
-      pressKey(tab, mobile ? "ArrowRight" : "ArrowDown");
-      tab = container.querySelector<HTMLButtonElement>(
-        `[data-testid="${workspaceTabId("building", mobile)}"]`
-      );
-      expect(activePanel().id).toBe(workspacePanelId("building"));
-      expect(document.activeElement).toBe(tab);
-
-      if (!tab) throw new Error("Building tab missing");
-      pressKey(tab, "End");
-      tab = container.querySelector<HTMLButtonElement>(
-        `[data-testid="${workspaceTabId("review", mobile)}"]`
-      );
-      expect(activePanel().id).toBe(workspacePanelId("review"));
-      expect(document.activeElement).toBe(tab);
-
-      if (!tab) throw new Error("Summary tab missing");
-      pressKey(tab, "Home");
-      tab = container.querySelector<HTMLButtonElement>(
-        `[data-testid="${workspaceTabId("project", mobile)}"]`
-      );
-      expect(activePanel().id).toBe(workspacePanelId("project"));
-      expect(document.activeElement).toBe(tab);
-
-      if (!tab) throw new Error("Project tab missing after Home");
-      pressKey(tab, mobile ? "ArrowLeft" : "ArrowUp");
-      expect(activePanel().id).toBe(workspacePanelId("review"));
-    }
-  });
-
-  it("keeps mobile navigation available and resets position when the workspace changes", async () => {
+  it("keeps each planner independent while updating its estimate, area, and preview", async () => {
     renderProfile();
     await flushUi();
-    const profile = container.querySelector<HTMLElement>(
-      '[data-testid="steel-home-packages-profile"]'
+
+    let panel = openPlanner("building");
+    const buildingEstimate = panel.querySelector<HTMLElement>(
+      '[data-testid="steel-home-building-planning-estimate"]'
     );
-    const mobileNav = container.querySelector<HTMLElement>('[data-testid="steel-home-mobile-nav"]');
-    const workbench = container.querySelector<HTMLElement>('[data-testid="steel-home-workbench"]');
-    if (!profile || !mobileNav || !workbench) throw new Error("Workspace navigation missing");
-    expect(profile.className).toContain("overflow-x-clip");
-    expect(profile.className).not.toContain("overflow-x-hidden");
-    expect(mobileNav.className).toContain("sticky");
-
-    const workbenchScroll = vi.fn();
-    workbench.scrollTo = workbenchScroll;
-    const windowScroll = vi.mocked(window.scrollTo);
-    windowScroll.mockClear();
-
-    const next = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
-      (button) => button.getAttribute("aria-label") === "Next: Building + Roof"
-    );
-    if (!next) {
-      throw new Error(
-        `Next workspace control missing: ${Array.from(
-          container.querySelectorAll<HTMLButtonElement>("button")
-        )
-          .map((button) => button.getAttribute("aria-label") || button.textContent?.trim())
-          .join(" | ")}`
-      );
-    }
-    act(() => next.click());
-
-    expect(workbenchScroll).toHaveBeenCalledWith({ top: 0 });
-    expect(windowScroll).toHaveBeenCalledWith({ top: 0 });
-    expect(document.activeElement?.id).toBe(workspacePanelId("building"));
-  });
-
-  it("uses self-contracted language and removes internal or outdated customer language", () => {
-    renderProfile();
-
-    const projectPanel = activePanel();
-    const selfContracted = projectPanel.querySelector<HTMLButtonElement>(
-      '[data-testid="steel-home-project-role-self-contracted"]'
-    );
-    if (!selfContracted) throw new Error("Self-contracted role missing");
-    expect(selfContracted.textContent).toContain("Self-contracted homeowner");
-    expect(selfContracted.textContent).toContain("Plan the packages and list the trades you need");
-    act(() => selfContracted.click());
-
-    for (const workspace of STEEL_HOME_WORKSPACES.slice(1)) openWorkspace(workspace.key);
-
-    const publicText = [
-      container.textContent || "",
-      ...Array.from(container.querySelectorAll<HTMLElement>("[aria-label], [title]"), (item) =>
-        [item.getAttribute("aria-label"), item.getAttribute("title")].filter(Boolean).join(" ")
-      ),
-      ...Array.from(
-        container.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("[placeholder]"),
-        (item) => item.placeholder
-      ),
-      ...Array.from(container.querySelectorAll<HTMLImageElement>("img[alt]"), (item) => item.alt),
-    ]
-      .join("\n")
-      .toLowerCase();
-    expect(publicText).toContain("self-contracted");
-    expect(publicText).toContain("quartzite");
-    expect(publicText).toContain("engineered quartz");
-    expect(publicText).not.toContain("stone or quartz");
-    for (const forbidden of [...FORBIDDEN_PUBLIC_COPY, ...FORBIDDEN_CUSTOMER_JARGON]) {
-      expect(publicText).not.toContain(forbidden.toLowerCase());
-    }
-  });
-
-  it("offers only real named stones through neutral exact-image routes", () => {
-    renderProfile();
-    const panel = openWorkspace("countertops");
-
-    const selector = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-countertop-all-stones"]'
-    );
-    if (!selector) throw new Error("Named-stone selector missing");
-    const options = Array.from(selector.options);
-    expect(options).toHaveLength(JW_STONE_NAMED_CATALOG.length);
-    expect(options.map((option) => option.value)).toEqual(
-      [...JW_STONE_NAMED_CATALOG]
-        .sort((a, b) => a.publicLabel.localeCompare(b.publicLabel))
-        .map((stone) => stone.id)
-    );
-    expect(options.map((option) => option.value)).not.toEqual(
-      expect.arrayContaining(JW_STONE_ANONYMOUS_CATALOG.map((stone) => stone.id))
-    );
-
-    const search = panel.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-countertop-stone-search"]'
-    );
-    if (!search) throw new Error("Stone search missing");
-    setControlValue(search, "blue");
-    const filteredValues = Array.from(selector.options).map((option) => option.value);
-    expect(filteredValues.length).toBeLessThan(JW_STONE_NAMED_CATALOG.length);
-    expect(filteredValues).toContain("blue-goias");
-    expect(filteredValues).toContain("cristallo");
-    expect(filteredValues).not.toContain("taj-mahal");
-    setControlValue(search, "");
-
-    const quickStoneImages = Array.from(
-      panel.querySelectorAll<HTMLImageElement>('[data-testid^="steel-home-countertop-stone-"] img')
-    );
-    expect(quickStoneImages).toHaveLength(6);
-    for (const image of quickStoneImages) {
-      expect(image.src).toMatch(/\/images\/stone-designer\/[a-z0-9-]+\/1\.webp$/);
-      expect(image.src.toLowerCase()).not.toContain("jw-stone");
-      expect(image.alt).toMatch(/ surface$/);
-    }
-
-    expect(panel.querySelector("svg image")?.getAttribute("href")).toBe(
-      "/images/stone-designer/cristallo/1.webp"
-    );
-  });
-
-  it("keeps design choices across workspace switches and updates the persistent summary", () => {
-    renderProfile();
-
-    const summary = container.querySelector<HTMLElement>(
-      '[data-testid="steel-home-project-summary"]'
-    );
-    const progress = summary?.querySelector<HTMLElement>(
-      '[data-testid="steel-home-project-progress"]'
-    );
-    if (!summary || !progress) throw new Error("Persistent project summary missing");
-    expect(progress.getAttribute("aria-valuenow")).toBe("0");
-    expect(summary.textContent).toContain("No package estimate yet");
-
-    const projectPanel = activePanel();
-    act(() =>
-      projectPanel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-project-role-self-contracted"]')
-        ?.click()
-    );
-    const location = projectPanel.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-project-location"]'
-    );
-    const state = projectPanel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-state"]'
-    );
-    if (!location || !state) throw new Error("Project details missing");
-    setControlValue(location, "Ocean Springs, MS 39564");
-    setSelectValue(state, "MS");
-    const county = projectPanel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-county"]'
-    );
-    if (!county) throw new Error("County selector missing");
-    setSelectValue(county, "28059");
-    expect(progress.getAttribute("aria-valuenow")).toBe("2");
-
-    let panel = openWorkspace("building");
-    expect(
-      panel.querySelector('[data-testid="steel-home-building-planning-estimate"]')?.textContent
-    ).toContain("$80,400–$124,050");
     const width = panel.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-building-width"]'
     );
-    if (!width) throw new Error("Building width missing");
+    if (!buildingEstimate || !width) throw new Error("Building result missing");
+    expect(buildingEstimate.textContent).toContain("$80,400–$124,050");
     setControlValue(width, "54");
-    const updatedBuildingEstimate = panel
-      .querySelector('[data-testid="steel-home-building-planning-estimate"]')
-      ?.textContent?.match(/\$[\d,]+–\$[\d,]+/)?.[0];
-    expect(updatedBuildingEstimate).toMatch(/^\$[\d,]+–\$[\d,]+$/);
-    act(() =>
-      panel.querySelector<HTMLButtonElement>('[data-testid="steel-home-building-include"]')?.click()
-    );
-    expect(progress.getAttribute("aria-valuenow")).toBe("3");
-    expect(summary.textContent).toContain("Building + roof");
-    expect(summary.textContent).toContain(updatedBuildingEstimate);
-
-    panel = openWorkspace("countertops");
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-stone-taj-mahal"]')
-        ?.click()
-    );
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-include"]')
-        ?.click()
-    );
-    expect(summary.textContent).toContain("Countertops");
-
-    panel = openWorkspace("cabinets");
-    expect(
-      panel.querySelector('[data-testid="steel-home-cabinet-planning-estimate"]')?.textContent
-    ).toContain("$15,650–$26,950");
-    const layout = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-cabinet-layout"]'
-    );
-    if (!layout) throw new Error("Cabinet layout missing");
-    setSelectValue(layout, "u-shape");
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-cabinet-finish-navy"]')
-        ?.click()
-    );
-    act(() =>
-      panel.querySelector<HTMLButtonElement>('[data-testid="steel-home-cabinet-include"]')?.click()
-    );
-    expect(summary.textContent).toContain("Cabinets");
-
-    openWorkspace("whole-home");
-    openWorkspace("project");
-
-    panel = openWorkspace("building");
-    expect(
-      panel.querySelector<HTMLInputElement>('[data-testid="steel-home-building-width"]')?.value
-    ).toBe("54");
+    expect(buildingEstimate.textContent).not.toContain("$80,400–$124,050");
     expect(
       panel.querySelector('[data-testid="steel-home-building-preview"]')?.textContent
     ).toContain("54' × 60' × 14'");
 
-    panel = openWorkspace("countertops");
-    expect(
-      panel.querySelector<HTMLSelectElement>('[data-testid="steel-home-countertop-all-stones"]')
-        ?.value
-    ).toBe("taj-mahal");
-    expect(panel.querySelector("svg image")?.getAttribute("href")).toBe(
-      "/images/stone-designer/taj-mahal/1.webp"
+    panel = openPlanner("countertops");
+    const initialPath = panel
+      .querySelector('[data-testid="steel-home-countertop-layout-preview"]')
+      ?.getAttribute("d");
+    const run = panel.querySelector<HTMLInputElement>(
+      '[data-testid="steel-home-countertop-run-a"]'
     );
-
-    panel = openWorkspace("cabinets");
+    if (!run) throw new Error("Countertop run missing");
+    expect(panel.textContent).toContain("Estimated area");
+    expect(panel.textContent).toContain("Quote needed");
+    setControlValue(run, "220");
     expect(
-      panel.querySelector<HTMLSelectElement>('[data-testid="steel-home-cabinet-layout"]')?.value
-    ).toBe("u-shape");
+      panel.querySelector('[data-testid="steel-home-countertop-layout-preview"]')?.getAttribute("d")
+    ).not.toBe(initialPath);
+
+    panel = openPlanner("cabinets");
+    const cabinetEstimate = panel.querySelector<HTMLElement>(
+      '[data-testid="steel-home-cabinet-planning-estimate"]'
+    );
+    const layout = panel.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-cabinet-layout"]'
+    );
+    if (!cabinetEstimate || !layout) throw new Error("Cabinet result missing");
+    expect(cabinetEstimate.textContent).toContain("$15,650–$26,950");
+    setSelectValue(layout, "u-shape");
     expect(
       panel.querySelector('[data-testid="steel-home-cabinet-preview"]')?.textContent
     ).toContain("U-SHAPED");
+
+    panel = openPlanner("building");
     expect(
-      panel.querySelector('[data-testid="steel-home-cabinet-preview"] rect[fill="#334658"]')
-    ).not.toBeNull();
+      panel.querySelector<HTMLInputElement>('[data-testid="steel-home-building-width"]')?.value
+    ).toBe("54");
+    expect(container.querySelector('[data-testid="steel-home-countertop-designer"]')).toBeNull();
+    expect(container.querySelector('[data-testid="steel-home-cabinet-designer"]')).toBeNull();
   });
 
-  it("stages the exact completed project summary only after the user starts the request", () => {
+  it("uses exact named surfaces and exposes AJ Quartz as Engineered Quartz on neutral image routes", async () => {
     renderProfile();
+    await flushUi();
+    const panel = openPlanner("countertops");
+    const selector = panel.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-countertop-all-stones"]'
+    );
+    if (!selector) throw new Error("Named surface selector missing");
 
-    let panel = activePanel();
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-project-role-self-contracted"]')
-        ?.click()
+    expect(Array.from(selector.options).map((option) => option.value)).toEqual(
+      [...JW_STONE_NAMED_CATALOG]
+        .sort((a, b) => a.publicLabel.localeCompare(b.publicLabel))
+        .map((stone) => stone.id)
     );
-    const location = panel.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-project-location"]'
-    );
-    const state = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-state"]'
-    );
-    const timing = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-timing"]'
-    );
-    if (!location || !state || !timing) throw new Error("Project details missing");
-    setControlValue(location, "Ocean Springs, MS 39564");
-    setSelectValue(state, "MS");
-    const county = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-county"]'
-    );
-    if (!county) throw new Error("County selector missing");
-    setSelectValue(county, "28059");
-    setSelectValue(timing, "Within 6 months");
-
-    panel = openWorkspace("building");
-    const width = panel.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-building-width"]'
-    );
-    if (!width) throw new Error("Building width missing");
-    setControlValue(width, "54");
-    act(() =>
-      panel.querySelector<HTMLButtonElement>('[data-testid="steel-home-building-include"]')?.click()
+    expect(Array.from(selector.options).map((option) => option.value)).not.toEqual(
+      expect.arrayContaining(JW_STONE_ANONYMOUS_CATALOG.map((stone) => stone.id))
     );
 
-    panel = openWorkspace("countertops");
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-stone-taj-mahal"]')
-        ?.click()
+    const ajQuartz = panel.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-countertop-stone-aj-quartz"]'
     );
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-include"]')
-        ?.click()
+    const tajMahal = panel.querySelector<HTMLButtonElement>(
+      '[data-testid="steel-home-countertop-stone-taj-mahal"]'
     );
+    if (!ajQuartz || !tajMahal) throw new Error("Required quick surface cards missing");
+    expect(ajQuartz.textContent).toContain("AJ Quartz");
+    expect(ajQuartz.textContent).toContain("Engineered Quartz");
+    expect(ajQuartz.querySelector("img")?.getAttribute("src")).toBe(
+      "/images/stone-designer/aj-quartz/1.webp"
+    );
+    expect(tajMahal.textContent).toContain("Quartzite");
 
-    panel = openWorkspace("cabinets");
-    const cabinetLayout = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-cabinet-layout"]'
+    act(() => ajQuartz.click());
+    expect(selector.value).toBe("aj-quartz");
+    expect(panel.querySelector("svg image")?.getAttribute("href")).toBe(
+      "/images/stone-designer/aj-quartz/1.webp"
     );
-    const cabinetDoorStyle = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-cabinet-door-style"]'
-    );
-    if (!cabinetLayout || !cabinetDoorStyle) throw new Error("Cabinet style controls missing");
-    setSelectValue(cabinetLayout, "u-shape");
-    setSelectValue(cabinetDoorStyle, "Glass accent");
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-cabinet-finish-navy"]')
-        ?.click()
-    );
-    act(() =>
-      panel.querySelector<HTMLButtonElement>('[data-testid="steel-home-cabinet-include"]')?.click()
-    );
-
-    panel = openWorkspace("review");
-    expect(panel.textContent).toContain("Self-contracted");
-    const visibleDetails = panel.querySelector<HTMLElement>(
-      '[data-testid="steel-home-project-brief"]'
-    )?.textContent;
-    expect(visibleDetails).toContain("54' wide × 60' long × 14' eave");
-    expect(visibleDetails).toContain("Taj Mahal — Quartzite");
-    expect(visibleDetails).toContain("Glass accent; Navy; Matte black");
-    expect(visibleDetails).not.toContain("Stone record:");
-    expect(visibleDetails).not.toContain("Stone image:");
-
-    const request = panel.querySelector<HTMLAnchorElement>(
-      'a[data-testid="steel-home-project-request"]'
-    );
-    expect(request).not.toBeNull();
-    const safeProjectFallback = new URL(
-      request?.getAttribute("href") || "",
-      "https://www.thetradescout.com"
-    );
-    expect(safeProjectFallback.pathname).toBe("/direct-connect");
-    expect(safeProjectFallback.searchParams.get("profile")).toBe("steel-home-packages");
-    expect(safeProjectFallback.searchParams.get("source")).toBe("steel_home_project_center");
-    expect(safeProjectFallback.searchParams.has("description")).toBe(false);
-    expect(request?.outerHTML).not.toContain("Ocean Springs");
-    act(() => request?.focus());
-    const focusPreparedToken = new URL(
-      request?.getAttribute("href") || "",
-      "https://www.thetradescout.com"
-    ).searchParams.get("staged");
-    expect(focusPreparedToken).toMatch(/^[a-f0-9]{64}$/);
-    request?.addEventListener("click", (event) => event.preventDefault(), { once: true });
-    act(() => request?.click());
-
-    const stagedHref = request?.getAttribute("href") || "";
-    const url = new URL(stagedHref, "https://www.thetradescout.com");
-    expect(url.pathname).toBe("/direct-connect");
-    expect(url.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
-    expect(url.searchParams.get("staged")).not.toBe(focusPreparedToken);
-    expect(url.searchParams.get("profile")).toBe("steel-home-packages");
-    expect(url.searchParams.get("profileName")).toBe("Steel Home Project Workspace");
-    expect(url.searchParams.get("source")).toBe("steel_home_project_center");
-    expect(url.searchParams.get("subject")).toBe("product");
-    expect(url.searchParams.has("description")).toBe(false);
-    expect(url.searchParams.size).toBe(5);
-
-    const stagedContext = readStagedDirectConnectEntryContext(stagedHref);
-    expect(stagedContext).toMatchObject({
-      targetName: "Steel Home Project Workspace",
-      source: "steel_home_project_center",
-      title: "TradeScout Steel Home Project Request — Building + roof, Countertops, Cabinets",
-      location: "Ocean Springs, MS 39564",
-      countyFips: "28059",
-      stateCode: "MS",
-      timing: "Within 6 months",
-    });
-    expect(stagedContext?.description).toContain(
-      "Selected packages: Building + roof, Countertops, Cabinets"
-    );
-    expect(stagedContext?.description).toContain("Contracting setup: Self-contracted homeowner");
-    expect(stagedContext?.description).toContain("54' wide × 60' long × 14' eave");
-    expect(stagedContext?.description).toContain("Selected surface: Taj Mahal — Quartzite");
-    expect(stagedContext?.description).toContain("Style: Glass accent; Navy; Matte black");
-    expect(stagedContext?.description).not.toContain("Stone record:");
-    expect(stagedContext?.description).not.toContain("Stone image:");
-    for (const forbidden of FORBIDDEN_PUBLIC_COPY) {
-      expect(stagedHref.toLowerCase()).not.toContain(forbidden.toLowerCase());
-      expect(stagedContext?.description?.toLowerCase()).not.toContain(forbidden.toLowerCase());
+    for (const image of panel.querySelectorAll<HTMLImageElement>(
+      '[data-testid^="steel-home-countertop-stone-"] img'
+    )) {
+      expect(image.src).toMatch(/\/images\/stone-designer\/[a-z0-9-]+\/1\.webp$/);
+      expect(image.src.toLowerCase()).not.toContain("jw-stone");
     }
   });
 
-  it("restores the saved project and keeps the local trade request separate and untargeted", async () => {
-    renderProfile();
-
-    let panel = openWorkspace("countertops");
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-stone-blue-goias"]')
-        ?.click()
-    );
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-include"]')
-        ?.click()
-    );
-
-    panel = openWorkspace("project");
-    const location = panel.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-project-location"]'
-    );
-    const state = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-state"]'
-    );
-    if (!location || !state) throw new Error("Project location controls missing");
-    setControlValue(location, "Biloxi, MS");
-    setSelectValue(state, "MS");
-    const county = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-county"]'
-    );
-    if (!county) throw new Error("Project county control missing");
-    setSelectValue(county, "28047");
-
-    panel = openWorkspace("whole-home");
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-labor-stone-fabrication"]')
-        ?.click()
-    );
-    await flushUi();
-    expect(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY)).toContain(
-      '"stoneId":"blue-goias"'
-    );
-
-    act(() => root.unmount());
-    root = createRoot(container);
+  it("persists design state and live geometry across planner switches and reloads", async () => {
     renderProfile();
     await flushUi();
 
-    panel = openWorkspace("countertops");
-    expect(
-      panel.querySelector<HTMLSelectElement>('[data-testid="steel-home-countertop-all-stones"]')
-        ?.value
-    ).toBe("blue-goias");
-
-    panel = openWorkspace("project");
-    expect(
-      panel.querySelector<HTMLInputElement>('[data-testid="steel-home-project-location"]')?.value
-    ).toBe("Biloxi, MS");
-    expect(
-      panel.querySelector<HTMLSelectElement>('[data-testid="steel-home-project-state"]')?.value
-    ).toBe("MS");
-    expect(
-      panel.querySelector<HTMLSelectElement>('[data-testid="steel-home-project-county"]')?.value
-    ).toBe("28047");
-
-    panel = openWorkspace("review");
-    const labor = panel.querySelector<HTMLAnchorElement>(
-      'a[data-testid="steel-home-labor-request"]'
-    );
-    expect(labor).not.toBeNull();
-    const safeTradeFallback = new URL(
-      labor?.getAttribute("href") || "",
-      "https://www.thetradescout.com"
-    );
-    expect(safeTradeFallback.pathname).toBe("/direct-connect");
-    expect(safeTradeFallback.searchParams.get("source")).toBe("steel_home_project_tools_labor");
-    expect(safeTradeFallback.searchParams.has("description")).toBe(false);
-    labor?.addEventListener("click", (event) => event.preventDefault(), { once: true });
-    act(() => labor?.click());
-    const stagedLaborHref = labor?.getAttribute("href") || "";
-    const laborUrl = new URL(stagedLaborHref, "https://www.thetradescout.com");
-    expect(laborUrl.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
-    expect(laborUrl.searchParams.get("source")).toBe("steel_home_project_tools_labor");
-    expect(laborUrl.searchParams.get("subject")).toBe("service");
-    expect(laborUrl.searchParams.has("description")).toBe(false);
-    expect(laborUrl.searchParams.size).toBe(3);
-    const stagedLaborContext = readStagedDirectConnectEntryContext(stagedLaborHref);
-    expect(stagedLaborContext).toMatchObject({
-      subjectType: "service",
-      source: "steel_home_project_tools_labor",
-      countyFips: "28047",
-      stateCode: "MS",
-    });
-    expect(stagedLaborContext?.description).toContain(
-      "Countertop details: Kitchen; Blue Goias — Granite; About 58.2 sq. ft."
-    );
-    expect(stagedLaborContext?.contextType).toBeUndefined();
-    expect(stagedLaborContext?.targetSelector).toBeUndefined();
-  });
-
-  it("keeps safe routing but no private details in cross-origin fallbacks", () => {
-    const platformBaseHref = "https://www.thetradescout.com";
-    expect(new URL(platformBaseHref).origin).not.toBe(window.location.origin);
-    renderProfile(platformBaseHref);
-
-    let panel = activePanel();
-    act(() =>
-      panel
-        .querySelector<HTMLButtonElement>('[data-testid="steel-home-project-role-self-contracted"]')
-        ?.click()
-    );
-    const location = panel.querySelector<HTMLInputElement>(
-      '[data-testid="steel-home-project-location"]'
-    );
-    const state = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-state"]'
-    );
-    if (!location || !state) throw new Error("Project location controls missing");
-    setControlValue(location, "Private jobsite, MS 39564");
-    setSelectValue(state, "MS");
-    const county = panel.querySelector<HTMLSelectElement>(
-      '[data-testid="steel-home-project-county"]'
-    );
-    if (!county) throw new Error("Project county control missing");
-    setSelectValue(county, "28059");
-
-    panel = openWorkspace("building");
-    act(() =>
-      panel.querySelector<HTMLButtonElement>('[data-testid="steel-home-building-include"]')?.click()
-    );
-    panel = openWorkspace("whole-home");
-    act(() =>
-      panel.querySelector<HTMLButtonElement>('[data-testid="steel-home-labor-site-work"]')?.click()
-    );
-
-    panel = openWorkspace("review");
-    const projectRequest = panel.querySelector<HTMLAnchorElement>(
-      'a[data-testid="steel-home-project-request"]'
-    );
-    const laborRequest = panel.querySelector<HTMLAnchorElement>(
-      'a[data-testid="steel-home-labor-request"]'
-    );
-    const projectFallback = new URL(projectRequest?.getAttribute("href") || "");
-    const laborFallback = new URL(laborRequest?.getAttribute("href") || "");
-    expect(projectFallback.origin).toBe(platformBaseHref);
-    expect(projectFallback.pathname).toBe("/direct-connect");
-    expect(projectFallback.searchParams.get("profile")).toBe("steel-home-packages");
-    expect(projectFallback.searchParams.get("source")).toBe("steel_home_project_center");
-    expect(laborFallback.origin).toBe(platformBaseHref);
-    expect(laborFallback.pathname).toBe("/direct-connect");
-    expect(laborFallback.searchParams.get("source")).toBe("steel_home_project_tools_labor");
-    expect(projectFallback.searchParams.has("description")).toBe(false);
-    expect(laborFallback.searchParams.has("description")).toBe(false);
-    expect(projectRequest?.outerHTML).not.toContain("Private jobsite");
-    expect(laborRequest?.outerHTML).not.toContain("Private jobsite");
-
-    projectRequest?.addEventListener("click", (event) => event.preventDefault(), { once: true });
-    laborRequest?.addEventListener("click", (event) => event.preventDefault(), { once: true });
-    act(() => {
-      projectRequest?.click();
-      laborRequest?.click();
-    });
-
-    expect(projectRequest?.getAttribute("href")).toBe(projectFallback.toString());
-    expect(laborRequest?.getAttribute("href")).toBe(laborFallback.toString());
-    expect(window.sessionStorage.length).toBe(0);
-  });
-
-  it("changes each planner preview geometry after that workspace is opened", () => {
-    renderProfile();
-
-    let panel = openWorkspace("building");
+    let panel = openPlanner("building");
     const porch = panel.querySelector<HTMLSelectElement>(
       '[data-testid="steel-home-building-porch"]'
     );
     const porchDepth = panel.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-building-porch-depth"]'
     );
-    if (!porch || !porchDepth) throw new Error("Building porch controls missing");
-    expect(
-      panel.querySelector('[data-testid="steel-home-building-front-porch-preview"]')
-    ).not.toBeNull();
+    if (!porch || !porchDepth) throw new Error("Building geometry controls missing");
     setSelectValue(porch, "side");
-    expect(
-      panel.querySelector('[data-testid="steel-home-building-front-porch-preview"]')
-    ).toBeNull();
-    expect(
-      panel
-        .querySelector('[data-testid="steel-home-building-side-porch-preview"]')
-        ?.getAttribute("data-porch-depth")
-    ).toBe("8");
     setControlValue(porchDepth, "16");
     expect(
       panel
@@ -860,45 +455,317 @@ describe("SteelHomePackagesProfile workspace", () => {
         ?.getAttribute("data-porch-depth")
     ).toBe("16");
 
-    panel = openWorkspace("countertops");
-    const countertopPath = panel.querySelector<SVGPathElement>(
-      '[data-testid="steel-home-countertop-layout-preview"]'
-    );
+    panel = openPlanner("countertops");
+    const countertopPath = panel
+      .querySelector('[data-testid="steel-home-countertop-layout-preview"]')
+      ?.getAttribute("d");
     const countertopRun = panel.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-countertop-run-a"]'
     );
-    if (!countertopPath || !countertopRun) throw new Error("Countertop geometry controls missing");
-    const initialCountertopPath = countertopPath.getAttribute("d");
+    if (!countertopRun) throw new Error("Countertop geometry control missing");
     setControlValue(countertopRun, "220");
+    act(() =>
+      panel
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-stone-aj-quartz"]')
+        ?.click()
+    );
     expect(
       panel.querySelector('[data-testid="steel-home-countertop-layout-preview"]')?.getAttribute("d")
-    ).not.toBe(initialCountertopPath);
+    ).not.toBe(countertopPath);
 
-    panel = openWorkspace("cabinets");
-    const cabinetPath = panel.querySelector<SVGPathElement>(
-      '[data-testid="steel-home-cabinet-layout-preview"]'
-    );
+    panel = openPlanner("cabinets");
+    const cabinetPath = panel
+      .querySelector('[data-testid="steel-home-cabinet-layout-preview"]')
+      ?.getAttribute("d");
+    const ceilingY = panel
+      .querySelector('[data-testid="steel-home-cabinet-ceiling-preview"]')
+      ?.getAttribute("y1");
     const returnWall = panel.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-cabinet-return-wall"]'
     );
     const ceiling = panel.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-cabinet-ceiling-height"]'
     );
-    const ceilingLine = panel.querySelector<SVGLineElement>(
-      '[data-testid="steel-home-cabinet-ceiling-preview"]'
-    );
-    if (!cabinetPath || !returnWall || !ceiling || !ceilingLine) {
-      throw new Error("Cabinet geometry controls missing");
-    }
-    const initialCabinetPath = cabinetPath.getAttribute("d");
-    const initialCeilingY = ceilingLine.getAttribute("y1");
+    if (!returnWall || !ceiling) throw new Error("Cabinet geometry controls missing");
     setControlValue(returnWall, "300");
     setControlValue(ceiling, "132");
     expect(
       panel.querySelector('[data-testid="steel-home-cabinet-layout-preview"]')?.getAttribute("d")
-    ).not.toBe(initialCabinetPath);
+    ).not.toBe(cabinetPath);
     expect(
       panel.querySelector('[data-testid="steel-home-cabinet-ceiling-preview"]')?.getAttribute("y1")
-    ).not.toBe(initialCeilingY);
+    ).not.toBe(ceilingY);
+
+    await flushUi();
+    const savedDraft = window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    expect(savedDraft).toContain('"porchDepthFt":16');
+    expect(savedDraft).toContain('"wallAIn":220');
+    expect(savedDraft).toContain('"stoneId":"aj-quartz"');
+    expect(savedDraft).toContain('"returnWallIn":300');
+    expect(savedDraft).toContain('"ceilingHeightIn":132');
+
+    act(() => root.unmount());
+    root = createRoot(container);
+    renderProfile();
+    await flushUi();
+
+    panel = openPlanner("building");
+    expect(
+      panel.querySelector<HTMLInputElement>('[data-testid="steel-home-building-porch-depth"]')
+        ?.value
+    ).toBe("16");
+    expect(
+      panel
+        .querySelector('[data-testid="steel-home-building-side-porch-preview"]')
+        ?.getAttribute("data-porch-depth")
+    ).toBe("16");
+
+    panel = openPlanner("countertops");
+    expect(
+      panel.querySelector<HTMLSelectElement>('[data-testid="steel-home-countertop-all-stones"]')
+        ?.value
+    ).toBe("aj-quartz");
+    expect(panel.querySelector("svg image")?.getAttribute("href")).toBe(
+      "/images/stone-designer/aj-quartz/1.webp"
+    );
+
+    panel = openPlanner("cabinets");
+    expect(
+      panel.querySelector<HTMLInputElement>('[data-testid="steel-home-cabinet-return-wall"]')?.value
+    ).toBe("300");
+    expect(
+      panel.querySelector<HTMLInputElement>('[data-testid="steel-home-cabinet-ceiling-height"]')
+        ?.value
+    ).toBe("132");
+  });
+
+  it("opens intake only after planning and preserves spaces typed one character at a time", async () => {
+    renderProfile();
+    await flushUi();
+    expect(container.querySelector('[data-testid="steel-home-project-location"]')).toBeNull();
+
+    const drawer = startRequest("building");
+    expect(drawer.textContent).toContain("Start a Metal Building Request");
+    expect(drawer.textContent).toContain("Early metal building estimate");
+    expect(drawer.textContent).toContain("Only this planner goes into the request");
+    const disabledAction = drawer.querySelector<HTMLElement>(
+      '[data-testid="steel-home-planner-request-submit"]'
+    );
+    expect(disabledAction?.tagName).toBe("SPAN");
+    expect(disabledAction?.getAttribute("aria-disabled")).toBe("true");
+    expect(disabledAction?.textContent).toContain("Continue to contact details");
+
+    const locationText = "Ocean Springs, MS 39564";
+    completeRequestDetails(drawer, locationText);
+    const location = drawer.querySelector<HTMLInputElement>(
+      '[data-testid="steel-home-project-location"]'
+    );
+    expect(location?.value).toBe(locationText);
+
+    const readyAction = drawer.querySelector<HTMLAnchorElement>(
+      'a[data-testid="steel-home-planner-request-submit"]'
+    );
+    expect(readyAction).not.toBeNull();
+    expect(readyAction?.textContent).toContain("Continue to contact details");
+
+    pressKey(drawer.querySelector<HTMLElement>('[role="dialog"]') || drawer, "Escape");
+    expect(container.querySelector('[data-testid="steel-home-planner-request"]')).toBeNull();
+  });
+
+  it("requires a visible contracting role when an older saved role is no longer offered", async () => {
+    window.localStorage.setItem(
+      STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        ...createEmptySteelHomeProjectDraft(),
+        projectRole: "whole-build-help",
+        location: "Ocean Springs, MS 39564",
+        stateCode: "MS",
+        countyFips: "28059",
+        countyName: "Jackson County",
+      })
+    );
+    renderProfile();
+    await flushUi();
+
+    const drawer = startRequest("countertops");
+    expect(drawer.textContent).toContain("Choose who is planning the request.");
+    expect(
+      Array.from(
+        drawer.querySelectorAll<HTMLButtonElement>('[data-testid^="steel-home-project-role-"]')
+      ).some((role) => role.getAttribute("aria-pressed") === "true")
+    ).toBe(false);
+    const action = drawer.querySelector<HTMLElement>(
+      '[data-testid="steel-home-planner-request-submit"]'
+    );
+    expect(action?.tagName).toBe("SPAN");
+    expect(action?.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("keeps all three request drawers scoped to their active planner", async () => {
+    renderProfile();
+    await flushUi();
+
+    const expectations: Array<{
+      planner: SteelHomePlanner;
+      required: string[];
+      forbidden: string[];
+    }> = [
+      {
+        planner: "countertops",
+        required: ["Approximate countertop area", "Quote needed"],
+        forbidden: ["Early metal building estimate", "Early cabinet estimate"],
+      },
+      {
+        planner: "cabinets",
+        required: ["Early cabinet estimate", "main wall"],
+        forbidden: ["Early metal building estimate", "Approximate countertop area"],
+      },
+      {
+        planner: "building",
+        required: ["Early metal building estimate", "metal building with roof"],
+        forbidden: ["Approximate countertop area", "Early cabinet estimate"],
+      },
+    ];
+
+    for (const item of expectations) {
+      const drawer = startRequest(item.planner);
+      const result = drawer.querySelector<HTMLElement>(
+        '[data-testid="steel-home-planner-request-result"]'
+      );
+      if (!result) throw new Error(`${item.planner} request result missing`);
+      for (const text of item.required) expect(result.textContent).toContain(text);
+      for (const text of item.forbidden) expect(result.textContent).not.toContain(text);
+      closeRequest();
+    }
+  });
+
+  it("stages private details securely and includes only the active planner", async () => {
+    renderProfile();
+    await flushUi();
+
+    let panel = openPlanner("building");
+    const width = panel.querySelector<HTMLInputElement>(
+      '[data-testid="steel-home-building-width"]'
+    );
+    if (!width) throw new Error("Building width missing");
+    setControlValue(width, "54");
+    startRequest("building");
+    closeRequest();
+
+    panel = openPlanner("cabinets");
+    const layout = panel.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-cabinet-layout"]'
+    );
+    if (!layout) throw new Error("Cabinet layout missing");
+    setSelectValue(layout, "u-shape");
+    startRequest("cabinets");
+    closeRequest();
+
+    panel = openPlanner("countertops");
+    act(() =>
+      panel
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-countertop-stone-aj-quartz"]')
+        ?.click()
+    );
+    let drawer = startRequest("countertops");
+    completeRequestDetails(drawer, "Ocean Springs, MS 39564");
+    const timing = drawer.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-project-timing"]'
+    );
+    if (!timing) throw new Error("Timing control missing");
+    setSelectValue(timing, "Within 6 months");
+    const refreshedDrawer = container.querySelector<HTMLElement>(
+      '[data-testid="steel-home-planner-request"]'
+    );
+    if (!refreshedDrawer) throw new Error("Updated countertop request drawer missing");
+    drawer = refreshedDrawer;
+
+    const request = drawer.querySelector<HTMLAnchorElement>(
+      'a[data-testid="steel-home-planner-request-submit"]'
+    );
+    if (!request) throw new Error("Ready request action missing");
+    const fallback = new URL(request.getAttribute("href") || "", "http://localhost");
+    expect(fallback.pathname).toBe("/direct-connect");
+    expect(fallback.searchParams.get("profile")).toBe("steel-home-packages");
+    expect(fallback.searchParams.get("source")).toBe("steel_home_planning_tools");
+    expect(fallback.searchParams.has("description")).toBe(false);
+    expect(request.outerHTML).not.toContain("Ocean Springs");
+
+    act(() => request.focus());
+    const stagedHref = request.getAttribute("href") || "";
+    const stagedUrl = new URL(stagedHref, "http://localhost");
+    expect(stagedUrl.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+    expect(stagedUrl.searchParams.has("description")).toBe(false);
+    expect(stagedUrl.searchParams.has("location")).toBe(false);
+
+    const context = readStagedDirectConnectEntryContext(stagedHref);
+    expect(context).toMatchObject({
+      targetName: "Steel Home Planning Tools",
+      source: "steel_home_planning_tools",
+      subjectType: "product",
+      title: "TradeScout Countertop Planning Request",
+      location: "Ocean Springs, MS 39564",
+      countyFips: "28059",
+      stateCode: "MS",
+      timing: "Within 6 months",
+    });
+    expect(context?.description).toContain("Planner: Countertops");
+    expect(context?.description).toContain("Contracting setup: Self-contracted homeowner");
+    expect(context?.description).toContain("Selected surface: AJ Quartz — Engineered Quartz");
+    expect(context?.description).not.toContain("Building Details");
+    expect(context?.description).not.toContain("Cabinet Details");
+    expect(context?.description).not.toContain("54' wide");
+    expect(context?.description).not.toContain("U-shaped");
+  });
+
+  it("uses a private-detail-free fallback when Direct Connect is cross-origin", async () => {
+    const platformBaseHref = "https://www.thetradescout.com";
+    expect(new URL(platformBaseHref).origin).not.toBe(window.location.origin);
+    renderProfile(platformBaseHref);
+    await flushUi();
+
+    const drawer = startRequest("cabinets");
+    completeRequestDetails(drawer, "Private jobsite, MS 39564");
+    const request = drawer.querySelector<HTMLAnchorElement>(
+      'a[data-testid="steel-home-planner-request-submit"]'
+    );
+    if (!request) throw new Error("Cross-origin request action missing");
+
+    const fallback = new URL(request.getAttribute("href") || "");
+    expect(fallback.origin).toBe(platformBaseHref);
+    expect(fallback.pathname).toBe("/direct-connect");
+    expect(fallback.searchParams.get("profile")).toBe("steel-home-packages");
+    expect(fallback.searchParams.get("source")).toBe("steel_home_planning_tools");
+    expect(fallback.searchParams.has("description")).toBe(false);
+    expect(fallback.searchParams.has("location")).toBe(false);
+    expect(request.outerHTML).not.toContain("Private jobsite");
+
+    request.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    act(() => request.click());
+    expect(request.getAttribute("href")).toBe(fallback.toString());
+    expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("uses literal customer language without partner, internal, or owner-build copy", async () => {
+    renderProfile();
+    await flushUi();
+    const observedText: string[] = [];
+
+    for (const planner of STEEL_HOME_PLANNERS) {
+      const panel = openPlanner(planner.key);
+      observedText.push(userFacingText(panel));
+      const drawer = startRequest(planner.key);
+      observedText.push(userFacingText(drawer));
+      closeRequest();
+    }
+
+    const publicText = observedText.join("\n").toLowerCase();
+    expect(publicText).toContain("self-contracted homeowner");
+    expect(publicText).toContain("quartzite");
+    expect(publicText).toContain("engineered quartz");
+    expect(publicText).toContain("continue to contact details");
+    for (const forbidden of FORBIDDEN_PUBLIC_COPY) {
+      expect(publicText).not.toContain(forbidden.toLowerCase());
+    }
   });
 });
