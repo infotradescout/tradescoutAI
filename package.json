@@ -221,7 +221,7 @@
     "input-otp": "^1.4.2",
     "js-aruco": "^0.1.0",
     "jsonwebtoken": "^9.0.3",
-    "jspdf": "^4.2.0",
+    "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.453.0",
     "mammoth": "^1.11.0",
