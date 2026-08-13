@@ -12,11 +12,19 @@ describe("hybrid landing conversion instrumentation contract", () => {
     process.cwd(),
     "client/src/pages/direct-connect/directConnectEntryContext.ts"
   );
+  const stagedDirectConnectEntryContextPath = path.resolve(
+    process.cwd(),
+    "client/src/pages/direct-connect/stagedDirectConnectEntryContext.ts"
+  );
   const analyticsRoutesPath = path.resolve(process.cwd(), "server/routes/analytics-routes.ts");
 
   const landingSource = fs.readFileSync(landingPath, "utf8");
   const directConnectSource = fs.readFileSync(directConnectShellPath, "utf8");
   const directConnectEntryContextSource = fs.readFileSync(directConnectEntryContextPath, "utf8");
+  const stagedDirectConnectEntryContextSource = fs.readFileSync(
+    stagedDirectConnectEntryContextPath,
+    "utf8"
+  );
   const analyticsRoutesSource = fs.readFileSync(analyticsRoutesPath, "utf8");
 
   it("tracks hybrid landing page views through demand analytics", () => {
@@ -36,7 +44,13 @@ describe("hybrid landing conversion instrumentation contract", () => {
 
   it("attributes request composer starts back to the hybrid landing CTA", () => {
     expect(directConnectEntryContextSource).toContain('readFirst(params, "source", "from")');
-    expect(directConnectSource).toContain("parseDirectConnectEntryContext(directConnectLocation)");
+    expect(directConnectSource).toContain(
+      "resolveDirectConnectEntryContext(directConnectLocation)"
+    );
+    expect(stagedDirectConnectEntryContextSource).toContain("parseDirectConnectEntryContext(path)");
+    expect(stagedDirectConnectEntryContextSource).toContain(
+      "source: cleanString(source.source, 80)"
+    );
     expect(directConnectSource).toContain("prefillSource={requestPrefill?.source}");
     expect(directConnectSource).toContain('"direct_connect_request_started"');
     expect(directConnectSource).toContain('source: prefillSource || "direct_connect_start"');

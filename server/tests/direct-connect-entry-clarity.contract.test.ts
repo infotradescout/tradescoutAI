@@ -6,6 +6,10 @@ const source = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/direct-connect/DirectConnectShell.tsx"),
   "utf8"
 );
+const stagedContextSource = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/pages/direct-connect/stagedDirectConnectEntryContext.ts"),
+  "utf8"
+);
 
 describe("Direct Connect entry clarity contract", () => {
   it("shows one request surface instead of stacking first-use panels above it", () => {
@@ -29,7 +33,11 @@ describe("Direct Connect entry clarity contract", () => {
     expect(source).toContain("A product or material");
     expect(source).toContain("Work or staffing");
     expect(source).toContain("window.location.pathname");
-    expect(source).toContain("parseDirectConnectEntryContext(directConnectLocation)");
+    expect(source).toContain("resolveDirectConnectEntryContext(directConnectLocation)");
+    expect(stagedContextSource).toContain("readStagedDirectConnectEntryContext(path)");
+    expect(stagedContextSource).toContain("parseDirectConnectEntryContext(path)");
+    expect(stagedContextSource).toContain("sanitizeDirectConnectEntryContext(envelope.context)");
+    expect(stagedContextSource).toContain("window.sessionStorage");
     expect(source).toContain("entryLocation={directConnectLocation}");
     expect(source).toContain('prefillSubjectType === "product" ? "buy_sell"');
     expect(source).toContain("prefillSubjectType={requestPrefill?.subjectType}");

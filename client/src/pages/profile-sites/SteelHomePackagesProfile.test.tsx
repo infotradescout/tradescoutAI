@@ -10,6 +10,8 @@ import {
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
 } from "@shared/steelHomePackagesProfile";
 import SteelHomePackagesProfile from "./SteelHomePackagesProfile";
+import { readStagedDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
+import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 import { STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY } from "./steel-home-project-tools/projectModel";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
@@ -62,6 +64,7 @@ describe("SteelHomePackagesProfile", () => {
 
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -77,8 +80,14 @@ describe("SteelHomePackagesProfile", () => {
     act(() => {
       root.render(
         <SteelHomePackagesProfile
-          requestHref={STEEL_HOME_PACKAGES_START_REQUEST_PATH}
-          laborRequestHref={STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH}
+          requestHref={qualifyPublicProfileItemDestination(
+            STEEL_HOME_PACKAGES_START_REQUEST_PATH,
+            platformBaseHref
+          )}
+          laborRequestHref={qualifyPublicProfileItemDestination(
+            STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
+            platformBaseHref
+          )}
           platformBaseHref={platformBaseHref}
         />
       );
@@ -120,7 +129,23 @@ describe("SteelHomePackagesProfile", () => {
     expect(container.querySelector('[data-testid="steel-home-building-preview"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="steel-home-countertop-preview"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="steel-home-cabinet-preview"]')).not.toBeNull();
-    expect(text).not.toMatch(/\$\s?\d/);
+    expect(
+      container.querySelector('[data-testid="steel-home-building-planning-estimate"]')
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-testid="steel-home-cabinet-planning-estimate"]')
+    ).not.toBeNull();
+    expect(text).toContain("$80,400–$124,050");
+    expect(text).toContain("$15,650–$26,950");
+    expect(text).toContain("Price after review");
+    for (const forbiddenPricingTerm of [
+      "supplier cost",
+      "wholesale cost",
+      "markup",
+      "commission",
+    ]) {
+      expect(text.toLowerCase()).not.toContain(forbiddenPricingTerm);
+    }
   });
 
   it("offers only real named stone records and uses their neutral exact-image route", () => {
@@ -140,6 +165,18 @@ describe("SteelHomePackagesProfile", () => {
       expect.arrayContaining(JW_STONE_ANONYMOUS_CATALOG.map((stone) => stone.id))
     );
 
+    const search = container.querySelector<HTMLInputElement>(
+      '[data-testid="steel-home-countertop-stone-search"]'
+    );
+    if (!search || !selector) throw new Error("Stone collection filters missing");
+    setControlValue(search, "blue");
+    const filteredValues = Array.from(selector.options).map((option) => option.value);
+    expect(filteredValues.length).toBeLessThan(JW_STONE_NAMED_CATALOG.length);
+    expect(filteredValues).toContain("blue-goias");
+    expect(filteredValues).toContain("cristallo");
+    expect(filteredValues).not.toContain("taj-mahal");
+    setControlValue(search, "");
+
     const quickStoneImages = Array.from(
       container.querySelectorAll<HTMLImageElement>(
         '[data-testid^="steel-home-countertop-stone-"] img'
@@ -149,7 +186,7 @@ describe("SteelHomePackagesProfile", () => {
     for (const image of quickStoneImages) {
       expect(image.src).toMatch(/\/images\/stone-designer\/[a-z0-9-]+\/1\.webp$/);
       expect(image.src.toLowerCase()).not.toContain("jw-stone");
-      expect(image.alt).toMatch(/real stone inventory photograph$/);
+      expect(image.alt).toMatch(/surface inventory photograph$/);
     }
 
     const previewImage = container.querySelector("svg image");
@@ -158,6 +195,12 @@ describe("SteelHomePackagesProfile", () => {
 
   it("updates live designs and sends the exact completed brief instead of a blank template", () => {
     renderProfile();
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-project-role-owner-builder"]')
+        ?.click();
+    });
 
     const width = container.querySelector<HTMLInputElement>(
       '[data-testid="steel-home-building-width"]'
@@ -242,29 +285,40 @@ describe("SteelHomePackagesProfile", () => {
     const brief = container.querySelector<HTMLElement>(
       '[data-testid="steel-home-project-brief"]'
     )?.textContent;
-    expect(brief).toContain("Designs ready for review: Building, Countertops, Cabinets");
+    expect(brief).toContain("Designs ready for review: Building + roof, Stone + quartz, Cabinets");
     expect(brief).toContain("Project location: Ocean Springs, MS 39564 — Jackson County, MS");
+    expect(brief).toContain("Project role: I'm owner-building");
+    expect(brief).toMatch(/Visible planning range: \$[\d,]+–\$[\d,]+/);
     expect(brief).toContain("54' wide × 60' long × 14' eave");
-    expect(brief).toContain("Selected real stone: Taj Mahal — Quartzite");
-    expect(brief).toContain("Stone record: taj-mahal");
-    expect(brief).toContain("Stone image: /images/stone-designer/taj-mahal/1.webp");
+    expect(brief).toContain("Selected surface: Taj Mahal — Quartzite");
+    expect(brief).not.toContain("Stone record:");
+    expect(brief).not.toContain("Stone image:");
     expect(brief).toContain("Style: Glass accent; Navy; Matte black");
 
     const request = container.querySelector<HTMLAnchorElement>(
       'a[data-testid="steel-home-project-request"]'
     );
     expect(request).not.toBeNull();
-    const url = new URL(request?.getAttribute("href") || "", "https://www.thetradescout.com");
+    expect(request?.getAttribute("href")).toBe("/direct-connect");
+    expect(request?.outerHTML).not.toContain("Ocean Springs");
+    request?.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    act(() => request?.click());
+    const stagedHref = request?.getAttribute("href") || "";
+    const url = new URL(stagedHref, "https://www.thetradescout.com");
     expect(url.pathname).toBe("/direct-connect");
-    expect(url.searchParams.get("profileName")).toBe("TradeScout project desk");
-    expect(url.searchParams.get("title")).toBe(
-      "Steel-home design review: Building + Countertops + Cabinets"
-    );
-    expect(url.searchParams.get("description")).toBe(brief);
-    expect(url.searchParams.get("location")).toBe("Ocean Springs, MS 39564");
-    expect(url.searchParams.get("county")).toBe("28059");
-    expect(url.searchParams.get("state")).toBe("MS");
-    expect(url.searchParams.get("when")).toBe("Within 6 months");
+    expect(url.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+    expect(url.searchParams.size).toBe(1);
+    const stagedContext = readStagedDirectConnectEntryContext(stagedHref);
+    expect(stagedContext).toMatchObject({
+      targetName: "Steel Home Project Center",
+      source: "steel_home_project_center",
+      title: "Steel-home project review: Building + roof + Stone + quartz + Cabinets",
+      description: brief,
+      location: "Ocean Springs, MS 39564",
+      countyFips: "28059",
+      stateCode: "MS",
+      timing: "Within 6 months",
+    });
 
     for (const forbidden of FORBIDDEN_PUBLIC_COPY.slice(0, 4)) {
       expect(request?.href.toLowerCase()).not.toContain(forbidden.toLowerCase());
@@ -331,23 +385,83 @@ describe("SteelHomePackagesProfile", () => {
       'a[data-testid="steel-home-labor-request"]'
     );
     expect(labor).not.toBeNull();
-    const laborUrl = new URL(labor?.getAttribute("href") || "", "https://www.thetradescout.com");
-    expect(laborUrl.searchParams.get("subject")).toBe("service");
-    expect(laborUrl.searchParams.get("source")).toBe("steel_home_project_tools_labor");
-    expect(laborUrl.searchParams.get("county")).toBe("28047");
-    expect(laborUrl.searchParams.get("state")).toBe("MS");
-    expect(laborUrl.searchParams.get("description")).toContain(
-      "Countertop concept: Kitchen; Blue Goias (blue-goias)"
+    expect(labor?.getAttribute("href")).toBe("/direct-connect");
+    labor?.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    act(() => labor?.click());
+    const stagedLaborHref = labor?.getAttribute("href") || "";
+    const laborUrl = new URL(stagedLaborHref, "https://www.thetradescout.com");
+    expect(laborUrl.searchParams.get("staged")).toMatch(/^[a-f0-9]{64}$/);
+    expect(laborUrl.searchParams.size).toBe(1);
+    const stagedLaborContext = readStagedDirectConnectEntryContext(stagedLaborHref);
+    expect(stagedLaborContext).toMatchObject({
+      subjectType: "service",
+      source: "steel_home_project_tools_labor",
+      countyFips: "28047",
+      stateCode: "MS",
+    });
+    expect(stagedLaborContext?.description).toContain(
+      "Countertop concept: Kitchen; Blue Goias; 58.2 sq. ft. approximate"
     );
-    for (const forbiddenTarget of [
-      "profile",
-      "profileName",
-      "target",
-      "targetProviderId",
-      "contractorId",
-    ]) {
-      expect(laborUrl.searchParams.has(forbiddenTarget)).toBe(false);
-    }
+    expect(stagedLaborContext?.contextType).toBeUndefined();
+    expect(stagedLaborContext?.targetSelector).toBeUndefined();
+  });
+
+  it("uses query-free absolute fallbacks without staging private context on a custom domain", () => {
+    const platformBaseHref = "https://www.thetradescout.com";
+    expect(new URL(platformBaseHref).origin).not.toBe(window.location.origin);
+    renderProfile(platformBaseHref);
+
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-project-role-owner-builder"]')
+        ?.click();
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-building-include"]')
+        ?.click();
+    });
+
+    const location = container.querySelector<HTMLInputElement>(
+      '[data-testid="steel-home-project-location"]'
+    );
+    const state = container.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-project-state"]'
+    );
+    if (!location || !state) throw new Error("Project location controls missing");
+    setControlValue(location, "Private jobsite, MS 39564");
+    setSelectValue(state, "MS");
+    const county = container.querySelector<HTMLSelectElement>(
+      '[data-testid="steel-home-project-county"]'
+    );
+    if (!county) throw new Error("Project county control missing");
+    setSelectValue(county, "28059");
+    act(() => {
+      container
+        .querySelector<HTMLButtonElement>('[data-testid="steel-home-labor-site-work"]')
+        ?.click();
+    });
+
+    const projectRequest = container.querySelector<HTMLAnchorElement>(
+      'a[data-testid="steel-home-project-request"]'
+    );
+    const laborRequest = container.querySelector<HTMLAnchorElement>(
+      'a[data-testid="steel-home-labor-request"]'
+    );
+    const plainPlatformHref = "https://www.thetradescout.com/direct-connect";
+    expect(projectRequest?.getAttribute("href")).toBe(plainPlatformHref);
+    expect(laborRequest?.getAttribute("href")).toBe(plainPlatformHref);
+    expect(projectRequest?.outerHTML).not.toContain("Private jobsite");
+    expect(laborRequest?.outerHTML).not.toContain("Private jobsite");
+
+    projectRequest?.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    laborRequest?.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    act(() => {
+      projectRequest?.click();
+      laborRequest?.click();
+    });
+
+    expect(projectRequest?.getAttribute("href")).toBe(plainPlatformHref);
+    expect(laborRequest?.getAttribute("href")).toBe(plainPlatformHref);
+    expect(window.sessionStorage.length).toBe(0);
   });
 
   it("changes designer geometry when porch, run, return-wall, and ceiling controls change", () => {
