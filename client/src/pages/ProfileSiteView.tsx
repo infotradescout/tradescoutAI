@@ -34,6 +34,10 @@ import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
 import VideographerProfileTheme from "@/pages/profile-sites/VideographerProfileTheme";
 import PrecisionAerialProfile from "@/pages/profile-sites/PrecisionAerialProfile";
 import SteelHomePackagesProfile from "@/pages/profile-sites/SteelHomePackagesProfile";
+import {
+  createProfileHistoryBoundaryState,
+  isProfileHistoryBoundaryState,
+} from "@/pages/profileHistoryBoundary";
 import LocalServiceProfileTheme, {
   type PublicCommunityVerification,
 } from "@/pages/profile-sites/LocalServiceProfileTheme";
@@ -84,6 +88,11 @@ import {
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
 } from "@shared/steelHomePackagesProfile";
 import {
+  buildSteelHomeBuilderPath,
+  resolveSteelHomeBuilderRoute,
+  STEEL_HOME_BUILDER_PAGE_METADATA,
+} from "@shared/steelHomeBuilderRoutes";
+import {
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
   seedBlocksForTemplate,
@@ -97,7 +106,10 @@ import {
   buildProfileSocialTitle,
   resolveProfileSocialPresentation,
 } from "@shared/profileSocialPreview";
+
 import { withTradeScoutPublishingProvenance } from "@shared/profilePublishingProvenance";
+
+const PROFILE_HISTORY_BOUNDARY_KEY = "__tradeScoutProfileHistoryBoundary";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -508,6 +520,12 @@ export default function ProfileSiteView() {
     customDomainSlug ||
     ""
   ).trim();
+  const steelHomeBuilderRoute = isSteelHomePackagesProfileSlug(slug)
+    ? resolveSteelHomeBuilderRoute(
+        paramsUItem?.collection || paramsPItem?.collection,
+        paramsUItem?.itemSlug || paramsPItem?.itemSlug
+      )
+    : null;
   const [data, setData] = useState<PublicProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -531,7 +549,6 @@ export default function ProfileSiteView() {
   useEffect(() => {
     if (!slug || typeof window === "undefined") return;
 
-    const guardKey = "__tradeScoutProfileHistoryBoundary";
     const currentState = (window.history.state || {}) as Record<string, unknown>;
     // getSafeTradeScoutHome() already resolves to the current domain's own
     // root everywhere except thetradescout.com itself -- only a referrer that
@@ -559,12 +576,17 @@ export default function ProfileSiteView() {
       // Empty and malformed referrers use the canonical TradeScout home.
     }
 
-    const handlePopState = () => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (isProfileHistoryBoundaryState(event.state, PROFILE_HISTORY_BOUNDARY_KEY, slug)) return;
       window.location.replace(safeReturnHref);
     };
 
-    if (currentState[guardKey] !== slug) {
-      window.history.pushState({ ...currentState, [guardKey]: slug }, "", window.location.href);
+    if (!isProfileHistoryBoundaryState(currentState, PROFILE_HISTORY_BOUNDARY_KEY, slug)) {
+      window.history.pushState(
+        createProfileHistoryBoundaryState(currentState, PROFILE_HISTORY_BOUNDARY_KEY, slug),
+        "",
+        window.location.href
+      );
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
@@ -587,7 +609,14 @@ export default function ProfileSiteView() {
               paramsPItem.itemSlug
             )}${window.location.search}`
           : "";
-      navigate(`/u/${encodeURIComponent(slug)}${itemSuffix}`, { replace: true });
+      navigate(`/u/${encodeURIComponent(slug)}${itemSuffix}`, {
+        replace: true,
+        state: createProfileHistoryBoundaryState(
+          window.history.state,
+          PROFILE_HISTORY_BOUNDARY_KEY,
+          slug
+        ),
+      });
       return;
     }
 
@@ -1616,6 +1645,9 @@ export default function ProfileSiteView() {
     ) : null;
 
   if (isSteelHomePackagesProfileSlug(profile.slug)) {
+    const steelHomePageMetadata = steelHomeBuilderRoute
+      ? STEEL_HOME_BUILDER_PAGE_METADATA[steelHomeBuilderRoute]
+      : null;
     const steelHomeRequestHref = qualifyPublicProfileItemDestination(
       STEEL_HOME_PACKAGES_START_REQUEST_PATH,
       platformBaseHref
@@ -1624,16 +1656,25 @@ export default function ProfileSiteView() {
       STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
       platformBaseHref
     );
+    const steelHomeCanonical = steelHomeBuilderRoute
+      ? new URL(
+          buildSteelHomeBuilderPath(steelHomeBuilderRoute),
+          typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin()
+        ).toString()
+      : seoCanonical;
+    const steelHomeSeoTitle = steelHomePageMetadata?.title || seoTitle;
 
     return (
       <>
         <SEOHelmet
-          title={seoTitle}
-          socialTitle={socialTitle}
+          title={steelHomeSeoTitle}
+          socialTitle={steelHomeSeoTitle}
           description={
-            profile.seoMeta?.description || STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body
+            steelHomePageMetadata?.description ||
+            profile.seoMeta?.description ||
+            STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body
           }
-          canonical={seoCanonical}
+          canonical={steelHomeCanonical}
           ogType="website"
           noIndex
         />
@@ -1642,6 +1683,22 @@ export default function ProfileSiteView() {
           requestHref={steelHomeRequestHref}
           laborRequestHref={steelHomeLaborRequestHref}
           platformBaseHref={platformBaseHref}
+          initialBuilder={steelHomeBuilderRoute}
+          onNavigateBuilder={(builder) =>
+            navigate(
+              builder
+                ? buildSteelHomeBuilderPath(builder)
+                : `/u/${encodeURIComponent(profile.slug)}`,
+              {
+                replace: false,
+                state: createProfileHistoryBoundaryState(
+                  window.history.state,
+                  PROFILE_HISTORY_BOUNDARY_KEY,
+                  profile.slug
+                ),
+              }
+            )
+          }
         />
       </>
     );

@@ -6,8 +6,17 @@ import {
   STEEL_HOME_PACKAGES_REQUEST_SOURCE,
 } from "@shared/steelHomePackagesProfile";
 
-export const STEEL_HOME_PROJECT_DRAFT_VERSION = 5 as const;
-export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v5";
+export const STEEL_HOME_PROJECT_DRAFT_VERSION = 8 as const;
+export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v8";
+const LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_VERSION = 7;
+const LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v7";
+const LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_VERSION = 6;
+const LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v6";
+const LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_VERSION = 5;
+const LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v5";
 const LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_VERSION = 4;
 const LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
   "tradescout:steel-home-project-tools:draft:v4";
@@ -200,7 +209,29 @@ export const COUNTERTOP_SINK_OPTIONS = [
   "Double-bowl undermount",
   "Farmhouse",
 ] as const;
-export const COUNTERTOP_COOKTOP_OPTIONS = ["None", "30-inch", "36-inch", "48-inch"] as const;
+export const COUNTERTOP_COOKTOP_OPTIONS = [
+  "None",
+  "30-inch cooktop cutout",
+  "36-inch cooktop cutout",
+  "48-inch cooktop cutout",
+  "30-inch range gap",
+  "36-inch range gap",
+  "48-inch range gap",
+] as const;
+
+export const COUNTERTOP_CUTOUT_RUN_OPTIONS = [
+  { value: "main", label: "Main run" },
+  { value: "left-return", label: "Left return" },
+  { value: "right-return", label: "Right return" },
+  { value: "island", label: "Island" },
+] as const;
+
+export const COUNTERTOP_OTHER_CUTOUT_OPTIONS = [
+  "Faucet hole",
+  "Soap dispenser hole",
+  "Pop-up outlet",
+  "Other opening",
+] as const;
 
 export const CABINET_ROOM_OPTIONS = [
   "Kitchen",
@@ -257,6 +288,8 @@ export type BuildingUse = (typeof BUILDING_USE_OPTIONS)[number]["value"];
 export type BuildingRoof = (typeof BUILDING_ROOF_OPTIONS)[number]["value"];
 export type BuildingPorch = (typeof BUILDING_PORCH_OPTIONS)[number]["value"];
 export type CountertopLayout = (typeof COUNTERTOP_LAYOUT_OPTIONS)[number]["value"];
+export type CountertopCutoutRun = (typeof COUNTERTOP_CUTOUT_RUN_OPTIONS)[number]["value"];
+export type CountertopOtherCutoutType = (typeof COUNTERTOP_OTHER_CUTOUT_OPTIONS)[number];
 export type CabinetLayout = (typeof CABINET_LAYOUT_OPTIONS)[number]["value"];
 export type BuildingColor = (typeof BUILDING_COLOR_OPTIONS)[number]["value"];
 export type CabinetFinish = (typeof CABINET_FINISH_OPTIONS)[number]["value"];
@@ -318,6 +351,7 @@ export type SteelHomeCountertopDesign = {
   wallAIn: number;
   wallBIn: number;
   wallCIn: number;
+  wallDepthIn: number;
   island: boolean;
   islandLengthIn: number;
   islandWidthIn: number;
@@ -325,8 +359,26 @@ export type SteelHomeCountertopDesign = {
   edge: (typeof COUNTERTOP_EDGE_OPTIONS)[number];
   backsplash: (typeof COUNTERTOP_BACKSPLASH_OPTIONS)[number];
   sink: (typeof COUNTERTOP_SINK_OPTIONS)[number];
+  sinkRun: CountertopCutoutRun | "";
+  sinkPositionIn: number | null;
+  sinkFrontPositionIn: number | null;
   cooktop: (typeof COUNTERTOP_COOKTOP_OPTIONS)[number];
+  cooktopRun: CountertopCutoutRun | "";
+  cooktopPositionIn: number | null;
+  cooktopFrontPositionIn: number | null;
+  otherCutouts: SteelHomeCountertopCutout[];
   notes: string;
+};
+
+export type SteelHomeCountertopCutout = {
+  id: string;
+  type: CountertopOtherCutoutType;
+  label: string;
+  run: CountertopCutoutRun | "";
+  positionIn: number | null;
+  frontPositionIn: number | null;
+  widthIn: number | null;
+  depthIn: number | null;
 };
 
 export type SteelHomeCabinetDesign = {
@@ -377,6 +429,9 @@ const BUILDING_ROOFS = setFromValues(BUILDING_ROOF_OPTIONS.map((item) => item.va
 const BUILDING_PORCHES = setFromValues(BUILDING_PORCH_OPTIONS.map((item) => item.value));
 const BUILDING_COLORS = setFromValues(BUILDING_COLOR_OPTIONS.map((item) => item.value));
 const COUNTERTOP_LAYOUTS = setFromValues(COUNTERTOP_LAYOUT_OPTIONS.map((item) => item.value));
+const COUNTERTOP_CUTOUT_RUNS = setFromValues(
+  COUNTERTOP_CUTOUT_RUN_OPTIONS.map((item) => item.value)
+);
 const CABINET_LAYOUTS = setFromValues(CABINET_LAYOUT_OPTIONS.map((item) => item.value));
 const CABINET_FINISHES = setFromValues(CABINET_FINISH_OPTIONS.map((item) => item.value));
 const PROJECT_ROLES = setFromValues(PROJECT_ROLE_OPTIONS.map((item) => item.value));
@@ -404,6 +459,26 @@ function cleanNumber(value: unknown, fallback: number, min: number, max: number)
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, Math.round(parsed)));
 }
+
+function cleanIncrementNumber(
+  value: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+  increment: number
+): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  const precision = String(increment).split(".")[1]?.length || 0;
+  const snapped = Math.round(parsed / increment) * increment;
+  return Number(Math.min(max, Math.max(min, snapped)).toFixed(precision));
+}
+
+const cleanHalfInchNumber = (value: unknown, fallback: number, min: number, max: number) =>
+  cleanIncrementNumber(value, fallback, min, max, 0.5);
+
+const cleanEighthInchNumber = (value: unknown, fallback: number, min: number, max: number) =>
+  cleanIncrementNumber(value, fallback, min, max, 0.125);
 
 function cleanAllowedStrings<T extends string>(value: unknown, allowed: readonly T[]): T[] {
   if (!Array.isArray(value)) return [];
@@ -453,14 +528,22 @@ export function createEmptySteelHomeProjectDraft(): SteelHomeProjectDraft {
       wallAIn: 120,
       wallBIn: 96,
       wallCIn: 96,
+      wallDepthIn: 25.5,
       island: true,
       islandLengthIn: 84,
       islandWidthIn: 42,
       stoneId: "cristallo",
       edge: "Eased",
       backsplash: "4-inch",
-      sink: "Single-bowl undermount",
-      cooktop: "36-inch",
+      sink: "None",
+      sinkRun: "",
+      sinkPositionIn: null,
+      sinkFrontPositionIn: null,
+      cooktop: "None",
+      cooktopRun: "",
+      cooktopPositionIn: null,
+      cooktopFrontPositionIn: null,
+      otherCutouts: [],
       notes: "",
     },
     cabinets: {
@@ -519,6 +602,100 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
       : candidate.timing === "Planning ahead"
         ? "More than 12 months away"
         : candidate.timing;
+  const countertopLayout = cleanEnum(
+    countertops.layout,
+    COUNTERTOP_LAYOUTS,
+    empty.countertops.layout
+  );
+  const countertopWallDepthIn = cleanHalfInchNumber(
+    countertops.wallDepthIn,
+    empty.countertops.wallDepthIn,
+    12,
+    72
+  );
+  const minimumMainRunIn =
+    countertopLayout === "u-shape"
+      ? Math.ceil(countertopWallDepthIn * 2 + 1)
+      : countertopLayout === "l-shape"
+        ? Math.ceil(countertopWallDepthIn + 0.5)
+        : 24;
+  const minimumReturnRunIn = Math.ceil(countertopWallDepthIn + 0.5);
+  const countertopIsland = countertops.island === true;
+  const availableCutoutRuns = new Set<CountertopCutoutRun>(["main"]);
+  if (countertopLayout !== "straight") availableCutoutRuns.add("left-return");
+  if (countertopLayout === "u-shape") availableCutoutRuns.add("right-return");
+  if (countertopIsland) availableCutoutRuns.add("island");
+  const cleanCutoutRun = (value: unknown): CountertopCutoutRun | "" => {
+    const cleaned = cleanEnum(value, COUNTERTOP_CUTOUT_RUNS, "" as CountertopCutoutRun | "");
+    return cleaned && availableCutoutRuns.has(cleaned) ? cleaned : "";
+  };
+  const cleanOptionalPosition = (value: unknown, run: CountertopCutoutRun | "") => {
+    if (!run || value === null || value === undefined || value === "") return null;
+    const runLength =
+      run === "main"
+        ? cleanNumber(countertops.wallAIn, empty.countertops.wallAIn, minimumMainRunIn, 360)
+        : run === "left-return"
+          ? cleanNumber(countertops.wallBIn, empty.countertops.wallBIn, minimumReturnRunIn, 360)
+          : run === "right-return"
+            ? cleanNumber(countertops.wallCIn, empty.countertops.wallCIn, minimumReturnRunIn, 360)
+            : cleanNumber(countertops.islandLengthIn, empty.countertops.islandLengthIn, 24, 180);
+    return cleanEighthInchNumber(
+      value,
+      Math.round((runLength / 2) * 8) / 8,
+      2,
+      Math.max(2, runLength - 2)
+    );
+  };
+  const cleanOptionalFrontPosition = (value: unknown, run: CountertopCutoutRun | "") => {
+    if (!run || value === null || value === undefined || value === "") return null;
+    const surfaceDepth =
+      run === "island"
+        ? cleanNumber(countertops.islandWidthIn, empty.countertops.islandWidthIn, 20, 72)
+        : cleanHalfInchNumber(countertops.wallDepthIn, empty.countertops.wallDepthIn, 12, 72);
+    return cleanEighthInchNumber(
+      value,
+      Math.round((surfaceDepth / 2) * 8) / 8,
+      1,
+      Math.max(1, surfaceDepth - 1)
+    );
+  };
+  const cleanOptionalDimension = (value: unknown) => {
+    if (value === null || value === undefined || value === "") return null;
+    return cleanEighthInchNumber(value, 1, 1, 96);
+  };
+  const rawOtherCutouts = Array.isArray(countertops.otherCutouts)
+    ? countertops.otherCutouts.slice(0, 6)
+    : [];
+  const usedCutoutIds = new Set<string>();
+  const otherCutouts = rawOtherCutouts.flatMap((value, index) => {
+    if (!value || typeof value !== "object") return [];
+    const candidateCutout = value as Partial<SteelHomeCountertopCutout>;
+    const run = cleanCutoutRun(candidateCutout.run);
+    const requestedId = cleanText(candidateCutout.id, 40)
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    let id =
+      requestedId && !["sink", "cooktop"].includes(requestedId)
+        ? requestedId
+        : `other-${index + 1}`;
+    while (usedCutoutIds.has(id)) id = `${id}-${index + 1}`;
+    usedCutoutIds.add(id);
+    return [
+      {
+        id,
+        type: cleanLabel(candidateCutout.type, COUNTERTOP_OTHER_CUTOUT_OPTIONS, "Other opening"),
+        label: cleanText(candidateCutout.label, 40),
+        run,
+        positionIn: cleanOptionalPosition(candidateCutout.positionIn, run),
+        frontPositionIn: cleanOptionalFrontPosition(candidateCutout.frontPositionIn, run),
+        widthIn: cleanOptionalDimension(candidateCutout.widthIn),
+        depthIn: cleanOptionalDimension(candidateCutout.depthIn),
+      },
+    ];
+  });
+  const sinkRun = cleanCutoutRun(countertops.sinkRun);
+  const cooktopRun = cleanCutoutRun(countertops.cooktopRun);
 
   return {
     version: STEEL_HOME_PROJECT_DRAFT_VERSION,
@@ -558,11 +735,12 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
     countertops: {
       included: countertops.included === true,
       room: cleanLabel(countertops.room, COUNTERTOP_ROOM_OPTIONS, empty.countertops.room),
-      layout: cleanEnum(countertops.layout, COUNTERTOP_LAYOUTS, empty.countertops.layout),
-      wallAIn: cleanNumber(countertops.wallAIn, empty.countertops.wallAIn, 24, 360),
-      wallBIn: cleanNumber(countertops.wallBIn, empty.countertops.wallBIn, 24, 360),
-      wallCIn: cleanNumber(countertops.wallCIn, empty.countertops.wallCIn, 24, 360),
-      island: countertops.island === true,
+      layout: countertopLayout,
+      wallAIn: cleanNumber(countertops.wallAIn, empty.countertops.wallAIn, minimumMainRunIn, 360),
+      wallBIn: cleanNumber(countertops.wallBIn, empty.countertops.wallBIn, minimumReturnRunIn, 360),
+      wallCIn: cleanNumber(countertops.wallCIn, empty.countertops.wallCIn, minimumReturnRunIn, 360),
+      wallDepthIn: countertopWallDepthIn,
+      island: countertopIsland,
       islandLengthIn: cleanNumber(
         countertops.islandLengthIn,
         empty.countertops.islandLengthIn,
@@ -583,11 +761,25 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
         empty.countertops.backsplash
       ),
       sink: cleanLabel(countertops.sink, COUNTERTOP_SINK_OPTIONS, empty.countertops.sink),
+      sinkRun,
+      sinkPositionIn: cleanOptionalPosition(countertops.sinkPositionIn, sinkRun),
+      sinkFrontPositionIn: cleanOptionalFrontPosition(countertops.sinkFrontPositionIn, sinkRun),
       cooktop: cleanLabel(
-        countertops.cooktop,
+        {
+          "30-inch": "30-inch cooktop cutout",
+          "36-inch": "36-inch cooktop cutout",
+          "48-inch": "48-inch cooktop cutout",
+        }[String(countertops.cooktop)] || countertops.cooktop,
         COUNTERTOP_COOKTOP_OPTIONS,
         empty.countertops.cooktop
       ),
+      cooktopRun,
+      cooktopPositionIn: cleanOptionalPosition(countertops.cooktopPositionIn, cooktopRun),
+      cooktopFrontPositionIn: cleanOptionalFrontPosition(
+        countertops.cooktopFrontPositionIn,
+        cooktopRun
+      ),
+      otherCutouts,
       notes: cleanText(countertops.notes, 240),
     },
     cabinets: {
@@ -648,31 +840,66 @@ export function loadSteelHomeProjectDraft(
   if (!storage) return createEmptySteelHomeProjectDraft();
   try {
     const currentRaw = storage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    const legacyV4Raw = currentRaw
+    const legacyV7Raw = currentRaw
       ? null
-      : storage.getItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+      : storage.getItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    const legacyV6Raw =
+      currentRaw || legacyV7Raw
+        ? null
+        : storage.getItem(LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    const legacyV5Raw =
+      currentRaw || legacyV7Raw || legacyV6Raw
+        ? null
+        : storage.getItem(LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    const legacyV4Raw =
+      currentRaw || legacyV7Raw || legacyV6Raw || legacyV5Raw
+        ? null
+        : storage.getItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     const legacyV3Raw =
-      currentRaw || legacyV4Raw
+      currentRaw || legacyV7Raw || legacyV6Raw || legacyV5Raw || legacyV4Raw
         ? null
         : storage.getItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    const raw = currentRaw || legacyV4Raw || legacyV3Raw;
+    const raw =
+      currentRaw || legacyV7Raw || legacyV6Raw || legacyV5Raw || legacyV4Raw || legacyV3Raw;
     if (!raw) return createEmptySteelHomeProjectDraft();
     const parsed = JSON.parse(raw) as { version?: unknown };
     const isCurrentDraft = parsed.version === STEEL_HOME_PROJECT_DRAFT_VERSION;
+    const isLegacyV7Draft =
+      Boolean(legacyV7Raw) && parsed.version === LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_VERSION;
+    const isLegacyV6Draft =
+      Boolean(legacyV6Raw) && parsed.version === LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_VERSION;
+    const isLegacyV5Draft =
+      Boolean(legacyV5Raw) && parsed.version === LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_VERSION;
     const isLegacyV4Draft =
       Boolean(legacyV4Raw) && parsed.version === LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_VERSION;
     const isLegacyV3Draft =
       Boolean(legacyV3Raw) && parsed.version === LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_VERSION;
-    if (!isCurrentDraft && !isLegacyV4Draft && !isLegacyV3Draft) {
+    if (
+      !isCurrentDraft &&
+      !isLegacyV7Draft &&
+      !isLegacyV6Draft &&
+      !isLegacyV5Draft &&
+      !isLegacyV4Draft &&
+      !isLegacyV3Draft
+    ) {
       return createEmptySteelHomeProjectDraft();
     }
     const reconciled = reconcileSteelHomeProjectDraft(parsed);
     if (isLegacyV3Draft && usesDeployedV3CabinetModuleDefaults(parsed)) {
       reconciled.cabinets.primaryWallIn = createEmptySteelHomeProjectDraft().cabinets.primaryWallIn;
     }
-    if (isLegacyV4Draft || isLegacyV3Draft) {
+    if (
+      isLegacyV7Draft ||
+      isLegacyV6Draft ||
+      isLegacyV5Draft ||
+      isLegacyV4Draft ||
+      isLegacyV3Draft
+    ) {
       try {
         storage.setItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY, JSON.stringify(reconciled));
+        storage.removeItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+        storage.removeItem(LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+        storage.removeItem(LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
         storage.removeItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
         storage.removeItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
       } catch {
@@ -712,6 +939,9 @@ export function clearSteelHomeProjectDraft(
   if (!storage) return;
   try {
     storage.removeItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    storage.removeItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    storage.removeItem(LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    storage.removeItem(LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     storage.removeItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     storage.removeItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
   } catch {
@@ -721,7 +951,7 @@ export function clearSteelHomeProjectDraft(
 
 export function calculateCountertopSquareFeet(designInput: SteelHomeCountertopDesign): number {
   const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
-  const depth = 25.5;
+  const depth = design.wallDepthIn;
   let squareInches = design.wallAIn * depth;
   if (design.layout === "l-shape" || design.layout === "u-shape") {
     squareInches += design.wallBIn * depth - depth * depth;
@@ -735,6 +965,325 @@ export function calculateCountertopSquareFeet(designInput: SteelHomeCountertopDe
   return Math.round((Math.max(0, squareInches) / 144) * 10) / 10;
 }
 
+export function formatCountertopWallRuns(designInput: SteelHomeCountertopDesign): string {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  const runs = [`Main run: ${design.wallAIn}"`];
+  if (design.layout !== "straight") runs.push(`Left return: ${design.wallBIn}"`);
+  if (design.layout === "u-shape") runs.push(`Right return: ${design.wallCIn}"`);
+  return runs.join("; ");
+}
+
+export function getAvailableCountertopCutoutRuns(
+  designInput: SteelHomeCountertopDesign
+): Array<{ value: CountertopCutoutRun; label: string }> {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  return COUNTERTOP_CUTOUT_RUN_OPTIONS.filter((option) => {
+    if (option.value === "left-return") return design.layout !== "straight";
+    if (option.value === "right-return") return design.layout === "u-shape";
+    if (option.value === "island") return design.island;
+    return true;
+  });
+}
+
+export function getCountertopCutoutRunLength(
+  designInput: SteelHomeCountertopDesign,
+  run: CountertopCutoutRun
+): number {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  if (run === "main") return design.wallAIn;
+  if (run === "left-return") return design.wallBIn;
+  if (run === "right-return") return design.wallCIn;
+  return design.islandLengthIn;
+}
+
+/** Physical front-to-back depth used by the planning drawing and opening checks. */
+export function getCountertopCutoutRunDepth(
+  designInput: SteelHomeCountertopDesign,
+  run: CountertopCutoutRun
+): number {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  return run === "island" ? design.islandWidthIn : design.wallDepthIn;
+}
+
+export function getCountertopCutoutRunLabel(run: CountertopCutoutRun | ""): string {
+  return (
+    COUNTERTOP_CUTOUT_RUN_OPTIONS.find((option) => option.value === run)?.label ||
+    "Placement needed"
+  );
+}
+
+export function getCountertopCutoutStartLabel(run: CountertopCutoutRun | ""): string {
+  if (run === "main" || run === "island") return "left end";
+  if (run === "left-return" || run === "right-return") return "top end";
+  return "start end";
+}
+
+export type CountertopOpeningScheduleItem = {
+  id: string;
+  label: string;
+  placementKind: "cutout" | "full-depth-gap" | "front-edge-opening";
+  run: CountertopCutoutRun | "";
+  positionIn: number | null;
+  frontPositionIn: number | null;
+  requiresFrontPosition: boolean;
+  widthIn: number | null;
+  depthIn: number | null;
+  /** Conservative span used only for collision planning when final template dimensions are unknown. */
+  planningWidthIn: number;
+};
+
+const COUNTERTOP_SINK_PLANNING_SIZE: Record<
+  Exclude<SteelHomeCountertopDesign["sink"], "None">,
+  { widthIn: number; depthIn: number }
+> = {
+  "Single-bowl undermount": { widthIn: 30, depthIn: 18 },
+  "Double-bowl undermount": { widthIn: 33, depthIn: 20 },
+  Farmhouse: { widthIn: 33, depthIn: 20 },
+};
+
+function openingPlanningWidth(item: CountertopOpeningScheduleItem): number {
+  return item.planningWidthIn;
+}
+
+function isSmallDeckAccessory(item: CountertopOpeningScheduleItem): boolean {
+  return (
+    item.placementKind === "cutout" &&
+    item.id !== "sink" &&
+    item.id !== "cooktop" &&
+    item.planningWidthIn <= 2 &&
+    (item.depthIn || 0) <= 2
+  );
+}
+
+const COUNTERTOP_OPENING_EDGE_CLEARANCE_IN = 1;
+
+export function getCountertopOpeningFrontBounds(
+  designInput: SteelHomeCountertopDesign,
+  item: CountertopOpeningScheduleItem
+): { minimum: number; maximum: number; surfaceDepth: number } | null {
+  if (!item.run || !item.requiresFrontPosition || !item.depthIn) return null;
+  const surfaceDepth = getCountertopCutoutRunDepth(designInput, item.run);
+  return {
+    minimum: item.depthIn / 2 + COUNTERTOP_OPENING_EDGE_CLEARANCE_IN,
+    maximum: surfaceDepth - item.depthIn / 2 - COUNTERTOP_OPENING_EDGE_CLEARANCE_IN,
+    surfaceDepth,
+  };
+}
+
+export function getCountertopOpeningSchedule(
+  designInput: SteelHomeCountertopDesign
+): CountertopOpeningScheduleItem[] {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  const items: CountertopOpeningScheduleItem[] = [];
+  if (design.sink !== "None") {
+    const isApronFront = design.sink === "Farmhouse";
+    const planningSize = COUNTERTOP_SINK_PLANNING_SIZE[design.sink];
+    items.push({
+      id: "sink",
+      label: isApronFront ? "Sink — Farmhouse / apron-front" : `Sink — ${design.sink}`,
+      placementKind: isApronFront ? "front-edge-opening" : "cutout",
+      run: design.sinkRun,
+      positionIn: design.sinkPositionIn,
+      frontPositionIn: isApronFront ? null : design.sinkFrontPositionIn,
+      requiresFrontPosition: !isApronFront,
+      widthIn: isApronFront ? null : planningSize.widthIn,
+      depthIn: isApronFront ? null : planningSize.depthIn,
+      // This span keeps nearby planned openings apart; it is not a fabricated cut size.
+      planningWidthIn: planningSize.widthIn,
+    });
+  }
+  if (design.cooktop !== "None") {
+    const nominalWidth = Number.parseInt(design.cooktop, 10);
+    const isRangeGap = /range gap/i.test(design.cooktop);
+    items.push({
+      id: "cooktop",
+      label: design.cooktop,
+      placementKind: isRangeGap ? "full-depth-gap" : "cutout",
+      run: design.cooktopRun,
+      positionIn: design.cooktopPositionIn,
+      frontPositionIn: isRangeGap ? null : design.cooktopFrontPositionIn,
+      requiresFrontPosition: !isRangeGap,
+      widthIn: Number.isFinite(nominalWidth) ? nominalWidth : null,
+      depthIn: isRangeGap ? null : 22,
+      planningWidthIn: Number.isFinite(nominalWidth) ? nominalWidth : 2,
+    });
+  }
+  for (const cutout of design.otherCutouts) {
+    items.push({
+      id: cutout.id,
+      label:
+        cutout.type === "Other opening" && cutout.label
+          ? `Other opening — ${cutout.label}`
+          : cutout.type,
+      placementKind: "cutout",
+      run: cutout.run,
+      positionIn: cutout.positionIn,
+      frontPositionIn: cutout.frontPositionIn,
+      requiresFrontPosition: true,
+      widthIn: cutout.widthIn,
+      depthIn: cutout.depthIn,
+      planningWidthIn: cutout.widthIn || 2,
+    });
+  }
+  return items;
+}
+
+export function getCountertopPlacementProblems(designInput: SteelHomeCountertopDesign): string[] {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  const problems: string[] = [];
+  const schedule = getCountertopOpeningSchedule(design);
+  for (const item of schedule) {
+    if (!item.run || item.positionIn === null) {
+      problems.push(`${item.label} needs a location.`);
+      continue;
+    }
+    const runLength = getCountertopCutoutRunLength(design, item.run);
+    const endClearance = openingPlanningWidth(item) / 2 + 2;
+    if (item.positionIn < endClearance || item.positionIn > runLength - endClearance) {
+      problems.push(
+        `${item.label} is too close to the end of ${getCountertopCutoutRunLabel(item.run).toLowerCase()}.`
+      );
+    }
+    if (
+      item.run !== "island" &&
+      design.layout !== "straight" &&
+      item.positionIn < design.wallDepthIn + endClearance
+    ) {
+      problems.push(
+        `${item.label} overlaps the shared inside-corner zone on ${getCountertopCutoutRunLabel(item.run).toLowerCase()}; move its center at least ${Math.ceil(design.wallDepthIn + endClearance)}" from the ${getCountertopCutoutStartLabel(item.run)}.`
+      );
+    }
+    if (
+      design.layout === "u-shape" &&
+      item.run === "main" &&
+      runLength - item.positionIn < design.wallDepthIn + endClearance
+    ) {
+      problems.push(
+        `${item.label} overlaps the shared inside-corner zone on the main run; move its center at least ${Math.ceil(design.wallDepthIn + endClearance)}" from the right end.`
+      );
+    }
+    if (item.requiresFrontPosition && item.depthIn) {
+      const bounds = getCountertopOpeningFrontBounds(design, item);
+      if (bounds && bounds.maximum < bounds.minimum) {
+        problems.push(
+          `${item.label} is ${item.depthIn}" deep and cannot fit on the ${bounds.surfaceDepth}"-deep ${getCountertopCutoutRunLabel(item.run).toLowerCase()}.`
+        );
+      } else if (item.frontPositionIn === null) {
+        problems.push(`${item.label} needs a center distance from the front edge.`);
+      } else if (
+        bounds &&
+        (item.frontPositionIn < bounds.minimum || item.frontPositionIn > bounds.maximum)
+      ) {
+        problems.push(
+          `${item.label} is too close to the front or back edge of ${getCountertopCutoutRunLabel(item.run).toLowerCase()}.`
+        );
+      }
+    }
+  }
+  for (const run of COUNTERTOP_CUTOUT_RUN_OPTIONS.map((option) => option.value)) {
+    const placed = schedule
+      .filter(
+        (item): item is CountertopOpeningScheduleItem & { positionIn: number } =>
+          item.run === run && item.positionIn !== null
+      )
+      .sort((a, b) => a.positionIn - b.positionIn);
+    for (let firstIndex = 0; firstIndex < placed.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < placed.length; secondIndex += 1) {
+        const first = placed[firstIndex];
+        const second = placed[secondIndex];
+        const sink = first.id === "sink" ? first : second.id === "sink" ? second : null;
+        const accessory = sink === first ? second : sink === second ? first : null;
+        const isSinkAccessoryPair = Boolean(sink && accessory && isSmallDeckAccessory(accessory));
+        // Faucet/soap/accessory holes next to a sink are manufacturer-specific. We keep their
+        // coordinates in the brief and leave final template clearance to the fabricator. An
+        // accessory visibly inside an undermount sink footprint is still an obvious conflict.
+        if (isSinkAccessoryPair && sink && accessory) {
+          const obviousUndermountOverlap =
+            sink.placementKind === "cutout" &&
+            sink.frontPositionIn !== null &&
+            accessory.frontPositionIn !== null &&
+            Boolean(sink.depthIn) &&
+            Boolean(accessory.depthIn) &&
+            Math.abs(accessory.positionIn - sink.positionIn) <
+              (openingPlanningWidth(sink) + openingPlanningWidth(accessory)) / 2 &&
+            Math.abs(accessory.frontPositionIn - sink.frontPositionIn) <
+              ((sink.depthIn || 0) + (accessory.depthIn || 0)) / 2;
+          if (!obviousUndermountOverlap) continue;
+        }
+        const minimumDistance =
+          openingPlanningWidth(first) / 2 + openingPlanningWidth(second) / 2 + 3;
+        const frontToBackOverlap =
+          !first.requiresFrontPosition ||
+          !second.requiresFrontPosition ||
+          first.frontPositionIn === null ||
+          second.frontPositionIn === null ||
+          !first.depthIn ||
+          !second.depthIn ||
+          Math.abs(second.frontPositionIn - first.frontPositionIn) <
+            first.depthIn / 2 + second.depthIn / 2 + 3;
+        if (
+          Math.abs(second.positionIn - first.positionIn) < minimumDistance &&
+          frontToBackOverlap
+        ) {
+          problems.push(
+            `${first.label} and ${second.label} are too close together on ${getCountertopCutoutRunLabel(run).toLowerCase()}.`
+          );
+        }
+      }
+    }
+  }
+  for (const cutout of design.otherCutouts) {
+    if (cutout.type === "Other opening" && !cutout.label.trim()) {
+      problems.push("Other opening needs a name.");
+    }
+    if (cutout.run && cutout.positionIn !== null && (!cutout.widthIn || !cutout.depthIn)) {
+      problems.push(
+        `${cutout.type === "Other opening" && cutout.label ? cutout.label : cutout.type} needs an opening width and depth.`
+      );
+    }
+  }
+  return problems;
+}
+
+export function formatCountertopOpeningSchedule(designInput: SteelHomeCountertopDesign): string[] {
+  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  return getCountertopOpeningSchedule(design).map((item) => {
+    const startReference =
+      item.run === "main"
+        ? "start edge (left end); left/right are as viewed while standing in the room facing the run"
+        : item.run === "left-return" || item.run === "right-return"
+          ? `start edge (top/wall-side outer end; the first ${design.wallDepthIn} inches includes the shared corner zone)`
+          : item.run === "island"
+            ? "start edge (left end while standing at the long edge facing away from the main run)"
+            : "start edge";
+    const frontReference =
+      item.run === "island"
+        ? "front long edge facing away from the main run; measure inward across the island"
+        : "room-facing front edge; measure inward toward the wall or back edge";
+    const placement =
+      item.run && item.positionIn !== null
+        ? `${getCountertopCutoutRunLabel(item.run)}, center ${item.positionIn}" from the ${startReference}${
+            item.placementKind === "front-edge-opening"
+              ? ", apron opening interrupts the room-facing front edge; exact notch and cutout must follow the sink manufacturer's template"
+              : item.requiresFrontPosition
+                ? item.frontPositionIn === null
+                  ? ", front-to-back position not placed"
+                  : `, center ${item.frontPositionIn}" inward from the ${frontReference}`
+                : ", full-depth run gap (not a countertop cutout)"
+          }`
+        : "location not placed";
+    const dimensions =
+      item.placementKind === "front-edge-opening"
+        ? ""
+        : item.widthIn && item.depthIn
+          ? `, approximately ${item.widthIn}" × ${item.depthIn}"`
+          : item.widthIn
+            ? `, nominal ${item.widthIn}" width`
+            : "";
+    return `${item.label} — ${placement}${dimensions}`;
+  });
+}
+
 export function calculateCabinetPlannedWidth(designInput: SteelHomeCabinetDesign): number {
   const design = reconcileSteelHomeProjectDraft({ cabinets: designInput }).cabinets;
   return (
@@ -745,6 +1294,59 @@ export function calculateCabinetPlannedWidth(designInput: SteelHomeCabinetDesign
     design.drawerBaseCount * 24 +
     24
   );
+}
+
+export type CabinetPrimaryWallFit = {
+  fits: boolean;
+  plannedWidthIn: number;
+  primaryWallIn: number;
+  overageIn: number;
+};
+
+export function getCabinetPrimaryWallFit(
+  designInput: SteelHomeCabinetDesign
+): CabinetPrimaryWallFit {
+  const design = reconcileSteelHomeProjectDraft({ cabinets: designInput }).cabinets;
+  const plannedWidthIn = calculateCabinetPlannedWidth(design);
+  const overageIn = Math.max(0, plannedWidthIn - design.primaryWallIn);
+  return {
+    fits: overageIn === 0,
+    plannedWidthIn,
+    primaryWallIn: design.primaryWallIn,
+    overageIn,
+  };
+}
+
+export type BuildingOpeningFit = {
+  fits: boolean;
+  totalOpenings: number;
+  requiredWallRunFt: number;
+  availableWallRunFt: number;
+  shortfallFt: number;
+  recommendedDimensionIncreaseFt: number;
+};
+
+/**
+ * Count-only feasibility guard for the builder UI. The spans include a rough
+ * planning buffer around each opening and four short corner reserves. This is
+ * intentionally not a placement, framing, clearance, or engineering check.
+ */
+export function getBuildingOpeningFit(designInput: SteelHomeBuildingDesign): BuildingOpeningFit {
+  const design = reconcileSteelHomeProjectDraft({ building: designInput }).building;
+  const totalOpenings = design.garageDoors + design.walkDoors + design.windows;
+  const requiredWallRunFt = design.garageDoors * 12 + design.walkDoors * 5 + design.windows * 4;
+  const perimeterFt = 2 * (design.widthFt + design.lengthFt);
+  const availableWallRunFt = Math.max(0, perimeterFt - 16);
+  const shortfallFt = Math.max(0, requiredWallRunFt - availableWallRunFt);
+
+  return {
+    fits: shortfallFt === 0,
+    totalOpenings,
+    requiredWallRunFt,
+    availableWallRunFt,
+    shortfallFt,
+    recommendedDimensionIncreaseFt: Math.ceil(shortfallFt / 2),
+  };
 }
 
 const BUILDING_SHELL_PLANNING_ALLOWANCES: Record<BuildingUse, PlanningRange> = {
@@ -761,7 +1363,7 @@ const CABINET_PLANNING_DISCLAIMER =
   "Early cabinet-materials estimate only. This estimated range includes cabinets, hardware, trim, and delivery. Countertops, field measurement, taxes, and installation are not included. Exact products and options are confirmed in the written quote.";
 
 const PROJECT_ESTIMATE_DISCLAIMER =
-  "Estimated ranges cover only the listed building and cabinet items. Items marked Quote needed, taxes, site work, foundation, and installation are not included in the estimated total.";
+  "Estimated ranges cover only the listed building and cabinet items. Stone material, taxes, site work, foundation, and installation are not included in the estimated total. Stone fabrication is always a separate service.";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -1065,7 +1667,7 @@ export function getSteelHomeProjectEstimateSummary(
   if (draft.countertops.included) {
     const stone = getCatalogItemById(draft.countertops.stoneId);
     quoteRequired.push(
-      `${stone?.publicLabel || "Selected surface"}: material, fabrication, edge work, cutouts, delivery, and installation`
+      `${stone?.publicLabel || "Selected surface"}: stone availability, slab quantity, and delivery. Fabrication is separate.`
     );
   }
   return {
@@ -1182,10 +1784,8 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
       "Room and layout",
       `${countertops.room}, ${labelFromOptions(countertops.layout, COUNTERTOP_LAYOUT_OPTIONS)}`
     );
-    const runs = [countertops.wallAIn];
-    if (countertops.layout !== "straight") runs.push(countertops.wallBIn);
-    if (countertops.layout === "u-shape") runs.push(countertops.wallCIn);
-    addLine(lines, "Wall runs", runs.map((value) => `${value}\"`).join(" × "));
+    addLine(lines, "Wall runs", formatCountertopWallRuns(countertops));
+    addLine(lines, "Wall-top depth", `${countertops.wallDepthIn}\"`);
     addLine(
       lines,
       "Island",
@@ -1203,7 +1803,11 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
       "Details",
       `${countertops.edge} edge; ${countertops.backsplash} backsplash; ${countertops.sink} sink; ${countertops.cooktop} cooktop`
     );
-    addLine(lines, "Estimated area", `About ${calculateCountertopSquareFeet(countertops)} sq. ft.`);
+    addLine(
+      lines,
+      "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
+      `About ${calculateCountertopSquareFeet(countertops)} sq. ft.`
+    );
     addLine(lines, "Notes", briefNote(countertops.notes));
   }
 
@@ -1238,10 +1842,16 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     addLine(lines, "Notes", briefNote(cabinets.notes));
   }
 
-  lines.push(
-    "",
-    "This request is not a quote. Final pricing depends on field measurements, engineering, site and permit requirements, product availability, tax, delivery, fabrication, and installation."
-  );
+  lines.push("");
+  if (draft.countertops.included) {
+    lines.push(
+      "This request is not a quote. Stone material and fabrication are separate: JW Stone supplies material and does not template, fabricate, cut, or install countertops."
+    );
+  } else {
+    lines.push(
+      "This request is not a quote. Final pricing depends on confirmed products, site conditions, taxes, delivery, and installation requirements."
+    );
+  }
   return lines.join("\n");
 }
 
@@ -1258,6 +1868,186 @@ function updateRequestHref(
     else url.searchParams.delete(key);
   }
   return isAbsolute ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
+}
+
+const DIRECT_CONNECT_COMPETING_CONTEXT_KEYS = [
+  "intent",
+  "target",
+  "targetName",
+  "targetProviderId",
+  "contractorId",
+  "contractor",
+  "profile",
+  "profileName",
+  "postId",
+  "dealId",
+  "clientId",
+  "shared",
+  "employmentPostId",
+  "item",
+  "prefill_businessSlug",
+  "prefill_businessName",
+  "trade",
+  "tradeId",
+  "category",
+  "budgetMin",
+  "budgetMax",
+  "from",
+  "where",
+  "timing",
+  "prefill_countyFips",
+  "stateCode",
+  "prefill_stateCode",
+] as const;
+
+export function buildCountertopStoneRequestDescription(draftInput: SteelHomeProjectDraft): string {
+  const draft = reconcileSteelHomeProjectDraft(draftInput);
+  const design = draft.countertops;
+  const stone = getCatalogItemById(design.stoneId);
+  const lines = [
+    "TradeScout Stone Material Request",
+    `Project location: ${formatSteelHomeProjectLocation(draft)}`,
+  ];
+  addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
+  addLine(
+    lines,
+    "Requested surface",
+    stone ? `${stone.publicLabel}${stone.materialLabel ? ` — ${stone.materialLabel}` : ""}` : ""
+  );
+  addLine(lines, "Room", design.room);
+  addLine(lines, "Layout", labelFromOptions(design.layout, COUNTERTOP_LAYOUT_OPTIONS));
+  addLine(lines, "Wall runs", formatCountertopWallRuns(design));
+  addLine(lines, "Wall-top depth", `${design.wallDepthIn}\"`);
+  addLine(
+    lines,
+    "Island",
+    design.island ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"` : "None"
+  );
+  addLine(
+    lines,
+    "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
+    `About ${calculateCountertopSquareFeet(design)} sq. ft.`
+  );
+  addLine(
+    lines,
+    "Backsplash selection",
+    `${design.backsplash} (not included in the area; quantity requires field measurement)`
+  );
+  addLine(lines, "Desired timing", draft.timing);
+  lines.push(
+    "",
+    "Material request only: ask about stone availability and delivery. Opening locations do not change this gross layout footprint or price the stone.",
+    "Backsplash and range-gap deductions are excluded from the footprint shown. Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout.",
+    "JW Stone does not provide field templating, fabrication, cutting, or countertop installation. Those services require a separate fabricator."
+  );
+  return lines.join("\n");
+}
+
+export function buildCountertopFabricatorRequestDescription(
+  draftInput: SteelHomeProjectDraft
+): string {
+  const draft = reconcileSteelHomeProjectDraft(draftInput);
+  const design = draft.countertops;
+  const stone = getCatalogItemById(design.stoneId);
+  const serviceArea =
+    draft.countyName && draft.stateCode
+      ? `${draft.countyName}, ${draft.stateCode}`
+      : draft.stateCode || "Not entered";
+  const lines = [
+    "TradeScout Countertop Fabricator Request",
+    `Service area: ${serviceArea}`,
+    "Work needed: Stone fabrication",
+  ];
+  addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
+  addLine(lines, "Desired timing", draft.timing);
+  addLine(
+    lines,
+    "Room and layout",
+    `${design.room}, ${labelFromOptions(design.layout, COUNTERTOP_LAYOUT_OPTIONS)}`
+  );
+  addLine(lines, "Wall runs", formatCountertopWallRuns(design));
+  addLine(lines, "Wall-top depth", `${design.wallDepthIn}\"`);
+  addLine(
+    lines,
+    "Island",
+    design.island ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"` : "None"
+  );
+  addLine(
+    lines,
+    "Stone reference",
+    stone ? `${stone.publicLabel}${stone.materialLabel ? ` — ${stone.materialLabel}` : ""}` : ""
+  );
+  addLine(
+    lines,
+    "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
+    `About ${calculateCountertopSquareFeet(design)} sq. ft.`
+  );
+  addLine(lines, "Edge and backsplash", `${design.edge} edge; ${design.backsplash} backsplash`);
+  const openings = formatCountertopOpeningSchedule(design);
+  if (openings.length)
+    lines.push(
+      "",
+      "Planned openings",
+      `Measurement reference: wall-run front means the finished edge facing the room. Return runs start at their top/wall-side outer end; the first ${design.wallDepthIn} inches includes the shared corner zone where the return meets the main run. For an island, FRONT is the long edge facing away from the main run; stand there and use your left as the island start.`,
+      ...openings.map((line) => `- ${line}`)
+    );
+  else lines.push("", "Planned openings", "- None added");
+  addLine(lines, "Fabricator notes", briefNote(design.notes));
+  lines.push(
+    "",
+    "Planning brief only. The fabricator must field-template and confirm every opening, dimension, clearance, seam, edge, and installation requirement.",
+    "Stone purchase, availability, slab quantity, and material pricing are not part of this fabricator request."
+  );
+  return lines.join("\n");
+}
+
+export function buildCountertopStoneRequestHref(
+  baseHref: string,
+  draftInput: SteelHomeProjectDraft
+): string {
+  const draft = reconcileSteelHomeProjectDraft(draftInput);
+  const stone = getCatalogItemById(draft.countertops.stoneId);
+  return updateRequestHref(
+    baseHref,
+    {
+      profile: STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug,
+      profileName: STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel,
+      source: STEEL_HOME_PACKAGES_REQUEST_SOURCE,
+      subject: "product",
+      title: `TradeScout Stone Material Request — ${stone?.publicLabel || "Selected surface"}`,
+      description: buildCountertopStoneRequestDescription(draft),
+      location: draft.location,
+      county: draft.countyFips,
+      state: draft.stateCode,
+      when: draft.timing,
+    },
+    DIRECT_CONNECT_COMPETING_CONTEXT_KEYS
+  );
+}
+
+export function buildCountertopFabricatorRequestHref(
+  baseHref: string,
+  draftInput: SteelHomeProjectDraft
+): string {
+  const draft = reconcileSteelHomeProjectDraft(draftInput);
+  const serviceArea =
+    draft.countyName && draft.stateCode
+      ? `${draft.countyName}, ${draft.stateCode}`
+      : draft.stateCode;
+  return updateRequestHref(
+    baseHref,
+    {
+      source: STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE,
+      subject: "service",
+      title: "TradeScout Countertop Fabricator Request",
+      description: buildCountertopFabricatorRequestDescription(draft),
+      location: serviceArea,
+      county: draft.countyFips,
+      state: draft.stateCode,
+      when: draft.timing,
+    },
+    DIRECT_CONNECT_COMPETING_CONTEXT_KEYS
+  );
 }
 
 export function buildSteelHomeProjectRequestHref(
@@ -1282,7 +2072,7 @@ export function buildSteelHomeProjectRequestHref(
       state: draft.stateCode,
       when: draft.timing,
     },
-    ["intent", "target", "targetProviderId", "contractorId", "prefill_businessSlug"]
+    DIRECT_CONNECT_COMPETING_CONTEXT_KEYS
   );
 }
 
@@ -1338,16 +2128,7 @@ export function buildSteelHomeLaborRequestHref(
       state: draft.stateCode,
       when: draft.timing,
     },
-    [
-      "intent",
-      "profile",
-      "profileName",
-      "target",
-      "targetName",
-      "targetProviderId",
-      "contractorId",
-      "prefill_businessSlug",
-    ]
+    DIRECT_CONNECT_COMPETING_CONTEXT_KEYS
   );
 }
 

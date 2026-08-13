@@ -1,29 +1,69 @@
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
 import { Check, CircleDollarSign, MapPin, Ruler, ShieldCheck, X } from "lucide-react";
 import { getCatalogItemById } from "@/features/jw-stone/catalog";
-import { parseDirectConnectEntryContext } from "@/pages/direct-connect/directConnectEntryContext";
+import {
+  parseDirectConnectEntryContext,
+  type DirectConnectEntryContext,
+} from "@/pages/direct-connect/directConnectEntryContext";
 import ProjectDetailsFields from "./ProjectDetailsFields";
 import SteelHomeRequestAction from "./SteelHomeRequestAction";
-import type { SteelHomePlanner } from "./SteelHomePlannerNav";
+import type { SteelHomePlanner } from "./SteelHomeBuilderDirectory";
 import {
   PROJECT_ROLE_OPTIONS,
+  buildCountertopFabricatorRequestHref,
+  buildCountertopStoneRequestHref,
   buildSteelHomeProjectRequestHref,
   calculateBuildingPlanningEstimate,
   calculateCabinetPlanningEstimate,
   calculateCountertopSquareFeet,
   formatPlanningRange,
+  getCountertopPlacementProblems,
   reconcileSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
 } from "./projectModel";
 
 type Props = {
-  planner: SteelHomePlanner;
+  request: SteelHomeRequestSelection;
   draft: SteelHomeProjectDraft;
   onChange: (draft: SteelHomeProjectDraft) => void;
   requestHref: string;
+  laborRequestHref: string;
   saved: boolean;
   onClose: () => void;
 };
+
+export type SteelHomeRequestSelection =
+  | { planner: "countertops"; intent: "stone" | "fabricator" }
+  | { planner: "cabinets" | "building"; intent: "builder" };
+
+type SteelHomeRequestIntent =
+  | {
+      kind: "builder";
+      heading: string;
+      scope: string;
+      label: string;
+      testId: "steel-home-planner-request-submit";
+      destinationHref: string;
+      context: DirectConnectEntryContext;
+    }
+  | {
+      kind: "stone";
+      heading: string;
+      scope: string;
+      label: string;
+      testId: "steel-home-planner-request-stone-submit";
+      destinationHref: string;
+      context: DirectConnectEntryContext;
+    }
+  | {
+      kind: "fabricator";
+      heading: string;
+      scope: string;
+      label: string;
+      testId: "steel-home-planner-request-fabricator-submit";
+      destinationHref: string;
+      context: DirectConnectEntryContext;
+    };
 
 const PLANNER_COPY: Record<
   SteelHomePlanner,
@@ -31,17 +71,17 @@ const PLANNER_COPY: Record<
 > = {
   building: {
     label: "Metal Building",
-    requestTitle: "TradeScout Metal Building Planning Request",
+    requestTitle: "TradeScout Metal Building Builder Request",
     color: "bg-[#18312f]",
   },
   countertops: {
     label: "Countertop",
-    requestTitle: "TradeScout Countertop Planning Request",
+    requestTitle: "TradeScout Countertop Builder Request",
     color: "bg-[#17201f]",
   },
   cabinets: {
     label: "Cabinet",
-    requestTitle: "TradeScout Cabinet Planning Request",
+    requestTitle: "TradeScout Cabinet Builder Request",
     color: "bg-[#654936]",
   },
 };
@@ -87,21 +127,23 @@ function plannerResult(planner: SteelHomePlanner, draft: SteelHomeProjectDraft) 
 
   const stone = getCatalogItemById(draft.countertops.stoneId);
   return {
-    eyebrow: "Approximate countertop area",
+    eyebrow: "Gross countertop layout footprint",
     value: `About ${calculateCountertopSquareFeet(draft.countertops)} sq. ft.`,
-    detail: `${stone?.publicLabel || "Selected surface"} · Quote needed`,
+    detail: `${stone?.publicLabel || "Selected surface"} · Backsplash excluded · Range gaps not deducted · Quote needed`,
     icon: Ruler,
   };
 }
 
 export default function SteelHomePlannerRequest({
-  planner,
+  request,
   draft,
   onChange,
   requestHref,
+  laborRequestHref,
   saved,
   onClose,
 }: Props) {
+  const { planner } = request;
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -112,27 +154,75 @@ export default function SteelHomePlannerRequest({
     () => buildScopedSteelHomePlannerDraft(planner, draft),
     [draft, planner]
   );
-  const context = useMemo(() => {
+  const requestIntent = useMemo<SteelHomeRequestIntent>(() => {
+    if (request.planner === "countertops" && request.intent === "stone") {
+      const stone = getCatalogItemById(scopedDraft.countertops.stoneId);
+      return {
+        kind: "stone",
+        heading: `Request ${stone?.publicLabel || "this stone"}`,
+        scope:
+          "Material only: selected surface availability, likely slab quantity, and delivery. Fabrication and installation stay separate.",
+        label: "Continue to material request",
+        testId: "steel-home-planner-request-stone-submit",
+        destinationHref: requestHref,
+        context: parseDirectConnectEntryContext(
+          buildCountertopStoneRequestHref(requestHref, scopedDraft)
+        ),
+      };
+    }
+
+    if (request.planner === "countertops" && request.intent === "fabricator") {
+      return {
+        kind: "fabricator",
+        heading: "Find a countertop fabricator",
+        scope:
+          "Local service only: field templating and fabrication requirements. The selected stone purchase stays separate.",
+        label: "Continue to fabricator matching",
+        testId: "steel-home-planner-request-fabricator-submit",
+        destinationHref: laborRequestHref,
+        context: parseDirectConnectEntryContext(
+          buildCountertopFabricatorRequestHref(laborRequestHref, scopedDraft)
+        ),
+      };
+    }
+
     const parsed = parseDirectConnectEntryContext(
       buildSteelHomeProjectRequestHref(requestHref, scopedDraft)
     );
     return {
-      ...parsed,
-      targetName: "Steel Home Planning Tools",
-      title: copy.requestTitle,
-      description: (parsed.description || "")
-        .replace(/TradeScout Steel Home (?:Project|Planning) Request/, copy.requestTitle)
-        .replace(/Selected packages:|Selected planning tools:/, "Planner:"),
+      kind: "builder",
+      heading: `${copy.label} builder request`,
+      scope: `Only the choices saved in this ${copy.label.toLowerCase()} builder are included.`,
+      label: "Continue to contact details",
+      testId: "steel-home-planner-request-submit",
+      destinationHref: requestHref,
+      context: {
+        ...parsed,
+        targetName: "Steel Home Planning Tools",
+        title: copy.requestTitle,
+        description: (parsed.description || "")
+          .replace(/TradeScout Steel Home (?:Project|Planning) Request/, copy.requestTitle)
+          .replace(/Selected packages:|Selected planning tools:|Planner:/, "Builder:"),
+      },
     };
-  }, [copy.requestTitle, requestHref, scopedDraft]);
+  }, [copy.label, copy.requestTitle, laborRequestHref, request, requestHref, scopedDraft]);
   const hasVisibleProjectRole = REQUEST_ROLE_OPTIONS.some(
     (option) => option.value === draft.projectRole
   );
+  const fabricatorPlacementProblems =
+    request.planner === "countertops" && request.intent === "fabricator"
+      ? getCountertopPlacementProblems(scopedDraft.countertops)
+      : [];
   const ready =
     hasVisibleProjectRole &&
     draft.location.trim().length >= 2 &&
     /^[A-Z]{2}$/.test(draft.stateCode) &&
-    /^\d{5}$/.test(draft.countyFips);
+    /^\d{5}$/.test(draft.countyFips) &&
+    !(
+      request.planner === "countertops" &&
+      request.intent === "fabricator" &&
+      fabricatorPlacementProblems.length > 0
+    );
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement | null;
@@ -187,19 +277,20 @@ export default function SteelHomePlannerRequest({
         onKeyDown={handleKeyDown}
         className="absolute inset-y-0 right-0 flex w-full max-w-3xl flex-col bg-[#f7f3eb] text-[#18312f] shadow-[-24px_0_90px_rgba(8,24,22,.32)]"
         data-planner={planner}
+        data-request-intent={request.intent}
       >
         <header
           className={`${copy.color} flex shrink-0 items-start justify-between gap-4 px-5 py-5 text-white sm:px-8`}
         >
           <div>
             <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#f0b392]">
-              {copy.label} Planner
+              {copy.label} Builder
             </p>
             <h2
               id="steel-home-planner-request-title"
               className="mt-2 font-editorial text-3xl font-semibold tracking-[-0.035em]"
             >
-              Start a {copy.label} Request
+              {requestIntent.heading}
             </h2>
           </div>
           <button
@@ -239,10 +330,10 @@ export default function SteelHomePlannerRequest({
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#a94f2e]" aria-hidden="true" />
               <div>
-                <h3 className="text-base font-black">Only this planner goes into the request.</h3>
+                <h3 className="text-base font-black">Only this builder goes into the request.</h3>
                 <p className="mt-1 text-sm leading-6 text-[#68736f]">
                   Your {copy.label.toLowerCase()} choices stay separate from anything saved in the
-                  other two planners.
+                  other two builders.
                 </p>
               </div>
             </div>
@@ -293,19 +384,22 @@ export default function SteelHomePlannerRequest({
             <p className="text-xs leading-5 text-[#68736f]" aria-live="polite">
               {!hasVisibleProjectRole
                 ? "Choose who is planning the request."
-                : !ready
-                  ? "Add the jobsite city or ZIP, state, and county."
-                  : saved
-                    ? "Ready. You will review contact details before anything is sent."
-                    : "Saving your choices on this device."}
+                : fabricatorPlacementProblems.length
+                  ? "Return to the builder and place every opening before matching with a fabricator."
+                  : !ready
+                    ? "Add the jobsite city or ZIP, state, and county."
+                    : saved
+                      ? "Ready. You will review contact details before anything is sent."
+                      : "Saving your choices on this device."}
             </p>
-            <div className="w-full shrink-0 sm:w-auto sm:min-w-56">
+            <div className="w-full shrink-0 sm:w-auto sm:min-w-64">
+              <p className="mb-3 text-xs leading-5 text-[#68736f]">{requestIntent.scope}</p>
               <SteelHomeRequestAction
                 ready={ready}
-                context={context}
-                destinationHref={requestHref}
-                label="Continue to contact details"
-                testId="steel-home-planner-request-submit"
+                context={requestIntent.context}
+                destinationHref={requestIntent.destinationHref}
+                label={requestIntent.label}
+                testId={requestIntent.testId}
               />
             </div>
           </div>

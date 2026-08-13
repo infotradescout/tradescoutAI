@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Building2, ChevronDown, DoorOpen, Send, Warehouse, Wind } from "lucide-react";
-import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
+import { useId } from "react";
+import { AlertTriangle, ChevronDown, Send } from "lucide-react";
 import {
   BUILDING_COLOR_OPTIONS,
   BUILDING_PORCH_OPTIONS,
@@ -9,6 +8,7 @@ import {
   BUILDING_USE_OPTIONS,
   calculateBuildingPlanningEstimate,
   formatPlanningRange,
+  getBuildingOpeningFit,
   type SteelHomeBuildingDesign,
 } from "./projectModel";
 import PlanningEstimateCard from "./PlanningEstimateCard";
@@ -31,62 +31,79 @@ function colorHex(value: string): string {
 }
 
 function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
+  const gradientId = `building-${useId().replace(/:/g, "")}`;
   const roofLabel =
-    BUILDING_ROOF_OPTIONS.find((option) => option.value === design.roofStyle)?.label || "selected";
-  const frontWidth = Math.min(390, Math.max(250, 250 + (design.widthFt - 30) * 2.2));
-  const wallHeight = Math.min(190, Math.max(110, 100 + (design.eaveHeightFt - 8) * 6));
-  const sideDepth = Math.min(210, Math.max(105, 95 + (design.lengthFt - 30) * 1.1));
+    BUILDING_ROOF_OPTIONS.find((option) => option.value === design.roofStyle)?.label || "Selected";
+  const useLabel = BUILDING_USE_OPTIONS.find((option) => option.value === design.use)?.label;
+  const frontWidth = Math.min(390, Math.max(230, 230 + (design.widthFt - 24) * 2.4));
+  const wallHeight = Math.min(195, Math.max(105, 94 + (design.eaveHeightFt - 8) * 6.2));
+  const sideDepth = Math.min(215, Math.max(100, 90 + (design.lengthFt - 24) * 1.08));
   const roofRise = Number(design.roofPitch.split(":")[0] || 4) * 13;
-  const frontX = 120;
-  const wallBottom = 390;
+  const frontX = 112;
+  const wallBottom = 398;
   const wallTop = wallBottom - wallHeight;
   const sideX = frontX + frontWidth;
-  const sideTopOffset = -sideDepth * 0.36;
+  const sideTopOffset = -sideDepth * 0.34;
   const wallColor = colorHex(design.wallColor);
   const roofColor = colorHex(design.roofColor);
   const trimColor = colorHex(design.trimColor);
-  const visibleGarageDoors = Array.from({ length: Math.min(design.garageDoors, 5) });
-  const visibleWindows = Array.from({ length: Math.min(design.windows, 6) });
-  const hiddenWindowCount = Math.max(0, design.windows - visibleWindows.length);
-  const garageWidth = Math.min(76, (frontWidth - 54) / Math.max(1, visibleGarageDoors.length));
-  const hasFrontPorch = design.porch === "front" || design.porch === "wrap";
-  const hasSidePorch = design.porch === "side" || design.porch === "wrap";
+  const garageDoors = Array.from({ length: Math.min(design.garageDoors, 5) });
+  const windows = Array.from({ length: design.windows });
+  const windowColumns = Math.min(8, Math.max(1, Math.ceil(windows.length / 2)));
+  const windowRows = Math.max(1, Math.ceil(windows.length / windowColumns));
+  const windowColumnSpacing = (sideDepth - 30) / (windowColumns + 1);
+  const windowWidth = Math.min(23, Math.max(6, windowColumnSpacing * 0.72));
+  const windowHeight = Math.min(33, Math.max(17, wallHeight * 0.2));
+  const garageWidth = Math.min(76, (frontWidth - 48) / Math.max(1, garageDoors.length));
+  const frontPorch = design.porch === "front" || design.porch === "wrap";
+  const sidePorch = design.porch === "side" || design.porch === "wrap";
   const frontPorchProjection = 16 + design.porchDepthFt * 2.4;
-  const sidePorchProjection = Math.min(56, 14 + design.porchDepthFt * 2.1);
+  const sidePorchProjection = Math.min(58, 14 + design.porchDepthFt * 2.1);
 
   return (
     <svg
       viewBox="0 0 760 500"
       role="img"
-      aria-label={`${design.widthFt} by ${design.lengthFt} foot steel building preview with a ${roofLabel} roof`}
-      className="h-auto w-full"
+      aria-label={`${design.widthFt} by ${design.lengthFt} foot metal building with a ${roofLabel} roof`}
+      className="h-full min-h-[22rem] w-full"
       data-testid="steel-home-building-preview"
+      data-use={design.use}
+      data-roof={design.roofStyle}
+      data-roof-pitch={design.roofPitch}
+      data-wall-color={design.wallColor}
+      data-roof-color={design.roofColor}
+      data-trim-color={design.trimColor}
+      data-garage-doors={design.garageDoors}
+      data-walk-doors={design.walkDoors}
+      data-windows={design.windows}
+      data-porch={design.porch}
     >
       <defs>
-        <linearGradient id="building-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#dce5e1" />
-          <stop offset="1" stopColor="#f5eee2" />
+        <linearGradient id={`${gradientId}-sky`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#dce6e3" />
+          <stop offset="1" stopColor="#f5eee3" />
         </linearGradient>
-        <linearGradient id="building-ground" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#70806f" />
-          <stop offset="1" stopColor="#9b9a7d" />
+        <linearGradient id={`${gradientId}-ground`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#6e806e" />
+          <stop offset="1" stopColor="#a49b7b" />
         </linearGradient>
-        <filter id="building-shadow" x="-20%" y="-20%" width="150%" height="160%">
-          <feDropShadow dx="0" dy="14" stdDeviation="12" floodOpacity="0.22" />
+        <filter id={`${gradientId}-shadow`} x="-20%" y="-20%" width="150%" height="160%">
+          <feDropShadow dx="0" dy="13" stdDeviation="11" floodOpacity="0.22" />
         </filter>
       </defs>
 
-      <rect width="760" height="500" rx="30" fill="url(#building-sky)" />
-      <path d="M0 370 Q190 330 385 372 T760 352 V500 H0Z" fill="url(#building-ground)" />
-      <g filter="url(#building-shadow)">
+      <rect width="760" height="500" fill={`url(#${gradientId}-sky)`} />
+      <path d="M0 376 Q190 336 385 378 T760 356 V500 H0Z" fill={`url(#${gradientId}-ground)`} />
+      <g filter={`url(#${gradientId}-shadow)`}>
         <polygon
           points={`${sideX},${wallTop} ${sideX + sideDepth},${wallTop + sideTopOffset} ${
             sideX + sideDepth
           },${wallBottom + sideTopOffset} ${sideX},${wallBottom}`}
           fill={wallColor}
-          opacity="0.78"
+          opacity="0.8"
           stroke={trimColor}
           strokeWidth="5"
+          data-testid="steel-home-building-wall-preview"
         />
         <rect
           x={frontX}
@@ -99,11 +116,13 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
         />
 
         {design.roofStyle === "single-slope" ? (
-          <>
+          <g data-testid="steel-home-building-roof-preview">
             <polygon
               points={`${frontX - 10},${wallTop - roofRise} ${sideX + 10},${wallTop} ${
                 sideX + sideDepth + 18
-              },${wallTop + sideTopOffset} ${frontX + sideDepth - 18},${wallTop + sideTopOffset - roofRise}`}
+              },${wallTop + sideTopOffset} ${frontX + sideDepth - 18},${
+                wallTop + sideTopOffset - roofRise
+              }`}
               fill={roofColor}
               stroke={trimColor}
               strokeWidth="5"
@@ -114,9 +133,9 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
               stroke={trimColor}
               strokeWidth="5"
             />
-          </>
+          </g>
         ) : (
-          <>
+          <g data-testid="steel-home-building-roof-preview">
             <polygon
               points={`${frontX - 12},${wallTop} ${frontX + frontWidth / 2},${
                 wallTop - roofRise
@@ -160,82 +179,65 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
                 />
               </g>
             ) : null}
-          </>
+          </g>
         )}
 
-        {visibleGarageDoors.map((_, index) => {
-          const x = frontX + 22 + index * (garageWidth + 10);
+        {garageDoors.map((_, index) => {
+          const x = frontX + 20 + index * (garageWidth + 9);
           return (
-            <g key={`garage-${index}`}>
-              <rect
-                x={x}
-                y={wallBottom - wallHeight * 0.64}
-                width={garageWidth}
-                height={wallHeight * 0.64}
-                rx="3"
-                fill="#d8d6cc"
-                stroke={trimColor}
-                strokeWidth="4"
-              />
-              {Array.from({ length: 4 }).map((__, row) => (
-                <line
-                  key={row}
-                  x1={x + 4}
-                  x2={x + garageWidth - 4}
-                  y1={wallBottom - wallHeight * 0.64 + (row + 1) * ((wallHeight * 0.64) / 5)}
-                  y2={wallBottom - wallHeight * 0.64 + (row + 1) * ((wallHeight * 0.64) / 5)}
-                  stroke="#969a94"
-                  strokeWidth="2"
-                />
-              ))}
-            </g>
+            <rect
+              key={`garage-${index}`}
+              x={x}
+              y={wallBottom - wallHeight * 0.62}
+              width={garageWidth}
+              height={wallHeight * 0.62}
+              rx="3"
+              fill="#d9d8d0"
+              stroke={trimColor}
+              strokeWidth="4"
+              data-testid="steel-home-building-garage-preview"
+            />
           );
         })}
 
-        {design.walkDoors > 0 ? (
+        {Array.from({ length: design.walkDoors }).map((_, index) => (
           <rect
-            x={sideX - 54}
-            y={wallBottom - 78}
-            width="36"
-            height="78"
+            key={`walk-${index}`}
+            x={sideX - 52 - index * 42}
+            y={wallBottom - 76}
+            width="34"
+            height="76"
             fill="#b8ad98"
             stroke={trimColor}
             strokeWidth="4"
+            data-testid="steel-home-building-walk-door-preview"
           />
-        ) : null}
+        ))}
 
-        {visibleWindows.map((_, index) => {
-          const x = sideX + 18 + index * Math.max(18, (sideDepth - 58) / 6);
-          const y = wallTop + sideTopOffset * ((x - sideX) / sideDepth) + wallHeight * 0.34;
+        {windows.map((_, index) => {
+          const column = index % windowColumns;
+          const row = Math.floor(index / windowColumns);
+          const horizontalFraction = (column + 1) / (windowColumns + 1);
+          const verticalFraction = windowRows === 1 ? 0.42 : row === 0 ? 0.3 : 0.59;
+          const x = sideX + 10 + horizontalFraction * (sideDepth - 30);
+          const y =
+            wallTop + sideTopOffset * ((x - sideX) / sideDepth) + wallHeight * verticalFraction;
           return (
             <rect
               key={`window-${index}`}
               x={x}
               y={y}
-              width="24"
-              height="34"
+              width={windowWidth}
+              height={windowHeight}
               fill="#9fc0c4"
               stroke={trimColor}
               strokeWidth="3"
+              data-testid="steel-home-building-window-preview"
             />
           );
         })}
 
-        {hiddenWindowCount > 0 ? (
-          <text
-            x={sideX + sideDepth - 12}
-            y={wallBottom + sideTopOffset - 16}
-            textAnchor="end"
-            fill="#18312f"
-            fontFamily="system-ui, sans-serif"
-            fontSize="12"
-            fontWeight="800"
-          >
-            +{hiddenWindowCount} WINDOWS
-          </text>
-        ) : null}
-
-        {hasFrontPorch ? (
+        {frontPorch ? (
           <g
             data-testid="steel-home-building-front-porch-preview"
             data-porch-depth={design.porchDepthFt}
@@ -252,26 +254,9 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
               stroke={trimColor}
               strokeWidth="4"
             />
-            {[
-              frontX - frontPorchProjection * 0.75,
-              frontX + frontWidth * 0.34,
-              frontX + frontWidth * 0.68,
-              sideX + frontPorchProjection * 0.7,
-            ].map((x) => (
-              <line
-                key={x}
-                x1={x}
-                x2={x}
-                y1={wallBottom - 84 + frontPorchProjection * 0.42}
-                y2={wallBottom + 8}
-                stroke={trimColor}
-                strokeWidth="5"
-              />
-            ))}
           </g>
         ) : null}
-
-        {hasSidePorch ? (
+        {sidePorch ? (
           <g
             data-testid="steel-home-building-side-porch-preview"
             data-porch-depth={design.porchDepthFt}
@@ -286,35 +271,20 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
               stroke={trimColor}
               strokeWidth="4"
             />
-            {[0.18, 0.62, 1].map((position) => {
-              const x = sideX + sideDepth * position + sidePorchProjection;
-              const topY = wallBottom - 70 + sideTopOffset * position;
-              return (
-                <line
-                  key={position}
-                  x1={x}
-                  x2={x}
-                  y1={topY}
-                  y2={wallBottom + 8 + sideTopOffset * position}
-                  stroke={trimColor}
-                  strokeWidth="5"
-                />
-              );
-            })}
           </g>
         ) : null}
       </g>
 
-      <g fill="#18312f" fontFamily="system-ui, sans-serif" fontWeight="700">
-        <text x="34" y="52" fontSize="15" letterSpacing="2">
-          BUILDING PREVIEW
+      <g fill="#18312f" fontFamily="system-ui, sans-serif">
+        <text x="30" y="38" fontSize="13" fontWeight="800" letterSpacing="1.5">
+          {(useLabel || "METAL BUILDING").toUpperCase()}
         </text>
-        <text x="34" y="80" fontSize="24">
-          {design.widthFt}' × {design.lengthFt}' × {design.eaveHeightFt}'
+        <text x="30" y="68" fontSize="22" fontWeight="800">
+          {design.widthFt}&apos; × {design.lengthFt}&apos; × {design.eaveHeightFt}&apos;
         </text>
-        <text x="34" y="106" fontSize="14" fontWeight="500">
-          {BUILDING_ROOF_OPTIONS.find((item) => item.value === design.roofStyle)?.label} roof •{" "}
-          {design.roofPitch}
+        <text x="30" y="92" fontSize="13" fontWeight="600">
+          {roofLabel} roof · {design.roofPitch} pitch ·{" "}
+          {design.garageDoors + design.walkDoors + design.windows} openings
         </text>
       </g>
     </svg>
@@ -322,10 +292,14 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
 }
 
 export default function BuildingDesigner({ design, onChange, onRequest }: Props) {
-  const [previewOpen, setPreviewOpen] = useState(false);
   const update = (values: Partial<SteelHomeBuildingDesign>) => onChange({ ...design, ...values });
-  const planningEstimate = calculateBuildingPlanningEstimate(design);
+  const estimate = calculateBuildingPlanningEstimate(design);
+  const openingFit = getBuildingOpeningFit(design);
+  const useLabel = BUILDING_USE_OPTIONS.find((item) => item.value === design.use)?.label;
+  const roofLabel = BUILDING_ROOF_OPTIONS.find((item) => item.value === design.roofStyle)?.label;
+  const porchLabel = BUILDING_PORCH_OPTIONS.find((item) => item.value === design.porch)?.label;
   const startRequest = () => {
+    if (!openingFit.fits) return;
     onChange({ ...design, included: true });
     onRequest();
   };
@@ -333,96 +307,57 @@ export default function BuildingDesigner({ design, onChange, onRequest }: Props)
   return (
     <section
       id="building-designer"
-      className="bg-[#fbf8f1]"
+      className="h-full overflow-y-auto bg-[#e7ece8] text-[#18312f] lg:overflow-hidden"
       data-testid="steel-home-building-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
-        <div className="mb-5 lg:hidden">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-            Metal Building Planner
-          </p>
-          <h2 className="mt-2 font-editorial text-3xl font-semibold leading-none tracking-[-0.04em] text-[#18312f]">
-            Plan the metal building and see an early estimate.
-          </h2>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
-          <div className="order-1 lg:sticky lg:top-[9.5rem]">
-            <div className="hidden lg:block">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-                {content.tools.building.eyebrow}
+      <div className="grid min-h-full lg:h-full lg:grid-cols-[minmax(0,1.15fr)_minmax(25rem,.85fr)]">
+        <div className="flex min-h-[34rem] flex-col gap-3 p-3 sm:p-4 lg:min-h-0 lg:overflow-y-auto lg:p-5">
+          <div className="min-h-[22rem] flex-1 overflow-hidden rounded-[1.4rem] border border-[#18312f]/10 bg-[#edf0eb] shadow-[0_18px_55px_rgba(24,49,47,.12)]">
+            <BuildingPreview design={design} />
+          </div>
+
+          <div
+            className="grid gap-3 rounded-[1.25rem] border border-[#18312f]/10 bg-white/80 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+            data-testid="steel-home-building-live-summary"
+            aria-live="polite"
+          >
+            <div className="min-w-0">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-[#a94f2e]">
+                {useLabel} · {roofLabel} · {design.roofPitch}
               </p>
-              <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
-                {content.tools.building.title}
-              </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
-                Enter the size, roof, openings, porch, and colors. The preview and early estimate
-                update as you work.
+              <p className="mt-1 text-sm text-[#68736f]">
+                {(design.widthFt * design.lengthFt).toLocaleString()} sq. ft. · {porchLabel} · Roof
+                included
               </p>
             </div>
-
-            <button
-              type="button"
-              aria-expanded={previewOpen}
-              onClick={() => setPreviewOpen((open) => !open)}
-              className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-[#18312f]/15 bg-white px-4 text-sm font-black lg:hidden"
-              data-testid="steel-home-building-preview-toggle"
-            >
-              View live preview and estimate
-              <ChevronDown
-                className={`h-4 w-4 transition ${previewOpen ? "rotate-180" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-
-            <div className={`${previewOpen ? "block" : "hidden"} lg:block`}>
-              <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#edf0eb] shadow-[0_18px_55px_rgba(24,49,47,0.1)]">
-                <BuildingPreview design={design} />
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
-                  <Building2 className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Footprint</p>
-                  <p className="mt-1 text-sm text-[#68736f]">
-                    {(design.widthFt * design.lengthFt).toLocaleString()} sq. ft.
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
-                  <DoorOpen className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Openings</p>
-                  <p className="mt-1 text-sm text-[#68736f]">
-                    {design.garageDoors + design.walkDoors + design.windows} total
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
-                  <Warehouse className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Porch</p>
-                  <p className="mt-1 text-sm text-[#68736f]">
-                    {BUILDING_PORCH_OPTIONS.find((item) => item.value === design.porch)?.label}
-                  </p>
-                </div>
-              </div>
-
-              <PlanningEstimateCard
-                estimate={planningEstimate}
-                testId="steel-home-building-planning-estimate"
-                roofIncluded
-              />
+            <div className="sm:text-right">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#a94f2e]">
+                Early price estimate
+              </p>
+              <p className="text-xl font-black">{formatPlanningRange(estimate.range)}</p>
             </div>
           </div>
 
-          <div className="order-3 rounded-[2rem] border border-[#18312f]/10 bg-[#efe9de] p-5 shadow-[0_24px_80px_rgba(24,49,47,0.08)] sm:p-8 lg:order-2">
-            <div className="flex items-center gap-3 border-b border-[#18312f]/10 pb-6">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#18312f] text-white">
-                <Wind className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-bold text-[#18312f]">Metal building details</p>
-                <p className="mt-1 text-xs text-[#6d7874]">Enter the size and options you want.</p>
-              </div>
+          <PlanningEstimateCard
+            estimate={estimate}
+            testId="steel-home-building-planning-estimate"
+            roofIncluded
+            theme="light"
+          />
+        </div>
+
+        <div className="flex min-h-0 flex-col border-t border-[#18312f]/10 bg-[#f7f3eb] lg:border-l lg:border-t-0">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
+            <div>
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#a94f2e]">
+                Size and roof
+              </p>
+              <p className="mt-2 text-sm leading-6 text-[#68736f]">
+                Change a choice and watch the building and estimate update.
+              </p>
             </div>
 
-            <div className="mt-7 grid gap-5 sm:grid-cols-2">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <ProjectSelect
                 label="Intended use"
                 value={design.use}
@@ -469,121 +404,171 @@ export default function BuildingDesigner({ design, onChange, onRequest }: Props)
                 value={design.roofPitch}
                 options={BUILDING_ROOF_PITCH_OPTIONS}
                 onChange={(roofPitch) => update({ roofPitch })}
+                testId="steel-home-building-roof-pitch"
               />
             </div>
 
-            <div className="mt-8 grid gap-6 sm:grid-cols-3">
-              <ProjectColorField
-                label="Wall color"
-                value={design.wallColor}
-                options={BUILDING_COLOR_OPTIONS}
-                onChange={(wallColor) => update({ wallColor })}
-                testIdPrefix="steel-home-building-wall-color"
-              />
-              <ProjectColorField
-                label="Roof color"
-                value={design.roofColor}
-                options={BUILDING_COLOR_OPTIONS}
-                onChange={(roofColor) => update({ roofColor })}
-                testIdPrefix="steel-home-building-roof-color"
-              />
-              <ProjectColorField
-                label="Trim color"
-                value={design.trimColor}
-                options={BUILDING_COLOR_OPTIONS}
-                onChange={(trimColor) => update({ trimColor })}
-                testIdPrefix="steel-home-building-trim-color"
-              />
+            <details className="group mt-5 rounded-2xl border border-[#18312f]/12 bg-white">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a94f2e] [&::-webkit-details-marker]:hidden">
+                Doors, windows, and porch
+                <ChevronDown
+                  className="h-4 w-4 transition group-open:rotate-180"
+                  aria-hidden="true"
+                />
+              </summary>
+              <div className="grid gap-4 border-t border-[#18312f]/10 p-4 sm:grid-cols-2">
+                <ProjectNumberField
+                  label="Garage openings"
+                  value={design.garageDoors}
+                  min={0}
+                  max={5}
+                  suffix="doors"
+                  onChange={(garageDoors) => update({ garageDoors })}
+                  testId="steel-home-building-garage-doors"
+                />
+                <ProjectNumberField
+                  label="Entry doors"
+                  value={design.walkDoors}
+                  min={0}
+                  max={5}
+                  suffix="doors"
+                  onChange={(walkDoors) => update({ walkDoors })}
+                  testId="steel-home-building-walk-doors"
+                />
+                <ProjectNumberField
+                  label="Windows"
+                  value={design.windows}
+                  min={0}
+                  max={16}
+                  suffix="windows"
+                  onChange={(windows) => update({ windows })}
+                  testId="steel-home-building-windows"
+                />
+                <ProjectSelect
+                  label="Porch"
+                  value={design.porch}
+                  options={BUILDING_PORCH_OPTIONS}
+                  onChange={(porch) => update({ porch })}
+                  testId="steel-home-building-porch"
+                />
+                {design.porch !== "none" ? (
+                  <ProjectNumberField
+                    label="Porch depth"
+                    value={design.porchDepthFt}
+                    min={4}
+                    max={20}
+                    suffix="ft"
+                    onChange={(porchDepthFt) => update({ porchDepthFt })}
+                    testId="steel-home-building-porch-depth"
+                  />
+                ) : null}
+              </div>
+            </details>
+
+            <div
+              id="steel-home-building-opening-disclosure"
+              className="mt-4 rounded-2xl border border-[#18312f]/10 bg-[#e7ede5] p-4 text-sm leading-6 text-[#4f625e]"
+              data-testid="steel-home-building-opening-disclosure"
+            >
+              <p>
+                <strong className="text-[#18312f]">
+                  Opening counts are planning requirements only.
+                </strong>{" "}
+                Final sizes, placement, framing, clearances, and engineering must be confirmed for
+                the actual building.
+              </p>
             </div>
 
-            <div className="mt-8 grid gap-5 sm:grid-cols-3">
-              <ProjectNumberField
-                label="Garage-door openings"
-                value={design.garageDoors}
-                min={0}
-                max={5}
-                suffix="doors"
-                onChange={(garageDoors) => update({ garageDoors })}
-              />
-              <ProjectNumberField
-                label="Exterior entry doors"
-                value={design.walkDoors}
-                min={0}
-                max={5}
-                suffix="doors"
-                onChange={(walkDoors) => update({ walkDoors })}
-              />
-              <ProjectNumberField
-                label="Windows"
-                value={design.windows}
-                min={0}
-                max={16}
-                suffix="windows"
-                onChange={(windows) => update({ windows })}
-              />
-            </div>
+            {!openingFit.fits ? (
+              <div
+                id="steel-home-building-opening-fit-warning"
+                className="mt-4 flex gap-3 rounded-2xl border border-[#a1392e]/25 bg-[#f8e5df] p-4 text-[#7f2b24]"
+                role="status"
+                data-testid="steel-home-building-opening-fit-warning"
+              >
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div className="text-sm leading-6">
+                  <p className="font-black">The opening counts do not fit this rough plan.</p>
+                  <p>
+                    This {design.widthFt}- by {design.lengthFt}-foot building is about{" "}
+                    {openingFit.shortfallFt} feet short of the planner&apos;s rough wall fit. Reduce
+                    Garage openings, Entry doors, or Windows until this warning clears, or increase
+                    either Width or Length by at least {openingFit.recommendedDimensionIncreaseFt}{" "}
+                    feet before starting a request.
+                  </p>
+                </div>
+              </div>
+            ) : null}
 
-            <div className="mt-8 grid gap-5 sm:grid-cols-2">
-              <ProjectSelect
-                label="Porch"
-                value={design.porch}
-                options={BUILDING_PORCH_OPTIONS}
-                onChange={(porch) => update({ porch })}
-                testId="steel-home-building-porch"
-              />
-              <ProjectNumberField
-                label="Porch depth"
-                value={design.porchDepthFt}
-                min={0}
-                max={20}
-                suffix="ft"
-                onChange={(porchDepthFt) => update({ porchDepthFt })}
-                testId="steel-home-building-porch-depth"
-              />
-            </div>
+            <details className="group mt-5 rounded-2xl border border-[#18312f]/12 bg-white">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a94f2e] [&::-webkit-details-marker]:hidden">
+                Exterior colors
+                <ChevronDown
+                  className="h-4 w-4 transition group-open:rotate-180"
+                  aria-hidden="true"
+                />
+              </summary>
+              <div className="grid gap-5 border-t border-[#18312f]/10 p-4 sm:grid-cols-3">
+                <ProjectColorField
+                  label="Walls"
+                  value={design.wallColor}
+                  options={BUILDING_COLOR_OPTIONS}
+                  onChange={(wallColor) => update({ wallColor })}
+                  testIdPrefix="steel-home-building-wall-color"
+                />
+                <ProjectColorField
+                  label="Roof"
+                  value={design.roofColor}
+                  options={BUILDING_COLOR_OPTIONS}
+                  onChange={(roofColor) => update({ roofColor })}
+                  testIdPrefix="steel-home-building-roof-color"
+                />
+                <ProjectColorField
+                  label="Trim"
+                  value={design.trimColor}
+                  options={BUILDING_COLOR_OPTIONS}
+                  onChange={(trimColor) => update({ trimColor })}
+                  testIdPrefix="steel-home-building-trim-color"
+                />
+              </div>
+            </details>
 
-            <label className="mt-7 block space-y-2 text-sm font-bold text-[#18312f]">
-              <span>Metal building notes</span>
+            <label className="mt-5 block space-y-2 text-sm font-bold">
+              <span>Notes</span>
               <textarea
                 value={design.notes}
                 maxLength={240}
                 onChange={(event) => update({ notes: event.target.value })}
-                placeholder="Overhangs, special bays, future expansion, site concerns, or other priorities."
+                placeholder="Overhangs, special bays, expansion, or site concerns"
                 className={PROJECT_TEXTAREA_CLASS}
+                data-testid="steel-home-building-notes"
               />
             </label>
-
-            <div className="mt-8 hidden flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7 lg:flex">
-              <button
-                type="button"
-                onClick={startRequest}
-                data-testid="steel-home-building-include"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#a94f2e] px-6 text-sm font-black text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] transition hover:bg-[#8f3f25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] focus-visible:ring-offset-2"
-              >
-                <Send className="h-4 w-4" aria-hidden="true" />
-                Start a Request
-              </button>
-              <p className="text-xs leading-5 text-[#68736f]">
-                These choices are saved on this device.
-              </p>
-            </div>
           </div>
 
-          <div className="sticky bottom-0 z-30 order-2 -mx-4 flex items-center justify-between gap-3 border-y border-[#18312f]/10 bg-[#f7f3eb]/95 px-4 py-3 shadow-[0_-14px_35px_rgba(24,49,47,.12)] backdrop-blur lg:hidden">
+          <div className="sticky bottom-0 z-20 flex shrink-0 items-center justify-between gap-3 border-t border-[#18312f]/12 bg-white px-4 py-3 shadow-[0_-12px_35px_rgba(24,49,47,.1)] sm:px-6">
             <div className="min-w-0">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#a94f2e]">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.13em] text-[#a94f2e]">
                 Early price estimate
               </p>
-              <p className="truncate text-sm font-black">
-                {formatPlanningRange(planningEstimate.range)}
-              </p>
+              <p className="truncate text-lg font-black">{formatPlanningRange(estimate.range)}</p>
             </div>
             <button
               type="button"
               onClick={startRequest}
-              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#a94f2e] px-5 text-sm font-black text-white"
-              data-testid="steel-home-building-mobile-request"
+              disabled={!openingFit.fits}
+              aria-disabled={!openingFit.fits}
+              aria-describedby={`steel-home-building-opening-disclosure${
+                openingFit.fits ? "" : " steel-home-building-opening-fit-warning"
+              }`}
+              className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                openingFit.fits
+                  ? "bg-[#a94f2e] text-white hover:bg-[#8f3f25] focus-visible:ring-[#a94f2e]"
+                  : "cursor-not-allowed bg-[#d9ddd5] text-[#596762] focus-visible:ring-[#596762]"
+              }`}
+              data-testid="steel-home-building-include"
             >
+              <Send className="h-4 w-4" aria-hidden="true" />
               Start a Request
             </button>
           </div>

@@ -646,6 +646,11 @@ describe("WholesalerProfileTheme JW Stone Phase 2", () => {
     expect(container.querySelectorAll("details")).toHaveLength(0);
     expect(container.textContent).toContain("Ask through Direct Connect.");
     expect(container.textContent).toContain("Recommendation 4");
+    expect(container.textContent).toContain("Order review");
+    expect(container.textContent).toContain(
+      "Each order is checked against the confirmed material selection and delivery details before it ships."
+    );
+    expect(container.textContent).not.toContain("reviewed through fabrication and finishing");
     expect(
       Array.from(container.querySelectorAll("button")).some(
         (button) => button.textContent === "Show all 4 recommendations"
