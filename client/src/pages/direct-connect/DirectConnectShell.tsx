@@ -127,10 +127,10 @@ import {
 import {
   getDirectConnectContextLabel,
   getDirectConnectIntent,
-  parseDirectConnectEntryContext,
   type DirectConnectEntryContextType,
   type DirectConnectIntent,
 } from "./directConnectEntryContext";
+import { resolveDirectConnectEntryContext } from "./stagedDirectConnectEntryContext";
 import { resolveDirectConnectDispatchSelection } from "./directConnectDispatchSelection";
 import { getStoredDiscoveryLandingAttribution } from "@/lib/discoveryLanding";
 import {
@@ -5225,7 +5225,7 @@ export default function DirectConnectShell() {
   );
 
   const requestPrefill = useMemo(
-    () => parseDirectConnectEntryContext(directConnectLocation),
+    () => resolveDirectConnectEntryContext(directConnectLocation),
     [directConnectLocation]
   );
   const defaultCountyFips = requestPrefill?.countyFips;

@@ -17,6 +17,7 @@ import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import BuildingDesigner from "./steel-home-project-tools/BuildingDesigner";
 import CabinetDesigner from "./steel-home-project-tools/CabinetDesigner";
 import CountertopDesigner from "./steel-home-project-tools/CountertopDesigner";
+import ProjectStart from "./steel-home-project-tools/ProjectStart";
 import SteelHomeProjectReview from "./steel-home-project-tools/SteelHomeProjectReview";
 import {
   clearSteelHomeProjectDraft,
@@ -164,7 +165,7 @@ export default function SteelHomePackagesProfile({
 
   return (
     <main
-      className="min-h-screen overflow-x-hidden bg-[#f5f1e8] pt-[72px] text-[#18312f]"
+      className="min-h-screen overflow-x-hidden bg-[#f5f1e8] pb-20 pt-[72px] text-[#18312f] sm:pb-0"
       data-testid="steel-home-packages-profile"
       data-profile-slug={identity.slug}
       data-release-state={identity.releaseState}
@@ -175,7 +176,7 @@ export default function SteelHomePackagesProfile({
             type="button"
             onClick={() => scrollToSection("#top")}
             className="flex min-w-0 items-baseline gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
-            aria-label="Steel Home Project Tools, back to top"
+            aria-label={`${content.header.label}, back to top`}
           >
             <span className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
               TradeScout
@@ -201,7 +202,7 @@ export default function SteelHomePackagesProfile({
 
           <ScrollButton
             target="#project-review"
-            label="Review project"
+            label="My build plan"
             testId="steel-home-header-review"
             variant="dark"
             className="hidden sm:inline-flex"
@@ -231,7 +232,7 @@ export default function SteelHomePackagesProfile({
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <ScrollButton
-                target="#project-tools"
+                target="#project-start"
                 label={content.hero.primaryAction}
                 testId="steel-home-hero-tools"
                 variant="light"
@@ -248,15 +249,15 @@ export default function SteelHomePackagesProfile({
             <div className="mt-10 flex flex-wrap gap-x-6 gap-y-3 text-xs font-semibold text-white/60">
               <span className="inline-flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-[#f0b392]" aria-hidden="true" />
-                Working live visuals
+                Explore without an account
               </span>
               <span className="inline-flex items-center gap-2">
                 <Ruler className="h-4 w-4 text-[#f0b392]" aria-hidden="true" />
-                Measurements carried forward
+                Roof included with building
               </span>
               <span className="inline-flex items-center gap-2">
                 <Save className="h-4 w-4 text-[#f0b392]" aria-hidden="true" />
-                Draft saved in this browser
+                Real photographed surfaces
               </span>
             </div>
           </div>
@@ -304,6 +305,8 @@ export default function SteelHomePackagesProfile({
           </div>
         </div>
       </section>
+
+      <ProjectStart draft={draft} onChange={updateDraft} onNavigate={scrollToSection} />
 
       <section
         id="project-tools"
@@ -378,9 +381,26 @@ export default function SteelHomePackagesProfile({
       <TradeScoutProfileHandoff
         profileSlug={identity.slug}
         profileName={identity.displayLabel}
-        itemName="Steel-home project tools"
+        itemName="Steel Home Project Center"
         platformBaseHref={platformBaseHref}
       />
+
+      <div className="fixed inset-x-0 bottom-0 z-50 grid grid-cols-2 gap-2 border-t border-[#18312f]/10 bg-[#f7f3eb]/95 p-3 shadow-[0_-12px_34px_rgba(24,49,47,0.12)] backdrop-blur-xl sm:hidden">
+        <button
+          type="button"
+          onClick={() => scrollToSection("#project-review")}
+          className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#18312f]/20 bg-white text-sm font-bold text-[#18312f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#18312f]"
+        >
+          My build plan
+        </button>
+        <button
+          type="button"
+          onClick={() => scrollToSection("#project-start")}
+          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#c9683d] text-sm font-bold text-white shadow-[0_12px_28px_rgba(84,35,18,0.22)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9683d]"
+        >
+          Start a Request
+        </button>
+      </div>
     </main>
   );
 }

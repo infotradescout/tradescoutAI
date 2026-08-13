@@ -218,7 +218,7 @@ export function IncludeDesignButton({
       }`}
     >
       {included ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : null}
-      {included ? "Included in project" : label}
+      {included ? "Added to my plan" : label}
     </button>
   );
 }

@@ -7,9 +7,11 @@ import {
   CABINET_HARDWARE_OPTIONS,
   CABINET_LAYOUT_OPTIONS,
   CABINET_ROOM_OPTIONS,
+  calculateCabinetPlanningEstimate,
   calculateCabinetPlannedWidth,
   type SteelHomeCabinetDesign,
 } from "./projectModel";
+import PlanningEstimateCard from "./PlanningEstimateCard";
 import {
   IncludeDesignButton,
   PROJECT_TEXTAREA_CLASS,
@@ -330,6 +332,7 @@ export default function CabinetDesigner({ design, onChange }: Props) {
   const update = (values: Partial<SteelHomeCabinetDesign>) => onChange({ ...design, ...values });
   const plannedWidth = calculateCabinetPlannedWidth(design);
   const remainingWidth = design.primaryWallIn - plannedWidth;
+  const planningEstimate = calculateCabinetPlanningEstimate(design);
 
   return (
     <section
@@ -383,6 +386,12 @@ export default function CabinetDesigner({ design, onChange }: Props) {
                 </p>
               </div>
             </div>
+
+            <PlanningEstimateCard
+              estimate={planningEstimate}
+              testId="steel-home-cabinet-planning-estimate"
+              theme="light"
+            />
           </div>
 
           <div className="rounded-[2rem] border border-[#18312f]/10 bg-[#f7f2e9] p-5 shadow-[0_24px_80px_rgba(77,57,38,0.1)] sm:p-8">
@@ -569,12 +578,12 @@ export default function CabinetDesigner({ design, onChange }: Props) {
               <IncludeDesignButton
                 included={design.included}
                 onClick={() => update({ included: !design.included })}
-                label="Add cabinet design to project"
+                label="Add cabinets to my plan"
                 testId="steel-home-cabinet-include"
               />
               <p className="text-xs leading-5 text-[#68736f]">
-                This is a planning elevation. Final cabinet lines, filler space, clearances, and
-                field measurements are confirmed before approval.
+                The cabinet range is for early budgeting. Final lines, fillers, clearances,
+                measurements, delivery, and installation are confirmed in the written quote.
               </p>
             </div>
           </div>

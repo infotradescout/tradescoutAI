@@ -1,12 +1,23 @@
-import { ArrowRight, Check, MapPin, RotateCcw, Search, Send } from "lucide-react";
+import { ArrowRight, Check, CircleDollarSign, MapPin, RotateCcw, Search, Send } from "lucide-react";
 import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
 import { getAllStates, getCountiesByState } from "@shared/states-counties";
 import {
+  parseDirectConnectEntryContext,
+  type DirectConnectEntryContext,
+} from "@/pages/direct-connect/directConnectEntryContext";
+import {
+  getDirectConnectEntryFallbackHref,
+  stageDirectConnectEntryContext,
+} from "@/pages/direct-connect/stagedDirectConnectEntryContext";
+import {
   LOCAL_LABOR_OPTIONS,
+  PROJECT_ROLE_OPTIONS,
   PROJECT_TIMING_OPTIONS,
   buildSteelHomeLaborRequestHref,
   buildSteelHomeProjectDescription,
   buildSteelHomeProjectRequestHref,
+  formatPlanningRange,
+  getSteelHomeProjectEstimateSummary,
   getSteelHomeProjectReadiness,
   type SteelHomeProjectDraft,
 } from "./projectModel";
@@ -22,27 +33,30 @@ type Props = {
 };
 
 const DESIGN_SCOPES = [
-  { key: "building", label: "Building concept" },
-  { key: "countertops", label: "Countertop concept" },
-  { key: "cabinets", label: "Cabinet concept" },
+  { key: "building", label: "Building + roof" },
+  { key: "countertops", label: "Stone + quartz" },
+  { key: "cabinets", label: "Cabinets" },
 ] as const;
 
 const STATE_OPTIONS = getAllStates();
 
 function RequestAction({
   ready,
-  href,
+  context,
+  destinationHref,
   label,
   testId,
   icon = "send",
 }: {
   ready: boolean;
-  href: string;
+  context: DirectConnectEntryContext;
+  destinationHref: string;
   label: string;
   testId: string;
   icon?: "send" | "search";
 }) {
   const Icon = icon === "search" ? Search : Send;
+  const fallbackHref = getDirectConnectEntryFallbackHref(destinationHref);
   const className =
     "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:w-auto";
 
@@ -61,7 +75,10 @@ function RequestAction({
 
   return (
     <a
-      href={href}
+      href={fallbackHref}
+      onClick={(event) => {
+        event.currentTarget.href = stageDirectConnectEntryContext(context, destinationHref);
+      }}
       data-testid={testId}
       className={`${className} bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.22)] hover:bg-[#b55732] focus-visible:ring-[#c9683d]`}
     >
@@ -81,10 +98,22 @@ export default function SteelHomeProjectReview({
   onReset,
 }: Props) {
   const readiness = getSteelHomeProjectReadiness(draft);
-  const projectHref = buildSteelHomeProjectRequestHref(requestHref, draft);
-  const laborHref = buildSteelHomeLaborRequestHref(laborRequestHref, draft);
+  const projectContext = parseDirectConnectEntryContext(
+    buildSteelHomeProjectRequestHref(requestHref, draft)
+  );
+  const laborContext = parseDirectConnectEntryContext(
+    buildSteelHomeLaborRequestHref(laborRequestHref, draft)
+  );
   const brief = buildSteelHomeProjectDescription(draft);
+  const estimateSummary = getSteelHomeProjectEstimateSummary(draft);
   const countyOptions = draft.stateCode ? getCountiesByState(draft.stateCode) : [];
+  const selectedRole = PROJECT_ROLE_OPTIONS.find((option) => option.value === draft.projectRole);
+  const planScopes = [...readiness.includedScopes, ...readiness.additionalScopeLabels];
+  const missingProjectParts = [
+    readiness.needsRole ? "choose how you are building" : "",
+    readiness.needsLocation ? "confirm the project city, state, and county" : "",
+    readiness.needsDesign ? "add at least one design or home scope" : "",
+  ].filter(Boolean);
 
   const update = (values: Partial<SteelHomeProjectDraft>) => onChange({ ...draft, ...values });
   const toggleTrade = (trade: string) => {
@@ -122,10 +151,10 @@ export default function SteelHomeProjectReview({
               <div className="flex items-start justify-between gap-5">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.2em] text-[#f0b392]">
-                    Project brief
+                    My build plan
                   </p>
                   <h3 className="mt-3 font-editorial text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
-                    This is exactly what TradeScout receives.
+                    What you have chosen so far.
                   </h3>
                 </div>
                 <span
@@ -139,22 +168,108 @@ export default function SteelHomeProjectReview({
                 </span>
               </div>
 
-              <pre
-                className="mt-7 max-h-[32rem] overflow-auto whitespace-pre-wrap rounded-2xl border border-white/10 bg-black/[0.15] p-5 font-sans text-xs leading-6 text-white/75 sm:text-sm"
-                data-testid="steel-home-project-brief"
+              <div className="mt-7 rounded-2xl border border-white/10 bg-black/[0.15] p-5">
+                <p className="text-sm font-bold text-white">Project summary</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
+                      Location
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-white/[0.72]">
+                      {draft.location || "Add the project location below"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
+                      Your role
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-white/[0.72]">
+                      {selectedRole?.label || "Choose how you are building above"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[0.68rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
+                      Project scopes
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-white/[0.72]">
+                      {planScopes.join(", ") || "Add a design or home scope above"}
+                    </p>
+                  </div>
+                </div>
+                <details className="mt-4 border-t border-white/10 pt-4">
+                  <summary className="cursor-pointer text-xs font-bold text-white/[0.72]">
+                    View full design details
+                  </summary>
+                  <pre
+                    className="mt-4 max-h-[24rem] overflow-auto whitespace-pre-wrap font-sans text-xs leading-6 text-white/[0.58]"
+                    data-testid="steel-home-project-brief"
+                  >
+                    {brief}
+                  </pre>
+                </details>
+              </div>
+
+              <div
+                className="mt-5 rounded-2xl border border-white/10 bg-white/[0.06] p-5"
+                data-testid="steel-home-project-estimate-summary"
               >
-                {brief}
-              </pre>
+                <div className="flex items-start gap-3">
+                  <CircleDollarSign
+                    className="mt-0.5 h-5 w-5 shrink-0 text-[#f0b392]"
+                    aria-hidden="true"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#f0b392]">
+                      Materials planning estimate
+                    </p>
+                    <p className="mt-2 font-editorial text-3xl font-semibold tracking-[-0.03em]">
+                      {estimateSummary.planningRange
+                        ? formatPlanningRange(estimateSummary.planningRange)
+                        : "Add a building or cabinet plan"}
+                    </p>
+                    {estimateSummary.planningEstimates.length ? (
+                      <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
+                        {estimateSummary.planningEstimates.map((estimate) => (
+                          <div
+                            key={estimate.key}
+                            className="flex items-center justify-between gap-4 text-sm"
+                          >
+                            <span className="text-white/[0.66]">{estimate.label}</span>
+                            <span className="shrink-0 font-bold">
+                              {formatPlanningRange(estimate.range)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {estimateSummary.quoteRequired.length ? (
+                      <div className="mt-4 border-t border-white/10 pt-4">
+                        <p className="text-xs font-bold text-white/[0.75]">Price after review</p>
+                        <ul className="mt-2 space-y-1 text-xs leading-5 text-white/[0.55]">
+                          {estimateSummary.quoteRequired.map((item) => (
+                            <li key={item}>• {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    <p className="mt-4 text-xs leading-5 text-white/[0.48]">
+                      {estimateSummary.disclaimer}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <RequestAction
                   ready={readiness.projectReady}
-                  href={projectHref}
-                  label="Send design to TradeScout"
+                  context={projectContext}
+                  destinationHref={requestHref}
+                  label="Start a Request"
                   testId="steel-home-project-request"
                 />
                 <p className="text-xs leading-5 text-white/[0.55]">
-                  No request is sent until you continue and approve it in Direct Connect.
+                  You will review the details and add your contact information before anything is
+                  sent.
                 </p>
               </div>
               {!readiness.projectReady ? (
@@ -162,11 +277,7 @@ export default function SteelHomeProjectReview({
                   className="mt-4 text-sm font-semibold text-[#f0b392]"
                   data-testid="steel-home-project-needs"
                 >
-                  {readiness.needsLocation && readiness.needsDesign
-                    ? "Confirm the project city, state, and county, then include at least one design."
-                    : readiness.needsLocation
-                      ? "Confirm the project city, state, and county to continue."
-                      : "Include at least one completed design to continue."}
+                  Complete these to continue: {missingProjectParts.join("; ")}.
                 </p>
               ) : null}
             </div>
@@ -181,7 +292,7 @@ export default function SteelHomeProjectReview({
                 <div>
                   <p className="text-sm font-bold text-[#18312f]">Project details</p>
                   <p className="mt-1 text-xs text-[#6d7874]">
-                    Used for the project review and local matching.
+                    Used to prepare local review and jobsite support.
                   </p>
                 </div>
               </div>
@@ -264,8 +375,8 @@ export default function SteelHomeProjectReview({
               </div>
 
               <p className="mt-4 text-xs leading-5 text-[#6d7874]">
-                The confirmed jobsite county controls local matching. It never falls back to your
-                account’s home county for this project.
+                The selected state and county guide local requirements and jobsite support. Make
+                sure they match the city, address, or ZIP entered above.
               </p>
 
               <div className="mt-7">
@@ -294,7 +405,7 @@ export default function SteelHomeProjectReview({
                           {scope.label}
                         </span>
                         <span className="mt-2 block text-xs">
-                          {included ? "Ready to send" : "Not included"}
+                          {included ? "Added to plan" : "Not included"}
                         </span>
                       </div>
                     );
@@ -353,20 +464,22 @@ export default function SteelHomeProjectReview({
               <div className="mt-7 flex flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7">
                 <RequestAction
                   ready={readiness.laborReady}
-                  href={laborHref}
+                  context={laborContext}
+                  destinationHref={laborRequestHref}
                   label="Find local labor"
                   testId="steel-home-labor-request"
                   icon="search"
                 />
                 <p className="text-xs leading-5 text-[#68736f]">
-                  This is a separate, untargeted request matched from the jobsite location.
+                  Labor stays separate from product pricing and uses the selected jobsite state and
+                  county for local review.
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-3 rounded-2xl border border-[#18312f]/10 bg-transparent p-5 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs leading-5 text-[#68736f]">
-                Your planning draft stays in this browser until you reset it.
+                This plan stays on this device until you reset it.
               </p>
               <button
                 type="button"

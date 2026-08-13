@@ -47,12 +47,12 @@ const safeUnlistedCandidate = {
   ownerPreferences: { profileVisibility: "public" },
 };
 
-describe("Steel Home Project Tools unlisted profile contract", () => {
+describe("Steel Home Project Center unlisted profile contract", () => {
   it("centralizes the TradeScout-owned identity and keeps search-engine release off", () => {
     expect(identity).toMatchObject({
       slug: "steel-home-packages",
       temporarySlug: "steel-home-packages",
-      displayLabel: "Steel Home Project Tools",
+      displayLabel: "Steel Home Project Center",
       publicRoute: "/u/steel-home-packages",
       releaseState: "unlisted",
       publiclyReleased: false,
@@ -92,10 +92,10 @@ describe("Steel Home Project Tools unlisted profile contract", () => {
       contextType: "profile",
       contextId: identity.slug,
       targetSelector: identity.slug,
-      targetName: "TradeScout project desk",
-      source: "steel_home_project_tools",
+      targetName: "Steel Home Project Center",
+      source: "steel_home_project_center",
       subjectType: "product",
-      title: "Steel-home design review",
+      title: "Steel-home project review",
     });
     expect(projectContext.description).toContain("Project location:");
     expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBeNull();
@@ -141,6 +141,7 @@ describe("Steel Home Project Tools unlisted profile contract", () => {
 
   it("renders express URL prefill inside the intent-specific request fields", () => {
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(composer).toContain("resolveDirectConnectEntryContext(directConnectLocation)");
     expect(composer).toContain('what: prefillTitle?.trim() || ""');
     expect(composer).toContain('details: prefillDescription?.trim() || ""');
     expect(composer).toContain('where: prefillLocation?.trim() || ""');
@@ -148,7 +149,7 @@ describe("Steel Home Project Tools unlisted profile contract", () => {
   });
 
   it("locks public copy to three separate working tools with no fulfillment-company exposure", () => {
-    expect(content.version).toBe(6);
+    expect(content.version).toBe(7);
     expect(content.tools.cards.map((item) => [item.key, item.title])).toEqual([
       ["building", "Building designer"],
       ["countertops", "Countertop designer"],
@@ -157,11 +158,15 @@ describe("Steel Home Project Tools unlisted profile contract", () => {
 
     const serialized = JSON.stringify(content);
     for (const requiredPublicTruth of [
-      "three working project tools",
-      "photographed named stone records",
-      "exact material",
-      "send the design, not a blank form",
-      "labor request stays untargeted",
+      "owner-builders, builders, and contractors",
+      "included roof",
+      "real material photos",
+      "selected surface",
+      "planning range",
+      "price after review",
+      "mini-split",
+      "tankless water",
+      "appliances",
     ]) {
       expect(serialized.toLowerCase()).toContain(requiredPublicTruth.toLowerCase());
     }
@@ -178,9 +183,6 @@ describe("Steel Home Project Tools unlisted profile contract", () => {
       "turnkey home",
       "single-wide",
       "tiny home",
-      "mini-split",
-      "tankless",
-      "appliance package",
       "whole-home warranty",
       "HomeID",
     ]) {
@@ -243,10 +245,11 @@ describe("Steel Home Project Tools unlisted profile contract", () => {
     expect(source).toContain('status: "published" as const');
     expect(source).toContain("hasVerifiedTradeScoutAdminCustody");
     expect(source).toContain("owner must remain a verified TradeScout admin");
-    expect(source).toContain('category: "Steel-home project tools"');
-    expect(source).toContain('"Steel building concept design"');
-    expect(source).toContain('"Natural-stone countertop planning"');
-    expect(source).toContain('"Cabinet layout planning"');
+    expect(source).toContain('category: "Steel-home project center"');
+    expect(source).toContain('"Steel building and roof planning"');
+    expect(source).toContain('"Photographed stone selection and countertop planning"');
+    expect(source).toContain('"Cabinet layout and budget planning"');
+    expect(source).toContain('"Whole-home scope and local project review"');
     expect(source).not.toContain("Worldwide Steel Buildings");
     expect(source).not.toContain("JW Stone Logistics");
     expect(source).not.toContain("A+ Cabinets");
