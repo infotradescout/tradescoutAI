@@ -114,8 +114,12 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.textContent).toContain("Browse by material");
     expect(container.textContent).toContain("Full inventory");
     expect(container.textContent).toContain(
-      "JW Stone handles the entire process — from sourcing through fabrication to delivery — with quarry-direct pricing."
+      "JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated delivery."
     );
+    expect(container.textContent).toContain(
+      "JW Stone does not template, fabricate, finish, or install countertops; those services require a separate independent fabricator."
+    );
+    expect(container.textContent).not.toContain("JW Stone handles the entire process");
     expect(container.textContent).not.toContain("Installed spaces");
     expect(container.textContent).not.toContain("Finished work");
     expect(container.querySelector("#jw-finished-work-heading")).toBeNull();
@@ -228,7 +232,10 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(story?.textContent).toContain("From source to finished space");
     expect(story?.textContent).toContain("Stone selected with the final room in mind");
     expect(story?.textContent).toContain(
-      "JW Stone handles the entire process — from sourcing through fabrication to delivery — with quarry-direct pricing."
+      "JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated delivery."
+    );
+    expect(story?.textContent).toContain(
+      "JW Stone does not template, fabricate, finish, or install countertops; those services require a separate independent fabricator."
     );
     expect(story?.textContent).toContain("Direct quarry relationships");
     expect(story?.textContent).not.toContain("Finished work");

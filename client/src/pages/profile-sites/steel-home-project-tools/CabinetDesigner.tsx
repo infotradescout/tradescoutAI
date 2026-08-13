@@ -1,7 +1,6 @@
-/* eslint-disable no-restricted-syntax -- Live SVG fills must reflect the selected cabinet finish. */
-import { useState } from "react";
-import { AlertTriangle, Boxes, ChefHat, ChevronDown, Ruler, Send } from "lucide-react";
-import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
+/* eslint-disable no-restricted-syntax -- Live SVG fills must reflect selected finishes. */
+import { useId } from "react";
+import { AlertTriangle, ChevronDown, Send } from "lucide-react";
 import {
   CABINET_DOOR_STYLE_OPTIONS,
   CABINET_FINISH_OPTIONS,
@@ -11,6 +10,7 @@ import {
   calculateCabinetPlanningEstimate,
   calculateCabinetPlannedWidth,
   formatPlanningRange,
+  getCabinetPrimaryWallFit,
   type SteelHomeCabinetDesign,
 } from "./projectModel";
 import PlanningEstimateCard from "./PlanningEstimateCard";
@@ -38,12 +38,7 @@ type CabinetModule = {
 
 function buildCabinetModules(design: SteelHomeCabinetDesign): CabinetModule[] {
   const modules: CabinetModule[] = [
-    {
-      key: "fridge",
-      label: "Fridge",
-      width: design.refrigeratorWidthIn,
-      kind: "appliance",
-    },
+    { key: "fridge", label: "Fridge", width: design.refrigeratorWidthIn, kind: "appliance" },
   ];
   for (let index = 0; index < design.pantryCount; index += 1) {
     modules.push({ key: `pantry-${index}`, label: "Pantry", width: 24, kind: "tall" });
@@ -59,111 +54,135 @@ function buildCabinetModules(design: SteelHomeCabinetDesign): CabinetModule[] {
   return modules;
 }
 
-function CabinetDoorFace({
+function hardwareColor(hardware: string): string {
+  return (
+    {
+      "Matte black": "#222524",
+      "Brushed brass": "#b08d43",
+      "Brushed nickel": "#a9aaa5",
+      "Polished chrome": "#dce1e3",
+      "No preference": "#6b716e",
+    }[hardware] || "#222524"
+  );
+}
+
+function DoorFace({
   x,
   y,
   width,
   height,
   style,
+  pull,
 }: {
   x: number;
   y: number;
   width: number;
   height: number;
   style: string;
+  pull: string;
 }) {
-  if (style === "Slab") return null;
-  const glass = style === "Glass accent";
   return (
-    <rect
-      x={x + 5}
-      y={y + 5}
-      width={Math.max(4, width - 10)}
-      height={Math.max(4, height - 10)}
-      rx={style === "Raised panel" ? 5 : 1}
-      fill={glass ? "rgba(120,164,168,.5)" : "none"}
-      stroke="rgba(24,49,47,.45)"
-      strokeWidth={style === "Raised panel" ? 3 : 2}
-    />
+    <g>
+      {style !== "Slab" ? (
+        <rect
+          x={x + 5}
+          y={y + 5}
+          width={Math.max(4, width - 10)}
+          height={Math.max(4, height - 10)}
+          rx={style === "Raised panel" ? 5 : 1}
+          fill={style === "Glass accent" ? "rgba(120,164,168,.5)" : "none"}
+          stroke="rgba(24,49,47,.45)"
+          strokeWidth={style === "Raised panel" ? 3 : 2}
+        />
+      ) : null}
+      <line
+        x1={x + width - Math.min(12, width * 0.2)}
+        x2={x + width - Math.min(12, width * 0.2)}
+        y1={y + height * 0.42}
+        y2={y + height * 0.58}
+        stroke={pull}
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </g>
   );
 }
 
 function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
+  const gradientId = `cabinet-wall-${useId().replace(/:/g, "")}`;
   const modules = buildCabinetModules(design);
   const plannedWidth = calculateCabinetPlannedWidth(design);
   const visualWidth = Math.max(plannedWidth, design.primaryWallIn);
-  const scale = 570 / visualWidth;
+  const scale = 560 / visualWidth;
   const finish = CABINET_FINISH_OPTIONS.find((item) => item.value === design.finish);
-  const layoutLabel =
+  const layout =
     CABINET_LAYOUT_OPTIONS.find((item) => item.value === design.layout)?.label || design.layout;
   const returnExtent = Math.min(
-    54,
-    Math.max(22, (design.returnWallIn / Math.max(36, design.primaryWallIn)) * 42)
+    68,
+    Math.max(24, (design.returnWallIn / Math.max(36, design.primaryWallIn)) * 52)
   );
   const layoutPath = {
-    "one-wall": "M625 42 H720",
-    "l-shape": `M625 30 H710 V${30 + returnExtent}`,
-    "u-shape": `M625 ${30 + returnExtent} V30 H710 V${30 + returnExtent}`,
-    galley: `M625 34 H710 M625 ${34 + returnExtent * 0.58} H710`,
+    "one-wall": "M624 48 H718",
+    "l-shape": `M624 35 H710 V${35 + returnExtent}`,
+    "u-shape": `M624 ${35 + returnExtent} V35 H710 V${35 + returnExtent}`,
+    galley: `M624 42 H710 M624 ${42 + returnExtent * 0.58} H710`,
   }[design.layout];
   const cabinetColor = finish?.hex || "#b58d62";
-  const baseY = 332;
-  const baseHeight = 98;
-  const upperBottom = baseY - 66;
-  const upperHeight = Math.min(138, design.upperHeightIn * 3.1);
-  const ceilingLineY = 88 + (144 - design.ceilingHeightIn) * 1.05;
-  const tallTop = ceilingLineY + 14;
-  const upperTop = Math.max(ceilingLineY + 14, upperBottom - upperHeight);
-  const visibleUpperHeight = Math.max(24, upperBottom - upperTop);
-  const islandWidth = Math.min(300, Math.max(120, design.islandLengthIn * 1.7));
-  const islandHeight = Math.min(62, Math.max(36, design.islandWidthIn * 0.78));
+  const pullColor = hardwareColor(design.hardware);
+  const baseY = 342;
+  const baseHeight = 94;
+  const ceilingY = 92 + (144 - design.ceilingHeightIn) * 1.02;
+  const upperBottom = baseY - 64;
+  const upperTop = Math.max(ceilingY + 15, upperBottom - design.upperHeightIn * 3);
+  const visibleUpperHeight = Math.max(25, upperBottom - upperTop);
+  const tallTop = ceilingY + 15;
+  const islandWidth = Math.min(310, Math.max(118, design.islandLengthIn * 1.7));
+  const islandHeight = Math.min(58, Math.max(34, design.islandWidthIn * 0.75));
   const islandX = (760 - islandWidth) / 2;
-  let cursor = 95;
+  let cursor = 96;
 
   return (
     <svg
       viewBox="0 0 760 500"
       role="img"
-      aria-label={`${design.room} cabinet wall preview with ${design.doorStyle} doors and ${finish?.label || "selected"} finish`}
-      className="h-auto w-full"
+      aria-label={`${design.room} cabinets with ${design.doorStyle} doors, ${finish?.label || "selected"} finish, and ${design.hardware} hardware`}
+      className="h-full min-h-[22rem] w-full"
       data-testid="steel-home-cabinet-preview"
+      data-room={design.room}
+      data-layout={design.layout}
+      data-door-style={design.doorStyle}
+      data-finish={design.finish}
+      data-hardware={design.hardware}
     >
       <defs>
-        <linearGradient id="cabinet-wall" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#eee8dd" />
-          <stop offset="1" stopColor="#d8d0c1" />
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f0ebe2" />
+          <stop offset="1" stopColor="#d9d0c2" />
         </linearGradient>
-        <linearGradient id="cabinet-floor" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#a78d70" />
-          <stop offset="1" stopColor="#c2ad91" />
-        </linearGradient>
-        <filter id="cabinet-shadow" x="-20%" y="-20%" width="150%" height="160%">
-          <feDropShadow dx="0" dy="10" stdDeviation="8" floodOpacity="0.2" />
+        <filter id={`${gradientId}-shadow`} x="-20%" y="-20%" width="150%" height="160%">
+          <feDropShadow dx="0" dy="9" stdDeviation="8" floodOpacity="0.18" />
         </filter>
       </defs>
-      <rect width="760" height="500" rx="30" fill="url(#cabinet-wall)" />
-      <path d="M0 430H760V500H0Z" fill="url(#cabinet-floor)" />
-      <line x1="0" x2="760" y1="430" y2="430" stroke="#6e604f" strokeWidth="4" />
+      <rect width="760" height="500" fill={`url(#${gradientId})`} />
+      <path d="M0 432H760V500H0Z" fill="#b9a58b" />
+      <line x1="0" x2="760" y1="432" y2="432" stroke="#6e604f" strokeWidth="4" />
       <line
-        x1="78"
-        x2="682"
-        y1={ceilingLineY}
-        y2={ceilingLineY}
-        stroke="#9d9385"
+        x1="76"
+        x2="684"
+        y1={ceilingY}
+        y2={ceilingY}
+        stroke="#988f83"
         strokeWidth="2"
         strokeDasharray="8 8"
         data-testid="steel-home-cabinet-ceiling-preview"
       />
 
       <g fill="#18312f" fontFamily="system-ui, sans-serif">
-        <text x="34" y="42" fontSize="13" fontWeight="800" letterSpacing="2">
-          CABINET PREVIEW
+        <text x="30" y="38" fontSize="13" fontWeight="800" letterSpacing="1.5">
+          {design.room.toUpperCase()} · {layout.toUpperCase()}
         </text>
-        <text x="34" y="70" fontSize="22" fontWeight="800">
-          {design.primaryWallIn}\" wall • {design.ceilingHeightIn}\" ceiling
-        </text>
-        <text x="725" y="22" textAnchor="end" fontSize="10" fontWeight="800" letterSpacing="1.5">
-          {layoutLabel.toUpperCase()}
+        <text x="30" y="67" fontSize="19" fontWeight="800">
+          {design.doorStyle} · {finish?.label || "Selected finish"} · {design.hardware}
         </text>
         <path
           d={layoutPath}
@@ -175,65 +194,55 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
         />
       </g>
 
-      <g filter="url(#cabinet-shadow)">
+      <g filter={`url(#${gradientId}-shadow)`}>
         {modules.map((module) => {
           const x = cursor;
           const width = Math.max(24, module.width * scale);
           cursor += width;
-          const isTall = module.kind === "tall" || module.key === "fridge";
-          const y = isTall ? tallTop : baseY;
-          const height = isTall ? baseY + baseHeight - y : baseHeight;
-          const isAppliance = module.kind === "appliance";
-          const fill = isAppliance ? "#555b5a" : cabinetColor;
-          const textColor = isAppliance ? "#ffffff" : "#18312f";
-
+          const tall = module.kind === "tall" || module.key === "fridge";
+          const y = tall ? tallTop : baseY;
+          const height = tall ? baseY + baseHeight - y : baseHeight;
+          const appliance = module.kind === "appliance";
           return (
-            <g key={module.key}>
+            <g key={module.key} data-module={module.key} data-width={module.width}>
               <rect
                 x={x}
                 y={y}
                 width={width}
                 height={height}
-                fill={fill}
+                fill={appliance ? "#565c5b" : cabinetColor}
                 stroke="#18312f"
                 strokeWidth="3"
               />
-              {!isAppliance ? (
-                <CabinetDoorFace
+              {!appliance ? (
+                <DoorFace
                   x={x}
                   y={y}
                   width={width}
                   height={height}
                   style={design.doorStyle}
+                  pull={pullColor}
                 />
               ) : null}
               {module.kind === "sink" ? (
-                <>
-                  <rect
-                    x={x + width * 0.16}
-                    y={baseY - 9}
-                    width={width * 0.68}
-                    height="18"
-                    rx="7"
-                    fill="#8fa7a6"
-                    stroke="#18312f"
-                    strokeWidth="3"
-                  />
-                  <path
-                    d={`M${x + width * 0.5} ${baseY - 9} q0 -23 17 -23`}
-                    fill="none"
-                    stroke="#18312f"
-                    strokeWidth="4"
-                  />
-                </>
+                <rect
+                  x={x + width * 0.16}
+                  y={baseY - 9}
+                  width={width * 0.68}
+                  height="18"
+                  rx="7"
+                  fill="#8fa7a6"
+                  stroke="#18312f"
+                  strokeWidth="3"
+                />
               ) : null}
               <text
                 x={x + width / 2}
                 y={y + height / 2 + 4}
                 textAnchor="middle"
-                fill={textColor}
+                fill={appliance ? "white" : "#18312f"}
                 fontFamily="system-ui, sans-serif"
-                fontSize={Math.min(12, Math.max(8, width / 5))}
+                fontSize={Math.min(11, Math.max(8, width / 5))}
                 fontWeight="800"
               >
                 {module.label}
@@ -242,24 +251,13 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
           );
         })}
 
-        <rect
-          x="90"
-          y={baseY - 8}
-          width={Math.min(580, plannedWidth * scale + 10)}
-          height="12"
-          rx="3"
-          fill="#ded7cc"
-          stroke="#18312f"
-          strokeWidth="3"
-        />
-
         {modules
           .filter((module) => module.kind === "cabinet" || module.kind === "sink")
           .map((module, index) => {
             const precedingWidth = modules
               .slice(0, modules.indexOf(module))
               .reduce((sum, item) => sum + item.width, 0);
-            const x = 95 + precedingWidth * scale;
+            const x = 96 + precedingWidth * scale;
             const width = Math.max(24, module.width * scale);
             return (
               <g key={`upper-${module.key}-${index}`}>
@@ -272,24 +270,25 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
                   stroke="#18312f"
                   strokeWidth="3"
                 />
-                <CabinetDoorFace
+                <DoorFace
                   x={x}
                   y={upperTop}
                   width={width}
                   height={visibleUpperHeight}
                   style={design.doorStyle}
+                  pull={pullColor}
                 />
               </g>
             );
           })}
 
         {design.island ? (
-          <g>
+          <g data-testid="steel-home-cabinet-island-preview">
             <rect
               x={islandX - 10}
-              y="397"
+              y="400"
               width={islandWidth + 20}
-              height="18"
+              height="16"
               rx="4"
               fill="#ded7cc"
               stroke="#18312f"
@@ -297,7 +296,7 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
             />
             <rect
               x={islandX}
-              y="415"
+              y="416"
               width={islandWidth}
               height={islandHeight}
               fill={cabinetColor}
@@ -305,25 +304,26 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
               strokeWidth="3"
             />
             {Array.from({ length: 3 }).map((_, index) => (
-              <CabinetDoorFace
+              <DoorFace
                 key={index}
                 x={islandX + index * (islandWidth / 3)}
-                y={415}
+                y={416}
                 width={islandWidth / 3}
                 height={islandHeight}
                 style={design.doorStyle}
+                pull={pullColor}
               />
             ))}
           </g>
         ) : null}
       </g>
 
-      <g fontFamily="system-ui, sans-serif" fontWeight="700">
-        <text x="34" y="478" fill="#18312f" fontSize="13">
-          Primary wall used: {plannedWidth}\" of {design.primaryWallIn}\"
+      <g fill="#596965" fontFamily="system-ui, sans-serif" fontSize="12" fontWeight="700">
+        <text x="30" y="486">
+          Wall used: {plannedWidth}&quot; of {design.primaryWallIn}&quot;
         </text>
-        <text x="725" y="478" textAnchor="end" fill="#63706c" fontSize="12">
-          Final measurements required
+        <text x="730" y="486" textAnchor="end">
+          {design.ceilingHeightIn}&quot; ceiling · {design.upperHeightIn}&quot; uppers
         </text>
       </g>
     </svg>
@@ -331,12 +331,13 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
 }
 
 export default function CabinetDesigner({ design, onChange, onRequest }: Props) {
-  const [previewOpen, setPreviewOpen] = useState(false);
   const update = (values: Partial<SteelHomeCabinetDesign>) => onChange({ ...design, ...values });
-  const plannedWidth = calculateCabinetPlannedWidth(design);
-  const remainingWidth = design.primaryWallIn - plannedWidth;
-  const planningEstimate = calculateCabinetPlanningEstimate(design);
+  const cabinetFit = getCabinetPrimaryWallFit(design);
+  const estimate = calculateCabinetPlanningEstimate(design);
+  const finish = CABINET_FINISH_OPTIONS.find((item) => item.value === design.finish)?.label;
+  const layout = CABINET_LAYOUT_OPTIONS.find((item) => item.value === design.layout)?.label;
   const startRequest = () => {
+    if (!cabinetFit.fits) return;
     onChange({ ...design, included: true });
     onRequest();
   };
@@ -344,112 +345,68 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
   return (
     <section
       id="cabinet-designer"
-      className="bg-[#e8dfd1]"
+      className="h-full overflow-y-auto bg-[#e7dfd2] text-[#18312f] lg:overflow-hidden"
       data-testid="steel-home-cabinet-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-6 pb-24 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
-        <div className="mb-5 lg:hidden">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-            Cabinet Planner
-          </p>
-          <h2 className="mt-2 font-editorial text-3xl font-semibold leading-none tracking-[-0.04em] text-[#18312f]">
-            Fit the cabinets and see an early estimate.
-          </h2>
-        </div>
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
-          <div className="order-1 lg:sticky lg:top-[9.5rem]">
-            <div className="hidden lg:block">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
-                {content.tools.cabinets.eyebrow}
+      <div className="grid min-h-full lg:h-full lg:grid-cols-[minmax(0,1.15fr)_minmax(25rem,.85fr)]">
+        <div className="flex min-h-[34rem] flex-col gap-3 p-3 sm:p-4 lg:min-h-0 lg:overflow-y-auto lg:p-5">
+          <div className="min-h-[22rem] flex-1 overflow-hidden rounded-[1.4rem] border border-[#18312f]/10 bg-[#eee8dd] shadow-[0_18px_55px_rgba(77,57,38,.12)]">
+            <CabinetPreview design={design} />
+          </div>
+
+          <div
+            className="grid gap-3 rounded-[1.25rem] border border-[#18312f]/10 bg-white/75 p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+            data-testid="steel-home-cabinet-live-summary"
+            aria-live="polite"
+          >
+            <div className="min-w-0">
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.14em] text-[#a94f2e]">
+                {design.room} · {layout} · {design.doorStyle}
               </p>
-              <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
-                {content.tools.cabinets.title}
-              </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
-                Enter the room, cabinet sizes, appliances, storage, island, style, and finish. The
-                preview and early estimate update as you work.
+              <p className="mt-1 text-sm text-[#68736f]">
+                {finish} · {design.hardware} · {design.pantryCount} pantry ·{" "}
+                {design.drawerBaseCount} drawer bases
               </p>
             </div>
-
-            <button
-              type="button"
-              aria-expanded={previewOpen}
-              onClick={() => setPreviewOpen((open) => !open)}
-              className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-[#18312f]/15 bg-white/70 px-4 text-sm font-black lg:hidden"
-              data-testid="steel-home-cabinet-preview-toggle"
-            >
-              View live preview and estimate
-              <ChevronDown
-                className={`h-4 w-4 transition ${previewOpen ? "rotate-180" : ""}`}
-                aria-hidden="true"
-              />
-            </button>
-
-            <div className={`${previewOpen ? "block" : "hidden"} lg:block`}>
-              <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#eee8dd] shadow-[0_18px_55px_rgba(77,57,38,0.14)]">
-                <CabinetPreview design={design} />
-              </div>
-
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
-                  <Ruler className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Wall fit</p>
-                  <p
-                    className={`mt-1 text-sm ${remainingWidth < 0 ? "font-bold text-[#a1392e]" : "text-[#68736f]"}`}
-                  >
-                    {remainingWidth >= 0
-                      ? `${remainingWidth}\" remaining`
-                      : `${Math.abs(remainingWidth)}\" too wide`}
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
-                  <Boxes className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Storage</p>
-                  <p className="mt-1 text-sm text-[#68736f]">
-                    {design.pantryCount} pantry • {design.drawerBaseCount} drawer
-                  </p>
-                </div>
-                <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
-                  <ChefHat className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
-                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Island</p>
-                  <p className="mt-1 text-sm text-[#68736f]">
-                    {design.island
-                      ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"`
-                      : "None"}
-                  </p>
-                </div>
-              </div>
-
-              <PlanningEstimateCard
-                estimate={planningEstimate}
-                testId="steel-home-cabinet-planning-estimate"
-                theme="light"
-              />
+            <div className="sm:text-right">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#a94f2e]">
+                Early price estimate
+              </p>
+              <p className="text-xl font-black">{formatPlanningRange(estimate.range)}</p>
             </div>
           </div>
 
-          <div className="order-3 rounded-[2rem] border border-[#18312f]/10 bg-[#f7f2e9] p-5 shadow-[0_24px_80px_rgba(77,57,38,0.1)] sm:p-8 lg:order-2">
+          <PlanningEstimateCard
+            estimate={estimate}
+            testId="steel-home-cabinet-planning-estimate"
+            theme="light"
+          />
+        </div>
+
+        <div className="flex min-h-0 flex-col border-t border-[#18312f]/10 bg-[#f7f2e9] lg:border-l lg:border-t-0">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-                Room measurements
+              <p className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-[#a94f2e]">
+                Room and fit
               </p>
-              <h3 className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.035em] text-[#18312f]">
-                Enter the room measurements and cabinet sizes.
-              </h3>
+              <p className="mt-2 text-sm leading-6 text-[#68736f]">
+                Change a choice and watch the cabinet wall and estimate update.
+              </p>
             </div>
 
-            <div className="mt-7 grid gap-5 sm:grid-cols-2">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <ProjectTextSelect
                 label="Room"
                 value={design.room}
                 options={CABINET_ROOM_OPTIONS}
                 onChange={(room) => update({ room })}
+                testId="steel-home-cabinet-room"
               />
               <ProjectSelect
-                label="Room layout"
+                label="Layout"
                 value={design.layout}
                 options={CABINET_LAYOUT_OPTIONS}
-                onChange={(layout) => update({ layout })}
+                onChange={(layoutValue) => update({ layout: layoutValue })}
                 testId="steel-home-cabinet-layout"
               />
               <ProjectNumberField
@@ -461,15 +418,17 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
                 onChange={(primaryWallIn) => update({ primaryWallIn })}
                 testId="steel-home-cabinet-primary-wall"
               />
-              <ProjectNumberField
-                label="Return wall"
-                value={design.returnWallIn}
-                min={36}
-                max={360}
-                suffix="in"
-                onChange={(returnWallIn) => update({ returnWallIn })}
-                testId="steel-home-cabinet-return-wall"
-              />
+              {design.layout !== "one-wall" ? (
+                <ProjectNumberField
+                  label={design.layout === "galley" ? "Opposite wall" : "Return wall"}
+                  value={design.returnWallIn}
+                  min={36}
+                  max={360}
+                  suffix="in"
+                  onChange={(returnWallIn) => update({ returnWallIn })}
+                  testId="steel-home-cabinet-return-wall"
+                />
+              ) : null}
               <ProjectNumberField
                 label="Ceiling height"
                 value={design.ceilingHeightIn}
@@ -488,27 +447,51 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
               />
             </div>
 
-            <div className="mt-8 grid gap-6 sm:grid-cols-[1.1fr_.9fr]">
+            <div className="mt-5 grid gap-5 sm:grid-cols-[1.05fr_.95fr]">
               <ProjectColorField
                 label="Cabinet finish"
                 value={design.finish}
                 options={CABINET_FINISH_OPTIONS}
-                onChange={(finish) => update({ finish })}
+                onChange={(finishValue) => update({ finish: finishValue })}
                 testIdPrefix="steel-home-cabinet-finish"
               />
               <ProjectTextSelect
-                label="Hardware finish"
+                label="Hardware"
                 value={design.hardware}
                 options={CABINET_HARDWARE_OPTIONS}
                 onChange={(hardware) => update({ hardware })}
+                testId="steel-home-cabinet-hardware"
               />
             </div>
 
-            <div className="mt-8 border-t border-[#18312f]/10 pt-8">
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
+            {!cabinetFit.fits ? (
+              <div
+                className="mt-5 flex gap-3 rounded-2xl border border-[#a1392e]/25 bg-[#f8e5df] p-4 text-[#7f2b24]"
+                role="status"
+                id="steel-home-cabinet-fit-warning"
+                data-testid="steel-home-cabinet-fit-warning"
+              >
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                <div className="text-sm leading-6">
+                  <p className="font-black">Fix the primary-wall fit before starting.</p>
+                  <p>
+                    Increase Primary wall to at least {cabinetFit.plannedWidthIn} inches, or remove
+                    at least {cabinetFit.overageIn} inches of appliance or storage modules under
+                    Appliances and storage.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <details className="group mt-5 rounded-2xl border border-[#18312f]/12 bg-white">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a94f2e] [&::-webkit-details-marker]:hidden">
                 Appliances and storage
-              </p>
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <ChevronDown
+                  className="h-4 w-4 transition group-open:rotate-180"
+                  aria-hidden="true"
+                />
+              </summary>
+              <div className="grid gap-4 border-t border-[#18312f]/10 p-4 sm:grid-cols-2">
                 <ProjectTextSelect
                   label="Refrigerator width"
                   value={String(design.refrigeratorWidthIn) as "30" | "36" | "42" | "48"}
@@ -516,24 +499,28 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
                   onChange={(value) =>
                     update({ refrigeratorWidthIn: Number(value) as 30 | 36 | 42 | 48 })
                   }
+                  testId="steel-home-cabinet-refrigerator"
                 />
                 <ProjectTextSelect
                   label="Range width"
                   value={String(design.rangeWidthIn) as "30" | "36" | "48"}
                   options={["30", "36", "48"] as const}
                   onChange={(value) => update({ rangeWidthIn: Number(value) as 30 | 36 | 48 })}
+                  testId="steel-home-cabinet-range"
                 />
                 <ProjectTextSelect
                   label="Sink base width"
                   value={String(design.sinkBaseWidthIn) as "30" | "33" | "36"}
                   options={["30", "33", "36"] as const}
                   onChange={(value) => update({ sinkBaseWidthIn: Number(value) as 30 | 33 | 36 })}
+                  testId="steel-home-cabinet-sink-base"
                 />
                 <ProjectTextSelect
                   label="Upper cabinet height"
                   value={String(design.upperHeightIn) as "30" | "36" | "42"}
                   options={["30", "36", "42"] as const}
                   onChange={(value) => update({ upperHeightIn: Number(value) as 30 | 36 | 42 })}
+                  testId="steel-home-cabinet-upper-height"
                 />
                 <ProjectNumberField
                   label="Pantry cabinets"
@@ -542,6 +529,7 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
                   max={4}
                   suffix="units"
                   onChange={(pantryCount) => update({ pantryCount })}
+                  testId="steel-home-cabinet-pantry-count"
                 />
                 <ProjectNumberField
                   label="Drawer bases"
@@ -550,35 +538,22 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
                   max={6}
                   suffix="units"
                   onChange={(drawerBaseCount) => update({ drawerBaseCount })}
+                  testId="steel-home-cabinet-drawer-count"
                 />
               </div>
-            </div>
+            </details>
 
-            {remainingWidth < 0 ? (
-              <div
-                className="mt-6 flex gap-3 rounded-2xl border border-[#a1392e]/25 bg-[#f8e5df] p-4 text-[#7f2b24]"
-                role="status"
-              >
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
-                <p className="text-sm leading-6">
-                  The selected cabinets and appliance spaces are {Math.abs(remainingWidth)} inches
-                  wider than the primary wall. Reduce a cabinet, move items to the return wall, or
-                  correct the wall measurement.
-                </p>
-              </div>
-            ) : null}
-
-            <div className="mt-7">
+            <div className="mt-5">
               <ProjectToggle
                 checked={design.island}
                 onChange={(island) => update({ island })}
                 label="Include an island"
-                description="Add a separate cabinet run and work surface."
+                description="Adds a separate cabinet run to the drawing and estimate."
                 testId="steel-home-cabinet-island"
               />
             </div>
             {design.island ? (
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <ProjectNumberField
                   label="Island length"
                   value={design.islandLengthIn}
@@ -586,6 +561,7 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
                   max={180}
                   suffix="in"
                   onChange={(islandLengthIn) => update({ islandLengthIn })}
+                  testId="steel-home-cabinet-island-length"
                 />
                 <ProjectNumberField
                   label="Island width"
@@ -594,54 +570,45 @@ export default function CabinetDesigner({ design, onChange, onRequest }: Props) 
                   max={72}
                   suffix="in"
                   onChange={(islandWidthIn) => update({ islandWidthIn })}
+                  testId="steel-home-cabinet-island-width"
                 />
               </div>
             ) : null}
 
-            <label className="mt-7 block space-y-2 text-sm font-bold text-[#18312f]">
-              <span>Cabinet notes</span>
+            <label className="mt-5 block space-y-2 text-sm font-bold">
+              <span>Notes</span>
               <textarea
                 value={design.notes}
                 maxLength={240}
                 onChange={(event) => update({ notes: event.target.value })}
-                placeholder="Corner storage, seating, appliance panels, open shelves, special heights, or other priorities."
+                placeholder="Corner storage, seating, appliance panels, or open shelves"
                 className={PROJECT_TEXTAREA_CLASS}
+                data-testid="steel-home-cabinet-notes"
               />
             </label>
-
-            <div className="mt-8 hidden flex-col items-start gap-3 border-t border-[#18312f]/10 pt-7 lg:flex">
-              <button
-                type="button"
-                onClick={startRequest}
-                data-testid="steel-home-cabinet-include"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#a94f2e] px-6 text-sm font-black text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] transition hover:bg-[#8f3f25] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] focus-visible:ring-offset-2"
-              >
-                <Send className="h-4 w-4" aria-hidden="true" />
-                Start a Request
-              </button>
-              <p className="text-xs leading-5 text-[#68736f]">
-                This is an early cabinet estimate. Final price requires exact measurements, cabinet
-                specifications, fillers, panels, clearances, delivery, taxes, and installation
-                choices.
-              </p>
-            </div>
           </div>
 
-          <div className="sticky bottom-0 z-30 order-2 -mx-4 flex items-center justify-between gap-3 border-y border-[#18312f]/10 bg-[#f7f2e9]/95 px-4 py-3 shadow-[0_-14px_35px_rgba(77,57,38,.14)] backdrop-blur lg:hidden">
+          <div className="sticky bottom-0 z-20 flex shrink-0 items-center justify-between gap-3 border-t border-[#18312f]/12 bg-white px-4 py-3 shadow-[0_-12px_35px_rgba(77,57,38,.1)] sm:px-6">
             <div className="min-w-0">
-              <p className="text-[0.62rem] font-black uppercase tracking-[0.12em] text-[#a94f2e]">
+              <p className="text-[0.62rem] font-black uppercase tracking-[0.13em] text-[#a94f2e]">
                 Early price estimate
               </p>
-              <p className="truncate text-sm font-black">
-                {formatPlanningRange(planningEstimate.range)}
-              </p>
+              <p className="truncate text-lg font-black">{formatPlanningRange(estimate.range)}</p>
             </div>
             <button
               type="button"
               onClick={startRequest}
-              className="inline-flex min-h-12 shrink-0 items-center justify-center rounded-full bg-[#a94f2e] px-5 text-sm font-black text-white"
-              data-testid="steel-home-cabinet-mobile-request"
+              disabled={!cabinetFit.fits}
+              aria-disabled={!cabinetFit.fits}
+              aria-describedby={!cabinetFit.fits ? "steel-home-cabinet-fit-warning" : undefined}
+              className={`inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                cabinetFit.fits
+                  ? "bg-[#a94f2e] text-white hover:bg-[#8f3f25] focus-visible:ring-[#a94f2e]"
+                  : "cursor-not-allowed bg-[#d9ddd5] text-[#596762] focus-visible:ring-[#596762]"
+              }`}
+              data-testid="steel-home-cabinet-include"
             >
+              <Send className="h-4 w-4" aria-hidden="true" />
               Start a Request
             </button>
           </div>

@@ -4,9 +4,9 @@ import { jw } from "./brand";
 const story = JW_STONE_PROFILE_PRESENTATION_BLOCK.data.story;
 
 /**
- * Single bottom composition: source → finished space.
- * Quarry leads; finished installs follow. Process copy from the former
- * finished-work bridge lives here — one section chrome, no duplicate galleries.
+ * Single bottom composition: source → finished-space inspiration.
+ * Quarry photography leads; reference rooms follow. Material-supply copy from
+ * the former bridge lives here — one section chrome, no duplicate galleries.
  */
 export function JwStoneStorySection() {
   if (!story.images.length) return null;
@@ -35,13 +35,14 @@ export function JwStoneStorySection() {
             {story.heading}
           </h2>
           <p className="mt-4 max-w-2xl text-base leading-7 text-white/90 sm:text-lg">
-            JW Stone handles the entire process — from sourcing through fabrication to delivery —
-            with quarry-direct pricing.
+            JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated
+            delivery. JW Stone does not template, fabricate, finish, or install countertops; those
+            services require a separate independent fabricator.
           </p>
 
           <ul
             className="scrollbar-hide mt-8 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-10 sm:gap-4 [&::-webkit-scrollbar]:hidden"
-            aria-label="JW Stone quarry and finished work"
+            aria-label="JW Stone quarry and finished-space inspiration"
           >
             {story.images.map((image) => (
               <li

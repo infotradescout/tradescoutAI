@@ -327,8 +327,8 @@ const DEFAULT_DIFFERENTIATORS = [
   },
   {
     icon: ShieldCheck,
-    title: "Processing & finish oversight",
-    body: "Each order is reviewed through fabrication and finishing before it ships.",
+    title: "Order review",
+    body: "Each order is checked against the confirmed material selection and delivery details before it ships.",
   },
   {
     icon: Truck,

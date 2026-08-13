@@ -1,21 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Save } from "lucide-react";
+import { ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity } from "@shared/steelHomePackagesProfile";
+import {
+  buildSteelHomeBuilderPath,
+  resolveSteelHomeBuilderPathname,
+} from "@shared/steelHomeBuilderRoutes";
 import BuildingDesigner from "./steel-home-project-tools/BuildingDesigner";
 import CabinetDesigner from "./steel-home-project-tools/CabinetDesigner";
 import CountertopDesigner from "./steel-home-project-tools/CountertopDesigner";
-import SteelHomePlannerNav, {
-  STEEL_HOME_PLANNERS,
-  STEEL_HOME_PLANNER_HASH,
+import SteelHomeBuilderDirectory, {
+  STEEL_HOME_BUILDERS,
   plannerFromHash,
+  plannerLauncherId,
   plannerPanelId,
-  plannerTabId,
   type SteelHomePlanner,
-} from "./steel-home-project-tools/SteelHomePlannerNav";
-import SteelHomePlannerRequest from "./steel-home-project-tools/SteelHomePlannerRequest";
+} from "./steel-home-project-tools/SteelHomeBuilderDirectory";
+import SteelHomePlannerRequest, {
+  type SteelHomeRequestSelection,
+} from "./steel-home-project-tools/SteelHomePlannerRequest";
 import {
   createEmptySteelHomeProjectDraft,
   loadSteelHomeProjectDraft,
+  reconcileSteelHomeProjectDraft,
   saveSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
 } from "./steel-home-project-tools/projectModel";
@@ -24,27 +30,109 @@ type Props = {
   requestHref: string;
   laborRequestHref: string;
   platformBaseHref?: string;
+  initialBuilder?: SteelHomePlanner | null;
+  onNavigateBuilder?: (builder: SteelHomePlanner | null) => void;
 };
 
-function initialPlanner(): SteelHomePlanner {
-  return typeof window === "undefined" ? "countertops" : plannerFromHash(window.location.hash);
+function currentPlanner(): SteelHomePlanner | null {
+  if (typeof window === "undefined") return null;
+  return (
+    resolveSteelHomeBuilderPathname(window.location.pathname) ||
+    plannerFromHash(window.location.hash)
+  );
 }
 
-export default function SteelHomePackagesProfile({ requestHref }: Props) {
+type BuilderRequestDetails = Pick<
+  SteelHomeProjectDraft,
+  "location" | "stateCode" | "countyFips" | "countyName" | "timing" | "projectRole"
+>;
+
+type BuilderRequestDetailsByBuilder = Record<SteelHomePlanner, BuilderRequestDetails>;
+
+const BUILDER_REQUEST_DETAILS_STORAGE_KEY = "tradescout:steel-home-builders:request-details:v1";
+
+function requestDetailsFromDraft(draft: SteelHomeProjectDraft): BuilderRequestDetails {
+  return {
+    location: draft.location,
+    stateCode: draft.stateCode,
+    countyFips: draft.countyFips,
+    countyName: draft.countyName,
+    timing: draft.timing,
+    projectRole: draft.projectRole,
+  };
+}
+
+function createEmptyBuilderRequestDetails(): BuilderRequestDetailsByBuilder {
+  const empty = requestDetailsFromDraft(createEmptySteelHomeProjectDraft());
+  return {
+    countertops: { ...empty },
+    cabinets: { ...empty },
+    building: { ...empty },
+  };
+}
+
+function loadBuilderRequestDetails(storage: Storage | null): BuilderRequestDetailsByBuilder {
+  const empty = createEmptyBuilderRequestDetails();
+  if (!storage) return empty;
+  try {
+    const raw = storage.getItem(BUILDER_REQUEST_DETAILS_STORAGE_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as Partial<BuilderRequestDetailsByBuilder>;
+    return Object.fromEntries(
+      STEEL_HOME_BUILDERS.map((builder) => {
+        const reconciled = reconcileSteelHomeProjectDraft({
+          ...createEmptySteelHomeProjectDraft(),
+          ...(parsed[builder.key] || {}),
+        });
+        return [builder.key, requestDetailsFromDraft(reconciled)];
+      })
+    ) as BuilderRequestDetailsByBuilder;
+  } catch {
+    return empty;
+  }
+}
+
+function saveBuilderRequestDetails(
+  storage: Storage | null,
+  details: BuilderRequestDetailsByBuilder
+): boolean {
+  if (!storage) return false;
+  try {
+    storage.setItem(BUILDER_REQUEST_DETAILS_STORAGE_KEY, JSON.stringify(details));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export default function SteelHomePackagesProfile({
+  requestHref,
+  laborRequestHref,
+  initialBuilder,
+  onNavigateBuilder,
+}: Props) {
   const [draft, setDraft] = useState<SteelHomeProjectDraft>(() =>
     createEmptySteelHomeProjectDraft()
   );
   const [storageReady, setStorageReady] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [activePlanner, setActivePlanner] = useState<SteelHomePlanner>(initialPlanner);
-  const [requestPlanner, setRequestPlanner] = useState<SteelHomePlanner | null>(null);
-  const skipInitialHashWrite = useRef(true);
+  const [requestDetailsSaved, setRequestDetailsSaved] = useState(false);
+  const [requestDetails, setRequestDetails] = useState<BuilderRequestDetailsByBuilder>(
+    createEmptyBuilderRequestDetails
+  );
+  const [activePlanner, setActivePlanner] = useState<SteelHomePlanner | null>(
+    () => initialBuilder || currentPlanner()
+  );
+  const [requestSelection, setRequestSelection] = useState<SteelHomeRequestSelection | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const storage = typeof window === "undefined" ? null : window.localStorage;
     setDraft(loadSteelHomeProjectDraft(storage));
+    setRequestDetails(loadBuilderRequestDetails(storage));
     setStorageReady(true);
     setSaved(Boolean(storage));
+    setRequestDetailsSaved(Boolean(storage));
   }, []);
 
   useEffect(() => {
@@ -53,54 +141,69 @@ export default function SteelHomePackagesProfile({ requestHref }: Props) {
   }, [draft, storageReady]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const restorePlanner = () => {
-      setActivePlanner(plannerFromHash(window.location.hash));
-      window.requestAnimationFrame(() => window.scrollTo({ top: 0 }));
-    };
+    if (!storageReady || typeof window === "undefined") return;
+    setRequestDetailsSaved(saveBuilderRequestDetails(window.localStorage, requestDetails));
+  }, [requestDetails, storageReady]);
+
+  useEffect(() => {
+    if (initialBuilder !== undefined) setActivePlanner(initialBuilder);
+  }, [initialBuilder]);
+
+  useEffect(() => {
+    if (onNavigateBuilder || typeof window === "undefined") return;
+    const restorePlanner = () => setActivePlanner(currentPlanner());
     window.addEventListener("hashchange", restorePlanner);
     window.addEventListener("popstate", restorePlanner);
     return () => {
       window.removeEventListener("hashchange", restorePlanner);
       window.removeEventListener("popstate", restorePlanner);
     };
-  }, []);
+  }, [onNavigateBuilder]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (skipInitialHashWrite.current) {
-      skipInitialHashWrite.current = false;
-      return;
+  const openPlanner = useCallback(
+    (planner: SteelHomePlanner) => {
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
+      setActivePlanner(planner);
+      setRequestSelection(null);
+      if (onNavigateBuilder) {
+        onNavigateBuilder(planner);
+        return;
+      }
+      if (typeof window !== "undefined") {
+        window.history.pushState(null, "", buildSteelHomeBuilderPath(planner));
+      }
+    },
+    [onNavigateBuilder]
+  );
+
+  const closePlanner = useCallback(() => {
+    const closedPlanner = activePlanner;
+    setActivePlanner(null);
+    setRequestSelection(null);
+    if (onNavigateBuilder) {
+      onNavigateBuilder(null);
+    } else if (typeof window !== "undefined") {
+      window.history.pushState(null, "", identity.publicRoute);
     }
-    const nextHash = STEEL_HOME_PLANNER_HASH[activePlanner];
-    if (window.location.hash === nextHash) return;
-    window.history.pushState(
-      null,
-      "",
-      `${window.location.pathname}${window.location.search}${nextHash}`
-    );
-  }, [activePlanner]);
+    window.requestAnimationFrame(() => {
+      if (closedPlanner) {
+        document.getElementById(plannerLauncherId(closedPlanner))?.focus();
+      } else {
+        previousFocusRef.current?.focus?.();
+      }
+    });
+  }, [activePlanner, onNavigateBuilder]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.requestAnimationFrame(() => window.scrollTo({ top: 0 }));
-  }, [activePlanner]);
-
-  const openPlanner = useCallback((planner: SteelHomePlanner, focusPanel = false) => {
-    setActivePlanner(planner);
-    if (focusPanel && typeof window !== "undefined") {
-      window.requestAnimationFrame(() => {
-        document.getElementById(plannerPanelId(planner))?.focus();
-      });
-    }
-  }, []);
-
-  // Keep controlled text exactly as typed. Draft cleanup runs only while loading,
-  // saving, and creating a request so spaces in place names and notes are not lost.
-  const updateDraft = useCallback((nextDraft: SteelHomeProjectDraft) => {
-    setSaved(false);
-    setDraft(nextDraft);
-  }, []);
+  const updateRequestDraft = useCallback(
+    (planner: SteelHomePlanner, nextDraft: SteelHomeProjectDraft) => {
+      setRequestDetailsSaved(false);
+      setRequestDetails((current) => ({
+        ...current,
+        [planner]: requestDetailsFromDraft(nextDraft),
+      }));
+    },
+    []
+  );
 
   const updateBuilding = useCallback((building: SteelHomeProjectDraft["building"]) => {
     setSaved(false);
@@ -117,92 +220,158 @@ export default function SteelHomePackagesProfile({ requestHref }: Props) {
     setDraft((current) => ({ ...current, cabinets }));
   }, []);
 
+  const resetActiveBuilder = useCallback(() => {
+    if (!activePlanner || typeof window === "undefined") return;
+    const builder = STEEL_HOME_BUILDERS.find((item) => item.key === activePlanner);
+    if (!window.confirm(`Reset every choice in the ${builder?.label || "open"} builder?`)) return;
+    const empty = createEmptySteelHomeProjectDraft();
+    setSaved(false);
+    setRequestDetailsSaved(false);
+    setDraft((current) => ({
+      ...current,
+      building: activePlanner === "building" ? empty.building : current.building,
+      countertops: activePlanner === "countertops" ? empty.countertops : current.countertops,
+      cabinets: activePlanner === "cabinets" ? empty.cabinets : current.cabinets,
+    }));
+    setRequestDetails((current) => ({
+      ...current,
+      [activePlanner]: requestDetailsFromDraft(empty),
+    }));
+  }, [activePlanner]);
+
+  const activeBuilder = STEEL_HOME_BUILDERS.find((item) => item.key === activePlanner);
+  const requestDraft = requestSelection
+    ? { ...draft, ...requestDetails[requestSelection.planner] }
+    : null;
+
   return (
     <main
-      className="min-h-screen overflow-x-clip bg-[#f5f1e8] text-[#18312f]"
+      className="flex min-h-screen flex-col bg-[#f5f1e8] text-[#18312f]"
       data-testid="steel-home-packages-profile"
       data-profile-slug={identity.slug}
       data-release-state={identity.releaseState}
     >
-      <header className="sticky top-0 z-50 flex h-16 items-center justify-between gap-4 border-b border-[#18312f]/10 bg-[#f7f3eb]/95 px-4 backdrop-blur sm:px-6">
-        <div className="min-w-0">
-          <div className="flex items-baseline gap-2.5">
-            <span className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-              TradeScout
-            </span>
-            <span className="hidden h-4 w-px bg-[#18312f]/25 sm:block" aria-hidden="true" />
-            <h1 className="truncate font-editorial text-xl font-semibold tracking-[-0.02em] sm:text-2xl">
-              Steel Home Planning Tools
-            </h1>
-          </div>
-          <p className="mt-0.5 hidden text-xs text-[#68736f] sm:block">
-            Three separate planners. Use only the one you need.
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2 text-xs font-semibold text-[#68736f]">
-          <Save className="h-4 w-4 text-[#a94f2e]" aria-hidden="true" />
-          <span className="hidden sm:inline" aria-live="polite">
-            {saved ? "Saved on this device" : "Saving changes"}
+      <header className="flex h-16 shrink-0 items-center border-b border-[#18312f]/10 bg-[#f8f5ee] px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1320px] items-center gap-3">
+          <span className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#a94f2e]">
+            TradeScout
           </span>
+          <span className="h-4 w-px bg-[#18312f]/20" aria-hidden="true" />
+          <h1 className="font-editorial text-xl font-semibold tracking-[-0.025em] sm:text-2xl">
+            Planning Tools
+          </h1>
         </div>
       </header>
 
-      <SteelHomePlannerNav activePlanner={activePlanner} onChange={openPlanner} />
-
       {!storageReady ? (
-        <div className="grid min-h-[65vh] place-items-center p-8 text-sm font-semibold text-[#68736f]">
-          Opening the planners…
+        <div className="grid flex-1 place-items-center p-8 text-sm font-semibold text-[#68736f]">
+          Opening the builders…
         </div>
-      ) : (
-        <div className="min-h-[calc(100vh-7.5rem)]" data-testid="steel-home-planner-workbench">
-          {STEEL_HOME_PLANNERS.map((planner) => {
-            const active = activePlanner === planner.key;
-            return (
-              <div
-                key={planner.key}
-                id={plannerPanelId(planner.key)}
-                role="tabpanel"
-                aria-labelledby={plannerTabId(planner.key)}
-                hidden={!active}
-                tabIndex={-1}
-                data-testid={plannerPanelId(planner.key)}
-                className="min-h-full focus:outline-none"
-              >
-                {active && planner.key === "building" ? (
-                  <BuildingDesigner
-                    design={draft.building}
-                    onChange={updateBuilding}
-                    onRequest={() => setRequestPlanner("building")}
-                  />
-                ) : null}
-                {active && planner.key === "countertops" ? (
-                  <CountertopDesigner
-                    design={draft.countertops}
-                    onChange={updateCountertops}
-                    onRequest={() => setRequestPlanner("countertops")}
-                  />
-                ) : null}
-                {active && planner.key === "cabinets" ? (
-                  <CabinetDesigner
-                    design={draft.cabinets}
-                    onChange={updateCabinets}
-                    onRequest={() => setRequestPlanner("cabinets")}
-                  />
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      ) : !activePlanner ? (
+        <SteelHomeBuilderDirectory onOpen={openPlanner} />
+      ) : null}
 
-      {requestPlanner ? (
+      {activePlanner && activeBuilder ? (
+        <section
+          className="flex min-h-0 flex-1 flex-col bg-[#f5f1e8]"
+          aria-labelledby="steel-home-active-builder-title"
+          data-testid="steel-home-builder-workbench"
+          data-builder={activePlanner}
+        >
+          <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-[#18312f]/12 bg-[#f8f5ee] px-3 sm:px-5">
+            <div className="flex min-w-0 items-center gap-3">
+              <a
+                href={identity.publicRoute}
+                onClick={(event) => {
+                  if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  ) {
+                    return;
+                  }
+                  event.preventDefault();
+                  closePlanner();
+                }}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#18312f]/15 bg-white transition hover:border-[#18312f]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e]"
+                aria-label="Back to all builders"
+                data-testid="steel-home-builder-close"
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              </a>
+              <div className="min-w-0">
+                <p className="hidden text-[0.62rem] font-black uppercase tracking-[0.16em] text-[#a94f2e] sm:block">
+                  Stand-alone builder
+                </p>
+                <h2
+                  id="steel-home-active-builder-title"
+                  className="truncate text-base font-black sm:text-lg"
+                >
+                  {activeBuilder.title}
+                </h2>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span
+                className="hidden items-center gap-1.5 text-xs font-semibold text-[#68736f] sm:flex"
+                aria-live="polite"
+              >
+                <Check className="h-3.5 w-3.5 text-[#a94f2e]" aria-hidden="true" />
+                {saved ? "Saved on this device" : "Saving"}
+              </span>
+              <button
+                type="button"
+                onClick={resetActiveBuilder}
+                className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-xs font-black text-[#5f6c68] transition hover:bg-[#18312f]/[0.06] hover:text-[#18312f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e]"
+                data-testid="steel-home-builder-reset"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                Reset
+              </button>
+            </div>
+          </header>
+
+          <div
+            id={plannerPanelId(activePlanner)}
+            className="min-h-0 flex-1"
+            data-testid={plannerPanelId(activePlanner)}
+          >
+            {activePlanner === "building" ? (
+              <BuildingDesigner
+                design={draft.building}
+                onChange={updateBuilding}
+                onRequest={() => setRequestSelection({ planner: "building", intent: "builder" })}
+              />
+            ) : null}
+            {activePlanner === "countertops" ? (
+              <CountertopDesigner
+                design={draft.countertops}
+                onChange={updateCountertops}
+                onRequest={(intent) => setRequestSelection({ planner: "countertops", intent })}
+              />
+            ) : null}
+            {activePlanner === "cabinets" ? (
+              <CabinetDesigner
+                design={draft.cabinets}
+                onChange={updateCabinets}
+                onRequest={() => setRequestSelection({ planner: "cabinets", intent: "builder" })}
+              />
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {requestSelection && requestDraft ? (
         <SteelHomePlannerRequest
-          planner={requestPlanner}
-          draft={draft}
-          onChange={updateDraft}
+          request={requestSelection}
+          draft={requestDraft}
+          onChange={(nextDraft) => updateRequestDraft(requestSelection.planner, nextDraft)}
           requestHref={requestHref}
-          saved={saved}
-          onClose={() => setRequestPlanner(null)}
+          laborRequestHref={laborRequestHref}
+          saved={saved && requestDetailsSaved}
+          onClose={() => setRequestSelection(null)}
         />
       ) : null}
     </main>

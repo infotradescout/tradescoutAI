@@ -108,8 +108,9 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
       targetName: "Steel Home Planning Tools",
       source: "steel_home_planning_tools",
       subjectType: "product",
-      title: "Steel home planner request",
+      title: "Steel home builder request",
     });
+    expect(projectContext.description).toContain("Builder:");
     expect(projectContext.description).toContain("Project location:");
     expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBeNull();
 
@@ -161,8 +162,8 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     expect(composer).toContain('when: prefillTiming?.trim() || ""');
   });
 
-  it("locks exactly three separate planners without exposing future or internal language", () => {
-    expect(content.version).toBe(11);
+  it("locks exactly three independent builders without exposing future or internal language", () => {
+    expect(content.version).toBe(14);
     expect(content.header.navigation.map((item) => [item.key, item.label])).toEqual([
       ["countertops", "Countertops"],
       ["cabinets", "Cabinets"],
@@ -170,14 +171,23 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     ]);
     expect(content.header.navigation.every((item) => !("href" in item))).toBe(true);
     expect(content.tools.cards.map((item) => [item.key, item.title])).toEqual([
-      ["countertops", "Countertop Planner & Area Estimator"],
-      ["cabinets", "Cabinet Planner & Estimator"],
-      ["building", "Metal Building Planner & Estimator"],
+      ["countertops", "Countertop Builder"],
+      ["cabinets", "Cabinet Builder"],
+      ["building", "Metal Building Builder"],
     ]);
+    expect(content.tools.cards.map((item) => item.action)).toEqual([
+      "Open Countertop Builder",
+      "Open Cabinet Builder",
+      "Open Metal Building Builder",
+    ]);
+    expect(content.tools.cards.every((item) => !("number" in item))).toBe(true);
     expect(content.tools.cards.find((item) => item.key === "countertops")?.label).toBe(
       "Countertops"
     );
     expect(content.header.label).toBe("Steel Home Planning Tools");
+    expect(content.hero.body).toBe(
+      "Countertops, Cabinets, and Metal Buildings are three stand-alone builders. Open any one without starting or completing another."
+    );
 
     const projectContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
     const laborContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
@@ -194,17 +204,33 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     for (const requiredPublicTruth of [
       "self-contracted homeowners, builders, and contractors",
       "Start a Request",
-      "three separate tools",
-      "Countertop Planner & Area Estimator",
-      "Cabinet Planner & Estimator",
-      "Metal Building Planner & Estimator",
+      "three stand-alone builders",
+      "Open any one without starting or completing another",
+      "Countertop Builder",
+      "Cabinet Builder",
+      "Metal Building Builder",
       "real photos",
       "Quartzite, Engineered Quartz",
       "early price estimate",
-      "Quote needed",
+      "Stone ordering and countertop fabrication are separate",
+      "TradeScout and the stone supplier do not template, fabricate, finish, or install countertops",
+      "separate independent fabricator",
     ]) {
       expect(customerCopy.toLowerCase()).toContain(requiredPublicTruth.toLowerCase());
     }
+
+    const countertopDesigner = read(
+      "client/src/pages/profile-sites/steel-home-project-tools/CountertopDesigner.tsx"
+    );
+    expect(content.tools.countertops.body).toContain("material supply only");
+    expect(content.tools.countertops.body).toContain("separate independent fabricator");
+    expect(countertopDesigner).toContain("Stone quote needed");
+    expect(content.disclosure).toContain(
+      "Countertop-top area is approximate, excludes backsplash, and is not a price or final template."
+    );
+    expect(content.disclosure).toContain(
+      "Cabinet and metal-building early price estimates are not quotes"
+    );
     for (const forbiddenPublicCopy of [
       "Worldwide Steel Buildings",
       "JW Stone Logistics",

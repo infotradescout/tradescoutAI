@@ -126,6 +126,7 @@ import {
   type ResolvedPublicProfileCategoryRequest,
   type ResolvedPublicProfileItemRequest,
 } from "./publicProfileItemRouting";
+import { serveSteelHomeBuilderProfileRoute } from "./steelHomeBuilderProfileRoute";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -2096,6 +2097,18 @@ app.use(landingContractHeaders);
                     if (!profileRecord) {
                       return sendPublicPageNotFound(res, "Profile not found");
                     }
+
+                    const handledSteelHomeBuilder = await serveSteelHomeBuilderProfileRoute({
+                      req,
+                      res,
+                      slug,
+                      collection: req.params.collection,
+                      itemSlug: req.params.itemSlug,
+                      origin,
+                      templateHtml,
+                      renderProfileHtml: buildPublicProfileHtml,
+                    });
+                    if (handledSteelHomeBuilder) return;
 
                     const requestedBasePath = req.path.startsWith("/p/")
                       ? `/p/${encodeURIComponent(slug)}`

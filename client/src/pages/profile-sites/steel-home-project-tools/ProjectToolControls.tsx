@@ -76,6 +76,7 @@ export function ProjectNumberField({
   value,
   min,
   max,
+  step = 1,
   suffix,
   onChange,
   testId,
@@ -84,6 +85,7 @@ export function ProjectNumberField({
   value: number;
   min: number;
   max: number;
+  step?: number;
   suffix: string;
   onChange: (value: number) => void;
   testId?: string;
@@ -94,13 +96,19 @@ export function ProjectNumberField({
     setInputValue(String(value));
   }, [value]);
 
+  const snapValue = (input: number) => {
+    const precision = String(step).split(".")[1]?.length || 0;
+    const snapped = Math.round(input / step) * step;
+    return Number(Math.min(max, Math.max(min, snapped)).toFixed(precision));
+  };
+
   const commitValue = () => {
     const parsed = Number(inputValue);
     if (inputValue.trim() === "" || !Number.isFinite(parsed)) {
       setInputValue(String(value));
       return;
     }
-    const nextValue = Math.min(max, Math.max(min, Math.round(parsed)));
+    const nextValue = snapValue(parsed);
     setInputValue(String(nextValue));
     if (nextValue !== value) onChange(nextValue);
   };
@@ -111,11 +119,11 @@ export function ProjectNumberField({
       <span className="relative block">
         <input
           type="number"
-          inputMode="numeric"
+          inputMode={step % 1 === 0 ? "numeric" : "decimal"}
           value={inputValue}
           min={min}
           max={max}
-          step="1"
+          step={step}
           onChange={(event) => {
             const nextInput = event.target.value;
             setInputValue(nextInput);
@@ -126,7 +134,7 @@ export function ProjectNumberField({
               parsed >= min &&
               parsed <= max
             ) {
-              const nextValue = Math.round(parsed);
+              const nextValue = snapValue(parsed);
               if (nextValue !== value) onChange(nextValue);
             }
           }}
