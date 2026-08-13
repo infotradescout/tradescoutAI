@@ -20,6 +20,10 @@ describe("Selective Intelligence public-profile trigger", () => {
     expect(routes).toContain("loginRequired: true");
     expect(routes).toContain("ownerOrAuthorizedManagerRequired: true");
     expect(routes).toContain("remoteOwnerConnectorAvailable: false");
+    expect(routes).toContain("manifestCarriesNoAuthorityOrCredentials: true");
+    expect(routes).toContain("canonicalTradeScoutOriginRequired: true");
+    expect(routes).toContain("profileContentIsUntrustedInput: true");
+    expect(routes).toContain("instructionsInProfileContentIgnored: true");
     expect(routes).toContain("publicLinkDoesNotGrantWriteAccess: true");
     expect(routes).toContain("existingTradeScoutPermissionsControlEveryAction: true");
   });
@@ -33,6 +37,21 @@ describe("Selective Intelligence public-profile trigger", () => {
 
     expect(manifest).toContain("const editorPath = `${profilePath}/edit`");
     expect(manifest).toContain("/pre-scout-setup?mode=signin&next=");
+    expect(manifest).toContain("https://www.thetradescout.com${profilePath}");
+    expect(manifest).not.toContain("customDomain");
     expect(manifest).not.toMatch(/accessToken|sessionId|ownerUserId/);
+  });
+
+  it("rejects non-canonical slugs and serves the manifest as inert JSON", () => {
+    const routes = read("server/routes/profiles.ts");
+    const manifest = routes.slice(
+      routes.indexOf("// Machine-readable profile-link trigger."),
+      routes.indexOf("// Owner-only: total and recent real page-view counts")
+    );
+
+    expect(manifest).toContain("requestedSlug.length > 120");
+    expect(manifest).toContain("!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedSlug)");
+    expect(manifest).toContain("default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+    expect(manifest).toContain('"X-Content-Type-Options", "nosniff"');
   });
 });

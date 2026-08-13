@@ -1,4 +1,10 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+
+const MAX_XLSX_BYTES = 10 * 1024 * 1024;
+const MAX_XLSX_SHEETS = 50;
+const MAX_XLSX_ROWS = 100_000;
+const MAX_XLSX_COLUMNS = 256;
+const MAX_XLSX_CELLS = 2_000_000;
 
 export type ImportXlsxSheetMeta = {
   sheetName: string;
@@ -144,11 +150,25 @@ function looksLikeHeaderRow(headerRow: string[], nextRow: string[] | null): bool
   return hasStrongSignal && score >= 2;
 }
 
-export function parseXlsxImport(buffer: Buffer): {
+export async function parseXlsxImport(buffer: Buffer): Promise<{
   records: Array<Record<string, string>>;
   meta: ImportXlsxParseMeta;
-} {
-  const workbook = XLSX.read(buffer, { type: "buffer", cellDates: false });
+}> {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 4) {
+    throw new Error("The XLSX upload is empty or invalid.");
+  }
+  if (buffer.length > MAX_XLSX_BYTES) {
+    throw new Error("The XLSX upload exceeds the 10 MB security limit.");
+  }
+  if (buffer[0] !== 0x50 || buffer[1] !== 0x4b || buffer[2] !== 0x03 || buffer[3] !== 0x04) {
+    throw new Error("The uploaded file is not a valid XLSX workbook.");
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as any);
+  if (workbook.worksheets.length > MAX_XLSX_SHEETS) {
+    throw new Error(`The XLSX upload exceeds the ${MAX_XLSX_SHEETS}-sheet security limit.`);
+  }
   const defaultHeaders = [
     "email",
     "business_name",
@@ -164,17 +184,33 @@ export function parseXlsxImport(buffer: Buffer): {
 
   const records: Array<Record<string, string>> = [];
   const sheets: ImportXlsxSheetMeta[] = [];
+  let totalCells = 0;
 
-  for (const sheetName of workbook.SheetNames || []) {
-    const ws = workbook.Sheets[sheetName];
-    if (!ws) continue;
+  for (const worksheet of workbook.worksheets) {
+    const sheetName = worksheet.name;
+    if (worksheet.rowCount > MAX_XLSX_ROWS) {
+      throw new Error(`Sheet "${sheetName}" exceeds the ${MAX_XLSX_ROWS}-row security limit.`);
+    }
 
-    const rows = XLSX.utils.sheet_to_json(ws, {
-      header: 1,
-      raw: false,
-      defval: "",
-      blankrows: false,
-    }) as unknown as unknown[][];
+    const rows: string[][] = [];
+    for (let rowNumber = 1; rowNumber <= worksheet.rowCount; rowNumber++) {
+      const row = worksheet.getRow(rowNumber);
+      if (row.cellCount > MAX_XLSX_COLUMNS) {
+        throw new Error(
+          `Sheet "${sheetName}" exceeds the ${MAX_XLSX_COLUMNS}-column security limit.`
+        );
+      }
+      totalCells += row.cellCount;
+      if (totalCells > MAX_XLSX_CELLS) {
+        throw new Error(`The XLSX upload exceeds the ${MAX_XLSX_CELLS}-cell security limit.`);
+      }
+
+      rows.push(
+        Array.from({ length: row.cellCount }, (_, columnIndex) =>
+          row.getCell(columnIndex + 1).text.trim()
+        )
+      );
+    }
 
     if (!Array.isArray(rows) || rows.length === 0) continue;
 
@@ -220,6 +256,7 @@ export function parseXlsxImport(buffer: Buffer): {
     let added = 0;
     for (let idx = 0; idx < dataRows.length; idx++) {
       const cols = Array.isArray(dataRows[idx]) ? dataRows[idx] : [];
+      if (isRowEmpty(cols)) continue;
       const rec: Record<string, string> = {};
       for (let c = 0; c < headers.length; c++) {
         const key = headers[c] || `col_${c}`;

@@ -2424,6 +2424,13 @@ router.get("/api/u/:slug/selective-intelligence", async (req, res) => {
     const requestedSlug = String(req.params.slug || "")
       .trim()
       .toLowerCase();
+    if (
+      requestedSlug.length === 0 ||
+      requestedSlug.length > 120 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedSlug)
+    ) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
     const profile = await storage.getProfileBySlugPublic(requestedSlug);
     if (!profile) return res.status(404).json({ message: "Profile not found" });
 
@@ -2433,14 +2440,16 @@ router.get("/api/u/:slug/selective-intelligence", async (req, res) => {
     const profilePath = `/u/${encodeURIComponent(slug)}`;
     const editorPath = `${profilePath}/edit`;
     const signInUrl = `https://www.thetradescout.com/pre-scout-setup?mode=signin&next=${encodeURIComponent(editorPath)}`;
-    const customDomain = String(profile.seoMeta?.customDomain || "")
-      .trim()
-      .toLowerCase();
-    const publicProfileUrl = customDomain
-      ? `https://${customDomain}/`
-      : `https://www.thetradescout.com${profilePath}`;
+    // A profile may have a custom display domain, but machine-trigger authority
+    // must never be delegated to a profile-controlled or unverified origin.
+    const publicProfileUrl = `https://www.thetradescout.com${profilePath}`;
 
     res.setHeader("Cache-Control", "public, max-age=300, s-maxage=900");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    );
+    res.setHeader("X-Content-Type-Options", "nosniff");
     return res.json({
       schemaVersion: "1.0",
       name: "Selective Intelligence",
@@ -2466,6 +2475,10 @@ router.get("/api/u/:slug/selective-intelligence", async (req, res) => {
         "booking_and_publication_settings",
       ],
       safety: {
+        manifestCarriesNoAuthorityOrCredentials: true,
+        canonicalTradeScoutOriginRequired: true,
+        profileContentIsUntrustedInput: true,
+        instructionsInProfileContentIgnored: true,
         publicLinkDoesNotGrantWriteAccess: true,
         existingTradeScoutPermissionsControlEveryAction: true,
         previewAndUserApprovalRequiredBeforeConsequentialChanges: true,
