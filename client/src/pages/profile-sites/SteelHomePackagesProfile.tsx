@@ -62,21 +62,26 @@ function requestDetailsFromDraft(draft: SteelHomeProjectDraft): BuilderRequestDe
   };
 }
 
-function createEmptyBuilderRequestDetails(): BuilderRequestDetailsByBuilder {
-  const empty = requestDetailsFromDraft(createEmptySteelHomeProjectDraft());
+function createBuilderRequestDetails(
+  seedDraft: SteelHomeProjectDraft = createEmptySteelHomeProjectDraft()
+): BuilderRequestDetailsByBuilder {
+  const seed = requestDetailsFromDraft(seedDraft);
   return {
-    countertops: { ...empty },
-    cabinets: { ...empty },
-    building: { ...empty },
+    countertops: { ...seed },
+    cabinets: { ...seed },
+    building: { ...seed },
   };
 }
 
-function loadBuilderRequestDetails(storage: Storage | null): BuilderRequestDetailsByBuilder {
-  const empty = createEmptyBuilderRequestDetails();
+function loadBuilderRequestDetails(
+  storage: Storage | null,
+  legacyDraft: SteelHomeProjectDraft
+): BuilderRequestDetailsByBuilder {
+  const empty = createBuilderRequestDetails();
   if (!storage) return empty;
   try {
     const raw = storage.getItem(BUILDER_REQUEST_DETAILS_STORAGE_KEY);
-    if (!raw) return empty;
+    if (!raw) return createBuilderRequestDetails(legacyDraft);
     const parsed = JSON.parse(raw) as Partial<BuilderRequestDetailsByBuilder>;
     return Object.fromEntries(
       STEEL_HOME_BUILDERS.map((builder) => {
@@ -118,7 +123,7 @@ export default function SteelHomePackagesProfile({
   const [saved, setSaved] = useState(false);
   const [requestDetailsSaved, setRequestDetailsSaved] = useState(false);
   const [requestDetails, setRequestDetails] = useState<BuilderRequestDetailsByBuilder>(
-    createEmptyBuilderRequestDetails
+    createBuilderRequestDetails
   );
   const [activePlanner, setActivePlanner] = useState<SteelHomePlanner | null>(
     () => initialBuilder || currentPlanner()
@@ -128,8 +133,9 @@ export default function SteelHomePackagesProfile({
 
   useEffect(() => {
     const storage = typeof window === "undefined" ? null : window.localStorage;
-    setDraft(loadSteelHomeProjectDraft(storage));
-    setRequestDetails(loadBuilderRequestDetails(storage));
+    const loadedDraft = loadSteelHomeProjectDraft(storage);
+    setDraft(loadedDraft);
+    setRequestDetails(loadBuilderRequestDetails(storage, loadedDraft));
     setStorageReady(true);
     setSaved(Boolean(storage));
     setRequestDetailsSaved(Boolean(storage));

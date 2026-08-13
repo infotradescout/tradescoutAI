@@ -58,6 +58,10 @@ const FORBIDDEN_PUBLIC_COPY = [
   "fips",
 ];
 
+const BUILDER_REQUEST_DETAILS_STORAGE_KEY = "tradescout:steel-home-builders:request-details:v1";
+const LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v7";
+
 function setControlValue(control: HTMLInputElement | HTMLTextAreaElement, value: string) {
   const prototype =
     control instanceof HTMLTextAreaElement
@@ -2045,6 +2049,146 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
         '[data-testid="steel-home-project-role-self-contracted"]'
       ).getAttribute("aria-pressed")
     ).toBe("true");
+  });
+
+  it("migrates legacy request details once, then preserves per-builder isolation", async () => {
+    const legacyDetails = {
+      location: "Legacy saved jobsite, MS 39564",
+      stateCode: "MS",
+      countyFips: "28059",
+      countyName: "Jackson County",
+      timing: "Within 12 months",
+      projectRole: "has-builder" as const,
+    };
+    const legacyDraft = createEmptySteelHomeProjectDraft();
+    const legacyCountertops = { ...legacyDraft.countertops } as Record<string, unknown>;
+    delete legacyCountertops.wallDepthIn;
+    window.localStorage.setItem(
+      LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        ...legacyDraft,
+        version: 7,
+        ...legacyDetails,
+        countertops: legacyCountertops,
+      })
+    );
+    expect(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY)).toBeNull();
+    expect(window.localStorage.getItem(BUILDER_REQUEST_DETAILS_STORAGE_KEY)).toBeNull();
+
+    renderProfile();
+    await flushUi();
+
+    expect(window.localStorage.getItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY)).toBeNull();
+    expect(
+      JSON.parse(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY) || "{}")
+    ).toMatchObject({
+      version: 8,
+      ...legacyDetails,
+      countertops: { wallDepthIn: 25.5 },
+    });
+
+    const expectRequestDetails = (
+      drawer: HTMLElement,
+      expected: Pick<typeof legacyDetails, "location" | "stateCode" | "countyFips" | "timing">,
+      role: "has-builder" | "builder-or-contractor" = "has-builder"
+    ) => {
+      expect(
+        requiredElement<HTMLInputElement>(drawer, '[data-testid="steel-home-project-location"]')
+          .value
+      ).toBe(expected.location);
+      expect(
+        requiredElement<HTMLSelectElement>(drawer, '[data-testid="steel-home-project-state"]').value
+      ).toBe(expected.stateCode);
+      expect(
+        requiredElement<HTMLSelectElement>(drawer, '[data-testid="steel-home-project-county"]')
+          .value
+      ).toBe(expected.countyFips);
+      expect(
+        requiredElement<HTMLSelectElement>(drawer, '[data-testid="steel-home-project-timing"]')
+          .value
+      ).toBe(expected.timing);
+      expect(
+        requiredElement<HTMLButtonElement>(
+          drawer,
+          `[data-testid="steel-home-project-role-${role}"]`
+        ).getAttribute("aria-pressed")
+      ).toBe("true");
+    };
+
+    for (const planner of ["countertops", "cabinets", "building"] as const) {
+      const drawer = startRequest(planner);
+      expectRequestDetails(drawer, legacyDetails);
+      closeRequest();
+    }
+
+    await flushUi();
+    expect(
+      JSON.parse(window.localStorage.getItem(BUILDER_REQUEST_DETAILS_STORAGE_KEY) || "{}")
+    ).toMatchObject({
+      countertops: legacyDetails,
+      cabinets: legacyDetails,
+      building: legacyDetails,
+    });
+
+    let drawer = startRequest("building");
+    const buildingOnlyDetails = {
+      ...legacyDetails,
+      location: "Building-only jobsite, MS 39564",
+      timing: "Within 3 months",
+      projectRole: "builder-or-contractor" as const,
+    };
+    setControlValue(
+      requiredElement<HTMLInputElement>(drawer, '[data-testid="steel-home-project-location"]'),
+      buildingOnlyDetails.location
+    );
+    setSelectValue(
+      requiredElement<HTMLSelectElement>(drawer, '[data-testid="steel-home-project-timing"]'),
+      buildingOnlyDetails.timing
+    );
+    act(() =>
+      requiredElement<HTMLButtonElement>(
+        drawer,
+        '[data-testid="steel-home-project-role-builder-or-contractor"]'
+      ).click()
+    );
+    closeRequest();
+
+    drawer = startRequest("cabinets");
+    expectRequestDetails(drawer, legacyDetails);
+    closeRequest();
+    await flushUi();
+
+    const isolatedDetails = JSON.parse(
+      window.localStorage.getItem(BUILDER_REQUEST_DETAILS_STORAGE_KEY) || "{}"
+    );
+    expect(isolatedDetails).toMatchObject({
+      countertops: legacyDetails,
+      cabinets: legacyDetails,
+      building: buildingOnlyDetails,
+    });
+
+    window.localStorage.setItem(
+      STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        ...createEmptySteelHomeProjectDraft(),
+        location: "Stale shared draft must not win",
+        stateCode: "AL",
+        countyFips: "01001",
+        countyName: "Autauga County",
+        timing: "More than 12 months away",
+        projectRole: "self-contracted",
+      })
+    );
+    act(() => root.unmount());
+    root = createRoot(container);
+    renderProfile();
+    await flushUi();
+
+    drawer = startRequest("building");
+    expectRequestDetails(drawer, buildingOnlyDetails, "builder-or-contractor");
+    closeRequest();
+    drawer = startRequest("countertops");
+    expectRequestDetails(drawer, legacyDetails);
   });
 
   it("requires a visible contracting role when an older saved role is no longer offered", async () => {

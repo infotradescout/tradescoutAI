@@ -45,6 +45,15 @@ function capDescriptionLength(description: string): string {
   return `${truncated}…`;
 }
 
+export type PublicProfileHtmlPageMetadata = {
+  documentTitle?: string;
+  socialTitle?: string;
+  description?: string;
+  canonical?: string;
+  ogType?: "profile" | "website" | "article" | "product";
+  robots?: "noindex, follow" | "noindex, nofollow";
+};
+
 type PublicProfileHtmlOptions = {
   slug: string;
   origin: string;
@@ -53,6 +62,7 @@ type PublicProfileHtmlOptions = {
   itemPhoto?: unknown;
   gallerySlug?: unknown;
   categorySlug?: unknown;
+  pageMetadata?: PublicProfileHtmlPageMetadata;
 };
 
 type PublicProfileEarlyHtmlOptions = {
@@ -167,6 +177,16 @@ function normalizePublicOrigin(origin: string): string | null {
     return parsed.origin;
   } catch {
     return null;
+  }
+}
+
+function normalizePageMetadataCanonical(value: unknown, origin: string): string {
+  if (!value) return "";
+  try {
+    const parsed = new URL(String(value), origin);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : "";
+  } catch {
+    return "";
   }
 }
 
@@ -631,9 +651,10 @@ function withProfilePublishingProvenance(
   structuredData: Record<string, any>,
   profileUrl: string,
   itemShare: PublicProfileItemShareMetadata | null,
-  categoryShare: ProfileInventoryCategoryShareMetadata | null
+  categoryShare: ProfileInventoryCategoryShareMetadata | null,
+  pageCanonical = ""
 ) {
-  const pageUrl = itemShare?.canonical || categoryShare?.canonical || profileUrl;
+  const pageUrl = itemShare?.canonical || categoryShare?.canonical || pageCanonical || profileUrl;
   const mainEntityId =
     itemShare?.itemType === "inventory" && itemShare.hasPublicName
       ? `${itemShare.canonical}#product`
@@ -648,7 +669,7 @@ function withProfilePublishingProvenance(
     pageUrl,
     mainEntityId,
     ownerIdentityId: `${profileUrl}#identity`,
-    pageType: itemShare || categoryShare ? "WebPage" : "ProfilePage",
+    pageType: itemShare || categoryShare || pageCanonical ? "WebPage" : "ProfilePage",
   });
 }
 
@@ -656,9 +677,11 @@ function buildJsonLd(
   profile: PublicProfileData,
   origin: string,
   itemShare: PublicProfileItemShareMetadata | null,
-  categoryShare: ProfileInventoryCategoryShareMetadata | null
+  categoryShare: ProfileInventoryCategoryShareMetadata | null,
+  pageMetadata?: PublicProfileHtmlPageMetadata
 ) {
   const profileUrl = resolveProfileUrl(profile, origin);
+  const pageCanonical = normalizePageMetadataCanonical(pageMetadata?.canonical, origin);
   const displayName =
     cleanPublicProfileText(profile.business?.name?.trim() || profile.profile.displayName, 200) ||
     "TradeScout public profile";
@@ -731,7 +754,8 @@ function buildJsonLd(
       ),
       profileUrl,
       itemShare,
-      categoryShare
+      categoryShare,
+      pageCanonical
     );
   }
 
@@ -757,7 +781,8 @@ function buildJsonLd(
     ),
     profileUrl,
     itemShare,
-    categoryShare
+    categoryShare,
+    pageCanonical
   );
 }
 
@@ -765,7 +790,8 @@ function buildMeta(
   profile: PublicProfileData,
   origin: string,
   itemShare: PublicProfileItemShareMetadata | null,
-  categoryShare: ProfileInventoryCategoryShareMetadata | null
+  categoryShare: ProfileInventoryCategoryShareMetadata | null,
+  pageMetadata?: PublicProfileHtmlPageMetadata
 ) {
   const displayName =
     cleanPublicProfileText(profile.business?.name?.trim() || profile.profile.displayName, 200) ||
@@ -777,7 +803,10 @@ function buildMeta(
       `${displayName} | TradeScout`,
     240
   );
-  const documentTitle = formatTradeScoutTitle(titleSource || "TradeScout public profile");
+  const requestedDocumentTitle = cleanPublicProfileText(pageMetadata?.documentTitle, 240);
+  const documentTitle = formatTradeScoutTitle(
+    requestedDocumentTitle || titleSource || "TradeScout public profile"
+  );
   const itemName =
     itemShare?.itemType === "inventory"
       ? cleanPublicProfileText(itemShare.itemName, 200)
@@ -799,15 +828,18 @@ function buildMeta(
         : undefined,
   });
   const publicBrandName = presentation.brandName;
-  const socialTitle = buildProfileSocialTitle({
-    brandName: publicBrandName,
-    itemType: itemShare?.itemType || (categoryShare ? "category" : null),
-    itemName: itemName || categoryShare?.categoryName,
-    category: itemShare?.itemType === "inventory" ? itemShare.category : null,
-  });
+  const socialTitle =
+    cleanPublicProfileText(pageMetadata?.socialTitle, 240) ||
+    buildProfileSocialTitle({
+      brandName: publicBrandName,
+      itemType: itemShare?.itemType || (categoryShare ? "category" : null),
+      itemName: itemName || categoryShare?.categoryName,
+      category: itemShare?.itemType === "inventory" ? itemShare.category : null,
+    });
   const fallbackDescription = cleanPublicProfileText(
     itemShare?.description ||
       categoryShare?.description ||
+      pageMetadata?.description ||
       profile.profile.seoMeta?.description ||
       profile.profile.headline ||
       profile.profile.servicesDescription ||
@@ -873,8 +905,12 @@ function buildMeta(
       ].join("|"),
     }) || sourceImageUrl;
   const faviconUrl = profile.profile.seoMeta?.faviconUrl || legacyProfileImageUrl;
+  const requestedCanonical = normalizePageMetadataCanonical(pageMetadata?.canonical, origin);
   const canonical =
-    itemShare?.canonical || categoryShare?.canonical || resolveProfileUrl(profile, origin);
+    requestedCanonical ||
+    itemShare?.canonical ||
+    categoryShare?.canonical ||
+    resolveProfileUrl(profile, origin);
   const keywords = [
     itemName,
     itemShare?.itemType === "inventory" ? itemShare.category || "" : "",
@@ -905,13 +941,14 @@ function buildMeta(
     canonical,
     keywords,
     ogType:
-      itemShare?.itemType === "inventory" && itemShare.hasPublicName
+      pageMetadata?.ogType ||
+      (itemShare?.itemType === "inventory" && itemShare.hasPublicName
         ? "product"
         : itemShare?.itemType === "gallery"
           ? "article"
           : itemShare?.itemType === "inventory" || categoryShare
             ? "website"
-            : "profile",
+            : "profile"),
   };
 }
 
@@ -923,6 +960,7 @@ export async function buildPublicProfileHtml({
   itemPhoto,
   gallerySlug,
   categorySlug,
+  pageMetadata,
 }: PublicProfileHtmlOptions): Promise<string | null> {
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
@@ -998,8 +1036,8 @@ export async function buildPublicProfileHtml({
   // Normal profile links carry only one item selector.
   const itemShare = inventoryItemShare || galleryItemShare;
   const pageCategoryShare = itemShare ? null : categoryShare;
-  const meta = buildMeta(data, origin, itemShare, pageCategoryShare);
-  const jsonLd = buildJsonLd(data, origin, itemShare, pageCategoryShare);
+  const meta = buildMeta(data, origin, itemShare, pageCategoryShare, pageMetadata);
+  const jsonLd = buildJsonLd(data, origin, itemShare, pageCategoryShare, pageMetadata);
   const shouldIndexProfile = shouldIndexPublicProfileSlug(profileRecord.slug);
 
   let html = templateHtml;
@@ -1019,9 +1057,10 @@ export async function buildPublicProfileHtml({
     html,
     /<meta name="robots"[^>]*>/i,
     `<meta name="robots" content="${
-      !shouldIndexProfile || (pageCategoryShare && !pageCategoryShare.indexable)
+      pageMetadata?.robots ||
+      (!shouldIndexProfile || (pageCategoryShare && !pageCategoryShare.indexable)
         ? "noindex, follow"
-        : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1"
+        : "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1")
     }" />`
   );
   if (shouldIndexProfile && (!pageCategoryShare || pageCategoryShare.indexable)) {

@@ -90,7 +90,7 @@ import {
 import {
   buildSteelHomeBuilderPath,
   resolveSteelHomeBuilderRoute,
-  type SteelHomeBuilderKey,
+  STEEL_HOME_BUILDER_PAGE_METADATA,
 } from "@shared/steelHomeBuilderRoutes";
 import {
   readFeaturedStoneSlugs,
@@ -1645,11 +1645,9 @@ export default function ProfileSiteView() {
     ) : null;
 
   if (isSteelHomePackagesProfileSlug(profile.slug)) {
-    const steelHomeBuilderTitles: Record<SteelHomeBuilderKey, string> = {
-      countertops: "Countertop Builder",
-      cabinets: "Cabinet Builder",
-      building: "Metal Building Builder",
-    };
+    const steelHomePageMetadata = steelHomeBuilderRoute
+      ? STEEL_HOME_BUILDER_PAGE_METADATA[steelHomeBuilderRoute]
+      : null;
     const steelHomeRequestHref = qualifyPublicProfileItemDestination(
       STEEL_HOME_PACKAGES_START_REQUEST_PATH,
       platformBaseHref
@@ -1664,9 +1662,7 @@ export default function ProfileSiteView() {
           typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin()
         ).toString()
       : seoCanonical;
-    const steelHomeSeoTitle = steelHomeBuilderRoute
-      ? `${steelHomeBuilderTitles[steelHomeBuilderRoute]} | TradeScout`
-      : seoTitle;
+    const steelHomeSeoTitle = steelHomePageMetadata?.title || seoTitle;
 
     return (
       <>
@@ -1674,7 +1670,9 @@ export default function ProfileSiteView() {
           title={steelHomeSeoTitle}
           socialTitle={steelHomeSeoTitle}
           description={
-            profile.seoMeta?.description || STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body
+            steelHomePageMetadata?.description ||
+            profile.seoMeta?.description ||
+            STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body
           }
           canonical={steelHomeCanonical}
           ogType="website"

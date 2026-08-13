@@ -703,7 +703,7 @@ describe("public profile item HTML", () => {
     }
   });
 
-  it("builds the exact host-local sitemap set for 119 stones, seven materials, and gallery", async () => {
+  it("builds the exact host-local sitemap set for 148 stones, seven materials, and gallery", async () => {
     profileRecord.contentBlocks = [
       jwPublicDiscoveryBlock,
       {
@@ -748,10 +748,10 @@ describe("public profile item HTML", () => {
       `https://jwstonelogistics.com/gallery/${galleryItem.slug}`,
     ];
 
-    expect(inventoryItems).toHaveLength(119);
+    expect(inventoryItems).toHaveLength(148);
     expect(materialCategories).toHaveLength(7);
     expect(locations).toEqual(expectedLocations);
-    expect(locations).toHaveLength(1 + 119 + 7 + 1);
+    expect(locations).toHaveLength(1 + 148 + 7 + 1);
     expect(new Set(locations).size).toBe(locations.length);
     expect(sitemap).not.toContain("https://www.thetradescout.com/");
     expect(sitemap).not.toContain("?stone=");

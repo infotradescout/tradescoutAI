@@ -1,3 +1,5 @@
+import { STEEL_HOME_PACKAGES_PROFILE_CONTENT } from "./steelHomePackagesProfile";
+
 export const STEEL_HOME_BUILDER_ROUTE_COLLECTION = "builders" as const;
 
 export const STEEL_HOME_BUILDER_ROUTE_SLUGS = {
@@ -7,6 +9,31 @@ export const STEEL_HOME_BUILDER_ROUTE_SLUGS = {
 } as const;
 
 export type SteelHomeBuilderKey = keyof typeof STEEL_HOME_BUILDER_ROUTE_SLUGS;
+
+const builderCardByKey = new Map(
+  STEEL_HOME_PACKAGES_PROFILE_CONTENT.tools.cards.map((card) => [card.key, card] as const)
+);
+
+function capBuilderDescription(description: string): string {
+  return description.length <= 160 ? description : `${description.slice(0, 159).trimEnd()}…`;
+}
+
+function builderPageMetadata(builder: SteelHomeBuilderKey) {
+  const card = builderCardByKey.get(builder);
+  return {
+    title: `${card?.title || "Steel Home Builder"} | TradeScout`,
+    description: capBuilderDescription(card?.body || STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body),
+  };
+}
+
+export const STEEL_HOME_BUILDER_PAGE_METADATA: Record<
+  SteelHomeBuilderKey,
+  { title: string; description: string }
+> = {
+  countertops: builderPageMetadata("countertops"),
+  cabinets: builderPageMetadata("cabinets"),
+  building: builderPageMetadata("building"),
+};
 
 const BUILDER_BY_SLUG = Object.fromEntries(
   Object.entries(STEEL_HOME_BUILDER_ROUTE_SLUGS).map(([key, slug]) => [slug, key])
