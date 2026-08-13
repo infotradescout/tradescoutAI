@@ -163,6 +163,22 @@ type DirectConnectDestination = {
   canUseCurrentSessionStorage: boolean;
 };
 
+function safeFallbackPath(destination: URL): string {
+  const params = new URLSearchParams();
+  const profile = cleanIdentity(destination.searchParams.get("profile"), 120);
+  const profileName = cleanString(destination.searchParams.get("profileName"), 160);
+  const source = cleanString(destination.searchParams.get("source"), 80);
+  const subject = cleanSubjectType(destination.searchParams.get("subject"));
+
+  if (profile) params.set("profile", profile);
+  if (profileName) params.set("profileName", profileName);
+  if (source) params.set("source", source);
+  if (subject) params.set("subject", subject);
+
+  const query = params.toString();
+  return `${DIRECT_CONNECT_PATH}${query ? `?${query}` : ""}`;
+}
+
 function resolveDirectConnectDestination(destinationHref: string): DirectConnectDestination {
   const candidate = destinationHref.trim() || DIRECT_CONNECT_PATH;
   const currentHref = typeof window === "undefined" ? null : window.location.href;
@@ -172,21 +188,20 @@ function resolveDirectConnectDestination(destinationHref: string): DirectConnect
     if (destination.protocol !== "https:" && destination.protocol !== "http:") {
       return { fallbackHref: DIRECT_CONNECT_PATH, canUseCurrentSessionStorage: false };
     }
+    const fallbackPath = safeFallbackPath(destination);
 
     if (!currentHref) {
       return {
         fallbackHref: /^(?:https?:)?\/\//i.test(candidate)
-          ? `${destination.origin}${DIRECT_CONNECT_PATH}`
-          : DIRECT_CONNECT_PATH,
+          ? `${destination.origin}${fallbackPath}`
+          : fallbackPath,
         canUseCurrentSessionStorage: false,
       };
     }
 
     const isSameOrigin = destination.origin === window.location.origin;
     return {
-      fallbackHref: isSameOrigin
-        ? DIRECT_CONNECT_PATH
-        : `${destination.origin}${DIRECT_CONNECT_PATH}`,
+      fallbackHref: isSameOrigin ? fallbackPath : `${destination.origin}${fallbackPath}`,
       canUseCurrentSessionStorage: isSameOrigin,
     };
   } catch {
@@ -195,9 +210,9 @@ function resolveDirectConnectDestination(destinationHref: string): DirectConnect
 }
 
 /**
- * Returns a query-free Direct Connect link for progressive enhancement. An
- * absolute platform destination stays absolute when the current page is on a
- * different origin, while same-origin destinations stay relative.
+ * Returns a progressive-enhancement link with only non-sensitive request
+ * routing fields. Project descriptions, addresses, timing, and county data are
+ * never copied into this fallback URL.
  */
 export function getDirectConnectEntryFallbackHref(destinationHref = DIRECT_CONNECT_PATH): string {
   return resolveDirectConnectDestination(destinationHref).fallbackHref;
@@ -205,10 +220,10 @@ export function getDirectConnectEntryFallbackHref(destinationHref = DIRECT_CONNE
 
 /**
  * For a same-origin destination, stores sanitized entry context in this tab
- * only and returns a relative URL containing a random lookup token. For a
- * different origin, it does not touch inaccessible session storage and returns
- * a query-free absolute Direct Connect link instead. Project details are never
- * copied into either URL.
+ * only and returns a relative URL containing safe routing fields and a random
+ * lookup token. For a different origin, it does not touch inaccessible session
+ * storage and returns an absolute Direct Connect link containing only safe
+ * routing fields. Private project details are never copied into either URL.
  */
 export function stageDirectConnectEntryContext(
   input: DirectConnectEntryContext,
@@ -237,7 +252,8 @@ export function stageDirectConnectEntryContext(
     return destination.fallbackHref;
   }
 
-  return `${DIRECT_CONNECT_PATH}?staged=${token}`;
+  const separator = destination.fallbackHref.includes("?") ? "&" : "?";
+  return `${destination.fallbackHref}${separator}staged=${token}`;
 }
 
 /** Reads a valid staged context without copying any context fields into the URL. */

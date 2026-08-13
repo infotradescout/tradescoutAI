@@ -29,6 +29,8 @@ function colorHex(value: string): string {
 }
 
 function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
+  const roofLabel =
+    BUILDING_ROOF_OPTIONS.find((option) => option.value === design.roofStyle)?.label || "selected";
   const frontWidth = Math.min(390, Math.max(250, 250 + (design.widthFt - 30) * 2.2));
   const wallHeight = Math.min(190, Math.max(110, 100 + (design.eaveHeightFt - 8) * 6));
   const sideDepth = Math.min(210, Math.max(105, 95 + (design.lengthFt - 30) * 1.1));
@@ -54,7 +56,7 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
     <svg
       viewBox="0 0 760 500"
       role="img"
-      aria-label={`${design.widthFt} by ${design.lengthFt} foot steel building concept with a ${design.roofStyle} roof`}
+      aria-label={`${design.widthFt} by ${design.lengthFt} foot steel building preview with a ${roofLabel} roof`}
       className="h-auto w-full"
       data-testid="steel-home-building-preview"
     >
@@ -303,7 +305,7 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
 
       <g fill="#18312f" fontFamily="system-ui, sans-serif" fontWeight="700">
         <text x="34" y="52" fontSize="15" letterSpacing="2">
-          LIVE CONCEPT
+          BUILDING PREVIEW
         </text>
         <text x="34" y="80" fontSize="24">
           {design.widthFt}' × {design.lengthFt}' × {design.eaveHeightFt}'
@@ -324,23 +326,23 @@ export default function BuildingDesigner({ design, onChange }: Props) {
   return (
     <section
       id="building-designer"
-      className="scroll-mt-24 bg-[#fbf8f1]"
+      className="bg-[#fbf8f1]"
       data-testid="steel-home-building-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-        <div className="grid gap-10 xl:grid-cols-[minmax(0,.95fr)_minmax(520px,1.05fr)] xl:items-start xl:gap-14">
-          <div className="xl:sticky xl:top-24">
+      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
+          <div className="lg:sticky lg:top-6">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
               {content.tools.building.eyebrow}
             </p>
-            <h2 className="mt-4 max-w-3xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] text-[#18312f] sm:text-7xl">
+            <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
               {content.tools.building.title}
             </h2>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-[#5e6965] sm:text-lg">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
               {content.tools.building.body}
             </p>
 
-            <div className="mt-9 overflow-hidden rounded-[2rem] border border-[#18312f]/10 bg-[#edf0eb] shadow-[0_24px_80px_rgba(24,49,47,0.12)]">
+            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#edf0eb] shadow-[0_18px_55px_rgba(24,49,47,0.1)]">
               <BuildingPreview design={design} />
             </div>
 
@@ -356,7 +358,7 @@ export default function BuildingDesigner({ design, onChange }: Props) {
                 <DoorOpen className="h-5 w-5 text-[#a94f2e]" aria-hidden="true" />
                 <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Openings</p>
                 <p className="mt-1 text-sm text-[#68736f]">
-                  {design.garageDoors + design.walkDoors + design.windows} planned
+                  {design.garageDoors + design.walkDoors + design.windows} total
                 </p>
               </div>
               <div className="rounded-2xl border border-[#18312f]/10 bg-white p-4">
@@ -381,8 +383,8 @@ export default function BuildingDesigner({ design, onChange }: Props) {
                 <Wind className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
-                <p className="text-sm font-bold text-[#18312f]">Building controls</p>
-                <p className="mt-1 text-xs text-[#6d7874]">Change any starting value below.</p>
+                <p className="text-sm font-bold text-[#18312f]">Building details</p>
+                <p className="mt-1 text-xs text-[#6d7874]">Enter the size and options you want.</p>
               </div>
             </div>
 
@@ -462,7 +464,7 @@ export default function BuildingDesigner({ design, onChange }: Props) {
 
             <div className="mt-8 grid gap-5 sm:grid-cols-3">
               <ProjectNumberField
-                label="Garage doors"
+                label="Garage-door openings"
                 value={design.garageDoors}
                 min={0}
                 max={5}
@@ -470,7 +472,7 @@ export default function BuildingDesigner({ design, onChange }: Props) {
                 onChange={(garageDoors) => update({ garageDoors })}
               />
               <ProjectNumberField
-                label="Walk doors"
+                label="Exterior entry doors"
                 value={design.walkDoors}
                 min={0}
                 max={5}
@@ -521,12 +523,11 @@ export default function BuildingDesigner({ design, onChange }: Props) {
               <IncludeDesignButton
                 included={design.included}
                 onClick={() => update({ included: !design.included })}
-                label="Add building to my plan"
+                label="Include building + roof"
                 testId="steel-home-building-include"
               />
               <p className="text-xs leading-5 text-[#68736f]">
-                Your building choices and planning range stay with this project. Nothing is sent
-                yet.
+                These choices are saved on this device.
               </p>
             </div>
           </div>

@@ -214,11 +214,11 @@ export function IncludeDesignButton({
       className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
         included
           ? "bg-[#18312f] text-white focus-visible:ring-[#18312f]"
-          : "bg-[#c9683d] text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] hover:bg-[#b55732] focus-visible:ring-[#c9683d]"
+          : "bg-[#a94f2e] text-white shadow-[0_16px_45px_rgba(84,35,18,0.2)] hover:bg-[#8f3f25] focus-visible:ring-[#a94f2e]"
       }`}
     >
       {included ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : null}
-      {included ? "Added to my plan" : label}
+      {included ? "Included in project" : label}
     </button>
   );
 }

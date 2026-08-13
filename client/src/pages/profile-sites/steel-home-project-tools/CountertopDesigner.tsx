@@ -53,6 +53,9 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
   const stone = getCatalogItemById(design.stoneId);
   const image = stone ? buildStoneDesignerImageHref(stone.id) : "";
   const squareFeet = calculateCountertopSquareFeet(design);
+  const layoutLabel =
+    COUNTERTOP_LAYOUT_OPTIONS.find((option) => option.value === design.layout)?.label ||
+    "selected layout";
   const counterDepth = 68;
   const rawTopRunWidth = Math.min(540, Math.max(120, design.wallAIn * 1.7));
   const topRunWidth =
@@ -88,7 +91,7 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
     <svg
       viewBox="0 0 760 500"
       role="img"
-      aria-label={`${design.room} ${design.layout} countertop concept using ${stone?.publicLabel || "the selected surface"}`}
+      aria-label={`${design.room} ${layoutLabel} countertop preview using ${stone?.publicLabel || "the selected surface"}`}
       className="h-auto w-full"
       data-testid="steel-home-countertop-preview"
     >
@@ -200,13 +203,13 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
 
       <g fill="#18312f" fontFamily="system-ui, sans-serif">
         <text x="34" y="452" fontSize="14" fontWeight="800" letterSpacing="1.5">
-          PLANNING AREA
+          ESTIMATED AREA
         </text>
         <text x="34" y="480" fontSize="24" fontWeight="800">
-          {squareFeet} sq. ft. approximate
+          About {squareFeet} sq. ft.
         </text>
         <text x="725" y="476" textAnchor="end" fontSize="13" fontWeight="600" fill="#63706c">
-          Field measure required
+          Final measurements required
         </text>
       </g>
     </svg>
@@ -238,23 +241,23 @@ export default function CountertopDesigner({ design, onChange }: Props) {
   return (
     <section
       id="countertop-designer"
-      className="scroll-mt-24 bg-[#17201f] text-white"
+      className="bg-[#17201f] text-white"
       data-testid="steel-home-countertop-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-        <div className="grid gap-10 xl:grid-cols-[minmax(0,.95fr)_minmax(520px,1.05fr)] xl:items-start xl:gap-14">
-          <div className="xl:sticky xl:top-24">
+      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
+          <div className="lg:sticky lg:top-6">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f0b392]">
               {content.tools.countertops.eyebrow}
             </p>
-            <h2 className="mt-4 max-w-3xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] text-white sm:text-7xl">
+            <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-white sm:text-5xl">
               {content.tools.countertops.title}
             </h2>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-white/[0.68] sm:text-lg">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/[0.68] sm:text-base">
               {content.tools.countertops.body}
             </p>
 
-            <div className="mt-9 overflow-hidden rounded-[2rem] border border-white/10 bg-[#ded8cb] shadow-[0_24px_80px_rgba(0,0,0,0.3)]">
+            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#ded8cb] shadow-[0_18px_55px_rgba(0,0,0,0.26)]">
               <CountertopPreview design={design} />
             </div>
 
@@ -268,7 +271,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                 <Ruler className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Planning area</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Estimated area</p>
                 <p className="mt-1 text-sm text-white/[0.65]">{squareFeet} sq. ft.</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
@@ -285,8 +288,10 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                 <CircleDollarSign className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Stone pricing</p>
-                <p className="mt-1 text-sm text-white/[0.65]">Price after review</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
+                  Countertop price
+                </p>
+                <p className="mt-1 text-sm text-white/[0.65]">Quote needed</p>
               </div>
             </div>
           </div>
@@ -294,14 +299,15 @@ export default function CountertopDesigner({ design, onChange }: Props) {
           <div className="rounded-[2rem] border border-white/10 bg-[#f4efe6] p-5 text-[#18312f] shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-8">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-                Choose a photographed surface
+                Choose a surface
               </p>
               <h3 className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.035em]">
-                See the actual inventory photograph on your layout.
+                Choose a surface and see it on the layout.
               </h3>
               <p className="mt-3 text-sm leading-6 text-[#68736f]">
-                Every option below is a photographed stone or quartz selection. Quantity, finish,
-                dimensions, availability, fabrication, and price are confirmed after review.
+                Choose quartzite, engineered quartz, or another natural-stone surface from the
+                photos. We confirm availability, finish, dimensions, fabrication, delivery, and
+                price before ordering.
               </p>
             </div>
 
@@ -324,7 +330,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                     <span className="relative block aspect-[4/3] overflow-hidden bg-[#d5d1c8]">
                       <img
                         src={buildStoneDesignerImageHref(stone.id)}
-                        alt={`${stone.publicLabel} surface inventory photograph`}
+                        alt={`${stone.publicLabel} surface`}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"
                         loading="lazy"
                         decoding="async"
@@ -338,7 +344,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                     <span className="block p-3">
                       <span className="block text-sm font-bold leading-5">{stone.publicLabel}</span>
                       <span className="mt-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[#77817d]">
-                        {stone.materialLabel || "Details confirmed with review"}
+                        {stone.materialLabel || "Material details available with quote"}
                       </span>
                     </span>
                   </button>
@@ -348,7 +354,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="block space-y-2 text-sm font-bold">
-                <span>Search the collection</span>
+                <span>Search surfaces</span>
                 <input
                   type="search"
                   value={stoneSearch}
@@ -377,7 +383,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
             </div>
 
             <label className="mt-4 block space-y-2 text-sm font-bold">
-              <span>All named stones</span>
+              <span>All surfaces</span>
               <select
                 value={design.stoneId}
                 onChange={(event) => update({ stoneId: event.target.value })}
@@ -393,10 +399,9 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               </select>
             </label>
             <p className="mt-2 text-xs text-[#68736f]" aria-live="polite">
-              {matchingStones.length} matching{" "}
-              {matchingStones.length === 1 ? "selection" : "selections"}
+              {matchingStones.length} {matchingStones.length === 1 ? "result" : "results"}
               {selectedStone && selectableStones.length > matchingStones.length
-                ? "; your current stone remains available"
+                ? "; your selected surface is still shown"
                 : ""}
               .
             </p>
@@ -409,14 +414,14 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                 onChange={(room) => update({ room })}
               />
               <ProjectSelect
-                label="Countertop layout"
+                label="Room layout"
                 value={design.layout}
                 options={COUNTERTOP_LAYOUT_OPTIONS}
                 onChange={(layout) => update({ layout })}
                 testId="steel-home-countertop-layout"
               />
               <ProjectNumberField
-                label="Wall run A"
+                label="Main countertop run"
                 value={design.wallAIn}
                 min={24}
                 max={360}
@@ -426,7 +431,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               />
               {design.layout !== "straight" ? (
                 <ProjectNumberField
-                  label="Wall run B"
+                  label="Left return"
                   value={design.wallBIn}
                   min={24}
                   max={360}
@@ -437,7 +442,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               ) : null}
               {design.layout === "u-shape" ? (
                 <ProjectNumberField
-                  label="Wall run C"
+                  label="Right return"
                   value={design.wallCIn}
                   min={24}
                   max={360}
@@ -522,11 +527,11 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               <IncludeDesignButton
                 included={design.included}
                 onClick={() => update({ included: !design.included })}
-                label="Add this surface to my plan"
+                label="Include countertops"
                 testId="steel-home-countertop-include"
               />
               <p className="text-xs leading-5 text-[#68736f]">
-                Your selected surface, measurements, and cutouts stay with this project.
+                These choices are saved on this device.
               </p>
             </div>
           </div>

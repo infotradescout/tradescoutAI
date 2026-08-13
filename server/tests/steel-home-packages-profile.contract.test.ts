@@ -29,6 +29,15 @@ import { registerStoneDesignerImageRoutes } from "../routes/stone-designer-image
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
+function collectStringValues(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(collectStringValues);
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap(collectStringValues);
+  }
+  return [];
+}
+
 const safeUnlistedCandidate = {
   profileId: "steel-profile",
   businessId: "steel-business",
@@ -47,12 +56,12 @@ const safeUnlistedCandidate = {
   ownerPreferences: { profileVisibility: "public" },
 };
 
-describe("Steel Home Project Center unlisted profile contract", () => {
+describe("Steel Home Project Workspace unlisted profile contract", () => {
   it("centralizes the TradeScout-owned identity and keeps search-engine release off", () => {
     expect(identity).toMatchObject({
       slug: "steel-home-packages",
       temporarySlug: "steel-home-packages",
-      displayLabel: "Steel Home Project Center",
+      displayLabel: "Steel Home Project Workspace",
       publicRoute: "/u/steel-home-packages",
       releaseState: "unlisted",
       publiclyReleased: false,
@@ -86,16 +95,16 @@ describe("Steel Home Project Center unlisted profile contract", () => {
     }
   });
 
-  it("targets project review to TradeScout and leaves local labor location-routed", () => {
+  it("targets the package request to TradeScout and leaves local trade help location-routed", () => {
     const projectContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
     expect(projectContext).toMatchObject({
       contextType: "profile",
       contextId: identity.slug,
       targetSelector: identity.slug,
-      targetName: "Steel Home Project Center",
+      targetName: "Steel Home Project Workspace",
       source: "steel_home_project_center",
       subjectType: "product",
-      title: "Steel-home project review",
+      title: "Steel home package request",
     });
     expect(projectContext.description).toContain("Project location:");
     expect(getDirectConnectIntent(STEEL_HOME_PACKAGES_START_REQUEST_PATH)).toBeNull();
@@ -104,7 +113,7 @@ describe("Steel Home Project Center unlisted profile contract", () => {
     expect(laborContext).toMatchObject({
       source: "steel_home_project_tools_labor",
       subjectType: "service",
-      title: "Steel-home local labor request",
+      title: "Steel home local trade request",
     });
     expect(laborContext.contextType).toBeUndefined();
     expect(laborContext.contextId).toBeUndefined();
@@ -148,27 +157,54 @@ describe("Steel Home Project Center unlisted profile contract", () => {
     expect(composer).toContain('when: prefillTiming?.trim() || ""');
   });
 
-  it("locks public copy to three separate working tools with no fulfillment-company exposure", () => {
-    expect(content.version).toBe(7);
-    expect(content.tools.cards.map((item) => [item.key, item.title])).toEqual([
-      ["building", "Building designer"],
-      ["countertops", "Countertop designer"],
-      ["cabinets", "Cabinet designer"],
+  it("locks the workspace and customer copy without exposing internal routing language", () => {
+    expect(content.version).toBe(9);
+    expect(content.header.navigation.map((item) => item.key)).toEqual([
+      "project",
+      "building",
+      "countertops",
+      "cabinets",
+      "whole-home",
+      "review",
     ]);
+    expect(content.header.navigation.every((item) => !("href" in item))).toBe(true);
+    expect(content.tools.cards.map((item) => [item.key, item.title])).toEqual([
+      ["building", "Building Package Planner"],
+      ["countertops", "Countertop Planner"],
+      ["cabinets", "Cabinet Planner"],
+    ]);
+    expect(content.tools.cards.find((item) => item.key === "countertops")?.label).toBe(
+      "Countertops"
+    );
+    expect(content.projectStart.body).toBe(
+      "Tell us who is managing the build, where the jobsite is, and when you want to start."
+    );
 
-    const serialized = JSON.stringify(content);
+    const projectContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_START_REQUEST_PATH);
+    const laborContext = parseDirectConnectEntryContext(STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH);
+    const customerCopy = [
+      ...collectStringValues(content),
+      projectContext.title,
+      projectContext.description,
+      laborContext.title,
+      laborContext.description,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join("\n");
+
     for (const requiredPublicTruth of [
-      "owner-builders, builders, and contractors",
-      "included roof",
-      "real material photos",
-      "selected surface",
-      "planning range",
-      "price after review",
-      "mini-split",
-      "tankless water",
-      "appliances",
+      "self-contracted homeowners, builders, and contractors",
+      "Start a Request",
+      "Project Setup",
+      "Whole Home",
+      "Summary & Request",
+      "real photos",
+      "quartzite, engineered quartz",
+      "early materials estimate",
+      "Quote needed",
+      "jobsite location",
     ]) {
-      expect(serialized.toLowerCase()).toContain(requiredPublicTruth.toLowerCase());
+      expect(customerCopy.toLowerCase()).toContain(requiredPublicTruth.toLowerCase());
     }
     for (const forbiddenPublicCopy of [
       "Worldwide Steel Buildings",
@@ -185,8 +221,40 @@ describe("Steel Home Project Center unlisted profile contract", () => {
       "tiny home",
       "whole-home warranty",
       "HomeID",
+      "owner-builder",
+      "owner builder",
+      "owner-building",
+      "owner building",
+      "owner-built",
+      "project brief",
+      "scope",
+      "scopes",
+      "handoff",
+      "staged",
+      "payload",
+      "context",
+      "target provider",
+      "provider ID",
+      "profile slug",
+      "release state",
+      "FIPS",
+      "record ID",
+      "fulfillment",
+      "supplier cost",
+      "wholesale cost",
+      "markup",
+      "commission",
+      "planning range",
+      "planning estimate",
+      "allowance",
+      "concept",
+      "local review",
+      "price after review",
+      "stone or quartz",
+      "stone + quartz",
+      "stone-and-quartz",
     ]) {
-      expect(serialized.toLowerCase()).not.toContain(forbiddenPublicCopy.toLowerCase());
+      expect(customerCopy.toLowerCase()).not.toContain(forbiddenPublicCopy.toLowerCase());
     }
   });
 
@@ -245,11 +313,11 @@ describe("Steel Home Project Center unlisted profile contract", () => {
     expect(source).toContain('status: "published" as const');
     expect(source).toContain("hasVerifiedTradeScoutAdminCustody");
     expect(source).toContain("owner must remain a verified TradeScout admin");
-    expect(source).toContain('category: "Steel-home project center"');
-    expect(source).toContain('"Steel building and roof planning"');
-    expect(source).toContain('"Photographed stone selection and countertop planning"');
-    expect(source).toContain('"Cabinet layout and budget planning"');
-    expect(source).toContain('"Whole-home scope and local project review"');
+    expect(source).toContain('category: "Steel-home project workspace"');
+    expect(source).toContain('"Steel building and roof package estimates"');
+    expect(source).toContain('"Countertop surface selection and measurements"');
+    expect(source).toContain('"Cabinet layout and package estimates"');
+    expect(source).toContain('"Other home needs and location requirements"');
     expect(source).not.toContain("Worldwide Steel Buildings");
     expect(source).not.toContain("JW Stone Logistics");
     expect(source).not.toContain("A+ Cabinets");

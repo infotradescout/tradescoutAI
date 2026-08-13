@@ -122,7 +122,7 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
     <svg
       viewBox="0 0 760 500"
       role="img"
-      aria-label={`${design.room} cabinet wall concept with ${design.doorStyle} doors and ${finish?.label || "selected"} finish`}
+      aria-label={`${design.room} cabinet wall preview with ${design.doorStyle} doors and ${finish?.label || "selected"} finish`}
       className="h-auto w-full"
       data-testid="steel-home-cabinet-preview"
     >
@@ -155,7 +155,7 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
 
       <g fill="#18312f" fontFamily="system-ui, sans-serif">
         <text x="34" y="42" fontSize="13" fontWeight="800" letterSpacing="2">
-          CABINET ELEVATION
+          CABINET PREVIEW
         </text>
         <text x="34" y="70" fontSize="22" fontWeight="800">
           {design.primaryWallIn}\" wall • {design.ceilingHeightIn}\" ceiling
@@ -318,10 +318,10 @@ function CabinetPreview({ design }: { design: SteelHomeCabinetDesign }) {
 
       <g fontFamily="system-ui, sans-serif" fontWeight="700">
         <text x="34" y="478" fill="#18312f" fontSize="13">
-          Planned modules: {plannedWidth}\" of {design.primaryWallIn}\"
+          Primary wall used: {plannedWidth}\" of {design.primaryWallIn}\"
         </text>
         <text x="725" y="478" textAnchor="end" fill="#63706c" fontSize="12">
-          Final field measure required
+          Final measurements required
         </text>
       </g>
     </svg>
@@ -337,23 +337,23 @@ export default function CabinetDesigner({ design, onChange }: Props) {
   return (
     <section
       id="cabinet-designer"
-      className="scroll-mt-24 bg-[#e8dfd1]"
+      className="bg-[#e8dfd1]"
       data-testid="steel-home-cabinet-designer"
     >
-      <div className="mx-auto max-w-[1440px] px-4 py-20 sm:px-6 sm:py-28 lg:px-10">
-        <div className="grid gap-10 xl:grid-cols-[minmax(0,.95fr)_minmax(520px,1.05fr)] xl:items-start xl:gap-14">
-          <div className="xl:sticky xl:top-24">
+      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,.9fr)_minmax(480px,1.1fr)] lg:items-start">
+          <div className="lg:sticky lg:top-6">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#a94f2e]">
               {content.tools.cabinets.eyebrow}
             </p>
-            <h2 className="mt-4 max-w-3xl font-editorial text-5xl font-semibold leading-[0.92] tracking-[-0.045em] text-[#18312f] sm:text-7xl">
+            <h2 className="mt-3 max-w-3xl font-editorial text-4xl font-semibold leading-[0.95] tracking-[-0.04em] text-[#18312f] sm:text-5xl">
               {content.tools.cabinets.title}
             </h2>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-[#5e6965] sm:text-lg">
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#5e6965] sm:text-base">
               {content.tools.cabinets.body}
             </p>
 
-            <div className="mt-9 overflow-hidden rounded-[2rem] border border-[#18312f]/10 bg-[#eee8dd] shadow-[0_24px_80px_rgba(77,57,38,0.16)]">
+            <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-[#18312f]/10 bg-[#eee8dd] shadow-[0_18px_55px_rgba(77,57,38,0.14)]">
               <CabinetPreview design={design} />
             </div>
 
@@ -365,8 +365,8 @@ export default function CabinetDesigner({ design, onChange }: Props) {
                   className={`mt-1 text-sm ${remainingWidth < 0 ? "font-bold text-[#a1392e]" : "text-[#68736f]"}`}
                 >
                   {remainingWidth >= 0
-                    ? `${remainingWidth}\" unassigned`
-                    : `${Math.abs(remainingWidth)}\" over`}
+                    ? `${remainingWidth}\" remaining`
+                    : `${Math.abs(remainingWidth)}\" too wide`}
                 </p>
               </div>
               <div className="rounded-2xl border border-[#18312f]/10 bg-white/[0.65] p-4">
@@ -397,10 +397,10 @@ export default function CabinetDesigner({ design, onChange }: Props) {
           <div className="rounded-[2rem] border border-[#18312f]/10 bg-[#f7f2e9] p-5 shadow-[0_24px_80px_rgba(77,57,38,0.1)] sm:p-8">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-                Room and layout
+                Room measurements
               </p>
               <h3 className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.035em] text-[#18312f]">
-                Build the primary wall around the real dimensions.
+                Enter the room measurements and cabinet sizes.
               </h3>
             </div>
 
@@ -456,14 +456,14 @@ export default function CabinetDesigner({ design, onChange }: Props) {
 
             <div className="mt-8 grid gap-6 sm:grid-cols-[1.1fr_.9fr]">
               <ProjectColorField
-                label="Finish direction"
+                label="Cabinet finish"
                 value={design.finish}
                 options={CABINET_FINISH_OPTIONS}
                 onChange={(finish) => update({ finish })}
                 testIdPrefix="steel-home-cabinet-finish"
               />
               <ProjectTextSelect
-                label="Hardware direction"
+                label="Hardware finish"
                 value={design.hardware}
                 options={CABINET_HARDWARE_OPTIONS}
                 onChange={(hardware) => update({ hardware })}
@@ -472,7 +472,7 @@ export default function CabinetDesigner({ design, onChange }: Props) {
 
             <div className="mt-8 border-t border-[#18312f]/10 pt-8">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-                Major modules
+                Appliances and storage
               </p>
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <ProjectTextSelect
@@ -527,8 +527,9 @@ export default function CabinetDesigner({ design, onChange }: Props) {
               >
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
                 <p className="text-sm leading-6">
-                  The selected modules exceed the primary wall by {Math.abs(remainingWidth)} inches.
-                  Reduce a module, use the return wall, or increase the wall measurement.
+                  The selected cabinets and appliance spaces are {Math.abs(remainingWidth)} inches
+                  wider than the primary wall. Reduce a cabinet, move items to the return wall, or
+                  correct the wall measurement.
                 </p>
               </div>
             ) : null}
@@ -578,12 +579,13 @@ export default function CabinetDesigner({ design, onChange }: Props) {
               <IncludeDesignButton
                 included={design.included}
                 onClick={() => update({ included: !design.included })}
-                label="Add cabinets to my plan"
+                label="Include cabinets"
                 testId="steel-home-cabinet-include"
               />
               <p className="text-xs leading-5 text-[#68736f]">
-                The cabinet range is for early budgeting. Final lines, fillers, clearances,
-                measurements, delivery, and installation are confirmed in the written quote.
+                This is an early cabinet estimate. Final price requires exact measurements, cabinet
+                specifications, fillers, panels, clearances, delivery, taxes, and installation
+                choices.
               </p>
             </div>
           </div>
