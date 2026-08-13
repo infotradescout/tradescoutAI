@@ -1,22 +1,25 @@
-# Steel Home Project Tools working profile source record
+# Steel Home Project Center working profile source record
 
-Last reviewed: 2026-08-11
+Last reviewed: 2026-08-12
 
 Operator-approved unlisted profile. It remains unlisted while final ownership, service area, commercial workflows, fulfillment routing, and customer-support responsibilities are completed.
 
 ## Governing public truth
 
-- The public identity is **TradeScout Steel Home Project Tools**. Fulfillment-company and trade-partner names do not appear in public page copy, labels, links, visible handoffs, image descriptions, or customer-facing asset URLs.
-- TradeScout owns every customer-facing designer, saved draft, project brief, quote request, and conversation.
-- The page contains three separate working planning tools: a steel-building concept designer, a real-stone countertop designer, and a cabinet-layout designer.
+- The public identity is **TradeScout Steel Home Project Center**. Fulfillment-company and trade-partner names do not appear in public page copy, labels, links, visible handoffs, image descriptions, or customer-facing asset URLs.
+- TradeScout owns every customer-facing designer, planning draft, project brief, request, and conversation.
+- The page starts by identifying whether the customer is owner-building, already has a builder, is a builder or contractor, or needs help coordinating the whole build.
+- The page contains three working planning tools: a steel-building and included-roof concept designer, a photographed stone-and-quartz countertop designer, and a cabinet-layout designer.
+- The building and cabinet tools show itemized early planning ranges. Stone and every added whole-home category stay visibly marked **Price after review** and are never represented as free or included in a numeric total.
+- Customers may add house plans, windows and doors, insulation, interior framing/drywall/trim, flooring, plumbing and electrical fixtures, mini-split HVAC, tankless water heating, appliances, appliance or home-systems protection, site/foundation work, septic/utilities, and installation support to the review scope. These are demand and scope selections, not product-availability or fulfillment claims.
 - This is not an all-in-one homebuilder, turnkey-home, complete-package, architectural, engineering, or permit-plan product.
-- Customers may include one, two, or all three designs in a TradeScout project review. Local labor remains a separate, untargeted, location-aware request.
-- No request is submitted while the customer designs. Direct Connect opens only after a city/address, canonical state and county, and at least one completed design are present.
-- Final field measurements, structural engineering, local code, product specifications, availability, pricing, delivery, fabrication, and installation scope are confirmed in writing before approval.
+- Customers may include any design or added scope in a TradeScout project review. Local labor remains a separate, location-aware request.
+- No request is submitted while the customer plans. Direct Connect opens only after a role, city/address, canonical state and county, and at least one design or whole-home scope are present.
+- Materials planning ranges are not quotes. Taxes, site work, foundation, and installation are excluded unless a line says otherwise. Final field measurements, structural engineering, local code and permits, product specifications, availability, delivery, fabrication, and installation scope are confirmed in writing before approval.
 
 ## Current identity and route
 
-- Database and user-facing label: **Steel Home Project Tools**.
+- Database and user-facing label: **Steel Home Project Center**.
 - Temporary and canonical working slug: `steel-home-packages`.
 - Exact review route: `/u/steel-home-packages`.
 - Identity, route, release state, approved copy, and fallback Direct Connect paths are centralized in `shared/steelHomePackagesProfile.ts`.
@@ -30,8 +33,9 @@ Operator-approved unlisted profile. It remains unlisted while final ownership, s
 - The live SVG concept changes with the selected dimensions, roof, colors, openings, and porch.
 - The output is explicitly a planning concept, not structural engineering or a permit drawing.
 - The completed design carries its exact values into the TradeScout project brief.
+- The itemized customer materials range uses provisional public allowances. The base metal roof is included once with the building shell; roof upgrades may add an allowance but never create a second base-roof charge. Site work, foundation, engineering, taxes, and installation remain outside this range.
 
-### Real-stone countertop designer
+### Photographed stone-and-quartz countertop designer
 
 - `JW_STONE_NAMED_CATALOG` is the sole customer-selectable stone authority.
 - Every option must retain the exact catalog ID, public stone name, confirmed material label when present, and exact inventory photograph belonging to that record.
@@ -39,7 +43,7 @@ Operator-approved unlisted profile. It remains unlisted while final ownership, s
 - The customer-facing image URL uses the vendor-neutral `/images/stone-designer/:stoneId/:imageNumber.webp` route. The server resolves it to the exact named catalog photograph and refuses anonymous records.
 - Controls room, straight/L/U layout, wall runs, optional island, edge, backsplash, sink and cooktop cutouts, and notes.
 - The displayed square footage is an approximate planning area. Final templating and field measurement remain required.
-- The selected stone ID, public name, material, measurements, cutouts, and approximate area carry into the TradeScout project brief.
+- The selected public name, material, measurements, cutouts, and approximate area carry into the TradeScout project brief. Internal record IDs and asset paths do not appear in customer-facing copy.
 - Do not introduce generated stone textures, stock slab photography, invented names, or image/name mismatches.
 
 ### Cabinet designer
@@ -48,6 +52,7 @@ Operator-approved unlisted profile. It remains unlisted while final ownership, s
 - The live elevation changes with the selected modules, style, finish, measurements, uppers, and island.
 - Module width is compared with the primary wall as a planning-fit warning, not a final cabinet order or shop drawing.
 - The completed design carries its exact values into the TradeScout project brief.
+- The itemized customer materials range uses provisional linear, module, hardware, trim, island, and delivery allowances. Countertops, field measurement, taxes, and installation remain outside the range. It is not a catalog price, bill of materials, or order.
 
 ## Private fulfillment relationships
 
@@ -61,11 +66,13 @@ These identities may appear later only where the controlling manufacturer specif
 
 ## Direct Connect
 
-- The project action targets the unlisted `steel-home-packages` profile under the visible name **TradeScout project desk**.
+- The project action targets the unlisted `steel-home-packages` profile under the visible name **Steel Home Project Center**.
 - That recipient label is valid only while the profile and linked business share a verified TradeScout `head_admin` or `super_admin` owner. The public route, provisioner, and request-creation route all fail closed if custody changes.
-- The customer sees the exact generated brief before opening Direct Connect. The same title, description, location, and timing values are projected into the existing product-specific request fields.
-- The brief includes only designs the customer deliberately marks as included.
-- The exact named stone and catalog record ID are retained whenever the countertop design is included.
+- The customer sees a concise plan summary, the planning range, the price-after-review list, and an expandable generated brief before opening Direct Connect.
+- The same title, description, location, timing, role, and selected scopes are projected into the existing request fields.
+- The brief includes only designs and added scopes the customer deliberately selects.
+- The selected stone's public name and material are retained whenever the countertop design is included; private record IDs and image paths remain out of the customer brief.
+- The active handoff stores the sanitized context for ten minutes in tab-scoped browser storage and puts only an opaque token in the Direct Connect URL. The existing query parser remains as a compatibility fallback for other entry routes.
 - The project route removes stale intent, contractor, provider, or target parameters before opening the TradeScout handoff.
 - The labor route deliberately omits `profile`, `profileName`, `target`, provider, contractor, and business identifiers. It sends the selected jobsite county FIPS and matching state into Direct Connect, so routing does not fall back to the requester's account county, while retaining concise related-design context.
 - Existing Direct Connect authentication, contact, consent, and creation gates remain authoritative. The tools never submit a request directly.
@@ -99,4 +106,4 @@ For a future slug change:
 4. Update the exact Direct Connect profile context and contract tests.
 5. Change `publiclyReleased` only in the same reviewed release that activates the linked business and intentionally enables the approved discovery surfaces.
 
-No schema migration is required for this project-tools correction.
+No schema migration is required for this project-center correction. The planning draft remains device-local in this phase; a durable, account-backed project/version/quote record is still required before this becomes a cross-device customer workspace.

@@ -1,5 +1,5 @@
-import { useId } from "react";
-import { CheckCircle2, Ruler, Scissors, Sparkles } from "lucide-react";
+import { useId, useMemo, useState } from "react";
+import { CheckCircle2, CircleDollarSign, Ruler, Scissors, Sparkles } from "lucide-react";
 import { JW_STONE_NAMED_CATALOG, getCatalogItemById } from "@/features/jw-stone/catalog";
 import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
 import {
@@ -44,6 +44,9 @@ const quickStones = QUICK_STONE_IDS.map((id) => getCatalogItemById(id)).filter(
 const allNamedStones = [...JW_STONE_NAMED_CATALOG].sort((a, b) =>
   a.publicLabel.localeCompare(b.publicLabel)
 );
+const stoneMaterialOptions = Array.from(
+  new Set(allNamedStones.flatMap((stone) => (stone.materialLabel ? [stone.materialLabel] : [])))
+).sort((a, b) => a.localeCompare(b));
 
 function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
   const patternId = `stone-${useId().replace(/:/g, "")}`;
@@ -85,7 +88,7 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
     <svg
       viewBox="0 0 760 500"
       role="img"
-      aria-label={`${design.room} ${design.layout} countertop concept using ${stone?.publicLabel || "the selected real stone"}`}
+      aria-label={`${design.room} ${design.layout} countertop concept using ${stone?.publicLabel || "the selected surface"}`}
       className="h-auto w-full"
       data-testid="steel-home-countertop-preview"
     >
@@ -118,7 +121,7 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
         fontWeight="800"
         letterSpacing="2"
       >
-        REAL STONE PREVIEW
+        SURFACE PREVIEW
       </text>
       <text
         x="34"
@@ -211,9 +214,26 @@ function CountertopPreview({ design }: { design: SteelHomeCountertopDesign }) {
 }
 
 export default function CountertopDesigner({ design, onChange }: Props) {
+  const [stoneSearch, setStoneSearch] = useState("");
+  const [materialFilter, setMaterialFilter] = useState("");
   const update = (values: Partial<SteelHomeCountertopDesign>) => onChange({ ...design, ...values });
   const selectedStone = getCatalogItemById(design.stoneId);
   const squareFeet = calculateCountertopSquareFeet(design);
+  const matchingStones = useMemo(() => {
+    const query = stoneSearch.trim().toLocaleLowerCase();
+    return allNamedStones.filter((stone) => {
+      const matchesSearch =
+        !query ||
+        stone.publicLabel.toLocaleLowerCase().includes(query) ||
+        stone.materialLabel?.toLocaleLowerCase().includes(query);
+      const matchesMaterial = !materialFilter || stone.materialLabel === materialFilter;
+      return Boolean(matchesSearch && matchesMaterial);
+    });
+  }, [materialFilter, stoneSearch]);
+  const selectableStones =
+    selectedStone && !matchingStones.some((stone) => stone.id === selectedStone.id)
+      ? [selectedStone, ...matchingStones]
+      : matchingStones;
 
   return (
     <section
@@ -238,10 +258,12 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               <CountertopPreview design={design} />
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
                 <Sparkles className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Selected stone</p>
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">
+                  Selected surface
+                </p>
                 <p className="mt-1 text-sm text-white/[0.65]">{selectedStone?.publicLabel}</p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
@@ -261,20 +283,25 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                     .join(" + ") || "None"}
                 </p>
               </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
+                <CircleDollarSign className="h-5 w-5 text-[#f0b392]" aria-hidden="true" />
+                <p className="mt-3 text-xs font-bold uppercase tracking-[0.15em]">Stone pricing</p>
+                <p className="mt-1 text-sm text-white/[0.65]">Price after review</p>
+              </div>
             </div>
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-[#f4efe6] p-5 text-[#18312f] shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-8">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-                Choose from real named stone
+                Choose a photographed surface
               </p>
               <h3 className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.035em]">
-                The preview uses the actual stone photograph.
+                See the actual inventory photograph on your layout.
               </h3>
               <p className="mt-3 text-sm leading-6 text-[#68736f]">
-                Every option below comes from the current named stone catalog. Final quantity,
-                finish, dimensions, and availability are confirmed before approval.
+                Every option below is a photographed stone or quartz selection. Quantity, finish,
+                dimensions, availability, fabrication, and price are confirmed after review.
               </p>
             </div>
 
@@ -297,7 +324,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                     <span className="relative block aspect-[4/3] overflow-hidden bg-[#d5d1c8]">
                       <img
                         src={buildStoneDesignerImageHref(stone.id)}
-                        alt={`${stone.publicLabel} real stone inventory photograph`}
+                        alt={`${stone.publicLabel} surface inventory photograph`}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"
                         loading="lazy"
                         decoding="async"
@@ -311,7 +338,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                     <span className="block p-3">
                       <span className="block text-sm font-bold leading-5">{stone.publicLabel}</span>
                       <span className="mt-1 block text-[0.68rem] uppercase tracking-[0.12em] text-[#77817d]">
-                        {stone.materialLabel || "Material to confirm"}
+                        {stone.materialLabel || "Details confirmed with review"}
                       </span>
                     </span>
                   </button>
@@ -319,7 +346,37 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               })}
             </div>
 
-            <label className="mt-5 block space-y-2 text-sm font-bold">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <label className="block space-y-2 text-sm font-bold">
+                <span>Search the collection</span>
+                <input
+                  type="search"
+                  value={stoneSearch}
+                  onChange={(event) => setStoneSearch(event.target.value)}
+                  placeholder="Name or material"
+                  className={PROJECT_FIELD_CLASS}
+                  data-testid="steel-home-countertop-stone-search"
+                />
+              </label>
+              <label className="block space-y-2 text-sm font-bold">
+                <span>Material</span>
+                <select
+                  value={materialFilter}
+                  onChange={(event) => setMaterialFilter(event.target.value)}
+                  className={PROJECT_FIELD_CLASS}
+                  data-testid="steel-home-countertop-material-filter"
+                >
+                  <option value="">All materials</option>
+                  {stoneMaterialOptions.map((material) => (
+                    <option key={material} value={material}>
+                      {material}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <label className="mt-4 block space-y-2 text-sm font-bold">
               <span>All named stones</span>
               <select
                 value={design.stoneId}
@@ -327,7 +384,7 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                 className={PROJECT_FIELD_CLASS}
                 data-testid="steel-home-countertop-all-stones"
               >
-                {allNamedStones.map((stone) => (
+                {selectableStones.map((stone) => (
                   <option key={stone.id} value={stone.id}>
                     {stone.publicLabel}
                     {stone.materialLabel ? ` — ${stone.materialLabel}` : ""}
@@ -335,6 +392,14 @@ export default function CountertopDesigner({ design, onChange }: Props) {
                 ))}
               </select>
             </label>
+            <p className="mt-2 text-xs text-[#68736f]" aria-live="polite">
+              {matchingStones.length} matching{" "}
+              {matchingStones.length === 1 ? "selection" : "selections"}
+              {selectedStone && selectableStones.length > matchingStones.length
+                ? "; your current stone remains available"
+                : ""}
+              .
+            </p>
 
             <div className="mt-8 grid gap-5 sm:grid-cols-2">
               <ProjectTextSelect
@@ -457,11 +522,11 @@ export default function CountertopDesigner({ design, onChange }: Props) {
               <IncludeDesignButton
                 included={design.included}
                 onClick={() => update({ included: !design.included })}
-                label="Add countertop design to project"
+                label="Add this surface to my plan"
                 testId="steel-home-countertop-include"
               />
               <p className="text-xs leading-5 text-[#68736f]">
-                The exact named stone and stone record will be carried into the project brief.
+                Your selected surface, measurements, and cutouts stay with this project.
               </p>
             </div>
           </div>

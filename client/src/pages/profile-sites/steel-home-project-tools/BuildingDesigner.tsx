@@ -6,8 +6,10 @@ import {
   BUILDING_ROOF_OPTIONS,
   BUILDING_ROOF_PITCH_OPTIONS,
   BUILDING_USE_OPTIONS,
+  calculateBuildingPlanningEstimate,
   type SteelHomeBuildingDesign,
 } from "./projectModel";
+import PlanningEstimateCard from "./PlanningEstimateCard";
 import {
   IncludeDesignButton,
   PROJECT_TEXTAREA_CLASS,
@@ -317,6 +319,7 @@ function BuildingPreview({ design }: { design: SteelHomeBuildingDesign }) {
 
 export default function BuildingDesigner({ design, onChange }: Props) {
   const update = (values: Partial<SteelHomeBuildingDesign>) => onChange({ ...design, ...values });
+  const planningEstimate = calculateBuildingPlanningEstimate(design);
 
   return (
     <section
@@ -364,6 +367,12 @@ export default function BuildingDesigner({ design, onChange }: Props) {
                 </p>
               </div>
             </div>
+
+            <PlanningEstimateCard
+              estimate={planningEstimate}
+              testId="steel-home-building-planning-estimate"
+              roofIncluded
+            />
           </div>
 
           <div className="rounded-[2rem] border border-[#18312f]/10 bg-[#efe9de] p-5 shadow-[0_24px_80px_rgba(24,49,47,0.08)] sm:p-8">
@@ -512,11 +521,12 @@ export default function BuildingDesigner({ design, onChange }: Props) {
               <IncludeDesignButton
                 included={design.included}
                 onClick={() => update({ included: !design.included })}
-                label="Add building design to project"
+                label="Add building to my plan"
                 testId="steel-home-building-include"
               />
               <p className="text-xs leading-5 text-[#68736f]">
-                This saves the concept in this browser. It does not submit a request.
+                Your building choices and planning range stay with this project. Nothing is sent
+                yet.
               </p>
             </div>
           </div>
