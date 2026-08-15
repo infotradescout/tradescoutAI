@@ -99,9 +99,11 @@ describe("JW Stone marketplace public HTML", () => {
       "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone"
     );
     expect(html).toContain("2103 W Herman Ave, Pensacola, FL 32505");
-    expect(html).toContain('href="https://www.instagram.com/jwstonellc/"');
-    expect(html).toContain(
-      'href="https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"'
+    expect(html).toContain("Instagram: @jwstonellc");
+    expect(html).toContain("Facebook: JW Stone Logistics");
+    expect(html).not.toContain('<a href="https://www.instagram.com/jwstonellc/"');
+    expect(html).not.toContain(
+      '<a href="https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"'
     );
     expect(html).not.toContain("New Arrivals");
     expect(html).not.toContain("Learn about stone");
@@ -111,15 +113,13 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);
   });
 
-  it("keeps About, address, and official social links in the LLM discovery file", () => {
+  it("keeps About, address, and official social identities in the LLM discovery file", () => {
     const text = buildJwStoneMarketplaceLlmsText("https://jwstonelogistics.com");
 
     expect(text).toContain("Founded in 2017 by Jared and Wagner");
     expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
-    expect(text).toContain("Instagram: https://www.instagram.com/jwstonellc/");
-    expect(text).toContain(
-      "Facebook: https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"
-    );
+    expect(text).toContain("Instagram: @jwstonellc");
+    expect(text).toContain("Facebook: JW Stone Logistics");
   });
 
   it("publishes stone OG metadata for shareable marketplace stone URLs", () => {
@@ -140,6 +140,25 @@ describe("JW Stone marketplace public HTML", () => {
       'property="og:url" content="https://jwstonelogistics.com/stones/amazonic-green"'
     );
     expect(html).toMatch(/Amazonic Green/);
+  });
+
+  it.each([
+    ["soapstone", "marina-black-soapstone", "Marina Black"],
+    ["carrara-white-brazil", "bianco-carrara", "Bianco Carrara"],
+  ])("preserves released stone identity for legacy slug %s", (legacy, canonical, name) => {
+    const html = buildPublicJwStoneMarketplaceHtml({
+      templateHtml,
+      origin: "https://jwstonelogistics.com",
+      collectionUrl: "https://jwstonelogistics.com/",
+      marketplaceDomainSurface: true,
+      stoneSlug: legacy,
+    });
+
+    expect(html).toContain(`data-seo-jw-stone-item="${canonical}"`);
+    expect(html).toContain(
+      `link rel="canonical" href="https://jwstonelogistics.com/stones/${canonical}"`
+    );
+    expect(html).toContain(name);
   });
 
   it("registers marketplace routes after custom-domain authority and before the SPA catch-all", () => {

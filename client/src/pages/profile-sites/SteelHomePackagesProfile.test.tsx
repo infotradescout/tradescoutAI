@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { JW_STONE_ANONYMOUS_CATALOG, JW_STONE_NAMED_CATALOG } from "@/features/jw-stone/catalog";
 import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 import { readStagedDirectConnectEntryContext } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
+import { SHARE_CARD_EVENT, type ShareCardPayload } from "@/utils/share";
 import {
   STEEL_HOME_PACKAGES_LABOR_REQUEST_PATH,
   STEEL_HOME_PACKAGES_START_REQUEST_PATH,
@@ -393,6 +394,30 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     expect(container.querySelector('[data-testid="steel-home-countertop-designer"]')).toBeNull();
   });
 
+  it("shows and announces a terminal save failure on a 390px viewport", async () => {
+    vi.stubGlobal("innerWidth", 390);
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage is unavailable", "QuotaExceededError");
+    });
+
+    renderProfile();
+    await flushUi();
+    openPlanner("countertops");
+    await flushUi();
+
+    const status = requiredElement<HTMLElement>(
+      container,
+      '[data-testid="steel-home-builder-save-status"]'
+    );
+    expect(status.textContent).toContain("Save failed");
+    expect(status.textContent).not.toContain("Saving");
+    expect(status.className).toMatch(/\bflex\b/);
+    expect(status.className).not.toMatch(/\bhidden\b/);
+    expect(status.getAttribute("role")).toBe("status");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.getAttribute("aria-label")).toContain("Changes remain available in this tab");
+  });
+
   it("asks before replacing a saved countertop design from a shared studio link", async () => {
     const savedDraft = createEmptySteelHomeProjectDraft();
     savedDraft.countertops.stoneId = "aj-quartz";
@@ -438,6 +463,35 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
         .countertops.stoneId
     ).toBe("taj-mahal");
     expect(window.location.search).not.toContain("studio=");
+  });
+
+  it("shares a countertop studio design without an affiliate lookup or other network request", async () => {
+    renderProfile();
+    await flushUi();
+    const panel = openPlanner("countertops");
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const sharedPayloads: ShareCardPayload[] = [];
+    const captureShare = (event: Event) => {
+      sharedPayloads.push((event as CustomEvent<ShareCardPayload>).detail);
+    };
+    window.addEventListener(SHARE_CARD_EVENT, captureShare);
+
+    act(() => {
+      requiredElement<HTMLButtonElement>(
+        panel,
+        '[data-testid="steel-home-countertop-share-studio"]'
+      ).click();
+    });
+    await flushUi();
+    window.removeEventListener(SHARE_CARD_EVENT, captureShare);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    const sharedPayload = sharedPayloads[0];
+    expect(sharedPayload).toBeDefined();
+    if (!sharedPayload) throw new Error("Countertop share payload missing");
+    expect(new URL(sharedPayload.url).searchParams.has("studio")).toBe(true);
+    expect(new URL(sharedPayload.url).searchParams.has("ref")).toBe(false);
   });
 
   it("keeps each planner independent while updating its estimate, area, and preview", async () => {

@@ -48,6 +48,18 @@ describe("JW Stone 2.0 catalog projection", () => {
     expect(getCatalogItemById("trending-selection-01")?.slabDimensions).toBe('126×76"');
   });
 
+  it("keeps released item slugs bound to their original photographed stones", () => {
+    expect(getCatalogItemById("soapstone")?.id).toBe("marina-black-soapstone");
+    expect(getNamedCatalogItemByShareSlug("soapstone")?.id).toBe("marina-black-soapstone");
+    expect(getCatalogItemById("carrara-white-brazil")?.id).toBe("bianco-carrara");
+    expect(getNamedCatalogItemByShareSlug("carrara-white-brazil")?.id).toBe("bianco-carrara");
+
+    expect(getCatalogItemById("soapstone-117x70")?.displayName).toBe("Soapstone");
+    expect(getCatalogItemById("carrara-white-brazil-119x75")?.displayName).toBe(
+      "Carrara White Brazil"
+    );
+  });
+
   it("keeps anonymous inventory publicly nameless and ineligible for sharing or saving", () => {
     for (const stone of JW_STONE_ANONYMOUS_CATALOG) {
       expect(stone).toMatchObject({

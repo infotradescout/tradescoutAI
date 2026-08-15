@@ -29,6 +29,7 @@ type Props = {
   requestHref: string;
   laborRequestHref: string;
   saved: boolean;
+  saveFailed: boolean;
   onClose: () => void;
 };
 
@@ -141,6 +142,7 @@ export default function SteelHomePlannerRequest({
   requestHref,
   laborRequestHref,
   saved,
+  saveFailed,
   onClose,
 }: Props) {
   const { planner } = request;
@@ -388,7 +390,9 @@ export default function SteelHomePlannerRequest({
                   ? "Return to the builder and place every opening before matching with a fabricator."
                   : !ready
                     ? "Add the jobsite city or ZIP, state, and county."
-                    : saved
+                    : saveFailed
+                      ? "Changes could not be saved on this device. They remain available in this tab."
+                      : saved
                       ? "Ready. You will review contact details before anything is sent."
                       : "Saving your choices on this device."}
             </p>

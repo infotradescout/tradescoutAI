@@ -1,5 +1,6 @@
 import { formatTradeScoutTitle } from "@shared/brand";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import {
   createProfileInventoryCategoryShareMetadata,
   listProfileInventoryCategories,
@@ -110,7 +111,7 @@ export function buildPublicJwStoneMarketplaceHtml(
         profileUrl,
         assetOrigin: `${origin}/`,
         categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
-        itemSlug: opts.stoneSlug,
+        itemSlug: resolveJwStoneLegacyItemSlug(String(opts.stoneSlug)),
         photo: opts.photo,
         publicRouteContentBlocks: contentBlocks,
       })
@@ -145,12 +146,12 @@ export function buildPublicJwStoneMarketplaceHtml(
     <h2 id="seo-jw-stone-about">About JW Stone</h2>
     <p>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.about)}</p>
     <h2>Visit JW Stone</h2>
-    <address><a href="${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.mapUrl)}">${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.formatted)}</a></address>
+    <address>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.formatted)}</address>
     <h2>Follow JW Stone</h2>
     <p>${JW_STONE_PUBLIC_IDENTITY.socials
       .map(
         (social) =>
-          `<a href="${escapeHtml(social.href)}" rel="noreferrer">${escapeHtml(social.label)}</a>`
+          `${escapeHtml(social.label)}: ${escapeHtml(social.publicHandle)}`
       )
       .join(" · ")}</p>
   </section>`;
@@ -372,7 +373,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "",
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
     ...JW_STONE_PUBLIC_IDENTITY.socials.map(
-      (social) => `${social.label}: ${social.href}`
+      (social) => `${social.label}: ${social.publicHandle}`
     ),
     "",
     `Canonical: ${publicOrigin}/`,

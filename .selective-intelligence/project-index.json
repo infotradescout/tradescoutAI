@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-15T07:23:43Z",
+  "generated_at": "2026-08-15T13:41:21Z",
   "source": {
     "kind": "git",
-    "revision": "31225f09b58531e83f7c787110aa964a99145fd7",
+    "revision": "fb06a80a571ed8c7633c70004b2134d10d456324",
     "dirty": true,
-    "inventory_sha256": "a172740a8c2109d58af8383503f27b705ed655c3bc7b8282be053db1267e1f34"
+    "inventory_sha256": "f3e074a6016e184650f953354dafd3ae2804114eaa78e1e7ab656ca191a22858"
   },
   "inventory": {
     "directories": [
@@ -148,7 +148,7 @@
       },
       {
         "path": "client/src/components/share",
-        "source_file_count": 1
+        "source_file_count": 2
       },
       {
         "path": "client/src/components/social",
@@ -800,7 +800,7 @@
       },
       {
         "path": "shared",
-        "source_file_count": 72
+        "source_file_count": 73
       },
       {
         "path": "shared/schema",
@@ -2129,10 +2129,16 @@
         "bytes": 14244
       },
       {
+        "path": "client/src/components/share/ShareCardHost.test.tsx",
+        "language": "tsx",
+        "sha256": "6e21a82004d45fdda5bd0578796e8f84c53b0e5483fb57123c2ced517aa06957",
+        "bytes": 2933
+      },
+      {
         "path": "client/src/components/share/ShareCardHost.tsx",
         "language": "tsx",
-        "sha256": "dbe4740621c4516d6d9958dc35f9ddecb95f736d7952a4f2e2c29f3e5997ea9d",
-        "bytes": 9443
+        "sha256": "7abf1f009e31e45400215e49a8667cba1f09cfb48dd789b730b78ff72353d0ee",
+        "bytes": 10608
       },
       {
         "path": "client/src/components/simple-floating-help.tsx",
@@ -2647,8 +2653,8 @@
       {
         "path": "client/src/data/jwStoneProfilePresentation.ts",
         "language": "ts",
-        "sha256": "672b8393290189104ba808655ea20844203bfe16724b8612d30f85288979f6fe",
-        "bytes": 6379
+        "sha256": "a45744d707faf6d40455c94ea5704183d371192fd55255d1cea306fa00f74ae2",
+        "bytes": 6392
       },
       {
         "path": "client/src/data/profileSiteContentAdapters.test.ts",
@@ -2713,8 +2719,8 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
         "language": "tsx",
-        "sha256": "ac9574ceaa5a44dcac63dc3511bfbf9c8ffab0877bc5d3c9871eb95f010c59f1",
-        "bytes": 48323
+        "sha256": "6f66c04fd044b8811a2669c2fc61d207caf3ad5dc162d62b18d7d7de6a69ec7e",
+        "bytes": 48410
       },
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
@@ -2737,8 +2743,8 @@
       {
         "path": "client/src/features/jw-stone/JwStoneCompanySection.tsx",
         "language": "tsx",
-        "sha256": "214cca5dde798ea9a5b547ced104e1c09b747f900bec19e57e3a8d0a3e4dba41",
-        "bytes": 4013
+        "sha256": "1ea341f35541a5f18064a70f65ee7854bf53bbef99ba39f82a1eb660bbf17edb",
+        "bytes": 3656
       },
       {
         "path": "client/src/features/jw-stone/JwStoneRequestBand.tsx",
@@ -2875,8 +2881,8 @@
       {
         "path": "client/src/features/jw-stone/WishlistPanel.tsx",
         "language": "tsx",
-        "sha256": "dc08cf0034b9d4239170de12844314c7daa6e5306ea1fa69b4d842e26efe68ac",
-        "bytes": 10323
+        "sha256": "888ceb674d626802ae3cad7053e7727eededc61c80d64e711ca70c199d34e35a",
+        "bytes": 10320
       },
       {
         "path": "client/src/features/jw-stone/arrivalDates.ts",
@@ -2899,26 +2905,26 @@
       {
         "path": "client/src/features/jw-stone/catalog.test.ts",
         "language": "ts",
-        "sha256": "2ff054f6e4a62faa9ea0d67ded41f997fc0a934afc3367845ecfee0f447519e1",
-        "bytes": 8300
+        "sha256": "895d175609209ac4777056d3d1e8fdd87edc966b697281dcdbd408c0aec95e36",
+        "bytes": 8944
       },
       {
         "path": "client/src/features/jw-stone/catalog.ts",
         "language": "ts",
-        "sha256": "d32d3840c73c5652552a8d0d160550cd875260bb0296b69892f0c6a565936258",
-        "bytes": 10973
+        "sha256": "6c274ca0c74d78a507cae134731e6a99c1319a0b9d90e790bdefd863b7790416",
+        "bytes": 11110
       },
       {
         "path": "client/src/features/jw-stone/colorDirections.test.ts",
         "language": "ts",
-        "sha256": "3e7ce79c64948e1ee916167d6b9454eeed5b0357fc4543e5c8a375cc1f3a5405",
-        "bytes": 3475
+        "sha256": "0acdbe2d397fca73b0da5e50ee4e159c8eedebe4f7e6bdb484efd091f4654c8a",
+        "bytes": 3482
       },
       {
         "path": "client/src/features/jw-stone/colorDirections.ts",
         "language": "ts",
-        "sha256": "c987e1a68f08f683e515fe0409fb39386913108f3fca518bf3669e4bbf91168f",
-        "bytes": 5406
+        "sha256": "9917837ea06a60372f85bdfefb9ea43e840fb21d3ccb134b50ccab931147e075",
+        "bytes": 5420
       },
       {
         "path": "client/src/features/jw-stone/coverImages.test.ts",
@@ -2929,8 +2935,8 @@
       {
         "path": "client/src/features/jw-stone/coverImages.ts",
         "language": "ts",
-        "sha256": "a3ed1165de49d13bf61f47711c5e514853a120926ce3755b476adf9d1bf1d96b",
-        "bytes": 12849
+        "sha256": "1870d9c4639db7592736697ac1202f78bcf4cce45f74fc9245269f400839743f",
+        "bytes": 12856
       },
       {
         "path": "client/src/features/jw-stone/firstCut.test.ts",
@@ -2977,8 +2983,8 @@
       {
         "path": "client/src/features/jw-stone/reconciledInventory.test.ts",
         "language": "ts",
-        "sha256": "40fc2ebae1fb134ab194201395e3d3ccad2d34575da09ccbf56a900fe6f26f06",
-        "bytes": 5251
+        "sha256": "fcb40abaab18d1bdb02f321d95cbd37d3617060171a37d9b6d438db4f7dbe9ad",
+        "bytes": 5258
       },
       {
         "path": "client/src/features/jw-stone/reconciledInventory.ts",
@@ -3055,14 +3061,14 @@
       {
         "path": "client/src/features/jw-stone/urlState.test.ts",
         "language": "ts",
-        "sha256": "df45585ce37dcbf6506484efc9549d1222681b383bcfcd59388e6d0ef1e4e1e3",
-        "bytes": 3357
+        "sha256": "e895feef54e206d8c540b948d7a9dbc9eea0fe1226b5e449888656a2b3260415",
+        "bytes": 3771
       },
       {
         "path": "client/src/features/jw-stone/urlState.ts",
         "language": "ts",
-        "sha256": "65022666a7f40d24a2471fdd722d6b6273774edfae3e2c8eb7505b88d937b58e",
-        "bytes": 4948
+        "sha256": "6c431a2b7ffa78791512088a64a7d5aaa7d89bcc8d5c281dc674aaa5e61be9f1",
+        "bytes": 5141
       },
       {
         "path": "client/src/features/jw-stone/useJwStoneWishlist.ts",
@@ -3091,14 +3097,14 @@
       {
         "path": "client/src/features/jw-stone/wishlist.test.ts",
         "language": "ts",
-        "sha256": "eff57a0f7dd5ef22b571915b7be3eb08236243116e3057de7a55f09c6facea89",
-        "bytes": 6348
+        "sha256": "fad75e65a745bcab0c2e884b76c1679e21d4ac6e2b82fef6dfe4a376f677a5fc",
+        "bytes": 6960
       },
       {
         "path": "client/src/features/jw-stone/wishlist.ts",
         "language": "ts",
-        "sha256": "36e3453ca79328e739083327229eaaca97940078cf321eb4478c85f5b9b37ef2",
-        "bytes": 5283
+        "sha256": "f798fda91fdadc117fc3862e864d7ee22eccc1e2dfb1dc7a4411724afaf0f612",
+        "bytes": 5383
       },
       {
         "path": "client/src/global.d.ts",
@@ -5659,14 +5665,14 @@
       {
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
         "language": "tsx",
-        "sha256": "fa7479b271fd205900e3717fb147af66b914bc36e647a4c8abdc06790250ecb5",
-        "bytes": 101932
+        "sha256": "da546066ee532f511dd0d6401b1a22756b56549b404e4cdfa18378368acffcd1",
+        "bytes": 104070
       },
       {
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
         "language": "tsx",
-        "sha256": "00358d7c6c0b9d228bf7242ba562ffc384ab497dc9a7c5d628b5997407fc4913",
-        "bytes": 14309
+        "sha256": "55743b91cecc9120f14cc414e111c0f19a9326e60030c46262a003e87857cce5",
+        "bytes": 15521
       },
       {
         "path": "client/src/pages/profile-sites/TradeScoutProfileHandoff.test.tsx",
@@ -5785,8 +5791,8 @@
       {
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
         "language": "tsx",
-        "sha256": "1792f59f1a9fafadcaefaf7ee7d37c0c3e6a71206a6490db8f89bacf584a48d1",
-        "bytes": 15929
+        "sha256": "8ae4456f4507ec09c343ba291e699e0440b6ca7bf7b17906c3db7cf470f7bb5a",
+        "bytes": 16105
       },
       {
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomeProjectReview.tsx",
@@ -5839,14 +5845,14 @@
       {
         "path": "client/src/pages/profile-sites/steel-home-project-tools/countertopStudioShare.test.ts",
         "language": "ts",
-        "sha256": "880be7fb6c6dcf899f0847809abd39481d12f45ff6cab23bac135b077e9d794f",
-        "bytes": 6325
+        "sha256": "0afc2a29e5f54b56e8f1d8248125ad0f2ae5d001f3046ee32334db2a4e2441b9",
+        "bytes": 6982
       },
       {
         "path": "client/src/pages/profile-sites/steel-home-project-tools/countertopStudioShare.ts",
         "language": "ts",
-        "sha256": "820b47d08a14a4c50415a3bcbc8981fc4f734ecdd840efaa8042be7ef9d20b5c",
-        "bytes": 7330
+        "sha256": "9debcd181a230b79485f1f059528feacaf7eb14b7db6e7f83b6320709e539c95",
+        "bytes": 7388
       },
       {
         "path": "client/src/pages/profile-sites/steel-home-project-tools/projectModel.test.ts",
@@ -6979,8 +6985,8 @@
       {
         "path": "client/src/utils/share.ts",
         "language": "ts",
-        "sha256": "c41731843c0af1045e70707edd389aadefa85d861a0840cb8bbc6efdab1025e5",
-        "bytes": 7804
+        "sha256": "68d6f9d4a3756d88030ef2c2766df241626cce4c9426c4888e54819a7e816a3b",
+        "bytes": 8122
       },
       {
         "path": "client/tailwind.config.ts",
@@ -14941,8 +14947,8 @@
       {
         "path": "scripts/extract-jw-stone-dominant-colors.mjs",
         "language": "mjs",
-        "sha256": "ea3f1edede7d2242e0f358da23d5e21e3b3eb3f0b36f6628f299f3511b9f5592",
-        "bytes": 31301
+        "sha256": "467c9b78e4b7c91f83be7813ea50a0299e97272b2fdf9d2e9b85ace5bc8a8197",
+        "bytes": 31308
       },
       {
         "path": "scripts/findTargetRoleColumn.cjs",
@@ -15223,8 +15229,8 @@
       {
         "path": "scripts/reconcile-jw-stone-inventory.mjs",
         "language": "mjs",
-        "sha256": "7d7660d650bc85a530ea70c1089dab6a80385f26b1309a05635ed67e7bc5113e",
-        "bytes": 9755
+        "sha256": "8c3ef01e427f31cc8e38ea6851345c1182de743faaac5982db161e5391c8ab7c",
+        "bytes": 9785
       },
       {
         "path": "scripts/release-gate-summary.mjs",
@@ -15235,8 +15241,8 @@
       {
         "path": "scripts/reorder-jw-stone-full-slab-leads.mjs",
         "language": "mjs",
-        "sha256": "c499b7615924aec0493b291adc91348c130370c7297210339883ca4d33b87c93",
-        "bytes": 9631
+        "sha256": "d69a61bfa78023267bfb0834fbe832095dc182797841a4115783633e1d56f289",
+        "bytes": 9638
       },
       {
         "path": "scripts/report-discovery-performance.contract.test.mjs",
@@ -16255,8 +16261,8 @@
       {
         "path": "server/publicJwStoneMarketplaceHtml.ts",
         "language": "ts",
-        "sha256": "154dd1a1a7e7fe0f7d17e8e22bc9d5e35db4ae288a20aebe552ce8d7d5c082e8",
-        "bytes": 14381
+        "sha256": "2f5b4daa49bac46cd8b9532fa71eef248e413e55a5d95f0ddadf4c1fedac94b0",
+        "bytes": 14413
       },
       {
         "path": "server/publicLandingHtml.ts",
@@ -20077,8 +20083,8 @@
       {
         "path": "server/tests/public-jw-stone-marketplace-html.test.ts",
         "language": "ts",
-        "sha256": "047ffb3d1c5b021d398d9e0f69c54f4045b678e914a957ac5b6e469835bd0a7d",
-        "bytes": 7617
+        "sha256": "755622b600fe2d51153b6deef908d1d06cc3702e27e3e7ef57ea2bc0710ff0dd",
+        "bytes": 8369
       },
       {
         "path": "server/tests/public-landing-performance.contract.test.ts",
@@ -21437,10 +21443,16 @@
         "bytes": 1681
       },
       {
+        "path": "shared/jwStoneLegacyAliases.ts",
+        "language": "ts",
+        "sha256": "8b8d58460725de93fef433a15cd05eb1e87ca73968f36e69257451d690d148e4",
+        "bytes": 558
+      },
+      {
         "path": "shared/jwStonePresentation.ts",
         "language": "ts",
-        "sha256": "f574103d23b1ca9f0017aceddaaa5404b5ece6fcb5177ab8c757ced49eb0df51",
-        "bytes": 3566
+        "sha256": "0376344fdf5771f1d53179941f98f29681faa8a9355a22ad28a8abcb3b138e1e",
+        "bytes": 3643
       },
       {
         "path": "shared/legalNotary.ts",
@@ -29228,28 +29240,28 @@
         "name": "handleOpen",
         "kind": "function",
         "path": "client/src/components/share/ShareCardHost.tsx",
-        "line": 65,
+        "line": 66,
         "exported": false
       },
       {
         "name": "copyLink",
         "kind": "function",
         "path": "client/src/components/share/ShareCardHost.tsx",
-        "line": 86,
+        "line": 88,
         "exported": false
       },
       {
         "name": "shareToCommunity",
         "kind": "function",
         "path": "client/src/components/share/ShareCardHost.tsx",
-        "line": 101,
+        "line": 105,
         "exported": false
       },
       {
         "name": "openNativeShare",
         "kind": "function",
         "path": "client/src/components/share/ShareCardHost.tsx",
-        "line": 119,
+        "line": 123,
         "exported": false
       },
       {
@@ -31391,14 +31403,14 @@
         "name": "LucideIcon",
         "kind": "type",
         "path": "client/src/features/jw-stone/JwStoneCompanySection.tsx",
-        "line": 6,
+        "line": 5,
         "exported": false
       },
       {
         "name": "JwStoneCompanySection",
         "kind": "component",
         "path": "client/src/features/jw-stone/JwStoneCompanySection.tsx",
-        "line": 24,
+        "line": 23,
         "exported": true
       },
       {
@@ -31853,105 +31865,105 @@
         "name": "resolveVerifiedOrigin",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 33,
+        "line": 34,
         "exported": true
       },
       {
         "name": "projectJwStoneCatalogItem",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 45,
+        "line": 46,
         "exported": true
       },
       {
         "name": "buildCatalog",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 110,
+        "line": 111,
         "exported": false
       },
       {
         "name": "getCatalogItemById",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 142,
+        "line": 143,
         "exported": true
       },
       {
         "name": "getNamedCatalogItemByShareSlug",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 146,
+        "line": 147,
         "exported": true
       },
       {
         "name": "toCatalogFilterValue",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 150,
+        "line": 151,
         "exported": true
       },
       {
         "name": "countOptions",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 160,
+        "line": 161,
         "exported": false
       },
       {
         "name": "getMaterialFilterOptions",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 182,
+        "line": 183,
         "exported": true
       },
       {
         "name": "NamedMaterialSection",
         "kind": "type",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 207,
+        "line": 208,
         "exported": true
       },
       {
         "name": "groupNamedCatalogByMaterial",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 221,
+        "line": 222,
         "exported": true
       },
       {
         "name": "materialSectionAnchorId",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 259,
+        "line": 260,
         "exported": true
       },
       {
         "name": "getOriginFilterOptions",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 263,
+        "line": 264,
         "exported": true
       },
       {
         "name": "getColorFilterOptions",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 273,
+        "line": 274,
         "exported": true
       },
       {
         "name": "getFinishFilterOptions",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 284,
+        "line": 285,
         "exported": true
       },
       {
         "name": "filterJwStoneCatalog",
         "kind": "function",
         "path": "client/src/features/jw-stone/catalog.ts",
-        "line": 292,
+        "line": 293,
         "exported": true
       },
       {
@@ -32630,42 +32642,42 @@
         "name": "toSearchParams",
         "kind": "function",
         "path": "client/src/features/jw-stone/urlState.ts",
-        "line": 18,
+        "line": 19,
         "exported": false
       },
       {
         "name": "allowedValue",
         "kind": "function",
         "path": "client/src/features/jw-stone/urlState.ts",
-        "line": 32,
+        "line": 33,
         "exported": false
       },
       {
         "name": "resolveAesthetic",
         "kind": "function",
         "path": "client/src/features/jw-stone/urlState.ts",
-        "line": 38,
+        "line": 39,
         "exported": false
       },
       {
         "name": "parseMarketplaceUrlState",
         "kind": "function",
         "path": "client/src/features/jw-stone/urlState.ts",
-        "line": 55,
+        "line": 56,
         "exported": true
       },
       {
         "name": "serializeMarketplaceUrlState",
         "kind": "function",
         "path": "client/src/features/jw-stone/urlState.ts",
-        "line": 101,
+        "line": 105,
         "exported": true
       },
       {
         "name": "toMarketplaceHref",
         "kind": "function",
         "path": "client/src/features/jw-stone/urlState.ts",
-        "line": 122,
+        "line": 126,
         "exported": true
       },
       {
@@ -32735,70 +32747,70 @@
         "name": "sameIds",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 15,
+        "line": 16,
         "exported": false
       },
       {
         "name": "reconcileWishlistIds",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 19,
+        "line": 20,
         "exported": true
       },
       {
         "name": "envelope",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 40,
+        "line": 41,
         "exported": false
       },
       {
         "name": "safelyRemoveStoredWishlist",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 47,
+        "line": 48,
         "exported": false
       },
       {
         "name": "getBrowserWishlistStorage",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 55,
+        "line": 56,
         "exported": true
       },
       {
         "name": "saveWishlist",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 64,
+        "line": 65,
         "exported": true
       },
       {
         "name": "loadWishlist",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 80,
+        "line": 81,
         "exported": true
       },
       {
         "name": "toggleWishlistId",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 135,
+        "line": 136,
         "exported": true
       },
       {
         "name": "removeWishlistId",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 147,
+        "line": 148,
         "exported": true
       },
       {
         "name": "clearWishlist",
         "kind": "function",
         "path": "client/src/features/jw-stone/wishlist.ts",
-        "line": 155,
+        "line": 156,
         "exported": true
       },
       {
@@ -48107,98 +48119,105 @@
         "name": "SteelHomePlanner",
         "kind": "type",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 20,
+        "line": 21,
         "exported": false
       },
       {
         "name": "setControlValue",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 66,
+        "line": 67,
         "exported": false
       },
       {
         "name": "typeCharacterByCharacter",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 78,
+        "line": 79,
         "exported": false
       },
       {
         "name": "setSelectValue",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 85,
+        "line": 86,
         "exported": false
       },
       {
         "name": "namedStonePhotoHref",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 99,
+        "line": 100,
         "exported": false
       },
       {
         "name": "enableCountertopIsland",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 110,
+        "line": 111,
         "exported": false
       },
       {
         "name": "pressKey",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 118,
+        "line": 119,
         "exported": false
       },
       {
         "name": "flushUi",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 124,
+        "line": 125,
         "exported": false
       },
       {
         "name": "userFacingText",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 131,
+        "line": 132,
         "exported": false
       },
       {
         "name": "renderProfile",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 171,
+        "line": 172,
         "exported": false
       },
       {
         "name": "openPlanner",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 189,
+        "line": 190,
         "exported": false
       },
       {
         "name": "startRequest",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 218,
+        "line": 219,
         "exported": false
       },
       {
         "name": "closeRequest",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 254,
+        "line": 255,
         "exported": false
       },
       {
         "name": "completeRequestDetails",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
-        "line": 263,
+        "line": 264,
+        "exported": false
+      },
+      {
+        "name": "captureShare",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.test.tsx",
+        "line": 475,
         "exported": false
       },
       {
@@ -48251,45 +48270,59 @@
         "exported": false
       },
       {
-        "name": "requestDetailsFromDraft",
-        "kind": "function",
+        "name": "LocalSaveStatus",
+        "kind": "type",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
         "line": 53,
         "exported": false
       },
       {
-        "name": "createBuilderRequestDetails",
+        "name": "getLocalStorage",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
+        "line": 55,
+        "exported": false
+      },
+      {
+        "name": "requestDetailsFromDraft",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
         "line": 64,
         "exported": false
       },
       {
-        "name": "loadBuilderRequestDetails",
+        "name": "createBuilderRequestDetails",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
         "line": 75,
         "exported": false
       },
       {
+        "name": "loadBuilderRequestDetails",
+        "kind": "function",
+        "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
+        "line": 86,
+        "exported": false
+      },
+      {
         "name": "saveBuilderRequestDetails",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
-        "line": 99,
+        "line": 110,
         "exported": false
       },
       {
         "name": "SteelHomePackagesProfile",
         "kind": "component",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
-        "line": 112,
+        "line": 123,
         "exported": true
       },
       {
         "name": "restorePlanner",
         "kind": "function",
         "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
-        "line": 160,
+        "line": 178,
         "exported": false
       },
       {
@@ -49290,42 +49323,42 @@
         "name": "SteelHomeRequestSelection",
         "kind": "type",
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-        "line": 34,
+        "line": 35,
         "exported": true
       },
       {
         "name": "SteelHomeRequestIntent",
         "kind": "type",
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-        "line": 38,
+        "line": 39,
         "exported": false
       },
       {
         "name": "buildScopedSteelHomePlannerDraft",
         "kind": "function",
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-        "line": 92,
+        "line": 93,
         "exported": true
       },
       {
         "name": "plannerResult",
         "kind": "function",
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-        "line": 107,
+        "line": 108,
         "exported": false
       },
       {
         "name": "SteelHomePlannerRequest",
         "kind": "component",
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-        "line": 136,
+        "line": 137,
         "exported": true
       },
       {
         "name": "handleKeyDown",
         "kind": "function",
         "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-        "line": 237,
+        "line": 239,
         "exported": false
       },
       {
@@ -55660,42 +55693,42 @@
         "name": "ShareContextKind",
         "kind": "type",
         "path": "client/src/utils/share.ts",
-        "line": 100,
+        "line": 107,
         "exported": true
       },
       {
         "name": "ShareOptions",
         "kind": "type",
         "path": "client/src/utils/share.ts",
-        "line": 109,
+        "line": 116,
         "exported": true
       },
       {
         "name": "ShareCardPayload",
         "kind": "type",
         "path": "client/src/utils/share.ts",
-        "line": 136,
+        "line": 143,
         "exported": true
       },
       {
         "name": "inferShareKind",
         "kind": "function",
         "path": "client/src/utils/share.ts",
-        "line": 148,
+        "line": 155,
         "exported": true
       },
       {
         "name": "share",
         "kind": "function",
         "path": "client/src/utils/share.ts",
-        "line": 164,
+        "line": 171,
         "exported": true
       },
       {
         "name": "shareToPlatform",
         "kind": "function",
         "path": "client/src/utils/share.ts",
-        "line": 207,
+        "line": 214,
         "exported": true
       },
       {
@@ -115909,77 +115942,77 @@
         "name": "PublicJwStoneMarketplaceHtmlOptions",
         "kind": "type",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 20,
+        "line": 21,
         "exported": true
       },
       {
         "name": "escapeHtml",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 32,
+        "line": 33,
         "exported": false
       },
       {
         "name": "upsertTag",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 41,
+        "line": 42,
         "exported": false
       },
       {
         "name": "injectSummary",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 46,
+        "line": 47,
         "exported": false
       },
       {
         "name": "injectJsonLd",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 55,
+        "line": 56,
         "exported": false
       },
       {
         "name": "injectMarketplaceDomainSurface",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 60,
+        "line": 61,
         "exported": false
       },
       {
         "name": "normalizeOrigin",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 65,
+        "line": 66,
         "exported": false
       },
       {
         "name": "resolveCollectionUrl",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 72,
+        "line": 73,
         "exported": false
       },
       {
         "name": "buildPublicJwStoneMarketplaceHtml",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 84,
+        "line": 85,
         "exported": true
       },
       {
         "name": "buildJwStoneMarketplaceSitemapXml",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 339,
+        "line": 340,
         "exported": true
       },
       {
         "name": "buildJwStoneMarketplaceLlmsText",
         "kind": "function",
         "path": "server/publicJwStoneMarketplaceHtml.ts",
-        "line": 363,
+        "line": 364,
         "exported": true
       },
       {
@@ -147672,6 +147705,13 @@
         "exported": true
       },
       {
+        "name": "resolveJwStoneLegacyItemSlug",
+        "kind": "function",
+        "path": "shared/jwStoneLegacyAliases.ts",
+        "line": 9,
+        "exported": true
+      },
+      {
         "name": "JwStoneInventoryNameStatus",
         "kind": "type",
         "path": "shared/jwStonePresentation.ts",
@@ -158689,32 +158729,37 @@
         {
           "tag": "textarea",
           "path": "client/src/components/share/ShareCardHost.tsx",
-          "line": 191
+          "line": 195
         },
         {
           "tag": "button",
           "path": "client/src/components/share/ShareCardHost.tsx",
-          "line": 198
+          "line": 202
         },
         {
           "tag": "button",
           "path": "client/src/components/share/ShareCardHost.tsx",
-          "line": 209
+          "line": 213
         },
         {
           "tag": "button",
           "path": "client/src/components/share/ShareCardHost.tsx",
-          "line": 222
+          "line": 226
         },
         {
           "tag": "button",
           "path": "client/src/components/share/ShareCardHost.tsx",
-          "line": 237
+          "line": 241
         },
         {
           "tag": "button",
           "path": "client/src/components/share/ShareCardHost.tsx",
-          "line": 252
+          "line": 256
+        },
+        {
+          "tag": "textarea",
+          "path": "client/src/components/share/ShareCardHost.tsx",
+          "line": 279
         },
         {
           "tag": "button",
@@ -171344,7 +171389,7 @@
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/SteelHomePackagesProfile.tsx",
-          "line": 330
+          "line": 363
         },
         {
           "tag": "button",
@@ -171824,17 +171869,17 @@
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-          "line": 265
+          "line": 267
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-          "line": 296
+          "line": 298
         },
         {
           "tag": "button",
           "path": "client/src/pages/profile-sites/steel-home-project-tools/SteelHomePlannerRequest.tsx",
-          "line": 348
+          "line": 350
         },
         {
           "tag": "button",
@@ -215658,11 +215703,11 @@
   ],
   "summary": {
     "directories": 211,
-    "source_files": 3547,
-    "symbols": 18973,
+    "source_files": 3549,
+    "symbols": 18977,
     "components": 1319,
-    "functions_and_hooks": 10590,
-    "raw_ui_elements": 7356,
+    "functions_and_hooks": 10593,
+    "raw_ui_elements": 7357,
     "errors": 1115,
     "warnings": 5
   }

@@ -34,7 +34,7 @@ const PREFERRED_LEAD_FILE_IDS = {
   "aj-quartz-4": "1V6D5-zXjoklqYg6au4tnAzUiGXeBW7Wc",
   "aj-quartz-5": "1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH",
   "bianco-carrara": "1BoLQprq014WBrpdxTyYU5LErye7D5O0U",
-  "carrara-white-brazil": "13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1",
+  "carrara-white-brazil-119x75": "13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1",
   "calacatta-cremo": "12ULnXkUBeSW7ViTBbAA8Wx5rFaPK2T_J",
   "calacatta-macchia": "1vDIoTtWdOceQ1IzY9u2vAl_knKGWJjxu",
   "matarazzo-zucchi": "1pVej6DwGpib3soV3YgLDv-v_X8XEIB4h",

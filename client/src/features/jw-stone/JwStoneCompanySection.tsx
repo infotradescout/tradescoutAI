@@ -1,5 +1,4 @@
 import {
-  ExternalLink,
   Facebook,
   Instagram,
   MapPin,
@@ -18,8 +17,8 @@ const SOCIAL_ICONS: Record<
 
 /**
  * Public company identity belongs on the marketplace itself, not behind
- * Direct Connect. Contact details remain gated; About, location, and official
- * social accounts are intentionally public.
+ * Direct Connect. The address and official account names stay visible, while
+ * every outbound/contact action remains inside the gated request flow.
  */
 export function JwStoneCompanySection() {
   const { about, address, socials } = JW_STONE_PUBLIC_IDENTITY;
@@ -53,25 +52,18 @@ export function JwStoneCompanySection() {
           <div id="jw-stone-location" className={jw.scrollTarget}>
             <h3 className="font-editorial text-2xl text-[var(--jw-ink)]">Visit JW Stone</h3>
             <address className="mt-4 not-italic">
-              <a
-                href={address.mapUrl}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`Open ${address.formatted} in Google Maps (opens in a new tab)`}
-                className="group flex items-start gap-3 text-sm font-semibold leading-6 text-[var(--jw-ink)]"
-              >
+              <div className="flex items-start gap-3 text-sm font-semibold leading-6 text-[var(--jw-ink)]">
                 <MapPin
                   className="mt-0.5 h-5 w-5 shrink-0 text-[var(--jw-mark)]"
                   aria-hidden="true"
                 />
-                <span className="flex-1 underline decoration-[var(--jw-border-strong)] underline-offset-4 group-hover:decoration-[var(--jw-ink)]">
+                <span className="flex-1">
                   <span className="block">{address.streetAddress}</span>
                   <span className="block">
                     {address.addressLocality}, {address.addressRegion} {address.postalCode}
                   </span>
                 </span>
-                <ExternalLink className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />
-              </a>
+              </div>
             </address>
           </div>
 
@@ -82,16 +74,17 @@ export function JwStoneCompanySection() {
                 const Icon = SOCIAL_ICONS[social.id];
                 return (
                   <li key={social.id}>
-                    <a
-                      href={social.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`Follow JW Stone on ${social.label} (opens in a new tab)`}
-                      className={`inline-flex min-h-11 w-full items-center justify-center gap-2 px-3 text-sm ${jw.ghostOnLight}`}
+                    <div
+                      className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm ${jw.border}`}
                     >
                       <Icon className="h-4 w-4" aria-hidden="true" />
-                      {social.label}
-                    </a>
+                      <span>
+                        <span className="block font-semibold">{social.label}</span>
+                        <span className="block text-xs text-[var(--jw-muted)]">
+                          {social.publicHandle}
+                        </span>
+                      </span>
+                    </div>
                   </li>
                 );
               })}

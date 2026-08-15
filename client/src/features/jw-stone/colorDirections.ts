@@ -52,7 +52,7 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     "white-springs",
     "alabama-white",
     "aspen-white",
-    "carrara-white-brazil",
+    "carrara-white-brazil-119x75",
     "cherokee-marble",
     "matarazzo",
     "mugla",
@@ -145,7 +145,7 @@ export const JW_STONE_SLUGS_BY_COLOR_DIRECTION = {
     // Face-true reclass: gray faces misread as warm gold / near-black from racks/shadow.
     "jaguar-leather",
     "titanium",
-    "soapstone",
+    "soapstone-117x70",
     "marina-black-soapstone",
     ...reconciledSlugsFor("cool-serene"),
   ],

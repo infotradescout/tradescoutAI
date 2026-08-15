@@ -1,4 +1,5 @@
 import type { JwStoneInventoryStone } from "@/data/jwStoneInventory";
+import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import { getColorDirectionForStone } from "./colorDirections";
 import { rankImagePathsForCover, reorderParallelByPermutation } from "./coverImages";
 import { JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES } from "./reconciledInventory";
@@ -141,11 +142,11 @@ const NAMED_CATALOG_BY_SHARE_SLUG: ReadonlyMap<string, JwStoneCatalogItem> = new
 );
 
 export function getCatalogItemById(id: string): JwStoneCatalogItem | null {
-  return CATALOG_BY_ID.get(id) ?? null;
+  return CATALOG_BY_ID.get(resolveJwStoneLegacyItemSlug(id)) ?? null;
 }
 
 export function getNamedCatalogItemByShareSlug(slug: string): JwStoneCatalogItem | null {
-  return NAMED_CATALOG_BY_SHARE_SLUG.get(slug) ?? null;
+  return NAMED_CATALOG_BY_SHARE_SLUG.get(resolveJwStoneLegacyItemSlug(slug)) ?? null;
 }
 
 export function toCatalogFilterValue(value: string): string {

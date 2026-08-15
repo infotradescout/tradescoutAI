@@ -168,7 +168,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         title: "Soapstone",
         summary:
           "Explore the Soapstone currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
-        leadItemSlug: "soapstone",
+        leadItemSlug: "marina-black-soapstone",
         indexable: true,
       },
       {

@@ -82,11 +82,13 @@ export const JW_STONE_PUBLIC_IDENTITY = {
     {
       id: "instagram",
       label: "Instagram",
+      publicHandle: "@jwstonellc",
       href: "https://www.instagram.com/jwstonellc/",
     },
     {
       id: "facebook",
       label: "Facebook",
+      publicHandle: "JW Stone Logistics",
       href: "https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/",
     },
   ],

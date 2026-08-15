@@ -54,7 +54,7 @@ describe("JW Stone editorial color directions", () => {
     // Gray faces misread as warm gold / espresso from racks and shadow.
     expect(getColorDirectionForStone("jaguar-leather")).toBe("cool-serene");
     expect(getColorDirectionForStone("titanium")).toBe("cool-serene");
-    expect(getColorDirectionForStone("soapstone")).toBe("cool-serene");
+    expect(getColorDirectionForStone("soapstone-117x70")).toBe("cool-serene");
     // Soft white — not Cool & Serene / blue from yard wash.
     expect(getColorDirectionForStone("alabama-white")).toBe("soft-light");
     expect(getColorDirectionForStone("dallas-white")).toBe("soft-light");

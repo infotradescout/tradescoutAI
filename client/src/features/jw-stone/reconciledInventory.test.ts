@@ -96,7 +96,7 @@ describe("JW Stone unified reconciled inventory", () => {
 
   it("derives finishes only from supplied source titles and never invents Dual Finish", () => {
     expect(marketplaceStone("arizona-gold")?.finishes).toEqual(["Polished"]);
-    expect(marketplaceStone("carrara-white-brazil")?.finishes).toBeUndefined();
+    expect(marketplaceStone("carrara-white-brazil-119x75")?.finishes).toBeUndefined();
     expect(marketplaceStone("bianco-carrara")?.finishes).toEqual(["Polished"]);
     expect(marketplaceStone("fantasy-brown")?.finishes).toEqual(["Polished"]);
     expect(marketplaceStone("montana-bianco")?.finishes).toEqual(["Polished"]);

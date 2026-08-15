@@ -108,16 +108,11 @@ describe("JW Stone marketplace luxury layout", () => {
     );
     expect(companyIdentity?.textContent).toContain("2103 W Herman Ave");
     expect(companyIdentity?.textContent).toContain("Pensacola, FL 32505");
-    expect(
-      companyIdentity?.querySelector(
-        'a[href="https://www.instagram.com/jwstonellc/"][target="_blank"]'
-      )
-    ).not.toBeNull();
-    expect(
-      companyIdentity?.querySelector(
-        'a[href="https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"][target="_blank"]'
-      )
-    ).not.toBeNull();
+    expect(companyIdentity?.textContent).toContain("@jwstonellc");
+    expect(companyIdentity?.textContent).toContain("JW Stone Logistics");
+    expect(companyIdentity?.querySelector('a[href^="https://www.google.com/maps"]')).toBeNull();
+    expect(companyIdentity?.querySelector('a[href^="https://www.instagram.com"]')).toBeNull();
+    expect(companyIdentity?.querySelector('a[href^="https://www.facebook.com"]')).toBeNull();
     expect(container.textContent).not.toContain("Why JW Stone");
     expect(container.textContent).not.toContain("How do I confirm availability or pricing?");
     expect(container.querySelector('[data-testid="jw-marketplace-trust"]')).toBeNull();

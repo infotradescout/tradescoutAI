@@ -115,7 +115,7 @@ export function WishlistPanel({
             Saved stones
           </SheetTitle>
           <SheetDescription className={`max-w-md text-sm leading-5 ${jw.muted}`}>
-            Stones you’ve bookmarked. Kept in this browser — email yourself a copy if you want it to
+            Stones you’ve bookmarked. Kept in this browser. Email yourself a copy if you want it to
             stick. JW Stone isn’t notified until you Ask.
           </SheetDescription>
           {restored && !persisted ? (
