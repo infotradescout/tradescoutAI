@@ -48,6 +48,10 @@ import {
   createCabinetPlannerModule,
   type CabinetPlannerExtensionV1,
 } from "./cabinetPlannerModel";
+import {
+  createEmptyBuildingPlannerExtension,
+  type BuildingPlannerExtensionV1,
+} from "./buildingPlannerModel";
 
 const FORBIDDEN_PUBLIC_NAMES = [
   "Worldwide Steel Buildings",
@@ -117,6 +121,23 @@ function measuredCabinetPlanner(notes = ""): CabinetPlannerExtensionV1 {
       },
     ],
     notes,
+  };
+}
+
+function measuredBuildingPlanner(
+  options: { widthFt?: number; notes?: string } = {}
+): BuildingPlannerExtensionV1 {
+  return {
+    ...createEmptyBuildingPlannerExtension(),
+    useId: "home-with-shop",
+    systemId: "open-web-truss",
+    widthFt: options.widthFt ?? 40,
+    lengthFt: 60,
+    eaveHeightFt: 14,
+    roofId: "gable",
+    roofPitchRise12: 4,
+    colors: { wall: "polar-white", roof: "charcoal", trim: "bronze" },
+    notes: options.notes ?? "",
   };
 }
 
@@ -1534,6 +1555,7 @@ describe("steel-home project model", () => {
     });
 
     draft.building.included = true;
+    draft.building.planner = measuredBuildingPlanner();
     expect(getSteelHomeProjectReadiness(draft)).toMatchObject({
       projectReady: true,
       needsDesign: false,
@@ -1564,6 +1586,45 @@ describe("steel-home project model", () => {
     expect(description).not.toMatch(/\$\d/);
   });
 
+  it("persists the canonical metal scene and uses it for readiness and request details", () => {
+    const draft = createEmptySteelHomeProjectDraft();
+    draft.location = "Ocean Springs, MS";
+    draft.stateCode = "MS";
+    draft.countyFips = "28059";
+    draft.projectRole = "self-contracted";
+    draft.building.included = true;
+    draft.building.planner = {
+      ...measuredBuildingPlanner({ widthFt: 50, notes: "Keep the rear wall clear." }),
+      openings: [
+        {
+          id: "door-1",
+          typeId: "overhead-door",
+          surface: "front",
+          widthFt: 12,
+          heightFt: 12,
+          offsetFt: 5,
+          sillHeightFt: 0,
+          roofXFt: null,
+          roofZFt: null,
+        },
+      ],
+    };
+
+    const reconciled = reconcileSteelHomeProjectDraft(draft);
+    expect(reconciled.building.planner).toEqual(draft.building.planner);
+    expect(getSteelHomeProjectReadiness(reconciled)).toMatchObject({
+      projectReady: true,
+      buildingProblems: [],
+    });
+
+    const description = buildSteelHomeProjectDescription(reconciled);
+    expect(description).toContain("Measured shell: 50 × 60 × 14 ft eave");
+    expect(description).toContain("Overhead sectional door: 12 × 12 ft on front");
+    expect(description).toContain("Scene reference: building-");
+    expect(description).toContain("Private planner notes: Keep the rear wall clear.");
+    expect(description).not.toMatch(/\$\d/);
+  });
+
   it("carries exact completed designs and the selected photographed surface into the summary", () => {
     const draft = createEmptySteelHomeProjectDraft();
     draft.location = "Ocean Springs, MS 39564";
@@ -1575,6 +1636,7 @@ describe("steel-home project model", () => {
     draft.additionalScopes = ["insulation", "tankless-water-heating"];
     draft.building.included = true;
     draft.building.widthFt = 54;
+    draft.building.planner = measuredBuildingPlanner({ widthFt: 54 });
     draft.countertops.included = true;
     draft.countertops.island = true;
     draft.countertops.stoneId = "taj-mahal";
@@ -1585,7 +1647,7 @@ describe("steel-home project model", () => {
 
     const description = buildSteelHomeProjectDescription(draft);
     expect(description).toMatch(/^TradeScout Steel Home Planning Request\n/);
-    expect(description).toContain("54' wide × 60' long × 14' eave");
+    expect(description).toContain("Measured shell: 54 × 60 × 14 ft eave");
     expect(description).toContain("Project location: Ocean Springs, MS 39564 — Jackson County, MS");
     expect(description).toContain("Contracting setup: Self-contracted homeowner");
     expect(description).not.toMatch(/\$\d/);
@@ -1674,6 +1736,7 @@ describe("steel-home project model", () => {
     draft.countertops.included = true;
     draft.cabinets.included = true;
     draft.building.notes = `BUILD-${"B".repeat(234)}`;
+    draft.building.planner = measuredBuildingPlanner({ notes: draft.building.notes });
     draft.countertops.notes = `STONE-${"S".repeat(234)}`;
     draft.cabinets.notes = `CABINET-${"C".repeat(232)}`;
     draft.cabinets.planner = measuredCabinetPlanner(draft.cabinets.notes);
@@ -1954,7 +2017,7 @@ describe("steel-home project model", () => {
     expect(url.searchParams.get("county")).toBe("28047");
     expect(url.searchParams.get("state")).toBe("MS");
     expect(url.searchParams.get("description")).toContain(
-      "Countertop details: Kitchen; Cristallo — Quartzite; About 58.2 sq. ft."
+      "Countertop details: Kitchen; Cristallo — Quartzite; surface dimensions unreviewed"
     );
     expect(url.searchParams.get("description")).toMatch(/^TradeScout Local Trade Request\n/);
     expect(url.searchParams.get("title")).toBe(

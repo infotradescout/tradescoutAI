@@ -348,6 +348,10 @@ export default function SteelHomePackagesProfile({
               <BuildingDesigner
                 design={draft.building}
                 onChange={updateBuilding}
+                extension={draft.building.planner}
+                onExtensionChange={(planner) =>
+                  updateBuilding({ ...draft.building, included: true, planner })
+                }
                 onRequest={() => setRequestSelection({ planner: "building", intent: "builder" })}
               />
             ) : null}

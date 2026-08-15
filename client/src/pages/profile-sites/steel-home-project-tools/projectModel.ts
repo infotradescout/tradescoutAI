@@ -22,6 +22,13 @@ import {
   reconcileCabinetPlannerExtension,
   type CabinetPlannerExtensionV1,
 } from "./cabinetPlannerModel";
+import {
+  buildBuildingPlannerRequest,
+  createEmptyBuildingPlannerExtension,
+  getBuildingPlannerRequestReadiness,
+  sanitizeBuildingPlannerExtension,
+  type BuildingPlannerExtensionV1,
+} from "./buildingPlannerModel";
 import { getCountertopPlannerOpeningSchedule } from "./countertopPlannerModel";
 
 export const STEEL_HOME_PROJECT_DRAFT_VERSION = 9 as const;
@@ -368,6 +375,7 @@ export type SteelHomeBuildingDesign = {
   porch: BuildingPorch;
   porchDepthFt: number;
   notes: string;
+  planner: BuildingPlannerExtensionV1;
 };
 
 export type SteelHomeCountertopDesign = {
@@ -583,6 +591,7 @@ export function createEmptySteelHomeProjectDraft(): SteelHomeProjectDraft {
       porch: "front",
       porchDepthFt: 8,
       notes: "",
+      planner: createEmptyBuildingPlannerExtension(),
     },
     countertops: {
       included: false,
@@ -832,6 +841,7 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
       porch: cleanEnum(building.porch, BUILDING_PORCHES, empty.building.porch),
       porchDepthFt: cleanNumber(building.porchDepthFt, empty.building.porchDepthFt, 0, 20),
       notes: cleanText(building.notes, 240),
+      planner: sanitizeBuildingPlannerExtension(building.planner),
     },
     countertops: {
       included: countertops.included === true,
@@ -1586,10 +1596,6 @@ function getAdditionalProjectScopeLabels(draft: SteelHomeProjectDraft): string[]
   });
 }
 
-function colorLabel(value: BuildingColor): string {
-  return labelFromOptions(value, BUILDING_COLOR_OPTIONS);
-}
-
 function briefNote(value: string): string {
   return cleanText(value, 240);
 }
@@ -1672,37 +1678,40 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
   addLine(lines, "Desired timing", draft.timing);
 
   if (draft.building.included) {
-    const building = draft.building;
+    const buildingRequest = buildBuildingPlannerRequest(draft.building.planner);
+    const buildingReadiness = getBuildingPlannerRequestReadiness(draft.building.planner);
     lines.push("", "Metal Building Details");
-    addLine(lines, "Use", labelFromOptions(building.use, BUILDING_USE_OPTIONS));
-    addLine(
-      lines,
-      "Dimensions",
-      `${building.widthFt}' wide × ${building.lengthFt}' long × ${building.eaveHeightFt}' eave`
-    );
-    addLine(
-      lines,
-      "Roof",
-      `${labelFromOptions(building.roofStyle, BUILDING_ROOF_OPTIONS)}, ${building.roofPitch}`
-    );
-    addLine(
-      lines,
-      "Openings",
-      `${building.garageDoors} ${building.garageDoors === 1 ? "garage-door opening" : "garage-door openings"}, ${building.walkDoors} ${building.walkDoors === 1 ? "exterior entry door" : "exterior entry doors"}, ${building.windows} ${building.windows === 1 ? "window" : "windows"}`
-    );
-    addLine(
-      lines,
-      "Porch",
-      building.porch === "none"
-        ? "None"
-        : `${labelFromOptions(building.porch, BUILDING_PORCH_OPTIONS)}, ${building.porchDepthFt}' deep`
-    );
-    addLine(
-      lines,
-      "Exterior colors",
-      `walls ${colorLabel(building.wallColor)}; roof ${colorLabel(building.roofColor)}; trim ${colorLabel(building.trimColor)}`
-    );
-    addLine(lines, "Notes", briefNote(building.notes));
+    if (!buildingRequest) {
+      addLine(lines, "Status", "Planner incomplete — request blocked");
+      buildingReadiness.blockers.forEach((blocker) => lines.push(`- ${blocker.message}`));
+    } else {
+      addLine(lines, "Use", buildingRequest.use);
+      addLine(lines, "Structural system", buildingRequest.structuralSystem);
+      addLine(lines, "Measured shell", buildingRequest.shell);
+      addLine(lines, "Roof", buildingRequest.roof);
+      addLine(lines, "Exterior colors", buildingRequest.colors.join("; "));
+      lines.push("Placed openings");
+      lines.push(
+        ...(buildingRequest.openings.length
+          ? buildingRequest.openings.map((opening) => `- ${opening}`)
+          : ["- None placed"])
+      );
+      lines.push("Placed attachments");
+      lines.push(
+        ...(buildingRequest.attachments.length
+          ? buildingRequest.attachments.map((attachment) => `- ${attachment}`)
+          : ["- None placed"])
+      );
+      lines.push("Placed accessories");
+      lines.push(
+        ...(buildingRequest.accessories.length
+          ? buildingRequest.accessories.map((accessory) => `- ${accessory}`)
+          : ["- None placed"])
+      );
+      addLine(lines, "Scene reference", buildingRequest.sceneFingerprint);
+      addLine(lines, "Private planner notes", briefNote(buildingRequest.notes));
+      lines.push(...buildingRequest.qualifications.map((qualification) => `- ${qualification}`));
+    }
   }
 
   if (draft.countertops.included) {
@@ -2013,25 +2022,33 @@ export function buildSteelHomeLaborRequestHref(
   addLine(lines, scopes.length === 1 ? "Related planner" : "Related planners", scopes.join(", "));
   addLine(lines, "Desired timing", draft.timing);
   if (draft.building.included) {
+    const buildingRequest = buildBuildingPlannerRequest(draft.building.planner);
     addLine(
       lines,
-      "Metal building details",
-      `${draft.building.widthFt}' × ${draft.building.lengthFt}' × ${draft.building.eaveHeightFt}' eave; ${labelFromOptions(draft.building.roofStyle, BUILDING_ROOF_OPTIONS)}`
+      "Metal building planner",
+      buildingRequest
+        ? `${buildingRequest.use}; ${buildingRequest.structuralSystem}; ${buildingRequest.shell}; ${buildingRequest.roof}; scene ${buildingRequest.sceneFingerprint}`
+        : "Incomplete — no measured metal-building geometry attached"
     );
   }
   if (draft.countertops.included) {
     const stone = getCatalogItemById(draft.countertops.stoneId);
+    const measurementStatus = draft.countertops.measurementsReviewed
+      ? `reviewed gross footprint about ${calculateCountertopSquareFeet(draft.countertops)} sq. ft.`
+      : "surface dimensions unreviewed";
     addLine(
       lines,
       "Countertop details",
-      `${draft.countertops.room}; ${stone ? `${stone.publicLabel}${stone.materialLabel ? ` — ${stone.materialLabel}` : ""}` : "surface selected"}; About ${calculateCountertopSquareFeet(draft.countertops)} sq. ft.`
+      `${draft.countertops.room}; ${stone ? `${stone.publicLabel}${stone.materialLabel ? ` — ${stone.materialLabel}` : ""}` : "surface not selected"}; ${measurementStatus}`
     );
   }
   if (draft.cabinets.included) {
     addLine(
       lines,
-      "Cabinet details",
-      `${draft.cabinets.room}; ${labelFromOptions(draft.cabinets.layout, CABINET_LAYOUT_OPTIONS)}; ${draft.cabinets.primaryWallIn}\" main wall`
+      "Cabinet planner",
+      isCabinetPlannerRequestReady(draft.cabinets.planner)
+        ? buildCabinetPlannerRequestBrief(draft.cabinets.planner)
+        : "Incomplete — no reviewed cabinet geometry attached"
     );
   }
   addLine(lines, "Local trade notes", briefNote(draft.labor.notes));
@@ -2057,6 +2074,7 @@ export function buildSteelHomeLaborRequestHref(
 export function getSteelHomeProjectReadiness(draftInput: SteelHomeProjectDraft) {
   const draft = reconcileSteelHomeProjectDraft(draftInput);
   const scopes = getIncludedProjectScopes(draft);
+  const buildingReadiness = getBuildingPlannerRequestReadiness(draft.building.planner);
   const hasProjectScope = scopes.length > 0;
   const hasProjectRole = Boolean(draft.projectRole);
   const hasRoutingLocation =
@@ -2068,12 +2086,16 @@ export function getSteelHomeProjectReadiness(draftInput: SteelHomeProjectDraft) 
       hasRoutingLocation &&
       hasProjectRole &&
       hasProjectScope &&
+      (!draft.building.included || buildingReadiness.requestReady) &&
       (!draft.cabinets.included || isCabinetPlannerRequestReady(draft.cabinets.planner)),
     laborReady: hasRoutingLocation && draft.labor.trades.length > 0,
     needsLocation: !hasRoutingLocation,
     needsRole: !hasProjectRole,
     needsDesign: !hasProjectScope,
     needsLabor: draft.labor.trades.length === 0,
+    buildingProblems: draft.building.included
+      ? buildingReadiness.blockers.map((blocker) => blocker.message)
+      : [],
     includedScopes: scopes,
     additionalScopeLabels: getAdditionalProjectScopeLabels(draft),
   };

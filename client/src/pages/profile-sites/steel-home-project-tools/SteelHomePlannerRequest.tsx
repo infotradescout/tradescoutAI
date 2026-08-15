@@ -382,11 +382,13 @@ export default function SteelHomePlannerRequest({
                 ? "Choose who is planning the request."
                 : countertopReadiness.problems.length
                   ? countertopReadiness.problems[0]
-                  : !ready
-                    ? "Add the jobsite city or ZIP, state, and county."
-                    : saved
-                      ? "Ready. You will review contact details before anything is sent."
-                      : "Saving your choices on this device."}
+                  : request.planner === "building" && plannerReadiness.buildingProblems.length
+                    ? plannerReadiness.buildingProblems[0]
+                    : !ready
+                      ? "Add the jobsite city or ZIP, state, and county."
+                      : saved
+                        ? "Ready. You will review contact details before anything is sent."
+                        : "Saving your choices on this device."}
             </p>
             <div className="w-full shrink-0 sm:w-auto sm:min-w-64">
               <p className="mb-3 text-xs leading-5 text-[#68736f]">{requestIntent.scope}</p>
