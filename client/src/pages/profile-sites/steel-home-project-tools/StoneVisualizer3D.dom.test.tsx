@@ -2,6 +2,7 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { createEmptySteelHomeProjectDraft } from "./projectModel";
 import StoneVisualizer3D from "./StoneVisualizer3D";
@@ -10,6 +11,30 @@ import StoneVisualizer3D from "./StoneVisualizer3D";
   true;
 
 describe("countertop spatial studio recovery and controls", () => {
+  it("keeps mobile controls and texture status outside the rendered scene viewport", () => {
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = renderToStaticMarkup(
+      <StoneVisualizer3D
+        design={{
+          ...createEmptySteelHomeProjectDraft().countertops,
+          room: "Primary bathroom",
+        }}
+        selectedTarget="counter"
+        onSelectTarget={vi.fn()}
+      />
+    );
+
+    const scene = wrapper.querySelector('[data-testid="steel-home-countertop-3d-scene"]');
+    const mobileTools = wrapper.querySelector(
+      '[data-testid="steel-home-countertop-mobile-scene-tools"]'
+    );
+    expect(scene).toBeTruthy();
+    expect(mobileTools?.getAttribute("data-overlay-placement")).toBe("outside-scene");
+    expect(scene?.contains(mobileTools)).toBe(false);
+    expect(mobileTools?.className).toContain("sm:hidden");
+    expect(scene?.querySelector('[aria-label="Mobile 3D view controls"]')).toBeNull();
+  });
+
   it("keeps a truthful, announced photo fallback without dead camera controls", async () => {
     const container = document.createElement("div");
     document.body.append(container);

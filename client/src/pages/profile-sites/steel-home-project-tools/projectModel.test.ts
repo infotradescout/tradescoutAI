@@ -28,9 +28,13 @@ import {
   formatCountertopOpeningSchedule,
   getAvailableCountertopCutoutRuns,
   getCountertopCutoutRunDepth,
+  getCountertopCutoutRunLength,
+  getCountertopActiveRoomDesign,
   getCountertopOpeningFrontBounds,
   getCountertopOpeningSchedule,
   getCountertopPlacementProblems,
+  getCountertopRoomCategory,
+  getCountertopRoomChangePatch,
   getSteelHomeProjectEstimateSummary,
   getSteelHomeProjectReadiness,
   loadSteelHomeProjectDraft,
@@ -381,6 +385,181 @@ describe("steel-home project model", () => {
     expect(reconcileSteelHomeProjectDraft(draft).countertops.waterfall).toBe("None");
   });
 
+  it("centralizes bathroom display semantics without deleting the saved kitchen plan", () => {
+    const draft = createEmptySteelHomeProjectDraft();
+    draft.countertops.room = "Primary bathroom";
+    draft.countertops.layout = "u-shape";
+    draft.countertops.wallAIn = 132;
+    draft.countertops.wallBIn = 84;
+    draft.countertops.wallCIn = 72;
+    draft.countertops.wallDepthIn = 22;
+    draft.countertops.island = true;
+    draft.countertops.waterfall = "Both";
+    draft.countertops.cooktop = "36-inch range gap";
+    draft.countertops.cooktopRun = "island";
+    draft.countertops.cooktopPositionIn = 42;
+    draft.countertops.sink = "Single-bowl undermount";
+    draft.countertops.sinkRun = "main";
+    draft.countertops.sinkPositionIn = 66;
+    draft.countertops.sinkFrontPositionIn = 11;
+    draft.countertops.notes = "Keep the measured vanity walls.";
+
+    const reconciled = reconcileSteelHomeProjectDraft(draft).countertops;
+
+    expect(getCountertopRoomCategory(reconciled.room)).toBe("bathroom");
+    expect(reconciled).toMatchObject({
+      room: "Primary bathroom",
+      layout: "u-shape",
+      wallAIn: 132,
+      wallBIn: 84,
+      wallCIn: 72,
+      wallDepthIn: 22,
+      island: true,
+      waterfall: "Both",
+      cooktop: "36-inch range gap",
+      cooktopRun: "island",
+      cooktopPositionIn: 42,
+      cooktopFrontPositionIn: null,
+      sink: "Single-bowl undermount",
+      sinkRun: "main",
+      sinkPositionIn: 66,
+      sinkFrontPositionIn: 11,
+      notes: "Keep the measured vanity walls.",
+    });
+    expect(getCountertopActiveRoomDesign(reconciled)).toMatchObject({
+      room: "Primary bathroom",
+      island: false,
+      waterfall: "None",
+      cooktop: "None",
+      cooktopRun: "",
+      cooktopPositionIn: null,
+      cooktopFrontPositionIn: null,
+    });
+    const { storage } = memoryStorage();
+    expect(saveSteelHomeProjectDraft(storage, draft)).toBe(true);
+    expect(loadSteelHomeProjectDraft(storage).countertops).toMatchObject({
+      room: "Primary bathroom",
+      wallAIn: 132,
+      wallDepthIn: 22,
+      island: true,
+      cooktop: "36-inch range gap",
+      sink: "Single-bowl undermount",
+      notes: "Keep the measured vanity walls.",
+    });
+  });
+
+  it("projects bathroom island openings as unplaced without reading or deleting kitchen geometry", () => {
+    const raw = createEmptySteelHomeProjectDraft().countertops;
+    raw.room = "Guest bathroom";
+    raw.island = true;
+    raw.islandLengthIn = 150;
+    raw.islandWidthIn = 66;
+    raw.sink = "Single-bowl undermount";
+    raw.sinkRun = "island";
+    raw.sinkPositionIn = 55;
+    raw.sinkFrontPositionIn = 30;
+    raw.cooktop = "30-inch cooktop cutout";
+    raw.cooktopRun = "island";
+    raw.cooktopPositionIn = 96;
+    raw.cooktopFrontPositionIn = 31;
+    raw.otherCutouts = [
+      {
+        id: "other-1",
+        type: "Pop-up outlet",
+        label: "",
+        run: "island",
+        positionIn: 42,
+        frontPositionIn: 21,
+        widthIn: 4,
+        depthIn: 4,
+      },
+    ];
+
+    const active = getCountertopActiveRoomDesign(raw);
+    expect(active).toMatchObject({
+      island: false,
+      sinkRun: "",
+      sinkPositionIn: null,
+      sinkFrontPositionIn: null,
+      cooktop: "None",
+      cooktopRun: "",
+      otherCutouts: [{ id: "other-1", run: "", positionIn: null, frontPositionIn: null }],
+    });
+    expect(getCountertopOpeningSchedule(raw)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "sink", run: "", positionIn: null }),
+        expect.objectContaining({ id: "other-1", run: "", positionIn: null }),
+      ])
+    );
+    expect(getCountertopOpeningSchedule(raw).some((item) => item.id === "cooktop")).toBe(false);
+    expect(getAvailableCountertopCutoutRuns(raw).map((run) => run.value)).not.toContain("island");
+    expect(getCountertopCutoutRunLength(raw, "island")).toBe(0);
+    expect(getCountertopCutoutRunDepth(raw, "island")).toBe(0);
+    expect(raw).toMatchObject({
+      island: true,
+      islandLengthIn: 150,
+      islandWidthIn: 66,
+      sinkRun: "island",
+      sinkPositionIn: 55,
+      cooktop: "30-inch cooktop cutout",
+      cooktopRun: "island",
+      cooktopPositionIn: 96,
+      otherCutouts: [{ id: "other-1", run: "island", positionIn: 42 }],
+    });
+  });
+
+  it("restores the same kitchen choices after a Kitchen to Bathroom round trip", () => {
+    const kitchen = createEmptySteelHomeProjectDraft().countertops;
+    kitchen.island = true;
+    kitchen.waterfall = "Left";
+    kitchen.cooktop = "30-inch cooktop cutout";
+    kitchen.cooktopRun = "main";
+    kitchen.cooktopPositionIn = 72;
+    kitchen.cooktopFrontPositionIn = 13;
+    kitchen.wallAIn = 144;
+
+    const switched = reconcileSteelHomeProjectDraft({
+      countertops: {
+        ...kitchen,
+        ...getCountertopRoomChangePatch("Guest bathroom"),
+      },
+    }).countertops;
+
+    expect(switched).toMatchObject({
+      room: "Guest bathroom",
+      wallAIn: 144,
+      island: true,
+      waterfall: "Left",
+      cooktop: "30-inch cooktop cutout",
+      cooktopRun: "main",
+      cooktopPositionIn: 72,
+      cooktopFrontPositionIn: 13,
+    });
+    expect(getCountertopActiveRoomDesign(switched)).toMatchObject({
+      room: "Guest bathroom",
+      island: false,
+      waterfall: "None",
+      cooktop: "None",
+      cooktopRun: "",
+    });
+
+    const restored = reconcileSteelHomeProjectDraft({
+      countertops: {
+        ...switched,
+        ...getCountertopRoomChangePatch("Kitchen"),
+      },
+    }).countertops;
+    expect(restored).toMatchObject({
+      room: "Kitchen",
+      island: true,
+      waterfall: "Left",
+      cooktop: "30-inch cooktop cutout",
+      cooktopRun: "main",
+      cooktopPositionIn: 72,
+      cooktopFrontPositionIn: 13,
+    });
+  });
+
   it("migrates v7 countertop dimensions to v9 with the former 25.5-inch wall depth", () => {
     const legacyKey = "tradescout:steel-home-project-tools:draft:v7";
     const legacyDraft = createEmptySteelHomeProjectDraft();
@@ -685,8 +864,14 @@ describe("steel-home project model", () => {
       "Sink — Single-bowl undermount is too close to the front or back edge of main run."
     );
     draft.countertops.sinkFrontPositionIn = 11;
+    draft.countertops.island = true;
+    draft.countertops.waterfall = "Both";
+    draft.countertops.cooktop = "36-inch range gap";
+    draft.countertops.cooktopRun = "island";
+    draft.countertops.cooktopPositionIn = 42;
 
     const descriptions = [
+      buildSteelHomeProjectDescription(draft),
       buildCountertopStoneRequestDescription(draft),
       buildCountertopFabricatorRequestDescription(draft),
     ];
@@ -696,7 +881,14 @@ describe("steel-home project model", () => {
       expect(description).toContain('Right return: 72"');
       expect(description).toContain('Wall-top depth: 22"');
       expect(description).not.toContain('Wall runs: 120" × 96" × 72"');
+      expect(description).not.toContain("Island:");
+      expect(description.toLowerCase()).not.toContain("cooktop");
+      expect(description.toLowerCase()).not.toContain("range gap");
+      expect(description.toLowerCase()).not.toContain("waterfall");
     }
+    expect(descriptions[0]).toContain("Gross vanity-top layout footprint");
+    expect(descriptions[1]).toContain("Gross vanity-top layout footprint");
+    expect(descriptions[2]).toContain("Gross vanity-top layout footprint");
   });
 
   it("enforces layout-aware run minima and a nondecreasing legal gross footprint", () => {
