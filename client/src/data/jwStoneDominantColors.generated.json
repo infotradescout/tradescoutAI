@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-05T04:45:29.890Z",
+  "generatedAt": "2026-08-15T04:09:04.360Z",
   "method": "center slab-face extract + LAB body/accent histogram (sharp 512px); hand skin filter; clamp/crane/sky/foliage/ground/glare rejects; adaptive 3–5 distinct; buckets from HSL",
   "stones": {
     "matrix-basalt": {
@@ -72,7 +72,7 @@
       ]
     },
     "black-pearl": {
-      "cover": "/images/businesses/jw-stone/inventory-source/black-pearl-slab-face.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/1AehD2Gk37gaaQNfAUqoIA0X2nbeVBvNs.webp",
       "swatches": [
         {
           "hex": "#0d0000",
@@ -219,10 +219,6 @@
       "cover": "/images/businesses/jw-stone/inventory-source/1M2IO3m_dOI-OMPWbTE8Y4JgtLZaAVYnD.webp",
       "swatches": [
         {
-          "hex": "#e4dede",
-          "bucket": "white"
-        },
-        {
           "hex": "#ab9d9d",
           "bucket": "gray"
         },
@@ -233,11 +229,20 @@
         {
           "hex": "#494646",
           "bucket": "gray"
+        },
+        {
+          "hex": "#252d3d",
+          "bucket": "blue"
+        },
+        {
+          "hex": "#e4dede",
+          "bucket": "white"
         }
       ],
       "buckets": [
-        "white",
-        "gray"
+        "gray",
+        "blue",
+        "white"
       ]
     },
     "fantasy-black": {
@@ -615,19 +620,15 @@
       "cover": "/images/businesses/jw-stone/inventory-source/1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso.webp",
       "swatches": [
         {
-          "hex": "#c9cccb",
+          "hex": "#c1c3c2",
           "bucket": "white"
         },
         {
-          "hex": "#c6c8c7",
-          "bucket": "white"
+          "hex": "#919493",
+          "bucket": "gray"
         },
         {
-          "hex": "#babdbe",
-          "bucket": "white"
-        },
-        {
-          "hex": "#aaadac",
+          "hex": "#525457",
           "bucket": "gray"
         }
       ],
@@ -659,14 +660,39 @@
       ]
     },
     "carrara-white-brazil": {
-      "cover": "/images/businesses/jw-stone/inventory-source/1m-6GnrCh5Lr2tfZSaOOc_1eByMB2GiHp.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1.webp",
+      "swatches": [
+        {
+          "hex": "#b0b2aa",
+          "bucket": "white"
+        },
+        {
+          "hex": "#7f8380",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#f1f5e6",
+          "bucket": "white"
+        }
+      ],
+      "buckets": [
+        "white",
+        "gray"
+      ]
+    },
+    "bianco-carrara": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1BoLQprq014WBrpdxTyYU5LErye7D5O0U.webp",
       "swatches": [
         {
           "hex": "#aab2ba",
           "bucket": "white"
         },
         {
-          "hex": "#7d848b",
+          "hex": "#7d848a",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#52575e",
           "bucket": "gray"
         }
       ],
@@ -829,6 +855,28 @@
         "black"
       ]
     },
+    "matarazzo-zucchi": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1pVej6DwGpib3soV3YgLDv-v_X8XEIB4h.webp",
+      "swatches": [
+        {
+          "hex": "#8f9394",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#8a583d",
+          "bucket": "gold"
+        },
+        {
+          "hex": "#e6dfd8",
+          "bucket": "white"
+        }
+      ],
+      "buckets": [
+        "gray",
+        "gold",
+        "white"
+      ]
+    },
     "mexican-brown": {
       "cover": "/images/businesses/jw-stone/inventory-source/1uLoj6P8R5Bla_MhDO-eUitZCwn-z_0Lx.webp",
       "swatches": [
@@ -982,27 +1030,23 @@
       ]
     },
     "shadow-storm": {
-      "cover": "/images/businesses/jw-stone/inventory-source/11_8FYGX-hKzb7MMljH8LGukCR6ofFcaz.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8.webp",
       "swatches": [
         {
-          "hex": "#60748f",
-          "bucket": "blue"
+          "hex": "#d1d2db",
+          "bucket": "white"
         },
         {
-          "hex": "#625156",
+          "hex": "#8f9099",
           "bucket": "gray"
         },
         {
-          "hex": "#293b56",
-          "bucket": "blue"
-        },
-        {
-          "hex": "#8f9eb4",
-          "bucket": "blue"
+          "hex": "#47484c",
+          "bucket": "gray"
         }
       ],
       "buckets": [
-        "blue",
+        "white",
         "gray"
       ]
     },
@@ -1119,24 +1163,84 @@
       ]
     },
     "aj-quartz": {
-      "cover": "/images/businesses/jw-stone/inventory-source/1uxw-7ghXIRtJygAXD_cEk8YQsSfZHHnl.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/1nRCI_OSyXatCPGs-s4U9CyRLMNq6euyy.webp",
       "swatches": [
         {
-          "hex": "#dad1c5",
+          "hex": "#d2cbb7",
           "bucket": "white"
         },
         {
-          "hex": "#a9a19a",
-          "bucket": "gray"
+          "hex": "#494137",
+          "bucket": "black"
         },
         {
-          "hex": "#676269",
+          "hex": "#a49d8a",
+          "bucket": "gold"
+        }
+      ],
+      "buckets": [
+        "white",
+        "black",
+        "gold"
+      ]
+    },
+    "aj-quartz-1": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1GhcyanNTSKcFuVXN3pAggbI-XYAmjx2u.webp",
+      "swatches": [
+        {
+          "hex": "#ebe4db",
+          "bucket": "white"
+        },
+        {
+          "hex": "#a5a09d",
           "bucket": "gray"
         }
       ],
       "buckets": [
         "white",
         "gray"
+      ]
+    },
+    "aj-quartz-4": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1V6D5-zXjoklqYg6au4tnAzUiGXeBW7Wc.webp",
+      "swatches": [
+        {
+          "hex": "#948f8d",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#c7bfb5",
+          "bucket": "beige"
+        },
+        {
+          "hex": "#4d453f",
+          "bucket": "gray"
+        }
+      ],
+      "buckets": [
+        "gray",
+        "beige"
+      ]
+    },
+    "aj-quartz-5": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH.webp",
+      "swatches": [
+        {
+          "hex": "#939091",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#c3bfb8",
+          "bucket": "white"
+        },
+        {
+          "hex": "#5d5958",
+          "bucket": "gray"
+        }
+      ],
+      "buckets": [
+        "gray",
+        "white"
       ]
     },
     "calacatta-andromeda": {
@@ -1295,32 +1399,28 @@
       ]
     },
     "blue-dream": {
-      "cover": "/images/businesses/jw-stone/inventory-source/11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru.webp",
+      "cover": "/images/businesses/jw-stone/inventory-source/1sM_JTMIe2OrmEGPcWpPxu_ebtllfcZGP.webp",
       "swatches": [
         {
-          "hex": "#029ecf",
+          "hex": "#021414",
+          "bucket": "black"
+        },
+        {
+          "hex": "#083c50",
           "bucket": "blue"
         },
         {
-          "hex": "#014c74",
+          "hex": "#276c76",
           "bucket": "blue"
         },
         {
-          "hex": "#046b80",
+          "hex": "#0f779f",
           "bucket": "blue"
-        },
-        {
-          "hex": "#0277ac",
-          "bucket": "blue"
-        },
-        {
-          "hex": "#e6dae9",
-          "bucket": "white"
         }
       ],
       "buckets": [
-        "blue",
-        "white"
+        "black",
+        "blue"
       ]
     },
     "blue-mare": {
@@ -1694,6 +1794,27 @@
         "green"
       ]
     },
+    "marina-black-soapstone": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1tlOUM3_xMx98ZjC3jlpDsWRu7-3Xb-d9.webp",
+      "swatches": [
+        {
+          "hex": "#677574",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#93a2a1",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#e1e4dc",
+          "bucket": "white"
+        }
+      ],
+      "buckets": [
+        "gray",
+        "white"
+      ]
+    },
     "amazonic-green": {
       "cover": "/images/businesses/jw-stone/inventory-source/1azpSfcvo7-xzz9DjdG6BLP_bWVku_pHT.webp",
       "swatches": [
@@ -1831,6 +1952,44 @@
       ]
     },
     "calacatta": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1eq56CKPCctaUMh6L0R_1ixzmvmvHbEPO.webp",
+      "swatches": [
+        {
+          "hex": "#d0d2dd",
+          "bucket": "white"
+        },
+        {
+          "hex": "#a0a1aa",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#565356",
+          "bucket": "gray"
+        }
+      ],
+      "buckets": [
+        "white",
+        "gray"
+      ]
+    },
+    "calacatta-cremo": {
+      "cover": "/images/businesses/jw-stone/inventory-source/12ULnXkUBeSW7ViTBbAA8Wx5rFaPK2T_J.webp",
+      "swatches": [
+        {
+          "hex": "#ced2d0",
+          "bucket": "white"
+        },
+        {
+          "hex": "#a2a4a2",
+          "bucket": "gray"
+        }
+      ],
+      "buckets": [
+        "white",
+        "gray"
+      ]
+    },
+    "calacatta-macchia": {
       "cover": "/images/businesses/jw-stone/inventory-source/1vDIoTtWdOceQ1IzY9u2vAl_knKGWJjxu.webp",
       "swatches": [
         {
@@ -1877,23 +2036,6 @@
         "white",
         "gray",
         "black"
-      ]
-    },
-    "calacatta-cremo": {
-      "cover": "/images/businesses/jw-stone/inventory-source/1BmU77gydHjGbIY9A-mp7-7KQJlg1Tr-2.webp",
-      "swatches": [
-        {
-          "hex": "#ced2d0",
-          "bucket": "white"
-        },
-        {
-          "hex": "#a2a4a2",
-          "bucket": "gray"
-        }
-      ],
-      "buckets": [
-        "white",
-        "gray"
       ]
     },
     "calacatta-macchia-vecchia": {
@@ -2147,12 +2289,13 @@
         },
         {
           "hex": "#414a54",
-          "bucket": "gray"
+          "bucket": "blue"
         }
       ],
       "buckets": [
         "white",
-        "gray"
+        "gray",
+        "blue"
       ]
     },
     "new-caledonia": {
@@ -2415,6 +2558,32 @@
         "gray"
       ]
     },
+    "fusion-blue": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1opCWnnzl2Eba_qdW54RvF7B4jn-XD4PB.webp",
+      "swatches": [
+        {
+          "hex": "#98a2ab",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#3f4852",
+          "bucket": "blue"
+        },
+        {
+          "hex": "#6a737d",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#e3dad2",
+          "bucket": "white"
+        }
+      ],
+      "buckets": [
+        "gray",
+        "blue",
+        "white"
+      ]
+    },
     "shadow-blue": {
       "cover": "/images/businesses/jw-stone/inventory-source/1L4IDbbZNC0b8pud5B7x2lMAGnZ7Q75hS.webp",
       "swatches": [
@@ -2434,6 +2603,48 @@
       "buckets": [
         "white",
         "black"
+      ]
+    },
+    "superiore": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo.webp",
+      "swatches": [
+        {
+          "hex": "#f3f6e5",
+          "bucket": "white"
+        },
+        {
+          "hex": "#c2c3ae",
+          "bucket": "white"
+        },
+        {
+          "hex": "#161a0d",
+          "bucket": "black"
+        }
+      ],
+      "buckets": [
+        "white",
+        "black"
+      ]
+    },
+    "perla-venata": {
+      "cover": "/images/businesses/jw-stone/inventory-source/1ziFDFgSGEpCpx4dpI-YzlAGXuk69W3rk.webp",
+      "swatches": [
+        {
+          "hex": "#b0b0ae",
+          "bucket": "white"
+        },
+        {
+          "hex": "#838280",
+          "bucket": "gray"
+        },
+        {
+          "hex": "#dcdddb",
+          "bucket": "white"
+        }
+      ],
+      "buckets": [
+        "white",
+        "gray"
       ]
     },
     "trending-selection-01": {

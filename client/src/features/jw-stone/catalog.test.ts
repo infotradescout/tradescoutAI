@@ -23,21 +23,21 @@ const canonicalStones = JW_STONE_MARKETPLACE_INVENTORY_CATEGORIES.flatMap((categ
 );
 
 describe("JW Stone 2.0 catalog projection", () => {
-  it("preserves all 148 reconciled selections and every mapped photo in the public gallery", () => {
+  it("preserves all 158 reconciled selections and every mapped photo in the public gallery", () => {
     const sourceImageCount = canonicalStones.reduce(
       (sum, { stone }) => sum + stone.images.length,
       0
     );
     const publicImageCount = JW_STONE_CATALOG.reduce((sum, stone) => sum + stone.images.length, 0);
     const multiImageStones = JW_STONE_CATALOG.filter((stone) => stone.images.length > 1).length;
-    expect(JW_STONE_CATALOG).toHaveLength(148);
-    expect(JW_STONE_NAMED_CATALOG).toHaveLength(110);
+    expect(JW_STONE_CATALOG).toHaveLength(158);
+    expect(JW_STONE_NAMED_CATALOG).toHaveLength(120);
     expect(JW_STONE_ANONYMOUS_CATALOG).toHaveLength(38);
-    expect(new Set(JW_STONE_CATALOG.map((stone) => stone.id)).size).toBe(148);
+    expect(new Set(JW_STONE_CATALOG.map((stone) => stone.id)).size).toBe(158);
     expect(JW_STONE_CATALOG.map((stone) => stone.id).sort()).toEqual(
       canonicalStones.map(({ stone }) => stone.slug).sort()
     );
-    expect(sourceImageCount).toBe(434);
+    expect(sourceImageCount).toBe(443);
     expect(publicImageCount).toBe(sourceImageCount);
     expect(multiImageStones).toBeGreaterThan(80);
     expect(getCatalogItemById("amazonic-green")?.displayName).toBe("Amazonic Green");
@@ -152,7 +152,7 @@ describe("JW Stone 2.0 catalog projection", () => {
       materialLabel: JW_STONE_UNCONFIRMED_MATERIAL_LABEL,
       filterable: false,
     });
-    expect(sections.reduce((sum, section) => sum + section.stones.length, 0)).toBe(110);
+    expect(sections.reduce((sum, section) => sum + section.stones.length, 0)).toBe(120);
     expect(sections.every((section) => section.stones.every((stone) => !stone.anonymous))).toBe(
       true
     );

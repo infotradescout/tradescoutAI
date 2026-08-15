@@ -10,10 +10,10 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full reconciled inventory set for profile and marketplace", () => {
-    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(148);
-    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(434);
-    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(148);
-    expect(stones.some((stone) => stone.slug === "fusion-blue")).toBe(false);
+    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(158);
+    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(443);
+    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(158);
+    expect(stones.find((stone) => stone.slug === "fusion-blue")?.displayName).toBe("Fusion Blue");
 
     for (const stone of stones) {
       for (const image of stone.images) {
@@ -27,7 +27,7 @@ describe("JW Stone reconciled inventory", () => {
 
   it("keeps every usable source image while isolating uncertain photos", () => {
     const trending = stones.filter((stone) => stone.categorySlug === "unconfirmed");
-    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(143);
+    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(142);
     expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(6);
     expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(25);
   });

@@ -135,13 +135,17 @@ describe("JW Stone marketplace cover image ranking", () => {
     expect(isHandScaleCoverImage(handA)).toBe(true);
     expect(isHandScaleCoverImage(handB)).toBe(true);
 
-    const stone = JW_STONE_CATALOG.find((entry) => entry.id === "aj-quartz");
-    expect(stone).toBeTruthy();
-    expect(isHandScaleCoverImage(stone!.images[0]!)).toBe(false);
-    // Hand siblings stay in the gallery as extras — they must not win the lead.
-    expect(stone!.images).toEqual(expect.arrayContaining([handA, handB]));
-    expect(stone!.images[0]).not.toContain("1ippYy4EpV8TV6C8orM8B_KWwMrNZI2NE");
-    expect(stone!.images[0]).not.toContain("1Fxc4jXM4YxGC1rPSVpCN-UD1hme2HKKK");
+    const baseStone = JW_STONE_CATALOG.find((entry) => entry.id === "aj-quartz");
+    const ajFour = JW_STONE_CATALOG.find((entry) => entry.id === "aj-quartz-4");
+    expect(baseStone).toBeTruthy();
+    expect(ajFour).toBeTruthy();
+    expect(isHandScaleCoverImage(baseStone!.images[0]!)).toBe(false);
+    expect(isHandScaleCoverImage(ajFour!.images[0]!)).toBe(false);
+    // Each numbered selection keeps its own hand detail as an extra, never the lead.
+    expect(baseStone!.images).toContain(handA);
+    expect(ajFour!.images).toContain(handB);
+    expect(baseStone!.images[0]).not.toBe(handA);
+    expect(ajFour!.images[0]).not.toBe(handB);
   });
 
   it("keeps Black Pearl off outdoor reflection clamp lead", () => {
@@ -233,7 +237,6 @@ describe("JW Stone marketplace cover image ranking", () => {
 
     expect(onlyCloseOrHand).toEqual(
       expect.arrayContaining([
-        "blue-dream",
         "blue-goias",
         "dallas-white",
         "fusion-yellow",
@@ -243,7 +246,6 @@ describe("JW Stone marketplace cover image ranking", () => {
     );
     expect(handOnly).toEqual(
       expect.arrayContaining([
-        "blue-dream",
         "blue-goias",
         "dallas-white",
         "fusion-yellow",
@@ -252,6 +254,8 @@ describe("JW Stone marketplace cover image ranking", () => {
       ])
     );
     expect(isHandOnlyStone(JW_STONE_CATALOG.find((s) => s.id === "steel-gray")!.images)).toBe(true);
+    expect(onlyCloseOrHand).not.toContain("blue-dream");
+    expect(handOnly).not.toContain("blue-dream");
     expect(isHandOnlyStone(JW_STONE_CATALOG.find((s) => s.id === "juparana-blue")!.images)).toBe(
       false
     );

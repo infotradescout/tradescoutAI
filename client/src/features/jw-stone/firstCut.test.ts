@@ -24,7 +24,7 @@ describe("First Cut Exclusives data boundary", () => {
       { kind: "photo", id: "first-cut-2", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[1].imageSrc },
       { kind: "photo", id: "first-cut-3", imageSrc: JW_STONE_FIRST_CUT_PHOTO_SLOTS[2].imageSrc },
     ]);
-    expect(JW_STONE_CATALOG).toHaveLength(148);
+    expect(JW_STONE_CATALOG).toHaveLength(158);
   });
 
   it("deduplicates photo slots that share the same image source", () => {
