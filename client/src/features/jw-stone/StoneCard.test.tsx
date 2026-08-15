@@ -9,6 +9,22 @@ import { StoneCard } from "./StoneCard";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
+function click(element: Element | null) {
+  if (!element) throw new Error("Expected a clickable element");
+  act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+}
+
+function setRailGeometry(rail: HTMLElement, slides: HTMLElement[], width = 100) {
+  Object.defineProperty(rail, "clientWidth", { configurable: true, value: width });
+  slides.forEach((slide, index) => {
+    Object.defineProperty(slide, "offsetLeft", {
+      configurable: true,
+      value: index * width,
+    });
+    Object.defineProperty(slide, "offsetWidth", { configurable: true, value: width });
+  });
+}
+
 describe("StoneCard", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -24,7 +40,7 @@ describe("StoneCard", () => {
     container.remove();
   });
 
-  it("shows Save, View stone, and Ask without color swatches or Pairs with", () => {
+  it("keeps stone photography in a fixed presentation frame with premium card controls", () => {
     const stone =
       JW_STONE_CATALOG.find((entry) => entry.id === "blue-dunes") ||
       JW_STONE_CATALOG.find((entry) => entry.wishlistEligible);
@@ -32,43 +48,43 @@ describe("StoneCard", () => {
     if (!stone) throw new Error("Expected a named wishlist-eligible stone");
 
     const onAsk = vi.fn();
-    const onToggleSaved = vi.fn();
-    const onOpen = vi.fn();
 
     act(() =>
       root.render(
         <StoneCard
           stone={stone}
           saved={false}
-          onToggleSaved={onToggleSaved}
-          onOpen={onOpen}
+          onToggleSaved={vi.fn()}
+          onOpen={vi.fn()}
           onAsk={onAsk}
         />
       )
     );
 
     const card = container.querySelector<HTMLElement>("[data-stone-card]");
+    const media = card?.querySelector<HTMLElement>('[data-testid="jw-stone-card-media"]');
+    const image = card?.querySelector<HTMLImageElement>("img");
     expect(card).not.toBeNull();
-    expect(card?.querySelector('button[aria-label^="Save "]')).not.toBeNull();
+    expect(media?.className).toMatch(/aspect-\[4\/3\]/);
+    expect(media?.className).toMatch(/overflow-hidden/);
+    expect(card?.querySelector('button[aria-label^="Save "]')?.className).toMatch(/rounded-full/);
     expect(card?.textContent).toContain("View stone");
     expect(card?.textContent).toContain("Ask");
     expect(card?.textContent).not.toContain("Pairs with");
     expect(card?.textContent).not.toContain("Colors from photo");
-    expect(card?.querySelector('[aria-label^="Colors #"]')).toBeNull();
-    expect(card?.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
-    expect(card?.querySelector("img")?.className).toMatch(/h-auto/);
-    expect(card?.querySelector("img")?.className).toMatch(/object-contain/);
-    expect(card?.querySelector("img")?.className).not.toMatch(/object-cover|aspect-/);
+    expect(image?.className).toMatch(/h-full/);
+    expect(image?.className).toMatch(/w-full/);
+    expect(image?.className).toMatch(/object-contain/);
+    expect(image?.className).not.toMatch(/h-auto|object-cover/);
 
     const ask = Array.from(card?.querySelectorAll("button") || []).find((button) =>
       (button.textContent || "").includes("Ask")
     );
-    expect(ask).toBeTruthy();
-    act(() => ask?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    click(ask ?? null);
     expect(onAsk).toHaveBeenCalledWith(stone);
   });
 
-  it("lets shoppers browse multiple mapped photos on the card", () => {
+  it("uses a free native momentum rail and tracks the nearest photo without hard snap", () => {
     const stone = JW_STONE_CATALOG.find(
       (entry) => entry.images.length > 1 && entry.wishlistEligible
     );
@@ -88,28 +104,47 @@ describe("StoneCard", () => {
     );
 
     const card = container.querySelector<HTMLElement>("[data-stone-card]");
+    const media = card?.querySelector<HTMLElement>('[data-testid="jw-stone-card-media"]');
+    const rail = card?.querySelector<HTMLElement>('[data-testid="jw-stone-card-photo-rail"]');
+    const slides = Array.from(
+      rail?.querySelectorAll<HTMLElement>('[data-momentum-item="true"]') || []
+    );
     expect(card?.getAttribute("data-photo-count")).toBe(String(stone.images.length));
+    expect(rail?.className).toMatch(/overflow-x-auto/);
+    expect(rail?.className).toMatch(/overscroll-x-contain/);
+    expect(rail?.className).toContain("[-webkit-overflow-scrolling:touch]");
+    expect(rail?.className).not.toMatch(/snap-/);
+    expect(slides).toHaveLength(stone.images.length);
+    expect(media?.className).toMatch(/aspect-\[4\/3\]/);
     expect(card?.querySelector('[data-testid="jw-stone-card-photo-dots"]')).not.toBeNull();
     expect(card?.querySelector('[data-testid="jw-stone-card-photo-prev"]')).not.toBeNull();
     expect(card?.querySelector('[data-testid="jw-stone-card-photo-next"]')).not.toBeNull();
-    expect(card?.querySelector("img")?.getAttribute("src")).toBe(stone.images[0]);
+    expect(
+      card?.querySelector('[data-testid="jw-stone-card-photo-dot-0"]')?.getAttribute("aria-current")
+    ).toBe("true");
 
-    act(() =>
-      card
-        ?.querySelector('[data-testid="jw-stone-card-photo-next"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    );
-    expect(card?.querySelector("img")?.getAttribute("src")).toBe(stone.images[1]);
+    const stableMediaClass = media?.className;
+    click(card?.querySelector('[data-testid="jw-stone-card-photo-next"]') ?? null);
+    expect(
+      card?.querySelector('[data-testid="jw-stone-card-photo-dot-1"]')?.getAttribute("aria-current")
+    ).toBe("true");
+    expect(media?.className).toBe(stableMediaClass);
 
-    act(() =>
-      card
-        ?.querySelector('[data-testid="jw-stone-card-photo-dot-0"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    );
-    expect(card?.querySelector("img")?.getAttribute("src")).toBe(stone.images[0]);
+    click(card?.querySelector('[data-testid="jw-stone-card-photo-dot-0"]') ?? null);
+    expect(
+      card?.querySelector('[data-testid="jw-stone-card-photo-dot-0"]')?.getAttribute("aria-current")
+    ).toBe("true");
+
+    if (!rail) throw new Error("Expected native photo rail");
+    setRailGeometry(rail, slides);
+    rail.scrollLeft = 100;
+    act(() => rail.dispatchEvent(new Event("scroll", { bubbles: true })));
+    expect(
+      card?.querySelector('[data-testid="jw-stone-card-photo-dot-1"]')?.getAttribute("aria-current")
+    ).toBe("true");
   });
 
-  it("defers edge arrows to mediaChrome on material pager but keeps photo dots", () => {
+  it("uses a single static cover when nested inside the material momentum rail", () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.images.length > 1);
     expect(stone).toBeTruthy();
     if (!stone) throw new Error("Expected a multi-image stone");
@@ -122,15 +157,16 @@ describe("StoneCard", () => {
           onToggleSaved={vi.fn()}
           onOpen={vi.fn()}
           onAsk={vi.fn()}
-          mediaChrome={<button type="button">Stone pager chrome</button>}
+          photoBrowsing={false}
         />
       )
     );
 
     const card = container.querySelector<HTMLElement>("[data-stone-card]");
-    expect(card?.querySelector('[data-testid="jw-stone-card-photo-dots"]')).not.toBeNull();
+    expect(card?.getAttribute("data-photo-count")).toBe(String(stone.images.length));
+    expect(card?.querySelectorAll('[data-momentum-item="true"]')).toHaveLength(1);
+    expect(card?.querySelector('[data-testid="jw-stone-card-photo-dots"]')).toBeNull();
     expect(card?.querySelector('[data-testid="jw-stone-card-photo-prev"]')).toBeNull();
     expect(card?.querySelector('[data-testid="jw-stone-card-photo-next"]')).toBeNull();
-    expect(card?.textContent).toContain("Stone pager chrome");
   });
 });

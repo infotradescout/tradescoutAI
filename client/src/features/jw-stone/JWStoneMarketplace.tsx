@@ -191,7 +191,7 @@ export default function JWStoneMarketplace() {
 
   return (
     <div
-      className={`min-h-screen overflow-x-visible pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
+      className={`min-h-screen max-w-full overflow-x-clip pb-[calc(5.75rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.25rem+env(safe-area-inset-bottom))] ${jw.page}`}
       style={JW_STONE_BRAND_STYLE}
       data-jw-brand="true"
       data-jw-marketplace-base={marketplaceBasePath() || "/"}

@@ -72,7 +72,10 @@ describe("JW Stone marketplace luxury layout", () => {
   });
 
   it("locks the marketplace layout and keeps JW Stone company identity public", () => {
+    const marketplace = container.querySelector<HTMLElement>('[data-jw-brand="true"]');
     const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
+    expect(marketplace?.className).toMatch(/overflow-x-clip/);
+    expect(marketplace?.className).not.toMatch(/overflow-x-visible/);
     expect(container.querySelector('a[aria-label="JW Stone marketplace home"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-connect-cta"]')).not.toBeNull();
@@ -268,6 +271,11 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(storySrcs[0]).toContain("/story/quarry.webp");
     expect(storySrcs.some((src) => src.includes("/story/taj-living-room.webp"))).toBe(true);
     expect(storySrcs.some((src) => src.includes("/story/fireplace.webp"))).toBe(true);
+    const storyRail = story?.querySelector("ul");
+    expect(storyRail?.className).toMatch(/overflow-x-auto/);
+    expect(storyRail?.className).toMatch(/overscroll-x-contain/);
+    expect(storyRail?.className).toContain("[-webkit-overflow-scrolling:touch]");
+    expect(storyRail?.className).not.toMatch(/snap-/);
     expect(storySrcs.some((src) => src.includes("/story/mont-blanc-bar.webp"))).toBe(true);
     const footerEl = container.querySelector('[data-testid="jw-marketplace-footer"]');
     const inventoryEl = container.querySelector("#current-inventory");
@@ -375,15 +383,23 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(buttonContaining(firstCard, "View gallery")).toBeNull();
     expect(buttonContaining(firstCard, "View stone")).not.toBeNull();
     expect(firstCard.className).not.toMatch(/\bborder\b/);
-    expect(firstCard.querySelector("[class*='aspect-']")).toBeNull();
+    const cardMedia = firstCard.querySelector<HTMLElement>('[data-testid="jw-stone-card-media"]');
+    const cardPhotoRail = firstCard.querySelector<HTMLElement>(
+      '[data-testid="jw-stone-card-photo-rail"]'
+    );
+    expect(cardMedia?.className).toMatch(/aspect-\[4\/3\]/);
+    expect(cardMedia?.className).toMatch(/overflow-hidden/);
+    expect(cardPhotoRail?.className).toMatch(/overflow-x-auto/);
+    expect(cardPhotoRail?.className).not.toMatch(/snap-/);
     expect(firstCard.querySelector('button[aria-label^="Save "]')).not.toBeNull();
     expect(firstCard.textContent).not.toContain("Pairs with");
     expect(firstCard.textContent).not.toContain("Colors from photo");
     expect(firstCard.querySelector('[aria-label^="Colors #"]')).toBeNull();
     expect(firstCard.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
-    expect(firstCard.querySelector("img")?.className).toMatch(/h-auto/);
+    expect(firstCard.querySelector("img")?.className).toMatch(/h-full/);
+    expect(firstCard.querySelector("img")?.className).toMatch(/w-full/);
     expect(firstCard.querySelector("img")?.className).toMatch(/object-contain/);
-    expect(firstCard.querySelector("img")?.className).not.toMatch(/object-cover/);
+    expect(firstCard.querySelector("img")?.className).not.toMatch(/h-auto|object-cover/);
 
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
     click(buttonContaining(firstCard, "Ask"));
@@ -411,6 +427,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(marbleRail?.querySelector('[data-testid="jw-material-stone-prev"]')).not.toBeNull();
     expect(marbleRail?.querySelector('[data-testid="jw-material-stone-next"]')).not.toBeNull();
     expect(marbleRail?.className).not.toMatch(/overflow-x-auto/);
+    const marbleTrack = marbleRail?.querySelector('[data-testid="jw-material-stone-track"]');
+    expect(marbleTrack?.className).toMatch(/overflow-x-auto/);
+    expect(marbleTrack?.className).not.toMatch(/snap-/);
     expect(marbleRail?.querySelector("[data-stone-card]")?.textContent).toMatch(/Marble/i);
     expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(1);
 

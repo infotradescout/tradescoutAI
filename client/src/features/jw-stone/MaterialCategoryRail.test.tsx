@@ -149,7 +149,10 @@ describe("MaterialCategoryRail", () => {
     expect(rail?.querySelector('[data-testid="jw-material-stone-prev"]')).not.toBeNull();
     expect(rail?.querySelector('[data-testid="jw-material-stone-next"]')).not.toBeNull();
     expect(rail?.className).not.toMatch(/overflow-x-auto/);
-    expect(rail?.querySelectorAll("[data-stone-card]").length).toBe(1);
+    const track = rail?.querySelector('[data-testid="jw-material-stone-track"]');
+    expect(track?.className).toMatch(/overflow-x-auto/);
+    expect(track?.className).not.toMatch(/snap-/);
+    expect(rail?.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(1);
     expect(rail?.querySelector("img")?.className).toMatch(/object-contain/);
   });
 
