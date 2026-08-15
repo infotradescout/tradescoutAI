@@ -15,6 +15,13 @@ import {
   buildStoneDesignerPhotoKey,
   resolveStoneDesignerPhotoIndex,
 } from "./stoneDesignerImages";
+import {
+  buildCabinetPlannerRequestBrief,
+  createBlankCabinetPlannerExtension,
+  isCabinetPlannerRequestReady,
+  reconcileCabinetPlannerExtension,
+  type CabinetPlannerExtensionV1,
+} from "./cabinetPlannerModel";
 
 export const STEEL_HOME_PROJECT_DRAFT_VERSION = 9 as const;
 export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v9";
@@ -434,6 +441,8 @@ export type SteelHomeCabinetDesign = {
   islandLengthIn: number;
   islandWidthIn: number;
   notes: string;
+  /** Canonical measured room, fixed features, and placed cabinet objects. */
+  planner: CabinetPlannerExtensionV1;
 };
 
 export type SteelHomeProjectDraft = {
@@ -609,6 +618,7 @@ export function createEmptySteelHomeProjectDraft(): SteelHomeProjectDraft {
       islandLengthIn: 84,
       islandWidthIn: 42,
       notes: "",
+      planner: createBlankCabinetPlannerExtension(),
     },
     labor: {
       trades: [],
@@ -911,6 +921,7 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
       islandLengthIn: cleanNumber(cabinets.islandLengthIn, empty.cabinets.islandLengthIn, 24, 180),
       islandWidthIn: cleanNumber(cabinets.islandWidthIn, empty.cabinets.islandWidthIn, 20, 72),
       notes: cleanText(cabinets.notes, 240),
+      planner: reconcileCabinetPlannerExtension(cabinets.planner),
     },
     labor: {
       trades: cleanAllowedStrings(labor.trades, LOCAL_LABOR_OPTIONS),
@@ -1498,7 +1509,7 @@ export function calculateBuildingPlanningEstimate(
 
   return {
     key: "building",
-    label: "Metal building planning scope — quote required",
+    label: "Metal building — quote required",
     range: { lower: 0, high: 0 },
     breakdown: [],
     disclaimer: BUILDING_PLANNING_DISCLAIMER,
@@ -1512,7 +1523,7 @@ export function calculateCabinetPlanningEstimate(
 
   return {
     key: "cabinets",
-    label: "Cabinet planning scope — quote required",
+    label: "Cabinets — quote required",
     range: { lower: 0, high: 0 },
     breakdown: [],
     disclaimer: CABINET_PLANNING_DISCLAIMER,
@@ -1603,11 +1614,6 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     `${plannerLabel}: ${scopes.join(", ") || "None selected"}`,
   ];
   addLine(lines, "Contracting setup", labelFromOptions(draft.projectRole, PROJECT_ROLE_OPTIONS));
-  addLine(
-    lines,
-    "Early estimated total",
-    estimateSummary.planningRange ? formatPlanningRange(estimateSummary.planningRange) : ""
-  );
   addLine(lines, "Quote needed", estimateSummary.quoteRequired.join(", "));
   addLine(lines, "Desired timing", draft.timing);
 
@@ -1683,34 +1689,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
   }
 
   if (draft.cabinets.included) {
-    const cabinets = draft.cabinets;
-    const finish = labelFromOptions(cabinets.finish, CABINET_FINISH_OPTIONS);
-    const plannedWidth = calculateCabinetPlannedWidth(cabinets);
-    lines.push("", "Cabinet Details");
-    addLine(
-      lines,
-      "Room and layout",
-      `${cabinets.room}, ${labelFromOptions(cabinets.layout, CABINET_LAYOUT_OPTIONS)}`
-    );
-    addLine(
-      lines,
-      "Room dimensions",
-      `${cabinets.primaryWallIn}\" main wall; ${cabinets.returnWallIn}\" return; ${cabinets.ceilingHeightIn}\" ceiling`
-    );
-    addLine(lines, "Style", `${cabinets.doorStyle}; ${finish}; ${cabinets.hardware}`);
-    addLine(
-      lines,
-      "Appliances and storage",
-      `${cabinets.refrigeratorWidthIn}\" refrigerator; ${cabinets.rangeWidthIn}\" range; ${cabinets.sinkBaseWidthIn}\" sink base; ${cabinets.pantryCount} pantry; ${cabinets.drawerBaseCount} drawer base`
-    );
-    addLine(lines, "Upper cabinets", `${cabinets.upperHeightIn}\" high`);
-    addLine(
-      lines,
-      "Island",
-      cabinets.island ? `${cabinets.islandLengthIn}\" × ${cabinets.islandWidthIn}\"` : "None"
-    );
-    addLine(lines, "Main wall used", `${plannedWidth}\" of ${cabinets.primaryWallIn}\"`);
-    addLine(lines, "Notes", briefNote(cabinets.notes));
+    lines.push("", ...buildCabinetPlannerRequestBrief(draft.cabinets.planner).split("\n"));
   }
 
   lines.push("");
@@ -2066,7 +2045,11 @@ export function getSteelHomeProjectReadiness(draftInput: SteelHomeProjectDraft) 
     /^[A-Z]{2}$/.test(draft.stateCode) &&
     /^\d{5}$/.test(draft.countyFips);
   return {
-    projectReady: hasRoutingLocation && hasProjectRole && hasProjectScope,
+    projectReady:
+      hasRoutingLocation &&
+      hasProjectRole &&
+      hasProjectScope &&
+      (!draft.cabinets.included || isCabinetPlannerRequestReady(draft.cabinets.planner)),
     laborReady: hasRoutingLocation && draft.labor.trades.length > 0,
     needsLocation: !hasRoutingLocation,
     needsRole: !hasProjectRole,

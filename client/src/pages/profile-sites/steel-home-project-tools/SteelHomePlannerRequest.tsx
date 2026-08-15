@@ -15,6 +15,7 @@ import {
   buildSteelHomeProjectRequestHref,
   calculateCountertopSquareFeet,
   getCountertopPlacementProblems,
+  getSteelHomeProjectReadiness,
   reconcileSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
 } from "./projectModel";
@@ -208,11 +209,10 @@ export default function SteelHomePlannerRequest({
     request.planner === "countertops" && request.intent === "fabricator"
       ? getCountertopPlacementProblems(scopedDraft.countertops)
       : [];
+  const plannerReadiness = getSteelHomeProjectReadiness(scopedDraft);
   const ready =
     hasVisibleProjectRole &&
-    draft.location.trim().length >= 2 &&
-    /^[A-Z]{2}$/.test(draft.stateCode) &&
-    /^\d{5}$/.test(draft.countyFips) &&
+    plannerReadiness.projectReady &&
     !(
       request.planner === "countertops" &&
       request.intent === "fabricator" &&

@@ -362,6 +362,10 @@ export default function SteelHomePackagesProfile({
               <CabinetDesigner
                 design={draft.cabinets}
                 onChange={updateCabinets}
+                plannerExtension={draft.cabinets.planner}
+                onPlannerExtensionChange={(planner) =>
+                  updateCabinets({ ...draft.cabinets, planner })
+                }
                 onRequest={() => setRequestSelection({ planner: "cabinets", intent: "builder" })}
               />
             ) : null}
