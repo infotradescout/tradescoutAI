@@ -105,7 +105,10 @@ describe("countertop spatial studio sharing", () => {
     expect(buildCountertopStudioShareUrl(anonymousDesign, "https://example.com/studio")).toBeNull();
 
     const namedUrl = buildCountertopStudioShareUrl(
-      createEmptySteelHomeProjectDraft().countertops,
+      {
+        ...createEmptySteelHomeProjectDraft().countertops,
+        stoneId: "taj-mahal",
+      },
       "https://example.com/studio"
     );
     const snapshot = decodeShareSnapshot(namedUrl!);

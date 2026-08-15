@@ -4,11 +4,16 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { getCatalogItemById } from "@/features/jw-stone/catalog";
 import { isHandScaleCoverImage } from "@/features/jw-stone/coverImages";
 import { resolveSlabDimensionForInventoryImage } from "@/features/jw-stone/slabDimensions";
+import { type CountertopCutoutRun } from "./projectModel";
 import {
-  getCountertopOpeningSchedule,
-  type CountertopCutoutRun,
-  type SteelHomeCountertopDesign,
-} from "./projectModel";
+  getCountertopPlannerDiagnostics,
+  getCountertopPlannerOpeningSchedule,
+  hasResolvedCountertopIslandPosition,
+  hasResolvedCountertopRoomShell,
+  resolveCountertopPlannerDesign,
+  type CountertopPlannerDesign,
+  type CountertopPlannerDesignInput,
+} from "./countertopPlannerModel";
 import {
   buildNamedStoneDesignerImageHref,
   buildStoneDesignerImageHref,
@@ -17,7 +22,7 @@ import {
 export type StoneSurfaceTarget = "counter" | "island" | "backsplash" | "floor";
 
 type Props = {
-  design: SteelHomeCountertopDesign;
+  design: CountertopPlannerDesignInput;
   selectedTarget: StoneSurfaceTarget;
   onSelectTarget: (target: StoneSurfaceTarget) => void;
 };
@@ -58,6 +63,13 @@ type RunCut = {
   frontEdge: boolean;
 };
 
+type RunMarker = {
+  id: string;
+  centerXFt: number;
+  centerZFt: number;
+  kind: "sink" | "cooktop" | "other";
+};
+
 type SurfaceRect = {
   left: number;
   right: number;
@@ -66,8 +78,9 @@ type SurfaceRect = {
 };
 
 type LayoutMetrics = {
-  roomWidth: number;
-  roomDepth: number;
+  roomWidth: number | null;
+  roomDepth: number | null;
+  roomWallHeight: number | null;
   backWallZ: number;
   mainWidth: number;
   counterDepth: number;
@@ -76,13 +89,15 @@ type LayoutMetrics = {
   rightLength: number;
   islandWidth: number;
   islandDepth: number;
-  islandZ: number;
+  islandX: number | null;
+  islandZ: number | null;
+  surfaceTopY: number;
+  topThickness: number | null;
 };
 
 const ROOM_BACKGROUND = new THREE.Color("#d8d0c2");
-const CABINET_COLOR = "#7b624a";
-const METAL = "#3c4444";
-const SURFACE_TOP_Y = 3.03;
+const UNRESOLVED_SURFACE_Y = 0.16;
+const SCHEMATIC_THICKNESS_FT = 0.015;
 const STONE_TEXTURE_LOAD_TIMEOUT_MS = 15_000;
 
 function disposeObject(object: THREE.Object3D) {
@@ -191,6 +206,7 @@ function addMappedStonePiece(args: {
   depth: number;
   thickness: number;
   centerX: number;
+  centerY: number;
   centerZ: number;
   surfaceWidth: number;
   surfaceDepth: number;
@@ -226,19 +242,12 @@ function addMappedStonePiece(args: {
   }
   uvs.needsUpdate = true;
   const mesh = new THREE.Mesh(geometry, args.material);
-  mesh.position.set(args.centerX, SURFACE_TOP_Y, args.centerZ);
+  mesh.position.set(args.centerX, args.centerY, args.centerZ);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.userData.surfaceTarget = args.target;
   args.parent.add(mesh);
   return mesh;
-}
-
-function uniqueSorted(values: number[]): number[] {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted.filter(
-    (value, index) => index === 0 || Math.abs(value - sorted[index - 1]) > 0.001
-  );
 }
 
 function localToWorld(
@@ -254,14 +263,15 @@ function localToWorld(
 }
 
 function getRunCuts(
-  design: SteelHomeCountertopDesign,
+  design: CountertopPlannerDesignInput,
   run: CountertopCutoutRun,
   width: number,
   depth: number,
   reverseStart = false,
   startOffsetFt = 0
 ): RunCut[] {
-  return getCountertopOpeningSchedule(design).flatMap((item) => {
+  return getCountertopPlannerOpeningSchedule(design).flatMap((item) => {
+    if (item.representation === "coordination-point") return [];
     if (item.run !== run || item.positionIn === null) return [];
     if (item.requiresFrontPosition && (item.frontPositionIn === null || !item.depthIn)) return [];
     if (item.id !== "sink" && item.id !== "cooktop" && (!item.widthIn || !item.depthIn)) return [];
@@ -272,8 +282,8 @@ function getRunCuts(
     const requestedDepth = fullDepth
       ? depth
       : frontEdge
-        ? Math.max(0.8, depth * 0.68)
-        : Math.max(0.08, item.depthIn! / 12);
+        ? Math.max(0.08, Math.min(depth, (item.depthIn ?? 2) / 12))
+        : Math.max(0.08, (item.depthIn ?? 0) / 12);
     const positionAlongVisibleRun = item.positionIn / 12 - startOffsetFt;
     const requestedCenterX = reverseStart
       ? width / 2 - positionAlongVisibleRun
@@ -282,7 +292,7 @@ function getRunCuts(
       ? 0
       : frontEdge
         ? depth / 2 - requestedDepth / 2
-        : depth / 2 - item.frontPositionIn! / 12;
+        : depth / 2 - (item.frontPositionIn ?? 0) / 12;
 
     const left = Math.max(-width / 2, requestedCenterX - requestedWidth / 2);
     const right = Math.min(width / 2, requestedCenterX + requestedWidth / 2);
@@ -300,6 +310,50 @@ function getRunCuts(
         kind: item.id === "sink" ? "sink" : item.id === "cooktop" ? "cooktop" : "other",
         fullDepth,
         frontEdge,
+      },
+    ];
+  });
+}
+
+function getRunMarkers(
+  design: CountertopPlannerDesignInput,
+  run: CountertopCutoutRun,
+  width: number,
+  depth: number,
+  reverseStart = false,
+  startOffsetFt = 0
+): RunMarker[] {
+  return getCountertopPlannerOpeningSchedule(design).flatMap((item) => {
+    if (
+      item.representation !== "coordination-point" ||
+      item.run !== run ||
+      item.positionIn === null ||
+      (item.requiresFrontPosition && item.frontPositionIn === null)
+    ) {
+      return [];
+    }
+    const positionAlongVisibleRun = item.positionIn / 12 - startOffsetFt;
+    const centerXFt = reverseStart
+      ? width / 2 - positionAlongVisibleRun
+      : -width / 2 + positionAlongVisibleRun;
+    const centerZFt =
+      item.placementKind === "front-edge-opening"
+        ? depth / 2
+        : depth / 2 - (item.frontPositionIn ?? depth * 6) / 12;
+    if (
+      centerXFt < -width / 2 ||
+      centerXFt > width / 2 ||
+      centerZFt < -depth / 2 ||
+      centerZFt > depth / 2
+    ) {
+      return [];
+    }
+    return [
+      {
+        id: item.id,
+        centerXFt,
+        centerZFt,
+        kind: item.id === "sink" ? "sink" : item.id === "cooktop" ? "cooktop" : "other",
       },
     ];
   });
@@ -346,7 +400,7 @@ function addCounterEdgeSegment(
   depth: number,
   centerX: number,
   y: number,
-  edge: SteelHomeCountertopDesign["edge"]
+  edge: CountertopPlannerDesign["edge"]
 ) {
   if (edge === "None" || edge === "Eased" || width <= 0.02) return;
   if (edge.includes("bullnose")) {
@@ -371,7 +425,7 @@ function addCounterEdgeSegment(
 function addCounterRun(args: {
   parent: THREE.Object3D;
   records: StoneMaterialRecord[];
-  design: SteelHomeCountertopDesign;
+  design: CountertopPlannerDesign;
   target: "counter" | "island";
   run: CountertopCutoutRun;
   width: number;
@@ -381,6 +435,8 @@ function addCounterRun(args: {
   rotationY?: number;
   reverseStart?: boolean;
   startOffsetFt?: number;
+  surfaceTopY: number;
+  topThickness: number | null;
 }) {
   const group = new THREE.Group();
   group.position.set(args.x, 0, args.z);
@@ -388,7 +444,7 @@ function addCounterRun(args: {
   group.userData.surfaceTarget = args.target;
   args.parent.add(group);
 
-  const thickness = args.design.edge === "Mitered" ? 0.25 : 0.14;
+  const thickness = args.topThickness ?? SCHEMATIC_THICKNESS_FT;
   const cuts = getRunCuts(
     args.design,
     args.run,
@@ -397,7 +453,19 @@ function addCounterRun(args: {
     args.reverseStart,
     args.startOffsetFt
   );
+  const markers = getRunMarkers(
+    args.design,
+    args.run,
+    args.width,
+    args.depth,
+    args.reverseStart,
+    args.startOffsetFt
+  );
   const runMaterial = createStoneMaterial(args.target);
+  if (args.topThickness === null) {
+    runMaterial.transparent = true;
+    runMaterial.opacity = 0.78;
+  }
   args.records.push({
     material: runMaterial,
     widthFt: args.width,
@@ -414,6 +482,7 @@ function addCounterRun(args: {
       depth: piece.front - piece.back,
       thickness,
       centerX: (piece.left + piece.right) / 2,
+      centerY: args.surfaceTopY - thickness / 2,
       centerZ: (piece.back + piece.front) / 2,
       surfaceWidth: args.width,
       surfaceDepth: args.depth,
@@ -422,15 +491,29 @@ function addCounterRun(args: {
 
   for (const cut of cuts) {
     if (cut.fullDepth) continue;
-    const wellDepth = cut.kind === "sink" ? 0.48 : cut.kind === "cooktop" ? 0.11 : 0.08;
-    const well = addBox(
+    const openingBottom = addBox(
       group,
-      [Math.max(0.05, cut.widthFt * 0.92), wellDepth, Math.max(0.05, cut.depthFt * 0.9)],
-      [cut.centerXFt, SURFACE_TOP_Y - thickness / 2 - wellDepth / 2 - 0.015, cut.centerZFt],
-      cut.kind === "sink" ? "#303a3b" : cut.kind === "cooktop" ? "#151919" : "#343735",
-      { roughness: 0.22, metalness: cut.kind === "sink" ? 0.65 : 0.25 }
+      [Math.max(0.05, cut.widthFt * 0.94), 0.015, Math.max(0.05, cut.depthFt * 0.92)],
+      [cut.centerXFt, args.surfaceTopY - thickness - 0.01, cut.centerZFt],
+      "#252c2b",
+      { roughness: 0.9, castShadow: false }
     );
-    well.userData.surfaceTarget = args.target;
+    openingBottom.userData.surfaceTarget = args.target;
+  }
+
+  for (const marker of markers) {
+    const markerMaterial = new THREE.MeshStandardMaterial({
+      color: marker.kind === "sink" ? "#4d8584" : marker.kind === "cooktop" ? "#b46339" : "#d49a58",
+      emissive: "#6a2f19",
+      emissiveIntensity: 0.18,
+      roughness: 0.45,
+    });
+    const point = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.035, 24), markerMaterial);
+    point.position.set(marker.centerXFt, args.surfaceTopY + 0.025, marker.centerZFt);
+    point.userData.surfaceTarget = args.target;
+    point.userData.openingId = marker.id;
+    point.userData.openingRepresentation = "coordination-point";
+    group.add(point);
   }
 
   const frontInterruptions = cuts
@@ -448,101 +531,85 @@ function addCounterRun(args: {
     .sort((a, b) => a[0] - b[0]);
   let edgeCursor = -args.width / 2;
   for (const [start, end] of frontInterruptions) {
-    if (start > edgeCursor) {
+    if (args.topThickness !== null && start > edgeCursor) {
       addCounterEdgeSegment(
         group,
         start - edgeCursor,
         args.depth,
         (start + edgeCursor) / 2,
-        SURFACE_TOP_Y - thickness / 2,
+        args.surfaceTopY - thickness / 2,
         args.design.edge
       );
     }
     edgeCursor = Math.max(edgeCursor, end);
   }
-  if (edgeCursor < args.width / 2) {
+  if (args.topThickness !== null && edgeCursor < args.width / 2) {
     addCounterEdgeSegment(
       group,
       args.width / 2 - edgeCursor,
       args.depth,
       (args.width / 2 + edgeCursor) / 2,
-      SURFACE_TOP_Y - thickness / 2,
+      args.surfaceTopY - thickness / 2,
       args.design.edge
     );
-  }
-
-  const fullDepthCuts = cuts.filter((cut) => cut.fullDepth);
-  const cabinetBounds = uniqueSorted([
-    -args.width / 2,
-    args.width / 2,
-    ...fullDepthCuts.flatMap((cut) => [
-      cut.centerXFt - cut.widthFt / 2,
-      cut.centerXFt + cut.widthFt / 2,
-    ]),
-  ]);
-  for (let index = 0; index < cabinetBounds.length - 1; index += 1) {
-    const left = cabinetBounds[index];
-    const right = cabinetBounds[index + 1];
-    const center = (left + right) / 2;
-    const excluded = fullDepthCuts.some(
-      (cut) => Math.abs(center - cut.centerXFt) < cut.widthFt / 2 - 0.001
-    );
-    if (!excluded && right - left > 0.04) {
-      addBox(
-        group,
-        [(right - left) * 0.96, 2.75, args.depth * 0.9],
-        [center, 1.58, -0.02],
-        CABINET_COLOR
-      );
-    }
   }
 
   if (args.design.showSeams) {
     const seamX = cuts.some((cut) => Math.abs(cut.centerXFt) < cut.widthFt / 2 + 0.02)
       ? args.width * 0.24
       : 0;
-    addBox(
-      group,
-      [0.025, 0.012, args.depth],
-      [seamX, SURFACE_TOP_Y + thickness / 2 + 0.008, 0],
-      "#403a36",
-      { roughness: 0.9 }
-    );
+    addBox(group, [0.025, 0.012, args.depth], [seamX, args.surfaceTopY + 0.008, 0], "#403a36", {
+      roughness: 0.9,
+    });
   }
   return group;
 }
 
-function getLayoutMetrics(design: SteelHomeCountertopDesign): LayoutMetrics {
+function getLayoutMetrics(designInput: CountertopPlannerDesignInput): LayoutMetrics {
+  const design = resolveCountertopPlannerDesign(designInput);
   const mainWidth = design.wallAIn / 12;
   const counterDepth = design.wallDepthIn / 12;
   const leftLength = design.layout === "straight" ? 0 : design.wallBIn / 12;
   const rightLength = design.layout === "u-shape" ? design.wallCIn / 12 : 0;
   const islandWidth = design.island ? design.islandLengthIn / 12 : 0;
   const islandDepth = design.island ? design.islandWidthIn / 12 : 0;
-  const runReach = Math.max(counterDepth, leftLength, rightLength);
-  const islandCenterFromWall = design.island ? runReach + 4 + islandDepth / 2 : 0;
-  const forwardReach = design.island ? islandCenterFromWall + islandDepth / 2 : runReach;
-  const roomWidth = Math.max(12, mainWidth + 4, islandWidth + 6);
-  const roomDepth = Math.max(12, forwardReach + 4);
-  const backWallZ = -roomDepth / 2 + 0.18;
+  const roomWidth = design.roomWidthIn === null ? null : design.roomWidthIn / 12;
+  const roomDepth = design.roomDepthIn === null ? null : design.roomDepthIn / 12;
+  const roomWallHeight = design.roomWallHeightIn === null ? null : design.roomWallHeightIn / 12;
+  const backWallZ = 0;
+  const islandPositionResolved = hasResolvedCountertopIslandPosition(design);
+  const islandLeftOffsetFt = (design.islandLeftOffsetIn ?? 0) / 12;
+  const islandBackOffsetFt = (design.islandBackOffsetIn ?? 0) / 12;
+  const islandX =
+    design.island && islandPositionResolved
+      ? -mainWidth / 2 + islandLeftOffsetFt + islandWidth / 2
+      : null;
+  const islandZ =
+    design.island && islandPositionResolved ? islandBackOffsetFt + islandDepth / 2 : null;
   return {
     roomWidth,
     roomDepth,
+    roomWallHeight,
     backWallZ,
     mainWidth,
     counterDepth,
-    mainZ: backWallZ + counterDepth / 2 + 0.08,
+    mainZ: counterDepth / 2,
     leftLength,
     rightLength,
     islandWidth,
     islandDepth,
-    islandZ: backWallZ + islandCenterFromWall,
+    islandX,
+    islandZ,
+    surfaceTopY:
+      design.finishedTopHeightIn === null ? UNRESOLVED_SURFACE_Y : design.finishedTopHeightIn / 12,
+    topThickness: design.topThicknessIn === null ? null : design.topThicknessIn / 12,
   };
 }
 
 /** Pure geometry seam used by focused tests; it does not create WebGL state. */
 export const stoneVisualizerGeometryForTests = Object.freeze({
   getRunCuts,
+  getRunMarkers,
   getLayoutMetrics,
   getVisibleSurfacePieces,
 });
@@ -553,33 +620,66 @@ function addRoomShell(
   floorStone: boolean,
   metrics: LayoutMetrics
 ) {
+  if (metrics.roomWidth === null || metrics.roomDepth === null || metrics.roomWallHeight === null) {
+    return;
+  }
   if (floorStone) {
     addStoneBox({
       parent,
       records,
       target: "floor",
       size: [metrics.roomWidth, 0.12, metrics.roomDepth],
-      position: [0, -0.08, 0],
+      position: [0, -0.08, metrics.roomDepth / 2],
       mappingWidthFt: metrics.roomWidth,
       mappingHeightFt: metrics.roomDepth,
     });
   } else {
-    addBox(parent, [metrics.roomWidth, 0.12, metrics.roomDepth], [0, -0.08, 0], "#cbb99f", {
-      roughness: 0.88,
-    });
+    addBox(
+      parent,
+      [metrics.roomWidth, 0.12, metrics.roomDepth],
+      [0, -0.08, metrics.roomDepth / 2],
+      "#cbb99f",
+      { roughness: 0.88 }
+    );
   }
-  addBox(parent, [metrics.roomWidth, 9, 0.14], [0, 4.45, metrics.backWallZ], "#ece6dc", {
-    castShadow: false,
-  });
-  addBox(parent, [0.14, 9, metrics.roomDepth], [-metrics.roomWidth / 2, 4.45, 0], "#e2dbd0", {
-    castShadow: false,
-  });
+  addBox(
+    parent,
+    [metrics.roomWidth, metrics.roomWallHeight, 0.14],
+    [0, metrics.roomWallHeight / 2, metrics.backWallZ],
+    "#ece6dc",
+    { castShadow: false }
+  );
+  addBox(
+    parent,
+    [0.14, metrics.roomWallHeight, metrics.roomDepth],
+    [-metrics.roomWidth / 2, metrics.roomWallHeight / 2, metrics.roomDepth / 2],
+    "#e2dbd0",
+    { castShadow: false }
+  );
+}
+
+function addSchematicGrid(parent: THREE.Group, metrics: LayoutMetrics) {
+  const surfaceDepth = Math.max(metrics.counterDepth, metrics.leftLength, metrics.rightLength, 8);
+  const surfaceWidth = Math.max(metrics.mainWidth, metrics.islandWidth, 8);
+  const size = Math.ceil(Math.max(surfaceDepth, surfaceWidth) / 2) * 2;
+  const grid = new THREE.GridHelper(size, size, "#7d8c87", "#aeb8b3");
+  grid.position.set(0, 0, Math.max(metrics.counterDepth, surfaceDepth / 2));
+  grid.userData.geometryStatus = "measurement-grid-only";
+  parent.add(grid);
+}
+
+function addStarterGrid(parent: THREE.Group) {
+  const grid = new THREE.GridHelper(12, 12, "#7d8c87", "#aeb8b3");
+  grid.position.set(0, 0, 4);
+  grid.userData.geometryStatus = "starter-grid-only";
+  parent.add(grid);
 }
 
 function addBacksplash(args: {
   parent: THREE.Group;
   records: StoneMaterialRecord[];
-  design: SteelHomeCountertopDesign;
+  design: CountertopPlannerDesign;
+  metrics: LayoutMetrics;
   width: number;
   depth: number;
   x: number;
@@ -587,7 +687,13 @@ function addBacksplash(args: {
   rotationY?: number;
 }) {
   if (args.design.backsplash === "None") return;
-  const height = args.design.backsplash === "Full-height" ? 2.8 : 0.34;
+  const height =
+    args.design.backsplash === "Full-height"
+      ? args.metrics.roomWallHeight === null
+        ? null
+        : Math.max(0, args.metrics.roomWallHeight - args.metrics.surfaceTopY)
+      : 4 / 12;
+  if (height === null || height <= 0) return;
   const rotationY = args.rotationY ?? 0;
   const [x, z] = localToWorld(0, -args.depth / 2 - 0.05, args.x, args.z, rotationY);
   addStoneBox({
@@ -595,7 +701,7 @@ function addBacksplash(args: {
     records: args.records,
     target: "backsplash",
     size: [args.width, height, 0.08],
-    position: [x, SURFACE_TOP_Y + 0.08 + height / 2, z],
+    position: [x, args.metrics.surfaceTopY + height / 2, z],
     mappingWidthFt: args.width,
     mappingHeightFt: height,
     rotationY,
@@ -605,21 +711,33 @@ function addBacksplash(args: {
 function addWaterfalls(
   parent: THREE.Group,
   records: StoneMaterialRecord[],
-  design: SteelHomeCountertopDesign,
+  design: CountertopPlannerDesign,
   metrics: LayoutMetrics
 ) {
-  if (!design.island || design.waterfall === "None") return;
+  const topThickness = metrics.topThickness;
+  if (
+    !design.island ||
+    design.waterfall === "None" ||
+    metrics.islandX === null ||
+    metrics.islandZ === null ||
+    design.finishedTopHeightIn === null ||
+    design.topThicknessIn === null ||
+    topThickness === null
+  ) {
+    return;
+  }
   for (const side of ["Left", "Right"] as const) {
     if (design.waterfall !== side && design.waterfall !== "Both") continue;
-    const x = (side === "Left" ? -1 : 1) * (metrics.islandWidth / 2 - 0.08);
+    const x =
+      metrics.islandX + (side === "Left" ? -1 : 1) * (metrics.islandWidth / 2 - topThickness / 2);
     addStoneBox({
       parent,
       records,
       target: "island",
-      size: [0.16, SURFACE_TOP_Y, metrics.islandDepth],
-      position: [x, SURFACE_TOP_Y / 2, metrics.islandZ],
+      size: [topThickness, metrics.surfaceTopY, metrics.islandDepth],
+      position: [x, metrics.surfaceTopY / 2, metrics.islandZ],
       mappingWidthFt: metrics.islandDepth,
-      mappingHeightFt: SURFACE_TOP_Y,
+      mappingHeightFt: metrics.surfaceTopY,
     });
   }
 }
@@ -627,7 +745,7 @@ function addWaterfalls(
 function addConfiguredSurfaces(
   parent: THREE.Group,
   records: StoneMaterialRecord[],
-  design: SteelHomeCountertopDesign,
+  design: CountertopPlannerDesign,
   metrics: LayoutMetrics
 ) {
   addCounterRun({
@@ -640,6 +758,8 @@ function addConfiguredSurfaces(
     depth: metrics.counterDepth,
     x: 0,
     z: metrics.mainZ,
+    surfaceTopY: metrics.surfaceTopY,
+    topThickness: metrics.topThickness,
   });
   addBacksplash({
     parent,
@@ -649,13 +769,14 @@ function addConfiguredSurfaces(
     depth: metrics.counterDepth,
     x: 0,
     z: metrics.mainZ,
+    metrics,
   });
 
   const leftVisibleLength = Math.max(0, metrics.leftLength - metrics.counterDepth);
   if (leftVisibleLength > 0.01) {
     const rotationY = Math.PI / 2;
     const x = -metrics.mainWidth / 2 + metrics.counterDepth / 2;
-    const z = metrics.backWallZ + metrics.counterDepth + leftVisibleLength / 2 + 0.08;
+    const z = metrics.backWallZ + metrics.counterDepth + leftVisibleLength / 2;
     addCounterRun({
       parent,
       records,
@@ -669,6 +790,8 @@ function addConfiguredSurfaces(
       rotationY,
       reverseStart: true,
       startOffsetFt: metrics.counterDepth,
+      surfaceTopY: metrics.surfaceTopY,
+      topThickness: metrics.topThickness,
     });
     addBacksplash({
       parent,
@@ -679,6 +802,7 @@ function addConfiguredSurfaces(
       x,
       z,
       rotationY,
+      metrics,
     });
   }
 
@@ -686,7 +810,7 @@ function addConfiguredSurfaces(
   if (rightVisibleLength > 0.01) {
     const rotationY = -Math.PI / 2;
     const x = metrics.mainWidth / 2 - metrics.counterDepth / 2;
-    const z = metrics.backWallZ + metrics.counterDepth + rightVisibleLength / 2 + 0.08;
+    const z = metrics.backWallZ + metrics.counterDepth + rightVisibleLength / 2;
     addCounterRun({
       parent,
       records,
@@ -699,6 +823,8 @@ function addConfiguredSurfaces(
       z,
       rotationY,
       startOffsetFt: metrics.counterDepth,
+      surfaceTopY: metrics.surfaceTopY,
+      topThickness: metrics.topThickness,
     });
     addBacksplash({
       parent,
@@ -709,10 +835,11 @@ function addConfiguredSurfaces(
       x,
       z,
       rotationY,
+      metrics,
     });
   }
 
-  if (design.island) {
+  if (design.island && metrics.islandX !== null && metrics.islandZ !== null) {
     addCounterRun({
       parent,
       records,
@@ -721,75 +848,35 @@ function addConfiguredSurfaces(
       run: "island",
       width: metrics.islandWidth,
       depth: metrics.islandDepth,
-      x: 0,
+      x: metrics.islandX,
       z: metrics.islandZ,
+      surfaceTopY: metrics.surfaceTopY,
+      topThickness: metrics.topThickness,
     });
     addWaterfalls(parent, records, design, metrics);
   }
 }
 
-function addKitchenDecor(parent: THREE.Group, metrics: LayoutMetrics) {
-  const pictureX = Math.min(metrics.mainWidth * 0.28, metrics.roomWidth * 0.28);
-  addBox(
-    parent,
-    [Math.min(3.3, metrics.mainWidth * 0.28), 0.08, 1.3],
-    [pictureX, 6.45, metrics.backWallZ + 0.08],
-    "#91a6a0",
-    { metalness: 0.55, roughness: 0.22, castShadow: false }
-  );
-  addBox(parent, [1.25, 0.12, 0.12], [-pictureX, 5.7, metrics.backWallZ + 0.16], "#46392f");
-}
-
-function addBathroomDecor(parent: THREE.Group, metrics: LayoutMetrics) {
-  const decorZ = metrics.backWallZ + Math.max(metrics.leftLength, metrics.counterDepth) + 2.2;
-  const tubX = -metrics.roomWidth * 0.25;
-  addBox(parent, [4.8, 1.65, 2.8], [tubX, 0.78, decorZ], "#eee9e2", { roughness: 0.25 });
-  addBox(parent, [4.15, 0.2, 2.25], [tubX, 1.63, decorZ], "#b9d0d0", {
-    roughness: 0.12,
-    metalness: 0.18,
-  });
-  const glass = addBox(parent, [0.12, 6.3, 5.8], [tubX + 2.5, 3.1, decorZ], "#a6c3c1", {
-    roughness: 0.12,
-    metalness: 0.1,
-    castShadow: false,
-  });
-  glass.material.transparent = true;
-  glass.material.opacity = 0.32;
-}
-
-function addLivingDecor(parent: THREE.Group, metrics: LayoutMetrics) {
-  const fireWidth = Math.min(3.2, metrics.mainWidth * 0.45);
-  addBox(parent, [fireWidth, 2.25, 0.38], [0, 1.95, metrics.backWallZ + 0.3], "#1c211f", {
-    roughness: 0.95,
-    castShadow: false,
-  });
-  addBox(
-    parent,
-    [Math.min(6.3, metrics.mainWidth * 0.7), 0.2, 0.35],
-    [0, 5.6, metrics.backWallZ + 0.36],
-    METAL,
-    { metalness: 0.5 }
-  );
-  const sofaZ = metrics.backWallZ + Math.max(metrics.leftLength, metrics.counterDepth) + 3;
-  const sofaX = Math.max(3.2, metrics.roomWidth * 0.28);
-  addBox(parent, [5.8, 1.1, 2.8], [-sofaX, 0.5, sofaZ], "#8b745e", { roughness: 0.95 });
-  addBox(parent, [5.8, 1.1, 2.8], [sofaX, 0.5, sofaZ], "#8b745e", { roughness: 0.95 });
-}
-
 function buildScene(
   parent: THREE.Group,
   records: StoneMaterialRecord[],
-  design: SteelHomeCountertopDesign
+  designInput: CountertopPlannerDesignInput
 ) {
+  const design = resolveCountertopPlannerDesign(designInput);
   const metrics = getLayoutMetrics(design);
-  addRoomShell(parent, records, design.floorStone, metrics);
+  if (!design.measurementsReviewed) {
+    addStarterGrid(parent);
+    return;
+  }
+  if (hasResolvedCountertopRoomShell(design)) {
+    addRoomShell(parent, records, design.floorStone, metrics);
+  } else {
+    addSchematicGrid(parent, metrics);
+  }
   addConfiguredSurfaces(parent, records, design, metrics);
-  if (design.room.includes("bathroom")) addBathroomDecor(parent, metrics);
-  else if (design.room === "Living room") addLivingDecor(parent, metrics);
-  else addKitchenDecor(parent, metrics);
 }
 
-function applyCamera(runtime: Runtime, design: SteelHomeCountertopDesign, force = false) {
+function applyCamera(runtime: Runtime, design: CountertopPlannerDesignInput, force = false) {
   const key = `${runtime.revision}:${design.cameraPreset}`;
   if (!force && runtime.cameraKey === key) return;
   runtime.cameraKey = key;
@@ -808,7 +895,7 @@ function applyCamera(runtime: Runtime, design: SteelHomeCountertopDesign, force 
     aspect: runtime.camera.aspect,
   });
   const detailDistance = distance * 0.72;
-  const offsets: Record<SteelHomeCountertopDesign["cameraPreset"], THREE.Vector3> = {
+  const offsets: Record<CountertopPlannerDesign["cameraPreset"], THREE.Vector3> = {
     Perspective: new THREE.Vector3(distance * 0.68, distance * 0.46, distance * 0.78),
     Front: new THREE.Vector3(0, distance * 0.28, distance),
     Top: new THREE.Vector3(0.01, distance * 1.18, 0.01),
@@ -843,7 +930,7 @@ export function getStoneVisualizerCameraFitDistance(args: {
 function configureTexture(
   texture: THREE.Texture,
   record: StoneMaterialRecord,
-  design: SteelHomeCountertopDesign,
+  design: CountertopPlannerDesignInput,
   dimensions: { widthIn: number; heightIn: number } | null,
   anisotropy: number,
   initialize: boolean
@@ -865,7 +952,7 @@ function configureTexture(
 
 export function getStoneVisualizerTextureRepeat(
   record: Pick<StoneMaterialRecord, "widthFt" | "heightFt">,
-  design: Pick<SteelHomeCountertopDesign, "textureScale" | "veinRotation">,
+  design: Pick<CountertopPlannerDesign, "textureScale" | "veinRotation">,
   dimensions: { widthIn: number; heightIn: number } | null
 ): { x: number; y: number } {
   if (!dimensions) {
@@ -885,7 +972,7 @@ function applyTextureToRecord(
   record: StoneMaterialRecord,
   source: THREE.Texture,
   sourceKey: string,
-  design: SteelHomeCountertopDesign,
+  design: CountertopPlannerDesignInput,
   dimensions: { widthIn: number; heightIn: number } | null,
   anisotropy: number
 ): THREE.Texture {
@@ -906,7 +993,7 @@ function applyTextureToRecord(
 function applyTextureToRecords(
   runtime: Runtime,
   source: THREE.Texture,
-  design: SteelHomeCountertopDesign,
+  design: CountertopPlannerDesignInput,
   dimensions: { widthIn: number; heightIn: number } | null
 ) {
   const anisotropy = Math.min(8, runtime.renderer.capabilities.getMaxAnisotropy());
@@ -921,7 +1008,7 @@ export function applyStoneVisualizerTextureForTests(args: {
   source: THREE.Texture;
   sourceKey: string;
   record: StoneMaterialRecord;
-  design: SteelHomeCountertopDesign;
+  design: CountertopPlannerDesignInput;
   dimensions: { widthIn: number; heightIn: number } | null;
   anisotropy: number;
 }) {
@@ -946,10 +1033,11 @@ function clearTextureFromRecords(runtime: Runtime) {
 }
 
 export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarget }: Props) {
+  const plannerDesign = useMemo(() => resolveCountertopPlannerDesign(design), [design]);
   const hostRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<Runtime | null>(null);
-  const designRef = useRef(design);
+  const designRef = useRef(plannerDesign);
   const onSelectRef = useRef(onSelectTarget);
   const rendererRetryRef = useRef<HTMLButtonElement>(null);
   const [rendererAttempt, setRendererAttempt] = useState(0);
@@ -959,52 +1047,72 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
   const [error, setError] = useState<string | null>(null);
   const [textureFailed, setTextureFailed] = useState(false);
   const [textureStatus, setTextureStatus] = useState("Loading the selected inventory photo…");
-  const stone = getCatalogItemById(design.stoneId);
-  const selectedImage = stone?.images[design.textureImageIndex] ?? null;
+  const stone = getCatalogItemById(plannerDesign.stoneId);
+  const selectedImage = stone?.images[plannerDesign.textureImageIndex] ?? null;
   const textureImageHref = stone
     ? buildNamedStoneDesignerImageHref(stone.shareSlug || "", selectedImage || "") ||
-      buildStoneDesignerImageHref(stone.id, design.textureImageIndex)
+      buildStoneDesignerImageHref(stone.id, plannerDesign.textureImageIndex)
     : "";
-  const unplacedOpeningCount = getCountertopOpeningSchedule(design).filter(
+  const openingSchedule = getCountertopPlannerOpeningSchedule(plannerDesign);
+  const unplacedOpeningCount = openingSchedule.filter(
     (item) =>
       !item.run ||
       item.positionIn === null ||
-      (item.requiresFrontPosition && (item.frontPositionIn === null || !item.depthIn)) ||
-      (item.id !== "sink" && item.id !== "cooktop" && (!item.widthIn || !item.depthIn))
+      (item.requiresFrontPosition && item.frontPositionIn === null)
   ).length;
+  const coordinationPointCount = openingSchedule.filter(
+    (item) => item.representation === "coordination-point"
+  ).length;
+  const sceneDiagnostics = getCountertopPlannerDiagnostics(plannerDesign).filter(
+    (item) => item.scope === "scene"
+  );
+  const measuredScene = sceneDiagnostics.length === 0;
+  const starterScene = !plannerDesign.measurementsReviewed;
 
   const geometryDesign = useMemo(
-    () => design,
+    () => plannerDesign,
     [
-      design.room,
-      design.layout,
-      design.wallAIn,
-      design.wallBIn,
-      design.wallCIn,
-      design.wallDepthIn,
-      design.island,
-      design.islandLengthIn,
-      design.islandWidthIn,
-      design.floorStone,
-      design.showSeams,
-      design.waterfall,
-      design.edge,
-      design.backsplash,
-      design.sink,
-      design.sinkRun,
-      design.sinkPositionIn,
-      design.sinkFrontPositionIn,
-      design.cooktop,
-      design.cooktopRun,
-      design.cooktopPositionIn,
-      design.cooktopFrontPositionIn,
-      design.otherCutouts,
+      plannerDesign.room,
+      plannerDesign.layout,
+      plannerDesign.wallAIn,
+      plannerDesign.wallBIn,
+      plannerDesign.wallCIn,
+      plannerDesign.wallDepthIn,
+      plannerDesign.island,
+      plannerDesign.islandLengthIn,
+      plannerDesign.islandWidthIn,
+      plannerDesign.floorStone,
+      plannerDesign.showSeams,
+      plannerDesign.waterfall,
+      plannerDesign.edge,
+      plannerDesign.backsplash,
+      plannerDesign.sink,
+      plannerDesign.sinkRun,
+      plannerDesign.sinkPositionIn,
+      plannerDesign.sinkFrontPositionIn,
+      plannerDesign.cooktop,
+      plannerDesign.cooktopRun,
+      plannerDesign.cooktopPositionIn,
+      plannerDesign.cooktopFrontPositionIn,
+      plannerDesign.otherCutouts,
+      plannerDesign.measurementsReviewed,
+      plannerDesign.roomWidthIn,
+      plannerDesign.roomDepthIn,
+      plannerDesign.roomWallHeightIn,
+      plannerDesign.finishedTopHeightIn,
+      plannerDesign.topThicknessIn,
+      plannerDesign.islandLeftOffsetIn,
+      plannerDesign.islandBackOffsetIn,
+      plannerDesign.sinkTemplateWidthIn,
+      plannerDesign.sinkTemplateDepthIn,
+      plannerDesign.cooktopTemplateWidthIn,
+      plannerDesign.cooktopTemplateDepthIn,
     ]
   );
   const textureSourceKey = textureImageHref;
-  const textureMappingKey = `${design.textureOffsetX}:${design.textureOffsetY}:${design.textureScale}:${design.veinRotation}`;
+  const textureMappingKey = `${plannerDesign.textureOffsetX}:${plannerDesign.textureOffsetY}:${plannerDesign.textureScale}:${plannerDesign.veinRotation}`;
 
-  designRef.current = design;
+  designRef.current = plannerDesign;
 
   useEffect(() => {
     onSelectRef.current = onSelectTarget;
@@ -1021,7 +1129,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
     setError(null);
     if (typeof navigator !== "undefined" && /jsdom/i.test(navigator.userAgent)) {
       setError(
-        "Automated DOM checks do not provide WebGL. This is a catalog-photo recovery view, not a rendered room."
+        "Automated DOM checks do not provide WebGL. This is a catalog-photo recovery view, not a rendered measured scene."
       );
       return;
     }
@@ -1270,7 +1378,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
         runtimeRef.current = null;
       }
       setError(
-        "This browser could not start the 3D room. The image below is a catalog photo, not a 3D preview."
+        "This browser could not start the 3D scene. The image below is a catalog photo, not a 3D preview."
       );
       return undefined;
     }
@@ -1301,8 +1409,8 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
   useEffect(() => {
     const runtime = runtimeRef.current;
     if (!runtime) return;
-    applyCamera(runtime, design);
-  }, [design.cameraPreset, sceneRevision]);
+    applyCamera(runtime, plannerDesign);
+  }, [plannerDesign.cameraPreset, sceneRevision]);
 
   useEffect(() => {
     const runtime = runtimeRef.current;
@@ -1394,7 +1502,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
     const dimensions = isHandScaleCoverImage(selectedImage)
       ? null
       : resolveSlabDimensionForInventoryImage(selectedImage);
-    applyTextureToRecords(runtime, runtime.sourceTexture, design, dimensions);
+    applyTextureToRecords(runtime, runtime.sourceTexture, plannerDesign, dimensions);
   }, [sceneRevision, selectedImage, sourceTextureRevision, textureMappingKey, textureSourceKey]);
 
   const orbit = (direction: -1 | 1) => {
@@ -1430,7 +1538,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
   const resetView = () => {
     const runtime = runtimeRef.current;
     if (!runtime) return;
-    applyCamera(runtime, design, true);
+    applyCamera(runtime, plannerDesign, true);
   };
 
   return (
@@ -1453,7 +1561,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
                 className="mx-auto aspect-[4/3] w-full rounded-2xl object-contain"
               />
             ) : null}
-            <p className="mt-4 text-sm font-black">3D room unavailable</p>
+            <p className="mt-4 text-sm font-black">3D scene unavailable</p>
             <p className="mt-2 text-xs leading-5 text-white/70">{error}</p>
             <button
               ref={rendererRetryRef}
@@ -1464,7 +1572,7 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
               }}
               className="mt-4 rounded-full bg-[#f0b392] px-4 py-2 text-xs font-black text-[#18312f]"
             >
-              Retry 3D room
+              Retry 3D scene
             </button>
           </div>
         </div>
@@ -1474,17 +1582,23 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
         ref={canvasRef}
         className="block h-full w-full touch-pan-y"
         aria-hidden={error ? true : undefined}
-        aria-label={`Interactive 3D ${design.room.toLowerCase()} using ${stone?.publicLabel || "the selected surface"}. Drag sideways to orbit, use two fingers or the wheel to zoom, and tap a modeled surface to edit it. One-finger vertical swipes scroll the page.`}
+        aria-label={`Interactive 3D ${starterScene ? "countertop starter" : `${plannerDesign.room.toLowerCase()} countertop scene`} using ${stone?.publicLabel || "no selected stone"}. ${starterScene ? "Starter grid only; legacy run values are not shown until they are reviewed." : measuredScene ? "Room and vertical geometry use entered measurements." : `${sceneDiagnostics.length} scene measurements remain unresolved; unresolved geometry is schematic or hidden.`} Drag sideways to orbit, use two fingers or the wheel to zoom, and tap a modeled surface to edit it. One-finger vertical swipes scroll the page.`}
       />
       {!error ? (
         <>
           <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-3">
             <div className="rounded-xl bg-[#101817]/88 px-3 py-2 text-white shadow-lg backdrop-blur-sm">
               <p className="text-[0.62rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
-                Live 3D room · {design.room}
+                {starterScene
+                  ? "Starter grid · measurements unreviewed"
+                  : `${measuredScene ? "Measured 3D scene" : "Schematic 3D plan"} · ${plannerDesign.room}`}
               </p>
               <p className="mt-1 hidden text-xs font-semibold text-white/72 sm:block">
-                Drag to orbit · wheel or pinch to zoom · tap a surface
+                {starterScene
+                  ? "Review the surface run values to show countertop geometry"
+                  : measuredScene
+                    ? "Drag to orbit · wheel or pinch to zoom · tap a surface"
+                    : `${sceneDiagnostics.length} measurements unresolved · no room or island is invented`}
               </p>
             </div>
             <div className="rounded-full bg-[#f7f2e9]/94 px-3 py-2 text-[0.65rem] font-black capitalize text-[#18312f] shadow-lg">
@@ -1546,6 +1660,9 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
               {unplacedOpeningCount
                 ? ` ${unplacedOpeningCount} incomplete opening${unplacedOpeningCount === 1 ? " is" : "s are"} not shown in 3D.`
                 : ""}
+              {coordinationPointCount
+                ? ` ${coordinationPointCount} ${coordinationPointCount === 1 ? "fixture is a non-dimensional coordination point" : "fixtures are non-dimensional coordination points"} until template sizes are entered.`
+                : ""}
             </p>
             {textureFailed ? (
               <button
@@ -1560,16 +1677,24 @@ export default function StoneVisualizer3D({ design, selectedTarget, onSelectTarg
         </>
       ) : null}
       <div className="sr-only">
-        <p>The room includes semantic controls outside the canvas for every modeled option.</p>
+        <p>
+          {starterScene
+            ? "The canvas is a starter grid only because the saved numeric run values have not been reviewed."
+            : "The canvas contains only entered countertop, room-shell, and opening geometry."}{" "}
+          It does not invent cabinets, fixtures, furniture, fireplaces, doors, or windows.
+        </p>
         <ul>
           <li>Countertop surface: {stone?.publicLabel || "not selected"}</li>
-          <li>Island: {design.island ? "included" : "not included"}</li>
-          <li>Backsplash: {design.backsplash}</li>
-          <li>Floor stone: {design.floorStone ? "included" : "not included"}</li>
-          <li>Sink: {design.sink}</li>
-          <li>Cooktop: {design.cooktop}</li>
-          <li>Other openings: {design.otherCutouts.length}</li>
-          <li>Planning seams: {design.showSeams ? "shown" : "not shown"}</li>
+          <li>Island: {plannerDesign.island ? "included" : "not included"}</li>
+          <li>Backsplash: {plannerDesign.backsplash}</li>
+          <li>Floor stone: {plannerDesign.floorStone ? "included" : "not included"}</li>
+          <li>Sink: {plannerDesign.sink}</li>
+          <li>Cooktop: {plannerDesign.cooktop}</li>
+          <li>Other openings: {plannerDesign.otherCutouts.length}</li>
+          <li>Planning seams: {plannerDesign.showSeams ? "shown" : "not shown"}</li>
+          {sceneDiagnostics.map((diagnostic) => (
+            <li key={diagnostic.id}>Unresolved: {diagnostic.label}</li>
+          ))}
         </ul>
       </div>
     </div>

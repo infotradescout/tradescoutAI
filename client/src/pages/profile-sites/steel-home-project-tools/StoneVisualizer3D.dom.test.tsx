@@ -14,19 +14,21 @@ describe("countertop spatial studio recovery and controls", () => {
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
+    const design = {
+      ...createEmptySteelHomeProjectDraft().countertops,
+      stoneId: "cristallo",
+    };
     await act(async () => {
       root.render(
-        <StoneVisualizer3D
-          design={createEmptySteelHomeProjectDraft().countertops}
-          selectedTarget="counter"
-          onSelectTarget={vi.fn()}
-        />
+        <StoneVisualizer3D design={design} selectedTarget="counter" onSelectTarget={vi.fn()} />
       );
     });
 
-    expect(container.textContent).toContain("3D room unavailable");
-    expect(container.textContent).toContain("Retry 3D room");
-    expect(container.textContent).toContain("catalog-photo recovery view, not a rendered room");
+    expect(container.textContent).toContain("3D scene unavailable");
+    expect(container.textContent).toContain("Retry 3D scene");
+    expect(container.textContent).toContain(
+      "catalog-photo recovery view, not a rendered measured scene"
+    );
     expect(container.querySelector("img")?.getAttribute("src")).toMatch(
       /^\/images\/stone-designer\/named\/cristallo\/ph_[0-9a-f]{16}\.webp$/
     );
@@ -36,7 +38,7 @@ describe("countertop spatial studio recovery and controls", () => {
     expect(container.textContent).not.toContain("Reset view");
     const alert = container.querySelector('[role="alert"]');
     const retry = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Retry 3D room")
+      button.textContent?.includes("Retry 3D scene")
     );
     expect(alert).toBeTruthy();
     expect(document.activeElement).toBe(retry);
@@ -51,7 +53,7 @@ describe("countertop spatial studio recovery and controls", () => {
       retry?.click();
     });
     expect(container.querySelector("canvas")).not.toBe(canvas);
-    expect(container.textContent).toContain("3D room unavailable");
+    expect(container.textContent).toContain("3D scene unavailable");
 
     act(() => root.unmount());
     container.remove();

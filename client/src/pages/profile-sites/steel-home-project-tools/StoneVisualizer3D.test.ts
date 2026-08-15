@@ -20,6 +20,13 @@ describe("countertop spatial studio geometry", () => {
       island: true,
       islandLengthIn: 144,
       islandWidthIn: 60,
+      roomWidthIn: 408,
+      roomDepthIn: 396,
+      roomWallHeightIn: 108,
+      finishedTopHeightIn: 36,
+      topThicknessIn: 1.25,
+      islandLeftOffsetIn: 108,
+      islandBackOffsetIn: 132,
     };
 
     expect(stoneVisualizerGeometryForTests.getLayoutMetrics(design)).toMatchObject({
@@ -31,6 +38,11 @@ describe("countertop spatial studio geometry", () => {
       islandDepth: 5,
       roomWidth: 34,
       roomDepth: 33,
+      roomWallHeight: 9,
+      islandX: 0,
+      islandZ: 13.5,
+      surfaceTopY: 3,
+      topThickness: 1.25 / 12,
     });
   });
 
@@ -45,9 +57,15 @@ describe("countertop spatial studio geometry", () => {
       island: true,
       islandLengthIn: 180,
       islandWidthIn: 72,
+      roomWidthIn: 408,
+      roomDepthIn: 528,
+      roomWallHeightIn: 108,
     };
     const metrics = stoneVisualizerGeometryForTests.getLayoutMetrics(design);
     expect(metrics).toMatchObject({ roomWidth: 34, roomDepth: 44 });
+    if (metrics.roomWidth === null || metrics.roomDepth === null) {
+      throw new Error("Expected entered room dimensions to resolve");
+    }
     const span = Math.max(metrics.roomWidth, metrics.roomDepth, 8 * 1.25);
     const portraitDistance = getStoneVisualizerCameraFitDistance({
       span,
@@ -89,6 +107,10 @@ describe("countertop spatial studio geometry", () => {
           depthIn: 2,
         },
       ],
+      sinkTemplateWidthIn: 30,
+      sinkTemplateDepthIn: 18,
+      cooktopTemplateWidthIn: 36,
+      cooktopTemplateDepthIn: 22,
     };
 
     const cuts = stoneVisualizerGeometryForTests.getRunCuts(design, "main", 30, 2.5);
@@ -130,6 +152,8 @@ describe("countertop spatial studio geometry", () => {
       sink: "Farmhouse" as const,
       sinkRun: "main" as const,
       sinkPositionIn: 72,
+      sinkTemplateWidthIn: 33,
+      sinkTemplateDepthIn: 20,
     };
     const apron = stoneVisualizerGeometryForTests.getRunCuts(apronDesign, "main", 12, 2.5)[0];
     expect(apron.fullDepth).toBe(false);
@@ -167,6 +191,32 @@ describe("countertop spatial studio geometry", () => {
     const cuts = stoneVisualizerGeometryForTests.getRunCuts(design, "main", 12, 2.5);
     expect(cuts).toHaveLength(1);
     expect(cuts[0]).toMatchObject({ kind: "cooktop", fullDepth: true });
+  });
+
+  it("shows generic fixtures as coordination points without subtracting guessed cutouts", () => {
+    const design = {
+      ...createEmptySteelHomeProjectDraft().countertops,
+      layout: "straight" as const,
+      wallAIn: 144,
+      wallDepthIn: 30,
+      sink: "Single-bowl undermount" as const,
+      sinkRun: "main" as const,
+      sinkPositionIn: 48,
+      sinkFrontPositionIn: 14,
+      cooktop: "36-inch cooktop cutout" as const,
+      cooktopRun: "main" as const,
+      cooktopPositionIn: 96,
+      cooktopFrontPositionIn: 14,
+    };
+
+    expect(stoneVisualizerGeometryForTests.getRunCuts(design, "main", 12, 2.5)).toEqual([]);
+    expect(stoneVisualizerGeometryForTests.getRunMarkers(design, "main", 12, 2.5)).toMatchObject([
+      { id: "sink", kind: "sink", centerXFt: -2 },
+      { id: "cooktop", kind: "cooktop", centerXFt: 2 },
+    ]);
+    expect(stoneVisualizerGeometryForTests.getVisibleSurfacePieces(12, 2.5, [])).toEqual([
+      { left: -6, right: 6, back: -1.25, front: 1.25 },
+    ]);
   });
 
   it("swaps physical surface axes for quarter-turn vein mapping", () => {

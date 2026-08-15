@@ -688,6 +688,7 @@ describe("steel-home project model", () => {
     draft.countertops.wallBIn = 96;
     draft.countertops.wallCIn = 72;
     draft.countertops.island = false;
+    draft.countertops.measurementsReviewed = true;
 
     expect(calculateCountertopSquareFeet(draft.countertops)).toBe(42);
     draft.countertops.wallDepthIn = 22;
@@ -700,6 +701,8 @@ describe("steel-home project model", () => {
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 60;
     draft.countertops.sinkFrontPositionIn = 11;
+    draft.countertops.sinkTemplateWidthIn = 30;
+    draft.countertops.sinkTemplateDepthIn = 18;
     const [sink] = getCountertopOpeningSchedule(draft.countertops);
     expect(getCountertopOpeningFrontBounds(draft.countertops, sink)).toEqual({
       minimum: 10,
@@ -1010,10 +1013,14 @@ describe("steel-home project model", () => {
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 48;
     draft.countertops.sinkFrontPositionIn = 13;
+    draft.countertops.sinkTemplateWidthIn = 33;
+    draft.countertops.sinkTemplateDepthIn = 20;
     draft.countertops.cooktop = "36-inch cooktop cutout";
     draft.countertops.cooktopRun = "left-return";
     draft.countertops.cooktopPositionIn = 52;
     draft.countertops.cooktopFrontPositionIn = 13;
+    draft.countertops.cooktopTemplateWidthIn = 36;
+    draft.countertops.cooktopTemplateDepthIn = 22;
     draft.countertops.otherCutouts = [
       {
         id: "faucet",
@@ -1039,6 +1046,8 @@ describe("steel-home project model", () => {
         widthIn: 33,
         depthIn: 20,
         planningWidthIn: 33,
+        representation: "template-opening",
+        templateStatus: "entered",
       },
       {
         id: "cooktop",
@@ -1051,6 +1060,8 @@ describe("steel-home project model", () => {
         widthIn: 36,
         depthIn: 22,
         planningWidthIn: 36,
+        representation: "template-opening",
+        templateStatus: "entered",
       },
       {
         id: "faucet",
@@ -1063,6 +1074,8 @@ describe("steel-home project model", () => {
         widthIn: 1,
         depthIn: 1,
         planningWidthIn: 1,
+        representation: "template-opening",
+        templateStatus: "entered",
       },
     ]);
     expect(getCountertopPlacementProblems(draft.countertops)).toEqual([]);
@@ -1094,6 +1107,8 @@ describe("steel-home project model", () => {
         widthIn: 36,
         depthIn: null,
         planningWidthIn: 36,
+        representation: "full-depth-gap",
+        templateStatus: "not-needed",
       },
     ]);
     expect(getCountertopPlacementProblems(draft.countertops)).toEqual([]);
@@ -1172,6 +1187,8 @@ describe("steel-home project model", () => {
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 60;
     draft.countertops.sinkFrontPositionIn = 13;
+    draft.countertops.sinkTemplateWidthIn = 33;
+    draft.countertops.sinkTemplateDepthIn = 20;
     draft.countertops.otherCutouts = [
       {
         id: "faucet",
@@ -1562,6 +1579,7 @@ describe("steel-home project model", () => {
     draft.countertops.island = true;
     draft.countertops.stoneId = "taj-mahal";
     draft.countertops.wallAIn = 132;
+    draft.countertops.measurementsReviewed = true;
     draft.cabinets.included = true;
     draft.cabinets.planner = measuredCabinetPlanner();
 
@@ -1683,6 +1701,7 @@ describe("steel-home project model", () => {
     draft.countertops.included = true;
     draft.countertops.island = true;
     draft.countertops.stoneId = "aj-quartz";
+    draft.countertops.measurementsReviewed = true;
     draft.countertops.sink = "Farmhouse";
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 48;
@@ -1751,10 +1770,10 @@ describe("steel-home project model", () => {
       "Gross countertop layout footprint (backsplash excluded; range gaps not deducted):"
     );
     expect(stoneDescription).toContain(
-      "Backsplash and range-gap deductions are excluded from the footprint shown. Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout."
+      "Material request only: ask about stone availability and delivery. Opening locations do not establish stone quantity or price."
     );
     expect(stoneDescription).toContain(
-      "Material request only: ask about stone availability and delivery. Opening locations do not change this gross layout footprint or price the stone."
+      "Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout."
     );
     expect(stoneDescription).toContain(
       "does not provide field templating, fabrication, cutting, or countertop installation"

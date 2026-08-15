@@ -14,11 +14,11 @@ import {
   buildCountertopStoneRequestHref,
   buildSteelHomeProjectRequestHref,
   calculateCountertopSquareFeet,
-  getCountertopPlacementProblems,
   getSteelHomeProjectReadiness,
   reconcileSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
 } from "./projectModel";
+import { getCountertopPlannerRequestReadiness } from "./countertopPlannerModel";
 
 type Props = {
   request: SteelHomeRequestSelection;
@@ -122,6 +122,14 @@ function plannerResult(planner: SteelHomePlanner, draft: SteelHomeProjectDraft) 
   }
 
   const stone = getCatalogItemById(draft.countertops.stoneId);
+  if (!draft.countertops.measurementsReviewed) {
+    return {
+      eyebrow: "Countertop planning status",
+      value: "Starter values unreviewed",
+      detail: `${stone?.publicLabel || "No surface selected"} · Measurement-based quantities are excluded until reviewed · Quote required`,
+      icon: Ruler,
+    };
+  }
   return {
     eyebrow: "Gross countertop layout footprint",
     value: `About ${calculateCountertopSquareFeet(draft.countertops)} sq. ft.`,
@@ -205,19 +213,12 @@ export default function SteelHomePlannerRequest({
   const hasVisibleProjectRole = REQUEST_ROLE_OPTIONS.some(
     (option) => option.value === draft.projectRole
   );
-  const fabricatorPlacementProblems =
-    request.planner === "countertops" && request.intent === "fabricator"
-      ? getCountertopPlacementProblems(scopedDraft.countertops)
-      : [];
+  const countertopReadiness =
+    request.planner === "countertops"
+      ? getCountertopPlannerRequestReadiness(scopedDraft.countertops, request.intent)
+      : { ready: true, problems: [] };
   const plannerReadiness = getSteelHomeProjectReadiness(scopedDraft);
-  const ready =
-    hasVisibleProjectRole &&
-    plannerReadiness.projectReady &&
-    !(
-      request.planner === "countertops" &&
-      request.intent === "fabricator" &&
-      fabricatorPlacementProblems.length > 0
-    );
+  const ready = hasVisibleProjectRole && plannerReadiness.projectReady && countertopReadiness.ready;
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement | null;
@@ -279,7 +280,7 @@ export default function SteelHomePlannerRequest({
         >
           <div>
             <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#f0b392]">
-              {copy.label} Builder
+              {copy.label} Planner
             </p>
             <h2
               id="steel-home-planner-request-title"
@@ -379,8 +380,8 @@ export default function SteelHomePlannerRequest({
             <p className="text-xs leading-5 text-[#68736f]" aria-live="polite">
               {!hasVisibleProjectRole
                 ? "Choose who is planning the request."
-                : fabricatorPlacementProblems.length
-                  ? "Return to the planner and place every opening before matching with a fabricator."
+                : countertopReadiness.problems.length
+                  ? countertopReadiness.problems[0]
                   : !ready
                     ? "Add the jobsite city or ZIP, state, and county."
                     : saved
