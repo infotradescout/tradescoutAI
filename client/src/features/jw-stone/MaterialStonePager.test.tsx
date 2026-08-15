@@ -9,6 +9,11 @@ import { MaterialStonePager } from "./MaterialStonePager";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
+function click(element: Element | null) {
+  if (!element) throw new Error("Expected a clickable element");
+  act(() => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+}
+
 describe("MaterialStonePager", () => {
   let container: HTMLDivElement;
   let root: Root;
@@ -24,10 +29,11 @@ describe("MaterialStonePager", () => {
     container.remove();
   });
 
-  it("keeps status quiet, overlays prev/next on media, and pages with buttons + keys", () => {
+  it("renders every stone in a contained native momentum rail with precise controls", () => {
     const stones = JW_STONE_NAMED_CATALOG.slice(0, 3);
     expect(stones.length).toBe(3);
-    const onOpen = vi.fn();
+    const secondStone = stones[1];
+    if (!secondStone) throw new Error("Expected a second stone");
     const noop = vi.fn();
 
     act(() =>
@@ -37,73 +43,116 @@ describe("MaterialStonePager", () => {
           stones={stones}
           isSaved={() => false}
           onToggleSaved={noop}
-          onOpen={onOpen}
+          onOpen={noop}
           onAsk={noop}
         />
       )
     );
 
-    const rail = container.querySelector<HTMLElement>('[data-testid="jw-material-stone-rail"]');
-    expect(rail).not.toBeNull();
-    expect(rail?.getAttribute("aria-roledescription")).toBe("carousel");
-
+    const region = container.querySelector<HTMLElement>('[data-testid="jw-material-stone-rail"]');
+    const track = container.querySelector<HTMLElement>('[data-testid="jw-material-stone-track"]');
     const status = container.querySelector('[data-testid="jw-material-stone-status"]');
-    expect(status?.textContent).toBe("Gray & silver · 1 of 3");
-    expect(status?.className).toMatch(/text-\[var\(--jw-muted\)\]/);
-
     const progress = container.querySelector('[data-testid="jw-material-stone-progress"]');
+    const prev = container.querySelector<HTMLButtonElement>(
+      '[data-testid="jw-material-stone-prev"]'
+    );
+    const next = container.querySelector<HTMLButtonElement>(
+      '[data-testid="jw-material-stone-next"]'
+    );
+
+    expect(region?.getAttribute("aria-roledescription")).toBe("carousel");
+    expect(region?.className).toMatch(/max-w-full/);
+    expect(region?.className).toMatch(/overflow-hidden/);
+    expect(track?.className).toMatch(/overflow-x-auto/);
+    expect(track?.className).toMatch(/overscroll-x-contain/);
+    expect(track?.className).toContain("[-webkit-overflow-scrolling:touch]");
+    expect(track?.className).not.toMatch(/snap-/);
+    expect(track?.querySelectorAll("[data-stone-card]")).toHaveLength(3);
+    expect(track?.querySelector('[data-testid="jw-stone-card-photo-dots"]')).toBeNull();
+    expect(status?.textContent).toBe("Gray & silver · 1 of 3");
+    expect(status?.className).toMatch(/uppercase/);
     expect(progress?.getAttribute("aria-valuenow")).toBe("1");
     expect(progress?.getAttribute("aria-valuemax")).toBe("3");
+    expect(prev?.disabled).toBe(true);
+    expect(next?.disabled).toBe(false);
+    expect(prev?.className).toMatch(/rounded-full/);
+    expect(next?.className).toMatch(/rounded-full/);
 
-    const media = container.querySelector("[data-stone-card] .relative");
-    const prev = container.querySelector('[data-testid="jw-material-stone-prev"]');
-    const next = container.querySelector('[data-testid="jw-material-stone-next"]');
-    expect(prev).not.toBeNull();
-    expect(next).not.toBeNull();
-    expect(media?.contains(prev)).toBe(true);
-    expect(media?.contains(next)).toBe(true);
-    expect(prev?.className).toMatch(/absolute/);
-    expect(next?.className).toMatch(/absolute/);
-
-    expect(
-      container.querySelector(`[data-testid="jw-material-stone-${stones[0]!.id}"]`)
-    ).not.toBeNull();
-
-    act(() => next?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    click(next);
     expect(status?.textContent).toBe("Gray & silver · 2 of 3");
     expect(progress?.getAttribute("aria-valuenow")).toBe("2");
     expect(
-      container.querySelector(`[data-testid="jw-material-stone-${stones[1]!.id}"]`)
-    ).not.toBeNull();
+      container
+        .querySelector(`[data-testid="jw-material-stone-${secondStone.id}"]`)
+        ?.getAttribute("data-active")
+    ).toBe("true");
 
     act(() => {
-      rail?.dispatchEvent(
+      region?.dispatchEvent(
         new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true })
       );
     });
     expect(status?.textContent).toBe("Gray & silver · 3 of 3");
+    expect(next?.disabled).toBe(true);
 
     act(() => {
-      rail?.dispatchEvent(
+      region?.dispatchEvent(
         new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true })
       );
     });
     expect(status?.textContent).toBe("Gray & silver · 2 of 3");
-
     expect(container.textContent).toContain("View stone");
     expect(container.textContent).toMatch(/Ask/i);
+  });
+
+  it("updates position from free scrolling without introducing a hard snap", () => {
+    const stones = JW_STONE_NAMED_CATALOG.slice(0, 3);
+    const noop = vi.fn();
+
+    act(() =>
+      root.render(
+        <MaterialStonePager
+          materialLabel="Quartzite"
+          stones={stones}
+          isSaved={() => false}
+          onToggleSaved={noop}
+          onOpen={noop}
+          onAsk={noop}
+        />
+      )
+    );
+
+    const track = container.querySelector<HTMLElement>('[data-testid="jw-material-stone-track"]');
+    if (!track) throw new Error("Expected material stone track");
+    const items = Array.from(track.children).filter(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement && child.dataset.momentumItem === "true"
+    );
+    Object.defineProperty(track, "clientWidth", { configurable: true, value: 100 });
+    items.forEach((item, index) => {
+      Object.defineProperty(item, "offsetLeft", { configurable: true, value: index * 100 });
+      Object.defineProperty(item, "offsetWidth", { configurable: true, value: 92 });
+    });
+
+    track.scrollLeft = 96;
+    act(() => track.dispatchEvent(new Event("scroll", { bubbles: true })));
+    expect(container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent).toBe(
+      "Quartzite · 2 of 3"
+    );
+    expect(track.className).not.toMatch(/snap-/);
   });
 
   it("hides edge controls when only one stone is in the set", () => {
     const stone = JW_STONE_NAMED_CATALOG[0];
     expect(stone).toBeTruthy();
+    if (!stone) throw new Error("Expected a stone");
     const noop = vi.fn();
 
     act(() =>
       root.render(
         <MaterialStonePager
           materialLabel="Granite"
-          stones={[stone!]}
+          stones={[stone]}
           isSaved={() => false}
           onToggleSaved={noop}
           onOpen={noop}
@@ -117,5 +166,6 @@ describe("MaterialStonePager", () => {
     );
     expect(container.querySelector('[data-testid="jw-material-stone-prev"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-stone-next"]')).toBeNull();
+    expect(container.querySelectorAll("[data-stone-card]")).toHaveLength(1);
   });
 });

@@ -2,7 +2,7 @@
  * Canonical JW Stone public inventory.
  *
  * Profile discovery, share metadata, and the marketplace catalog all read this
- * reconciled projection (148 selections / full source photo set). Do not ship a
+ * reconciled projection (158 selections / full source photo set). Do not ship a
  * divergent “profile-only” list alongside marketplace.
  */
 import generatedInventory from "./jwStoneInventory.generated.json";

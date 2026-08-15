@@ -15,8 +15,8 @@ describe("JW Stone editorial color directions", () => {
     ).sort();
     const classifiedSlugs = Object.values(JW_STONE_SLUGS_BY_COLOR_DIRECTION).flat().sort();
 
-    expect(classifiedSlugs).toHaveLength(148);
-    expect(new Set(classifiedSlugs).size).toBe(148);
+    expect(classifiedSlugs).toHaveLength(158);
+    expect(new Set(classifiedSlugs).size).toBe(158);
     expect(classifiedSlugs).toEqual(canonicalSlugs);
     expect(Object.keys(JW_STONE_COLOR_BY_SLUG).sort()).toEqual(canonicalSlugs);
   });
@@ -27,10 +27,10 @@ describe("JW Stone editorial color directions", () => {
         Object.entries(JW_STONE_SLUGS_BY_COLOR_DIRECTION).map(([id, slugs]) => [id, slugs.length])
       )
     ).toEqual({
-      "soft-light": 49,
+      "soft-light": 56,
       "warm-earthy": 27,
-      "cool-serene": 48,
-      "deep-dramatic": 10,
+      "cool-serene": 50,
+      "deep-dramatic": 11,
       "bold-expressive": 14,
     });
     expect(COLOR_DIRECTIONS.map(({ id, label }) => ({ id, label }))).toEqual([

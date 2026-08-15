@@ -41,15 +41,15 @@ export function JwStoneStorySection() {
           </p>
 
           <ul
-            className="scrollbar-hide mt-8 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mt-10 sm:gap-4 [&::-webkit-scrollbar]:hidden"
+            className="scrollbar-hide mt-8 flex max-w-full cursor-grab gap-3 overflow-x-auto overscroll-x-contain pb-2 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing sm:mt-10 sm:gap-4 [&::-webkit-scrollbar]:hidden"
             aria-label="JW Stone quarry and finished-space inspiration"
           >
             {story.images.map((image) => (
               <li
                 key={image.src}
-                className="w-[85vw] max-w-[36rem] flex-none snap-center sm:w-[70vw] md:w-[48vw] lg:w-[38vw]"
+                className="w-[82vw] max-w-[36rem] flex-none sm:w-[68vw] md:w-[47vw] lg:w-[37vw]"
               >
-                <figure className="overflow-hidden bg-black">
+                <figure className="overflow-hidden border border-white/15 bg-black shadow-[0_22px_56px_rgba(0,0,0,0.28)]">
                   <span className="relative block aspect-[4/3] sm:aspect-[16/11]">
                     <img
                       src={image.src}
@@ -59,7 +59,7 @@ export function JwStoneStorySection() {
                       className="absolute inset-0 h-full w-full object-cover"
                     />
                   </span>
-                  <figcaption className="border-t border-white/10 px-4 py-3 text-sm font-semibold text-white">
+                  <figcaption className="border-t border-white/10 px-4 py-3.5 text-[11px] font-bold uppercase tracking-[0.16em] text-white/90">
                     {image.label}
                   </figcaption>
                 </figure>
