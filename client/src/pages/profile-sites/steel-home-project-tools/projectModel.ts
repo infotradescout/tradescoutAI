@@ -1465,21 +1465,14 @@ export function getBuildingOpeningFit(designInput: SteelHomeBuildingDesign): Bui
   };
 }
 
-const BUILDING_SHELL_PLANNING_ALLOWANCES: Record<BuildingUse, PlanningRange> = {
-  "home-shell": { lower: 30, high: 44 },
-  "home-and-shop": { lower: 27, high: 40 },
-  "garage-or-workshop": { lower: 23, high: 34 },
-  other: { lower: 25, high: 38 },
-};
-
 const BUILDING_PLANNING_DISCLAIMER =
-  "Early materials estimate only. The base metal roof is included with the building shell. Site work, foundation, engineering, taxes, and installation are not included. Final specifications, location requirements, and delivery can change the written quote.";
+  "Quote required. Product availability, engineering, freight, foundation, installation, taxes, and final specifications require professional review.";
 
 const CABINET_PLANNING_DISCLAIMER =
-  "Early cabinet-materials estimate only. This estimated range includes cabinets, hardware, trim, and delivery. Countertops, field measurement, taxes, and installation are not included. Exact products and options are confirmed in the written quote.";
+  "Quote required. Field measurements, exact products, hardware, trim, delivery, taxes, and installation require professional review.";
 
 const PROJECT_ESTIMATE_DISCLAIMER =
-  "Estimated ranges cover only the listed building and cabinet items. Stone material, taxes, site work, foundation, and installation are not included in the estimated total. Stone fabrication is always a separate service.";
+  "The planners do not publish prices. Every selected product or service requires availability review and a written quote. Stone purchasing and countertop fabrication remain separate requests.";
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -1487,47 +1480,12 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-function roundPlanningAmount(value: number): number {
-  return Math.max(0, Math.round(value / 50) * 50);
-}
-
-function allowanceRange(quantity: number, lowerRate: number, highRate: number): PlanningRange {
-  return {
-    lower: roundPlanningAmount(quantity * lowerRate),
-    high: roundPlanningAmount(quantity * highRate),
-  };
-}
-
-function addEstimateLine(
-  lines: PlanningEstimateLine[],
-  input: Omit<PlanningEstimateLine, "range"> & { lowerRate: number; highRate: number }
-): void {
-  if (input.quantity <= 0 || input.highRate <= 0) return;
-  lines.push({
-    key: input.key,
-    label: input.label,
-    quantity: Math.round(input.quantity * 10) / 10,
-    unit: input.unit,
-    range: allowanceRange(input.quantity, input.lowerRate, input.highRate),
-    detail: input.detail,
-  });
-}
-
-function sumEstimateLines(lines: readonly PlanningEstimateLine[]): PlanningRange {
-  return lines.reduce(
-    (total, line) => ({
-      lower: total.lower + line.range.lower,
-      high: total.high + line.range.high,
-    }),
-    { lower: 0, high: 0 }
-  );
-}
-
 export function formatPlanningRange(range: PlanningRange): string {
   const first = Number.isFinite(range.lower) ? Math.max(0, Math.round(range.lower)) : 0;
   const second = Number.isFinite(range.high) ? Math.max(0, Math.round(range.high)) : first;
   const lower = Math.min(first, second);
   const high = Math.max(first, second);
+  if (high <= 0) return "Quote required";
   return lower === high
     ? CURRENCY_FORMATTER.format(lower)
     : `${CURRENCY_FORMATTER.format(lower)}–${CURRENCY_FORMATTER.format(high)}`;
@@ -1536,223 +1494,27 @@ export function formatPlanningRange(range: PlanningRange): string {
 export function calculateBuildingPlanningEstimate(
   designInput: SteelHomeBuildingDesign
 ): SteelHomePlanningEstimate {
-  const design = reconcileSteelHomeProjectDraft({ building: designInput }).building;
-  const lines: PlanningEstimateLine[] = [];
-  const footprintSquareFeet = design.widthFt * design.lengthFt;
-  const shellAllowance = BUILDING_SHELL_PLANNING_ALLOWANCES[design.use];
-
-  addEstimateLine(lines, {
-    key: "building-shell-with-roof",
-    label: "Metal building shell with base roof",
-    quantity: footprintSquareFeet,
-    unit: "sq. ft.",
-    lowerRate: shellAllowance.lower,
-    highRate: shellAllowance.high,
-    detail:
-      "Early estimated price for the selected use. The base metal roof is included once in this line.",
-  });
-
-  const extraWallSquareFeet =
-    Math.max(0, design.eaveHeightFt - 12) * (design.widthFt + design.lengthFt) * 2;
-  addEstimateLine(lines, {
-    key: "eave-height",
-    label: "Additional eave height",
-    quantity: extraWallSquareFeet,
-    unit: "sq. ft. of added wall",
-    lowerRate: 4,
-    highRate: 7,
-    detail: "Estimated price for wall area above the 12-foot starting height.",
-  });
-
-  const roofStyleRate =
-    design.roofStyle === "monitor" ? 4 : design.roofStyle === "single-slope" ? 1 : 0;
-  const pitch = Number.parseInt(design.roofPitch.split(":")[0] || "0", 10);
-  const pitchSteps = Math.max(0, pitch - 3);
-  const roofOptionLowerRate = roofStyleRate + pitchSteps * 0.65;
-  const roofOptionHighRate = roofStyleRate * 1.75 + pitchSteps * 1.2;
-  addEstimateLine(lines, {
-    key: "roof-options",
-    label: "Selected roof design",
-    quantity: footprintSquareFeet,
-    unit: "sq. ft.",
-    lowerRate: roofOptionLowerRate,
-    highRate: roofOptionHighRate,
-    detail:
-      "Estimated added price for the selected roof style or pitch beyond the base roof; this is not a second roof charge.",
-  });
-
-  addEstimateLine(lines, {
-    key: "garage-doors",
-    label: "Framed garage-door openings",
-    quantity: design.garageDoors,
-    unit: design.garageDoors === 1 ? "opening" : "openings",
-    lowerRate: 1850,
-    highRate: 3400,
-    detail: "Early estimated price for the selected number of framed garage-door openings.",
-  });
-  addEstimateLine(lines, {
-    key: "walk-doors",
-    label: "Exterior entry doors",
-    quantity: design.walkDoors,
-    unit: design.walkDoors === 1 ? "door" : "doors",
-    lowerRate: 450,
-    highRate: 850,
-    detail: "Early estimated price for the selected exterior entry doors.",
-  });
-  addEstimateLine(lines, {
-    key: "windows",
-    label: "Windows",
-    quantity: design.windows,
-    unit: design.windows === 1 ? "window" : "windows",
-    lowerRate: 425,
-    highRate: 850,
-    detail: "Early estimated price for the selected framed windows.",
-  });
-
-  const porchSquareFeet =
-    design.porch === "front"
-      ? design.widthFt * design.porchDepthFt
-      : design.porch === "side"
-        ? design.lengthFt * design.porchDepthFt
-        : design.porch === "wrap"
-          ? Math.max(
-              0,
-              (design.widthFt + design.lengthFt) * design.porchDepthFt -
-                design.porchDepthFt * design.porchDepthFt
-            )
-          : 0;
-  addEstimateLine(lines, {
-    key: "porch",
-    label: "Selected porch",
-    quantity: porchSquareFeet,
-    unit: "sq. ft.",
-    lowerRate: 18,
-    highRate: 30,
-    detail: "Early estimated price based on the selected porch position and depth.",
-  });
+  reconcileSteelHomeProjectDraft({ building: designInput });
 
   return {
     key: "building",
-    label: "Metal building package early estimate",
-    range: sumEstimateLines(lines),
-    breakdown: lines,
+    label: "Metal building planning scope — quote required",
+    range: { lower: 0, high: 0 },
+    breakdown: [],
     disclaimer: BUILDING_PLANNING_DISCLAIMER,
   };
-}
-
-function cabinetWallRunInches(design: SteelHomeCabinetDesign): number {
-  if (design.layout === "one-wall") return design.primaryWallIn;
-  if (design.layout === "u-shape") return design.primaryWallIn + design.returnWallIn * 2;
-  return design.primaryWallIn + design.returnWallIn;
 }
 
 export function calculateCabinetPlanningEstimate(
   designInput: SteelHomeCabinetDesign
 ): SteelHomePlanningEstimate {
-  const design = reconcileSteelHomeProjectDraft({ cabinets: designInput }).cabinets;
-  const lines: PlanningEstimateLine[] = [];
-  const wallRunInches = cabinetWallRunInches(design);
-  const dedicatedModuleInches =
-    design.refrigeratorWidthIn +
-    design.rangeWidthIn +
-    design.sinkBaseWidthIn +
-    design.pantryCount * 24 +
-    design.drawerBaseCount * 24;
-  const standardRunFeet = Math.max(0, wallRunInches - dedicatedModuleInches) / 12;
-  const standardRunAllowance = {
-    30: { lower: 375, high: 575 },
-    36: { lower: 425, high: 675 },
-    42: { lower: 475, high: 775 },
-  }[design.upperHeightIn];
-
-  addEstimateLine(lines, {
-    key: "standard-cabinet-run",
-    label: "Standard base and wall cabinet run",
-    quantity: standardRunFeet,
-    unit: "linear ft.",
-    lowerRate: standardRunAllowance.lower,
-    highRate: standardRunAllowance.high,
-    detail: `Estimated linear price with ${design.upperHeightIn}-inch upper cabinets after selected openings and dedicated modules.`,
-  });
-  addEstimateLine(lines, {
-    key: "sink-base",
-    label: "Sink-base module",
-    quantity: 1,
-    unit: "module",
-    lowerRate: 650,
-    highRate: 1050,
-    detail: `Estimated price for the selected ${design.sinkBaseWidthIn}-inch sink-base cabinet.`,
-  });
-  addEstimateLine(lines, {
-    key: "pantry-modules",
-    label: "Tall pantry modules",
-    quantity: design.pantryCount,
-    unit: design.pantryCount === 1 ? "module" : "modules",
-    lowerRate: 950,
-    highRate: 1650,
-    detail: "Estimated price for the selected tall pantry cabinets.",
-  });
-  addEstimateLine(lines, {
-    key: "drawer-base-modules",
-    label: "Drawer-base modules",
-    quantity: design.drawerBaseCount,
-    unit: design.drawerBaseCount === 1 ? "module" : "modules",
-    lowerRate: 800,
-    highRate: 1350,
-    detail: "Estimated price for the selected drawer-base cabinets.",
-  });
-
-  const islandRunFeet = design.island ? design.islandLengthIn / 12 : 0;
-  addEstimateLine(lines, {
-    key: "island-cabinetry",
-    label: "Island cabinetry",
-    quantity: islandRunFeet,
-    unit: "linear ft.",
-    lowerRate: 525,
-    highRate: 850,
-    detail:
-      "Estimated linear price for island cabinet boxes, finished ends, and basic support panels.",
-  });
-
-  const estimatedModuleCount =
-    Math.ceil(standardRunFeet / 2) +
-    1 +
-    design.pantryCount +
-    design.drawerBaseCount +
-    Math.ceil(islandRunFeet / 2);
-  addEstimateLine(lines, {
-    key: "cabinet-hardware",
-    label: "Cabinet hardware",
-    quantity: estimatedModuleCount,
-    unit: estimatedModuleCount === 1 ? "cabinet section" : "cabinet sections",
-    lowerRate: 40,
-    highRate: 95,
-    detail: `Estimated price for ${design.hardware.toLowerCase()} hardware based on the selected cabinet sections.`,
-  });
-  addEstimateLine(lines, {
-    key: "fillers-and-trim",
-    label: "Fillers, panels, and trim",
-    quantity: wallRunInches / 12,
-    unit: "linear ft. of wall run",
-    lowerRate: 65,
-    highRate: 130,
-    detail: "Estimated linear price for ordinary fillers, finished panels, and trim pieces.",
-  });
-  addEstimateLine(lines, {
-    key: "cabinet-delivery",
-    label: "Cabinet delivery",
-    quantity: 1,
-    unit: "project",
-    lowerRate: 600,
-    highRate: 1400,
-    detail: "Early delivery estimate; the exact jobsite and access must be confirmed.",
-  });
+  reconcileSteelHomeProjectDraft({ cabinets: designInput });
 
   return {
     key: "cabinets",
-    label: "Cabinet early estimate",
-    range: sumEstimateLines(lines),
-    breakdown: lines,
+    label: "Cabinet planning scope — quote required",
+    range: { lower: 0, high: 0 },
+    breakdown: [],
     disclaimer: CABINET_PLANNING_DISCLAIMER,
   };
 }
@@ -1761,25 +1523,17 @@ export function getSteelHomeProjectEstimateSummary(
   draftInput: SteelHomeProjectDraft
 ): SteelHomeProjectEstimateSummary {
   const draft = reconcileSteelHomeProjectDraft(draftInput);
-  const planningEstimates: SteelHomePlanningEstimate[] = [];
+  const quoteRequired: string[] = [];
   if (draft.building.included) {
-    planningEstimates.push(calculateBuildingPlanningEstimate(draft.building));
+    quoteRequired.push(
+      "Metal building: catalog availability, engineering, freight, foundation coordination, delivery, and installation."
+    );
   }
   if (draft.cabinets.included) {
-    planningEstimates.push(calculateCabinetPlanningEstimate(draft.cabinets));
+    quoteRequired.push(
+      "Cabinets: field measurements, exact products, hardware, trim, delivery, and installation."
+    );
   }
-
-  const planningRange = planningEstimates.length
-    ? planningEstimates.reduce(
-        (total, estimate) => ({
-          lower: total.lower + estimate.range.lower,
-          high: total.high + estimate.range.high,
-        }),
-        { lower: 0, high: 0 }
-      )
-    : null;
-
-  const quoteRequired: string[] = [];
   if (draft.countertops.included) {
     const stone = getCatalogItemById(draft.countertops.stoneId);
     quoteRequired.push(
@@ -1787,8 +1541,8 @@ export function getSteelHomeProjectEstimateSummary(
     );
   }
   return {
-    planningRange,
-    planningEstimates,
+    planningRange: null,
+    planningEstimates: [],
     quoteRequired,
     disclaimer: PROJECT_ESTIMATE_DISCLAIMER,
   };

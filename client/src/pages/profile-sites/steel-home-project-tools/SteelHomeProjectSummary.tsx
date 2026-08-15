@@ -1,6 +1,5 @@
-import { ArrowRight, CheckCircle2, CircleDollarSign, Save } from "lucide-react";
+import { ArrowRight, CheckCircle2, FileSearch, Save } from "lucide-react";
 import {
-  formatPlanningRange,
   getSteelHomeProjectEstimateSummary,
   getSteelHomeProjectReadiness,
   type SteelHomeProjectDraft,
@@ -59,9 +58,7 @@ export default function SteelHomeProjectSummary({
     draft.countertops.included ? "Countertops" : "",
     draft.cabinets.included ? "Cabinets" : "",
   ].filter(Boolean);
-  const estimateLabel = estimate.planningRange
-    ? formatPlanningRange(estimate.planningRange)
-    : "No package estimate yet";
+  const estimateLabel = included.length ? "Quote required" : "No package selected";
   const progressWidthClass = ["w-0", "w-1/3", "w-2/3", "w-full"][complete];
 
   if (layout === "mobile") {
@@ -152,7 +149,7 @@ export default function SteelHomeProjectSummary({
 
       <div className="mt-6 rounded-2xl bg-[#18312f] p-5 text-white">
         <div className="flex items-center gap-2 text-[0.68rem] font-black uppercase tracking-[0.14em] text-[#f0b392]">
-          <CircleDollarSign className="h-4 w-4" aria-hidden="true" />
+          <FileSearch className="h-4 w-4" aria-hidden="true" />
           Estimated package total
         </div>
         <p className="mt-3 font-editorial text-3xl font-semibold tracking-[-0.03em]">
