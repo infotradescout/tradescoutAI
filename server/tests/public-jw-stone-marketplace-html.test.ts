@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  buildJwStoneMarketplaceLlmsText,
   buildPublicJwStoneMarketplaceHtml,
   JW_STONE_MARKETPLACE_CANONICAL_URL,
 } from "../publicJwStoneMarketplaceHtml";
@@ -59,6 +60,25 @@ describe("JW Stone marketplace public HTML", () => {
         "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.",
       url: "https://www.thetradescout.com/jw-stone",
       image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
+      mainEntity: {
+        "@type": "Organization",
+        name: "JW Stone Logistics",
+        description:
+          "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery. Based in Pensacola, FL, JW Stone works with fabricators, builders, architects, designers and homeowners across the Gulf South and beyond.",
+        url: "https://www.thetradescout.com/jw-stone",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "2103 W Herman Ave",
+          addressLocality: "Pensacola",
+          addressRegion: "FL",
+          postalCode: "32505",
+          addressCountry: "US",
+        },
+        sameAs: [
+          "https://www.instagram.com/jwstonellc/",
+          "https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/",
+        ],
+      },
     });
 
     const serialized = JSON.stringify(jsonLd);
@@ -66,17 +86,40 @@ describe("JW Stone marketplace public HTML", () => {
     expect(serialized).not.toMatch(/Trending Selection|Unnamed slab|First Cut|countryOfOrigin/i);
   });
 
-  it("renders a safe crawler summary without exposing invented contact claims", () => {
+  it("renders the canonical public company identity without exposing gated contact details", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
+    expect(html).toContain('data-seo-jw-stone-company="true"');
     expect(html).toContain("Current Inventory");
     expect(html).toContain("Filter by aesthetic or color");
     expect(html).toContain("Saving never starts a request");
+    expect(html).toContain("About JW Stone");
+    expect(html).toContain(
+      "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone"
+    );
+    expect(html).toContain("2103 W Herman Ave, Pensacola, FL 32505");
+    expect(html).toContain('href="https://www.instagram.com/jwstonellc/"');
+    expect(html).toContain(
+      'href="https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"'
+    );
     expect(html).not.toContain("New Arrivals");
     expect(html).not.toContain("Learn about stone");
     expect(html).not.toContain("Call for availability");
+    expect(html).not.toContain("(850) 543-0748");
+    expect(html).not.toContain("wagner@jwstonellc.com");
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);
+  });
+
+  it("keeps About, address, and official social links in the LLM discovery file", () => {
+    const text = buildJwStoneMarketplaceLlmsText("https://jwstonelogistics.com");
+
+    expect(text).toContain("Founded in 2017 by Jared and Wagner");
+    expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
+    expect(text).toContain("Instagram: https://www.instagram.com/jwstonellc/");
+    expect(text).toContain(
+      "Facebook: https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"
+    );
   });
 
   it("publishes stone OG metadata for shareable marketplace stone URLs", () => {

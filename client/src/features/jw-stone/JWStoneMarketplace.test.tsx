@@ -71,7 +71,7 @@ describe("JW Stone marketplace luxury layout", () => {
     vi.unstubAllGlobals();
   });
 
-  it("locks header, hero, palette, inventory, and bottom Connect without header Connect", () => {
+  it("locks the marketplace layout and keeps JW Stone company identity public", () => {
     const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
     expect(container.querySelector('a[aria-label="JW Stone marketplace home"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
@@ -95,6 +95,26 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(footer?.querySelector('a[href="/u/jw-stone"]')).toBeNull();
     expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
+    const companyIdentity = container.querySelector<HTMLElement>(
+      '[data-testid="jw-company-identity"]'
+    );
+    expect(companyIdentity).not.toBeNull();
+    expect(companyIdentity?.textContent).toContain("About JW Stone");
+    expect(companyIdentity?.textContent).toContain(
+      "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery."
+    );
+    expect(companyIdentity?.textContent).toContain("2103 W Herman Ave");
+    expect(companyIdentity?.textContent).toContain("Pensacola, FL 32505");
+    expect(
+      companyIdentity?.querySelector(
+        'a[href="https://www.instagram.com/jwstonellc/"][target="_blank"]'
+      )
+    ).not.toBeNull();
+    expect(
+      companyIdentity?.querySelector(
+        'a[href="https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"][target="_blank"]'
+      )
+    ).not.toBeNull();
     expect(container.textContent).not.toContain("Why JW Stone");
     expect(container.textContent).not.toContain("How do I confirm availability or pricing?");
     expect(container.querySelector('[data-testid="jw-marketplace-trust"]')).toBeNull();
@@ -295,7 +315,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
   });
 
-  it("opens Connect from the menu without section jump links", () => {
+  it("opens company navigation and Connect from the menu", () => {
     const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
     expect(header).not.toBeNull();
     if (!header) throw new Error("Expected header");
@@ -312,6 +332,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(panel.querySelector('a[href="#new-arrivals"]')).toBeNull();
     expect(panel.querySelector('a[href="#jw-story"]')).toBeNull();
     expect(panel.querySelector('a[href="/u/jw-stone"]')).toBeNull();
+    expect(panel.querySelector('a[href="#about-jw-stone"]')?.textContent).toContain("About");
+    expect(panel.querySelector('a[href="#jw-stone-location"]')?.textContent).toContain("Visit");
+    expect(panel.querySelector('a[href="#jw-stone-socials"]')?.textContent).toContain("Socials");
     expect(buttonContaining(panel, "Connect")).not.toBeNull();
     expect(header.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
 

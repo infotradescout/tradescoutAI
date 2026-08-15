@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useState } from "react";
+import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
@@ -8,6 +9,7 @@ import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
 import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { FirstCutSection } from "./FirstCutSection";
+import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
 import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
@@ -170,6 +172,21 @@ export default function JWStoneMarketplace() {
     description: JW_STONE_DESCRIPTION,
     url: canonicalUrl,
     image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
+    mainEntity: {
+      "@type": "Organization",
+      name: JW_STONE_PUBLIC_IDENTITY.brandName,
+      description: JW_STONE_PUBLIC_IDENTITY.about,
+      url: canonicalUrl,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
+        addressLocality: JW_STONE_PUBLIC_IDENTITY.address.addressLocality,
+        addressRegion: JW_STONE_PUBLIC_IDENTITY.address.addressRegion,
+        postalCode: JW_STONE_PUBLIC_IDENTITY.address.postalCode,
+        addressCountry: JW_STONE_PUBLIC_IDENTITY.address.addressCountry,
+      },
+      sameAs: JW_STONE_PUBLIC_IDENTITY.socials.map((social) => social.href),
+    },
   };
 
   return (
@@ -234,6 +251,7 @@ export default function JWStoneMarketplace() {
       />
 
       <JwStoneStorySection />
+      <JwStoneCompanySection />
 
       <MarketplaceFooter />
 
