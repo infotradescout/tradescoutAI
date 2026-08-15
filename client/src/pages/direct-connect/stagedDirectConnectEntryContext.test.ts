@@ -5,6 +5,7 @@ import {
   readStagedDirectConnectEntryContext,
   resolveDirectConnectEntryContext,
   stageDirectConnectEntryContext,
+  tryStageDirectConnectEntryContext,
 } from "./stagedDirectConnectEntryContext";
 import type { DirectConnectEntryContext } from "./directConnectEntryContext";
 
@@ -86,6 +87,25 @@ describe("stagedDirectConnectEntryContext", () => {
     expect(crossOriginPath).toBe(fallbackUrl.toString());
     expect(crossOriginPath).not.toContain("Must");
     expect(window.sessionStorage.length).toBe(0);
+  });
+
+  it("reports staging failure so planner actions can stop before losing the summary", () => {
+    const sameOrigin = tryStageDirectConnectEntryContext(
+      { title: "Measured planner" },
+      "/direct-connect?source=planner"
+    );
+    expect(sameOrigin).toMatchObject({ staged: true });
+    if (sameOrigin.staged) expect(sameOrigin.href).toContain("staged=");
+
+    const crossOrigin = tryStageDirectConnectEntryContext(
+      { title: "Measured planner" },
+      "https://www.thetradescout.com/direct-connect?source=planner"
+    );
+    expect(crossOrigin).toEqual({
+      staged: false,
+      fallbackHref: "https://www.thetradescout.com/direct-connect?source=planner",
+      reason: "cross-origin",
+    });
   });
 
   it("rejects changed tokens, corrupt records, and token-record mismatches", () => {

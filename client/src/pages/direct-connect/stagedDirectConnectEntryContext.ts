@@ -218,24 +218,48 @@ export function getDirectConnectEntryFallbackHref(destinationHref = DIRECT_CONNE
   return resolveDirectConnectDestination(destinationHref).fallbackHref;
 }
 
+export type StageDirectConnectEntryContextResult =
+  | { staged: true; href: string }
+  | {
+      staged: false;
+      fallbackHref: string;
+      reason:
+        | "cross-origin"
+        | "invalid-context"
+        | "storage-unavailable"
+        | "token-unavailable"
+        | "storage-write-failed";
+    };
+
 /**
- * For a same-origin destination, stores sanitized entry context in this tab
- * only and returns a relative URL containing safe routing fields and a random
- * lookup token. For a different origin, it does not touch inaccessible session
- * storage and returns an absolute Direct Connect link containing only safe
- * routing fields. Private project details are never copied into either URL.
+ * Attempts the private, same-tab handoff and reports whether it succeeded.
+ * Callers that promise to attach a planner must stop on `staged: false`.
  */
-export function stageDirectConnectEntryContext(
+export function tryStageDirectConnectEntryContext(
   input: DirectConnectEntryContext,
   destinationHref = DIRECT_CONNECT_PATH
-): string {
+): StageDirectConnectEntryContextResult {
   const destination = resolveDirectConnectDestination(destinationHref);
-  if (!destination.canUseCurrentSessionStorage) return destination.fallbackHref;
+  if (!destination.canUseCurrentSessionStorage) {
+    return { staged: false, fallbackHref: destination.fallbackHref, reason: "cross-origin" };
+  }
 
   const context = sanitizeDirectConnectEntryContext(input);
+  if (!context) {
+    return { staged: false, fallbackHref: destination.fallbackHref, reason: "invalid-context" };
+  }
   const storage = getSessionStorage();
+  if (!storage) {
+    return {
+      staged: false,
+      fallbackHref: destination.fallbackHref,
+      reason: "storage-unavailable",
+    };
+  }
   const token = createOpaqueToken();
-  if (!context || !storage || !token) return destination.fallbackHref;
+  if (!token) {
+    return { staged: false, fallbackHref: destination.fallbackHref, reason: "token-unavailable" };
+  }
 
   const createdAt = Date.now();
   const envelope: StagedContextEnvelope = {
@@ -249,11 +273,30 @@ export function stageDirectConnectEntryContext(
   try {
     storage.setItem(`${STAGED_CONTEXT_STORAGE_PREFIX}${token}`, JSON.stringify(envelope));
   } catch {
-    return destination.fallbackHref;
+    return {
+      staged: false,
+      fallbackHref: destination.fallbackHref,
+      reason: "storage-write-failed",
+    };
   }
 
   const separator = destination.fallbackHref.includes("?") ? "&" : "?";
-  return `${destination.fallbackHref}${separator}staged=${token}`;
+  return { staged: true, href: `${destination.fallbackHref}${separator}staged=${token}` };
+}
+
+/**
+ * For a same-origin destination, stores sanitized entry context in this tab
+ * only and returns a relative URL containing safe routing fields and a random
+ * lookup token. For a different origin, it does not touch inaccessible session
+ * storage and returns an absolute Direct Connect link containing only safe
+ * routing fields. Private project details are never copied into either URL.
+ */
+export function stageDirectConnectEntryContext(
+  input: DirectConnectEntryContext,
+  destinationHref = DIRECT_CONNECT_PATH
+): string {
+  const result = tryStageDirectConnectEntryContext(input, destinationHref);
+  return result.staged ? result.href : result.fallbackHref;
 }
 
 /** Reads a valid staged context without copying any context fields into the URL. */
