@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
-import { Check, CircleDollarSign, MapPin, Ruler, ShieldCheck, X } from "lucide-react";
+import { Check, FileSearch, MapPin, Ruler, ShieldCheck, X } from "lucide-react";
 import { getCatalogItemById } from "@/features/jw-stone/catalog";
 import {
   parseDirectConnectEntryContext,
@@ -13,10 +13,7 @@ import {
   buildCountertopFabricatorRequestHref,
   buildCountertopStoneRequestHref,
   buildSteelHomeProjectRequestHref,
-  calculateBuildingPlanningEstimate,
-  calculateCabinetPlanningEstimate,
   calculateCountertopSquareFeet,
-  formatPlanningRange,
   getCountertopPlacementProblems,
   reconcileSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
@@ -71,17 +68,17 @@ const PLANNER_COPY: Record<
 > = {
   building: {
     label: "Metal Building",
-    requestTitle: "TradeScout Metal Building Builder Request",
+    requestTitle: "TradeScout Metal Building Planner Request",
     color: "bg-[#18312f]",
   },
   countertops: {
     label: "Countertop",
-    requestTitle: "TradeScout Countertop Builder Request",
+    requestTitle: "TradeScout Countertop Planner Request",
     color: "bg-[#17201f]",
   },
   cabinets: {
     label: "Cabinet",
-    requestTitle: "TradeScout Cabinet Builder Request",
+    requestTitle: "TradeScout Cabinet Planner Request",
     color: "bg-[#654936]",
   },
 };
@@ -107,21 +104,19 @@ export function buildScopedSteelHomePlannerDraft(
 
 function plannerResult(planner: SteelHomePlanner, draft: SteelHomeProjectDraft) {
   if (planner === "building") {
-    const estimate = calculateBuildingPlanningEstimate(draft.building);
     return {
-      eyebrow: "Early metal building estimate",
-      value: formatPlanningRange(estimate.range),
-      detail: `${draft.building.widthFt}' × ${draft.building.lengthFt}' metal building with roof`,
-      icon: CircleDollarSign,
+      eyebrow: "Metal building planning scope",
+      value: "Quote required",
+      detail: `${draft.building.widthFt}' × ${draft.building.lengthFt}' planning footprint · Engineering and exact availability require review`,
+      icon: FileSearch,
     };
   }
   if (planner === "cabinets") {
-    const estimate = calculateCabinetPlanningEstimate(draft.cabinets);
     return {
-      eyebrow: "Early cabinet estimate",
-      value: formatPlanningRange(estimate.range),
-      detail: `${draft.cabinets.room} · ${draft.cabinets.primaryWallIn}" main wall`,
-      icon: CircleDollarSign,
+      eyebrow: "Cabinet planning scope",
+      value: "Quote required",
+      detail: `${draft.cabinets.room} · Field measurements, catalog selection, and installation require review`,
+      icon: FileSearch,
     };
   }
 
@@ -191,8 +186,8 @@ export default function SteelHomePlannerRequest({
     );
     return {
       kind: "builder",
-      heading: `${copy.label} builder request`,
-      scope: `Only the choices saved in this ${copy.label.toLowerCase()} builder are included.`,
+      heading: `${copy.label} planner request`,
+      scope: `Only the choices saved in this ${copy.label.toLowerCase()} planner are included.`,
       label: "Continue to contact details",
       testId: "steel-home-planner-request-submit",
       destinationHref: requestHref,
@@ -202,7 +197,7 @@ export default function SteelHomePlannerRequest({
         title: copy.requestTitle,
         description: (parsed.description || "")
           .replace(/TradeScout Steel Home (?:Project|Planning) Request/, copy.requestTitle)
-          .replace(/Selected packages:|Selected planning tools:|Planner:/, "Builder:"),
+          .replace(/Selected packages:|Selected planning tools:|Builder:/, "Planner:"),
       },
     };
   }, [copy.label, copy.requestTitle, laborRequestHref, request, requestHref, scopedDraft]);
@@ -330,10 +325,10 @@ export default function SteelHomePlannerRequest({
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#a94f2e]" aria-hidden="true" />
               <div>
-                <h3 className="text-base font-black">Only this builder goes into the request.</h3>
+                <h3 className="text-base font-black">Only this planner goes into the request.</h3>
                 <p className="mt-1 text-sm leading-6 text-[#68736f]">
                   Your {copy.label.toLowerCase()} choices stay separate from anything saved in the
-                  other two builders.
+                  other two planners.
                 </p>
               </div>
             </div>
@@ -385,7 +380,7 @@ export default function SteelHomePlannerRequest({
               {!hasVisibleProjectRole
                 ? "Choose who is planning the request."
                 : fabricatorPlacementProblems.length
-                  ? "Return to the builder and place every opening before matching with a fabricator."
+                  ? "Return to the planner and place every opening before matching with a fabricator."
                   : !ready
                     ? "Add the jobsite city or ZIP, state, and county."
                     : saved

@@ -228,8 +228,8 @@ export default function SteelHomePackagesProfile({
 
   const resetActiveBuilder = useCallback(() => {
     if (!activePlanner || typeof window === "undefined") return;
-    const builder = STEEL_HOME_BUILDERS.find((item) => item.key === activePlanner);
-    if (!window.confirm(`Reset every choice in the ${builder?.label || "open"} builder?`)) return;
+    const planner = STEEL_HOME_BUILDERS.find((item) => item.key === activePlanner);
+    if (!window.confirm(`Reset every choice in the ${planner?.label || "open"} planner?`)) return;
     const empty = createEmptySteelHomeProjectDraft();
     setSaved(false);
     setRequestDetailsSaved(false);
@@ -271,7 +271,7 @@ export default function SteelHomePackagesProfile({
 
       {!storageReady ? (
         <div className="grid flex-1 place-items-center p-8 text-sm font-semibold text-[#68736f]">
-          Opening the builders…
+          Opening the planners…
         </div>
       ) : !activePlanner ? (
         <SteelHomeBuilderDirectory onOpen={openPlanner} />
@@ -280,7 +280,7 @@ export default function SteelHomePackagesProfile({
       {activePlanner && activeBuilder ? (
         <section
           className="flex min-h-0 flex-1 flex-col bg-[#f5f1e8]"
-          aria-labelledby="steel-home-active-builder-title"
+          aria-labelledby="steel-home-active-planner-title"
           data-testid="steel-home-builder-workbench"
           data-builder={activePlanner}
         >
@@ -302,17 +302,17 @@ export default function SteelHomePackagesProfile({
                   closePlanner();
                 }}
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#18312f]/15 bg-white transition hover:border-[#18312f]/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e]"
-                aria-label="Back to all builders"
+                aria-label="Back to all planners"
                 data-testid="steel-home-builder-close"
               >
                 <ArrowLeft className="h-5 w-5" aria-hidden="true" />
               </a>
               <div className="min-w-0">
                 <p className="hidden text-[0.62rem] font-black uppercase tracking-[0.16em] text-[#a94f2e] sm:block">
-                  Stand-alone builder
+                  Stand-alone planner
                 </p>
                 <h2
-                  id="steel-home-active-builder-title"
+                  id="steel-home-active-planner-title"
                   className="truncate text-base font-black sm:text-lg"
                 >
                   {activeBuilder.title}

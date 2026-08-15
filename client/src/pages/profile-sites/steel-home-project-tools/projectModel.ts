@@ -565,10 +565,9 @@ export function createEmptySteelHomeProjectDraft(): SteelHomeProjectDraft {
       island: false,
       islandLengthIn: 84,
       islandWidthIn: 42,
-      stoneId: "cristallo",
+      stoneId: "",
       textureImageIndex: 0,
-      texturePhotoKey:
-        buildStoneDesignerPhotoKey(getCatalogItemById("cristallo")?.images[0] || "") || "",
+      texturePhotoKey: "",
       textureOffsetX: 0,
       textureOffsetY: 0,
       textureScale: 1,

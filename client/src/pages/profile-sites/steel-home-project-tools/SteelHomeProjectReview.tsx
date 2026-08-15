@@ -2,7 +2,7 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
-  CircleDollarSign,
+  FileSearch,
   FileText,
   HardHat,
   Home,
@@ -37,7 +37,6 @@ import {
   buildSteelHomeProjectRequestHref,
   calculateCabinetPlannedWidth,
   calculateCountertopSquareFeet,
-  formatPlanningRange,
   formatSteelHomeProjectLocation,
   getSteelHomeProjectEstimateSummary,
   getSteelHomeProjectReadiness,
@@ -186,6 +185,15 @@ export default function SteelHomeProjectReview({
     buildSteelHomeLaborRequestHref(laborRequestHref, draft)
   );
   const total = getSteelHomeProjectEstimateSummary(draft);
+  const quoteRequired = [
+    ...(draft.building.included
+      ? ["Metal building: catalog availability, engineering, freight, and installation."]
+      : []),
+    ...(draft.cabinets.included
+      ? ["Cabinets: field measurements, final catalog selections, delivery, and installation."]
+      : []),
+    ...total.quoteRequired,
+  ];
   const selectedRole = PROJECT_ROLE_OPTIONS.find((option) => option.value === draft.projectRole);
   const contractingSetup = selectedRole?.label;
   const includedPackages = PACKAGE_CHOICES.filter((item) => draft[item.key].included).map(
@@ -288,37 +296,21 @@ export default function SteelHomeProjectReview({
           </SummaryCard>
 
           <SummaryCard
-            icon={CircleDollarSign}
-            title="Estimated package total"
+            icon={FileSearch}
+            title="Pricing status"
             testId="steel-home-project-estimate-summary"
           >
             <p className="font-editorial text-3xl font-semibold tracking-[-0.03em] text-[#18312f]">
-              {total.planningRange
-                ? formatPlanningRange(total.planningRange)
-                : "No priced packages selected"}
+              {includedPackages.length ? "Quote required" : "No package selected"}
             </p>
-            {total.planningEstimates.length ? (
-              <dl className="mt-4 space-y-2 border-t border-[#18312f]/10 pt-4">
-                {total.planningEstimates.map((item) => (
-                  <div key={item.key} className="flex items-center justify-between gap-4 text-xs">
-                    <dt className="text-[#5e6965]">
-                      {item.key === "building" ? "Building + roof" : "Cabinets"}
-                    </dt>
-                    <dd className="shrink-0 font-bold text-[#18312f]">
-                      {formatPlanningRange(item.range)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            ) : null}
             <p className="mt-3 text-xs leading-5 text-[#74807b]">
-              This total includes the building and cabinet estimates shown above. Countertops and
-              other selected items are listed under Quotes still needed.
+              This planner does not invent prices. A qualified seller or trade professional must
+              review the measured scope before providing availability and pricing.
             </p>
           </SummaryCard>
 
           <SummaryCard icon={FileText} title="Quotes still needed">
-            <SelectionList items={total.quoteRequired} emptyText="No additional quotes needed." />
+            <SelectionList items={quoteRequired} emptyText="No additional quotes needed." />
           </SummaryCard>
         </div>
 
