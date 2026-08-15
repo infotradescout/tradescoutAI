@@ -1,23 +1,23 @@
-# Decisions & Changes — JW Stone marketplace amendment 1.3.0
+# Decisions and Semantic Changes — Amendment 1.4.0
 
-## Owner override (2026-08-04)
+Authority: Thomas, product owner, approved the JW Stone spatial-studio target in the current workstream on 2026-08-15.
 
-Owner chat is product authority over stale SI locks for this recovery slice.
+## AMEND-3D-SPATIAL-STUDIO
 
-## Changes
+- ADDED: viewport-first 3D Kitchen, Bathroom, and Living Room scenes with orbit, zoom, reset, camera presets, and real-world scale.
+- ADDED: actual canonical JW images as adjustable surface textures with crop, offset, scale, and vein rotation.
+- ADDED: optional openings, seams, waterfalls, edge and surface applications; the default has no sink, cooktop, or other opening.
+- ADDED: local design save, bounded design-only share, accessible scene summary, and WebGL/texture recovery.
+- MODIFIED: the existing countertop planner becomes the studio orchestration surface while retaining measured layout and fabrication details.
+- MODIFIED: request context includes safe design and measurement facts and explicitly marks inventory for JW confirmation.
+- REMOVED: the flat form/diagram as the primary planning experience and any implication that catalog presence proves live availability.
+- RENAMED: the customer-facing concept is “Spatial Studio”; canonical route/module names may remain for compatibility.
+- UNCHANGED: the checked-in JW inventory is the only inventory authority; no public price; existing gated TradeScout request submission; separate marketplace/profile; no remote or release action without exact authority and proof.
 
-- ADDED: New Arrivals section restored from unnamed inventory photo rail (replaces Call-for-availability / Trending Selection theater).
-- ADDED: Separate Aesthetic and literal Color filters (`aesthetic` + `color` URL state).
-- ADDED: Real MarketplaceFooter; header section nav includes New Arrivals.
-- ADDED: Customer role field on materials request form (ExpressDirectConnectPanel).
-- REMOVED: Learn about stone section and related modules.
-- REMOVED: Yellow / amber eyebrow copy.
-- REMOVED: Customer-facing "Call for availability" marketplace copy.
-- REMOVED: Card doctrine fact grids (source counts / supplied views as customer UI).
-- MODIFIED: Dense photo-first stone cards with compact meta line.
-- VOID: path-guide theater; learning theater; CFA theater.
-- UNCHANGED: `/u/jw-stone` profile, deliberate Direct Connect, wishlist, galleries, no-price rule, First Cut honesty, JW lane isolation, no merge without GO.
+## Superseded behavior
 
-## Deferred
+JW-GUIDANCE, JW-LEARNING, customer-path theater, recommendation rails, yellow/amber eyebrows, Call-for-availability marketing, and doctrine fact grids remain void under the prior owner override. The prior marketplace build remains interrupted rather than being reinterpreted as complete.
 
-Actual First Cut stone assignments and verified country-of-origin values remain deferred until JW supplies source-authorized facts.
+## Reversible and deferred choices
+
+Procedural room geometry and the selected WebGL component library are reversible implementation choices. Canonical live availability, reservations, slab allocation, scheduling, quotes, pricing, server-side design persistence, automated inquiry routing, and manufacturing-grade cut sheets are deferred.

@@ -48,10 +48,10 @@ function mappedRequest() {
 
 describe("JW Stone public discovery coverage", () => {
   it("gives all reconciled stones and photos stable owner-domain URLs", () => {
-    expect(JW_STONE_CANONICAL_INVENTORY_SUMMARY.stoneCount).toBe(148);
-    expect(JW_STONE_CANONICAL_INVENTORY_SUMMARY.imageCount).toBe(434);
-    expect(normalizedItems).toHaveLength(148);
-    expect(normalizedItems.reduce((total, stone) => total + stone.images.length, 0)).toBe(434);
+    expect(JW_STONE_CANONICAL_INVENTORY_SUMMARY.stoneCount).toBe(158);
+    expect(JW_STONE_CANONICAL_INVENTORY_SUMMARY.imageCount).toBe(443);
+    expect(normalizedItems).toHaveLength(158);
+    expect(normalizedItems.reduce((total, stone) => total + stone.images.length, 0)).toBe(443);
 
     const anonymousItems = normalizedItems.filter((stone) => !stone.hasPublicName);
     expect(anonymousItems).toHaveLength(38);
@@ -156,7 +156,7 @@ describe("JW Stone public discovery coverage", () => {
       }
     }
 
-    expect(checkedPhotos).toBe(434);
+    expect(checkedPhotos).toBe(443);
   });
 
   it("auto-populates the seven real JW material pages and excludes the placeholder group", () => {
@@ -165,11 +165,11 @@ describe("JW Stone public discovery coverage", () => {
       categories.map(({ slug, sourceSlug, itemCount }) => ({ slug, sourceSlug, itemCount }))
     ).toEqual([
       { slug: "granite", sourceSlug: "granite", itemCount: 23 },
-      { slug: "marble", sourceSlug: "marble", itemCount: 23 },
-      { slug: "quartzite", sourceSlug: "quartzite", itemCount: 21 },
-      { slug: "engineered-quartz", sourceSlug: "quartz", itemCount: 6 },
+      { slug: "marble", sourceSlug: "marble", itemCount: 25 },
+      { slug: "quartzite", sourceSlug: "quartzite", itemCount: 23 },
+      { slug: "engineered-quartz", sourceSlug: "quartz", itemCount: 9 },
       { slug: "onyx", sourceSlug: "onyx", itemCount: 1 },
-      { slug: "soapstone", sourceSlug: "soapstone", itemCount: 1 },
+      { slug: "soapstone", sourceSlug: "soapstone", itemCount: 2 },
       { slug: "basalt", sourceSlug: "basalt", itemCount: 1 },
     ]);
     expect(categories.some((category) => category.sourceSlug === "unconfirmed")).toBe(false);

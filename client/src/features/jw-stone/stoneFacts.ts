@@ -9,7 +9,7 @@ export function confirmedFinishes(stone: JwStoneCatalogItem): readonly string[] 
   });
 }
 
-/** Source inventory slab count when evidenced — omit when unknown. */
+/** Historical supplied-source count when evidenced — never a live availability value. */
 export function confirmedSlabCount(stone: JwStoneCatalogItem): number | null {
   const counts = stone.sourceEvidence?.counts;
   if (!counts?.length) return null;
@@ -33,12 +33,12 @@ export function materialFinishLine(stone: JwStoneCatalogItem): string {
   return parts.join(" · ");
 }
 
-/** Card meta: availability + dimensions, only confirmed facts. */
+/** Card meta: supplied-source evidence + dimensions, without a live-stock claim. */
 export function availabilityDimensionsLine(stone: JwStoneCatalogItem): string {
   const parts: string[] = [];
   const count = confirmedSlabCount(stone);
   if (count != null) {
-    parts.push(`${count} ${count === 1 ? "slab" : "slabs"} available`);
+    parts.push(`${count} ${count === 1 ? "slab" : "slabs"} recorded in supplied source`);
   }
   const dims = formatDimensionsForDisplay(stone.slabDimensions);
   if (dims) parts.push(dims);
@@ -46,9 +46,5 @@ export function availabilityDimensionsLine(stone: JwStoneCatalogItem): string {
 }
 
 export function availabilityDetailLabel(stone: JwStoneCatalogItem): string | null {
-  const count = confirmedSlabCount(stone);
-  if (count != null) {
-    return count === 1 ? "1 slab available" : `${count} slabs available`;
-  }
-  return null;
+  return stone.anonymous ? null : "Confirm current availability with JW Stone";
 }

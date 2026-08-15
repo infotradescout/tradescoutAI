@@ -8,19 +8,21 @@
   },
   "release": {
     "id": "jw-stone-2-0-r1",
-    "version": "1.1.1",
-    "smallest_complete_loop": "A visitor opens the separate JW Stone route, immediately browses and opens real supplied catalog selections under the approved Current Inventory heading without treating them as live-stock claims, optionally uses independent refinements or one compact customer-path guide with sourced knowledge and evidence-linked real items, saves named stones without an account, returns to the saved selection, and deliberately starts an inquiry when ready."
+    "version": "1.4.0",
+    "smallest_complete_loop": "A visitor opens the existing JW Stone countertop planner, chooses an actual canonical JW catalog selection, explores it as an adjustable texture in a navigable and correctly scaled kitchen, bathroom, or living-room scene, optionally adds fabrication details, saves locally or creates a bounded design-only share, and deliberately hands the measured design to the existing TradeScout request flow with availability marked for JW confirmation."
   },
   "active_build": {
-    "id": "jw-stone-marketplace",
-    "contract": "builds/jw-stone-marketplace/contract.md",
-    "evidence": "builds/jw-stone-marketplace/evidence.md"
+    "id": "jw-stone-3d-visualizer",
+    "contract": "builds/jw-stone-3d-visualizer/contract.md",
+    "evidence": "builds/jw-stone-3d-visualizer/evidence.md"
   },
   "authority": {
     "governing_sources": [
       "The user's explicit corrections and execution brief in the current JW Stone 2.0 workstream",
       "Canonical repository inventory and profile behavior at base revision 999481b602c2f99499c69a0c90b3840d4af0a158",
-      "Existing TradeScout privacy, identity, routing, and Direct Connect contracts"
+      "Existing TradeScout privacy, identity, routing, and Direct Connect contracts",
+      "Thomas's approved JW Stone spatial-studio target in the current workstream on 2026-08-15",
+      "Canonical JW planner, catalog, slab-dimension, and request-handoff behavior at local base revision 31225f09b58531e83f7c787110aa964a99145fd7"
     ],
     "decision_owners": {
       "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
@@ -31,77 +33,87 @@
   "verdicts": {
     "intent": "locked",
     "definition": "locked",
-    "build": "blocked",
-    "as_built": "partial",
+    "build": "aligned",
+    "as_built": "not_started",
     "release": "blocked"
   },
   "material_blockers": [],
   "artifacts": [
     {
       "path": "intent-contract.md",
-      "version": "1.1.1",
-      "sha256": "36d31feee88f638725b9196f16a0358eb78ae81865d9b5c2697ca89b7616bc34"
+      "version": "1.4.0",
+      "sha256": "83a56795583b3d2255236dc0e7c6451280152486a78847f25578550b974ccaa5"
     },
     {
       "path": "scope-release.md",
-      "version": "1.1.1",
-      "sha256": "21d6dc2f7cd9cdb12f909ff828f115fd9f784d03cb0abd56c88edd058d6885c9"
+      "version": "1.4.0",
+      "sha256": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68"
     },
     {
       "path": "experience-surfaces.md",
-      "version": "1.1.1",
-      "sha256": "ec4551607e011e973f68cfb23e509d4533279ed4d71ab268ecf9013b6efc2f36"
+      "version": "1.4.0",
+      "sha256": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486"
     },
     {
       "path": "architecture-contract.md",
-      "version": "1.1.1",
-      "sha256": "859c464667d1284c8c3e86b7a8f66d46a567b328f7202caedfd04b63a9308788"
+      "version": "1.4.0",
+      "sha256": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f"
     },
     {
       "path": "data-contract.md",
-      "version": "1.1.1",
-      "sha256": "47aee8a67803c53ef8551f9737fec87925d505081f8ec8be0529fb62369864af"
+      "version": "1.4.0",
+      "sha256": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46"
     },
     {
       "path": "api-integrations.md",
-      "version": "1.1.1",
-      "sha256": "5191d85bc5bd35e3dabe7e653bd0c2b614f0e81f1ae89003efdb892de142c07b"
+      "version": "1.4.0",
+      "sha256": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b"
     },
     {
       "path": "security-operations.md",
-      "version": "1.1.1",
-      "sha256": "bb1478ee58eb6ebf6ef9b86f922ceefe7d7575e8ff1ec2262fd836ee85f89769"
+      "version": "1.4.0",
+      "sha256": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0"
     },
     {
       "path": "delivery-map.md",
-      "version": "1.1.1",
-      "sha256": "d33d1804235449a480353d251821350cb0e141e734d7c5dbfbe9d890ba4fa93c"
+      "version": "1.4.0",
+      "sha256": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f"
     },
     {
       "path": "traceability.md",
-      "version": "1.1.1",
-      "sha256": "1ca06d588a254b54f7789e1ecd6520019aa2f6625518ad067458d8231ea1d358"
+      "version": "1.4.0",
+      "sha256": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db"
     },
     {
       "path": "decisions-changes.md",
-      "version": "1.1.1",
-      "sha256": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090"
+      "version": "1.4.0",
+      "sha256": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6"
     },
     {
       "path": "builds/jw-stone-marketplace/contract.md",
       "version": "1.1.1",
-      "sha256": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd"
+      "sha256": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca"
     },
     {
       "path": "builds/jw-stone-marketplace/evidence.md",
       "version": "1.1.1",
-      "sha256": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
+      "sha256": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef"
+    },
+    {
+      "path": "builds/jw-stone-3d-visualizer/contract.md",
+      "version": "1.4.0",
+      "sha256": "3f5a1f3d8f4a992884b23ac01a392cf01195a823af4a1eea4cedecd8b21300a2"
+    },
+    {
+      "path": "builds/jw-stone-3d-visualizer/evidence.md",
+      "version": "1.4.0",
+      "sha256": "2f92d9bab3a4c5c1d6fea22a9b220e54edfeb3ed942bff565859211e9a229157"
     }
   ],
   "requirements": [
     {
       "id": "JW-ROUTE",
-      "scope": "mvp",
+      "scope": "out",
       "state": "usable",
       "depends_on": [],
       "owners": [
@@ -120,7 +132,7 @@
     },
     {
       "id": "JW-JOURNEY",
-      "scope": "mvp",
+      "scope": "out",
       "state": "specified",
       "depends_on": [
         "JW-ROUTE"
@@ -140,7 +152,7 @@
     },
     {
       "id": "JW-GUIDANCE",
-      "scope": "mvp",
+      "scope": "out",
       "state": "specified",
       "depends_on": [
         "JW-JOURNEY",
@@ -161,7 +173,7 @@
     },
     {
       "id": "JW-INVENTORY",
-      "scope": "mvp",
+      "scope": "out",
       "state": "verified",
       "depends_on": [],
       "owners": [
@@ -179,7 +191,7 @@
     },
     {
       "id": "JW-FIRST-CUT",
-      "scope": "mandatory",
+      "scope": "out",
       "state": "usable",
       "depends_on": [
         "JW-ROUTE"
@@ -200,7 +212,7 @@
     },
     {
       "id": "JW-ORIGIN",
-      "scope": "mandatory",
+      "scope": "out",
       "state": "usable",
       "depends_on": [
         "JW-INVENTORY"
@@ -221,7 +233,7 @@
     },
     {
       "id": "JW-WISHLIST",
-      "scope": "mvp",
+      "scope": "out",
       "state": "usable",
       "depends_on": [
         "JW-INVENTORY"
@@ -242,7 +254,7 @@
     },
     {
       "id": "JW-CARDS",
-      "scope": "mvp",
+      "scope": "out",
       "state": "specified",
       "depends_on": [
         "JW-GUIDANCE",
@@ -264,7 +276,7 @@
     },
     {
       "id": "JW-DIRECT-CONNECT",
-      "scope": "mvp",
+      "scope": "out",
       "state": "usable",
       "depends_on": [
         "JW-WISHLIST",
@@ -285,7 +297,7 @@
     },
     {
       "id": "JW-A11Y",
-      "scope": "mandatory",
+      "scope": "out",
       "state": "specified",
       "depends_on": [
         "JW-JOURNEY",
@@ -306,7 +318,7 @@
     },
     {
       "id": "JW-SEO",
-      "scope": "mandatory",
+      "scope": "out",
       "state": "specified",
       "depends_on": [
         "JW-ROUTE",
@@ -328,7 +340,7 @@
     },
     {
       "id": "JW-PROTECT",
-      "scope": "mandatory",
+      "scope": "out",
       "state": "specified",
       "depends_on": [
         "JW-ROUTE",
@@ -350,6 +362,179 @@
       "acceptance": "The final evidence names exact commands, counts, revision, screenshots, diff review, branch, commit, push state, and every genuine blocker.",
       "owner": "existing-jw-profile",
       "proof": "Exact-head release gate, git diff and route audits, browser evidence ledger, and draft PR state with no production release."
+    },
+    {
+      "id": "JW-3D-INVENTORY-TRUTH",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [],
+      "owners": [
+        "jw-stone-catalog",
+        "jw-stone-planner-model"
+      ],
+      "actor": "Any spatial-studio visitor or TradeScout request recipient",
+      "trigger": "A JW stone is selected, displayed, saved, shared, or included in request context",
+      "behavior": "The studio rejoins safe identity, images, dimensions, material, and finish from the existing canonical JW catalog and marks current availability as requiring JW confirmation.",
+      "constraints": "The checked-in inventory projection remains the single inventory authority and the studio is read-only with respect to availability, quantities, holds, allocation, prices, and source records.",
+      "negative": "Catalog presence, images, filenames, or recorded source counts must never be presented as live availability, quantity, reservation, slab allocation, price, or a second inventory record.",
+      "unchanged": "The canonical JW inventory, catalog projection, marketplace, profile, and private pricing boundaries remain unchanged.",
+      "acceptance": "Tests and dependency inspection prove canonical rejoin, confirmation-required copy, no inventory mutation path, and no public or serialized price field.",
+      "owner": "jw-stone-catalog",
+      "proof": "Catalog reconciliation, forbidden-claim scans, request/share projection tests, and source dependency review."
+    },
+    {
+      "id": "JW-3D-SCENES",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [],
+      "owners": [
+        "jw-stone-3d-scene"
+      ],
+      "actor": "A homeowner, designer, builder, architect, or fabricator",
+      "trigger": "The visitor opens the JW Stone planner and selects Kitchen, Bathroom, or Living Room",
+      "behavior": "A real WebGL 3D scene renders scaled architectural and surface geometry with orbit, zoom, camera reset, useful camera presets, lighting, and an equivalent accessible design summary.",
+      "constraints": "Scene switching preserves compatible design state; dimensions use one documented real-world unit system; camera motion respects reduced-motion settings and rendering resources are disposed.",
+      "negative": "A flat diagram, decorative image, iframe, or non-interactive mock cannot be claimed as the 3D scene and canvas-only information cannot be essential to completion.",
+      "unchanged": "Existing planner routing, measured-layout calculations, request behavior, marketplace, profile, and non-JW surfaces remain unchanged.",
+      "acceptance": "Component and real-browser evidence proves all three scenes, physical scale, orbit, zoom, reset, presets, responsive containment, and accessible summary parity.",
+      "owner": "jw-stone-3d-scene",
+      "proof": "Focused scene tests plus exact-revision desktop, mobile, keyboard, and reduced-motion captures."
+    },
+    {
+      "id": "JW-3D-MATERIAL-TRUTH",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES"
+      ],
+      "owners": [
+        "jw-stone-3d-material",
+        "jw-stone-catalog"
+      ],
+      "actor": "A visitor comparing how a canonical JW selection reads in space",
+      "trigger": "The visitor chooses a stone or adjusts crop, offset, physical scale, repeat, or vein rotation",
+      "behavior": "The selected canonical JW image is mapped onto supported scene surfaces and every texture transform updates the preview, accessible summary, local save, safe share, and request projection consistently.",
+      "constraints": "Texture paths originate only from eligible catalog imagery; numeric transforms are finite and bounded; aspect, crop, orientation, and scale use one typed model.",
+      "negative": "The studio never invents a material image, silently substitutes another stone, claims a low-quality fallback as the selected texture, or serializes an internal anonymous identity.",
+      "unchanged": "Source image ordering, canonical stone IDs, supported finishes, and all inventory facts remain owned by the existing catalog.",
+      "acceptance": "Tests prove catalog ID and image identity, transform bounds and round trips, independent field recovery, texture failure fallback, and visual response to each control.",
+      "owner": "jw-stone-3d-material",
+      "proof": "Catalog/texture unit tests, persistence/share tests, texture-failure capture, and exact-image source inspection."
+    },
+    {
+      "id": "JW-3D-FABRICATION",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-3D-SCENES"
+      ],
+      "owners": [
+        "jw-stone-planner-model",
+        "jw-stone-3d-scene"
+      ],
+      "actor": "A visitor preparing a design for fabrication review",
+      "trigger": "The visitor opens Fabrication and adds an application, opening, seam, waterfall, backsplash, or edge choice",
+      "behavior": "Optional fabrication choices update measured state, visible geometry where supported, the accessible design summary, persistence, safe share, and the eventual request summary.",
+      "constraints": "Defaults contain no sink, cooktop, other opening, seam, or waterfall; every placement is bounded to compatible surfaces and existing measured-layout calculations remain available.",
+      "negative": "No opening, seam, waterfall, edge, backsplash, floor application, dimension, or manufacturing-readiness claim may be silently added or inferred.",
+      "unchanged": "The existing measurement engine remains the calculation owner and final fabrication validation remains a human TradeScout/JW responsibility.",
+      "acceptance": "Default, normalization, placement, save/share/request serialization, reset, and visible-geometry tests prove optional behavior and no-opening defaults.",
+      "owner": "jw-stone-planner-model",
+      "proof": "Planner-model tests, geometry component tests, measured-summary assertions, and before/after rendered evidence."
+    },
+    {
+      "id": "JW-3D-SAVE-SHARE",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION"
+      ],
+      "owners": [
+        "jw-stone-planner-model",
+        "jw-stone-3d-studio-ui"
+      ],
+      "actor": "A visitor who wants to return to or show a design without contacting TradeScout",
+      "trigger": "The visitor chooses Save locally or Share design",
+      "behavior": "A versioned bounded design restores locally and a smaller allowlisted design-only share restores valid fields independently without opening or submitting a request.",
+      "constraints": "Share excludes notes, contact, address, job identifiers, prices/costs, source counts, internal labels, and availability assertions; storage and URL parsing tolerate corrupt, stale, or unsupported values.",
+      "negative": "Save or share must never contact TradeScout, expose private/job data, reserve inventory, assert availability, duplicate inventory facts, or make the studio unusable on failure.",
+      "unchanged": "Existing browser persistence and request submission remain separate, and no account or server-side design store is introduced.",
+      "acceptance": "Tests cover save/restore/reset, quota or unavailable storage, bounded share round trip, invalid-field recovery, URL size, privacy allowlist, and zero network contact.",
+      "owner": "jw-stone-planner-model",
+      "proof": "Pure serialization and storage tests, no-network assertions, URL inspection, and browser save/share journeys."
+    },
+    {
+      "id": "JW-3D-HANDOFF",
+      "scope": "mvp",
+      "state": "specified",
+      "depends_on": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE"
+      ],
+      "owners": [
+        "jw-stone-planner-request"
+      ],
+      "actor": "A visitor ready for manual TradeScout follow-up",
+      "trigger": "The visitor deliberately opens and submits the existing TradeScout request flow",
+      "behavior": "The request context contains safe stone identity, scene and application, measurements, texture crop/vein/scale, openings, seams, edge, waterfall, and a confirmation-required inventory note.",
+      "constraints": "Existing Direct Connect validation, submission, retry, routing, and retention remain authoritative; opening the drawer sends nothing and all current inquiries route to TradeScout manually.",
+      "negative": "No save, share, scene change, camera action, catalog selection, or request opening may submit contact; no price, cost, source count, internal label, or availability promise enters the payload.",
+      "unchanged": "Existing scalar planner requests, non-JW consumers, contact gates, and TradeScout privacy/operations behavior remain backward compatible.",
+      "acceptance": "Tests prove no pre-submit request, payload allowlist and measurements, default/optional fabrication context, scalar compatibility, manual routing, and existing error handling.",
+      "owner": "jw-stone-planner-request",
+      "proof": "Request component tests, network boundary assertions, payload snapshots, forbidden-field scans, and browser submit-path inspection without production mutation."
+    },
+    {
+      "id": "JW-3D-ACCESS-RECOVERY",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-3D-SCENES",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF"
+      ],
+      "owners": [
+        "jw-stone-3d-studio-ui",
+        "jw-stone-3d-scene"
+      ],
+      "actor": "A desktop or mobile visitor using touch, keyboard, assistive technology, reduced motion, or a browser without working WebGL",
+      "trigger": "The studio loads, resizes, receives keyboard/touch input, loses a texture/context, or cannot initialize WebGL",
+      "behavior": "The viewport-first layout remains operable and understandable, every essential non-camera choice has labeled controls, and an accessible measured summary plus retry survives rendering failure.",
+      "constraints": "The 390 px experience avoids horizontal overflow and form sprawl; focus remains visible; touch targets are usable; reduced motion suppresses nonessential camera animation; failures are isolated.",
+      "negative": "No essential fact or action may exist only inside canvas, no failure may erase design state or switch inventory authority, and no keyboard trap, silent blank viewport, or forced motion may ship.",
+      "unchanged": "The existing request drawer and measured details remain usable when 3D rendering is unavailable.",
+      "acceptance": "Real-browser proof covers 1440 and 390 widths, keyboard sequence, screen-readable summary, reduced motion, loading, texture error, WebGL unavailable/context lost, retry, and preserved state.",
+      "owner": "jw-stone-3d-studio-ui",
+      "proof": "Accessibility-focused component tests and exact-revision desktop/mobile/keyboard/failure captures."
+    },
+    {
+      "id": "JW-3D-PROOF",
+      "scope": "mandatory",
+      "state": "specified",
+      "depends_on": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY"
+      ],
+      "owners": [
+        "jw-stone-3d-build"
+      ],
+      "actor": "The independent reviewer and product owner",
+      "trigger": "The active build is considered for push, pull request, merge, deployment, or any implementation/release claim",
+      "behavior": "Exact-revision tests, build output, browser evidence, inventory and privacy audits, protected-surface regressions, and independent as-built review are reconciled before the matching verdict can advance.",
+      "constraints": "Definition evidence is not implementation evidence; remote write, merge, and deployment each require separate action-level owner authority under repository policy.",
+      "negative": "No stale screenshot, different revision, skipped failure state, inferred visual quality, silent baseline failure, unapproved remote action, or live claim is accepted as proof.",
+      "unchanged": "Production, main, DNS, databases, inventory authority, the current marketplace/profile, and private pricing remain untouched until separately authorized and verified.",
+      "acceptance": "The ledger records exact commands, revision, environment, configuration, role, fixtures, expected/actual results, captures, genuine baseline failures, independent review, and owner decision.",
+      "owner": "jw-stone-3d-build",
+      "proof": "Sealed build/as-built/release transitions, evidence artifact, exact-head diff, independent review, and explicit owner GO."
     }
   ],
   "builds": [
@@ -385,17 +570,46 @@
       "overlap_approved_with": [],
       "contract": "builds/jw-stone-marketplace/contract.md",
       "evidence": "builds/jw-stone-marketplace/evidence.md"
+    },
+    {
+      "id": "jw-stone-3d-visualizer",
+      "status": "in_progress",
+      "base_revision": "31225f09b58531e83f7c787110aa964a99145fd7",
+      "lock_version": "1.4.0",
+      "requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "claimed_owners": [
+        "jw-stone-catalog",
+        "jw-stone-planner-model",
+        "jw-stone-3d-scene",
+        "jw-stone-3d-material",
+        "jw-stone-3d-studio-ui",
+        "jw-stone-planner-request",
+        "jw-stone-3d-build"
+      ],
+      "depends_on": [],
+      "overlap_approved_with": [],
+      "contract": "builds/jw-stone-3d-visualizer/contract.md",
+      "evidence": "builds/jw-stone-3d-visualizer/evidence.md"
     }
   ],
   "external_facts": [
     {
       "id": "JW-CATALOG-BASELINE",
-      "claim": "The route-local reconciled marketplace projection contains 148 JW inventory presentations and preserves all 433 supplied source photos: 110 named selections and 38 publicly anonymous presentations, with no explicit verified country-of-origin field populated.",
-      "source": "client/src/features/jw-stone/reconciledInventory.ts and the canonical JW source projection at repair tree bfebc78a7debdce611def11ae6c7bc329b452922",
-      "source_version": "bfebc78a7debdce611def11ae6c7bc329b452922",
-      "applicability": "Catalog integrity, anonymous-name protection, First Cut separation, and verified-origin behavior for JW Stone 2.0 release one",
-      "observed_at": "2026-08-02",
-      "revalidate_on": "Whenever the canonical JW inventory module or generated inventory JSON changes"
+      "claim": "The checked-in JW inventory and catalog projection supply stone identity, imagery, source evidence, and parseable dimensions for the spatial studio, but they do not supply a canonical real-time availability state; catalog presence and recorded source counts therefore require JW confirmation.",
+      "source": "client/src/data/jwStoneInventory.ts, client/src/features/jw-stone/catalog.ts, and client/src/features/jw-stone/slabDimensions.ts at local base revision 31225f09b58531e83f7c787110aa964a99145fd7",
+      "source_version": "31225f09b58531e83f7c787110aa964a99145fd7",
+      "applicability": "Stone texture identity, slab detail, availability language, safe share, and TradeScout request context for spatial-studio amendment 1.4.0",
+      "observed_at": "2026-08-15",
+      "revalidate_on": "Whenever canonical JW inventory, catalog projection, slab-dimension parsing, or availability fields change"
     }
   ],
   "decisions": [
@@ -422,10 +636,10 @@
     },
     {
       "id": "DEC-AUDIENCE-LENS",
-      "class": "release_commitment",
-      "status": "accepted",
-      "statement": "The four customer paths are optional one-click guidance inside one always-visible storefront and change only sourced knowledge, an evidence-linked recommendation rail, and supported fact priority.",
-      "authority": "Thomas's direct August 3 correction as product owner"
+      "class": "deferred",
+      "status": "deferred",
+      "statement": "The former customer-path guidance and recommendation-rail direction is superseded and remains void for the active spatial-studio release.",
+      "authority": "Thomas's later owner override preserved by amendment 1.4.0"
     },
     {
       "id": "DEC-LOCAL-WISHLIST",
@@ -447,6 +661,48 @@
       "status": "accepted",
       "statement": "This build may end in a durable draft pull request but cannot merge or deploy without exact-head desktop and mobile rendered proof.",
       "authority": "Repository release policy and the user's demand for truthful visual proof"
+    },
+    {
+      "id": "DEC-3D-SPATIAL-STUDIO",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "The existing JW Stone countertop planner becomes a viewport-first real 3D spatial studio spanning kitchen, bathroom, and living-room scenes while retaining measured fabrication details.",
+      "authority": "Thomas's approved spatial-studio target in the current workstream"
+    },
+    {
+      "id": "DEC-ONE-INVENTORY-AUTHORITY",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "The checked-in JW inventory and catalog projection remain the only inventory authority; the studio is a read-only visualizer and handoff layer, never a second inventory backbone.",
+      "authority": "Thomas's approved boundary as refined by the independent Intent Objector"
+    },
+    {
+      "id": "DEC-CONFIRMATION-REQUIRED",
+      "class": "release_commitment",
+      "status": "accepted",
+      "statement": "Catalog presence and recorded source counts never imply live availability, so the studio and TradeScout handoff use a confirmation-required state until canonical inventory proves otherwise.",
+      "authority": "Canonical source inspection and Thomas's truth requirement"
+    },
+    {
+      "id": "DEC-DEFAULT-NO-OPENINGS",
+      "class": "release_commitment",
+      "status": "accepted",
+      "statement": "Sink, cooktop, other openings, seams, and waterfalls are optional fabrication choices and every new design defaults to none of them.",
+      "authority": "Thomas's approved default behavior"
+    },
+    {
+      "id": "DEC-SAFE-LOCAL-SHARE",
+      "class": "release_commitment",
+      "status": "accepted",
+      "statement": "Saving remains local and non-contacting while share state is bounded and design-only, excluding contact, address, notes, price/cost, source counts, internal identities, and availability claims.",
+      "authority": "Thomas's save/share outcome within TradeScout privacy boundaries"
+    },
+    {
+      "id": "DEC-EXISTING-GATED-HANDOFF",
+      "class": "product_invariant",
+      "status": "accepted",
+      "statement": "The existing explicit TradeScout request flow remains the only inquiry submission boundary and routes current requests to TradeScout for manual handling without exposing price.",
+      "authority": "Thomas's routing direction and existing Direct Connect contract"
     }
   ],
   "amendments": [
@@ -523,16 +779,63 @@
         "JW-PROTECT"
       ],
       "approval_evidence": "decisions-changes.md"
+    },
+    {
+      "id": "AMEND-3D-SPATIAL-STUDIO",
+      "authority": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+      "reason": "Thomas approved replacing the flat form-led countertop planner with a real JW-catalog-backed 3D spatial studio and confirmed that the current inventory remains the single source of truth while TradeScout keeps the gated manual inquiry path.",
+      "created_at": "2026-08-15T00:58:09-05:00",
+      "changes": {
+        "added": [
+          "Navigable scaled Kitchen, Bathroom, and Living Room scene families",
+          "Actual JW catalog imagery with bounded crop, offset, scale, repeat, and vein rotation",
+          "Optional surface applications, openings, seams, waterfalls, backsplashes, floors, and edges with no-opening defaults",
+          "Local design save, safe design-only share, accessible summary, and WebGL/texture recovery",
+          "Measured fabrication and material context for the existing explicit TradeScout request handoff"
+        ],
+        "modified": [
+          "The existing countertop planner becomes a viewport-first studio while preserving measured layout details",
+          "Availability language becomes explicitly confirmation-required because catalog presence is not live inventory proof",
+          "The active build changes from the interrupted marketplace build to jw-stone-3d-visualizer at lock version 1.4.0"
+        ],
+        "removed": [
+          "The flat form and diagram as the primary planner experience",
+          "Any implication that the studio owns inventory or that source counts prove availability",
+          "Any active-release dependency on the void customer-path guidance or Learn about stone behavior"
+        ],
+        "renamed": [
+          "The customer-facing planner concept becomes the JW Stone Spatial Studio while compatible route and module names may remain"
+        ],
+        "unchanged": [
+          "Canonical JW inventory and catalog remain the only inventory authority",
+          "No public prices or private costs",
+          "Existing gated Direct Connect request submission and manual TradeScout routing",
+          "Separate JW marketplace/profile behavior and all prior owner-voided guidance/learning theater",
+          "No push, merge, deployment, or live claim without exact authority and evidence"
+        ]
+      },
+      "impacted_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "approval_evidence": "decisions-changes.md"
     }
   ],
   "invalidated_requirements": [
-    "JW-JOURNEY",
-    "JW-GUIDANCE",
-    "JW-INVENTORY",
-    "JW-CARDS",
-    "JW-A11Y",
-    "JW-SEO",
-    "JW-PROTECT"
+    "JW-3D-INVENTORY-TRUTH",
+    "JW-3D-SCENES",
+    "JW-3D-MATERIAL-TRUTH",
+    "JW-3D-FABRICATION",
+    "JW-3D-SAVE-SHARE",
+    "JW-3D-HANDOFF",
+    "JW-3D-ACCESS-RECOVERY",
+    "JW-3D-PROOF"
   ],
   "risk_triggers": [
     "public_mutation"
@@ -540,15 +843,15 @@
   "independent_review": {
     "required": true,
     "status": "verified",
-    "evidence": "builds/jw-stone-marketplace/evidence.md",
-    "reviewer": "Independent truth Objector /root/jw_knowledge_audit; audience-lens Objector /root/competitor_paths",
-    "reviewed_at": "2026-08-03T13:00:20-05:00",
-    "scope": "Verified supplied-catalog versus live-availability boundary, approved Current Inventory wording, owner-authorized non-product First Cut placeholders, and the previously verified audience-lens definition",
-    "revision": "f8a59e47d1a3e822084f1654b04298debd49b0a6"
+    "evidence": "builds/jw-stone-3d-visualizer/evidence.md",
+    "reviewer": "Selective Intelligence Intent Objector /root/intent_objector",
+    "reviewed_at": "2026-08-15T00:58:09-05:00",
+    "scope": "Challenged the 3D studio direction, rejected a second inventory backbone, and verified the definition boundary of a real configurator and operations handoff over the existing canonical inventory with confirmation-required availability.",
+    "revision": "31225f09b58531e83f7c787110aa964a99145fd7"
   },
-  "sealed_at": "2026-08-03T18:55:32+00:00",
-  "semantic_digest": "f82fd65c2ace71cf043f52efa403d9daafa4f79e7d633467d3f49760b3a60ef4",
-  "control_digest": "e38377a81b1784e0ebad8d0b9498491261e1c4a6a5914374ed03bcd66eea3aca",
+  "sealed_at": "2026-08-15T07:26:28+00:00",
+  "semantic_digest": "0f454cce9f9639fb8296baee88a0fa0c5fcc30b5443b1aa7039129a0c9164fbc",
+  "control_digest": "e951e1747bffe114f2deecf758becae69ff0219a5254df8d2c9e2c8e3e279518",
   "seal_history": [
     {
       "sealed_at": "2026-08-02T17:44:59+00:00",
@@ -994,6 +1297,258 @@
         "decisions-changes.md": "59551d1b74b1de4c6afb13663919167546117fdd7d525167d1bcdf496825d090",
         "builds/jw-stone-marketplace/contract.md": "5e14120f5b4556df947bdf5ea5d110880e84378bc395b8e4d678af7355619dfd",
         "builds/jw-stone-marketplace/evidence.md": "65ea3790d33c371fe696bfa59625554873ecc1c35002484b0b6b14875708db20"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-15T05:59:23+00:00",
+      "amendment": "AMEND-3D-SPATIAL-STUDIO",
+      "transition": "definition",
+      "checkpoint": false,
+      "active_build": "jw-stone-3d-visualizer",
+      "lock_version": "1.4.0",
+      "build_status": "locked",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "semantic_digest": "ef3929e37ac558510c8830cf685d7a14a912e30d8ca47a1359f82c46f45ca3b9",
+      "artifact_digests": {
+        "intent-contract.md": "3dd740048d926cef59fc69471469e1a68a506c4f70896beec5da8b6ceb2f0db6",
+        "scope-release.md": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68",
+        "experience-surfaces.md": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486",
+        "architecture-contract.md": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f",
+        "data-contract.md": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46",
+        "api-integrations.md": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b",
+        "security-operations.md": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0",
+        "delivery-map.md": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f",
+        "traceability.md": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db",
+        "decisions-changes.md": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6",
+        "builds/jw-stone-marketplace/contract.md": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca",
+        "builds/jw-stone-marketplace/evidence.md": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef",
+        "builds/jw-stone-3d-visualizer/contract.md": "ef217a713ee40b21706d997c1dc354def967c2a40ea94d75d271b1870e0bc5ad",
+        "builds/jw-stone-3d-visualizer/evidence.md": "ded872768f24155fc22f6a491136ed5a1fc476c4ebc595f6a02d1f73913fac61"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-15T06:05:55+00:00",
+      "amendment": null,
+      "transition": "build",
+      "checkpoint": false,
+      "active_build": "jw-stone-3d-visualizer",
+      "lock_version": "1.4.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "semantic_digest": "ef3929e37ac558510c8830cf685d7a14a912e30d8ca47a1359f82c46f45ca3b9",
+      "artifact_digests": {
+        "intent-contract.md": "3dd740048d926cef59fc69471469e1a68a506c4f70896beec5da8b6ceb2f0db6",
+        "scope-release.md": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68",
+        "experience-surfaces.md": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486",
+        "architecture-contract.md": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f",
+        "data-contract.md": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46",
+        "api-integrations.md": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b",
+        "security-operations.md": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0",
+        "delivery-map.md": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f",
+        "traceability.md": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db",
+        "decisions-changes.md": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6",
+        "builds/jw-stone-marketplace/contract.md": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca",
+        "builds/jw-stone-marketplace/evidence.md": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef",
+        "builds/jw-stone-3d-visualizer/contract.md": "ef217a713ee40b21706d997c1dc354def967c2a40ea94d75d271b1870e0bc5ad",
+        "builds/jw-stone-3d-visualizer/evidence.md": "ded872768f24155fc22f6a491136ed5a1fc476c4ebc595f6a02d1f73913fac61"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-15T06:06:10+00:00",
+      "amendment": null,
+      "transition": null,
+      "checkpoint": true,
+      "active_build": "jw-stone-3d-visualizer",
+      "lock_version": "1.4.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "semantic_digest": "ef3929e37ac558510c8830cf685d7a14a912e30d8ca47a1359f82c46f45ca3b9",
+      "artifact_digests": {
+        "intent-contract.md": "3dd740048d926cef59fc69471469e1a68a506c4f70896beec5da8b6ceb2f0db6",
+        "scope-release.md": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68",
+        "experience-surfaces.md": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486",
+        "architecture-contract.md": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f",
+        "data-contract.md": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46",
+        "api-integrations.md": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b",
+        "security-operations.md": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0",
+        "delivery-map.md": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f",
+        "traceability.md": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db",
+        "decisions-changes.md": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6",
+        "builds/jw-stone-marketplace/contract.md": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca",
+        "builds/jw-stone-marketplace/evidence.md": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef",
+        "builds/jw-stone-3d-visualizer/contract.md": "ef217a713ee40b21706d997c1dc354def967c2a40ea94d75d271b1870e0bc5ad",
+        "builds/jw-stone-3d-visualizer/evidence.md": "30b4eda57d72346d34691d06cafb32761b6b65e6d8464e2ecf2efa7b8bc01602"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-15T07:25:56+00:00",
+      "amendment": "AMEND-3D-SPATIAL-STUDIO",
+      "transition": "definition",
+      "checkpoint": false,
+      "active_build": "jw-stone-3d-visualizer",
+      "lock_version": "1.4.0",
+      "build_status": "locked",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "semantic_digest": "0f454cce9f9639fb8296baee88a0fa0c5fcc30b5443b1aa7039129a0c9164fbc",
+      "artifact_digests": {
+        "intent-contract.md": "83a56795583b3d2255236dc0e7c6451280152486a78847f25578550b974ccaa5",
+        "scope-release.md": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68",
+        "experience-surfaces.md": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486",
+        "architecture-contract.md": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f",
+        "data-contract.md": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46",
+        "api-integrations.md": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b",
+        "security-operations.md": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0",
+        "delivery-map.md": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f",
+        "traceability.md": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db",
+        "decisions-changes.md": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6",
+        "builds/jw-stone-marketplace/contract.md": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca",
+        "builds/jw-stone-marketplace/evidence.md": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef",
+        "builds/jw-stone-3d-visualizer/contract.md": "3f5a1f3d8f4a992884b23ac01a392cf01195a823af4a1eea4cedecd8b21300a2",
+        "builds/jw-stone-3d-visualizer/evidence.md": "6af182918a9c7c4ba286f83a1c965d3ec5ddd53471a377b37432ca221bb99fb9"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-15T07:26:05+00:00",
+      "amendment": null,
+      "transition": "build",
+      "checkpoint": false,
+      "active_build": "jw-stone-3d-visualizer",
+      "lock_version": "1.4.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "semantic_digest": "0f454cce9f9639fb8296baee88a0fa0c5fcc30b5443b1aa7039129a0c9164fbc",
+      "artifact_digests": {
+        "intent-contract.md": "83a56795583b3d2255236dc0e7c6451280152486a78847f25578550b974ccaa5",
+        "scope-release.md": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68",
+        "experience-surfaces.md": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486",
+        "architecture-contract.md": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f",
+        "data-contract.md": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46",
+        "api-integrations.md": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b",
+        "security-operations.md": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0",
+        "delivery-map.md": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f",
+        "traceability.md": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db",
+        "decisions-changes.md": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6",
+        "builds/jw-stone-marketplace/contract.md": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca",
+        "builds/jw-stone-marketplace/evidence.md": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef",
+        "builds/jw-stone-3d-visualizer/contract.md": "3f5a1f3d8f4a992884b23ac01a392cf01195a823af4a1eea4cedecd8b21300a2",
+        "builds/jw-stone-3d-visualizer/evidence.md": "6af182918a9c7c4ba286f83a1c965d3ec5ddd53471a377b37432ca221bb99fb9"
+      },
+      "decision_authorities": {
+        "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",
+        "technical": "The implementing Codex agent within the locked product and repository boundaries",
+        "legal_or_regulated": "No new regulated decision is introduced; existing TradeScout privacy and contact boundaries remain authoritative"
+      }
+    },
+    {
+      "sealed_at": "2026-08-15T07:26:28+00:00",
+      "amendment": null,
+      "transition": null,
+      "checkpoint": true,
+      "active_build": "jw-stone-3d-visualizer",
+      "lock_version": "1.4.0",
+      "build_status": "in_progress",
+      "as_built_verdict": "not_started",
+      "invalidated_requirements": [
+        "JW-3D-INVENTORY-TRUTH",
+        "JW-3D-SCENES",
+        "JW-3D-MATERIAL-TRUTH",
+        "JW-3D-FABRICATION",
+        "JW-3D-SAVE-SHARE",
+        "JW-3D-HANDOFF",
+        "JW-3D-ACCESS-RECOVERY",
+        "JW-3D-PROOF"
+      ],
+      "semantic_digest": "0f454cce9f9639fb8296baee88a0fa0c5fcc30b5443b1aa7039129a0c9164fbc",
+      "artifact_digests": {
+        "intent-contract.md": "83a56795583b3d2255236dc0e7c6451280152486a78847f25578550b974ccaa5",
+        "scope-release.md": "4315479263a75d93b704952209b9d6355e17fe7dac1e323f7e2a1fc0cbbd6b68",
+        "experience-surfaces.md": "41f0e9910b544892549693b12f2b0020c9a6e9cf7a876395630c99d08a2f7486",
+        "architecture-contract.md": "4691ef8c48c874d8034eea058cc604104fbc2a866a330fadbb9bd4a106146b8f",
+        "data-contract.md": "233c0683c611e7a2d3477ef4187cc72b66535a4db6e3507d34c84424fb88cf46",
+        "api-integrations.md": "61ff4bdc42e9311c72c5ef9227f32e2ff62d0522ff7ea3778ca8b7b973d9581b",
+        "security-operations.md": "ce16622073d6ddb229bd6fb8eb4929bf18e795d4ed2aaad2d20542a428725ab0",
+        "delivery-map.md": "c66070bd5a9b4fa8b6591c20d1c37353027e25080b4cc93c487a05085f4cd71f",
+        "traceability.md": "dcd181dfb5fc7f020feebda3840000b96888fa8a53021143db42e563bbfdb7db",
+        "decisions-changes.md": "c81584718f3d63b3962fc9674c3a5dedacf213f21463691ebe2a63ad02722fd6",
+        "builds/jw-stone-marketplace/contract.md": "ada727021cf8b2b9102b44a03a2ca49b85782674d712fb6b26d4c7f62a9f85ca",
+        "builds/jw-stone-marketplace/evidence.md": "f50761bff0e2ac0eea3368f6ae7f547c6aa632b2c7ace58ff9115f1a523cbbef",
+        "builds/jw-stone-3d-visualizer/contract.md": "3f5a1f3d8f4a992884b23ac01a392cf01195a823af4a1eea4cedecd8b21300a2",
+        "builds/jw-stone-3d-visualizer/evidence.md": "2f92d9bab3a4c5c1d6fea22a9b220e54edfeb3ed942bff565859211e9a229157"
       },
       "decision_authorities": {
         "product": "Thomas, as the product owner supplying the explicit JW Stone 2.0 requirements",

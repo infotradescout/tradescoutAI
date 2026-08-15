@@ -75,7 +75,8 @@ describe("StoneDetailDialog", () => {
       expect(dialog?.textContent).toContain(stone.origin.country);
     }
     if (stone.sourceEvidence?.counts?.length) {
-      expect(dialog?.textContent).toMatch(/Available now|slabs available/i);
+      expect(dialog?.textContent).toMatch(/Confirm current availability with JW Stone/i);
+      expect(dialog?.textContent).not.toMatch(/Available now|slabs available/i);
     }
 
     const ask = buttonContaining(dialog, `Ask JW about ${stone.displayName}`);

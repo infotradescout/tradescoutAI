@@ -3,6 +3,7 @@ import {
   driveIdFromInventoryImagePath,
   formatSlabDimension,
   parseSlabDimension,
+  resolveSlabDimensionForInventoryImage,
   resolveSlabDimensionsLabel,
 } from "./slabDimensions";
 import { getCatalogItemById } from "./catalog";
@@ -43,6 +44,19 @@ describe("JW Stone slab dimensions from Drive source evidence", () => {
         "/images/businesses/jw-stone/inventory-source/1ZcGVAg76xGKbQ1l9v7kO64Qqf-Nt-U74.webp"
       )
     ).toBe("1ZcGVAg76xGKbQ1l9v7kO64Qqf-Nt-U74");
+  });
+
+  it("returns scale evidence only for the exact source photo", () => {
+    expect(
+      resolveSlabDimensionForInventoryImage(
+        "/images/businesses/jw-stone/inventory-source/does-not-exist.webp"
+      )
+    ).toBeNull();
+    expect(
+      resolveSlabDimensionForInventoryImage(
+        "/images/businesses/jw-stone/inventory-source/1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ.webp"
+      )
+    ).toEqual({ widthIn: 130, heightIn: 77.5 });
   });
 
   it("surfaces Matrix Basalt sizes from reconciled Drive source names", () => {

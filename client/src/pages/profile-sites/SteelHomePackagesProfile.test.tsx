@@ -12,6 +12,8 @@ import {
 } from "@shared/steelHomePackagesProfile";
 import { buildSteelHomeBuilderPath } from "@shared/steelHomeBuilderRoutes";
 import SteelHomePackagesProfile from "./SteelHomePackagesProfile";
+import { buildCountertopStudioShareUrl } from "./steel-home-project-tools/countertopStudioShare";
+import { buildNamedStoneDesignerImageHref } from "./steel-home-project-tools/stoneDesignerImages";
 import {
   STEEL_HOME_BUILDERS,
   plannerLauncherId,
@@ -93,6 +95,25 @@ function requiredElement<T extends Element>(root: ParentNode, selector: string):
   const element = root.querySelector<T>(selector);
   if (!element) throw new Error(`Required test element missing: ${selector}`);
   return element;
+}
+
+function namedStonePhotoHref(stoneId: string, imageIndex = 0): string {
+  const stone = JW_STONE_NAMED_CATALOG.find((item) => item.id === stoneId);
+  if (!stone) throw new Error(`Named stone missing: ${stoneId}`);
+  const href = buildNamedStoneDesignerImageHref(
+    stone.shareSlug || "",
+    stone.images[imageIndex] || ""
+  );
+  if (!href) throw new Error(`Named stone photo missing: ${stoneId} photo ${imageIndex + 1}`);
+  return href;
+}
+
+function enableCountertopIsland(panel: ParentNode) {
+  const toggle = requiredElement<HTMLInputElement>(
+    panel,
+    '[data-testid="steel-home-countertop-island"]'
+  );
+  if (!toggle.checked) act(() => toggle.click());
 }
 
 function pressKey(control: Element, key: string, options: KeyboardEventInit = {}) {
@@ -372,6 +393,53 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     expect(container.querySelector('[data-testid="steel-home-countertop-designer"]')).toBeNull();
   });
 
+  it("asks before replacing a saved countertop design from a shared studio link", async () => {
+    const savedDraft = createEmptySteelHomeProjectDraft();
+    savedDraft.countertops.stoneId = "aj-quartz";
+    window.localStorage.setItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY, JSON.stringify(savedDraft));
+
+    const sharedDesign = {
+      ...savedDraft.countertops,
+      room: "Living room" as const,
+      stoneId: "taj-mahal",
+      textureImageIndex: 2,
+    };
+    const sharedUrl = buildCountertopStudioShareUrl(
+      sharedDesign,
+      `https://example.com${buildSteelHomeBuilderPath("countertops")}`
+    );
+    const parsedSharedUrl = new URL(sharedUrl!);
+    window.history.replaceState(null, "", `${parsedSharedUrl.pathname}${parsedSharedUrl.search}`);
+
+    renderProfile();
+    await flushUi();
+
+    expect(
+      requiredElement<HTMLElement>(
+        container,
+        '[data-testid="steel-home-countertop-shared-design-prompt"]'
+      ).textContent
+    ).toContain("ready to review");
+    expect(
+      JSON.parse(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY) || "{}")
+        .countertops.stoneId
+    ).toBe("aj-quartz");
+
+    const loadShared = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.trim() === "Load shared design"
+    );
+    if (!loadShared) throw new Error("Load shared design action missing");
+    act(() => loadShared.click());
+    await flushUi();
+
+    expect(container.textContent).toContain("Taj Mahal");
+    expect(
+      JSON.parse(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY) || "{}")
+        .countertops.stoneId
+    ).toBe("taj-mahal");
+    expect(window.location.search).not.toContain("studio=");
+  });
+
   it("keeps each planner independent while updating its estimate, area, and preview", async () => {
     renderProfile();
     await flushUi();
@@ -448,6 +516,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     renderProfile();
     await flushUi();
     const panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     const preview = requiredElement<SVGSVGElement>(
       panel,
       '[data-testid="steel-home-countertop-preview"]'
@@ -598,10 +667,15 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
         'button[data-testid^="steel-home-countertop-stone-"]'
       )
     );
-    expect(filteredSurfaces).toHaveLength(1);
-    expect(filteredSurfaces[0]?.textContent).toContain("AJ Quartz");
-    expect(filteredSurfaces[0]?.textContent).toContain("Engineered Quartz");
-    act(() => filteredSurfaces[0]?.click());
+    expect(filteredSurfaces.length).toBeGreaterThan(0);
+    expect(
+      filteredSurfaces.every((surface) => surface.textContent?.includes("Engineered Quartz"))
+    ).toBe(true);
+    const exactAjQuartz = filteredSurfaces.find((surface) =>
+      surface.matches('[data-testid="steel-home-countertop-stone-aj-quartz"]')
+    );
+    expect(exactAjQuartz?.textContent).toContain("AJ Quartz");
+    act(() => exactAjQuartz?.click());
     expect(
       requiredElement<HTMLImageElement>(
         panel,
@@ -609,7 +683,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
       ).getAttribute("src")
     ).toBe("/images/stone-designer/aj-quartz/1.webp");
     expect(requiredElement<SVGImageElement>(panel, "svg image").getAttribute("href")).toBe(
-      "/images/stone-designer/aj-quartz/1.webp"
+      namedStonePhotoHref("aj-quartz")
     );
   });
 
@@ -617,6 +691,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     renderProfile();
     await flushUi();
     const panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     const summary = requiredElement<HTMLElement>(
       panel,
       '[data-testid="steel-home-countertop-live-summary"]'
@@ -857,6 +932,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     renderProfile();
     await flushUi();
     const panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     const preview = requiredElement<SVGSVGElement>(
       panel,
       '[data-testid="steel-home-countertop-preview"]'
@@ -964,6 +1040,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     renderProfile();
     await flushUi();
     let panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     let wallDepth = requiredElement<HTMLInputElement>(
       panel,
       '[data-testid="steel-home-countertop-wall-depth"]'
@@ -1003,7 +1080,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     expect(
       JSON.parse(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY) || "{}")
     ).toMatchObject({
-      version: 8,
+      version: 9,
       countertops: { wallDepthIn: 22.5 },
     });
 
@@ -1027,6 +1104,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     renderProfile();
     await flushUi();
     const panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     act(() =>
       requiredElement<HTMLButtonElement>(
         panel,
@@ -1703,6 +1781,24 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     renderProfile();
     await flushUi();
     const panel = openPlanner("countertops");
+    const cristallo = JW_STONE_NAMED_CATALOG.find((stone) => stone.id === "cristallo")!;
+    const patternImage = requiredElement<SVGImageElement>(
+      panel,
+      '[data-testid="steel-home-countertop-pattern-image"]'
+    );
+    expect(patternImage.getAttribute("href")).toBe(
+      buildNamedStoneDesignerImageHref(cristallo.shareSlug || "", cristallo.images[0]!)
+    );
+    act(() =>
+      requiredElement<HTMLButtonElement>(
+        panel,
+        '[data-testid="steel-home-countertop-texture-image-1"]'
+      ).click()
+    );
+    expect(patternImage.getAttribute("href")).toBe(
+      buildNamedStoneDesignerImageHref(cristallo.shareSlug || "", cristallo.images[1]!)
+    );
+
     const openGallery = panel.querySelector<HTMLButtonElement>(
       '[data-testid="steel-home-countertop-surface-open"]'
     );
@@ -1748,8 +1844,12 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
         .querySelector('[data-testid="steel-home-countertop-selected-surface-image"]')
         ?.getAttribute("src")
     ).toBe("/images/stone-designer/aj-quartz/1.webp");
-    expect(panel.querySelector("svg image")?.getAttribute("href")).toBe(
-      "/images/stone-designer/aj-quartz/1.webp"
+    const selectedAjQuartz = JW_STONE_NAMED_CATALOG.find((stone) => stone.id === "aj-quartz")!;
+    expect(patternImage.getAttribute("href")).toBe(
+      buildNamedStoneDesignerImageHref(
+        selectedAjQuartz.shareSlug || "",
+        selectedAjQuartz.images[0]!
+      )
     );
     act(() => openGallery.click());
     for (const image of panel.querySelectorAll<HTMLImageElement>(
@@ -1781,6 +1881,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     ).toBe("16");
 
     panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     const countertopPath = panel
       .querySelector('[data-testid="steel-home-countertop-layout-preview"]')
       ?.getAttribute("d");
@@ -1889,10 +1990,10 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
 
     await flushUi();
     expect(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY).toBe(
-      "tradescout:steel-home-project-tools:draft:v8"
+      "tradescout:steel-home-project-tools:draft:v9"
     );
     const savedDraft = window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    expect(savedDraft).toContain('"version":8');
+    expect(savedDraft).toContain('"version":9');
     expect(savedDraft).toContain('"porchDepthFt":16');
     expect(savedDraft).toContain('"wallAIn":220');
     expect(savedDraft).toContain('"wallDepthIn":22');
@@ -1924,7 +2025,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
         ?.getAttribute("src")
     ).toBe("/images/stone-designer/aj-quartz/1.webp");
     expect(panel.querySelector("svg image")?.getAttribute("href")).toBe(
-      "/images/stone-designer/aj-quartz/1.webp"
+      namedStonePhotoHref("aj-quartz")
     );
     await flushUi();
     expect(
@@ -2082,7 +2183,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     expect(
       JSON.parse(window.localStorage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY) || "{}")
     ).toMatchObject({
-      version: 8,
+      version: 9,
       ...legacyDetails,
       countertops: { wallDepthIn: 25.5 },
     });
@@ -2286,6 +2387,7 @@ describe("SteelHomePackagesProfile three-planner experience", () => {
     closeRequest();
 
     panel = openPlanner("countertops");
+    enableCountertopIsland(panel);
     setControlValue(
       requiredElement<HTMLInputElement>(panel, '[data-testid="steel-home-countertop-wall-depth"]'),
       "22"

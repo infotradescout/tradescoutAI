@@ -205,7 +205,7 @@ export function StoneDetailDialog({
                   ) : null}
                   {availability ? (
                     <div>
-                      <dt className={jw.muted}>Available now</dt>
+                      <dt className={jw.muted}>Availability</dt>
                       <dd className="mt-0.5 font-medium">{availability}</dd>
                     </div>
                   ) : null}

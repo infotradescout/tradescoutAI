@@ -1,21 +1,19 @@
-# Delivery and Impact Map
+# Delivery and Impact Map — Spatial Studio 1.4.0
 
-## Dependency-ordered vertical slices
+## Dependency-ordered slices
 
-1. Lock the separate route, canonical ownership, truth rules, and protected existing profile behavior.
-2. Build the read-only catalog projection, explicit origin contract, editorial color-direction map, URL parser, and versioned wishlist primitives with unit proof.
-3. Register standalone client and server reachability plus accurate canonical metadata and sitemap inclusion without changing profile priority.
-4. Render First Cut and the full catalog immediately, independent optional refinements, stable cards, details, gallery, wishlist, and proportional Learn about stone.
-5. Extend Direct Connect only as needed for bounded safe named-stone selections while preserving the existing scalar path and prohibiting anonymous IDs.
-6. Reconcile focused protections, current JW and non-JW regressions, type checking, repository guards, production build, broad tests, and exact-head diff.
-7. Run desktop and mobile browser journeys, save evidence, commit, push `jw-stone/marketplace-end-user-reset`, and open a draft pull request only after owner local preview GO.
+1. Lock canonical inventory/read-only truth, default state, design/share/request projections, and protected marketplace/profile behavior.
+2. Add typed scene, surface-application, texture-transform, seam, waterfall, and opening state with normalization and serialization tests.
+3. Add the render-only 3D owner with Kitchen, Bathroom, and Living Room geometry, JW texture mapping, orbit/zoom/reset, camera presets, scale, disposal, and WebGL recovery.
+4. Replace the form-led primary experience with viewport-first desktop/mobile controls while retaining measured layout and fabrication detail access.
+5. Wire local save, safe design-only share, accessible design summary, and the existing explicit TradeScout handoff.
+6. Reconcile focused tests, type/build checks, dependency audit, inventory/source truth, price/privacy scans, and exact-head diff.
+7. Capture desktop, mobile, keyboard, reduced-motion, texture-failure, WebGL-failure, save/share, and request-boundary browser evidence. Stop before remote write unless the owner authorizes the exact action.
 
-## Cross-build owners, impacts, invalidated evidence, and merge order
+## Impact and invalidation
 
-The marketplace build claims the new route, state, data projection, UI, metadata, existing-profile protection, and optional Direct Connect handoff owners. Customer-path guidance is out of scope.
+Catalog/image/dimension changes invalidate texture identity, slab detail, and inventory-truth evidence. Planner-model changes invalidate local/share/request round trips and defaults. Visualizer or asset changes invalidate scene, camera, scale, GPU disposal, accessibility summary, and screenshots. Request changes invalidate contact separation and payload safety. Route or shell changes invalidate protected marketplace/profile evidence.
 
-Any change to the canonical inventory module invalidates inventory totals, editorial color coverage, anonymous treatment, origin, filters, wishlist rehydration, and visual evidence. Any change to App route ordering invalidates standalone and custom-domain protection. Any Direct Connect change invalidates the scalar compatibility and multi-selection safety evidence. Any UI or asset change invalidates relevant screenshots.
+## Closure
 
-## Release reconciliation and closure
-
-Release closure requires owner visual approval. Merge only after local desktop and mobile preview of `/jw-stone`. Observe Render health and exact deployed commit after merge; smoke `/jw-stone`; recheck `/u/jw-stone`.
+The prior `jw-stone-marketplace` build remains interrupted and is not silently completed by this amendment. The active `jw-stone-3d-visualizer` build is definition-locked but unimplemented at seal time. Build, as-built, and release verdicts remain separately gated; owner preview GO is required before any remote or production action.
