@@ -202,6 +202,22 @@ export const COUNTERTOP_ROOM_OPTIONS = [
   "Other room",
 ] as const;
 
+export type CountertopRoom = (typeof COUNTERTOP_ROOM_OPTIONS)[number];
+export type CountertopRoomCategory = "bathroom" | "kitchen" | "living" | "utility" | "other";
+
+/** Canonical room-domain seam shared by saved-state migration, controls, and the 3D scene. */
+export function getCountertopRoomCategory(room: CountertopRoom): CountertopRoomCategory {
+  if (room === "Primary bathroom" || room === "Guest bathroom") return "bathroom";
+  if (room === "Kitchen" || room === "Outdoor kitchen") return "kitchen";
+  if (room === "Living room") return "living";
+  if (room === "Laundry") return "utility";
+  return "other";
+}
+
+export function isCountertopBathroomRoom(room: CountertopRoom): boolean {
+  return getCountertopRoomCategory(room) === "bathroom";
+}
+
 export const COUNTERTOP_LAYOUT_OPTIONS = [
   { value: "straight", label: "Straight run" },
   { value: "l-shape", label: "L-shaped" },
@@ -364,7 +380,7 @@ export type SteelHomeBuildingDesign = {
 
 export type SteelHomeCountertopDesign = {
   included: boolean;
-  room: (typeof COUNTERTOP_ROOM_OPTIONS)[number];
+  room: CountertopRoom;
   layout: CountertopLayout;
   wallAIn: number;
   wallBIn: number;
@@ -413,6 +429,52 @@ export type SteelHomeCountertopCutout = {
   widthIn: number | null;
   depthIn: number | null;
 };
+
+function isCountertopCutoutRunAvailableForDesign(
+  design: SteelHomeCountertopDesign,
+  run: CountertopCutoutRun
+): boolean {
+  if (run === "main") return true;
+  if (run === "left-return") return design.layout !== "straight";
+  if (run === "right-return") return design.layout === "u-shape";
+  return !isCountertopBathroomRoom(design.room) && design.island;
+}
+
+/** Preserve room-independent planning choices when the active room changes. */
+export function getCountertopRoomChangePatch(
+  room: CountertopRoom
+): Pick<SteelHomeCountertopDesign, "room"> & Partial<SteelHomeCountertopDesign> {
+  return { room };
+}
+
+/**
+ * Hide room-incompatible geometry without deleting a user's kitchen plan. The returned design is
+ * the only form that bathroom renderers, summaries, and opening controls should consume.
+ */
+export function getCountertopActiveRoomDesign(
+  design: SteelHomeCountertopDesign
+): SteelHomeCountertopDesign {
+  if (!isCountertopBathroomRoom(design.room)) return design;
+  const sinkPlacementAvailable =
+    !design.sinkRun || isCountertopCutoutRunAvailableForDesign(design, design.sinkRun);
+  return {
+    ...design,
+    island: false,
+    waterfall: "None",
+    cooktop: "None",
+    cooktopRun: "",
+    cooktopPositionIn: null,
+    cooktopFrontPositionIn: null,
+    sinkRun: sinkPlacementAvailable ? design.sinkRun : "",
+    sinkPositionIn: sinkPlacementAvailable ? design.sinkPositionIn : null,
+    sinkFrontPositionIn: sinkPlacementAvailable ? design.sinkFrontPositionIn : null,
+    otherCutouts: design.otherCutouts.map((cutout) =>
+      !cutout.run || isCountertopCutoutRunAvailableForDesign(design, cutout.run)
+        ? cutout
+        : { ...cutout, run: "", positionIn: null, frontPositionIn: null }
+    ),
+  };
+}
 
 export type SteelHomeCabinetDesign = {
   included: boolean;
@@ -666,6 +728,12 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
     COUNTERTOP_LAYOUTS,
     empty.countertops.layout
   );
+  const countertopRoom = cleanLabel(
+    countertops.room,
+    COUNTERTOP_ROOM_OPTIONS,
+    empty.countertops.room
+  );
+  const countertopIsBathroom = isCountertopBathroomRoom(countertopRoom);
   const countertopWallDepthIn = cleanHalfInchNumber(
     countertops.wallDepthIn,
     empty.countertops.wallDepthIn,
@@ -793,7 +861,7 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
     },
     countertops: {
       included: countertops.included === true,
-      room: cleanLabel(countertops.room, COUNTERTOP_ROOM_OPTIONS, empty.countertops.room),
+      room: countertopRoom,
       layout: countertopLayout,
       wallAIn: cleanNumber(countertops.wallAIn, empty.countertops.wallAIn, minimumMainRunIn, 360),
       wallBIn: cleanNumber(countertops.wallBIn, empty.countertops.wallBIn, minimumReturnRunIn, 360),
@@ -1093,20 +1161,22 @@ export function formatCountertopWallRuns(designInput: SteelHomeCountertopDesign)
 export function getAvailableCountertopCutoutRuns(
   designInput: SteelHomeCountertopDesign
 ): Array<{ value: CountertopCutoutRun; label: string }> {
-  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
-  return COUNTERTOP_CUTOUT_RUN_OPTIONS.filter((option) => {
-    if (option.value === "left-return") return design.layout !== "straight";
-    if (option.value === "right-return") return design.layout === "u-shape";
-    if (option.value === "island") return design.island;
-    return true;
-  });
+  const design = getCountertopActiveRoomDesign(
+    reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops
+  );
+  return COUNTERTOP_CUTOUT_RUN_OPTIONS.filter((option) =>
+    isCountertopCutoutRunAvailableForDesign(design, option.value)
+  );
 }
 
 export function getCountertopCutoutRunLength(
   designInput: SteelHomeCountertopDesign,
   run: CountertopCutoutRun
 ): number {
-  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  const design = getCountertopActiveRoomDesign(
+    reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops
+  );
+  if (!isCountertopCutoutRunAvailableForDesign(design, run)) return 0;
   if (run === "main") return design.wallAIn;
   if (run === "left-return") return design.wallBIn;
   if (run === "right-return") return design.wallCIn;
@@ -1118,7 +1188,10 @@ export function getCountertopCutoutRunDepth(
   designInput: SteelHomeCountertopDesign,
   run: CountertopCutoutRun
 ): number {
-  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  const design = getCountertopActiveRoomDesign(
+    reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops
+  );
+  if (!isCountertopCutoutRunAvailableForDesign(design, run)) return 0;
   return run === "island" ? design.islandWidthIn : design.wallDepthIn;
 }
 
@@ -1179,6 +1252,9 @@ export function getCountertopOpeningFrontBounds(
   item: CountertopOpeningScheduleItem
 ): { minimum: number; maximum: number; surfaceDepth: number } | null {
   if (!item.run || !item.requiresFrontPosition || !item.depthIn) return null;
+  if (!getAvailableCountertopCutoutRuns(designInput).some((run) => run.value === item.run)) {
+    return null;
+  }
   const surfaceDepth = getCountertopCutoutRunDepth(designInput, item.run);
   return {
     minimum: item.depthIn / 2 + COUNTERTOP_OPENING_EDGE_CLEARANCE_IN,
@@ -1190,7 +1266,9 @@ export function getCountertopOpeningFrontBounds(
 export function getCountertopOpeningSchedule(
   designInput: SteelHomeCountertopDesign
 ): CountertopOpeningScheduleItem[] {
-  const design = reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops;
+  const design = getCountertopActiveRoomDesign(
+    reconcileSteelHomeProjectDraft({ countertops: designInput }).countertops
+  );
   const items: CountertopOpeningScheduleItem[] = [];
   if (design.sink !== "None") {
     const isApronFront = design.sink === "Farmhouse";
@@ -1893,7 +1971,8 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
   }
 
   if (draft.countertops.included) {
-    const countertops = draft.countertops;
+    const countertops = getCountertopActiveRoomDesign(draft.countertops);
+    const isBathroom = isCountertopBathroomRoom(countertops.room);
     const stone = getCatalogItemById(countertops.stoneId);
     lines.push("", "Countertop Details");
     addLine(
@@ -1903,13 +1982,14 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     );
     addLine(lines, "Wall runs", formatCountertopWallRuns(countertops));
     addLine(lines, "Wall-top depth", `${countertops.wallDepthIn}\"`);
-    addLine(
-      lines,
-      "Island",
-      countertops.island
-        ? `${countertops.islandLengthIn}\" × ${countertops.islandWidthIn}\"`
-        : "None"
-    );
+    if (!isBathroom)
+      addLine(
+        lines,
+        "Island",
+        countertops.island
+          ? `${countertops.islandLengthIn}\" × ${countertops.islandWidthIn}\"`
+          : "None"
+      );
     addLine(
       lines,
       "Selected surface",
@@ -1918,12 +1998,16 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
     addLine(
       lines,
       "Details",
-      `${countertops.edge} edge; ${countertops.backsplash} backsplash; ${countertops.sink} sink; ${countertops.cooktop} cooktop`
+      isBathroom
+        ? `${countertops.edge} edge; ${countertops.backsplash} backsplash; ${countertops.sink} sink`
+        : `${countertops.edge} edge; ${countertops.backsplash} backsplash; ${countertops.sink} sink; ${countertops.cooktop} cooktop`
     );
     addLine(lines, "Visualizer configuration", formatCountertopVisualizerDetails(countertops));
     addLine(
       lines,
-      "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
+      isBathroom
+        ? "Gross vanity-top layout footprint (backsplash excluded)"
+        : "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
       `About ${calculateCountertopSquareFeet(countertops)} sq. ft.`
     );
     addLine(lines, "Notes", briefNote(countertops.notes));
@@ -1989,21 +2073,23 @@ function updateRequestHref(
 }
 
 function formatCountertopVisualizerDetails(design: SteelHomeCountertopDesign): string {
+  const isBathroom = isCountertopBathroomRoom(design.room);
   const targets = [
     "countertops",
-    design.island ? "island" : null,
+    !isBathroom && design.island ? "island" : null,
     design.backsplash === "None" ? null : `${design.backsplash.toLowerCase()} backsplash`,
     design.floorStone ? "floor" : null,
   ].filter(Boolean);
-  return [
+  const details = [
     `inventory image ${design.textureImageIndex + 1}`,
     `${design.veinRotation}° vein direction`,
     `${design.textureScale.toFixed(1)}× mapping scale`,
     `crop X ${design.textureOffsetX.toFixed(2)} / Y ${design.textureOffsetY.toFixed(2)}`,
     `applied to ${targets.join(", ")}`,
-    `${design.waterfall.toLowerCase()} waterfall`,
-    design.showSeams ? "planning seams shown" : "no planning seams shown",
-  ].join("; ");
+  ];
+  if (!isBathroom) details.push(`${design.waterfall.toLowerCase()} waterfall`);
+  details.push(design.showSeams ? "planning seams shown" : "no planning seams shown");
+  return details.join("; ");
 }
 
 function addCountertopStoneSourceContext(
@@ -2069,7 +2155,8 @@ const DIRECT_CONNECT_COMPETING_CONTEXT_KEYS = [
 
 export function buildCountertopStoneRequestDescription(draftInput: SteelHomeProjectDraft): string {
   const draft = reconcileSteelHomeProjectDraft(draftInput);
-  const design = draft.countertops;
+  const design = getCountertopActiveRoomDesign(draft.countertops);
+  const isBathroom = isCountertopBathroomRoom(design.room);
   const stone = getCatalogItemById(design.stoneId);
   const lines = [
     "TradeScout Stone Material Request",
@@ -2085,14 +2172,17 @@ export function buildCountertopStoneRequestDescription(draftInput: SteelHomeProj
   addLine(lines, "Layout", labelFromOptions(design.layout, COUNTERTOP_LAYOUT_OPTIONS));
   addLine(lines, "Wall runs", formatCountertopWallRuns(design));
   addLine(lines, "Wall-top depth", `${design.wallDepthIn}\"`);
+  if (!isBathroom)
+    addLine(
+      lines,
+      "Island",
+      design.island ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"` : "None"
+    );
   addLine(
     lines,
-    "Island",
-    design.island ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"` : "None"
-  );
-  addLine(
-    lines,
-    "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
+    isBathroom
+      ? "Gross vanity-top layout footprint (backsplash excluded)"
+      : "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
     `About ${calculateCountertopSquareFeet(design)} sq. ft.`
   );
   addLine(
@@ -2106,7 +2196,9 @@ export function buildCountertopStoneRequestDescription(draftInput: SteelHomeProj
   lines.push(
     "",
     "Material request only: ask about stone availability and delivery. Opening locations do not change this gross layout footprint or price the stone.",
-    "Backsplash and range-gap deductions are excluded from the footprint shown. Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout.",
+    isBathroom
+      ? "Backsplash is excluded from the footprint shown. Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout."
+      : "Backsplash and range-gap deductions are excluded from the footprint shown. Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout.",
     "JW Stone does not provide field templating, fabrication, cutting, or countertop installation. Those services require a separate fabricator."
   );
   return lines.join("\n");
@@ -2116,7 +2208,8 @@ export function buildCountertopFabricatorRequestDescription(
   draftInput: SteelHomeProjectDraft
 ): string {
   const draft = reconcileSteelHomeProjectDraft(draftInput);
-  const design = draft.countertops;
+  const design = getCountertopActiveRoomDesign(draft.countertops);
+  const isBathroom = isCountertopBathroomRoom(design.room);
   const stone = getCatalogItemById(design.stoneId);
   const serviceArea =
     draft.countyName && draft.stateCode
@@ -2136,11 +2229,12 @@ export function buildCountertopFabricatorRequestDescription(
   );
   addLine(lines, "Wall runs", formatCountertopWallRuns(design));
   addLine(lines, "Wall-top depth", `${design.wallDepthIn}\"`);
-  addLine(
-    lines,
-    "Island",
-    design.island ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"` : "None"
-  );
+  if (!isBathroom)
+    addLine(
+      lines,
+      "Island",
+      design.island ? `${design.islandLengthIn}\" × ${design.islandWidthIn}\"` : "None"
+    );
   addLine(
     lines,
     "Stone reference",
@@ -2148,7 +2242,9 @@ export function buildCountertopFabricatorRequestDescription(
   );
   addLine(
     lines,
-    "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
+    isBathroom
+      ? "Gross vanity-top layout footprint (backsplash excluded)"
+      : "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
     `About ${calculateCountertopSquareFeet(design)} sq. ft.`
   );
   addLine(lines, "Edge and backsplash", `${design.edge} edge; ${design.backsplash} backsplash`);
@@ -2159,7 +2255,9 @@ export function buildCountertopFabricatorRequestDescription(
     lines.push(
       "",
       "Planned openings",
-      `Measurement reference: wall-run front means the finished edge facing the room. Return runs start at their top/wall-side outer end; the first ${design.wallDepthIn} inches includes the shared corner zone where the return meets the main run. For an island, FRONT is the long edge facing away from the main run; stand there and use your left as the island start.`,
+      isBathroom
+        ? `Measurement reference: wall-run front means the finished edge facing the room. Return runs start at their top/wall-side outer end; the first ${design.wallDepthIn} inches includes the shared corner zone where the return meets the main run.`
+        : `Measurement reference: wall-run front means the finished edge facing the room. Return runs start at their top/wall-side outer end; the first ${design.wallDepthIn} inches includes the shared corner zone where the return meets the main run. For an island, FRONT is the long edge facing away from the main run; stand there and use your left as the island start.`,
       ...openings.map((line) => `- ${line}`)
     );
   else lines.push("", "Planned openings", "- None added");

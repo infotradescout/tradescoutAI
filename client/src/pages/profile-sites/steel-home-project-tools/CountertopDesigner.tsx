@@ -36,9 +36,12 @@ import {
   getCountertopCutoutRunLabel,
   getCountertopCutoutRunLength,
   getCountertopCutoutStartLabel,
+  getCountertopActiveRoomDesign,
+  getCountertopRoomChangePatch,
   getCountertopOpeningSchedule,
   getCountertopOpeningFrontBounds,
   getCountertopPlacementProblems,
+  isCountertopBathroomRoom,
   reconcileSteelHomeProjectDraft,
   type CountertopCutoutRun,
   type CountertopOpeningScheduleItem,
@@ -889,9 +892,12 @@ function clampOpeningFrontPosition(
 }
 
 function normalizeOpeningPlacements(design: SteelHomeCountertopDesign): SteelHomeCountertopDesign {
-  const availableRuns = new Set(getAvailableCountertopCutoutRuns(design).map((item) => item.value));
+  const activeDesign = getCountertopActiveRoomDesign(design);
+  const availableRuns = new Set(
+    getAvailableCountertopCutoutRuns(activeDesign).map((item) => item.value)
+  );
   const openingSizes = new Map(
-    getCountertopOpeningSchedule(design).map((item) => [
+    getCountertopOpeningSchedule(activeDesign).map((item) => [
       item.id,
       { widthIn: item.planningWidthIn, depthIn: item.depthIn || 2 },
     ])
@@ -914,35 +920,50 @@ function normalizeOpeningPlacements(design: SteelHomeCountertopDesign): SteelHom
       positionIn:
         positionIn === null
           ? null
-          : clampOpeningPosition(design, run, positionIn, openingSizes.get(id)?.widthIn || 2),
+          : clampOpeningPosition(activeDesign, run, positionIn, openingSizes.get(id)?.widthIn || 2),
       frontPositionIn:
         frontPositionIn === null
           ? null
           : clampOpeningFrontPosition(
-              design,
+              activeDesign,
               run,
               frontPositionIn,
               openingSizes.get(id)?.depthIn || 2
             ),
     };
   };
-  const sink = normalize("sink", design.sinkRun, design.sinkPositionIn, design.sinkFrontPositionIn);
+  const sink = normalize(
+    "sink",
+    activeDesign.sinkRun,
+    activeDesign.sinkPositionIn,
+    activeDesign.sinkFrontPositionIn
+  );
   const cooktop = normalize(
     "cooktop",
-    design.cooktopRun,
-    design.cooktopPositionIn,
-    design.cooktopFrontPositionIn
+    activeDesign.cooktopRun,
+    activeDesign.cooktopPositionIn,
+    activeDesign.cooktopFrontPositionIn
   );
+  const normalizedOtherCutouts = new Map(
+    activeDesign.otherCutouts.map((cutout) => [
+      cutout.id,
+      normalize(cutout.id, cutout.run, cutout.positionIn, cutout.frontPositionIn),
+    ])
+  );
+  const isBathroom = isCountertopBathroomRoom(design.room);
+  const preserveDormantSink = isBathroom && design.sinkRun === "island";
   return {
     ...design,
-    sinkRun: sink.run,
-    sinkPositionIn: sink.positionIn,
-    sinkFrontPositionIn: sink.frontPositionIn,
-    cooktopRun: cooktop.run,
-    cooktopPositionIn: cooktop.positionIn,
-    cooktopFrontPositionIn: cooktop.frontPositionIn,
+    sinkRun: preserveDormantSink ? design.sinkRun : sink.run,
+    sinkPositionIn: preserveDormantSink ? design.sinkPositionIn : sink.positionIn,
+    sinkFrontPositionIn: preserveDormantSink ? design.sinkFrontPositionIn : sink.frontPositionIn,
+    cooktopRun: isBathroom ? design.cooktopRun : cooktop.run,
+    cooktopPositionIn: isBathroom ? design.cooktopPositionIn : cooktop.positionIn,
+    cooktopFrontPositionIn: isBathroom ? design.cooktopFrontPositionIn : cooktop.frontPositionIn,
     otherCutouts: design.otherCutouts.map((cutout) => {
-      const placement = normalize(cutout.id, cutout.run, cutout.positionIn, cutout.frontPositionIn);
+      if (isBathroom && cutout.run === "island") return cutout;
+      const placement = normalizedOtherCutouts.get(cutout.id);
+      if (!placement) return cutout;
       return { ...cutout, ...placement };
     }),
   };
@@ -1236,7 +1257,7 @@ function OpeningPlacementEditor({
       ) : item.run && item.requiresFrontPosition && item.depthIn ? (
         <p className="mt-4 rounded-xl bg-[#fff0ea] p-3 text-xs font-bold text-[#8f3329]">
           This opening is too deep for the selected surface. Enter the manufacturer&apos;s smaller
-          cutout depth or choose a deeper island.
+          cutout depth or choose a deeper run.
         </p>
       ) : null}
 
@@ -1259,6 +1280,8 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
     () =>
       typeof window === "undefined" ? null : parseCountertopStudioShareUrl(window.location.href)
   );
+  const isBathroom = isCountertopBathroomRoom(design.room);
+  const activeDesign = getCountertopActiveRoomDesign(design);
   const update = (values: Partial<SteelHomeCountertopDesign>) => onChange({ ...design, ...values });
   const updateAndNormalize = (values: Partial<SteelHomeCountertopDesign>) => {
     const nextDesign = { ...design, ...values };
@@ -1275,9 +1298,9 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
   const selectedPhotoScaleVerified = Boolean(
     selectedTextureImage && selectedPhotoDimensions && !isHandScaleCoverImage(selectedTextureImage)
   );
-  const squareFeet = calculateCountertopSquareFeet(design);
-  const openings = getCountertopOpeningSchedule(design);
-  const placementProblems = getCountertopPlacementProblems(design);
+  const squareFeet = calculateCountertopSquareFeet(activeDesign);
+  const openings = getCountertopOpeningSchedule(activeDesign);
+  const placementProblems = getCountertopPlacementProblems(activeDesign);
   const placedOpeningCount = openings.filter(
     (opening) =>
       opening.run &&
@@ -1286,9 +1309,13 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
   ).length;
   const selectedOpening = openings.find((opening) => opening.id === selectedOpeningId) || null;
   const selectedOtherCutout = selectedOpening
-    ? design.otherCutouts.find((cutout) => cutout.id === selectedOpening.id)
+    ? activeDesign.otherCutouts.find((cutout) => cutout.id === selectedOpening.id)
     : undefined;
   const openingIds = openings.map((opening) => opening.id).join("|");
+
+  useEffect(() => {
+    if (isBathroom && selectedSurfaceTarget === "island") setSelectedSurfaceTarget("counter");
+  }, [isBathroom, selectedSurfaceTarget]);
 
   useEffect(() => {
     if (!openings.length) {
@@ -1307,7 +1334,7 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
 
   const shareStudio = async () => {
     if (typeof window === "undefined") return;
-    const url = buildCountertopStudioShareUrl(design, window.location.href);
+    const url = buildCountertopStudioShareUrl(activeDesign, window.location.href);
     if (!url) {
       setShareStatus("Choose a named JW Stone surface before sharing this design.");
       return;
@@ -1403,17 +1430,29 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
       setOpeningStatus(`${current?.label || "Opening"} needs a location.`);
       return;
     }
-    const runLength = getCountertopCutoutRunLength(design, run);
+    const availableRuns = new Set(
+      getAvailableCountertopCutoutRuns(activeDesign).map((option) => option.value)
+    );
+    if (!availableRuns.has(run)) {
+      setOpeningStatus(`${current?.label || "Opening"} cannot be placed on that run in this room.`);
+      return;
+    }
+    const runLength = getCountertopCutoutRunLength(activeDesign, run);
     const nextPosition =
       current?.positionIn === null || current?.positionIn === undefined
         ? snapToEighthInch(runLength / 2)
-        : clampOpeningPosition(design, run, current.positionIn, current.planningWidthIn);
-    const surfaceDepth = getCountertopCutoutRunDepth(design, run);
+        : clampOpeningPosition(activeDesign, run, current.positionIn, current.planningWidthIn);
+    const surfaceDepth = getCountertopCutoutRunDepth(activeDesign, run);
     const nextFrontPosition = !current?.requiresFrontPosition
       ? null
       : current.frontPositionIn === null || current.frontPositionIn === undefined
         ? snapToEighthInch(surfaceDepth / 2)
-        : clampOpeningFrontPosition(design, run, current.frontPositionIn, current.depthIn || 2);
+        : clampOpeningFrontPosition(
+            activeDesign,
+            run,
+            current.frontPositionIn,
+            current.depthIn || 2
+          );
     changeOpening(id, {
       run,
       positionIn: nextPosition,
@@ -1437,7 +1476,7 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
       return;
     }
     const nextFrontPosition = clampOpeningFrontPosition(
-      design,
+      activeDesign,
       current.run,
       frontPositionIn,
       current.depthIn || 2
@@ -1456,7 +1495,7 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
       return;
     }
     const nextPosition = clampOpeningPosition(
-      design,
+      activeDesign,
       current.run,
       positionIn,
       current.planningWidthIn
@@ -1519,12 +1558,12 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
   return (
     <section
       id="countertop-designer"
-      className="h-full overflow-y-auto bg-[#17201f] text-white lg:overflow-hidden"
+      className="h-full w-full max-w-full overflow-x-hidden overflow-y-auto bg-[#17201f] text-white lg:h-[calc(100dvh-8rem)] lg:min-h-[42rem] lg:overflow-hidden"
       data-testid="steel-home-countertop-designer"
     >
-      <div className="grid min-h-full lg:h-full lg:grid-cols-[minmax(0,1.18fr)_minmax(25rem,.82fr)]">
-        <div className="flex min-h-[28rem] flex-col gap-3 p-3 sm:min-h-[34rem] sm:p-4 lg:min-h-0 lg:p-5">
-          <div className="relative min-h-[24rem] flex-1 overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#29302e] sm:min-h-[31rem]">
+      <div className="grid min-h-full min-w-0 grid-cols-[minmax(0,1fr)] lg:h-full lg:grid-cols-[minmax(0,1.18fr)_minmax(25rem,.82fr)]">
+        <div className="flex h-[38rem] min-w-0 flex-none flex-col gap-3 p-3 sm:h-[44rem] sm:p-4 lg:h-auto lg:min-h-0 lg:flex-auto lg:p-5">
+          <div className="relative h-[28rem] min-w-0 flex-none overflow-hidden rounded-[1.4rem] border border-white/10 bg-[#29302e] sm:h-[34rem] lg:h-auto lg:min-h-[24rem] lg:flex-1">
             <Suspense
               fallback={
                 <div className="grid h-full min-h-[24rem] place-items-center bg-[#29302e] px-6 text-center text-sm font-semibold text-white/70 sm:min-h-[31rem]">
@@ -1533,7 +1572,7 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               }
             >
               <StoneVisualizer3D
-                design={design}
+                design={activeDesign}
                 selectedTarget={selectedSurfaceTarget}
                 onSelectTarget={setSelectedSurfaceTarget}
               />
@@ -1572,14 +1611,16 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               <div>
                 <p className="text-xl font-black">About {squareFeet} sq. ft.</p>
                 <p className="text-xs font-semibold text-white/55">
-                  Gross layout footprint · backsplash excluded · range gaps not deducted
+                  {isBathroom
+                    ? "Gross vanity-top footprint · backsplash and openings excluded"
+                    : "Gross layout footprint · backsplash excluded · range gaps not deducted"}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col border-t border-white/10 bg-[#f6f1e8] text-[#18312f] lg:border-l lg:border-t-0">
+        <div className="flex min-h-0 min-w-0 flex-col border-t border-white/10 bg-[#f6f1e8] text-[#18312f] lg:border-l lg:border-t-0">
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
             {pendingSharedDesign ? (
               <aside
@@ -1713,39 +1754,40 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                       Stone applications in this room
                     </legend>
                     <div className="mt-2 grid grid-cols-2 gap-2">
-                      {(["counter", "island", "backsplash", "floor"] as StoneSurfaceTarget[]).map(
-                        (target) => {
-                          const disabled = target === "island" && !design.island;
-                          const active =
-                            target === "counter" ||
-                            (target === "island" && design.island) ||
-                            (target === "backsplash" && design.backsplash !== "None") ||
-                            (target === "floor" && design.floorStone);
-                          return (
-                            <button
-                              key={target}
-                              type="button"
-                              disabled={disabled}
-                              onClick={() => {
-                                setSelectedSurfaceTarget(target);
-                                if (target === "backsplash" && design.backsplash === "None") {
-                                  update({ backsplash: "Full-height" });
-                                }
-                                if (target === "floor" && !design.floorStone)
-                                  update({ floorStone: true });
-                              }}
-                              aria-pressed={selectedSurfaceTarget === target}
-                              className={`min-h-11 rounded-xl border px-3 text-xs font-black capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] disabled:cursor-not-allowed disabled:opacity-40 ${
-                                selectedSurfaceTarget === target
-                                  ? "border-[#a94f2e] bg-[#fff0e8] text-[#8f3f25]"
-                                  : "border-[#18312f]/12 bg-[#f8f5ef]"
-                              }`}
-                            >
-                              {target} {active ? "· stone" : "· off"}
-                            </button>
-                          );
-                        }
-                      )}
+                      {(isBathroom
+                        ? (["counter", "backsplash", "floor"] as StoneSurfaceTarget[])
+                        : (["counter", "island", "backsplash", "floor"] as StoneSurfaceTarget[])
+                      ).map((target) => {
+                        const disabled = target === "island" && !design.island;
+                        const active =
+                          target === "counter" ||
+                          (target === "island" && design.island) ||
+                          (target === "backsplash" && design.backsplash !== "None") ||
+                          (target === "floor" && design.floorStone);
+                        return (
+                          <button
+                            key={target}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => {
+                              setSelectedSurfaceTarget(target);
+                              if (target === "backsplash" && design.backsplash === "None") {
+                                update({ backsplash: "Full-height" });
+                              }
+                              if (target === "floor" && !design.floorStone)
+                                update({ floorStone: true });
+                            }}
+                            aria-pressed={selectedSurfaceTarget === target}
+                            className={`min-h-11 rounded-xl border px-3 text-xs font-black capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a94f2e] disabled:cursor-not-allowed disabled:opacity-40 ${
+                              selectedSurfaceTarget === target
+                                ? "border-[#a94f2e] bg-[#fff0e8] text-[#8f3f25]"
+                                : "border-[#18312f]/12 bg-[#f8f5ef]"
+                            }`}
+                          >
+                            {target} {active ? "· stone" : "· off"}
+                          </button>
+                        );
+                      })}
                     </div>
                   </fieldset>
 
@@ -1864,13 +1906,15 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                   />
                 </summary>
                 <div className="grid gap-3 border-t border-[#18312f]/10 p-3">
-                  <ProjectTextSelect
-                    label="Waterfall ends"
-                    value={design.waterfall}
-                    options={design.island ? COUNTERTOP_WATERFALL_OPTIONS : (["None"] as const)}
-                    onChange={(waterfall) => update({ waterfall })}
-                    testId="steel-home-countertop-waterfall"
-                  />
+                  {!isBathroom ? (
+                    <ProjectTextSelect
+                      label="Waterfall ends"
+                      value={design.waterfall}
+                      options={design.island ? COUNTERTOP_WATERFALL_OPTIONS : (["None"] as const)}
+                      onChange={(waterfall) => update({ waterfall })}
+                      testId="steel-home-countertop-waterfall"
+                    />
+                  ) : null}
                   <ProjectToggle
                     checked={design.showSeams}
                     onChange={(showSeams) => update({ showSeams })}
@@ -1906,8 +1950,9 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               </p>
               <p className="mt-2 text-sm leading-6 text-[#68736f]">
                 Change the layout and measurements to update the gross countertop footprint.
-                Backsplash and range-gap deductions are excluded; final stone quantity requires
-                field measurement and slab layout.
+                {isBathroom
+                  ? " Backsplash and opening deductions are excluded; final stone quantity requires field measurement and slab layout."
+                  : " Backsplash and range-gap deductions are excluded; final stone quantity requires field measurement and slab layout."}
               </p>
             </div>
 
@@ -1916,7 +1961,20 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                 label="Room"
                 value={design.room}
                 options={COUNTERTOP_ROOM_OPTIONS}
-                onChange={(room) => update({ room })}
+                onChange={(room) => {
+                  const roomPatch = getCountertopRoomChangePatch(room);
+                  updateAndNormalize(
+                    isCountertopBathroomRoom(room) && design.sink === "None"
+                      ? {
+                          ...roomPatch,
+                          sink: "Single-bowl undermount",
+                          sinkRun: "main",
+                          sinkPositionIn: design.wallAIn / 2,
+                          sinkFrontPositionIn: design.wallDepthIn / 2,
+                        }
+                      : roomPatch
+                  );
+                }}
                 testId="steel-home-countertop-room"
               />
               <ProjectSelect
@@ -1980,16 +2038,18 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               top depth for this room—bathroom vanities are often shallower than kitchen tops.
             </p>
 
-            <div className="mt-5">
-              <ProjectToggle
-                checked={design.island}
-                onChange={(island) => updateAndNormalize({ island })}
-                label="Include an island"
-                description="Adds a separate countertop top to the square footage."
-                testId="steel-home-countertop-island"
-              />
-            </div>
-            {design.island ? (
+            {!isBathroom ? (
+              <div className="mt-5">
+                <ProjectToggle
+                  checked={design.island}
+                  onChange={(island) => updateAndNormalize({ island })}
+                  label="Include an island"
+                  description="Adds a separate countertop top to the square footage."
+                  testId="steel-home-countertop-island"
+                />
+              </div>
+            ) : null}
+            {!isBathroom && design.island ? (
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
                 <ProjectNumberField
                   label="Island length"
@@ -2022,7 +2082,7 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               </summary>
               <div className="min-h-[17rem] overflow-hidden border-t border-[#18312f]/10 bg-[#eee9df] p-2">
                 <CountertopLayoutDiagram
-                  design={design}
+                  design={activeDesign}
                   selectedOpeningId={selectedOpeningId}
                   onSelectOpening={setSelectedOpeningId}
                   onMoveOpening={(id, values) => {
@@ -2065,8 +2125,11 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                 />
                 <p className="text-xs leading-5 text-[#68736f] sm:col-span-2">
                   Backsplash is recorded for the fabricator, but it is not included in this gross
-                  layout footprint. Range gaps are shown for planning but are not deducted. Final
-                  stone quantity requires field measurement and slab layout.
+                  layout footprint.{" "}
+                  {isBathroom
+                    ? "Openings are not deducted."
+                    : "Range gaps are shown for planning but are not deducted."}{" "}
+                  Final stone quantity requires field measurement and slab layout.
                 </p>
               </div>
             </details>
@@ -2079,12 +2142,16 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               <summary className="flex min-h-16 cursor-pointer list-none items-start justify-between gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#a94f2e] [&::-webkit-details-marker]:hidden">
                 <div>
                   <h3 id="steel-home-countertop-cutouts-title" className="text-sm font-black">
-                    Sink, cooktop, range, and other openings
+                    {isBathroom
+                      ? "Sink and other bathroom openings"
+                      : "Sink, cooktop, range, and other openings"}
                     {openings.length ? ` · ${openings.length} added` : ""}
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-[#68736f]">
                     Add each opening, choose its run, then set both center positions in inches.
-                    Range gaps and apron-front sinks only need a distance along the run.
+                    {isBathroom
+                      ? "Bathroom openings preserve their measured center positions for the fabricator."
+                      : "Range gaps and apron-front sinks only need a distance along the run."}
                   </p>
                 </div>
                 <ChevronDown
@@ -2108,19 +2175,21 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                     }}
                     testId="steel-home-countertop-sink"
                   />
-                  <ProjectTextSelect
-                    label="Cooktop or range opening"
-                    value={design.cooktop}
-                    options={COUNTERTOP_COOKTOP_OPTIONS}
-                    onChange={(cooktop) => {
-                      update({ cooktop });
-                      if (cooktop !== "None") {
-                        setSelectedOpeningId("cooktop");
-                        setOpeningStatus("Cooktop or range opening added. Choose its location.");
-                      }
-                    }}
-                    testId="steel-home-countertop-cooktop"
-                  />
+                  {!isBathroom ? (
+                    <ProjectTextSelect
+                      label="Cooktop or range opening"
+                      value={design.cooktop}
+                      options={COUNTERTOP_COOKTOP_OPTIONS}
+                      onChange={(cooktop) => {
+                        update({ cooktop });
+                        if (cooktop !== "None") {
+                          setSelectedOpeningId("cooktop");
+                          setOpeningStatus("Cooktop or range opening added. Choose its location.");
+                        }
+                      }}
+                      testId="steel-home-countertop-cooktop"
+                    />
+                  ) : null}
                 </div>
 
                 {design.sink === "Farmhouse" ? (
@@ -2189,13 +2258,15 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                   </div>
                 ) : (
                   <p className="mt-4 rounded-xl bg-[#f4f0e8] p-3 text-xs leading-5 text-[#68736f]">
-                    No openings added. Choose a sink, cooktop, range gap, or other opening above.
+                    {isBathroom
+                      ? "No openings added. Choose a sink or other bathroom opening above."
+                      : "No openings added. Choose a sink, cooktop, range gap, or other opening above."}
                   </p>
                 )}
 
                 {selectedOpening ? (
                   <OpeningPlacementEditor
-                    design={design}
+                    design={activeDesign}
                     item={selectedOpening}
                     otherCutout={selectedOtherCutout}
                     onRunChange={(run) => changeOpeningRun(selectedOpening.id, run)}
@@ -2249,7 +2320,11 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
                 value={design.notes}
                 maxLength={240}
                 onChange={(event) => update({ notes: event.target.value })}
-                placeholder="Waterfall ends, seams, overhangs, or special openings"
+                placeholder={
+                  isBathroom
+                    ? "Vanity edges, seams, overhangs, or special openings"
+                    : "Waterfall ends, seams, overhangs, or special openings"
+                }
                 className={PROJECT_TEXTAREA_CLASS}
                 data-testid="steel-home-countertop-notes"
               />
@@ -2267,8 +2342,9 @@ export default function CountertopDesigner({ design, onChange, onRequest }: Prop
               </p>
               <p className="truncate text-lg font-black">About {squareFeet} sq. ft.</p>
               <p className="text-[0.68rem] font-semibold text-[#68736f]">
-                Backsplash excluded · range gaps not deducted · final slab quantity requires
-                measurement
+                {isBathroom
+                  ? "Backsplash and openings excluded · final slab quantity requires measurement"
+                  : "Backsplash excluded · range gaps not deducted · final slab quantity requires measurement"}
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
