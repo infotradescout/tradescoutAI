@@ -71,8 +71,11 @@ describe("JW Stone marketplace luxury layout", () => {
     vi.unstubAllGlobals();
   });
 
-  it("locks header, hero, palette, inventory, and bottom Connect without header Connect", () => {
+  it("locks the marketplace layout and keeps JW Stone company identity public", () => {
+    const marketplace = container.querySelector<HTMLElement>('[data-jw-brand="true"]');
     const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
+    expect(marketplace?.className).toMatch(/overflow-x-clip/);
+    expect(marketplace?.className).not.toMatch(/overflow-x-visible/);
     expect(container.querySelector('a[aria-label="JW Stone marketplace home"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-connect-cta"]')).not.toBeNull();
@@ -95,6 +98,21 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(footer?.querySelector('a[href="/u/jw-stone"]')).toBeNull();
     expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
+    const companyIdentity = container.querySelector<HTMLElement>(
+      '[data-testid="jw-company-identity"]'
+    );
+    expect(companyIdentity).not.toBeNull();
+    expect(companyIdentity?.textContent).toContain("About JW Stone");
+    expect(companyIdentity?.textContent).toContain(
+      "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery."
+    );
+    expect(companyIdentity?.textContent).toContain("2103 W Herman Ave");
+    expect(companyIdentity?.textContent).toContain("Pensacola, FL 32505");
+    expect(companyIdentity?.textContent).toContain("@jwstonellc");
+    expect(companyIdentity?.textContent).toContain("JW Stone Logistics");
+    expect(companyIdentity?.querySelector('a[href^="https://www.google.com/maps"]')).toBeNull();
+    expect(companyIdentity?.querySelector('a[href^="https://www.instagram.com"]')).toBeNull();
+    expect(companyIdentity?.querySelector('a[href^="https://www.facebook.com"]')).toBeNull();
     expect(container.textContent).not.toContain("Why JW Stone");
     expect(container.textContent).not.toContain("How do I confirm availability or pricing?");
     expect(container.querySelector('[data-testid="jw-marketplace-trust"]')).toBeNull();
@@ -248,6 +266,11 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(storySrcs[0]).toContain("/story/quarry.webp");
     expect(storySrcs.some((src) => src.includes("/story/taj-living-room.webp"))).toBe(true);
     expect(storySrcs.some((src) => src.includes("/story/fireplace.webp"))).toBe(true);
+    const storyRail = story?.querySelector("ul");
+    expect(storyRail?.className).toMatch(/overflow-x-auto/);
+    expect(storyRail?.className).toMatch(/overscroll-x-contain/);
+    expect(storyRail?.className).toContain("[-webkit-overflow-scrolling:touch]");
+    expect(storyRail?.className).not.toMatch(/snap-/);
     expect(storySrcs.some((src) => src.includes("/story/mont-blanc-bar.webp"))).toBe(true);
     const footerEl = container.querySelector('[data-testid="jw-marketplace-footer"]');
     const inventoryEl = container.querySelector("#current-inventory");
@@ -295,7 +318,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
   });
 
-  it("opens Connect from the menu without section jump links", () => {
+  it("opens company navigation and Connect from the menu", () => {
     const header = container.querySelector<HTMLElement>('[data-testid="jw-marketplace-header"]');
     expect(header).not.toBeNull();
     if (!header) throw new Error("Expected header");
@@ -312,6 +335,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(panel.querySelector('a[href="#new-arrivals"]')).toBeNull();
     expect(panel.querySelector('a[href="#jw-story"]')).toBeNull();
     expect(panel.querySelector('a[href="/u/jw-stone"]')).toBeNull();
+    expect(panel.querySelector('a[href="#about-jw-stone"]')?.textContent).toContain("About");
+    expect(panel.querySelector('a[href="#jw-stone-location"]')?.textContent).toContain("Visit");
+    expect(panel.querySelector('a[href="#jw-stone-socials"]')?.textContent).toContain("Socials");
     expect(buttonContaining(panel, "Connect")).not.toBeNull();
     expect(header.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
 
@@ -352,15 +378,23 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(buttonContaining(firstCard, "View gallery")).toBeNull();
     expect(buttonContaining(firstCard, "View stone")).not.toBeNull();
     expect(firstCard.className).not.toMatch(/\bborder\b/);
-    expect(firstCard.querySelector("[class*='aspect-']")).toBeNull();
+    const cardMedia = firstCard.querySelector<HTMLElement>('[data-testid="jw-stone-card-media"]');
+    const cardPhotoRail = firstCard.querySelector<HTMLElement>(
+      '[data-testid="jw-stone-card-photo-rail"]'
+    );
+    expect(cardMedia?.className).toMatch(/aspect-\[4\/3\]/);
+    expect(cardMedia?.className).toMatch(/overflow-hidden/);
+    expect(cardPhotoRail?.className).toMatch(/overflow-x-auto/);
+    expect(cardPhotoRail?.className).not.toMatch(/snap-/);
     expect(firstCard.querySelector('button[aria-label^="Save "]')).not.toBeNull();
     expect(firstCard.textContent).not.toContain("Pairs with");
     expect(firstCard.textContent).not.toContain("Colors from photo");
     expect(firstCard.querySelector('[aria-label^="Colors #"]')).toBeNull();
     expect(firstCard.querySelector('[aria-label^="Pairs with #"]')).toBeNull();
-    expect(firstCard.querySelector("img")?.className).toMatch(/h-auto/);
+    expect(firstCard.querySelector("img")?.className).toMatch(/h-full/);
+    expect(firstCard.querySelector("img")?.className).toMatch(/w-full/);
     expect(firstCard.querySelector("img")?.className).toMatch(/object-contain/);
-    expect(firstCard.querySelector("img")?.className).not.toMatch(/object-cover/);
+    expect(firstCard.querySelector("img")?.className).not.toMatch(/h-auto|object-cover/);
 
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).toBeNull();
     click(buttonContaining(firstCard, "Ask"));
@@ -388,6 +422,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(marbleRail?.querySelector('[data-testid="jw-material-stone-prev"]')).not.toBeNull();
     expect(marbleRail?.querySelector('[data-testid="jw-material-stone-next"]')).not.toBeNull();
     expect(marbleRail?.className).not.toMatch(/overflow-x-auto/);
+    const marbleTrack = marbleRail?.querySelector('[data-testid="jw-material-stone-track"]');
+    expect(marbleTrack?.className).toMatch(/overflow-x-auto/);
+    expect(marbleTrack?.className).not.toMatch(/snap-/);
     expect(marbleRail?.querySelector("[data-stone-card]")?.textContent).toMatch(/Marble/i);
     expect(container.querySelectorAll("[data-stone-card]").length).toBeGreaterThan(1);
 

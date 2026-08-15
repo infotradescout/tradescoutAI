@@ -12,6 +12,18 @@ const SOURCE_NAME_BY_ID = sourceNamesById as Record<string, string>;
 
 /** Explicit preferred lead drive file ids (warehouse / full-slab context). */
 export const JW_STONE_PREFERRED_COVER_FILE_IDS: Readonly<Record<string, string>> = Object.freeze({
+  "aj-quartz-1": "1GhcyanNTSKcFuVXN3pAggbI-XYAmjx2u",
+  "aj-quartz-4": "1V6D5-zXjoklqYg6au4tnAzUiGXeBW7Wc",
+  "aj-quartz-5": "1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH",
+  "bianco-carrara": "1BoLQprq014WBrpdxTyYU5LErye7D5O0U",
+  "carrara-white-brazil-119x75": "13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1",
+  "calacatta-cremo": "12ULnXkUBeSW7ViTBbAA8Wx5rFaPK2T_J",
+  "calacatta-macchia": "1vDIoTtWdOceQ1IzY9u2vAl_knKGWJjxu",
+  "matarazzo-zucchi": "1pVej6DwGpib3soV3YgLDv-v_X8XEIB4h",
+  "marina-black-soapstone": "1tlOUM3_xMx98ZjC3jlpDsWRu7-3Xb-d9",
+  "fusion-blue": "1opCWnnzl2Eba_qdW54RvF7B4jn-XD4PB",
+  "perla-venata": "1ziFDFgSGEpCpx4dpI-YzlAGXuk69W3rk",
+  superiore: "1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo",
   "galaxy-white": "1g58rJny4wbYKb-V8z1rug_hCUEcb7DeO",
   "emperor-brown": "1UkwxC3a6LWlHkaUPZLKppFJT18s9f6oQ",
   "super-white": "1R9wC8J72zpDBdL31Zf4aMISigDudPaQy",

@@ -19,8 +19,8 @@
       "slabCounts": [14]
     },
     {
-      "targetSlug": "bianco-superiory",
-      "sourceFileIds": ["1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo"]
+      "targetSlug": "taj-mahal",
+      "sourceFileIds": ["14FttIjFiq2dOw6ghA1vpGSw5yRC-7Ccz"]
     }
   ],
   "namedAdditions": [
@@ -31,6 +31,20 @@
       "colorDirection": "cool-serene",
       "sourceFileIds": ["1L4IDbbZNC0b8pud5B7x2lMAGnZ7Q75hS"],
       "slabCounts": [8]
+    },
+    {
+      "categorySlug": "unconfirmed",
+      "name": "Superiore",
+      "slug": "superiore",
+      "colorDirection": "soft-light",
+      "sourceFileIds": ["1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo"]
+    },
+    {
+      "categorySlug": "quartzite",
+      "name": "Perla Venata",
+      "slug": "perla-venata",
+      "colorDirection": "cool-serene",
+      "sourceFileIds": ["1ziFDFgSGEpCpx4dpI-YzlAGXuk69W3rk"]
     }
   ],
   "anonymousBundles": [
@@ -274,7 +288,6 @@
       "colorDirection": "cool-serene",
       "sourceFileIds": [
         "1ciNR6W3qrEQYQYQTD84-bFSR--ssKVjV",
-        "1ziFDFgSGEpCpx4dpI-YzlAGXuk69W3rk",
         "1kc8iG97yLkLkEIjMiJeaFhd4p_4uXnVH"
       ],
       "slabCounts": [10]
@@ -283,10 +296,7 @@
       "evidenceKey": "quartzite-136x77-5-11",
       "slug": "trending-selection-28",
       "colorDirection": "cool-serene",
-      "sourceFileIds": [
-        "1YbKcruB0psPD5VWkLVjgxnQzbh0_wh8m",
-        "14FttIjFiq2dOw6ghA1vpGSw5yRC-7Ccz"
-      ],
+      "sourceFileIds": ["1YbKcruB0psPD5VWkLVjgxnQzbh0_wh8m"],
       "slabCounts": [11]
     },
     {

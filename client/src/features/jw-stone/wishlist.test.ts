@@ -112,6 +112,24 @@ describe("JW Stone account-free wishlist", () => {
     });
   });
 
+  it("migrates released stone ids without moving a saved selection to a new photo", () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      JW_STONE_WISHLIST_STORAGE_KEY,
+      JSON.stringify({ version: 1, ids: ["soapstone", "carrara-white-brazil"] })
+    );
+
+    expect(loadWishlist(storage)).toEqual({
+      ids: ["marina-black-soapstone", "bianco-carrara"],
+      status: "reconciled",
+      persisted: true,
+    });
+    expect(JSON.parse(storage.getItem(JW_STONE_WISHLIST_STORAGE_KEY)!)).toEqual({
+      version: 1,
+      ids: ["marina-black-soapstone", "bianco-carrara"],
+    });
+  });
+
   it("fails safely for corrupt and unsupported storage values", () => {
     const corrupt = new MemoryStorage();
     corrupt.setItem(JW_STONE_WISHLIST_STORAGE_KEY, "{broken");

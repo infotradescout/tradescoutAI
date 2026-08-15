@@ -1,4 +1,6 @@
 import { formatTradeScoutTitle } from "@shared/brand";
+import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import {
   createProfileInventoryCategoryShareMetadata,
   listProfileInventoryCategories,
@@ -87,6 +89,21 @@ export function buildPublicJwStoneMarketplaceHtml(
   const collectionUrl = resolveCollectionUrl(opts);
   const profileUrl = opts.marketplaceDomainSurface ? `${origin}/` : collectionUrl;
   const contentBlocks = [JW_STONE_PUBLIC_DISCOVERY_BLOCK];
+  const organizationJsonLd = {
+    "@type": "Organization",
+    name: JW_STONE_PUBLIC_IDENTITY.brandName,
+    description: JW_STONE_PUBLIC_IDENTITY.about,
+    url: profileUrl,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
+      addressLocality: JW_STONE_PUBLIC_IDENTITY.address.addressLocality,
+      addressRegion: JW_STONE_PUBLIC_IDENTITY.address.addressRegion,
+      postalCode: JW_STONE_PUBLIC_IDENTITY.address.postalCode,
+      addressCountry: JW_STONE_PUBLIC_IDENTITY.address.addressCountry,
+    },
+    sameAs: JW_STONE_PUBLIC_IDENTITY.socials.map((social) => social.href),
+  };
 
   const itemShare = opts.stoneSlug
     ? createProfileInventoryItemShareMetadata({
@@ -94,7 +111,7 @@ export function buildPublicJwStoneMarketplaceHtml(
         profileUrl,
         assetOrigin: `${origin}/`,
         categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
-        itemSlug: opts.stoneSlug,
+        itemSlug: resolveJwStoneLegacyItemSlug(String(opts.stoneSlug)),
         photo: opts.photo,
         publicRouteContentBlocks: contentBlocks,
       })
@@ -124,6 +141,21 @@ export function buildPublicJwStoneMarketplaceHtml(
     itemShare?.imageAlt || categoryShare?.title || "JW Stone Logistics logo"
   );
 
+  const companySummary = `
+  <section data-seo-jw-stone-company="true" aria-labelledby="seo-jw-stone-about">
+    <h2 id="seo-jw-stone-about">About JW Stone</h2>
+    <p>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.about)}</p>
+    <h2>Visit JW Stone</h2>
+    <address>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.formatted)}</address>
+    <h2>Follow JW Stone</h2>
+    <p>${JW_STONE_PUBLIC_IDENTITY.socials
+      .map(
+        (social) =>
+          `${escapeHtml(social.label)}: ${escapeHtml(social.publicHandle)}`
+      )
+      .join(" · ")}</p>
+  </section>`;
+
   const summary = itemShare
     ? `
 <main data-seo-jw-stone-marketplace="true" data-seo-jw-stone-item="${escapeHtml(itemShare.itemSlug)}" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
@@ -133,6 +165,7 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p>${description}</p>
     <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
   </article>
+${companySummary}
 </main>`
     : categoryShare
       ? `
@@ -142,6 +175,7 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p>${description}</p>
     <p><a href="${escapeHtml(collectionUrl)}">Browse the full JW Stone collection</a></p>
   </article>
+${companySummary}
 </main>`
       : `
 <main data-seo-jw-stone-marketplace="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
@@ -153,6 +187,7 @@ export function buildPublicJwStoneMarketplaceHtml(
     <p>Browse current selections by photo. Filter by aesthetic or color, then ask JW Stone to confirm what is on hand for your project.</p>
     <p>Browse the collection, save stones, and ask JW Stone when you are ready. Saving never starts a request.</p>
   </article>
+${companySummary}
 </main>`;
 
   let html = opts.templateHtml;
@@ -278,6 +313,7 @@ export function buildPublicJwStoneMarketplaceHtml(
         url: itemShare.canonical,
         image: itemShare.imageUrl,
         isPartOf: { "@type": "CollectionPage", url: collectionUrl },
+        about: organizationJsonLd,
       }
     : categoryShare
       ? {
@@ -287,6 +323,7 @@ export function buildPublicJwStoneMarketplaceHtml(
           description: categoryShare.description,
           url: categoryShare.canonical,
           image: categoryShare.imageUrl,
+          about: organizationJsonLd,
         }
       : {
           "@context": "https://schema.org",
@@ -295,6 +332,7 @@ export function buildPublicJwStoneMarketplaceHtml(
           description: JW_STONE_MARKETPLACE_DESCRIPTION,
           url: collectionUrl,
           image: JW_STONE_MARKETPLACE_IMAGE_URL,
+          mainEntity: organizationJsonLd,
         };
 
   return injectJsonLd(html, jsonLd);
@@ -330,6 +368,13 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "# JW Stone",
     "",
     "Natural stone marketplace on TradeScout.",
+    "",
+    JW_STONE_PUBLIC_IDENTITY.about,
+    "",
+    `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
+    ...JW_STONE_PUBLIC_IDENTITY.socials.map(
+      (social) => `${social.label}: ${social.publicHandle}`
+    ),
     "",
     `Canonical: ${publicOrigin}/`,
     `Robots: ${publicOrigin}/robots.txt`,

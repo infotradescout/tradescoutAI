@@ -91,6 +91,15 @@ describe("JW Stone marketplace URL state", () => {
     });
   });
 
+  it.each([
+    ["soapstone", "marina-black-soapstone"],
+    ["carrara-white-brazil", "bianco-carrara"],
+  ])("canonicalizes released stone path %s without changing identity", (legacy, canonical) => {
+    const state = parseMarketplaceUrlState("", undefined, `/jw-stone/stones/${legacy}`);
+    expect(state.stone).toBe(canonical);
+    expect(toMarketplaceHref(state)).toBe(`/jw-stone/stones/${canonical}`);
+  });
+
   it("serializes safe filters without manufacturing buyer", () => {
     expect(
       serializeMarketplaceUrlState({

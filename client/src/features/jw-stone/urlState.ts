@@ -5,6 +5,7 @@ import {
   getOriginFilterOptions,
   toCatalogFilterValue,
 } from "./catalog";
+import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import { isColorDirectionId } from "./colorDirections";
 import { parseMarketplacePathname, toMarketplacePathHref } from "./marketplaceRoutes";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
@@ -70,9 +71,12 @@ export function parseMarketplaceUrlState(
   const rawAesthetic = params.get("aesthetic");
   const rawColor = params.get("color");
   const requestedStoneValue = pathBits.stone || params.get("stone");
+  const resolvedStoneValue = requestedStoneValue
+    ? resolveJwStoneLegacyItemSlug(requestedStoneValue)
+    : null;
   const requestedStone = requestedStoneValue
     ? catalog.find(
-        (item) => item.wishlistEligible && !item.anonymous && item.shareSlug === requestedStoneValue
+        (item) => item.wishlistEligible && !item.anonymous && item.shareSlug === resolvedStoneValue
       )
     : null;
 

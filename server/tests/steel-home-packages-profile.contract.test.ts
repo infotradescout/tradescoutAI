@@ -26,6 +26,10 @@ import {
   getDirectConnectIntent,
   parseDirectConnectEntryContext,
 } from "../../client/src/pages/direct-connect/directConnectEntryContext";
+import {
+  buildNamedStoneDesignerImageHref,
+  buildStoneDesignerPhotoKey,
+} from "../../client/src/pages/profile-sites/steel-home-project-tools/stoneDesignerImages";
 import { registerStoneDesignerImageRoutes } from "../routes/stone-designer-images";
 
 const read = (relativePath: string) =>
@@ -296,7 +300,9 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
 
     expect(clientAlias).toContain('"/images/stone-designer"');
     expect(route).toContain('"/images/stone-designer/:stoneId/:imageNumber.webp"');
+    expect(route).toContain('"/images/stone-designer/named/:stoneShareSlug/:photoKey.webp"');
     expect(route).toContain("getCatalogItemById(stoneId)");
+    expect(route).toContain("getNamedCatalogItemByShareSlug(stoneShareSlug)");
     expect(route).toContain("stone.anonymous");
     expect(route).toContain("stone.images[imageNumber - 1]");
     expect(serverRoutes).toContain("registerStoneDesignerImageRoutes(app)");
@@ -330,6 +336,34 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
     expect(response.status).toBe(200);
     expect(response.headers["content-type"]).toContain("image/webp");
     expect(response.body).toEqual(expectedImage);
+
+    const stableHref = buildNamedStoneDesignerImageHref(
+      selectedStone.shareSlug!,
+      selectedStone.images[0]!
+    );
+    expect(stableHref).toBeTruthy();
+    const stableResponse = await request(app)
+      .get(stableHref!)
+      .buffer(true)
+      .parse((res, callback) => {
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk: Buffer) => chunks.push(chunk));
+        res.on("end", () => callback(null, Buffer.concat(chunks)));
+      });
+    expect(stableResponse.status).toBe(200);
+    expect(stableResponse.headers["cache-control"]).toContain("immutable");
+    expect(stableResponse.body).toEqual(expectedImage);
+
+    await request(app)
+      .get(
+        `/images/stone-designer/named/${selectedStone.shareSlug}/${buildStoneDesignerPhotoKey(
+          anonymousStone.images[0]!
+        )}.webp`
+      )
+      .expect(404);
+    await request(app)
+      .get(`/images/stone-designer/named/${selectedStone.shareSlug}/not-a-key.webp`)
+      .expect(404);
 
     await request(app).get(`/images/stone-designer/${anonymousStone.id}/1.webp`).expect(404);
   });

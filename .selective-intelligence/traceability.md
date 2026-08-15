@@ -1,20 +1,14 @@
-# Traceability
+# Traceability — Spatial Studio 1.4.0
 
-Trace: intent/prohibition → requirement → journey → canonical owner → data/API → acceptance → test → feature state → evidence.
+| Intent or prohibition | Requirement | Surface | Canonical owner | Planned proof |
+| --- | --- | --- | --- | --- |
+| Navigable real 3D rooms | JW-3D-SCENES | Kitchen, Bathroom, Living Room viewport | `jw-stone-3d-scene` | Component/state tests plus desktop/mobile orbit, zoom, reset, and scale captures |
+| Actual JW imagery with controllable mapping | JW-3D-MATERIAL-TRUTH | Stone selector and texture inspector | `jw-stone-3d-material` | Catalog ID/image reconciliation and crop/offset/scale/vein round trips |
+| Optional fabrication, no-opening default | JW-3D-FABRICATION | Fabrication inspector and measured summary | `jw-stone-planner-model` | Default/geometry/serialization tests and visible scene comparison |
+| One inventory authority; confirmation required | JW-3D-INVENTORY-TRUTH | Selection details and handoff summary | `jw-stone-catalog` | Canonical import audit, forbidden live-stock assertions, no mutation path |
+| Local save and safe design-only share | JW-3D-SAVE-SHARE | Save/share actions | `jw-stone-planner-model` | Persistence, corruption, URL bounds, privacy and no-contact tests |
+| Existing gated TradeScout handoff; no prices | JW-3D-HANDOFF | Request drawer and summary | `jw-stone-planner-request` | No request on open/save/share, payload allowlist, scalar compatibility |
+| Mobile, keyboard, reduced-motion, and failure recovery | JW-3D-ACCESS-RECOVERY | Viewport, inspector, fallback summary | `jw-stone-3d-studio-ui` | 390/1440, keyboard, reduced-motion, texture and WebGL failure evidence |
+| No implementation or release claim without proof | JW-3D-PROOF | Build and release gates | `jw-stone-3d-build` | Exact revision ledger, tests, screenshots, independent review, owner GO |
 
-| Intent or prohibition | Requirement | Journey and surface | Canonical owner | Data or API | Planned acceptance proof |
-| --- | --- | --- | --- | --- | --- |
-| Separate marketplace; current profile untouched | JW-ROUTE | `/jw-stone`, `/u/jw-stone`, custom domain | `jw-stone-marketplace-route`, `existing-jw-profile` | Route flags and explicit server HTML route | Route priority, profile regressions, diff audit, desktop/mobile captures |
-| Stone visible immediately; no role theater | JW-JOURNEY | Hero, First Cut, Current Inventory | `jw-stone-marketplace-state` | Independent allowlisted URL state | Initial cards, one-click detail, independent round trip, invalid recovery |
-| Proportional sourced learning only | JW-LEARNING | Learn about stone section | `jw-stone-marketplace-ui` | Static sourced topics | Topic count, safe hosts, no role tabs/rails |
-| Canonical truth; anonymous names private; no price | JW-INVENTORY | Search, cards, details, sharing, contact | `jw-stone-marketplace-data` | `JwStoneInventoryStone`, safe-name helpers | Record reconciliation, forbidden scans, named and anonymous rendering |
-| Upcoming First Cut positions are not products | JW-FIRST-CUT | First Cut Exclusives editorial section | `jw-stone-marketplace-data` | Presentation-only placeholders | Zero catalog membership and no search/storage/metadata/contact path |
-| Origin only from explicit verified source | JW-ORIGIN | Filters, cards, details | `jw-stone-marketplace-data` | Nullable verified-origin contract | Current filter hidden; fixture proves verified path |
-| No-account persistent saved selection | JW-WISHLIST | Save controls and wishlist panel | `jw-stone-marketplace-state` | Versioned bounded local-storage envelope | Persistence, failure recovery, maximum, stale ID |
-| Truthful accessible cards and details | JW-CARDS | Shared collection and gallery dialog | `jw-stone-marketplace-ui` | Catalog presentation model | Keyboard, touch, save state, anonymous, responsive proof |
-| Contact only after deliberate action | JW-DIRECT-CONNECT | Single-card and wishlist inquiry | `direct-connect-material-handoff` | Existing express-request endpoint | No pre-submit fetch, scalar regression, bounded multi payload |
-| Desktop, mobile, keyboard | JW-A11Y | Collection, learning, overlays | `jw-stone-marketplace-ui` | Semantic DOM and UI primitives | 1440/390 real-browser inspection |
-| Accurate canonical and safe sharing | JW-SEO | Server HTML, sitemap, discovery URLs | `jw-stone-public-metadata` | Route metadata helper and URL parser | SSR/sitemap extraction and forbidden metadata scans |
-| Evidence before merge or deployment | JW-PROTECT | Branch, draft PR, release gate | `existing-jw-profile` | Git and verification ledger | Exact commands, revision, screenshots, owner GO |
-
-Feature state begins at `specified`. Customer-path JW-GUIDANCE is void.
+Earlier JW-GUIDANCE and JW-LEARNING behavior remains void. Existing marketplace/profile behavior is protected unchanged by every included requirement.

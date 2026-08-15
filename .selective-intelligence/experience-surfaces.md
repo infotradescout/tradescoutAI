@@ -1,26 +1,25 @@
-# Experience Surfaces — JW Stone marketplace (amendment 1.3.0)
+# Experience Surfaces — JW Stone Spatial Studio 1.4.0
 
-Every visitor begins in the same image-led introduction with a real sticky header, sees First Cut beneath it, reaches New Arrivals and Current Inventory without making a buyer-path choice, and ends on a real footer. Customer role is collected only inside the request form.
+## Primary journey
 
-## Section order
+The studio opens with the 3D scene as the dominant surface, a visible selected-stone summary, a clear “confirmation required” inventory state, and compact controls. The visitor can switch Kitchen, Bathroom, and Living Room without losing the chosen stone; orbit, zoom, reset, and choose useful camera presets; apply stone to supported surfaces; adjust crop, vein rotation, and physical texture scale; then reveal optional fabrication details.
 
-MarketplaceHeader → protected hero → First Cut → Current Inventory (Aesthetic + Color + material + finish filters, New Arrivals photo rail, named dense cards) → MarketplaceFooter, with detail, wishlist, and deliberate request overlays outside the document sequence.
+## Controls and disclosure
 
-## Void surfaces
+Desktop uses a persistent scene viewport with a bounded inspector. Mobile keeps the viewport primary and exposes the inspector as short progressive panels rather than a long form. Stone, Scene, Texture, Fabrication, and Save/Send groups disclose in that order. Measurement details remain available but do not replace the spatial preview.
 
-- Customer-path guide / buyer toolbar / recommendation rails
-- Learn about stone
-- Yellow / amber eyebrows
-- Call for availability / Trending Selection marketing copy
-- Doctrine fact grids on cards (Recorded source counts, Supplied views, labeled MATERIAL/FINISH cells as primary card content)
+Optional sinks, cooktops, other openings, seams, waterfalls, backsplash/floor applications, and edge choices visibly change the design summary. Defaults are no sink, no cooktop, and no other opening. Destructive reset asks for confirmation; scene and camera reset do not.
 
-## Filters
+## States and recovery
 
-- Aesthetic / mood (Soft & Light, Warm & Earthy, …) via `?aesthetic=`
-- Literal color (White, Black, …) via `?color=`
-- Material, finish, verified origin when available
-- Legacy `?color=` aesthetic values map into `aesthetic`; literal colors stay on `color`
+- Loading: stable viewport frame, progress label, and non-blocking catalog controls.
+- Texture failure: neutral material, selected item identity, retry, and no invented preview.
+- WebGL unavailable or context lost: accessible measured summary and fabrication controls remain usable, with retry and a plain explanation.
+- Invalid shared state: valid allowlisted fields restore independently; rejected fields fall back safely without hiding the studio.
+- Save success: local confirmation only. Send success or error remains owned by the existing TradeScout request flow.
 
-## SSR / crawler
+## Accessibility and responsive proof
 
-Server emits marketplace metadata and crawler fallback for `/jw-stone` aligned to catalog-first copy. First Cut placeholders and anonymous New Arrivals photographs do not receive product URLs.
+Every non-camera operation has a labeled keyboard/touch control and visible focus. Orbit gestures have adjacent instructions and a reset. Reduced motion suppresses nonessential camera animation. Minimum touch targets and horizontal overflow are checked at 390 px; desktop is checked at 1440 px. Canvas content has an equivalent live design summary so essential selections are not available only visually.
+
+The `/jw-stone` marketplace, `/u/jw-stone` profile, and their owner-voided learning/guidance surfaces are not redesigned by this amendment.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, RotateCcw } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, RotateCcw } from "lucide-react";
 import { STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity } from "@shared/steelHomePackagesProfile";
 import {
   buildSteelHomeBuilderPath,
@@ -50,6 +50,17 @@ type BuilderRequestDetails = Pick<
 type BuilderRequestDetailsByBuilder = Record<SteelHomePlanner, BuilderRequestDetails>;
 
 const BUILDER_REQUEST_DETAILS_STORAGE_KEY = "tradescout:steel-home-builders:request-details:v1";
+
+type LocalSaveStatus = "saving" | "saved" | "failed";
+
+function getLocalStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 function requestDetailsFromDraft(draft: SteelHomeProjectDraft): BuilderRequestDetails {
   return {
@@ -120,8 +131,9 @@ export default function SteelHomePackagesProfile({
     createEmptySteelHomeProjectDraft()
   );
   const [storageReady, setStorageReady] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [requestDetailsSaved, setRequestDetailsSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<LocalSaveStatus>("saving");
+  const [requestDetailsSaveStatus, setRequestDetailsSaveStatus] =
+    useState<LocalSaveStatus>("saving");
   const [requestDetails, setRequestDetails] = useState<BuilderRequestDetailsByBuilder>(
     createBuilderRequestDetails
   );
@@ -132,23 +144,29 @@ export default function SteelHomePackagesProfile({
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const storage = typeof window === "undefined" ? null : window.localStorage;
+    const storage = getLocalStorage();
     const loadedDraft = loadSteelHomeProjectDraft(storage);
     setDraft(loadedDraft);
     setRequestDetails(loadBuilderRequestDetails(storage, loadedDraft));
     setStorageReady(true);
-    setSaved(Boolean(storage));
-    setRequestDetailsSaved(Boolean(storage));
+    if (!storage) {
+      setSaveStatus("failed");
+      setRequestDetailsSaveStatus("failed");
+    }
   }, []);
 
   useEffect(() => {
-    if (!storageReady || typeof window === "undefined") return;
-    setSaved(saveSteelHomeProjectDraft(window.localStorage, draft));
+    if (!storageReady) return;
+    const storage = getLocalStorage();
+    setSaveStatus(saveSteelHomeProjectDraft(storage, draft) ? "saved" : "failed");
   }, [draft, storageReady]);
 
   useEffect(() => {
-    if (!storageReady || typeof window === "undefined") return;
-    setRequestDetailsSaved(saveBuilderRequestDetails(window.localStorage, requestDetails));
+    if (!storageReady) return;
+    const storage = getLocalStorage();
+    setRequestDetailsSaveStatus(
+      saveBuilderRequestDetails(storage, requestDetails) ? "saved" : "failed"
+    );
   }, [requestDetails, storageReady]);
 
   useEffect(() => {
@@ -202,7 +220,7 @@ export default function SteelHomePackagesProfile({
 
   const updateRequestDraft = useCallback(
     (planner: SteelHomePlanner, nextDraft: SteelHomeProjectDraft) => {
-      setRequestDetailsSaved(false);
+      setRequestDetailsSaveStatus("saving");
       setRequestDetails((current) => ({
         ...current,
         [planner]: requestDetailsFromDraft(nextDraft),
@@ -212,17 +230,17 @@ export default function SteelHomePackagesProfile({
   );
 
   const updateBuilding = useCallback((building: SteelHomeProjectDraft["building"]) => {
-    setSaved(false);
+    setSaveStatus("saving");
     setDraft((current) => ({ ...current, building }));
   }, []);
 
   const updateCountertops = useCallback((countertops: SteelHomeProjectDraft["countertops"]) => {
-    setSaved(false);
+    setSaveStatus("saving");
     setDraft((current) => ({ ...current, countertops }));
   }, []);
 
   const updateCabinets = useCallback((cabinets: SteelHomeProjectDraft["cabinets"]) => {
-    setSaved(false);
+    setSaveStatus("saving");
     setDraft((current) => ({ ...current, cabinets }));
   }, []);
 
@@ -231,8 +249,8 @@ export default function SteelHomePackagesProfile({
     const builder = STEEL_HOME_BUILDERS.find((item) => item.key === activePlanner);
     if (!window.confirm(`Reset every choice in the ${builder?.label || "open"} builder?`)) return;
     const empty = createEmptySteelHomeProjectDraft();
-    setSaved(false);
-    setRequestDetailsSaved(false);
+    setSaveStatus("saving");
+    setRequestDetailsSaveStatus("saving");
     setDraft((current) => ({
       ...current,
       building: activePlanner === "building" ? empty.building : current.building,
@@ -321,11 +339,26 @@ export default function SteelHomePackagesProfile({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span
-                className="hidden items-center gap-1.5 text-xs font-semibold text-[#68736f] sm:flex"
+                className={`flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold ${
+                  saveStatus === "failed" ? "text-[#9f3e2b]" : "text-[#68736f]"
+                }`}
+                role="status"
                 aria-live="polite"
+                aria-label={
+                  saveStatus === "saved"
+                    ? "Saved on this device"
+                    : saveStatus === "failed"
+                      ? "Save failed. Changes remain available in this tab."
+                      : "Saving on this device"
+                }
+                data-testid="steel-home-builder-save-status"
               >
-                <Check className="h-3.5 w-3.5 text-[#a94f2e]" aria-hidden="true" />
-                {saved ? "Saved on this device" : "Saving"}
+                {saveStatus === "failed" ? (
+                  <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 text-[#a94f2e]" aria-hidden="true" />
+                )}
+                {saveStatus === "saved" ? "Saved" : saveStatus === "failed" ? "Save failed" : "Saving"}
               </span>
               <button
                 type="button"
@@ -376,7 +409,8 @@ export default function SteelHomePackagesProfile({
           onChange={(nextDraft) => updateRequestDraft(requestSelection.planner, nextDraft)}
           requestHref={requestHref}
           laborRequestHref={laborRequestHref}
-          saved={saved && requestDetailsSaved}
+          saved={saveStatus === "saved" && requestDetailsSaveStatus === "saved"}
+          saveFailed={saveStatus === "failed" || requestDetailsSaveStatus === "failed"}
           onClose={() => setRequestSelection(null)}
         />
       ) : null}

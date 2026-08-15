@@ -38,7 +38,11 @@ import {
   saveSteelHomeProjectDraft,
   type SteelHomeProjectStorage,
 } from "./projectModel";
-import { buildStoneDesignerImageHref } from "./stoneDesignerImages";
+import {
+  buildNamedStoneDesignerImageHref,
+  buildStoneDesignerImageHref,
+  buildStoneDesignerPhotoKey,
+} from "./stoneDesignerImages";
 
 const FORBIDDEN_PUBLIC_NAMES = [
   "Worldwide Steel Buildings",
@@ -214,12 +218,12 @@ describe("steel-home project model", () => {
     expect(invalid.additionalScopes).toEqual([]);
   });
 
-  it("round-trips only the current v8 schema and recovers from corrupt browser storage", () => {
+  it("round-trips only the current v9 schema and recovers from corrupt browser storage", () => {
     const { storage, values } = memoryStorage();
     const draft = createEmptySteelHomeProjectDraft();
-    expect(STEEL_HOME_PROJECT_DRAFT_VERSION).toBe(8);
+    expect(STEEL_HOME_PROJECT_DRAFT_VERSION).toBe(9);
     expect(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY).toBe(
-      "tradescout:steel-home-project-tools:draft:v8"
+      "tradescout:steel-home-project-tools:draft:v9"
     );
     draft.location = "39564";
     draft.stateCode = "MS";
@@ -228,6 +232,7 @@ describe("steel-home project model", () => {
     draft.projectRole = "has-builder";
     draft.additionalScopes = ["windows-and-doors", "appliances"];
     draft.countertops.included = true;
+    draft.countertops.island = true;
     draft.countertops.stoneId = "taj-mahal";
     draft.countertops.wallDepthIn = 22;
     draft.countertops.sink = "Farmhouse";
@@ -286,7 +291,97 @@ describe("steel-home project model", () => {
     expect(values.has("tradescout:steel-home-project-tools:draft:v7")).toBe(false);
   });
 
-  it("migrates v7 countertop dimensions to v8 with the former 25.5-inch wall depth", () => {
+  it("migrates a v8 design into the spatial-studio v9 defaults", () => {
+    const legacyKey = "tradescout:steel-home-project-tools:draft:v8";
+    const legacyDraft = createEmptySteelHomeProjectDraft();
+    const legacyCountertops = { ...legacyDraft.countertops } as Record<string, unknown>;
+    for (const key of [
+      "textureImageIndex",
+      "texturePhotoKey",
+      "textureOffsetX",
+      "textureOffsetY",
+      "textureScale",
+      "veinRotation",
+      "cameraPreset",
+      "floorStone",
+      "showSeams",
+      "waterfall",
+    ]) {
+      delete legacyCountertops[key];
+    }
+    const { storage, values } = memoryStorage({
+      [legacyKey]: JSON.stringify({ ...legacyDraft, version: 8, countertops: legacyCountertops }),
+    });
+
+    expect(loadSteelHomeProjectDraft(storage)).toMatchObject({
+      version: 9,
+      countertops: {
+        textureImageIndex: 0,
+        texturePhotoKey: expect.stringMatching(/^ph_[0-9a-f]{16}$/),
+        textureOffsetX: 0,
+        textureOffsetY: 0,
+        textureScale: 1,
+        veinRotation: 0,
+        cameraPreset: "Perspective",
+        floorStone: false,
+        showSeams: false,
+        waterfall: "None",
+        sink: "None",
+        cooktop: "None",
+      },
+    });
+    expect(values.has(legacyKey)).toBe(false);
+    expect(values.has(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY)).toBe(true);
+  });
+
+  it("defaults to only the primary countertop surface and no optional fabrication", () => {
+    expect(createEmptySteelHomeProjectDraft().countertops).toMatchObject({
+      island: false,
+      backsplash: "None",
+      floorStone: false,
+      sink: "None",
+      cooktop: "None",
+      otherCutouts: [],
+      showSeams: false,
+      waterfall: "None",
+      edge: "None",
+    });
+  });
+
+  it("keeps the selected inventory photo within that stone's real image set", () => {
+    const draft = createEmptySteelHomeProjectDraft();
+    const alabamaWhite = getCatalogItemById("alabama-white")!;
+    const lastAlabamaPhotoKey = buildStoneDesignerPhotoKey(alabamaWhite.images[40])!;
+    draft.countertops.stoneId = "alabama-white";
+    draft.countertops.textureImageIndex = 0;
+    draft.countertops.texturePhotoKey = lastAlabamaPhotoKey;
+    expect(reconcileSteelHomeProjectDraft(draft).countertops).toMatchObject({
+      textureImageIndex: 40,
+      texturePhotoKey: lastAlabamaPhotoKey,
+    });
+    const { storage } = memoryStorage();
+    expect(saveSteelHomeProjectDraft(storage, draft)).toBe(true);
+    expect(loadSteelHomeProjectDraft(storage).countertops).toMatchObject({
+      textureImageIndex: 40,
+      texturePhotoKey: lastAlabamaPhotoKey,
+    });
+
+    draft.countertops.stoneId = "blue-fantasy";
+    draft.countertops.textureImageIndex = 40;
+    expect(reconcileSteelHomeProjectDraft(draft).countertops).toMatchObject({
+      textureImageIndex: 0,
+      texturePhotoKey: expect.stringMatching(/^ph_[0-9a-f]{16}$/),
+    });
+  });
+
+  it("removes waterfall selections when no island exists", () => {
+    const draft = createEmptySteelHomeProjectDraft();
+    draft.countertops.island = false;
+    draft.countertops.waterfall = "Both";
+    expect(reconcileSteelHomeProjectDraft(draft).countertops.waterfall).toBe("None");
+  });
+
+  it("migrates v7 countertop dimensions to v9 with the former 25.5-inch wall depth", () => {
     const legacyKey = "tradescout:steel-home-project-tools:draft:v7";
     const legacyDraft = createEmptySteelHomeProjectDraft();
     const legacyCountertops = {
@@ -311,7 +406,7 @@ describe("steel-home project model", () => {
     });
 
     expect(loadSteelHomeProjectDraft(storage)).toMatchObject({
-      version: 8,
+      version: 9,
       countertops: {
         included: true,
         room: "Primary bathroom",
@@ -327,12 +422,13 @@ describe("steel-home project model", () => {
     expect(values.has(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY)).toBe(true);
   });
 
-  it("migrates v6 opening placements to v8 with new front positions and wall depth defaulted", () => {
+  it("migrates v6 opening placements to v9 with new front positions and wall depth defaulted", () => {
     const legacyKey = "tradescout:steel-home-project-tools:draft:v6";
     const legacyDraft = createEmptySteelHomeProjectDraft();
     const legacyCountertops = {
       ...legacyDraft.countertops,
       included: true,
+      island: true,
       sink: "Farmhouse",
       sinkRun: "main",
       sinkPositionIn: 48,
@@ -364,7 +460,7 @@ describe("steel-home project model", () => {
 
     const migrated = loadSteelHomeProjectDraft(storage);
     expect(migrated).toMatchObject({
-      version: 8,
+      version: 9,
       countertops: {
         included: true,
         wallDepthIn: 25.5,
@@ -390,7 +486,7 @@ describe("steel-home project model", () => {
     expect(values.has(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY)).toBe(true);
   });
 
-  it("migrates a v5 countertop draft through v8 without losing choices", () => {
+  it("migrates a v5 countertop draft through v9 without losing choices", () => {
     const legacyKey = "tradescout:steel-home-project-tools:draft:v5";
     const legacyDraft = createEmptySteelHomeProjectDraft();
     const legacyCountertops = {
@@ -417,7 +513,7 @@ describe("steel-home project model", () => {
 
     const migrated = loadSteelHomeProjectDraft(storage);
     expect(migrated).toMatchObject({
-      version: 8,
+      version: 9,
       countertops: {
         included: true,
         stoneId: "taj-mahal",
@@ -521,7 +617,7 @@ describe("steel-home project model", () => {
     });
     expect(getCountertopOpeningSchedule(draft.countertops)).toEqual([]);
     expect(getCountertopPlacementProblems(draft.countertops)).toEqual([]);
-    expect(calculateCountertopSquareFeet(draft.countertops)).toBe(58.2);
+    expect(calculateCountertopSquareFeet(draft.countertops)).toBe(33.7);
     expect(calculateCabinetPlannedWidth(draft.cabinets)).toBe(198);
     expect(draft.cabinets.primaryWallIn - calculateCabinetPlannedWidth(draft.cabinets)).toBe(18);
     expect(
@@ -768,6 +864,7 @@ describe("steel-home project model", () => {
 
   it("preserves opening measurements at eighth-inch precision through reconcile, storage, and format", () => {
     const draft = createEmptySteelHomeProjectDraft();
+    draft.countertops.island = true;
     draft.countertops.wallDepthIn = 25.74;
     draft.countertops.sink = "Double-bowl undermount";
     draft.countertops.sinkRun = "main";
@@ -881,6 +978,7 @@ describe("steel-home project model", () => {
 
   it("requires and serializes valid 2-D centers for sink, cooktop, and other openings", () => {
     const draft = createEmptySteelHomeProjectDraft();
+    draft.countertops.island = true;
     draft.countertops.sink = "Double-bowl undermount";
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 48;
@@ -1465,6 +1563,7 @@ describe("steel-home project model", () => {
     draft.building.included = true;
     draft.building.widthFt = 54;
     draft.countertops.included = true;
+    draft.countertops.island = true;
     draft.countertops.stoneId = "taj-mahal";
     draft.countertops.wallAIn = 132;
     draft.cabinets.included = true;
@@ -1584,6 +1683,7 @@ describe("steel-home project model", () => {
     draft.timing = "Within 3 months";
     draft.projectRole = "self-contracted";
     draft.countertops.included = true;
+    draft.countertops.island = true;
     draft.countertops.stoneId = "aj-quartz";
     draft.countertops.sink = "Farmhouse";
     draft.countertops.sinkRun = "main";
@@ -1623,6 +1723,14 @@ describe("steel-home project model", () => {
       'Other opening — Column — Main run, center 92" from the start edge (left end); left/right are as viewed while standing in the room facing the run, center 6" inward from the room-facing front edge; measure inward toward the wall or back edge, approximately 8" × 6"',
     ]);
 
+    const selectedStone = getCatalogItemById("aj-quartz");
+    const selectedImageHref = selectedStone?.images[0];
+    const stablePhotoHref =
+      selectedStone?.shareSlug && selectedImageHref
+        ? buildNamedStoneDesignerImageHref(selectedStone.shareSlug, selectedImageHref)
+        : null;
+    expect(stablePhotoHref).toBeTruthy();
+
     const stoneDescription = buildCountertopStoneRequestDescription(draft);
     const fabricatorDescription = buildCountertopFabricatorRequestDescription(draft);
 
@@ -1631,6 +1739,16 @@ describe("steel-home project model", () => {
       "Project location: 123 Private Lane, Ocean Springs, MS 39564 — Jackson County, MS"
     );
     expect(stoneDescription).toContain("Requested surface: AJ Quartz — Engineered Quartz");
+    expect(stoneDescription).toContain(`Selected catalog photo reference: ${stablePhotoHref}`);
+    expect(stoneDescription).toContain(
+      `Selected-photo source dimensions: 128×64" recorded for this exact photo's source filename`
+    );
+    expect(stoneDescription).toContain(
+      "Texture scale status: Dimension-derived from this exact photo; confirm the exact slab with JW Stone"
+    );
+    expect(stoneDescription).not.toContain('128×64" · 127.5×64"');
+    expect(stoneDescription).toContain("applied to countertops, island");
+    expect(stoneDescription).toContain("Availability status: Confirmation required with JW Stone");
     expect(stoneDescription).toContain(
       "Gross countertop layout footprint (backsplash excluded; range gaps not deducted):"
     );
@@ -1652,6 +1770,14 @@ describe("steel-home project model", () => {
     expect(fabricatorDescription).toContain("Service area: Jackson County, MS");
     expect(fabricatorDescription).toContain("Work needed: Stone fabrication");
     expect(fabricatorDescription).toContain("Stone reference: AJ Quartz — Engineered Quartz");
+    expect(fabricatorDescription).toContain(`Selected catalog photo reference: ${stablePhotoHref}`);
+    expect(fabricatorDescription).toContain(
+      `Selected-photo source dimensions: 128×64" recorded for this exact photo's source filename`
+    );
+    expect(fabricatorDescription).not.toContain('128×64" · 127.5×64"');
+    expect(fabricatorDescription).toContain(
+      "Availability status: Confirmation required with JW Stone"
+    );
     expect(fabricatorDescription).toContain(
       "Gross countertop layout footprint (backsplash excluded; range gaps not deducted):"
     );
@@ -1673,6 +1799,17 @@ describe("steel-home project model", () => {
       "Stone purchase, availability, slab quantity, and material pricing are not part of this fabricator request."
     );
     expect(fabricatorDescription).not.toContain("123 Private Lane");
+
+    const closeUpDraft = createEmptySteelHomeProjectDraft();
+    closeUpDraft.countertops.stoneId = "blue-goias";
+    expect(buildCountertopFabricatorRequestDescription(closeUpDraft)).toContain(
+      "Texture scale status: Scale unverified — the selected photo is a hand or close-up view"
+    );
+    const unprovenScaleDraft = createEmptySteelHomeProjectDraft();
+    unprovenScaleDraft.countertops.stoneId = "black-pearl";
+    expect(buildCountertopFabricatorRequestDescription(unprovenScaleDraft)).toContain(
+      "Texture scale status: Scale unverified — this exact photo has no recorded source dimensions"
+    );
     expect(fabricatorDescription).not.toContain("Project location:");
     expect(fabricatorDescription).not.toContain("inside corner");
 
@@ -1786,6 +1923,7 @@ describe("steel-home project model", () => {
     draft.projectRole = "has-builder";
     draft.additionalScopes = ["windows-and-doors", "appliance-protection"];
     draft.countertops.included = true;
+    draft.countertops.island = true;
     draft.countertops.stoneId = "cristallo";
     draft.labor.trades = ["Stone fabrication", "Countertop installation"];
 

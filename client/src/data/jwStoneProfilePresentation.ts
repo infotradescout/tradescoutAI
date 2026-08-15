@@ -49,7 +49,7 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       sourceRequests: true,
       browseCtaImage:
         "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-      browseCtaEyebrow: "Rhino White · current inventory",
+      browseCtaEyebrow: "White Rhino · current inventory",
       featuredCollection: {
         label: "JW Stone Picks",
         slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],
@@ -168,7 +168,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         title: "Soapstone",
         summary:
           "Explore the Soapstone currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
-        leadItemSlug: "soapstone",
+        leadItemSlug: "marina-black-soapstone",
         indexable: true,
       },
       {

@@ -1,13 +1,26 @@
 import { JW_STONE_NAMED_IDS, getCatalogItemById } from "@/features/jw-stone/catalog";
+import { isHandScaleCoverImage } from "@/features/jw-stone/coverImages";
+import {
+  formatSlabDimension,
+  resolveSlabDimensionForInventoryImage,
+} from "@/features/jw-stone/slabDimensions";
 import { getCountyByFips } from "@shared/states-counties";
 import {
   STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
   STEEL_HOME_PACKAGES_REQUEST_SOURCE,
 } from "@shared/steelHomePackagesProfile";
+import {
+  buildNamedStoneDesignerImageHref,
+  buildStoneDesignerPhotoKey,
+  resolveStoneDesignerPhotoIndex,
+} from "./stoneDesignerImages";
 
-export const STEEL_HOME_PROJECT_DRAFT_VERSION = 8 as const;
-export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v8";
+export const STEEL_HOME_PROJECT_DRAFT_VERSION = 9 as const;
+export const STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY = "tradescout:steel-home-project-tools:draft:v9";
+const LEGACY_V8_STEEL_HOME_PROJECT_DRAFT_VERSION = 8;
+const LEGACY_V8_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
+  "tradescout:steel-home-project-tools:draft:v8";
 const LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_VERSION = 7;
 const LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY =
   "tradescout:steel-home-project-tools:draft:v7";
@@ -183,6 +196,7 @@ export const COUNTERTOP_ROOM_OPTIONS = [
   "Kitchen",
   "Primary bathroom",
   "Guest bathroom",
+  "Living room",
   "Laundry",
   "Outdoor kitchen",
   "Other room",
@@ -195,6 +209,7 @@ export const COUNTERTOP_LAYOUT_OPTIONS = [
 ] as const;
 
 export const COUNTERTOP_EDGE_OPTIONS = [
+  "None",
   "Eased",
   "Beveled",
   "Half bullnose",
@@ -203,6 +218,9 @@ export const COUNTERTOP_EDGE_OPTIONS = [
 ] as const;
 
 export const COUNTERTOP_BACKSPLASH_OPTIONS = ["None", "4-inch", "Full-height"] as const;
+export const COUNTERTOP_CAMERA_PRESET_OPTIONS = ["Perspective", "Front", "Top", "Detail"] as const;
+export const COUNTERTOP_VEIN_ROTATION_OPTIONS = [0, 90, 180, 270] as const;
+export const COUNTERTOP_WATERFALL_OPTIONS = ["None", "Left", "Right", "Both"] as const;
 export const COUNTERTOP_SINK_OPTIONS = [
   "None",
   "Single-bowl undermount",
@@ -356,6 +374,21 @@ export type SteelHomeCountertopDesign = {
   islandLengthIn: number;
   islandWidthIn: number;
   stoneId: string;
+  /** Zero-based real inventory image used as the slab face in the spatial studio. */
+  textureImageIndex: number;
+  /** Stable opaque identity for that exact catalog photo; array index is legacy fallback only. */
+  texturePhotoKey: string;
+  /** Normalized slab-map offsets. They move the photographed slab, never resize geometry. */
+  textureOffsetX: number;
+  textureOffsetY: number;
+  /** Physical mapping scale multiplier; 1 preserves the dimension-derived baseline. */
+  textureScale: number;
+  veinRotation: (typeof COUNTERTOP_VEIN_ROTATION_OPTIONS)[number];
+  cameraPreset: (typeof COUNTERTOP_CAMERA_PRESET_OPTIONS)[number];
+  /** Optional independent floor application. Countertops always use the selected surface. */
+  floorStone: boolean;
+  showSeams: boolean;
+  waterfall: (typeof COUNTERTOP_WATERFALL_OPTIONS)[number];
   edge: (typeof COUNTERTOP_EDGE_OPTIONS)[number];
   backsplash: (typeof COUNTERTOP_BACKSPLASH_OPTIONS)[number];
   sink: (typeof COUNTERTOP_SINK_OPTIONS)[number];
@@ -529,12 +562,23 @@ export function createEmptySteelHomeProjectDraft(): SteelHomeProjectDraft {
       wallBIn: 96,
       wallCIn: 96,
       wallDepthIn: 25.5,
-      island: true,
+      island: false,
       islandLengthIn: 84,
       islandWidthIn: 42,
       stoneId: "cristallo",
-      edge: "Eased",
-      backsplash: "4-inch",
+      textureImageIndex: 0,
+      texturePhotoKey:
+        buildStoneDesignerPhotoKey(getCatalogItemById("cristallo")?.images[0] || "") || "",
+      textureOffsetX: 0,
+      textureOffsetY: 0,
+      textureScale: 1,
+      veinRotation: 0,
+      cameraPreset: "Perspective",
+      floorStone: false,
+      showSeams: false,
+      waterfall: "None",
+      edge: "None",
+      backsplash: "None",
       sink: "None",
       sinkRun: "",
       sinkPositionIn: null,
@@ -587,6 +631,21 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
     typeof countertops.stoneId === "string" && JW_STONE_NAMED_IDS.has(countertops.stoneId)
       ? countertops.stoneId
       : empty.countertops.stoneId;
+  const selectedStone = getCatalogItemById(selectedStoneId);
+  const selectedStoneLastImageIndex = Math.max(0, (selectedStone?.images.length || 1) - 1);
+  const legacyTextureImageIndex = cleanNumber(
+    countertops.textureImageIndex,
+    empty.countertops.textureImageIndex,
+    0,
+    selectedStoneLastImageIndex
+  );
+  const stableTextureImageIndex = selectedStone
+    ? resolveStoneDesignerPhotoIndex(selectedStone.images, countertops.texturePhotoKey)
+    : -1;
+  const selectedTextureImageIndex =
+    stableTextureImageIndex >= 0 ? stableTextureImageIndex : legacyTextureImageIndex;
+  const selectedTexturePhotoKey =
+    buildStoneDesignerPhotoKey(selectedStone?.images[selectedTextureImageIndex] || "") || "";
   const requestedCountyFips = cleanText(candidate.countyFips, 5);
   const requestedStateCode = cleanText(candidate.stateCode, 2).toUpperCase();
   const canonicalCounty = /^\d{5}$/.test(requestedCountyFips)
@@ -754,6 +813,48 @@ export function reconcileSteelHomeProjectDraft(value: unknown): SteelHomeProject
         72
       ),
       stoneId: selectedStoneId,
+      textureImageIndex: selectedTextureImageIndex,
+      texturePhotoKey: selectedTexturePhotoKey,
+      textureOffsetX: cleanIncrementNumber(
+        countertops.textureOffsetX,
+        empty.countertops.textureOffsetX,
+        -1,
+        1,
+        0.05
+      ),
+      textureOffsetY: cleanIncrementNumber(
+        countertops.textureOffsetY,
+        empty.countertops.textureOffsetY,
+        -1,
+        1,
+        0.05
+      ),
+      textureScale: cleanIncrementNumber(
+        countertops.textureScale,
+        empty.countertops.textureScale,
+        0.5,
+        3,
+        0.1
+      ),
+      veinRotation: cleanLabel(
+        countertops.veinRotation,
+        COUNTERTOP_VEIN_ROTATION_OPTIONS,
+        empty.countertops.veinRotation
+      ),
+      cameraPreset: cleanLabel(
+        countertops.cameraPreset,
+        COUNTERTOP_CAMERA_PRESET_OPTIONS,
+        empty.countertops.cameraPreset
+      ),
+      floorStone: countertops.floorStone === true,
+      showSeams: countertops.showSeams === true,
+      waterfall: countertopIsland
+        ? cleanLabel(
+            countertops.waterfall,
+            COUNTERTOP_WATERFALL_OPTIONS,
+            empty.countertops.waterfall
+          )
+        : "None",
       edge: cleanLabel(countertops.edge, COUNTERTOP_EDGE_OPTIONS, empty.countertops.edge),
       backsplash: cleanLabel(
         countertops.backsplash,
@@ -840,30 +941,42 @@ export function loadSteelHomeProjectDraft(
   if (!storage) return createEmptySteelHomeProjectDraft();
   try {
     const currentRaw = storage.getItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
-    const legacyV7Raw = currentRaw
+    const legacyV8Raw = currentRaw
       ? null
-      : storage.getItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+      : storage.getItem(LEGACY_V8_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    const legacyV7Raw =
+      currentRaw || legacyV8Raw
+        ? null
+        : storage.getItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     const legacyV6Raw =
-      currentRaw || legacyV7Raw
+      currentRaw || legacyV8Raw || legacyV7Raw
         ? null
         : storage.getItem(LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     const legacyV5Raw =
-      currentRaw || legacyV7Raw || legacyV6Raw
+      currentRaw || legacyV8Raw || legacyV7Raw || legacyV6Raw
         ? null
         : storage.getItem(LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     const legacyV4Raw =
-      currentRaw || legacyV7Raw || legacyV6Raw || legacyV5Raw
+      currentRaw || legacyV8Raw || legacyV7Raw || legacyV6Raw || legacyV5Raw
         ? null
         : storage.getItem(LEGACY_V4_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     const legacyV3Raw =
-      currentRaw || legacyV7Raw || legacyV6Raw || legacyV5Raw || legacyV4Raw
+      currentRaw || legacyV8Raw || legacyV7Raw || legacyV6Raw || legacyV5Raw || legacyV4Raw
         ? null
         : storage.getItem(LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     const raw =
-      currentRaw || legacyV7Raw || legacyV6Raw || legacyV5Raw || legacyV4Raw || legacyV3Raw;
+      currentRaw ||
+      legacyV8Raw ||
+      legacyV7Raw ||
+      legacyV6Raw ||
+      legacyV5Raw ||
+      legacyV4Raw ||
+      legacyV3Raw;
     if (!raw) return createEmptySteelHomeProjectDraft();
     const parsed = JSON.parse(raw) as { version?: unknown };
     const isCurrentDraft = parsed.version === STEEL_HOME_PROJECT_DRAFT_VERSION;
+    const isLegacyV8Draft =
+      Boolean(legacyV8Raw) && parsed.version === LEGACY_V8_STEEL_HOME_PROJECT_DRAFT_VERSION;
     const isLegacyV7Draft =
       Boolean(legacyV7Raw) && parsed.version === LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_VERSION;
     const isLegacyV6Draft =
@@ -876,6 +989,7 @@ export function loadSteelHomeProjectDraft(
       Boolean(legacyV3Raw) && parsed.version === LEGACY_V3_STEEL_HOME_PROJECT_DRAFT_VERSION;
     if (
       !isCurrentDraft &&
+      !isLegacyV8Draft &&
       !isLegacyV7Draft &&
       !isLegacyV6Draft &&
       !isLegacyV5Draft &&
@@ -889,6 +1003,7 @@ export function loadSteelHomeProjectDraft(
       reconciled.cabinets.primaryWallIn = createEmptySteelHomeProjectDraft().cabinets.primaryWallIn;
     }
     if (
+      isLegacyV8Draft ||
       isLegacyV7Draft ||
       isLegacyV6Draft ||
       isLegacyV5Draft ||
@@ -897,6 +1012,7 @@ export function loadSteelHomeProjectDraft(
     ) {
       try {
         storage.setItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY, JSON.stringify(reconciled));
+        storage.removeItem(LEGACY_V8_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
         storage.removeItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
         storage.removeItem(LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
         storage.removeItem(LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
@@ -939,6 +1055,7 @@ export function clearSteelHomeProjectDraft(
   if (!storage) return;
   try {
     storage.removeItem(STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
+    storage.removeItem(LEGACY_V8_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     storage.removeItem(LEGACY_V7_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     storage.removeItem(LEGACY_V6_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
     storage.removeItem(LEGACY_V5_STEEL_HOME_PROJECT_DRAFT_STORAGE_KEY);
@@ -1803,6 +1920,7 @@ export function buildSteelHomeProjectDescription(draftInput: SteelHomeProjectDra
       "Details",
       `${countertops.edge} edge; ${countertops.backsplash} backsplash; ${countertops.sink} sink; ${countertops.cooktop} cooktop`
     );
+    addLine(lines, "Visualizer configuration", formatCountertopVisualizerDetails(countertops));
     addLine(
       lines,
       "Gross countertop layout footprint (backsplash excluded; range gaps not deducted)",
@@ -1870,6 +1988,55 @@ function updateRequestHref(
   return isAbsolute ? url.toString() : `${url.pathname}${url.search}${url.hash}`;
 }
 
+function formatCountertopVisualizerDetails(design: SteelHomeCountertopDesign): string {
+  const targets = [
+    "countertops",
+    design.island ? "island" : null,
+    design.backsplash === "None" ? null : `${design.backsplash.toLowerCase()} backsplash`,
+    design.floorStone ? "floor" : null,
+  ].filter(Boolean);
+  return [
+    `inventory image ${design.textureImageIndex + 1}`,
+    `${design.veinRotation}° vein direction`,
+    `${design.textureScale.toFixed(1)}× mapping scale`,
+    `crop X ${design.textureOffsetX.toFixed(2)} / Y ${design.textureOffsetY.toFixed(2)}`,
+    `applied to ${targets.join(", ")}`,
+    `${design.waterfall.toLowerCase()} waterfall`,
+    design.showSeams ? "planning seams shown" : "no planning seams shown",
+  ].join("; ");
+}
+
+function addCountertopStoneSourceContext(
+  lines: string[],
+  design: SteelHomeCountertopDesign,
+  stone: ReturnType<typeof getCatalogItemById>
+): void {
+  if (!stone?.shareSlug) return;
+  const selectedImageHref = stone.images[design.textureImageIndex];
+  if (!selectedImageHref) return;
+  const stablePhotoHref = buildNamedStoneDesignerImageHref(stone.shareSlug, selectedImageHref);
+  const exactDimensions = resolveSlabDimensionForInventoryImage(selectedImageHref);
+  const handOrCloseUp = isHandScaleCoverImage(selectedImageHref);
+  addLine(lines, "Selected catalog photo reference", stablePhotoHref || "Unavailable");
+  addLine(
+    lines,
+    "Selected-photo source dimensions",
+    exactDimensions
+      ? `${formatSlabDimension(exactDimensions)} recorded for this exact photo's source filename`
+      : "Not recorded for this exact photo"
+  );
+  addLine(
+    lines,
+    "Texture scale status",
+    handOrCloseUp
+      ? "Scale unverified — the selected photo is a hand or close-up view"
+      : exactDimensions
+        ? "Dimension-derived from this exact photo; confirm the exact slab with JW Stone"
+        : "Scale unverified — this exact photo has no recorded source dimensions"
+  );
+  addLine(lines, "Availability status", "Confirmation required with JW Stone");
+}
+
 const DIRECT_CONNECT_COMPETING_CONTEXT_KEYS = [
   "intent",
   "target",
@@ -1933,6 +2100,8 @@ export function buildCountertopStoneRequestDescription(draftInput: SteelHomeProj
     "Backsplash selection",
     `${design.backsplash} (not included in the area; quantity requires field measurement)`
   );
+  addLine(lines, "Visualizer configuration", formatCountertopVisualizerDetails(design));
+  addCountertopStoneSourceContext(lines, design, stone);
   addLine(lines, "Desired timing", draft.timing);
   lines.push(
     "",
@@ -1983,6 +2152,8 @@ export function buildCountertopFabricatorRequestDescription(
     `About ${calculateCountertopSquareFeet(design)} sq. ft.`
   );
   addLine(lines, "Edge and backsplash", `${design.edge} edge; ${design.backsplash} backsplash`);
+  addLine(lines, "Visualizer configuration", formatCountertopVisualizerDetails(design));
+  addCountertopStoneSourceContext(lines, design, stone);
   const openings = formatCountertopOpeningSchedule(design);
   if (openings.length)
     lines.push(

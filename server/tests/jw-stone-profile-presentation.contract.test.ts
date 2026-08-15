@@ -78,7 +78,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("useState(inventoryOpenByDefault)");
     expect(source).toContain("useState(inventoryPageSize)");
     expect(source).toContain("Browse full inventory");
-    expect(presentation.inventory.browseCtaEyebrow).toBe("Rhino White · current inventory");
+    expect(presentation.inventory.browseCtaEyebrow).toBe("White Rhino · current inventory");
     expect(source).toContain("inventoryBrowseCtaImage");
     expect(source).toContain("rgba(7,15,18,0.66)_0%");
     const ctaImage = source.indexOf("{inventoryBrowseCtaImage ?");

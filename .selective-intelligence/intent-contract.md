@@ -1,48 +1,30 @@
 # Actual Intent Lock
 
-Project: JW Stone 2.0  
-Release: jw-stone-2-0-r1 / amendment 1.3.0 (owner chat authority, 2026-08-04)  
+Project: JW Stone 2.0
+Release: `jw-stone-2-0-r1` / amendment 1.4.0
+Authority: Thomas, product owner, approved in the current workstream on 2026-08-15
 Status: locked for definition
 
 ## Outcome and primary value event
 
-JW Stone receives a separate, flagship stone-discovery experience at `/jw-stone`. Every visitor sees a real header and footer, First Cut, New Arrivals, and the supplied catalog immediately; can open a stone in one click; save named stones without an account; and deliberately start a Direct Connect request only when ready. Customer type (homeowner, fabricator, builder, designer, architect) is collected on the request form — never as page path theater.
-
-## Owner authority (supersedes stale SI locks)
-
-Owner chat of 2026-08-04 is product authority when it conflicts with prior SI locks:
-
-- Stones must be dense and photo-first; no wasted fact-card doctrine (MATERIAL / FINISH / RECORDED SOURCE COUNTS / SUPPLIED VIEWS labels).
-- Proper marketplace header and footer are required.
-- Learn about stone is **void** — remove; do not restore learning theater.
-- Yellow / amber eyebrow lines are **void** — never ship them.
-- "Color directions" label is wrong: filter is Aesthetic (or Mood); a separate literal Color filter (e.g. White) is required.
-- New Arrivals must be present (restored from the unnamed inventory photo rail; prior "Call for availability" / Trending Selection theater is **void**).
-- "Call for availability" customer copy is **void** — never asked for.
-- No inventing unsolicited storefront theater (path guides, recommendation rails, buyer workspaces).
-- JW lane only (`jw-stone/*`); local preview before merge; no merge without GO.
-
-## Void requirements from prior amendments
-
-- JW-GUIDANCE customer-path guide (1.1.1) — void
-- JW-LEARNING / Learn about stone section (1.2.0) — void
-- Call for availability / Trending Selection marketing rail — void
+Replace the form-led countertop planner with a real spatial studio inside the existing JW Stone planner route. A visitor chooses an actual JW catalog selection, sees it mapped onto correctly scaled kitchen, bathroom, or living-room geometry, adjusts crop, vein direction, and texture scale, optionally adds fabrication details, saves or safely shares the design, and deliberately sends the measured selection to TradeScout for confirmation.
 
 ## Non-negotiables
 
-- Catalog-first storefront under `Current Inventory` with search and optional Aesthetic, Color, material, finish, and verified origin filters.
-- New Arrivals presents unnamed inventory photographs without inventing product names or availability claims.
-- First Cut Exclusives remains honest placeholders until JW supplies verified assignments.
-- No public price surface.
-- Saving is local and never itself a contact action.
-- Direct Connect opens only after explicit inquiry intent; materials requests require customer role on the form.
-- Legacy `?buyer=` must not drive UI.
-- No visual-approval claim without desktop and mobile browser evidence from the exact commit.
+- The checked-in JW inventory projection remains the only inventory authority. The studio is a read-only consumer and never creates a parallel inventory ledger.
+- Catalog presence, stored source counts, and slab photographs do not prove live availability. Public and handoff states say that JW confirmation is required unless a future canonical inventory field explicitly proves otherwise.
+- Real JW images are used as surface textures. Crop, offset, rotation, vein direction, repeat, and physical scale are explicit design state and must survive save/share.
+- Kitchen, bathroom, and living-room scenes support orbit, zoom, camera reset, and understandable real-world dimensions.
+- Sinks, cooktops, seams, waterfalls, backsplashes, floors, and edge choices are optional. The default has no sink, cooktop, or opening.
+- Public price and private cost never render, serialize, enter a share URL, or enter analytics. The fabricator handoff contains measurements, selections, applications, openings, seams, edge, waterfall, and slab/source context only.
+- Saving is local and does not contact anyone. A share payload is bounded, design-only, and excludes address, notes, contact information, price, and internal-only facts.
+- Sending remains an explicit action through the existing gated TradeScout request flow. All inquiries route to TradeScout for manual handling in this release.
+- Desktop, mobile, keyboard, reduced-motion, loading, texture failure, and WebGL-unavailable recovery need observable proof.
 
-## Protected page manifest
+## Preserved owner override
 
-MarketplaceHeader → hero (no yellow eyebrows) → First Cut → Current Inventory (filters, New Arrivals photo rail, named catalog) → MarketplaceFooter → wishlist / detail / request overlays.
+Earlier customer-path guidance, Learn about stone, yellow or amber eyebrows, Call-for-availability marketing, doctrine fact grids, and unsolicited recommendation theater remain void. The separate `/jw-stone` marketplace, current JW profile, canonical inventory, no-price rule, deliberate contact boundary, and no-merge-without-owner-GO rule remain protected.
 
 ## Completion proof
 
-Implementation + focused regression evidence + owner local preview on `/jw-stone` before any merge to `main`.
+Definition approval does not prove implementation or release. Completion requires focused state and serialization tests, real-browser desktop/mobile/keyboard evidence from the exact revision, a WebGL failure recovery check, no-price and no-contact-on-save scans, inventory-authority reconciliation, and owner preview GO before any push, merge, or deployment claim.

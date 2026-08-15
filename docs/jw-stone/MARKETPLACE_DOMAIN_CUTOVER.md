@@ -10,7 +10,7 @@
 | `jwstonelogistics.com` / `www` | Profile HTML (`ProfileSiteView`) | Marketplace HTML + React (`JWStoneMarketplace`) |
 | TradeScout `/jw-stone` | Marketplace (parallel) | Marketplace (public home on platform) |
 | TradeScout `/u/jw-stone` | Legacy wholesaler profile storefront | **301 / client redirect → marketplace** (`/jw-stone` or custom-domain `/`) |
-| Inventory SoT | Profile 119 vs marketplace 148 | One reconciled catalog (148) |
+| Inventory SoT | Legacy profile 119 vs current catalog 158 | One reconciled catalog (158) |
 | Stone URLs | Profile `/stones/:slug` | Domain `/stones/:slug`; platform `/jw-stone/stones/:slug` |
 | Material URLs | Profile `/materials/:slug` | Domain `/materials/:slug`; platform `/jw-stone/materials/:slug` |
 | Trust | Profile about / FAQ | **Removed** from marketplace (redundant Why JW / FAQ chrome) |

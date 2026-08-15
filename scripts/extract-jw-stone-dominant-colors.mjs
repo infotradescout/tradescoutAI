@@ -18,26 +18,29 @@ import path from "node:path";
 import sharp from "sharp";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
-const inventoryPath = path.join(
-  repoRoot,
-  "client/src/data/jwStoneInventory.generated.json"
-);
+const inventoryPath = path.join(repoRoot, "client/src/data/jwStoneInventory.generated.json");
 const reconciliationPath = path.join(
   repoRoot,
   "client/src/data/jwStoneInventoryReconciliation.json"
 );
-const sourceNamesPath = path.join(
-  repoRoot,
-  "client/src/data/jwStoneSourceNames.generated.json"
-);
-const outPath = path.join(
-  repoRoot,
-  "client/src/data/jwStoneDominantColors.generated.json"
-);
+const sourceNamesPath = path.join(repoRoot, "client/src/data/jwStoneSourceNames.generated.json");
+const outPath = path.join(repoRoot, "client/src/data/jwStoneDominantColors.generated.json");
 const publicRoot = path.join(repoRoot, "client/public");
 
 /** Keep in sync with client/src/features/jw-stone/coverImages.ts */
 const PREFERRED_COVER_FILE_IDS = {
+  "aj-quartz-1": "1GhcyanNTSKcFuVXN3pAggbI-XYAmjx2u",
+  "aj-quartz-4": "1V6D5-zXjoklqYg6au4tnAzUiGXeBW7Wc",
+  "aj-quartz-5": "1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH",
+  "bianco-carrara": "1BoLQprq014WBrpdxTyYU5LErye7D5O0U",
+  "carrara-white-brazil-119x75": "13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1",
+  "calacatta-cremo": "12ULnXkUBeSW7ViTBbAA8Wx5rFaPK2T_J",
+  "calacatta-macchia": "1vDIoTtWdOceQ1IzY9u2vAl_knKGWJjxu",
+  "matarazzo-zucchi": "1pVej6DwGpib3soV3YgLDv-v_X8XEIB4h",
+  "marina-black-soapstone": "1tlOUM3_xMx98ZjC3jlpDsWRu7-3Xb-d9",
+  "fusion-blue": "1opCWnnzl2Eba_qdW54RvF7B4jn-XD4PB",
+  "perla-venata": "1ziFDFgSGEpCpx4dpI-YzlAGXuk69W3rk",
+  superiore: "1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo",
   "galaxy-white": "1g58rJny4wbYKb-V8z1rug_hCUEcb7DeO",
   "emperor-brown": "1UkwxC3a6LWlHkaUPZLKppFJT18s9f6oQ",
   "super-white": "1R9wC8J72zpDBdL31Zf4aMISigDudPaQy",
@@ -46,8 +49,8 @@ const PREFERRED_COVER_FILE_IDS = {
   "bianco-superiory": "1-1U8FEyCh3N2_DOxRhNKT_lUW72Jh_RQ",
   "calacatta-amala": "1-8YRVJ9x4_lEyoLWh7RpAY0oFPbJHcFa",
   "fusion-brown": "1-uLJ9IFKldBW-UFnESx2UJ4WdOuAACUv",
-  "picasso": "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
-  "bronzonite": "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
+  picasso: "17_4UcZBVch7I4OLgVFXx0Zc52KXBUDNu",
+  bronzonite: "1_mX4CB3IZ9E9OgMkVyqU90bDQx61vFvJ",
   "shadow-storm": "1yuISE53-4yMFdH_4ElUlxi1y7QHmaCa8",
   "aspen-white": "1PGDSTn70sheqEx3u39VgzuJNodBJW0xe",
   // Face-true white — prior BLOCK#22129 lead was yard/sky blue-washed.
@@ -169,8 +172,7 @@ function normalizeName(sourceName = "") {
 function isPhoneDumpSourceName(sourceName = "") {
   const compact = normalizeName(sourceName).replace(/\s+/g, "");
   return (
-    /^(img_?\d+|dsc_?\d+|photo\d+|pxl_?\d+|heic)/i.test(compact) ||
-    /\.heic$/i.test(sourceName)
+    /^(img_?\d+|dsc_?\d+|photo\d+|pxl_?\d+|heic)/i.test(compact) || /\.heic$/i.test(sourceName)
   );
 }
 
@@ -185,9 +187,8 @@ function isFullSlabSourceName(sourceName = "") {
   const name = normalizeName(sourceName);
   if (isCloseUpSourceName(name) || isPhoneDumpSourceName(sourceName)) return false;
   return (
-    /\b(slabs?|bundle|bundles|warehouse|yard|rack|standing|full\s*size|full\s*slab)\b/.test(
-      name
-    ) || /\d+\s*[x×"']\s*\d+/.test(name)
+    /\b(slabs?|bundle|bundles|warehouse|yard|rack|standing|full\s*size|full\s*slab)\b/.test(name) ||
+    /\d+\s*[x×"']\s*\d+/.test(name)
   );
 }
 
@@ -254,7 +255,11 @@ function rgbToHex(r, g, b) {
   return (
     "#" +
     [r, g, b]
-      .map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0"))
+      .map((v) =>
+        Math.max(0, Math.min(255, Math.round(v)))
+          .toString(16)
+          .padStart(2, "0")
+      )
       .join("")
   );
 }
@@ -708,10 +713,7 @@ async function pickCoverImage(images, stoneSlug) {
   }
   if (!scored.length) return top.imagePath;
 
-  scored.sort(
-    (a, b) =>
-      b.chroma - a.chroma || a.candidate.index - b.candidate.index
-  );
+  scored.sort((a, b) => b.chroma - a.chroma || a.candidate.index - b.candidate.index);
   return scored[0].candidate.imagePath;
 }
 

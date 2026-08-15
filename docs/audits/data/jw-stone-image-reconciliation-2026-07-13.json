@@ -461,8 +461,8 @@
     {
       "categorySlug": "marble",
       "name": "Bianco Carrara",
-      "slug": "carrara-white-brazil",
-      "imageCount": 5,
+      "slug": "bianco-carrara",
+      "imageCount": 4,
       "sourceFolders": [
         "Email Pictures",
         "Just Arrived",
@@ -472,7 +472,20 @@
         "1SGpMcNwmimZ2akaM67g7ATHr_nPIdUSU",
         "11MCIktyG7wB_ojqtR0daOU6c_w2Ivjze",
         "1m-6GnrCh5Lr2tfZSaOOc_1eByMB2GiHp",
-        "11NFJz1nsNXwDc7cG8ZivSz5sQ_lkQZBw",
+        "11NFJz1nsNXwDc7cG8ZivSz5sQ_lkQZBw"
+      ]
+    },
+    {
+      "categorySlug": "marble",
+      "name": "Carrara White Brazil",
+      "slug": "carrara-white-brazil-119x75",
+      "imageCount": 1,
+      "sourceFolders": [
+        "Email Pictures",
+        "Just Arrived",
+        "Marble"
+      ],
+      "sourceFileIds": [
         "13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1"
       ]
     },
@@ -1187,15 +1200,27 @@
     },
     {
       "categorySlug": "soapstone",
-      "name": "Marina Black Soapstone",
-      "slug": "soapstone",
-      "imageCount": 3,
+      "name": "Soapstone",
+      "slug": "soapstone-117x70",
+      "imageCount": 1,
       "sourceFolders": [
         "Root",
         "Soapstone"
       ],
       "sourceFileIds": [
-        "13KrP0kUTTcKbVRLEDAuh4YGgTraN6XV4",
+        "13KrP0kUTTcKbVRLEDAuh4YGgTraN6XV4"
+      ]
+    },
+    {
+      "categorySlug": "soapstone",
+      "name": "Marina Black Soapstone",
+      "slug": "marina-black-soapstone",
+      "imageCount": 2,
+      "sourceFolders": [
+        "Root",
+        "Soapstone"
+      ],
+      "sourceFileIds": [
         "1tlOUM3_xMx98ZjC3jlpDsWRu7-3Xb-d9",
         "1NWN1ePmiu-Gjz0W_SimbhRQAWLIZcl3h"
       ]

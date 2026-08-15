@@ -58,6 +58,7 @@ export function ShareCardHost() {
   const [payload, setPayload] = useState<ShareCardPayload | null>(null);
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
@@ -68,6 +69,7 @@ export function ShareCardHost() {
       setPayload(next);
       setNote("");
       setCopied(false);
+      setCopyFailed(false);
     };
     window.addEventListener(SHARE_CARD_EVENT, handleOpen);
     return () => window.removeEventListener(SHARE_CARD_EVENT, handleOpen);
@@ -88,12 +90,14 @@ export function ShareCardHost() {
     try {
       await navigator.clipboard.writeText(payload.url);
       setCopied(true);
+      setCopyFailed(false);
       toast({ title: "Link copied", description: "Ready to paste anywhere." });
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
+      setCopyFailed(true);
       toast({
         title: "Could not copy the link",
-        description: "Try More options instead.",
+        description: "Select and copy the link shown in the share card.",
         variant: "destructive",
       });
     }
@@ -258,6 +262,31 @@ export function ShareCardHost() {
               <ExternalLink className="mr-2 h-4 w-4" /> More
             </Button>
           </div>
+
+          {copyFailed ? (
+            <div
+              className="rounded-xl border border-amber-400/25 bg-amber-400/[0.07] p-3"
+              role="status"
+              aria-live="polite"
+              data-testid="share-copy-recovery"
+            >
+              <label
+                htmlFor="share-copy-recovery-url"
+                className="text-xs font-semibold text-amber-100"
+              >
+                Clipboard access was blocked. Select and copy this link:
+              </label>
+              <Textarea
+                id="share-copy-recovery-url"
+                value={payload.url}
+                readOnly
+                rows={2}
+                onFocus={(event) => event.currentTarget.select()}
+                className="mt-2 min-h-[58px] resize-none break-all border-white/10 bg-black/30 font-mono text-xs text-white selection:bg-ts-orange selection:text-black"
+                data-testid="share-copy-recovery-url"
+              />
+            </div>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

@@ -69,6 +69,13 @@ export async function buildAffiliateUrl(
     baseUrl = origin + rawPathOrUrl;
   }
 
+  // Callers that explicitly require a clean URL should not need account state
+  // just to share it. In addition to avoiding an unnecessary request, this
+  // keeps privacy-sensitive, self-contained share flows fully local.
+  if (options?.suppressRef === true && options.forceRef !== true) {
+    return baseUrl;
+  }
+
   const affiliateCode =
     options?.affiliateCodeOverride != null && options.affiliateCodeOverride !== ""
       ? options.affiliateCodeOverride

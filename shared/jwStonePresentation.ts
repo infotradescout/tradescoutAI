@@ -59,8 +59,43 @@ export function resolveJwStonePublicRequestName(args: {
   return presentation.nameStatus === "source" ? presentation.displayName : null;
 }
 
-export const JW_STONE_SOCIAL_PRESENTATION = {
+/**
+ * Canonical public company identity for the standalone JW Stone storefront.
+ * Keep this aligned with JW Stone's production profile record; the React page,
+ * crawler HTML, and structured data all consume this one contract.
+ */
+export const JW_STONE_PUBLIC_IDENTITY = {
   brandName: "JW Stone Logistics",
+  about:
+    "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery. Based in Pensacola, FL, JW Stone works with fabricators, builders, architects, designers and homeowners across the Gulf South and beyond.",
+  address: {
+    streetAddress: "2103 W Herman Ave",
+    addressLocality: "Pensacola",
+    addressRegion: "FL",
+    postalCode: "32505",
+    addressCountry: "US",
+    formatted: "2103 W Herman Ave, Pensacola, FL 32505",
+    mapUrl:
+      "https://www.google.com/maps/search/?api=1&query=2103%20W%20Herman%20Ave%2C%20Pensacola%2C%20FL%2032505",
+  },
+  socials: [
+    {
+      id: "instagram",
+      label: "Instagram",
+      publicHandle: "@jwstonellc",
+      href: "https://www.instagram.com/jwstonellc/",
+    },
+    {
+      id: "facebook",
+      label: "Facebook",
+      publicHandle: "JW Stone Logistics",
+      href: "https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/",
+    },
+  ],
+} as const;
+
+export const JW_STONE_SOCIAL_PRESENTATION = {
+  brandName: JW_STONE_PUBLIC_IDENTITY.brandName,
   logoUrl: "/images/businesses/jw-stone/logo.svg",
   profileImageUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
   accentColor: "#81904a",

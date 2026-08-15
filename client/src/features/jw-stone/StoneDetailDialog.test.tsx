@@ -75,7 +75,8 @@ describe("StoneDetailDialog", () => {
       expect(dialog?.textContent).toContain(stone.origin.country);
     }
     if (stone.sourceEvidence?.counts?.length) {
-      expect(dialog?.textContent).toMatch(/Available now|slabs available/i);
+      expect(dialog?.textContent).toMatch(/Confirm current availability with JW Stone/i);
+      expect(dialog?.textContent).not.toMatch(/Available now|slabs available/i);
     }
 
     const ask = buttonContaining(dialog, `Ask JW about ${stone.displayName}`);
@@ -95,7 +96,7 @@ describe("StoneDetailDialog", () => {
     expect(onAsk).toHaveBeenCalledWith(stone);
   });
 
-  it("exposes prev/next and thumbnails when a stone has multiple mapped photos", () => {
+  it("keeps a stable detail stage while photos move through a native momentum rail", () => {
     const stone = JW_STONE_CATALOG.find((entry) => entry.images.length > 1);
     expect(stone).toBeTruthy();
     if (!stone) throw new Error("Expected a multi-image stone");
@@ -114,6 +115,22 @@ describe("StoneDetailDialog", () => {
 
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     expect(dialog).not.toBeNull();
+    const media = dialog?.querySelector<HTMLElement>('[data-testid="jw-stone-detail-media"]');
+    const rail = dialog?.querySelector<HTMLElement>('[data-testid="jw-stone-detail-photo-rail"]');
+    const leadImages = rail?.querySelectorAll("img") || [];
+    expect(dialog?.className).toMatch(/w-full/);
+    expect(dialog?.className).toMatch(/overflow-x-hidden/);
+    expect(media?.className).toMatch(/overflow-hidden/);
+    expect(rail?.className).toMatch(/h-\[52dvh\]/);
+    expect(rail?.className).toMatch(/overflow-x-auto/);
+    expect(rail?.className).toMatch(/overscroll-x-contain/);
+    expect(rail?.className).toContain("[-webkit-overflow-scrolling:touch]");
+    expect(rail?.className).not.toMatch(/snap-/);
+    expect(leadImages).toHaveLength(stone.images.length);
+    expect(leadImages[0]?.className).toMatch(/h-full/);
+    expect(leadImages[0]?.className).toMatch(/w-full/);
+    expect(leadImages[0]?.className).toMatch(/object-contain/);
+    expect(leadImages[0]?.className).not.toMatch(/h-auto|object-cover/);
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-prev"]')).not.toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]')).not.toBeNull();
     expect(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumbs"]')).not.toBeNull();
@@ -121,14 +138,23 @@ describe("StoneDetailDialog", () => {
       stone.images.length
     );
 
-    const leadSrc = dialog?.querySelector("img")?.getAttribute("src");
+    const leadSrc = leadImages[0]?.getAttribute("src");
     expect(leadSrc).toBe(stone.images[0]);
 
     click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-next"]') ?? null);
-    expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(stone.images[1]);
+    expect(
+      dialog
+        ?.querySelector('[data-testid="jw-stone-detail-photo-thumb-1"]')
+        ?.getAttribute("aria-current")
+    ).toBe("true");
+    expect(media?.textContent).toContain(`2 / ${stone.images.length}`);
 
     click(dialog?.querySelector('[data-testid="jw-stone-detail-photo-thumb-0"]') ?? null);
-    expect(dialog?.querySelector("img")?.getAttribute("src")).toBe(stone.images[0]);
+    expect(
+      dialog
+        ?.querySelector('[data-testid="jw-stone-detail-photo-thumb-0"]')
+        ?.getAttribute("aria-current")
+    ).toBe("true");
   });
 
   it("omits gallery chrome for single-image stones", () => {

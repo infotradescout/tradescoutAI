@@ -106,6 +106,27 @@ export function MarketplaceHeader({
                 className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}
               >
                 <nav aria-label="JW Stone menu" className="flex flex-col gap-0.5 text-sm">
+                  <a
+                    href="#about-jw-stone"
+                    onClick={() => closeAnd()}
+                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    About
+                  </a>
+                  <a
+                    href="#jw-stone-location"
+                    onClick={() => closeAnd()}
+                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    Visit
+                  </a>
+                  <a
+                    href="#jw-stone-socials"
+                    onClick={() => closeAnd()}
+                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    Socials
+                  </a>
                   <button
                     type="button"
                     onClick={() => closeAnd(onStartRequest)}

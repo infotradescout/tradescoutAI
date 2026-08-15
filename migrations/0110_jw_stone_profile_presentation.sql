@@ -45,7 +45,7 @@ SET
           "stickyControls": true,
           "sourceRequests": true,
           "browseCtaImage": "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-          "browseCtaEyebrow": "Rhino White · current inventory",
+          "browseCtaEyebrow": "White Rhino · current inventory",
           "featuredCollection": {
             "label": "JW Stone Picks",
             "slugs": [

@@ -1,4 +1,5 @@
 import { JW_STONE_NAMED_IDS } from "./catalog";
+import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import type {
   WishlistEnvelope,
   WishlistSnapshot,
@@ -28,7 +29,7 @@ export function reconcileWishlistIds(
 
   for (const candidate of value.slice(0, MAX_STORED_IDS_TO_INSPECT)) {
     if (typeof candidate !== "string") continue;
-    const id = candidate.trim();
+    const id = resolveJwStoneLegacyItemSlug(candidate);
     if (!id || seen.has(id) || !eligibleIds.has(id)) continue;
     seen.add(id);
     reconciled.push(id);

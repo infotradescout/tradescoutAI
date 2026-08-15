@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
@@ -11,6 +10,7 @@ import {
   formatDimensionsForDisplay,
 } from "./stoneFacts";
 import type { JwStoneCatalogItem } from "./types";
+import { useMomentumRail } from "./useMomentumRail";
 
 type StoneDetailDialogProps = {
   stone: JwStoneCatalogItem | null;
@@ -20,6 +20,9 @@ type StoneDetailDialogProps = {
   onAsk: (stone: JwStoneCatalogItem) => void;
 };
 
+const DETAIL_PHOTO_ARROW_CLASS =
+  "absolute top-1/2 z-10 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur-md transition-[background-color,border-color,opacity,transform] hover:border-white/45 hover:bg-black/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--jw-accent)] active:scale-95 disabled:pointer-events-none disabled:opacity-30 sm:h-12 sm:w-12";
+
 export function StoneDetailDialog({
   stone,
   saved,
@@ -27,14 +30,19 @@ export function StoneDetailDialog({
   onToggleSaved,
   onAsk,
 }: StoneDetailDialogProps) {
-  const [imageIndex, setImageIndex] = useState(0);
-  const touchStartX = useRef<number | null>(null);
-
-  useEffect(() => setImageIndex(0), [stone?.id]);
+  const imageCount = stone?.images.length ?? 0;
+  const {
+    activeIndex: imageIndex,
+    railRef,
+    onScroll,
+    scrollToIndex,
+  } = useMomentumRail({
+    itemCount: imageCount,
+    resetKey: stone?.id ?? "closed",
+  });
 
   if (!stone) return null;
 
-  const imageCount = stone.images.length;
   const selectedImage = stone.images[imageIndex] || stone.images[0];
   const finishes = confirmedFinishes(stone);
   const availability = availabilityDetailLabel(stone);
@@ -62,14 +70,14 @@ export function StoneDetailDialog({
 
   const move = (direction: -1 | 1) => {
     if (imageCount < 2) return;
-    setImageIndex((current) => (current + direction + imageCount) % imageCount);
+    scrollToIndex(imageIndex + direction);
   };
 
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent
         style={JW_STONE_BRAND_STYLE}
-        className="fixed inset-0 left-0 top-0 z-[1000] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto rounded-none border-0 bg-[var(--jw-bg)] p-0 text-[var(--jw-ink)] shadow-none data-[state=open]:zoom-in-100 sm:max-w-none sm:rounded-none [&>button]:right-3 [&>button]:top-3 [&>button]:z-20 [&>button]:inline-flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:bg-[var(--jw-bg)]/85 [&>button]:text-[var(--jw-ink)] [&>button]:opacity-100 [&>button]:ring-0 [&>button]:backdrop-blur-[2px]"
+        className="fixed inset-0 left-0 top-0 z-[1000] flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-x-hidden overflow-y-auto rounded-none border-0 bg-[var(--jw-bg)] p-0 text-[var(--jw-ink)] shadow-none data-[state=open]:zoom-in-100 sm:max-w-none sm:rounded-none [&>button]:right-3 [&>button]:top-3 [&>button]:z-20 [&>button]:inline-flex [&>button]:h-11 [&>button]:w-11 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-full [&>button]:border [&>button]:border-white/50 [&>button]:bg-[var(--jw-bg)]/90 [&>button]:text-[var(--jw-ink)] [&>button]:opacity-100 [&>button]:shadow-lg [&>button]:ring-0 [&>button]:backdrop-blur-md"
         onKeyDown={(event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
@@ -81,29 +89,41 @@ export function StoneDetailDialog({
           }
         }}
       >
-        <div className="flex min-h-full flex-col">
+        <div className="flex min-h-full max-w-full flex-col overflow-x-hidden">
           <div
-            className="relative bg-[var(--jw-bg)]"
-            onTouchStart={(event) => {
-              touchStartX.current = event.touches[0]?.clientX ?? null;
-            }}
-            onTouchEnd={(event) => {
-              const start = touchStartX.current;
-              const end = event.changedTouches[0]?.clientX;
-              touchStartX.current = null;
-              if (start == null || end == null || Math.abs(start - end) < 45) return;
-              move(start > end ? 1 : -1);
-            }}
+            className="relative flex-none overflow-hidden bg-[var(--jw-dark)] shadow-[0_24px_70px_rgba(30,24,18,0.16)]"
+            data-testid="jw-stone-detail-media"
           >
-            <img
-              src={selectedImage}
-              alt={
-                stone.displayName
-                  ? `${stone.displayName} stone, view ${imageIndex + 1}`
-                  : `JW Stone selection, view ${imageIndex + 1}`
-              }
-              className="mx-auto block h-auto max-h-[70dvh] w-auto max-w-full"
-            />
+            <div
+              ref={railRef}
+              data-testid="jw-stone-detail-photo-rail"
+              className="scrollbar-hide flex h-[52dvh] min-h-[18rem] w-full max-w-full cursor-grab overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing sm:h-[62dvh] sm:min-h-[24rem] [&::-webkit-scrollbar]:hidden"
+              role={imageCount > 1 ? "region" : undefined}
+              aria-roledescription={imageCount > 1 ? "carousel" : undefined}
+              aria-label={imageCount > 1 ? `${stone.publicLabel} photo gallery` : undefined}
+              onScroll={onScroll}
+            >
+              {stone.images.map((image, index) => (
+                <figure
+                  key={`${image}-${index}`}
+                  data-momentum-item="true"
+                  data-testid={`jw-stone-detail-photo-${index}`}
+                  className="flex h-full min-w-full flex-none items-center justify-center overflow-hidden"
+                  aria-label={`Photo ${index + 1} of ${imageCount}`}
+                >
+                  <img
+                    src={image}
+                    alt={
+                      stone.displayName
+                        ? `${stone.displayName} stone, view ${index + 1}`
+                        : `JW Stone selection, view ${index + 1}`
+                    }
+                    draggable={false}
+                    className="h-full w-full select-none object-contain"
+                  />
+                </figure>
+              ))}
+            </div>
             {imageCount > 1 ? (
               <>
                 <button
@@ -111,7 +131,8 @@ export function StoneDetailDialog({
                   data-testid="jw-stone-detail-photo-prev"
                   onClick={() => move(-1)}
                   aria-label="Previous stone image"
-                  className="absolute left-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-black/70 text-white"
+                  disabled={imageIndex === 0}
+                  className={`${DETAIL_PHOTO_ARROW_CLASS} left-3`}
                 >
                   <ArrowLeft className="h-5 w-5" aria-hidden="true" />
                 </button>
@@ -120,39 +141,49 @@ export function StoneDetailDialog({
                   data-testid="jw-stone-detail-photo-next"
                   onClick={() => move(1)}
                   aria-label="Next stone image"
-                  className="absolute right-3 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center bg-black/70 text-white"
+                  disabled={imageIndex === imageCount - 1}
+                  className={`${DETAIL_PHOTO_ARROW_CLASS} right-3`}
                 >
                   <ArrowRight className="h-5 w-5" aria-hidden="true" />
                 </button>
+                <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-lg backdrop-blur-md">
+                  {imageIndex + 1} / {imageCount}
+                </div>
               </>
             ) : null}
           </div>
 
           {imageCount > 1 ? (
-            <div
-              className="flex gap-2 overflow-x-auto px-5 py-3 sm:px-9"
-              role="list"
+            <ul
+              className="scrollbar-hide flex max-w-full gap-2.5 overflow-x-auto overscroll-x-contain border-b border-[var(--jw-border)] px-5 py-4 [-ms-overflow-style:none] [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:px-9 [&::-webkit-scrollbar]:hidden"
               data-testid="jw-stone-detail-photo-thumbs"
             >
               {stone.images.map((image, index) => (
-                <button
-                  type="button"
-                  role="listitem"
-                  key={`${image}-${index}`}
-                  data-testid={`jw-stone-detail-photo-thumb-${index}`}
-                  onClick={() => setImageIndex(index)}
-                  aria-label={`Show image ${index + 1} of ${imageCount}`}
-                  aria-current={index === imageIndex ? "true" : undefined}
-                  className={`h-14 w-16 shrink-0 overflow-hidden bg-[var(--jw-surface)] sm:h-16 sm:w-20 ${
-                    index === imageIndex
-                      ? "ring-2 ring-[var(--jw-accent)] ring-offset-2"
-                      : "opacity-70"
-                  }`}
-                >
-                  <img src={image} alt="" className="h-full w-full object-contain" loading="lazy" />
-                </button>
+                <li key={`${image}-${index}`} className="shrink-0">
+                  <button
+                    type="button"
+                    data-testid={`jw-stone-detail-photo-thumb-${index}`}
+                    onClick={() => scrollToIndex(index)}
+                    aria-label={`Show image ${index + 1} of ${imageCount}`}
+                    aria-current={index === imageIndex ? "true" : undefined}
+                    className={`h-14 w-16 overflow-hidden border bg-[var(--jw-surface)] transition-[border-color,opacity,transform] sm:h-16 sm:w-20 ${
+                      index === imageIndex
+                        ? "border-[var(--jw-accent)] opacity-100 ring-1 ring-[var(--jw-accent)] ring-offset-2 ring-offset-[var(--jw-bg)]"
+                        : "border-[var(--jw-border)] opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img
+                      src={image}
+                      alt=""
+                      className="h-full w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : null}
 
           <div className="flex flex-1 flex-col">
@@ -174,7 +205,7 @@ export function StoneDetailDialog({
                   ) : null}
                   {availability ? (
                     <div>
-                      <dt className={jw.muted}>Available now</dt>
+                      <dt className={jw.muted}>Availability</dt>
                       <dd className="mt-0.5 font-medium">{availability}</dd>
                     </div>
                   ) : null}
@@ -227,7 +258,7 @@ export function StoneDetailDialog({
                   destination={shareDestination}
                   title={shareTitle}
                   text={shareText}
-                  imageUrl={stone.images[imageIndex] || stone.images[0]}
+                  imageUrl={selectedImage}
                   label="Share this stone"
                   className={`inline-flex min-h-11 w-full items-center justify-center gap-2 px-5 sm:min-h-12 ${jw.ghostOnLight}`}
                 />

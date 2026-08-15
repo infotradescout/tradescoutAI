@@ -2,21 +2,18 @@ import fs from "node:fs";
 import path from "node:path";
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
-const drivePath = path.join(
-  repoRoot,
-  "docs/audits/data/jw-stone-drive-source-2026-07-13.json"
-);
-const inventoryPath = path.join(
-  repoRoot,
-  "client/src/data/jwStoneInventory.generated.json"
-);
+const drivePath = path.join(repoRoot, "docs/audits/data/jw-stone-drive-source-2026-07-13.json");
+const inventoryPath = path.join(repoRoot, "client/src/data/jwStoneInventory.generated.json");
+const sourceNamesPath = path.join(repoRoot, "client/src/data/jwStoneSourceNames.generated.json");
 
 const drive = JSON.parse(fs.readFileSync(drivePath, "utf8"));
 const inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
-const nameById = new Map(drive.files.map((file) => [file.driveFileId, file.sourceName]));
-const driveOrderById = new Map(
-  drive.files.map((file, index) => [file.driveFileId, index])
-);
+const sourceNames = JSON.parse(fs.readFileSync(sourceNamesPath, "utf8"));
+const nameById = new Map([
+  ...drive.files.map((file) => [file.driveFileId, file.sourceName]),
+  ...Object.entries(sourceNames),
+]);
+const driveOrderById = new Map(drive.files.map((file, index) => [file.driveFileId, index]));
 
 // Share URLs existed before presentation-order ranking. Keep their photo
 // ordinals tied to the pre-ranking Drive order so a lead-image improvement
@@ -33,6 +30,18 @@ const BASELINE_SHARE_LEAD_FILE_IDS = {
  * Keep in sync with client/src/features/jw-stone/coverImages.ts.
  */
 const PREFERRED_LEAD_FILE_IDS = {
+  "aj-quartz-1": "1GhcyanNTSKcFuVXN3pAggbI-XYAmjx2u",
+  "aj-quartz-4": "1V6D5-zXjoklqYg6au4tnAzUiGXeBW7Wc",
+  "aj-quartz-5": "1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH",
+  "bianco-carrara": "1BoLQprq014WBrpdxTyYU5LErye7D5O0U",
+  "carrara-white-brazil-119x75": "13WKoBmd2quSG2-YTG9EpPHFkAHDDoAN1",
+  "calacatta-cremo": "12ULnXkUBeSW7ViTBbAA8Wx5rFaPK2T_J",
+  "calacatta-macchia": "1vDIoTtWdOceQ1IzY9u2vAl_knKGWJjxu",
+  "matarazzo-zucchi": "1pVej6DwGpib3soV3YgLDv-v_X8XEIB4h",
+  "marina-black-soapstone": "1tlOUM3_xMx98ZjC3jlpDsWRu7-3Xb-d9",
+  "fusion-blue": "1opCWnnzl2Eba_qdW54RvF7B4jn-XD4PB",
+  "perla-venata": "1ziFDFgSGEpCpx4dpI-YzlAGXuk69W3rk",
+  superiore: "1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo",
   "galaxy-white": "1g58rJny4wbYKb-V8z1rug_hCUEcb7DeO",
   "emperor-brown": "1UkwxC3a6LWlHkaUPZLKppFJT18s9f6oQ",
   "mexican-brown": null, // filled below after lookup
@@ -54,8 +63,7 @@ function normalizeName(sourceName = "") {
 function isPhoneDump(sourceName = "") {
   const compact = normalizeName(sourceName).replace(/\s+/g, "");
   return (
-    /^(img_?\d+|dsc_?\d+|photo\d+|pxl_?\d+|heic)/i.test(compact) ||
-    /\.heic$/i.test(sourceName)
+    /^(img_?\d+|dsc_?\d+|photo\d+|pxl_?\d+|heic)/i.test(compact) || /\.heic$/i.test(sourceName)
   );
 }
 
@@ -111,7 +119,9 @@ function hasDimensions(sourceName = "") {
 function isFullSlabContext(sourceName = "") {
   const name = normalizeName(sourceName);
   if (isCloseUp(name) || isPhoneDump(sourceName)) return false;
-  return /\b(slabs?|bundle|bundles|warehouse|yard|rack|standing)\b/.test(name) || hasDimensions(name);
+  return (
+    /\b(slabs?|bundle|bundles|warehouse|yard|rack|standing)\b/.test(name) || hasDimensions(name)
+  );
 }
 
 function score(sourceName = "", preferredId = "", fileId = "") {
@@ -138,9 +148,7 @@ function score(sourceName = "", preferredId = "", fileId = "") {
 // Resolve mexican-brown preferred id from inventory (non-close sibling)
 for (const stone of inventory) {
   if (stone.slug !== "mexican-brown") continue;
-  const alt = stone.sourceFileIds.find(
-    (id) => !isHandScale(id, nameById.get(id) || "")
-  );
+  const alt = stone.sourceFileIds.find((id) => !isHandScale(id, nameById.get(id) || ""));
   if (alt) PREFERRED_LEAD_FILE_IDS["mexican-brown"] = alt;
 }
 
@@ -190,9 +198,7 @@ for (const stone of inventory) {
   if (isCloseUp(sorted[0]?.name)) closeUpLeadAfter += 1;
   if (sorted.every((entry) => entry.hand)) handOnlySlugs.push(stone.slug);
 
-  const displayOrderChanged = !sorted.every(
-    (entry, index) => entry.index === ranked[index].index
-  );
+  const displayOrderChanged = !sorted.every((entry, index) => entry.index === ranked[index].index);
   if (displayOrderChanged) {
     const permutation = sorted.map((entry) => entry.index);
     const reorder = (values) =>

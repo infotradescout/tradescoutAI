@@ -48,6 +48,14 @@ export function formatSlabDimension(dimension: SlabDimension): string {
   return `${format(dimension.widthIn)}×${format(dimension.heightIn)}"`;
 }
 
+/** Return dimensions only when this exact inventory photo's source filename records them. */
+export function resolveSlabDimensionForInventoryImage(imagePath: string): SlabDimension | null {
+  const driveId = driveIdFromInventoryImagePath(imagePath);
+  if (!driveId) return null;
+  const sourceName = SOURCE_NAMES[driveId];
+  return sourceName ? parseSlabDimension(sourceName) : null;
+}
+
 function dimensionKey(dimension: SlabDimension): string {
   return `${dimension.widthIn}x${dimension.heightIn}`;
 }

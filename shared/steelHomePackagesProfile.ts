@@ -112,7 +112,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
     countertops: {
       eyebrow: "Countertop Builder",
       title: "Build the layout and estimate its gross countertop footprint.",
-      body: "Choose Quartzite, Engineered Quartz, or another available surface from real photos and plan the approximate area. Stone selection and ordering cover material supply only. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator.",
+      body: "Choose Quartzite, Engineered Quartz, or another catalog surface from real photos and plan the approximate area. Stone selection and ordering cover material supply only. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator.",
     },
     cabinets: {
       eyebrow: "Cabinet Builder",
