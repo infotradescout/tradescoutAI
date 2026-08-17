@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, MessageCircle } from "lucide-react";
 import { jw } from "./brand";
 import { JwStoneShareControl } from "./JwStoneShareControl";
@@ -44,12 +45,51 @@ export function StoneCard({
     itemCount: galleryCount,
     resetKey: `${stone.id}:${photoBrowsing ? "gallery" : "cover"}`,
   });
+  const cardRef = useRef<HTMLElement | null>(null);
+  const [nearViewport, setNearViewport] = useState(false);
+  const [requestedImageIndexes, setRequestedImageIndexes] = useState<Set<number>>(
+    () => new Set(galleryCount > 1 ? [0, 1] : [0])
+  );
   const selectedImage = visibleImages[imageIndex] || stone.images[0];
   const hasPhotoRail = galleryCount > 1;
   const meta = materialFinishLine(stone);
   const facts = availabilityDimensionsLine(stone);
   const title = stone.displayName || "";
   const caption = [meta, facts].filter(Boolean).join(" · ");
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setNearViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setNearViewport(true);
+        observer.disconnect();
+      },
+      {
+        rootMargin: "800px 0px",
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(card);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setRequestedImageIndexes((current) => {
+      const next = new Set(current);
+      next.add(imageIndex);
+      if (imageIndex + 1 < galleryCount) next.add(imageIndex + 1);
+      return next.size === current.size ? current : next;
+    });
+  }, [galleryCount, imageIndex]);
 
   const photoAlt = (index: number) =>
     stone.displayName
@@ -60,6 +100,7 @@ export function StoneCard({
 
   return (
     <article
+      ref={cardRef}
       data-stone-card="true"
       data-stone-id={stone.id}
       data-photo-count={imageCount}
@@ -90,11 +131,30 @@ export function StoneCard({
               aria-label={`Open ${stone.publicLabel}, photo ${index + 1} of ${imageCount}`}
             >
               <img
-                src={image}
+                src={nearViewport && requestedImageIndexes.has(index) ? image : undefined}
                 alt={photoAlt(index)}
                 loading="lazy"
                 decoding="async"
+                fetchPriority="low"
                 draggable={false}
+                onLoad={(event) => {
+                  delete event.currentTarget.dataset.retryCount;
+                }}
+                onError={(event) => {
+                  const target = event.currentTarget;
+                  const retryCount = Number(target.dataset.retryCount || "0");
+                  if (retryCount >= 3) return;
+
+                  const nextRetry = retryCount + 1;
+                  const retryDelayMs = 600 * 2 ** retryCount;
+                  target.dataset.retryCount = String(nextRetry);
+
+                  window.setTimeout(() => {
+                    if (!target.isConnected) return;
+                    const separator = image.includes("?") ? "&" : "?";
+                    target.src = `${image}${separator}jw_retry=${nextRetry}`;
+                  }, retryDelayMs);
+                }}
                 className="pointer-events-none absolute inset-0 h-full w-full select-none object-contain"
               />
             </button>
