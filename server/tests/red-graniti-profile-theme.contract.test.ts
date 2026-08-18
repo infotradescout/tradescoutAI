@@ -47,17 +47,35 @@ describe("R.E.D. Graniti complete profile renderer", () => {
     expect(theme).toContain("<RedGranitiDirectConnectPanel");
   });
 
-  it("uses a dedicated first-cut contact flow that calls and assigns requests to JW Stone", () => {
+  it("uses the protected JW Stone call path for every R.E.D. call action", () => {
+    const panel = read("client/src/pages/profile-sites/RedGranitiDirectConnectPanel.tsx");
+    const protectedContact = read(
+      "client/src/pages/profile-sites/redGranitiProtectedContact.ts"
+    );
+
+    expect(protectedContact).toContain(
+      '`/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-contact/reveal`'
+    );
+    expect(protectedContact).toContain('authorityGate: "profile_direct_connect"');
+    expect(protectedContact).toContain('decision: "call"');
+    expect(protectedContact).toContain("window.location.href = result.tel");
+
+    expect(panel).toContain(
+      'import { revealJwStoneProtectedCall } from "@/pages/profile-sites/redGranitiProtectedContact"'
+    );
+    expect(panel).toContain("const autoCallAttemptedRef = useRef(false)");
+    expect(panel).toContain('initialView !== "choice"');
+    expect(panel).toContain("void performCall()");
+    expect(panel).toContain("const result = await revealJwStoneProtectedCall()");
+    expect(panel).toContain("window.location.href = result.tel");
+  });
+
+  it("uses a dedicated first-cut request that assigns the work to JW Stone", () => {
     const panel = read("client/src/pages/profile-sites/RedGranitiDirectConnectPanel.tsx");
 
     expect(panel).toContain(
-      '`/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-contact/reveal`'
-    );
-    expect(panel).toContain(
       '`/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-request`'
     );
-    expect(panel).toContain('authorityGate: "profile_direct_connect"');
-    expect(panel).toContain('decision: "call"');
     expect(panel).toContain('requestType: "request_material"');
     expect(panel).toContain('serviceName: "R.E.D. Graniti first-cut distribution"');
     expect(panel).toContain("Send to JW Stone");
