@@ -9,6 +9,7 @@ import {
   RED_GRANITI_PROFILE_CONTENT_BLOCKS,
   RED_GRANITI_PROFILE_CONTROL,
   RED_GRANITI_PROFILE_SLUG,
+  RED_GRANITI_PUBLIC_IDENTITY,
 } from "@shared/redGranitiProfile";
 import { db } from "../db";
 import {
@@ -24,8 +25,8 @@ export const RED_GRANITI_PROFILE_PROVISIONING_SOURCE =
   "operator_confirmed_company_profile";
 
 const TRADE_SCOUT_DIRECT_CONNECT_INBOX = "contact@thetradescout.com";
-// A private non-phone value prevents the Express resolver from falling back to
-// the admin steward's personal phone. The R.E.D. company profile is request-only.
+// The R.E.D. company record never publishes a phone. Its dedicated profile
+// sends calls and first-cut requests through JW Stone's protected contact path.
 const REQUEST_ONLY_PHONE_SENTINEL = "request-only";
 
 function recordValue(value: unknown): Record<string, any> {
@@ -231,16 +232,10 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       profileData: {
         ...existingProfileData,
-        tagline: "Natural stone at the source.",
-        description:
-          "R.E.D. Graniti is a natural-stone quarrying and block-and-slab company represented by its own TradeScout business profile.",
-        category: "Natural stone quarry company",
-        services: [
-          "Natural stone quarrying",
-          "Rough stone blocks",
-          "Natural stone slabs",
-          "Quarry source documentation",
-        ],
+        tagline: RED_GRANITI_PUBLIC_IDENTITY.headline,
+        description: RED_GRANITI_PUBLIC_IDENTITY.summary,
+        category: "Natural stone quarries, blocks, and slabs",
+        services: RED_GRANITI_PUBLIC_IDENTITY.capabilities.map((capability) => capability.title),
         website: RED_GRANITI_OFFICIAL_WEBSITE,
         contactPreference: "message",
         publicContactEnabled: false,
@@ -362,7 +357,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       slug: RED_GRANITI_PROFILE_SLUG,
       displayName: RED_GRANITI_BUSINESS_NAME,
-      headline: "Global natural stone quarrying, rough blocks, and slabs.",
+      headline: "Company-owned quarries, rough blocks, slabs, and worldwide distribution.",
       contentBlocks: RED_GRANITI_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
@@ -372,9 +367,9 @@ export async function provisionRedGranitiProfile(): Promise<void> {
         },
       },
       seoMeta: {
-        title: "R.E.D. Graniti | Natural Stone Quarries, Blocks & Slabs",
+        title: "R.E.D. Graniti | Quarries, Rough Blocks & Natural Stone Slabs",
         description:
-          "Company profile for R.E.D. Graniti, a natural-stone quarrying and block-and-slab source. First-cut distribution requests are coordinated through TradeScout.",
+          "Explore R.E.D. Graniti's company-owned quarry network, rough blocks, natural stone slabs, and worldwide distribution. Call JW Stone or send first-cut project details.",
         imageUrl: RED_GRANITI_LOGO_URL,
         faviconUrl: RED_GRANITI_LOGO_URL,
         imageWidth: 78,
