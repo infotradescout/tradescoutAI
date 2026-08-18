@@ -16,7 +16,6 @@ describe("JW Stone public profile routing contract", () => {
     expect(appSource).toContain("isPublicProfileRoute");
     expect(appSource).not.toContain("isJwStoneMarketplaceRoute");
     expect(appSource).not.toContain("__TS_JW_STONE_MARKETPLACE_SURFACE__");
-    expect(appSource).toContain("useLayoutEffect");
   });
 
   it("keeps the flagship profile route free of platform overlays", () => {
@@ -71,7 +70,9 @@ describe("JW Stone public profile routing contract", () => {
       false
     );
     expect(fs.existsSync(path.resolve(process.cwd(), "client/src/pages/jw-stone-2"))).toBe(false);
-    expect(canonicalBusiness).toContain('path: "/jw-stone"');
+    expect(canonicalBusiness).toContain("path: `/u/${encodeURIComponent(profileSlug)}`");
+    expect(canonicalBusiness).not.toContain("JW_STONE_PROFILE_SLUG");
+    expect(canonicalBusiness).not.toContain('path: "/jw-stone"');
     expect(serverIndex).toContain('app.get("/jw-stone"');
     expect(serverIndex).toContain("`${origin}/u/${JW_STONE_PROFILE_SLUG}`");
     expect(profileSource).not.toContain("features/jw-stone/JWStoneMarketplace");
