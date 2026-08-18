@@ -85,7 +85,6 @@ export type PublishedProfileExposureCandidate = LinkedBusinessProfileExposureCan
 };
 
 export type PublicProfileExposureMode = "private" | "direct_only" | "unlisted_review" | "public";
-
 export type PublicProfileExposureReason =
   | "business_trust_missing"
   | "direct_only"
@@ -96,7 +95,6 @@ export type PublicProfileExposureReason =
   | "public"
   | "unlisted_review"
   | "unpublished";
-
 export type PublicProfileExposureDecision = {
   mode: PublicProfileExposureMode;
   reason: PublicProfileExposureReason;
@@ -114,10 +112,7 @@ function normalizeRole(value: unknown): string {
     .toLowerCase();
 }
 
-function candidateOwnerRoles(candidate: {
-  ownerRole?: unknown;
-  ownerRoles?: unknown;
-}): string[] {
+function ownerRoles(candidate: { ownerRole?: unknown; ownerRoles?: unknown }): string[] {
   return [
     normalizeRole(candidate.ownerRole),
     ...(Array.isArray(candidate.ownerRoles) ? candidate.ownerRoles.map(normalizeRole) : []),
@@ -152,22 +147,17 @@ export function hasMeaningfulPublicProfileContent(
     const type = String(source.type || "")
       .trim()
       .toLowerCase();
-    if (!type || NON_CONTENT_PROFILE_BLOCK_TYPES.has(type)) return false;
-    return hasMeaningfulValue(source.data);
+    return Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data);
   });
 }
 
 function hasInternalProfileIdentity(candidate: PublishedProfileExposureCandidate): boolean {
   if (isInternalAdminProfileSlug(candidate.profileSlug)) return true;
   if (INTERNAL_PROFILE_ROLES.has(normalizeRole(candidate.profileRoleContext))) return true;
-
-  // A linked business may be held temporarily by a verified TradeScout admin.
-  // An unlinked profile owned by an internal account is an internal surface.
-  if (!String(candidate.businessId || "").trim()) {
-    return candidateOwnerRoles(candidate).some((role) => INTERNAL_PROFILE_ROLES.has(role));
-  }
-
-  return false;
+  return (
+    !String(candidate.businessId || "").trim() &&
+    ownerRoles(candidate).some((role) => INTERNAL_PROFILE_ROLES.has(role))
+  );
 }
 
 export function hasVerifiedTradeScoutAdminCustody(candidate: {
@@ -176,25 +166,16 @@ export function hasVerifiedTradeScoutAdminCustody(candidate: {
   ownerVerifiedBadge?: unknown;
   ownerVerificationStatus?: unknown;
 }): boolean {
-  const hasStaffAdminRole = candidateOwnerRoles(candidate).some(
-    (role) => role === "super_admin" || role === "head_admin"
-  );
-
   return (
-    hasStaffAdminRole &&
-    isPubliclyVerifiedProfileOwner({
-      ownerVerifiedBadge: candidate.ownerVerifiedBadge,
-      ownerVerificationStatus: candidate.ownerVerificationStatus,
-    })
+    ownerRoles(candidate).some((role) => role === "super_admin" || role === "head_admin") &&
+    isPubliclyVerifiedProfileOwner(candidate)
   );
 }
 
 function hasExactPrecisionStewardAuthority(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
-  const preferences = recordValue(candidate.ownerPreferences);
-  const marker = recordValue(preferences.internalProfileSteward);
-
+  const marker = recordValue(recordValue(candidate.ownerPreferences).internalProfileSteward);
   return (
     String(candidate.businessClaimStatus || "")
       .trim()
@@ -205,26 +186,12 @@ function hasExactPrecisionStewardAuthority(
   );
 }
 
-export function hasTradeScoutPendingOwnerCustody(
-  candidate: OwnerConfirmedDirectProfileCandidate
-): boolean {
-  const profileSlug = String(candidate.profileSlug || "")
-    .trim()
-    .toLowerCase();
-  return (
-    profileSlug === PRECISION_AERIAL_PROFILE_SLUG &&
-    hasBaseDirectProfileAuthority(candidate, ADMIN_MANAGED_PROFILE_SOURCE) &&
-    hasExactPrecisionStewardAuthority(candidate)
-  );
-}
-
 function hasBaseDirectProfileAuthority(
   candidate: OwnerConfirmedDirectProfileCandidate,
   requiredAuthority: string
 ): boolean {
   const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
   const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
-
   return (
     String(candidate.profileStatus || "")
       .trim()
@@ -240,16 +207,24 @@ function hasBaseDirectProfileAuthority(
   );
 }
 
-/**
- * The steel-home package page is intentionally reachable only by its exact
- * URL while its operator-approved content and ownership are being finalized.
- */
+export function hasTradeScoutPendingOwnerCustody(
+  candidate: OwnerConfirmedDirectProfileCandidate
+): boolean {
+  const slug = String(candidate.profileSlug || "")
+    .trim()
+    .toLowerCase();
+  return (
+    slug === PRECISION_AERIAL_PROFILE_SLUG &&
+    hasBaseDirectProfileAuthority(candidate, ADMIN_MANAGED_PROFILE_SOURCE) &&
+    hasExactPrecisionStewardAuthority(candidate)
+  );
+}
+
 export function isSteelHomePackagesUnlistedDirectProfile(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
   const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
   const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
-
   return (
     isSteelHomePackagesProfileSlug(candidate.profileSlug) &&
     !isSteelHomePackagesProfilePubliclyReleased() &&
@@ -268,40 +243,40 @@ export function isSteelHomePackagesUnlistedDirectProfile(
   );
 }
 
-/**
- * Direct profiles are narrow route/contact exceptions. The authority does not
- * make the profile discoverable, indexable, mapped, licensed, or verified.
- */
 export function isOwnerConfirmedDirectProfile(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
-  const profileSlug = String(candidate.profileSlug || "")
+  const slug = String(candidate.profileSlug || "")
     .trim()
     .toLowerCase();
-  const requiredAuthority = getDirectProfileAuthority(profileSlug);
+  const requiredAuthority = getDirectProfileAuthority(slug);
   if (!requiredAuthority) return false;
-  const hasProfileSpecificAuthority =
-    profileSlug !== PRECISION_AERIAL_PROFILE_SLUG || hasExactPrecisionStewardAuthority(candidate);
-
-  return hasProfileSpecificAuthority && hasBaseDirectProfileAuthority(candidate, requiredAuthority);
+  if (slug === PRECISION_AERIAL_PROFILE_SLUG && !hasExactPrecisionStewardAuthority(candidate)) {
+    return false;
+  }
+  return hasBaseDirectProfileAuthority(candidate, requiredAuthority);
 }
 
 export function isPubliclyVerifiedProfileOwner(candidate: {
-  ownerVerifiedBadge: unknown;
-  ownerVerificationStatus: unknown;
+  ownerVerifiedBadge?: unknown;
+  ownerVerificationStatus?: unknown;
 }): boolean {
-  const verificationStatus = String(candidate.ownerVerificationStatus || "")
-    .trim()
-    .toLowerCase();
-  return candidate.ownerVerifiedBadge === true || verificationStatus === "approved";
+  return (
+    candidate.ownerVerifiedBadge === true ||
+    String(candidate.ownerVerificationStatus || "")
+      .trim()
+      .toLowerCase() === "approved"
+  );
 }
 
-/** Linked-business trust only. Unlinked personal profiles use their own gate. */
+/** Trust-only helper. Route, discovery, and indexing decisions are stricter. */
 export function canExposeLinkedBusinessProfilePublicly(
   candidate: LinkedBusinessProfileExposureCandidate
 ): boolean {
-  if (!String(candidate.businessId || "").trim()) return false;
-  return isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate);
+  return (
+    Boolean(String(candidate.businessId || "").trim()) &&
+    (isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate))
+  );
 }
 
 export function isProfileVisibilityPublic(candidate: {
@@ -314,11 +289,7 @@ export function isProfileVisibilityPublic(candidate: {
   });
 }
 
-/**
- * Canonical route decision. Route exposure, public discovery, and indexing are
- * deliberately separate so a review/direct profile never becomes searchable
- * merely because its HTML can render.
- */
+/** Canonical exposure decision for every anonymous public-profile surface. */
 export function derivePublishedProfileExposure(
   candidate: PublishedProfileExposureCandidate
 ): PublicProfileExposureDecision {
@@ -339,6 +310,13 @@ export function derivePublishedProfileExposure(
   }
 
   const businessId = String(candidate.businessId || "").trim();
+  if (!isProfileVisibilityPublic(candidate)) {
+    return {
+      mode: "private",
+      reason: businessId ? "private" : "personal_profile_not_explicitly_released",
+    };
+  }
+
   if (businessId) {
     if (
       String(candidate.businessStatus || "")
@@ -347,55 +325,40 @@ export function derivePublishedProfileExposure(
     ) {
       return { mode: "private", reason: "business_trust_missing" };
     }
-
     if (isOwnerConfirmedDirectProfile(candidate)) {
       return { mode: "direct_only", reason: "direct_only" };
     }
-
     if (!isPubliclyVerifiedProfileOwner(candidate)) {
       return { mode: "private", reason: "business_trust_missing" };
     }
-
     if (candidate.publicDiscoveryEnabled === true) {
       return { mode: "public", reason: "public" };
     }
-
     if (candidate.publicDiscoveryEnabled === false) {
       return { mode: "direct_only", reason: "direct_only" };
     }
-
     return { mode: "private", reason: "business_trust_missing" };
   }
 
-  if (!isProfileVisibilityPublic(candidate)) {
-    return {
-      mode: "private",
-      reason: "personal_profile_not_explicitly_released",
-    };
-  }
-
-  const profileRole = normalizeRole(candidate.profileRoleContext);
-  if (!PUBLIC_PERSONAL_PROFILE_ROLES.has(profileRole)) {
+  if (!PUBLIC_PERSONAL_PROFILE_ROLES.has(normalizeRole(candidate.profileRoleContext))) {
     return { mode: "private", reason: "private" };
   }
-
   if (!hasMeaningfulPublicProfileContent(candidate)) {
     return { mode: "private", reason: "empty_profile" };
   }
-
   return { mode: "public", reason: "public" };
 }
 
 /**
- * Legacy anonymous-public compatibility for public profiles and the existing
- * exact direct-profile contact routes. Discovery code must use the dedicated
- * discovery helper below.
+ * Compatibility for existing profile/contact readers. Exact registered direct
+ * profiles remain reachable, while generic direct-only profiles do not become
+ * discovery or indexing candidates through this helper.
  */
 export function canExposePublishedProfilePublicly(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
   const decision = derivePublishedProfileExposure(candidate);
-  return decision.mode === "public" || isOwnerConfirmedDirectProfile(candidate);
+  return decision.mode === "public" || (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate));
 }
 
 export function canDiscoverPublishedProfilePublicly(
@@ -404,14 +367,12 @@ export function canDiscoverPublishedProfilePublicly(
   return derivePublishedProfileExposure(candidate).mode === "public";
 }
 
-/** Exact route boundary, including deliberate direct-only and unlisted review. */
 export function canServePublishedProfileAtDirectRoute(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
   return derivePublishedProfileExposure(candidate).mode !== "private";
 }
 
-/** Maps are discovery surfaces; direct-only and unlisted profiles never appear. */
 export function canExposeProviderProfileOnPublicMap(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
