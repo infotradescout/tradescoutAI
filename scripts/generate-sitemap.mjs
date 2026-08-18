@@ -7,6 +7,7 @@
  * Generates a conservative sitemap.xml for canonical public routes.
  */
 
+import './cache-red-graniti-assets.mjs';
 import { writeFileSync } from 'fs';
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';

@@ -22,19 +22,23 @@ export const RED_GRANITI_OFFICIAL_SOURCES = [
   RED_GRANITI_BLOCKS_AND_SLABS_URL,
 ] as const;
 
-/** Company/quarry imagery only. Canonical material records live in Stone Core. */
+/**
+ * Official source-region imagery cached into TradeScout during the production
+ * build. Local delivery prevents CSP and source-site hotlink failures while
+ * every card remains linked to the corresponding official quarry page.
+ */
 export const RED_GRANITI_QUARRY_MEDIA = {
   madagascar: {
-    imageUrl: "https://www.redgraniti.com/wp-content/uploads/2018/06/lemurian-blue-1.jpg",
+    imageUrl: "/images/businesses/red-graniti/source/lemurian-blue.svg",
     sourceUrl: "https://www.redgraniti.com/en/portfolio/lemurian-blue/",
   },
   southAfrica: {
-    imageUrl: "https://www.redgraniti.com/wp-content/uploads/2018/06/nero-africa-1.jpg",
+    imageUrl: "/images/businesses/red-graniti/source/nero-africa.svg",
     sourceUrl: "https://www.redgraniti.com/en/portfolio/nero-africa-rustenburg/",
   },
   vermont: {
-    imageUrl: "https://www.redgraniti.com/wp-content/uploads/2018/06/eureka-danby-1.jpg",
-    sourceUrl: "https://www.redgraniti.com/en/portfolio/eureka-danbycalatta-danby/",
+    imageUrl: "/images/businesses/red-graniti/source/eureka-danby.svg",
+    sourceUrl: "https://www.redgraniti.com/en/portfolio/eureka-danbycalacatta-danby/",
   },
 } as const;
 
@@ -210,7 +214,8 @@ export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
     type: "gallery",
     data: {
       title: "Quarry network",
-      description: "Official source imagery from R.E.D. Graniti quarry pages.",
+      description:
+        "Source-region imagery tied to official R.E.D. Graniti quarry pages.",
       images: RED_GRANITI_PUBLIC_IDENTITY.quarryHighlights.map((highlight) => ({
         id: `red-graniti-${highlight.id}-quarry`,
         imageUrl: highlight.imageUrl,
