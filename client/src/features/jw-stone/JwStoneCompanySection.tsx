@@ -21,7 +21,7 @@ const SOCIAL_ICONS: Record<
  * every outbound/contact action remains inside the gated request flow.
  */
 export function JwStoneCompanySection() {
-  const { about, address, socials } = JW_STONE_PUBLIC_IDENTITY;
+  const { about, founderStory, address, socials } = JW_STONE_PUBLIC_IDENTITY;
 
   return (
     <section
@@ -44,6 +44,21 @@ export function JwStoneCompanySection() {
           <p className="mt-5 max-w-3xl text-base leading-7 text-[var(--jw-muted)] sm:text-lg sm:leading-8">
             {about}
           </p>
+
+          <div
+            data-testid="jw-founder-story"
+            className={`mt-8 max-w-4xl border-t pt-8 sm:mt-10 sm:pt-10 ${jw.border}`}
+          >
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--jw-mark)]">
+              Original founder story
+            </p>
+            <h3 className="mt-3 font-editorial text-2xl tracking-tight text-[var(--jw-ink)] sm:text-3xl">
+              Our Journey to Excellence
+            </h3>
+            <p className="mt-4 text-base leading-7 text-[var(--jw-muted)] sm:text-lg sm:leading-8">
+              {founderStory}
+            </p>
+          </div>
         </div>
 
         <div
