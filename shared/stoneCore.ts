@@ -12,7 +12,7 @@ export type StoneCoreMaterialSeed = {
   sourceUrl: string;
   primaryImageUrl: string;
   quarryCountry: string;
-  quarryRegion?: string;
+  quarryRegion: string | null;
   summary: string;
 };
 
@@ -31,6 +31,7 @@ export const STONE_CORE_RED_GRANITI_MATERIALS = [
     primaryImageUrl:
       "https://www.redgraniti.com/wp-content/uploads/2018/06/lemurian-blue-1.jpg",
     quarryCountry: "Madagascar",
+    quarryRegion: null,
     summary:
       "Madagascar labradorite tied to R.E.D. Graniti's official source record.",
   },
@@ -57,6 +58,7 @@ export const STONE_CORE_RED_GRANITI_MATERIALS = [
     primaryImageUrl:
       "https://www.redgraniti.com/wp-content/uploads/2018/06/nero-zimbabwe.jpg",
     quarryCountry: "Zimbabwe",
+    quarryRegion: null,
     summary:
       "Black granite tied to R.E.D. Graniti's official Zimbabwe source record.",
   },
@@ -97,6 +99,7 @@ export const STONE_CORE_RED_GRANITI_MATERIALS = [
     primaryImageUrl:
       "https://www.redgraniti.com/wp-content/uploads/2018/06/giallo-duna-1.jpg",
     quarryCountry: "Namibia",
+    quarryRegion: null,
     summary:
       "Yellow granite tied to R.E.D. Graniti's official Namibia source record.",
   },
@@ -110,6 +113,7 @@ export const STONE_CORE_RED_GRANITI_MATERIALS = [
     primaryImageUrl:
       "https://www.redgraniti.com/wp-content/uploads/2018/06/duna-red-rosso-duna.jpg",
     quarryCountry: "Namibia",
+    quarryRegion: null,
     summary:
       "Red granite tied to R.E.D. Graniti's official Namibia source record.",
   },
