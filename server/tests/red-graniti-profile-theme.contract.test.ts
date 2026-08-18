@@ -6,7 +6,7 @@ import { RED_GRANITI_PUBLIC_IDENTITY } from "@shared/redGranitiProfile";
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
-describe("R.E.D. Graniti complete profile renderer", () => {
+describe("R.E.D. Graniti business profile renderer", () => {
   it("routes the exact profile to its dedicated company experience", () => {
     const wrapper = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const adapter = read("client/src/data/profileSiteContentAdapters.ts");
@@ -24,30 +24,46 @@ describe("R.E.D. Graniti complete profile renderer", () => {
     expect(adapter).toContain("[RED_GRANITI_PROFILE_SLUG]: redGranitiContentAdapter");
   });
 
-  it("renders a full company profile with visible call and request actions", () => {
+  it("renders a compact business profile instead of a marketing landing page", () => {
     const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
 
     expect(theme).toContain('data-testid="red-graniti-profile-theme"');
-    expect(theme).toContain('id="company"');
-    expect(theme).toContain('id="operations"');
-    expect(theme).toContain('id="quarries"');
-    expect(theme).toContain('id="partnership"');
-    expect(theme).toContain("Blocks, slabs, and distribution");
-    expect(theme).toContain("Italian operating footprint");
-    expect(theme).toContain("Company-owned quarries");
-    expect(theme).toContain("Official R.E.D. Graniti links");
-    expect(theme).toContain('data-testid="red-graniti-header-call"');
-    expect(theme).toContain('data-testid="red-graniti-hero-call"');
-    expect(theme).toContain('data-testid="red-graniti-partnership-call"');
-    expect(theme).toContain('data-testid="red-graniti-mobile-call"');
-    expect(theme).toContain('data-testid="red-graniti-header-request"');
-    expect(theme).toContain('data-testid="red-graniti-mobile-request"');
-    expect(theme).toContain("Call JW Stone");
-    expect(theme).toContain("Start a Request");
-    expect(theme).toContain("<RedGranitiDirectConnectPanel");
+    expect(theme).toContain('data-testid="red-graniti-cover"');
+    expect(theme).toContain('data-testid="red-graniti-profile-identity"');
+    expect(theme).toContain('data-testid="red-graniti-about"');
+    expect(theme).toContain('data-testid="red-graniti-business-areas"');
+    expect(theme).toContain('data-testid="red-graniti-quarries"');
+    expect(theme).toContain('data-testid="red-graniti-locations"');
+    expect(theme).toContain('data-testid="red-graniti-company-contact"');
+    expect(theme).toContain('data-testid="red-graniti-first-cut-relationship"');
+    expect(theme).toContain("About R.E.D. Graniti");
+    expect(theme).toContain("Blocks, slabs and distribution");
+    expect(theme).toContain("Italian offices, yards and warehouse");
+
+    expect(theme).not.toContain("<header");
+    expect(theme).not.toContain("identity.stats.map");
+    expect(theme).not.toContain("min-h-[690px]");
+    expect(theme).not.toContain("text-7xl");
+    expect(theme).not.toContain("xl:text-[6.15rem]");
+    expect(theme).not.toContain("Natural stone, controlled from quarry to market");
+    expect(theme).not.toContain("Save or share R.E.D. Graniti");
   });
 
-  it("uses the protected JW Stone call path for every R.E.D. call action", () => {
+  it("uses plain profile actions and keeps JW Stone out of the primary labels", () => {
+    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+
+    expect(theme).toContain('data-testid="red-graniti-primary-call"');
+    expect(theme).toContain('data-testid="red-graniti-primary-request"');
+    expect(theme).toContain('data-testid="red-graniti-mobile-call"');
+    expect(theme).toContain('data-testid="red-graniti-mobile-request"');
+    expect(theme).toContain("Call");
+    expect(theme).toContain("Start a Request");
+    expect(theme).not.toContain("Call JW Stone");
+    expect(theme).not.toContain("red-graniti-header-call");
+    expect(theme).not.toContain("red-graniti-hero-call");
+  });
+
+  it("uses the protected JW Stone call path without making it the profile identity", () => {
     const panel = read("client/src/pages/profile-sites/RedGranitiDirectConnectPanel.tsx");
     const protectedContact = read(
       "client/src/pages/profile-sites/redGranitiProtectedContact.ts"
@@ -63,11 +79,13 @@ describe("R.E.D. Graniti complete profile renderer", () => {
     expect(panel).toContain(
       'import { revealJwStoneProtectedCall } from "@/pages/profile-sites/redGranitiProtectedContact"'
     );
-    expect(panel).toContain("const autoCallAttemptedRef = useRef(false)");
-    expect(panel).toContain('initialView !== "choice"');
-    expect(panel).toContain("void performCall()");
+    expect(panel).toContain('initialView !== "call"');
     expect(panel).toContain("const result = await revealJwStoneProtectedCall()");
     expect(panel).toContain("window.location.href = result.tel");
+    expect(panel).toContain("First-cut calls and requests are handled by JW Stone");
+    expect(panel).toContain("Connecting your call");
+    expect(panel).toContain("Call started");
+    expect(panel).not.toContain("Contact JW Stone");
   });
 
   it("uses a dedicated first-cut request that assigns the work to JW Stone", () => {
@@ -78,7 +96,7 @@ describe("R.E.D. Graniti complete profile renderer", () => {
     );
     expect(panel).toContain('requestType: "request_material"');
     expect(panel).toContain('serviceName: "R.E.D. Graniti first-cut distribution"');
-    expect(panel).toContain("Send to JW Stone");
+    expect(panel).toContain("Send Request");
     expect(panel).toContain("R.E.D. material or stone need");
     expect(panel).toContain("Needed format");
     expect(panel).toContain("Quantity or dimensions");
@@ -93,11 +111,10 @@ describe("R.E.D. Graniti complete profile renderer", () => {
   it("uses company language from R.E.D. Graniti's real public position", () => {
     const serialized = JSON.stringify(RED_GRANITI_PUBLIC_IDENTITY);
 
-    expect(RED_GRANITI_PUBLIC_IDENTITY.eyebrow).toBe(
-      "QUARRIES · BLOCKS · SLABS · WORLDWIDE DISTRIBUTION"
-    );
+    expect(RED_GRANITI_PUBLIC_IDENTITY.profileLabel).toBe("Quarries, blocks and slabs");
+    expect(RED_GRANITI_PUBLIC_IDENTITY.headline).toBe("Quarries, blocks and slabs");
     expect(RED_GRANITI_PUBLIC_IDENTITY.summary).toContain("more than 50 years");
-    expect(RED_GRANITI_PUBLIC_IDENTITY.about).toContain(
+    expect(RED_GRANITI_PUBLIC_IDENTITY.qualityStatement).toContain(
       "Every block is checked, controlled, and cataloged"
     );
     expect(RED_GRANITI_PUBLIC_IDENTITY.capabilities.map((item) => item.title)).toEqual([
@@ -106,7 +123,7 @@ describe("R.E.D. Graniti complete profile renderer", () => {
       "Worldwide distribution",
     ]);
     expect(RED_GRANITI_PUBLIC_IDENTITY.partnership.description).toContain(
-      "dimensions, quantity, destination, and timing"
+      "First-cut distribution for R.E.D. Graniti stone is handled by JW Stone"
     );
     expect(serialized).not.toMatch(
       /Stone Core|canonical records|admin custody|request routing|source company profile|the right company, material, and next step/i
