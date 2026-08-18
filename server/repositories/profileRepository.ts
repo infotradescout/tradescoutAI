@@ -12,18 +12,10 @@ import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
 import {
-  ADMIN_MANAGED_PROFILE_SOURCE,
   canExposeProviderProfileOnPublicMap,
   canServePublishedProfileAtDirectRoute,
-  JRS_PROFILE_SLUG,
-  OWNER_CONFIRMED_PROFILE_SOURCE,
-  PRO_FAB_PROFILE_SLUG,
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
-import {
-  PRECISION_AERIAL_PROFILE_SLUG,
-  PRECISION_AERIAL_STEWARD_PROVIDER,
-} from "@shared/precisionAerialProfile";
 import {
   isSteelHomePackagesProfilePubliclyReleased,
   STEEL_HOME_PACKAGES_PROFILE_IDENTITY,
@@ -71,6 +63,9 @@ export async function loadCanonicalPublicMapProfileUrls(
       ownerUserId: profiles.ownerUserId,
       slug: profiles.slug,
       profileStatus: profiles.status,
+      profileRoleContext: profiles.roleContext,
+      profileHeadline: profiles.headline,
+      profileContentBlocks: profiles.contentBlocks,
       businessId: profiles.businessId,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
@@ -114,44 +109,27 @@ function slugify(input: string): string {
     .slice(0, 80);
 }
 
+/**
+ * Public search is a discovery surface, not a route-availability shortcut.
+ * Only explicitly released, active, discovery-enabled businesses with an
+ * established owner verification signal may enter the search result set.
+ */
 function publicProfileSearchExposurePredicate() {
-  const ownerConfirmedSource = JSON.stringify([OWNER_CONFIRMED_PROFILE_SOURCE]);
-  const adminManagedSource = JSON.stringify([ADMIN_MANAGED_PROFILE_SOURCE]);
   return sql`(
-    ${profiles.businessId} IS NULL
-    OR ${users.verifiedBadge} = true
-    OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
-    OR (
-      ${businesses.status} = 'active'
-      AND ${businesses.publicDiscoveryEnabled} = false
-      AND ${profiles.ownerUserId} = ${businesses.ownerUserId}
-      AND (
-        (
-          ${profiles.slug} = ${JRS_PROFILE_SLUG}
-          AND COALESCE(${businesses.sources}, '[]'::jsonb) @> ${ownerConfirmedSource}::jsonb
-        )
-        OR (
-          ${profiles.slug} = ${PRO_FAB_PROFILE_SLUG}
-          AND COALESCE(${businesses.sources}, '[]'::jsonb) @> ${adminManagedSource}::jsonb
-        )
-        OR (
-          ${profiles.slug} = ${PRECISION_AERIAL_PROFILE_SLUG}
-          AND COALESCE(${businesses.sources}, '[]'::jsonb) @> ${adminManagedSource}::jsonb
-          AND lower(COALESCE(${businesses.claimStatus}, '')) = 'unclaimed'
-          AND ${users.provider} = ${PRECISION_AERIAL_STEWARD_PROVIDER}
-          AND COALESCE(${users.preferences} -> 'internalProfileSteward' ->> 'profileSlug', '') = ${PRECISION_AERIAL_PROFILE_SLUG}
-          AND COALESCE(${users.preferences} -> 'internalProfileSteward' ->> 'source', '') = ${ADMIN_MANAGED_PROFILE_SOURCE}
-        )
-      )
+    ${profiles.businessId} IS NOT NULL
+    AND ${businesses.status} = 'active'
+    AND ${businesses.publicDiscoveryEnabled} = true
+    AND (
+      ${users.verifiedBadge} = true
+      OR lower(COALESCE(${users.verificationStatus}::text, '')) = 'approved'
     )
   )`;
 }
 
 function publicProfileVisibilityPredicate() {
   return sql`(
-    lower(COALESCE(${users.preferences} ->> 'profileVisibility', 'private')) = 'public'
-    OR COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-       @> jsonb_build_array(CAST(${profiles.id} AS text))
+    COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
+      @> jsonb_build_array(CAST(${profiles.id} AS text))
   )`;
 }
 
@@ -297,6 +275,10 @@ export class ProfileRepository {
         businessId: row.businessId,
         profileSlug: row.slug,
         profileStatus: "published",
+        profileRoleContext: row.roleContext,
+        profileHeadline: row.headline,
+        profileServicesDescription: row.servicesDescription,
+        profileContentBlocks: row.contentBlocks,
         profileOwnerUserId: row.profileOwnerUserId,
         ownerVerifiedBadge: row.ownerVerifiedBadge,
         ownerVerificationStatus: row.ownerVerificationStatus,
