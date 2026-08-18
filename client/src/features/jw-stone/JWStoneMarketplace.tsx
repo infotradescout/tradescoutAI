@@ -11,6 +11,7 @@ import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail"
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
+import { JwStoneSourcePartnersSection } from "./JwStoneSourcePartnersSection";
 import { JwStoneStorySection } from "./JwStoneStorySection";
 import { MarketplaceIntroduction } from "./MarketplaceIntroduction";
 import { MarketplaceFooter } from "./MarketplaceFooter";
@@ -255,6 +256,7 @@ export default function JWStoneMarketplace() {
       />
 
       <JwStoneStorySection />
+      <JwStoneSourcePartnersSection onStartRequest={() => startRequest([])} />
       <JwStoneCompanySection />
 
       <MarketplaceFooter />
