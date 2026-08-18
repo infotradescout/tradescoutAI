@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
 import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
+import { JwStoneProfileSeo } from "@/features/jw-stone/JwStoneProfileSeo";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 
 export type { WholesalerBrandColors } from "./WholesalerProfileThemeLegacy";
@@ -21,6 +22,7 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
         profileCanonicalUrl={props.profileShareDestination}
       >
         <JWStoneMarketplace />
+        <JwStoneProfileSeo canonical={props.profileShareDestination} />
       </JwStoneProfileProvider>
     );
   }
