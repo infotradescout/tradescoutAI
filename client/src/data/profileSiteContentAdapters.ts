@@ -4,6 +4,7 @@ import {
   JW_STONE_PUBLIC_DISCOVERY_BLOCK,
 } from "@/data/jwStoneProfilePresentation";
 import { JW_STONE_YOUTUBE_URL } from "@shared/jwStonePresentation";
+import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
 import {
   applyInventoryLeadImageOverrides,
   readFeaturedStoneSlugs,
@@ -100,12 +101,37 @@ const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
 };
 
 /**
+ * The stored profile remains company data, not a wholesale catalog. At render
+ * time this adapter selects the custom-profile wrapper that owns the dedicated
+ * R.E.D. Graniti presentation. Admin template changes cannot silently send the
+ * company back to the generic blank profile shell.
+ */
+const redGranitiContentAdapter: ProfileSiteContentAdapter = (blocks) => {
+  const hasTemplate = blocks.some((block) => block?.type === "siteTemplate");
+  if (!hasTemplate) {
+    return [{ type: "siteTemplate", data: { id: "wholesaler" } }, ...blocks];
+  }
+  return blocks.map((block) =>
+    block?.type === "siteTemplate"
+      ? {
+          ...block,
+          data: {
+            ...(block.data || {}),
+            id: "wholesaler",
+          },
+        }
+      : block
+  );
+};
+
+/**
  * Source-data wiring belongs here, outside shared profile renderers.
  * Unknown profiles pass through byte-for-byte; registered profiles may hydrate
  * versioned evidence or default presentation data without slug checks in UI.
  */
 const PROFILE_SITE_CONTENT_ADAPTERS: Record<string, ProfileSiteContentAdapter> = {
   "jw-stone": jwStoneContentAdapter,
+  [RED_GRANITI_PROFILE_SLUG]: redGranitiContentAdapter,
 };
 
 export function applyProfileSiteContentAdapter(args: {
