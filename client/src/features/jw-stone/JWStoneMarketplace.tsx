@@ -26,6 +26,8 @@ import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_DESCRIPTION =
   "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
+const JW_STONE_SOCIAL_IMAGE_URL =
+  "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
@@ -171,12 +173,14 @@ export default function JWStoneMarketplace() {
     name: "JW Stone | Stone Discovery",
     description: JW_STONE_DESCRIPTION,
     url: canonicalUrl,
-    image: "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png",
+    image: JW_STONE_SOCIAL_IMAGE_URL,
     mainEntity: {
-      "@type": "Organization",
+      "@type": "LocalBusiness",
       name: JW_STONE_PUBLIC_IDENTITY.brandName,
       description: JW_STONE_PUBLIC_IDENTITY.about,
+      foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
       url: canonicalUrl,
+      hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
       address: {
         "@type": "PostalAddress",
         streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
@@ -202,7 +206,7 @@ export default function JWStoneMarketplace() {
         description={JW_STONE_DESCRIPTION}
         canonical={canonicalUrl}
         ogType="website"
-        ogImage="/images/businesses/jw-stone/logo-social-preview.png"
+        ogImage={JW_STONE_SOCIAL_IMAGE_URL}
         structuredData={collectionData}
       />
       <MarketplaceHeader
@@ -284,13 +288,14 @@ export default function JWStoneMarketplace() {
         open={requestContext !== null}
         onClose={() => setRequestContext(null)}
         profileSlug="jw-stone"
-        businessName="JW Stone"
+        businessName={JW_STONE_PUBLIC_IDENTITY.brandName}
+        businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}
         hasViewerSession={isAuthenticated || Boolean((user as { id?: unknown } | null)?.id)}
-        allowCall={false}
+        allowCall
         stayInProfile
         requestMode="materials"
         initialStoneSelections={requestTargets}
-        initialView="request"
+        initialView="choice"
         initialRequestType="request_material"
       />
     </div>
