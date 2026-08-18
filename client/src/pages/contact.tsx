@@ -17,11 +17,10 @@ export default function ContactGatePage() {
         <CardHeader>
           <CardTitle className="text-foreground flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-ts-orange" />
-            Contact Requires Intent Confirmation
+            Contact
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Start in Direct Connect so your request stays organized and you do not get hit with
-            random outreach.
+            Start in Direct Connect to contact a business.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

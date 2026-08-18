@@ -48,6 +48,16 @@ function resolveOrigin(): string {
   return window.location.origin;
 }
 
+function normalizeShareImageUrl(imageUrl: string | undefined): string | undefined {
+  if (!imageUrl || imageUrl.trim().length === 0) return undefined;
+  const trimmed = imageUrl.trim();
+  try {
+    return new URL(trimmed, resolveOrigin() || "https://www.thetradescout.com").toString();
+  } catch {
+    return trimmed;
+  }
+}
+
 function isSelfAttributingPublicProfileUrl(url: URL): boolean {
   const pathname = String(url.pathname || "");
   return (
@@ -199,7 +209,7 @@ export async function share(options: ShareOptions): Promise<void> {
       text,
       contextLabel: label,
       kind: options.kind || inferShareKind(finalUrl),
-      imageUrl: options.imageUrl,
+      imageUrl: normalizeShareImageUrl(options.imageUrl),
       sourceName: options.sourceName || "TradeScout",
     };
     window.dispatchEvent(new CustomEvent<ShareCardPayload>(SHARE_CARD_EVENT, { detail: payload }));

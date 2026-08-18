@@ -530,9 +530,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         Sign in
                       </Button>
                     </Link>
-                    <p className="text-[11px] text-white/60">
-                      Contact requires an account to prevent spam.
-                    </p>
+                    <p className="text-[11px] text-white/60">Sign in to contact a business.</p>
                   </div>
                 )}
               </div>

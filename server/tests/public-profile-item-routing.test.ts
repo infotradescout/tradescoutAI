@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { listProfileInventoryItems } from "@shared/profileItemShare";
 import { inventoryCategoriesForProfile } from "../profileItemShareMetadata";
+import { JW_STONE_CANONICAL_INVENTORY_SUMMARY } from "../jwStoneCanonicalInventory";
 import {
   resolvePublicProfileCategoryRequest,
   resolvePublicProfileItemRequest,
@@ -30,7 +31,8 @@ describe("public Profile item request routing", () => {
     const items = listProfileInventoryItems(
       inventoryCategoriesForProfile("jw-stone", jwContentBlocks)
     );
-    expect(items).toHaveLength(119);
+    const expectedItemCount = JW_STONE_CANONICAL_INVENTORY_SUMMARY.stoneCount;
+    expect(items).toHaveLength(expectedItemCount);
 
     const canonicalPaths = new Set<string>();
     for (const item of items) {
@@ -49,7 +51,7 @@ describe("public Profile item request routing", () => {
       if (resolved.kind === "item") canonicalPaths.add(resolved.canonicalPath);
     }
 
-    expect(canonicalPaths.size).toBe(119);
+    expect(canonicalPaths.size).toBe(expectedItemCount);
     expect([...canonicalPaths].some((path) => path.startsWith("/u/"))).toBe(false);
   });
 

@@ -361,9 +361,7 @@ const HomeScoutCountyPage = memo(function HomeScoutCountyPage() {
                   </div>
 
                   <div className="pt-2 flex items-center justify-between">
-                    <div className="text-xs text-white/60">
-                      Contact requires intent confirmation (Decision Card required).
-                    </div>
+                    <div className="text-xs text-white/60">Contact through TradeScout.</div>
                     <Link href={`/homescout/listings/${listing.id}`}>
                       <Button
                         size="sm"

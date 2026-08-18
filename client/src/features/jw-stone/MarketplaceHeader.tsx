@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Bookmark, Menu, X } from "lucide-react";
+import { Bookmark, Menu, Youtube, X } from "lucide-react";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
+import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
@@ -63,6 +64,16 @@ export function MarketplaceHeader({
         </a>
 
         <nav aria-label="JW Stone actions" className="flex items-center gap-1 sm:gap-1.5">
+          <a
+            href={JW_STONE_SOCIAL_PRESENTATION.youtubeUrl || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Watch JW Stone on YouTube"
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
+          >
+            <Youtube className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">YouTube</span>
+          </a>
           <button
             type="button"
             onClick={onOpenWishlist}

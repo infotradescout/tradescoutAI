@@ -29,6 +29,7 @@ describe("directory business profile fallback", () => {
     expect(viewSource).toContain("googleRating");
     expect(viewSource).toContain("googleReviewCount");
     expect(viewSource).not.toContain("Google-imported fields queued for enrichment");
-    expect(viewSource).toContain("Call after decision card");
+    expect(viewSource).toContain("showCallDecisionCard");
+    expect(viewSource).toContain("DecisionCard");
   });
 });

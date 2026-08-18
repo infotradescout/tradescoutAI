@@ -36,7 +36,7 @@ describe("public trade SEO fallback contracts", () => {
     const citySource = read("server/publicTradeCityHtml.ts");
 
     expect(tradeSource).toContain("buildTradeDiscoveryNote");
-    expect(tradeSource).toContain("Visibility never grants direct contact access");
+    expect(tradeSource).toContain("discovery separate from access");
     expect(tradeSource).toContain("Local discovery context");
     expect(tradeSource).toContain("protected Direct Connect paths");
 

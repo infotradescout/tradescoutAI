@@ -50,7 +50,7 @@ const CityPage = memo(function CityPage() {
   const counties = Array.isArray(data?.counties) ? data!.counties : [];
 
   const title = `${displayCity}, ${state} Contractors Directory | TradeScout`;
-  const description = `Browse contractors and businesses in ${displayCity}, ${state}. Select a county to view directory listings. Contact remains protected through TradeScout Direct Connect.`;
+  const description = `Browse contractors and businesses in ${displayCity}, ${state}. Select a county to view directory listings.`;
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: `${displayCity}, ${state}`, url: "" },

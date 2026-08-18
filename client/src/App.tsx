@@ -110,19 +110,11 @@ const AppLayout = memo(function AppLayout() {
       ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
           .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
       : undefined;
-  const isJwStoneMarketplaceDomain =
-    typeof window !== "undefined" &&
-    Boolean(
-      (window as unknown as { __TS_JW_STONE_MARKETPLACE_SURFACE__?: boolean })
-        .__TS_JW_STONE_MARKETPLACE_SURFACE__
-    );
-  // JW custom domain serves the marketplace storefront (not ProfileSiteView).
-  const isCustomDomainProfileRoute =
-    Boolean(customDomainProfileSlug) && !isJwStoneMarketplaceDomain;
-  const isJwStoneMarketplaceRoute =
-    isJwStoneMarketplaceDomain || pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
+  // JW's public profile lives at /jw-stone and should follow standard profile flow.
+  const isJwStoneProfileRoute = pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
+  const isCustomDomainProfileRoute = Boolean(customDomainProfileSlug);
   const isPublicProfileRoute =
-    isJwStoneMarketplaceRoute ||
+    isJwStoneProfileRoute ||
     ((/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/p\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
       /^\/business\/[^/]+$/.test(pathOnly) ||
@@ -139,23 +131,7 @@ const AppLayout = memo(function AppLayout() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
 
-  // Unlock document scroll before the lazy JW chunk mounts. Without this,
-  // height:100% on html/body/#root/.app-root traps wheel/trackpad/touch.
-  useLayoutEffect(() => {
-    if (!isJwStoneMarketplaceRoute) return;
-    const root = document.documentElement;
-    const body = document.body;
-    root.classList.add("jw-marketplace-scroll");
-    body.classList.add("jw-marketplace-scroll");
-    // Clear leftover modal inline locks from prior routes.
-    if (body.style.overflow === "hidden") {
-      body.style.overflow = "";
-    }
-    return () => {
-      root.classList.remove("jw-marketplace-scroll");
-      body.classList.remove("jw-marketplace-scroll");
-    };
-  }, [isJwStoneMarketplaceRoute]);
+  // JW is now rendered as a standard profile surface.
 
   // Identity funnel telemetry: emit once per browser session
   useEffect(() => {
@@ -294,7 +270,6 @@ const AppLayout = memo(function AppLayout() {
               isPublicCampaignRoute={isPublicCampaignRoute}
               isPublicRootLanding={isPublicRootLanding}
               isShareRoute={isShareRoute}
-              isJwStoneMarketplaceRoute={isJwStoneMarketplaceRoute}
               isStandaloneProfileRoute={isStandaloneProfileRoute}
               isCustomDomainProfileRoute={isCustomDomainProfileRoute}
             />
@@ -305,21 +280,21 @@ const AppLayout = memo(function AppLayout() {
       {/* Global components - CONTENT ONLY, NO NAV (AppShell owns all navigation) */}
 
       {/* Preferred Source Prompt - earned at 5 completed actions */}
-      {!isJwStoneMarketplaceRoute && isAuthenticated && user?.id && (
+      {!isPublicProfileRoute && !isCustomDomainProfileRoute && isAuthenticated && user?.id && (
         <Suspense fallback={null}>
           <PreferredSourcePrompt userId={user.id} onClose={() => {}} />
         </Suspense>
       )}
 
       {/* Hold-to-Explain (ships dark behind flag) */}
-      {!isJwStoneMarketplaceRoute && FEATURE_HOLD_TO_EXPLAIN && (
+      {!isPublicProfileRoute && !isCustomDomainProfileRoute && FEATURE_HOLD_TO_EXPLAIN && (
         <Suspense fallback={null}>
           <HoldToExplainProvider />
         </Suspense>
       )}
 
       {/* One-time Hold explainer (ships dark behind flag) */}
-      {!isJwStoneMarketplaceRoute && FEATURE_HOLD_INTRO_TUTORIAL && (
+      {!isPublicProfileRoute && !isCustomDomainProfileRoute && FEATURE_HOLD_INTRO_TUTORIAL && (
         <Suspense fallback={null}>
           <HoldIntroTutorial />
         </Suspense>
@@ -374,7 +349,7 @@ const AppLayout = memo(function AppLayout() {
         )}
 
       {/* Keep the flagship JW experience free of platform overlays. */}
-      {!isJwStoneMarketplaceRoute && (
+      {!isPublicProfileRoute && !isCustomDomainProfileRoute && (
         <Suspense fallback={null}>
           <SimpleBugReportTool />
         </Suspense>
