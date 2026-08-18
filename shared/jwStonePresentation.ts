@@ -1,5 +1,6 @@
 export const JW_STONE_PROFILE_SLUG = "jw-stone";
 export const JW_STONE_PROFILE_SOCIAL_LOGO_URL = "/images/businesses/jw-stone/logo-social.svg";
+export const JW_STONE_YOUTUBE_URL = "https://www.youtube.com/@JWStoneLogistics";
 
 export type JwStoneInventoryNameStatus = "source" | "placeholder";
 
@@ -98,7 +99,7 @@ export const JW_STONE_PUBLIC_IDENTITY = {
       id: "youtube",
       label: "YouTube",
       publicHandle: "@JWStoneLogistics",
-      href: "https://www.youtube.com/@JWStoneLogistics",
+      href: JW_STONE_YOUTUBE_URL,
     },
   ],
 } as const;
@@ -111,6 +112,5 @@ export const JW_STONE_SOCIAL_PRESENTATION = {
   profileCta: "Explore inventory",
   inventoryCta: "View photos · Request pricing",
   galleryCta: "View project",
-  youtubeUrl: "https://www.youtube.com/@JWStoneLogistics",
   cardLayout: "brand-hero",
 } as const;
