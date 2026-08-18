@@ -1,8 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { Bookmark, HeartHandshake, Loader2, ThumbsUp } from "lucide-react";
+import {
+  Bookmark,
+  Facebook,
+  HeartHandshake,
+  Instagram,
+  Loader2,
+  MapPin,
+  ThumbsUp,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 import { RecommendationForm } from "@/components/RecommendationForm";
 import { ShareButton } from "@/components/ShareButton";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { resolvePublicProfileIdentity } from "@/data/publicProfileIdentity";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
@@ -42,6 +53,12 @@ type ProfileTrustActionPayload = Partial<ProfileTrustActionState> & {
   message?: unknown;
 };
 
+const PUBLIC_PROFILE_SOCIAL_ICONS: Readonly<Record<string, LucideIcon>> = {
+  instagram: Instagram,
+  facebook: Facebook,
+  youtube: Youtube,
+};
+
 async function readResponseJson(response: Response): Promise<ProfileTrustActionPayload> {
   return response.json().catch(() => ({}));
 }
@@ -78,6 +95,7 @@ export function PublicProfileTrustActions({
   const resumedActionRef = useRef(false);
   const isLight = tone === "light";
   const isCompact = density === "compact";
+  const publicIdentity = resolvePublicProfileIdentity(profileSlug);
 
   useEffect(() => {
     let current = true;
@@ -247,6 +265,13 @@ export function PublicProfileTrustActions({
       : "border border-ts-orange/40 bg-ts-orange/15 text-ts-orange-light hover:bg-ts-orange/25",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
   );
+  const identityLinkClass = cn(
+    "flex min-h-11 min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-bold transition",
+    isLight
+      ? "text-stone-700 hover:bg-stone-100 hover:text-stone-950"
+      : "text-white/75 hover:bg-white/10 hover:text-white",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
+  );
 
   return (
     <>
@@ -361,6 +386,73 @@ export function PublicProfileTrustActions({
             )}
           />
         </div>
+
+        {publicIdentity ? (
+          <div
+            className={cn(
+              "mt-2 border-t pt-2",
+              isLight ? "border-stone-200" : "border-white/10"
+            )}
+            data-testid="public-profile-identity"
+          >
+            {publicIdentity.address ? (
+              publicIdentity.address.mapUrl ? (
+                <a
+                  href={publicIdentity.address.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={identityLinkClass}
+                  aria-label={`Get directions to ${publicIdentity.address.formatted}`}
+                  data-testid="public-profile-address"
+                >
+                  <MapPin className="h-4 w-4 flex-none text-ts-orange" aria-hidden="true" />
+                  <span className="min-w-0 break-words">{publicIdentity.address.formatted}</span>
+                </a>
+              ) : (
+                <div className={identityLinkClass} data-testid="public-profile-address">
+                  <MapPin className="h-4 w-4 flex-none text-ts-orange" aria-hidden="true" />
+                  <span className="min-w-0 break-words">{publicIdentity.address.formatted}</span>
+                </div>
+              )
+            ) : null}
+
+            {publicIdentity.socials?.length ? (
+              <div
+                className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-3"
+                aria-label={`${profileName} official social links`}
+              >
+                {publicIdentity.socials.map((social) => {
+                  const Icon = PUBLIC_PROFILE_SOCIAL_ICONS[social.id] || HeartHandshake;
+                  return (
+                    <a
+                      key={social.id}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={identityLinkClass}
+                      aria-label={`Open ${profileName} on ${social.label}`}
+                      data-testid={`public-profile-social-${social.id}`}
+                    >
+                      <Icon className="h-4 w-4 flex-none text-ts-orange" aria-hidden="true" />
+                      <span className="min-w-0">
+                        <span className="block">{social.label}</span>
+                        <span
+                          className={cn(
+                            "block truncate text-[10px] font-semibold",
+                            isLight ? "text-stone-500" : "text-white/50"
+                          )}
+                        >
+                          {social.publicHandle}
+                        </span>
+                      </span>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         {loading && !state ? <span className="sr-only">Loading saved actions.</span> : null}
       </div>
 
