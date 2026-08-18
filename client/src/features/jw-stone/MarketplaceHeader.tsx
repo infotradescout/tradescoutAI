@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Bookmark, Menu, Youtube, X } from "lucide-react";
-import { JW_STONE_SOCIAL_PRESENTATION } from "@shared/jwStonePresentation";
+import { JW_STONE_YOUTUBE_URL } from "@shared/jwStonePresentation";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
 
@@ -65,7 +65,7 @@ export function MarketplaceHeader({
 
         <nav aria-label="JW Stone actions" className="flex items-center gap-1 sm:gap-1.5">
           <a
-            href={JW_STONE_SOCIAL_PRESENTATION.youtubeUrl}
+            href={JW_STONE_YOUTUBE_URL}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Watch JW Stone on YouTube"
@@ -141,7 +141,7 @@ export function MarketplaceHeader({
                     Socials
                   </a>
                   <a
-                    href={JW_STONE_SOCIAL_PRESENTATION.youtubeUrl}
+                    href={JW_STONE_YOUTUBE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => closeAnd()}
