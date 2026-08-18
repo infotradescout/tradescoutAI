@@ -37,7 +37,7 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
   }
 
   const title = `${trade.name} by State | TradeScout`;
-  const description = `Browse ${trade.name} by state. Select a state and county to view local directory listings.`;
+  const description = `Browse ${trade.name} by state. Select a state and county to view local directory listings. Contact remains protected through TradeScout Direct Connect.`;
   const breadcrumbs = [
     { name: "Home", url: "/" },
     { name: "Trades", url: "/trade" },

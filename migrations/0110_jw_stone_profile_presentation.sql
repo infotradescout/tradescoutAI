@@ -111,7 +111,6 @@ SET
           "profileCta": "Explore inventory",
           "inventoryCta": "View photos · Request pricing",
           "galleryCta": "View project",
-          "youtubeUrl": "https://www.youtube.com/@JWStoneLogistics",
           "cardLayout": "brand-hero"
         }
       }'::jsonb

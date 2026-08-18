@@ -12,7 +12,6 @@ import { JW_STONE_CANONICAL_INVENTORY_CATEGORIES } from "./jwStoneCanonicalInven
 export const JW_STONE_MARKETPLACE_PLATFORM_URL = "https://www.thetradescout.com/jw-stone";
 /** @deprecated Prefer JW_STONE_MARKETPLACE_PLATFORM_URL; kept for existing tests. */
 export const JW_STONE_MARKETPLACE_CANONICAL_URL = JW_STONE_MARKETPLACE_PLATFORM_URL;
-const JW_STONE_ASSET_ORIGIN = "https://www.thetradescout.com/";
 
 const JW_STONE_MARKETPLACE_TITLE = formatTradeScoutTitle("JW Stone | Stone Discovery");
 const JW_STONE_MARKETPLACE_DESCRIPTION =
@@ -110,7 +109,7 @@ export function buildPublicJwStoneMarketplaceHtml(
     ? createProfileInventoryItemShareMetadata({
         profileName: "JW Stone Logistics",
         profileUrl,
-        assetOrigin: JW_STONE_ASSET_ORIGIN,
+        assetOrigin: `${origin}/`,
         categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
         itemSlug: resolveJwStoneLegacyItemSlug(String(opts.stoneSlug)),
         photo: opts.photo,
@@ -123,7 +122,7 @@ export function buildPublicJwStoneMarketplaceHtml(
       ? createProfileInventoryCategoryShareMetadata({
           profileName: "JW Stone Logistics",
           profileUrl,
-          assetOrigin: JW_STONE_ASSET_ORIGIN,
+          assetOrigin: `${origin}/`,
           categories: JW_STONE_CANONICAL_INVENTORY_CATEGORIES,
           categorySlug: opts.materialSlug,
           publicRouteContentBlocks: contentBlocks,
@@ -150,7 +149,10 @@ export function buildPublicJwStoneMarketplaceHtml(
     <address>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.formatted)}</address>
     <h2>Follow JW Stone</h2>
     <p>${JW_STONE_PUBLIC_IDENTITY.socials
-      .map((social) => `${escapeHtml(social.label)}: ${escapeHtml(social.publicHandle)}`)
+      .map(
+        (social) =>
+          `${escapeHtml(social.label)}: ${escapeHtml(social.publicHandle)}`
+      )
       .join(" · ")}</p>
   </section>`;
 
@@ -370,7 +372,9 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     JW_STONE_PUBLIC_IDENTITY.about,
     "",
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
-    ...JW_STONE_PUBLIC_IDENTITY.socials.map((social) => `${social.label}: ${social.publicHandle}`),
+    ...JW_STONE_PUBLIC_IDENTITY.socials.map(
+      (social) => `${social.label}: ${social.publicHandle}`
+    ),
     "",
     `Canonical: ${publicOrigin}/`,
     `Robots: ${publicOrigin}/robots.txt`,
@@ -381,7 +385,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     `- Stones: ${publicOrigin}/stones/{slug}`,
     `- Materials: ${publicOrigin}/materials/{slug}`,
     "",
-    "Contact JW Stone through TradeScout.",
+    "Contact is gated through TradeScout Express Direct Connect.",
     "",
   ].join("\n");
 }

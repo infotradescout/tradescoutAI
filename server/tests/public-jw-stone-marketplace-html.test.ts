@@ -177,5 +177,9 @@ describe("JW Stone marketplace public HTML", () => {
     expect(marketplaceRoute).toBeGreaterThan(customDomainMiddleware);
     expect(stoneRoute).toBeGreaterThan(marketplaceRoute);
     expect(catchAllRoute).toBeGreaterThan(stoneRoute);
+
+    expect(source).toContain("serveJwStoneMarketplaceCustomDomainPath");
+    expect(source).toContain("buildPublicJwStoneMarketplaceHtml");
+    expect(source).toContain("jwstonelogistics.com");
   });
 });

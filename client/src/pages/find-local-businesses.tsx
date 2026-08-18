@@ -22,7 +22,7 @@ const faqItems = [
   {
     question: "Does TradeScout sell my request as a lead?",
     answer:
-      "No. TradeScout helps you contact the right business for your request instead of reselling your request as a lead.",
+      "No. TradeScout is built around intent-gated contact and trust controls rather than lead resale.",
   },
   {
     question: "What if I need help deciding who to contact?",
@@ -44,7 +44,7 @@ export default function FindLocalBusinessesPage() {
         "@type": "WebPage",
         name: "Find Local Businesses, Services, and Contractors",
         description:
-          "Find local businesses, services, and contractors on TradeScout. Compare options by county and trade, then contact businesses through TradeScout.",
+          "Find local businesses, services, and contractors on TradeScout. Compare options by county and trade, then connect through intent-gated contact.",
         url: "https://www.thetradescout.com/find-local-businesses",
       },
       createBreadcrumbStructuredData([
@@ -141,9 +141,9 @@ export default function FindLocalBusinessesPage() {
         </Card>
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">Contact local businesses</h2>
+            <h2 className="text-lg font-semibold text-white">Contact with intention</h2>
             <p className="text-sm text-white/70">
-              Contact businesses through TradeScout instead of sending the same request everywhere.
+              Contact is gated through intent and decision steps, helping reduce spammy outreach.
             </p>
           </CardContent>
         </Card>

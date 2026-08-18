@@ -128,7 +128,8 @@ function buildTradeDiscoveryNote(args: {
   const place = args.scope === "national" ? "available counties and states" : args.placeName.trim();
   return [
     `TradeScout organizes ${args.tradeName} discovery around local operating areas, publication status, and crawlable public business information.`,
-    `Use this page to compare ${args.tradeName} coverage for ${place}. Contact a business through TradeScout when you are ready.`,
+    `Use this page to compare ${args.tradeName} coverage for ${place}, then continue through Direct Connect when contact is appropriate.`,
+    "Visibility never grants direct contact access; requests stay gated through intent, decision, and protected contact steps.",
   ].join(" ");
 }
 
@@ -576,7 +577,7 @@ export async function buildPublicTradeCountyHtml(
       <ul>
         <li>County container: ${escapeHtml(county.name)}, ${escapeHtml(state.name)}</li>
         <li>Trade category: ${escapeHtml(match.trade.name)}</li>
-        <li>Contact through TradeScout</li>
+        <li>Contact rule: Direct Connect protects intent, decision, and contact flow.</li>
       </ul>
     </section>
     <p>
