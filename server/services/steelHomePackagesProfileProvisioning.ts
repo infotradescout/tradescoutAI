@@ -9,6 +9,7 @@ import {
 } from "@shared/steelHomePackagesProfile";
 import { db } from "../db";
 import { hasVerifiedTradeScoutAdminCustody } from "./ownerConfirmedDirectProfile";
+import { provisionRedGranitiProfile } from "./redGranitiProfileProvisioning";
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -30,7 +31,7 @@ function recordValue(value: unknown): Record<string, any> {
  * preserved only while it remains under a verified TradeScout admin; any
  * other transfer fails closed instead of changing the public recipient label.
  */
-export async function provisionSteelHomePackagesProfile(): Promise<void> {
+async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
 
   await db.transaction(async (tx) => {
@@ -221,4 +222,30 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
           .returning();
     if (!profile) throw new Error("Steel-home project tools profile provisioning failed");
   });
+}
+
+/**
+ * The server's final best-effort profile bootstrap invokes this function. Keep
+ * the two records isolated so a failure in one is still reported without
+ * preventing the other from being attempted during the same production boot.
+ */
+export async function provisionSteelHomePackagesProfile(): Promise<void> {
+  let steelHomeFailure: unknown = null;
+  let redGranitiFailure: unknown = null;
+
+  try {
+    await provisionSteelHomePackagesProfileRecord();
+  } catch (error) {
+    steelHomeFailure = error;
+  }
+
+  try {
+    await provisionRedGranitiProfile();
+  } catch (error) {
+    redGranitiFailure = error;
+    console.error("[profile-provisioning] R.E.D. Graniti provisioning failed", error);
+  }
+
+  if (steelHomeFailure) throw steelHomeFailure;
+  if (redGranitiFailure) throw redGranitiFailure;
 }
