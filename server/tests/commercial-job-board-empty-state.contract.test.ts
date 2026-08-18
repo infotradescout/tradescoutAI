@@ -7,7 +7,7 @@ const root = process.cwd();
 describe("commercial job board empty state", () => {
   it("names the navigation entry for the commercial jobs it opens", () => {
     const source = fs.readFileSync(
-      path.join(root, "client/src/components/layout/AppShell.tsx"),
+      path.join(root, "client/src/components/layout/AppShellCore.tsx"),
       "utf8"
     );
 
