@@ -2,6 +2,7 @@ import {
   Facebook,
   Instagram,
   MapPin,
+  Youtube,
   type LucideIcon,
 } from "lucide-react";
 import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
@@ -13,12 +14,13 @@ const SOCIAL_ICONS: Record<
 > = {
   instagram: Instagram,
   facebook: Facebook,
+  youtube: Youtube,
 };
 
 /**
  * Public company identity belongs on the marketplace itself, not behind
- * Direct Connect. The address and official account names stay visible, while
- * every outbound/contact action remains inside the gated request flow.
+ * Direct Connect. The address and official account names stay visible. The
+ * YouTube destination is public, while phone access stays inside Direct Connect.
  */
 export function JwStoneCompanySection() {
   const { about, founderStory, address, socials } = JW_STONE_PUBLIC_IDENTITY;
@@ -87,19 +89,38 @@ export function JwStoneCompanySection() {
             <ul className="mt-4 grid grid-cols-2 gap-2" aria-label="JW Stone social media">
               {socials.map((social) => {
                 const Icon = SOCIAL_ICONS[social.id];
+                const content = (
+                  <>
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    <span>
+                      <span className="block font-semibold">{social.label}</span>
+                      <span className="block text-xs text-[var(--jw-muted)]">
+                        {social.publicHandle}
+                      </span>
+                    </span>
+                  </>
+                );
+
                 return (
                   <li key={social.id}>
-                    <div
-                      className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm ${jw.border}`}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                      <span>
-                        <span className="block font-semibold">{social.label}</span>
-                        <span className="block text-xs text-[var(--jw-muted)]">
-                          {social.publicHandle}
-                        </span>
-                      </span>
-                    </div>
+                    {social.id === "youtube" ? (
+                      <a
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid="jw-social-youtube"
+                        aria-label="Watch JW Stone on YouTube"
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm transition-colors hover:bg-[var(--jw-bg)] ${jw.border}`}
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm ${jw.border}`}
+                      >
+                        {content}
+                      </div>
+                    )}
                   </li>
                 );
               })}

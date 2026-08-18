@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Bookmark, Menu, X } from "lucide-react";
+import { Bookmark, Menu, Youtube, X } from "lucide-react";
+import { JW_STONE_YOUTUBE_URL } from "@shared/jwStonePresentation";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
 
@@ -10,8 +11,8 @@ type MarketplaceHeaderProps = {
 };
 
 /**
- * Light site chrome: logo · Saved · Menu.
- * Connect lives only on the persistent bottom bar.
+ * Light site chrome: logo · YouTube · Saved · Menu.
+ * Connect lives only on the persistent bottom bar and menu.
  */
 export function MarketplaceHeader({
   wishlistCount,
@@ -63,6 +64,18 @@ export function MarketplaceHeader({
         </a>
 
         <nav aria-label="JW Stone actions" className="flex items-center gap-1 sm:gap-1.5">
+          <a
+            href={JW_STONE_YOUTUBE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Watch JW Stone on YouTube"
+            data-testid="jw-marketplace-youtube"
+            className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
+          >
+            <Youtube className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">YouTube</span>
+          </a>
+
           <button
             type="button"
             onClick={onOpenWishlist}
@@ -126,6 +139,15 @@ export function MarketplaceHeader({
                     className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
                   >
                     Socials
+                  </a>
+                  <a
+                    href={JW_STONE_YOUTUBE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => closeAnd()}
+                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    YouTube
                   </a>
                   <button
                     type="button"

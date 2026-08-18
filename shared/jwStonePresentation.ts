@@ -1,5 +1,6 @@
 export const JW_STONE_PROFILE_SLUG = "jw-stone";
 export const JW_STONE_PROFILE_SOCIAL_LOGO_URL = "/images/businesses/jw-stone/logo-social.svg";
+export const JW_STONE_YOUTUBE_URL = "https://www.youtube.com/@JWStoneLogistics";
 
 export type JwStoneInventoryNameStatus = "source" | "placeholder";
 
@@ -66,6 +67,7 @@ export function resolveJwStonePublicRequestName(args: {
  */
 export const JW_STONE_PUBLIC_IDENTITY = {
   brandName: "JW Stone Logistics",
+  foundingDate: "2017",
   about:
     "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery. Based in Pensacola, FL, JW Stone works with fabricators, builders, architects, designers and homeowners across the Gulf South and beyond.",
   founderStory:
@@ -92,6 +94,12 @@ export const JW_STONE_PUBLIC_IDENTITY = {
       label: "Facebook",
       publicHandle: "JW Stone Logistics",
       href: "https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/",
+    },
+    {
+      id: "youtube",
+      label: "YouTube",
+      publicHandle: "@JWStoneLogistics",
+      href: JW_STONE_YOUTUBE_URL,
     },
   ],
 } as const;
