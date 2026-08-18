@@ -5,7 +5,7 @@ import {
   STONE_CORE_RED_GRANITI_PUBLICATION_TARGETS,
   STONE_CORE_RED_GRANITI_SOURCE_PROFILE_SLUG,
 } from "@shared/stoneCore";
-import { pool } from "../db";
+import { db, pool } from "../db";
 
 const STONE_CORE_DDL = `
 CREATE TABLE IF NOT EXISTS stone_materials (
@@ -149,9 +149,7 @@ export async function ensureStoneCoreTables(): Promise<void> {
   return ensurePromise;
 }
 
-type StoneCoreTransaction = {
-  execute: (query: unknown) => Promise<unknown>;
-};
+type StoneCoreTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /**
  * Installs one canonical material record per source material, one independent
@@ -192,7 +190,7 @@ export async function provisionRedGranitiStoneCore(args: {
         ${material.sourceUrl},
         ${material.primaryImageUrl},
         ${material.quarryCountry},
-        ${material.quarryRegion || null},
+        ${material.quarryRegion},
         'source_verified',
         ${JSON.stringify({ summary: material.summary })}::jsonb,
         NOW()
