@@ -52,7 +52,7 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(serverIndex).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
   });
 
-  it("keeps verified company identity and TradeScout profile actions inside 2.0", () => {
+  it("keeps one polished company close without repeating identity inside profile actions", () => {
     expect(identity).toContain('streetAddress: "2103 W Herman Ave"');
     expect(identity).toContain('addressLocality: "Pensacola"');
     expect(identity).toContain('postalCode: "32505"');
@@ -61,8 +61,15 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(identity).toContain('publicHandle: "@JWStoneLogistics"');
     expect(profileWrapper).toContain("profileActions={props.trustActions}");
     expect(company).toContain("useJwStoneProfileContext");
+    expect(company).toContain('data-testid="jw-company-editorial-layout"');
     expect(company).toContain('data-testid="jw-tradescout-profile-actions"');
+    expect(company).toContain('data-testid="jw-company-contact-card"');
+    expect(company).toContain("[&_[data-testid=public-profile-identity]]:hidden");
+    expect(company).toContain("[&>div>p:first-child]:hidden");
+    expect(company).toContain("xl:sticky");
+    expect(company).toContain("Founded 2017 · Pensacola, Florida");
     expect(company).toContain("About JW Stone");
+    expect(company).toContain("Our Journey to Excellence");
     expect(company).toContain("Visit JW Stone");
     expect(company).toContain("Follow JW Stone");
   });
