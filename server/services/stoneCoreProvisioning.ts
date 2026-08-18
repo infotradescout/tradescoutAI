@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- The repository exports its Drizzle database boundary as any. */
 import { sql } from "drizzle-orm";
 import {
   STONE_CORE_RED_GRANITI_DISTRIBUTION_RIGHT,
@@ -5,7 +6,7 @@ import {
   STONE_CORE_RED_GRANITI_PUBLICATION_TARGETS,
   STONE_CORE_RED_GRANITI_SOURCE_PROFILE_SLUG,
 } from "@shared/stoneCore";
-import { db, pool } from "../db";
+import { pool } from "../db";
 
 const STONE_CORE_DDL = `
 CREATE TABLE IF NOT EXISTS stone_materials (
@@ -149,7 +150,7 @@ export async function ensureStoneCoreTables(): Promise<void> {
   return ensurePromise;
 }
 
-type StoneCoreTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type StoneCoreTransaction = any;
 
 /**
  * Installs one canonical material record per source material, one independent
