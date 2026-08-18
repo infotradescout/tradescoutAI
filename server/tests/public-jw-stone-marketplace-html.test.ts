@@ -77,6 +77,7 @@ describe("JW Stone marketplace public HTML", () => {
         sameAs: [
           "https://www.instagram.com/jwstonellc/",
           "https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/",
+          "https://www.youtube.com/@JWStoneLogistics",
         ],
       },
     });
@@ -101,10 +102,12 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain("2103 W Herman Ave, Pensacola, FL 32505");
     expect(html).toContain("Instagram: @jwstonellc");
     expect(html).toContain("Facebook: JW Stone Logistics");
+    expect(html).toContain("YouTube: @JWStoneLogistics");
     expect(html).not.toContain('<a href="https://www.instagram.com/jwstonellc/"');
     expect(html).not.toContain(
       '<a href="https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/"'
     );
+    expect(html).not.toContain('<a href="https://www.youtube.com/@JWStoneLogistics"');
     expect(html).not.toContain("New Arrivals");
     expect(html).not.toContain("Learn about stone");
     expect(html).not.toContain("Call for availability");
@@ -120,6 +123,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
     expect(text).toContain("Instagram: @jwstonellc");
     expect(text).toContain("Facebook: JW Stone Logistics");
+    expect(text).toContain("YouTube: @JWStoneLogistics");
   });
 
   it("publishes stone OG metadata for shareable marketplace stone URLs", () => {
