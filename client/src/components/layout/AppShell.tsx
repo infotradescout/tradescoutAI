@@ -187,8 +187,35 @@ export function AppShell({ children, footer }: AppShellProps) {
         }
 
         body.ts-desktop-bottom-nav-active .ts-desktop-bottom-nav-host .ts-bottom-nav-inner {
-          max-width: min(1120px, calc(100% - 24px));
+          max-width: min(1440px, calc(100% - 24px));
+          margin-inline: auto;
           margin-bottom: 4px;
+        }
+
+        @media (min-width: 1024px) {
+          [data-testid="authenticated-social-frame"] {
+            grid-template-columns: 220px minmax(0, 1fr) !important;
+          }
+
+          [data-testid="authenticated-social-frame"] > aside[aria-label="Account shortcuts"] {
+            display: block !important;
+          }
+        }
+
+        @media (min-width: 1280px) {
+          [data-testid="authenticated-social-frame"] {
+            grid-template-columns: 232px minmax(0, 1fr) 288px !important;
+          }
+
+          [data-testid="authenticated-social-frame"] > aside[aria-label="Activity and quick actions"] {
+            display: block !important;
+          }
+        }
+
+        @media (min-width: 1536px) {
+          [data-testid="authenticated-social-frame"] {
+            grid-template-columns: 244px minmax(0, 1fr) 304px !important;
+          }
         }
 
         @media (max-width: 767px) {
