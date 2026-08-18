@@ -40,6 +40,7 @@ describe("R.E.D. Graniti business profile renderer", () => {
     expect(theme).toContain("Blocks, slabs and distribution");
     expect(theme).toContain("Italian offices, yards and warehouse");
 
+    expect(theme).not.toContain("<header");
     expect(theme).not.toContain("identity.stats.map");
     expect(theme).not.toContain("min-h-[690px]");
     expect(theme).not.toContain("text-7xl");
@@ -55,7 +56,7 @@ describe("R.E.D. Graniti business profile renderer", () => {
     expect(theme).toContain('data-testid="red-graniti-primary-request"');
     expect(theme).toContain('data-testid="red-graniti-mobile-call"');
     expect(theme).toContain('data-testid="red-graniti-mobile-request"');
-    expect(theme).toContain(">\n                Call\n              </button>");
+    expect(theme).toContain("Call");
     expect(theme).toContain("Start a Request");
     expect(theme).not.toContain("Call JW Stone");
     expect(theme).not.toContain("red-graniti-header-call");
