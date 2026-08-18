@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import { useEffect, type ComponentProps } from "react";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
 import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
@@ -15,7 +15,17 @@ type WholesalerProfileThemeProps = ComponentProps<typeof LegacyWholesalerProfile
  * every other TradePartner continues through the established wholesale theme.
  */
 export default function WholesalerProfileTheme(props: WholesalerProfileThemeProps) {
-  if (props.profileSlug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG) {
+  const isJwStoneProfile = props.profileSlug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG;
+
+  useEffect(() => {
+    if (!isJwStoneProfile) return;
+    return () => {
+      document.documentElement.classList.remove("jw-marketplace-scroll");
+      document.body.classList.remove("jw-marketplace-scroll");
+    };
+  }, [isJwStoneProfile]);
+
+  if (isJwStoneProfile) {
     return (
       <JwStoneProfileProvider
         profileActions={props.trustActions}
