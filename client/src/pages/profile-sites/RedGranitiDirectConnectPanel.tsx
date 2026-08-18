@@ -1,9 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
-  MapPin,
   Phone,
   Send,
   X,
@@ -13,7 +19,7 @@ import { revealJwStoneProtectedCall } from "@/pages/profile-sites/redGranitiProt
 import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
 import { JW_STONE_PROFILE_SLUG, JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 
-export type RedGranitiContactEntry = "choice" | "request";
+export type RedGranitiContactEntry = "call" | "request";
 
 type CustomerRole =
   | "fabricator"
@@ -32,7 +38,7 @@ type Props = {
   platformBaseHref?: string;
 };
 
-type PanelView = "choice" | "request" | "call_started" | "success";
+type PanelView = "calling" | "request" | "call_started" | "success";
 
 const CUSTOMER_ROLES: Array<{ value: CustomerRole; label: string }> = [
   { value: "fabricator", label: "Fabricator" },
@@ -69,8 +75,10 @@ export default function RedGranitiDirectConnectPanel({
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
-  const autoCallAttemptedRef = useRef(false);
-  const [view, setView] = useState<PanelView>(initialView);
+  const callAttemptedRef = useRef(false);
+  const [view, setView] = useState<PanelView>(
+    initialView === "call" ? "calling" : "request"
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [callPhone, setCallPhone] = useState("");
@@ -92,61 +100,6 @@ export default function RedGranitiDirectConnectPanel({
     website: "",
   });
 
-  const performCall = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      const result = await revealJwStoneProtectedCall();
-      setCallPhone(result.phone);
-      setCallTel(result.tel);
-      setView("call_started");
-      window.location.href = result.tel;
-    } catch (cause: any) {
-      setError(cause?.message || "Calling is unavailable right now. Start a request instead.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  useEffect(() => {
-    busyRef.current = busy;
-  }, [busy]);
-
-  useEffect(() => {
-    if (!open) {
-      autoCallAttemptedRef.current = false;
-      return;
-    }
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    setView(initialView);
-    setBusy(false);
-    setError("");
-    setCallPhone("");
-    setCallTel("");
-    setRequestId("");
-    setRequestWorkspacePath("");
-    requestAnimationFrame(() => panelRef.current?.focus());
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busyRef.current) onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [initialView, onClose, open]);
-
-  useEffect(() => {
-    if (!open || initialView !== "choice" || autoCallAttemptedRef.current) return;
-    autoCallAttemptedRef.current = true;
-    void performCall();
-    // The call action intentionally fires once for each deliberate opening of
-    // the panel from a visible Call JW Stone button.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialView, open]);
-
   const requestHref = useMemo(() => {
     if (requestWorkspacePath) {
       return qualifyPublicProfileItemDestination(requestWorkspacePath, platformBaseHref);
@@ -164,6 +117,61 @@ export default function RedGranitiDirectConnectPanel({
       platformBaseHref
     );
   }, [platformBaseHref, requestId, requestWorkspacePath]);
+
+  const performCall = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    setView("calling");
+    try {
+      const result = await revealJwStoneProtectedCall();
+      setCallPhone(result.phone);
+      setCallTel(result.tel);
+      setView("call_started");
+      window.location.href = result.tel;
+    } catch (cause: any) {
+      setError(cause?.message || "Calling is unavailable right now.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    if (!open) {
+      callAttemptedRef.current = false;
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    setView(initialView === "call" ? "calling" : "request");
+    setBusy(false);
+    setError("");
+    setCallPhone("");
+    setCallTel("");
+    setRequestId("");
+    setRequestWorkspacePath("");
+    requestAnimationFrame(() => panelRef.current?.focus());
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busyRef.current) onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [initialView, onClose, open]);
+
+  useEffect(() => {
+    if (!open || initialView !== "call" || callAttemptedRef.current) return;
+    callAttemptedRef.current = true;
+    void performCall();
+  }, [initialView, open, performCall]);
 
   if (!open) return null;
 
@@ -188,7 +196,7 @@ export default function RedGranitiDirectConnectPanel({
       return;
     }
     if (!isValidDirectConnectRequestPhone(phone)) {
-      setError("Enter a complete phone number so JW Stone can reach you.");
+      setError("Enter a complete phone number so the first-cut team can reach you.");
       setBusy(false);
       return;
     }
@@ -249,7 +257,7 @@ export default function RedGranitiDirectConnectPanel({
         throw new Error(
           response.status === 400
             ? "Check the contact details and project information, then try again."
-            : "The request could not be sent yet. Try again or call JW Stone."
+            : "The request could not be sent yet. Try again or use Call."
         );
       }
       setRequestId(String(json?.requestId || ""));
@@ -258,11 +266,20 @@ export default function RedGranitiDirectConnectPanel({
       );
       setView("success");
     } catch (cause: any) {
-      setError(cause?.message || "The request could not be sent yet. Try again or call JW Stone.");
+      setError(cause?.message || "The request could not be sent yet. Try again or use Call.");
     } finally {
       setBusy(false);
     }
   };
+
+  const title =
+    view === "request"
+      ? "Start a first-cut request"
+      : view === "success"
+        ? "Request sent"
+        : view === "call_started"
+          ? "Call started"
+          : "Connecting your call";
 
   return (
     <div
@@ -278,19 +295,16 @@ export default function RedGranitiDirectConnectPanel({
         aria-modal="true"
         aria-labelledby="red-graniti-contact-title"
         tabIndex={-1}
-        className="max-h-[94dvh] w-full overflow-y-auto rounded-t-[2rem] bg-[#f4f1ec] shadow-2xl outline-none sm:max-w-3xl sm:rounded-[2rem]"
+        className="max-h-[94dvh] w-full overflow-y-auto rounded-t-[2rem] bg-[#f3f1ed] shadow-2xl outline-none sm:max-w-3xl sm:rounded-[2rem]"
       >
-        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-black/10 bg-[rgba(244,241,236,0.96)] px-5 py-4 backdrop-blur-xl sm:px-7">
-          {view === "request" ? (
+        <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-black/10 bg-[rgba(243,241,237,0.97)] px-5 py-4 backdrop-blur-xl sm:px-7">
+          {view === "request" && initialView === "call" ? (
             <button
               type="button"
-              onClick={() => {
-                setError("");
-                setView("choice");
-              }}
+              onClick={() => void performCall()}
               disabled={busy}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-black disabled:opacity-50"
-              aria-label="Back to contact options"
+              aria-label="Back to call"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
@@ -298,6 +312,8 @@ export default function RedGranitiDirectConnectPanel({
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71920] text-white">
               {view === "success" ? (
                 <CheckCircle2 className="h-5 w-5" />
+              ) : view === "request" ? (
+                <Send className="h-5 w-5" />
               ) : busy ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
@@ -307,18 +323,10 @@ export default function RedGranitiDirectConnectPanel({
           )}
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d71920]">
-              R.E.D. Graniti first-cut distribution
+              R.E.D. Graniti
             </p>
-            <h2 id="red-graniti-contact-title" className="truncate text-xl font-black text-[#171313]">
-              {view === "request"
-                ? "Send your project details"
-                : view === "success"
-                  ? "Request sent"
-                  : view === "call_started"
-                    ? "Calling JW Stone"
-                    : busy
-                      ? "Connecting to JW Stone"
-                      : "Contact JW Stone"}
+            <h2 id="red-graniti-contact-title" className="truncate text-xl font-black text-[#1c1818]">
+              {title}
             </h2>
           </div>
           <button
@@ -333,71 +341,58 @@ export default function RedGranitiDirectConnectPanel({
         </div>
 
         <div className="p-5 sm:p-7">
+          <p className="mb-5 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm leading-6 text-black/62">
+            First-cut calls and requests are handled by JW Stone, R.E.D. Graniti's exclusive first-cut distributor.
+          </p>
+
           {error ? (
-            <div role="alert" className="mb-5 rounded-2xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900">
+            <div role="alert" className="mb-5 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm font-semibold text-red-900">
               {error}
             </div>
           ) : null}
 
-          {view === "choice" ? (
-            <div>
-              <p className="max-w-2xl text-base leading-7 text-black/65">
-                {busy
-                  ? "Connecting your call to JW Stone."
-                  : "JW Stone handles first-cut requests for R.E.D. Graniti stone. Call now or send the material, format, destination, and timing for review."}
+          {view === "calling" ? (
+            <div className="py-10 text-center">
+              <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-[#d71920]">
+                <Loader2 className="h-7 w-7 animate-spin" />
+              </span>
+              <h3 className="mt-5 text-2xl font-black text-[#1c1818]">Connecting your call</h3>
+              <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-black/60">
+                Your phone will open as soon as the protected number is ready.
               </p>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={performCall}
-                  disabled={busy}
-                  className="flex min-h-44 flex-col items-start justify-between rounded-[1.5rem] bg-[#d71920] p-6 text-left text-white shadow-lg shadow-red-950/15 transition-transform hover:-translate-y-0.5 disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-7 w-7 animate-spin" /> : <Phone className="h-7 w-7" />}
-                  <span>
-                    <strong className="block text-2xl font-black">
-                      {busy ? "Connecting…" : "Call JW Stone"}
-                    </strong>
-                    <span className="mt-2 block text-sm leading-6 text-white/80">
-                      Speak with the exclusive first-cut distributor.
-                    </span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setError("");
-                    setView("request");
-                  }}
-                  disabled={busy}
-                  className="flex min-h-44 flex-col items-start justify-between rounded-[1.5rem] border border-black/12 bg-white p-6 text-left text-[#171313] shadow-[0_18px_45px_rgba(23,19,19,0.07)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
-                >
-                  <Send className="h-7 w-7 text-[#d71920]" />
-                  <span>
-                    <strong className="block text-2xl font-black">Start a Request</strong>
-                    <span className="mt-2 block text-sm leading-6 text-black/60">
-                      Send stone, size, quantity, delivery, and schedule details.
-                    </span>
-                  </span>
-                </button>
-              </div>
-              <div className="mt-5 flex items-start gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm leading-6 text-black/60">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#d71920]" />
-                <span>{JW_STONE_PUBLIC_IDENTITY.address.formatted}</span>
-              </div>
+              {error ? (
+                <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => void performCall()}
+                    className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#1c1818]"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Try Call Again
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setView("request");
+                    }}
+                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#d71920] px-6 text-sm font-black text-white"
+                  >
+                    Start a Request
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
           {view === "request" ? (
             <form onSubmit={submitRequest} className="space-y-6">
-              <div>
-                <p className="text-base leading-7 text-black/65">
-                  Share what you know. JW Stone can help finish the material and first-cut plan.
-                </p>
-              </div>
+              <p className="text-base leading-7 text-black/65">
+                Share what you know. The first-cut team can help complete the material and delivery plan.
+              </p>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Name
                   <input
                     required
@@ -407,7 +402,7 @@ export default function RedGranitiDirectConnectPanel({
                     autoComplete="name"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Company <span className="font-medium text-black/45">(optional)</span>
                   <input
                     value={form.company}
@@ -416,7 +411,7 @@ export default function RedGranitiDirectConnectPanel({
                     autoComplete="organization"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Email
                   <input
                     required
@@ -427,7 +422,7 @@ export default function RedGranitiDirectConnectPanel({
                     autoComplete="email"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Phone
                   <input
                     required
@@ -438,7 +433,7 @@ export default function RedGranitiDirectConnectPanel({
                     autoComplete="tel"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   I am a
                   <select
                     required
@@ -459,7 +454,7 @@ export default function RedGranitiDirectConnectPanel({
                     ))}
                   </select>
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Needed format
                   <select
                     required
@@ -483,7 +478,7 @@ export default function RedGranitiDirectConnectPanel({
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="text-sm font-bold text-[#171313] sm:col-span-2">
+                <label className="text-sm font-bold text-[#1c1818] sm:col-span-2">
                   R.E.D. material or stone need <span className="font-medium text-black/45">(optional)</span>
                   <input
                     value={form.material}
@@ -492,7 +487,7 @@ export default function RedGranitiDirectConnectPanel({
                     className="mt-2 min-h-12 w-full rounded-xl border border-black/15 bg-white px-4 font-medium outline-none placeholder:text-black/35 focus:border-[#d71920] focus:ring-2 focus:ring-red-200"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Quantity or dimensions <span className="font-medium text-black/45">(optional)</span>
                   <input
                     value={form.quantityDimensions}
@@ -503,7 +498,7 @@ export default function RedGranitiDirectConnectPanel({
                     className="mt-2 min-h-12 w-full rounded-xl border border-black/15 bg-white px-4 font-medium outline-none placeholder:text-black/35 focus:border-[#d71920] focus:ring-2 focus:ring-red-200"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313]">
+                <label className="text-sm font-bold text-[#1c1818]">
                   Delivery destination
                   <input
                     required
@@ -513,7 +508,7 @@ export default function RedGranitiDirectConnectPanel({
                     className="mt-2 min-h-12 w-full rounded-xl border border-black/15 bg-white px-4 font-medium outline-none placeholder:text-black/35 focus:border-[#d71920] focus:ring-2 focus:ring-red-200"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313] sm:col-span-2">
+                <label className="text-sm font-bold text-[#1c1818] sm:col-span-2">
                   Needed timing <span className="font-medium text-black/45">(optional)</span>
                   <input
                     value={form.timing}
@@ -522,12 +517,12 @@ export default function RedGranitiDirectConnectPanel({
                     className="mt-2 min-h-12 w-full rounded-xl border border-black/15 bg-white px-4 font-medium outline-none placeholder:text-black/35 focus:border-[#d71920] focus:ring-2 focus:ring-red-200"
                   />
                 </label>
-                <label className="text-sm font-bold text-[#171313] sm:col-span-2">
+                <label className="text-sm font-bold text-[#1c1818] sm:col-span-2">
                   Project details <span className="font-medium text-black/45">(optional)</span>
                   <textarea
                     value={form.details}
                     onChange={(event) => setForm((current) => ({ ...current, details: event.target.value }))}
-                    placeholder="Application, finish, matching requirements, freight needs, or anything else JW Stone should review"
+                    placeholder="Application, finish, matching requirements, freight needs, or other details"
                     className="mt-2 min-h-32 w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 font-medium outline-none placeholder:text-black/35 focus:border-[#d71920] focus:ring-2 focus:ring-red-200"
                   />
                 </label>
@@ -542,14 +537,15 @@ export default function RedGranitiDirectConnectPanel({
                 className="absolute -left-[9999px] h-px w-px opacity-0"
               />
 
-              <div className="flex flex-col-reverse gap-3 border-t border-black/10 pt-5 sm:flex-row sm:justify-end">
+              <div className="flex flex-col-reverse gap-3 border-t border-black/10 pt-5 sm:flex-row sm:justify-between">
                 <button
                   type="button"
-                  onClick={() => setView("choice")}
+                  onClick={() => void performCall()}
                   disabled={busy}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#171313] disabled:opacity-50"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#1c1818] disabled:opacity-50"
                 >
-                  Contact options
+                  <Phone className="h-4 w-4" />
+                  Call
                 </button>
                 <button
                   type="submit"
@@ -557,7 +553,7 @@ export default function RedGranitiDirectConnectPanel({
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#d71920] px-7 text-sm font-black text-white shadow-lg shadow-red-950/15 disabled:opacity-60"
                 >
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  Send to JW Stone
+                  Send Request
                 </button>
               </div>
             </form>
@@ -568,29 +564,32 @@ export default function RedGranitiDirectConnectPanel({
               <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-[#d71920]">
                 <Phone className="h-7 w-7" />
               </span>
-              <h3 className="mt-5 text-3xl font-black text-[#171313]">Calling JW Stone</h3>
+              <h3 className="mt-5 text-3xl font-black text-[#1c1818]">Call started</h3>
               <p className="mx-auto mt-3 max-w-md text-base leading-7 text-black/60">
                 Your phone should open the call now.
               </p>
               {callTel ? (
-                <a href={callTel} className="mt-5 inline-block text-xl font-black text-[#171313] underline underline-offset-4">
+                <a href={callTel} className="mt-5 inline-block text-xl font-black text-[#1c1818] underline underline-offset-4">
                   {callPhone || "Call again"}
                 </a>
               ) : null}
-              <div className="mt-8 flex justify-center gap-3">
+              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => setView("request")}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#171313]"
+                  onClick={() => {
+                    setError("");
+                    setView("request");
+                  }}
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#1c1818]"
                 >
-                  Send a request instead
+                  Start a Request
                 </button>
                 <button
                   type="button"
                   onClick={close}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#171313] px-6 text-sm font-black text-white"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#1c1818] px-6 text-sm font-black text-white"
                 >
-                  Back to profile
+                  Back to Profile
                 </button>
               </div>
             </div>
@@ -599,26 +598,25 @@ export default function RedGranitiDirectConnectPanel({
           {view === "success" ? (
             <div className="py-8 text-center">
               <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-700">
-                <CheckCircle2 className="h-8 w-8" />
+                <CheckCircle2 className="h-7 w-7" />
               </span>
-              <h3 className="mt-5 text-3xl font-black text-[#171313]">JW Stone has your request</h3>
-              <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-black/60">
-                The material, format, destination, and timing you supplied are attached to the
-                R.E.D. Graniti first-cut request.
+              <h3 className="mt-5 text-3xl font-black text-[#1c1818]">Request sent</h3>
+              <p className="mx-auto mt-3 max-w-md text-base leading-7 text-black/60">
+                The first-cut team has your project details and can continue from the saved request.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <a
                   href={requestHref}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#171313]"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#d71920] px-6 text-sm font-black text-white"
                 >
-                  Open request
+                  Open Request
                 </a>
                 <button
                   type="button"
                   onClick={close}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#171313] px-6 text-sm font-black text-white"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/15 bg-white px-6 text-sm font-black text-[#1c1818]"
                 >
-                  Back to profile
+                  Back to Profile
                 </button>
               </div>
             </div>
