@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { JW_STONE_YOUTUBE_URL } from "@shared/jwStonePresentation";
 import { applyProfileSiteContentAdapter } from "./profileSiteContentAdapters";
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "./jwStoneProfilePresentation";
 
@@ -21,25 +22,38 @@ describe("profile site content adapters", () => {
     });
 
     expect(blocks).toContainEqual(about);
-    expect(blocks.filter((block) => block.type === "profilePresentation")).toHaveLength(1);
+    const presentations = blocks.filter((block) => block.type === "profilePresentation");
+    expect(presentations).toHaveLength(1);
+    expect(presentations[0]?.data?.social).toMatchObject({
+      youtubeUrl: JW_STONE_YOUTUBE_URL,
+    });
     expect(blocks.filter((block) => block.type === "publicDiscovery")).toEqual([
       JW_STONE_PUBLIC_DISCOVERY_BLOCK,
     ]);
     expect(blocks.filter((block) => block.type === "inventoryCatalog")).toHaveLength(1);
   });
 
-  it("preserves an owner-authored presentation block instead of appending the default", () => {
+  it("preserves owner-authored presentation choices while adding canonical identity defaults", () => {
     const ownerPresentation = {
       type: "profilePresentation",
-      data: { inventory: { initialView: "featured" } },
+      data: {
+        inventory: { initialView: "featured" },
+        social: { accentColor: "#123456" },
+      },
     };
     const blocks = applyProfileSiteContentAdapter({
       profileSlug: "jw-stone",
       contentBlocks: [ownerPresentation],
     });
 
-    expect(blocks.filter((block) => block.type === "profilePresentation")).toEqual([
-      ownerPresentation,
-    ]);
+    const presentations = blocks.filter((block) => block.type === "profilePresentation");
+    expect(presentations).toHaveLength(1);
+    expect(presentations[0]?.data).toMatchObject({
+      inventory: { initialView: "featured" },
+      social: {
+        accentColor: "#123456",
+        youtubeUrl: JW_STONE_YOUTUBE_URL,
+      },
+    });
   });
 });
