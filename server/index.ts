@@ -77,11 +77,6 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
-import {
-  buildJwStoneMarketplaceLlmsText,
-  buildJwStoneMarketplaceSitemapXml,
-  buildPublicJwStoneMarketplaceHtml,
-} from "./publicJwStoneMarketplaceHtml";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
@@ -574,163 +569,6 @@ async function renderProfileOnCustomDomain(
   return true;
 }
 
-// An active profile custom-domain mapping needs its own robots.txt/sitemap.xml --
-// falling through to the platform's generic ones would advertise TradeScout
-// routes (/u/, /business/, /admin/, ...) that don't exist on this domain,
-// and never mention the one URL that does. Returns true if the request was
-// fully handled (caller should not call next()).
-async function renderJwStoneMarketplaceOnCustomDomain(
-  req: Request,
-  res: Response,
-  host: string,
-  opts: {
-    stoneSlug?: string | null;
-    photo?: unknown;
-    materialSlug?: string | null;
-  } = {}
-): Promise<boolean> {
-  const indexPath = path.join(process.cwd(), "dist/public", "index.html");
-  const templateHtml = getCachedTemplate(indexPath);
-  if (!templateHtml) return false;
-
-  const origin = `https://${host}`;
-  const html = buildPublicJwStoneMarketplaceHtml({
-    templateHtml,
-    origin,
-    collectionUrl: `${origin}/`,
-    marketplaceDomainSurface: true,
-    stoneSlug: opts.stoneSlug,
-    photo: opts.photo,
-    materialSlug: opts.materialSlug,
-  });
-
-  const start = Date.now();
-  const crawlerPathOverride = opts.stoneSlug
-    ? `/stones/${encodeURIComponent(opts.stoneSlug)}`
-    : opts.materialSlug
-      ? `/materials/${encodeURIComponent(opts.materialSlug)}`
-      : "/";
-  const contract = getLandingIntentContractForPath("/jw-stone");
-  res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
-  res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
-  res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
-  res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
-  res.setHeader("Cache-Control", "no-cache, must-revalidate");
-  res.on("finish", () => {
-    void recordCrawlerRequestEvent(req, res.statusCode, {
-      responseTimeMs: Date.now() - start,
-      responseBytes: Buffer.byteLength(html),
-      pathOverride: crawlerPathOverride,
-    });
-  });
-  res.send(html);
-  return true;
-}
-
-async function serveJwStoneMarketplaceCustomDomainPath(
-  req: Request,
-  res: Response,
-  host: string,
-  ownerUserId: string
-): Promise<boolean> {
-  const requestPath = req.path || "/";
-  const profileRecord = await storage.getProfileBySlugPublic(JW_STONE_PROFILE_SLUG);
-  if (!profileRecord) return false;
-
-  const attributeMarketplaceVisit = async (source: string) => {
-    const handledExplicitOrExisting = await handleExplicitOrExistingReferral(req, res);
-    if (!handledExplicitOrExisting) {
-      await attributeCleanPageViewToOwner({
-        req,
-        res,
-        ownerUserId,
-        destination: req.originalUrl || "/",
-        source,
-        conversionType: "public_profile_view",
-      });
-    }
-  };
-
-  if (requestPath === "/robots.txt") {
-    res
-      .type("text/plain")
-      .send(
-        `User-agent: *\nAllow: /\nAllow: /llms.txt\nAllow: /stones/\nAllow: /materials/\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /scout/\nDisallow: /messages/\nDisallow: /settings/\nDisallow: /auth/\n\nSitemap: https://${host}/sitemap.xml\n`
-      );
-    return true;
-  }
-  if (requestPath === "/sitemap.xml") {
-    res.type("application/xml").send(buildJwStoneMarketplaceSitemapXml(`https://${host}`));
-    return true;
-  }
-  if (requestPath === "/llms.txt") {
-    res.type("text/plain").send(buildJwStoneMarketplaceLlmsText(`https://${host}`));
-    return true;
-  }
-
-  // Preserve old profile URLs: /u/jw-stone → /
-  if (isSameProfileCompatibilityPath(requestPath, JW_STONE_PROFILE_SLUG)) {
-    res.redirect(301, `https://${host}/${requestSearchSuffix(req)}`);
-    return true;
-  }
-
-  const stoneMatch = requestPath.match(/^\/stones\/([^/]+)\/?$/i);
-  if (stoneMatch?.[1]) {
-    await attributeMarketplaceVisit("custom_domain_jw_marketplace_item");
-    if (
-      await renderJwStoneMarketplaceOnCustomDomain(req, res, host, {
-        stoneSlug: decodeURIComponent(stoneMatch[1]),
-        photo: req.query.photo,
-      })
-    ) {
-      return true;
-    }
-    sendPublicPageRenderFailure(res, "Unable to render JW Stone marketplace item");
-    return true;
-  }
-
-  const materialMatch = requestPath.match(/^\/materials\/([^/]+)\/?$/i);
-  if (materialMatch?.[1]) {
-    await attributeMarketplaceVisit("custom_domain_jw_marketplace_category");
-    if (
-      await renderJwStoneMarketplaceOnCustomDomain(req, res, host, {
-        materialSlug: decodeURIComponent(materialMatch[1]),
-      })
-    ) {
-      return true;
-    }
-    sendPublicPageRenderFailure(res, "Unable to render JW Stone marketplace category");
-    return true;
-  }
-
-  if (requestPath === "/" || requestPath === "") {
-    // Legacy ?stone= / ?category= query shares upgrade to path URLs.
-    const legacyStone =
-      typeof req.query.stone === "string" ? req.query.stone.trim().toLowerCase() : "";
-    if (legacyStone) {
-      const photo =
-        typeof req.query.photo === "string" && /^\d+$/.test(req.query.photo)
-          ? `?photo=${req.query.photo}`
-          : "";
-      res.redirect(301, `https://${host}/stones/${encodeURIComponent(legacyStone)}${photo}`);
-      return true;
-    }
-    const legacyCategory =
-      typeof req.query.category === "string" ? req.query.category.trim().toLowerCase() : "";
-    if (legacyCategory) {
-      res.redirect(301, `https://${host}/materials/${encodeURIComponent(legacyCategory)}`);
-      return true;
-    }
-
-    await attributeMarketplaceVisit("custom_domain_jw_marketplace_clean");
-    if (await renderJwStoneMarketplaceOnCustomDomain(req, res, host)) return true;
-    sendPublicPageRenderFailure(res, "Unable to render JW Stone marketplace");
-    return true;
-  }
-
-  return false;
-}
-
 async function serveCustomDomainProfilePath(
   req: Request,
   res: Response,
@@ -739,12 +577,6 @@ async function serveCustomDomainProfilePath(
   ownerUserId: string
 ): Promise<boolean> {
   const path = req.path || "/";
-
-  // JW Stone custom domain serves the marketplace storefront (not the legacy
-  // wholesaler profile shell), while preserving /stones/* and /materials/*.
-  if (slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG) {
-    return serveJwStoneMarketplaceCustomDomainPath(req, res, host, ownerUserId);
-  }
 
   // Domain routing proves control of a host, not public eligibility. Resolve
   // every custom-domain surface (HTML, robots, sitemap, and llms.txt) through
@@ -1807,64 +1639,51 @@ app.use(landingContractHeaders);
                 })
               );
 
-              // JW Stone marketplace on the TradeScout host. Custom-domain
-              // authority still owns jwstonelogistics.com and now serves this
-              // same marketplace shell there (see serveJwStoneMarketplaceCustomDomainPath).
-              const sendJwStoneMarketplaceHtml = async (
-                req: Request,
-                res: Response,
-                opts: { stoneSlug?: string; materialSlug?: string } = {}
-              ) => {
-                try {
-                  const indexPath = path.join(publicDistPath, "index.html");
-                  const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) {
-                    return res.status(503).send("Application temporarily unavailable");
-                  }
-
-                  const html = buildPublicJwStoneMarketplaceHtml({
-                    templateHtml,
-                    origin: "https://www.thetradescout.com",
-                    collectionUrl: "https://www.thetradescout.com/jw-stone",
-                    stoneSlug: opts.stoneSlug,
-                    photo: req.query.photo,
-                    materialSlug: opts.materialSlug,
-                  });
-                  res.setHeader(
-                    "Cache-Control",
-                    "public, max-age=300, stale-while-revalidate=86400"
-                  );
-                  res.send(html);
-                } catch (err) {
-                  console.error("Error rendering JW Stone marketplace HTML:", err);
-                  return sendPublicPageRenderFailure(res, "Failed to render JW Stone marketplace");
-                }
-              };
-
               app.get("/jw-stone", async (req, res) => {
+                const origin = resolvePublicOrigin(req);
                 const legacyStone =
                   typeof req.query.stone === "string" ? req.query.stone.trim().toLowerCase() : "";
                 if (legacyStone) {
-                  const photo =
+                  const photoParam =
                     typeof req.query.photo === "string" && /^\d+$/.test(req.query.photo)
                       ? `?photo=${req.query.photo}`
                       : "";
                   return res.redirect(
                     301,
-                    `/jw-stone/stones/${encodeURIComponent(legacyStone)}${photo}`
+                    `${origin}/u/${JW_STONE_PROFILE_SLUG}/stones/${encodeURIComponent(
+                      legacyStone
+                    )}${photoParam}`
                   );
                 }
-                return sendJwStoneMarketplaceHtml(req, res);
+                const legacyCategory =
+                  typeof req.query.category === "string"
+                    ? req.query.category.trim().toLowerCase()
+                    : "";
+                if (legacyCategory) {
+                  return res.redirect(
+                    301,
+                    `${origin}/u/${JW_STONE_PROFILE_SLUG}/materials/${encodeURIComponent(
+                      legacyCategory
+                    )}`
+                  );
+                }
+                return res.redirect(301, `${origin}/u/${JW_STONE_PROFILE_SLUG}`);
               });
               app.get("/jw-stone/stones/:stoneSlug", async (req, res) =>
-                sendJwStoneMarketplaceHtml(req, res, {
-                  stoneSlug: String(req.params.stoneSlug || ""),
-                })
+                res.redirect(
+                  301,
+                  `${resolvePublicOrigin(req)}/u/${JW_STONE_PROFILE_SLUG}/stones/${encodeURIComponent(
+                    String(req.params.stoneSlug || "")
+                  )}${requestSearchSuffix(req)}`
+                )
               );
               app.get("/jw-stone/materials/:materialSlug", async (req, res) =>
-                sendJwStoneMarketplaceHtml(req, res, {
-                  materialSlug: String(req.params.materialSlug || ""),
-                })
+                res.redirect(
+                  301,
+                  `${resolvePublicOrigin(req)}/u/${JW_STONE_PROFILE_SLUG}/materials/${encodeURIComponent(
+                    String(req.params.materialSlug || "")
+                  )}${requestSearchSuffix(req)}`
+                )
               );
 
               // Public helper profiles: server-rendered metadata lets shared
@@ -2149,24 +1968,6 @@ app.use(landingContractHeaders);
                       }
                       return res.redirect(301, destination);
                     }
-                    // JW without a mapped domain still must not serve the legacy
-                    // profile item HTML — marketplace paths are the public SoT.
-                    if (slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG) {
-                      const marketplaceSuffix = destinationSuffix
-                        .replace(/^\/stones\//i, "/jw-stone/stones/")
-                        .replace(/^\/materials\//i, "/jw-stone/materials/");
-                      const destination = buildPublicProfileCanonicalRedirectTarget({
-                        origin,
-                        canonicalPath: marketplaceSuffix.startsWith("/jw-stone")
-                          ? marketplaceSuffix
-                          : `/jw-stone${destinationSuffix}`,
-                        referral: req.query.ref,
-                      });
-                      if (!destination) {
-                        return sendPublicPageNotFound(res, "Profile destination not found");
-                      }
-                      return res.redirect(301, destination);
-                    }
                     if (req.path.startsWith("/p/")) {
                       const destination = buildPublicProfileCanonicalRedirectTarget({
                         origin,
@@ -2301,15 +2102,6 @@ app.use(landingContractHeaders);
                   }
                   if (customDomain && String(req.query.book || "") !== "1") {
                     return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);
-                  }
-
-                  // JW Stone public storefront is the marketplace — never serve the
-                  // legacy profile HTML as a second public home on TradeScout.
-                  if (
-                    slug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG &&
-                    String(req.query.book || "") !== "1"
-                  ) {
-                    return res.redirect(301, `${origin}/jw-stone${requestSearchSuffix(req)}`);
                   }
 
                   // Keep /p/:slug as legacy path but canonicalize to /u/:slug.
