@@ -66,8 +66,8 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(block("publicDiscovery")).toBeUndefined();
     expect(block("profilePresentation")).toBeUndefined();
     expect(partnership?.title).toBe("Exclusive first-cut distributor");
-    expect(partnership?.text).toContain("R.E.D. Graniti remains the source company");
-    expect(partnership?.text).toContain("JW Stone");
+    expect(partnership?.text).toContain("JW Stone handles first-cut planning");
+    expect(partnership?.text).toContain("dimensions, quantity, destination, and timing");
     expect(serialized).not.toMatch(/selected quarry materials|browse full inventory/i);
 
     expect(RED_GRANITI_PUBLIC_IDENTITY.stats).toHaveLength(4);
@@ -76,9 +76,12 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(RED_GRANITI_PUBLIC_IDENTITY.quarryCountries).toHaveLength(9);
     expect(RED_GRANITI_PUBLIC_IDENTITY.quarryHighlights).toHaveLength(3);
     expect(RED_GRANITI_PUBLIC_IDENTITY.officialLinks).toHaveLength(4);
+    expect(RED_GRANITI_PUBLIC_IDENTITY.headquarters.phone).toBe("+39 0585 88471");
+    expect(RED_GRANITI_PUBLIC_IDENTITY.headquarters.email).toBe("info@redgraniti.com");
 
     expect(provisioner).toContain('tradePartner: false');
     expect(provisioner).toContain('phone: REQUEST_ONLY_PHONE_SENTINEL');
+    expect(provisioner).toContain("RED_GRANITI_PUBLIC_IDENTITY.capabilities.map");
     expect(provisioner).not.toContain("gatedJwPhone");
     expect(provisioner).not.toContain("distribution_operator:");
     expect(provisioner).not.toContain("distribution_relationship:");
