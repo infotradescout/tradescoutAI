@@ -23,10 +23,11 @@ describe("signed-in TradeScout social frame", () => {
   });
 
   it("adds a persistent desktop bottom nav and preserves the existing mobile bottom nav", () => {
+    expect(wrapper).toContain('const DESKTOP_BOTTOM_NAV_HEIGHT = "58px"');
     expect(wrapper).toContain('data-testid="desktop-bottom-nav"');
     expect(wrapper).toContain("<MobileAppBar items={desktopBottomNavItems} primaryLimit={5} />");
     expect(wrapper).toContain("ts-desktop-bottom-nav-active");
-    expect(wrapper).toContain("bottom: 58px !important");
+    expect(wrapper).toContain("bottom: ${DESKTOP_BOTTOM_NAV_HEIGHT} !important;");
 
     expect(core).toContain("MOBILE FEATURE NAV");
     expect(core).toContain("isMobileSimplified ? mobileFlowNav : mobileNav.ordered");
