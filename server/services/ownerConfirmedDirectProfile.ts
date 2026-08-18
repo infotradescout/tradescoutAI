@@ -4,21 +4,54 @@ import {
 } from "@shared/precisionAerialProfile";
 import { isProfileVisibilityPublic as isSharedProfileVisibilityPublic } from "@shared/profileVisibility";
 import {
+  ADMIN_MANAGED_PROFILE_SOURCE,
+  getDirectProfileAuthority,
+  isInternalAdminProfileSlug,
+  JRS_PROFILE_SLUG,
+  OWNER_CONFIRMED_PROFILE_SOURCE,
+  PRO_FAB_PROFILE_SLUG,
+} from "@shared/publicProfileExposureRegistry";
+import {
   isSteelHomePackagesProfilePubliclyReleased,
   isSteelHomePackagesProfileSlug,
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
 
-export const JRS_PROFILE_SLUG = "jrs-auto-glass";
-export const OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile";
-export const PRO_FAB_PROFILE_SLUG = "pro-fab-specialty-services";
-export const ADMIN_MANAGED_PROFILE_SOURCE = "admin_provisioned_business_profile";
+export {
+  ADMIN_MANAGED_PROFILE_SOURCE,
+  JRS_PROFILE_SLUG,
+  OWNER_CONFIRMED_PROFILE_SOURCE,
+  PRO_FAB_PROFILE_SLUG,
+} from "@shared/publicProfileExposureRegistry";
 
-const DIRECT_PROFILE_AUTHORITIES: Readonly<Record<string, string>> = {
-  [JRS_PROFILE_SLUG]: OWNER_CONFIRMED_PROFILE_SOURCE,
-  [PRO_FAB_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE,
-  [PRECISION_AERIAL_PROFILE_SLUG]: ADMIN_MANAGED_PROFILE_SOURCE,
-};
+const INTERNAL_PROFILE_ROLES = new Set([
+  "admin",
+  "analytics_specialist",
+  "content_seo",
+  "head_admin",
+  "marketing_specialist",
+  "moderator",
+  "ops_admin",
+  "super_admin",
+]);
+
+const PUBLIC_PERSONAL_PROFILE_ROLES = new Set([
+  "community_builder",
+  "content_creator",
+  "hoa_board",
+  "hoa_member",
+  "homeowner",
+  "landlord",
+  "nonprofit_org",
+  "property_manager",
+  "renter",
+]);
+
+const NON_CONTENT_PROFILE_BLOCK_TYPES = new Set([
+  "profilepresentation",
+  "profilesections",
+  "sitetemplate",
+]);
 
 export type OwnerConfirmedDirectProfileCandidate = {
   profileSlug: unknown;
@@ -29,6 +62,10 @@ export type OwnerConfirmedDirectProfileCandidate = {
   publicDiscoveryEnabled: unknown;
   businessSources: unknown;
   businessClaimStatus?: unknown;
+  profileRoleContext?: unknown;
+  profileHeadline?: unknown;
+  profileServicesDescription?: unknown;
+  profileContentBlocks?: unknown;
   ownerRole?: unknown;
   ownerRoles?: unknown;
   ownerVerifiedBadge?: unknown;
@@ -47,6 +84,22 @@ export type PublishedProfileExposureCandidate = LinkedBusinessProfileExposureCan
   profileId: unknown;
 };
 
+export type PublicProfileExposureMode = "private" | "direct_only" | "unlisted_review" | "public";
+export type PublicProfileExposureReason =
+  | "business_trust_missing"
+  | "direct_only"
+  | "empty_profile"
+  | "internal_role"
+  | "personal_profile_not_explicitly_released"
+  | "private"
+  | "public"
+  | "unlisted_review"
+  | "unpublished";
+export type PublicProfileExposureDecision = {
+  mode: PublicProfileExposureMode;
+  reason: PublicProfileExposureReason;
+};
+
 function recordValue(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -59,33 +112,70 @@ function normalizeRole(value: unknown): string {
     .toLowerCase();
 }
 
+function ownerRoles(candidate: { ownerRole?: unknown; ownerRoles?: unknown }): string[] {
+  return [
+    normalizeRole(candidate.ownerRole),
+    ...(Array.isArray(candidate.ownerRoles) ? candidate.ownerRoles.map(normalizeRole) : []),
+  ].filter(Boolean);
+}
+
+function hasMeaningfulValue(value: unknown, depth = 0): boolean {
+  if (depth > 5 || value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (typeof value === "boolean") return false;
+  if (Array.isArray(value)) return value.some((item) => hasMeaningfulValue(item, depth + 1));
+  if (typeof value !== "object") return false;
+  return Object.values(value as Record<string, unknown>).some((item) =>
+    hasMeaningfulValue(item, depth + 1)
+  );
+}
+
+export function hasMeaningfulPublicProfileContent(
+  candidate: Pick<
+    OwnerConfirmedDirectProfileCandidate,
+    "profileHeadline" | "profileServicesDescription" | "profileContentBlocks"
+  >
+): boolean {
+  if (String(candidate.profileHeadline || "").trim()) return true;
+  if (String(candidate.profileServicesDescription || "").trim()) return true;
+  if (!Array.isArray(candidate.profileContentBlocks)) return false;
+
+  return candidate.profileContentBlocks.some((block) => {
+    if (!block || typeof block !== "object" || Array.isArray(block)) return false;
+    const source = block as Record<string, unknown>;
+    const type = String(source.type || "")
+      .trim()
+      .toLowerCase();
+    return Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data);
+  });
+}
+
+function hasInternalProfileIdentity(candidate: PublishedProfileExposureCandidate): boolean {
+  if (isInternalAdminProfileSlug(candidate.profileSlug)) return true;
+  if (INTERNAL_PROFILE_ROLES.has(normalizeRole(candidate.profileRoleContext))) return true;
+  return (
+    !String(candidate.businessId || "").trim() &&
+    ownerRoles(candidate).some((role) => INTERNAL_PROFILE_ROLES.has(role))
+  );
+}
+
 export function hasVerifiedTradeScoutAdminCustody(candidate: {
   ownerRole?: unknown;
   ownerRoles?: unknown;
   ownerVerifiedBadge?: unknown;
   ownerVerificationStatus?: unknown;
 }): boolean {
-  const roles = [
-    normalizeRole(candidate.ownerRole),
-    ...(Array.isArray(candidate.ownerRoles) ? candidate.ownerRoles.map(normalizeRole) : []),
-  ];
-  const hasStaffAdminRole = roles.some((role) => role === "super_admin" || role === "head_admin");
-
   return (
-    hasStaffAdminRole &&
-    isPubliclyVerifiedProfileOwner({
-      ownerVerifiedBadge: candidate.ownerVerifiedBadge,
-      ownerVerificationStatus: candidate.ownerVerificationStatus,
-    })
+    ownerRoles(candidate).some((role) => role === "super_admin" || role === "head_admin") &&
+    isPubliclyVerifiedProfileOwner(candidate)
   );
 }
 
 function hasExactPrecisionStewardAuthority(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
-  const preferences = recordValue(candidate.ownerPreferences);
-  const marker = recordValue(preferences.internalProfileSteward);
-
+  const marker = recordValue(recordValue(candidate.ownerPreferences).internalProfileSteward);
   return (
     String(candidate.businessClaimStatus || "")
       .trim()
@@ -96,26 +186,12 @@ function hasExactPrecisionStewardAuthority(
   );
 }
 
-export function hasTradeScoutPendingOwnerCustody(
-  candidate: OwnerConfirmedDirectProfileCandidate
-): boolean {
-  const profileSlug = String(candidate.profileSlug || "")
-    .trim()
-    .toLowerCase();
-  return (
-    profileSlug === PRECISION_AERIAL_PROFILE_SLUG &&
-    hasBaseDirectProfileAuthority(candidate, ADMIN_MANAGED_PROFILE_SOURCE) &&
-    hasExactPrecisionStewardAuthority(candidate)
-  );
-}
-
 function hasBaseDirectProfileAuthority(
   candidate: OwnerConfirmedDirectProfileCandidate,
   requiredAuthority: string
 ): boolean {
   const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
   const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
-
   return (
     String(candidate.profileStatus || "")
       .trim()
@@ -131,18 +207,24 @@ function hasBaseDirectProfileAuthority(
   );
 }
 
-/**
- * The steel-home package page is intentionally reachable only by its exact
- * URL while its operator-approved content and ownership are being finalized.
- * A draft linked business prevents directory discovery; the published profile
- * state is solely the existing schema's renderability switch.
- */
+export function hasTradeScoutPendingOwnerCustody(
+  candidate: OwnerConfirmedDirectProfileCandidate
+): boolean {
+  const slug = String(candidate.profileSlug || "")
+    .trim()
+    .toLowerCase();
+  return (
+    slug === PRECISION_AERIAL_PROFILE_SLUG &&
+    hasBaseDirectProfileAuthority(candidate, ADMIN_MANAGED_PROFILE_SOURCE) &&
+    hasExactPrecisionStewardAuthority(candidate)
+  );
+}
+
 export function isSteelHomePackagesUnlistedDirectProfile(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
   const profileOwnerUserId = String(candidate.profileOwnerUserId || "").trim();
   const businessOwnerUserId = String(candidate.businessOwnerUserId || "").trim();
-
   return (
     isSteelHomePackagesProfileSlug(candidate.profileSlug) &&
     !isSteelHomePackagesProfilePubliclyReleased() &&
@@ -161,49 +243,40 @@ export function isSteelHomePackagesUnlistedDirectProfile(
   );
 }
 
-/**
- * Direct profiles are deliberately narrow exceptions to general directory
- * exposure. A profile may be viewed and contacted only while its published
- * profile, active business, owner, and explicit provisioning authority remain
- * in agreement. The exception authorizes a Direct Connect destination; it is
- * not evidence of identity, license, insurance, or TradeScout verification.
- */
 export function isOwnerConfirmedDirectProfile(
   candidate: OwnerConfirmedDirectProfileCandidate
 ): boolean {
-  const profileSlug = String(candidate.profileSlug || "")
+  const slug = String(candidate.profileSlug || "")
     .trim()
     .toLowerCase();
-  const requiredAuthority = DIRECT_PROFILE_AUTHORITIES[profileSlug];
+  const requiredAuthority = getDirectProfileAuthority(slug);
   if (!requiredAuthority) return false;
-  const hasProfileSpecificAuthority =
-    profileSlug !== PRECISION_AERIAL_PROFILE_SLUG || hasExactPrecisionStewardAuthority(candidate);
-
-  return hasProfileSpecificAuthority && hasBaseDirectProfileAuthority(candidate, requiredAuthority);
+  if (slug === PRECISION_AERIAL_PROFILE_SLUG && !hasExactPrecisionStewardAuthority(candidate)) {
+    return false;
+  }
+  return hasBaseDirectProfileAuthority(candidate, requiredAuthority);
 }
 
 export function isPubliclyVerifiedProfileOwner(candidate: {
-  ownerVerifiedBadge: unknown;
-  ownerVerificationStatus: unknown;
+  ownerVerifiedBadge?: unknown;
+  ownerVerificationStatus?: unknown;
 }): boolean {
-  const verificationStatus = String(candidate.ownerVerificationStatus || "")
-    .trim()
-    .toLowerCase();
-  return candidate.ownerVerifiedBadge === true || verificationStatus === "approved";
+  return (
+    candidate.ownerVerifiedBadge === true ||
+    String(candidate.ownerVerificationStatus || "")
+      .trim()
+      .toLowerCase() === "approved"
+  );
 }
 
-/**
- * Canonical anonymous-read authority for a published, public-visibility
- * profile. Community/personal profiles without a business link keep their
- * existing public behavior. A linked business profile needs either the
- * owner's established verification signal or the exact, deliberately narrow
- * direct-profile authority above.
- */
+/** Trust-only helper. Route, discovery, and indexing decisions are stricter. */
 export function canExposeLinkedBusinessProfilePublicly(
   candidate: LinkedBusinessProfileExposureCandidate
 ): boolean {
-  if (!String(candidate.businessId || "").trim()) return true;
-  return isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate);
+  return (
+    Boolean(String(candidate.businessId || "").trim()) &&
+    (isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate))
+  );
 }
 
 export function isProfileVisibilityPublic(candidate: {
@@ -216,54 +289,92 @@ export function isProfileVisibilityPublic(candidate: {
   });
 }
 
-/** Complete anonymous exposure authority: exact profile visibility first,
- * then the linked-business verification/direct-profile trust gate. */
-export function canExposePublishedProfilePublicly(
+/** Canonical exposure decision for every anonymous public-profile surface. */
+export function derivePublishedProfileExposure(
   candidate: PublishedProfileExposureCandidate
-): boolean {
+): PublicProfileExposureDecision {
   if (
     String(candidate.profileStatus || "")
       .trim()
       .toLowerCase() !== "published"
   ) {
-    return false;
+    return { mode: "private", reason: "unpublished" };
   }
-  if (
-    isSteelHomePackagesProfileSlug(candidate.profileSlug) &&
-    !isSteelHomePackagesProfilePubliclyReleased()
-  ) {
-    return false;
+
+  if (isSteelHomePackagesUnlistedDirectProfile(candidate)) {
+    return { mode: "unlisted_review", reason: "unlisted_review" };
   }
-  return isProfileVisibilityPublic(candidate) && canExposeLinkedBusinessProfilePublicly(candidate);
+
+  if (hasInternalProfileIdentity(candidate)) {
+    return { mode: "private", reason: "internal_role" };
+  }
+
+  const businessId = String(candidate.businessId || "").trim();
+  if (!isProfileVisibilityPublic(candidate)) {
+    return {
+      mode: "private",
+      reason: businessId ? "private" : "personal_profile_not_explicitly_released",
+    };
+  }
+
+  if (businessId) {
+    if (
+      String(candidate.businessStatus || "")
+        .trim()
+        .toLowerCase() !== "active"
+    ) {
+      return { mode: "private", reason: "business_trust_missing" };
+    }
+    if (isOwnerConfirmedDirectProfile(candidate)) {
+      return { mode: "direct_only", reason: "direct_only" };
+    }
+    if (!isPubliclyVerifiedProfileOwner(candidate)) {
+      return { mode: "private", reason: "business_trust_missing" };
+    }
+    if (candidate.publicDiscoveryEnabled === true) {
+      return { mode: "public", reason: "public" };
+    }
+    if (candidate.publicDiscoveryEnabled === false) {
+      return { mode: "direct_only", reason: "direct_only" };
+    }
+    return { mode: "private", reason: "business_trust_missing" };
+  }
+
+  if (!PUBLIC_PERSONAL_PROFILE_ROLES.has(normalizeRole(candidate.profileRoleContext))) {
+    return { mode: "private", reason: "private" };
+  }
+  if (!hasMeaningfulPublicProfileContent(candidate)) {
+    return { mode: "private", reason: "empty_profile" };
+  }
+  return { mode: "public", reason: "public" };
 }
 
 /**
- * Canonical read boundary for an exact profile URL. Normal profiles must pass
- * the full public-exposure gate. The operator-approved steel-home draft gets
- * one narrow unlisted exception so its URL and Direct Connect destination can
- * be reviewed without entering search, maps, sitemaps, or index metadata.
+ * Compatibility for existing profile/contact readers. Exact registered direct
+ * profiles remain reachable, while generic direct-only profiles do not become
+ * discovery or indexing candidates through this helper.
  */
+export function canExposePublishedProfilePublicly(
+  candidate: PublishedProfileExposureCandidate
+): boolean {
+  const decision = derivePublishedProfileExposure(candidate);
+  return decision.mode === "public" || (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate));
+}
+
+export function canDiscoverPublishedProfilePublicly(
+  candidate: PublishedProfileExposureCandidate
+): boolean {
+  return derivePublishedProfileExposure(candidate).mode === "public";
+}
+
 export function canServePublishedProfileAtDirectRoute(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
-  return (
-    isSteelHomePackagesUnlistedDirectProfile(candidate) ||
-    canExposePublishedProfilePublicly(candidate)
-  );
+  return derivePublishedProfileExposure(candidate).mode !== "private";
 }
 
-/**
- * A map marker labels its subject as a provider, so an unverified personal
- * profile is not enough authority even when that profile is intentionally
- * public. Provider discovery requires the complete public-profile boundary
- * plus either established owner verification or one of the exact managed
- * Direct Profile exceptions.
- */
 export function canExposeProviderProfileOnPublicMap(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
-  return (
-    canExposePublishedProfilePublicly(candidate) &&
-    (isPubliclyVerifiedProfileOwner(candidate) || isOwnerConfirmedDirectProfile(candidate))
-  );
+  return canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate);
 }

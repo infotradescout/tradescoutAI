@@ -25,12 +25,17 @@ function pendingLinkedProfile(overrides: Record<string, unknown> = {}) {
   return {
     profileId: "profile-1",
     slug: "pending-onboarding-profile",
+    profileRoleContext: "business_owner",
+    profileHeadline: "A real public business profile.",
+    profileContentBlocks: [{ type: "about", data: { text: "Useful public details." } }],
     businessId: "business-1",
     profileOwnerUserId: "owner-1",
+    ownerRole: "business_owner",
+    ownerRoles: ["business_owner"],
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
     ownerProvider: "local",
-    ownerPreferences: { profileVisibility: "public" },
+    ownerPreferences: { profileVisibility: "private", publicProfileIds: ["profile-1"] },
     businessStatus: "active",
     businessOwnerUserId: "owner-1",
     publicDiscoveryEnabled: true,
@@ -49,10 +54,13 @@ describe("canonical business profile route trust", () => {
     await expect(resolveCanonicalBusinessProfileRoute("pending-business")).resolves.toBeNull();
   });
 
-  it("skips a newer pending profile and resolves the next eligible verified profile", async () => {
+  it("skips a newer pending profile and resolves the next explicitly released verified profile", async () => {
     mocks.rows = [
       pendingLinkedProfile({ slug: "newer-pending" }),
-      pendingLinkedProfile({ slug: "older-verified", ownerVerificationStatus: "approved" }),
+      pendingLinkedProfile({
+        slug: "older-verified",
+        ownerVerificationStatus: "approved",
+      }),
     ];
 
     await expect(resolveCanonicalBusinessProfileRoute("business-one")).resolves.toEqual({
@@ -61,7 +69,7 @@ describe("canonical business profile route trust", () => {
     });
   });
 
-  it("preserves the exact established direct-profile exception", () => {
+  it("keeps an exact direct-only profile out of the canonical public business route", () => {
     expect(
       canUseLinkedProfileAsCanonicalBusinessRoute(
         pendingLinkedProfile({
@@ -70,7 +78,7 @@ describe("canonical business profile route trust", () => {
           businessSources: [OWNER_CONFIRMED_PROFILE_SOURCE],
         })
       )
-    ).toBe(true);
+    ).toBe(false);
     expect(
       canUseLinkedProfileAsCanonicalBusinessRoute(
         pendingLinkedProfile({
@@ -82,7 +90,7 @@ describe("canonical business profile route trust", () => {
     ).toBe(false);
   });
 
-  it("keeps private profiles non-canonical even when the owner is verified", () => {
+  it("keeps profiles non-canonical when this exact profile was not released", () => {
     expect(
       canUseLinkedProfileAsCanonicalBusinessRoute(
         pendingLinkedProfile({

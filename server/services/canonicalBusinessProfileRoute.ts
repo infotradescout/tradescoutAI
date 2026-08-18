@@ -1,7 +1,7 @@
 import { and, asc, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
-import { canExposePublishedProfilePublicly } from "./ownerConfirmedDirectProfile";
+import { canDiscoverPublishedProfilePublicly } from "./ownerConfirmedDirectProfile";
 
 export type CanonicalBusinessProfileRoute = {
   slug: string;
@@ -13,12 +13,17 @@ function databaseBoolean(value: unknown): boolean {
 }
 
 export function canUseLinkedProfileAsCanonicalBusinessRoute(row: Record<string, any>): boolean {
-  return canExposePublishedProfilePublicly({
+  return canDiscoverPublishedProfilePublicly({
     profileId: row.profileId,
     businessId: row.businessId,
     profileSlug: row.slug,
     profileStatus: "published",
+    profileRoleContext: row.profileRoleContext,
+    profileHeadline: row.profileHeadline,
+    profileContentBlocks: row.profileContentBlocks,
     profileOwnerUserId: row.profileOwnerUserId,
+    ownerRole: row.ownerRole,
+    ownerRoles: row.ownerRoles,
     ownerVerifiedBadge: databaseBoolean(row.ownerVerifiedBadge),
     ownerVerificationStatus: row.ownerVerificationStatus,
     ownerProvider: row.ownerProvider,
@@ -32,9 +37,9 @@ export function canUseLinkedProfileAsCanonicalBusinessRoute(row: Record<string, 
 }
 
 /**
- * Resolves the single public profile that owns a claimed business presence.
- * Both SSR requests and SPA API responses use this authority so /business and
- * /u cannot disagree about the canonical destination.
+ * Resolves the single discoverable profile that owns a claimed business
+ * presence. Direct-only and unlisted profiles stay on their deliberate URLs
+ * and never become the canonical public business destination.
  */
 export async function resolveCanonicalBusinessProfileRoute(
   businessSlugValue: unknown
@@ -46,8 +51,13 @@ export async function resolveCanonicalBusinessProfileRoute(
     .select({
       profileId: profiles.id,
       slug: profiles.slug,
+      profileRoleContext: profiles.roleContext,
+      profileHeadline: profiles.headline,
+      profileContentBlocks: profiles.contentBlocks,
       businessId: profiles.businessId,
       profileOwnerUserId: profiles.ownerUserId,
+      ownerRole: users.role,
+      ownerRoles: users.roles,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
       ownerProvider: users.provider,

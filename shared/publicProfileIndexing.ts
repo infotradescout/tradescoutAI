@@ -1,22 +1,23 @@
 import {
+  INTERNAL_ADMIN_PROFILE_SLUGS,
+  isInternalAdminProfileSlug,
+  isRegisteredDirectProfileSlug,
+} from "./publicProfileExposureRegistry";
+import {
   isSteelHomePackagesProfilePubliclyReleased,
   isSteelHomePackagesProfileSlug,
 } from "./steelHomePackagesProfile";
 
-export const INTERNAL_ADMIN_PROFILE_SLUGS = ["tradescout-admin", "super-admin"] as const;
+export { INTERNAL_ADMIN_PROFILE_SLUGS, isInternalAdminProfileSlug };
 
-const internalAdminProfileSlugs = new Set<string>(INTERNAL_ADMIN_PROFILE_SLUGS);
-
-export function isInternalAdminProfileSlug(slug: unknown): boolean {
-  return internalAdminProfileSlugs.has(
-    String(slug || "")
-      .trim()
-      .toLowerCase()
-  );
-}
-
+/**
+ * Indexing can only narrow an already-public route. Internal profiles,
+ * direct-link profiles, and unreleased review surfaces never enter search or
+ * profile sitemaps.
+ */
 export function shouldIndexPublicProfileSlug(slug: unknown): boolean {
   if (isInternalAdminProfileSlug(slug)) return false;
+  if (isRegisteredDirectProfileSlug(slug)) return false;
   if (isSteelHomePackagesProfileSlug(slug) && !isSteelHomePackagesProfilePubliclyReleased()) {
     return false;
   }
