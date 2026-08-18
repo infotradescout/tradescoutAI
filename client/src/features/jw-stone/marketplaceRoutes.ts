@@ -1,7 +1,10 @@
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "@/data/jwStoneProfilePresentation";
+import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import type { MarketplaceUrlState } from "./types";
 
-export const JW_STONE_PLATFORM_MARKETPLACE_BASE = "/jw-stone";
+export const JW_STONE_PLATFORM_PROFILE_BASE = `/u/${JW_STONE_PROFILE_SLUG}`;
+/** Backward-compatible export name for the existing JW Stone 2.0 feature files. */
+export const JW_STONE_PLATFORM_MARKETPLACE_BASE = JW_STONE_PLATFORM_PROFILE_BASE;
 
 const PUBLIC_TO_SOURCE_MATERIAL = new Map<string, string>(
   JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map((category) => [
@@ -17,16 +20,27 @@ const SOURCE_TO_PUBLIC_MATERIAL = new Map<string, string>(
   ])
 );
 
+/**
+ * JW Stone 2.0 is a TradeScout profile. Its custom domain therefore receives
+ * the standard custom-domain profile marker. The old marketplace marker is
+ * still recognized only so an already-cached document cannot break navigation.
+ */
 export function isJwStoneMarketplaceDomainSurface(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(
-    (window as unknown as { __TS_JW_STONE_MARKETPLACE_SURFACE__?: boolean })
-      .__TS_JW_STONE_MARKETPLACE_SURFACE__
+  const source = window as unknown as {
+    __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string;
+    __TS_JW_STONE_MARKETPLACE_SURFACE__?: boolean;
+  };
+  return (
+    String(source.__TS_CUSTOM_DOMAIN_PROFILE_SLUG__ || "")
+      .trim()
+      .toLowerCase() === JW_STONE_PROFILE_SLUG ||
+    source.__TS_JW_STONE_MARKETPLACE_SURFACE__ === true
   );
 }
 
 export function marketplaceBasePath(): string {
-  return isJwStoneMarketplaceDomainSurface() ? "" : JW_STONE_PLATFORM_MARKETPLACE_BASE;
+  return isJwStoneMarketplaceDomainSurface() ? "" : JW_STONE_PLATFORM_PROFILE_BASE;
 }
 
 export function toPublicMaterialSlug(sourceSlug: string | null | undefined): string | null {
@@ -44,13 +58,14 @@ export function parseMarketplacePathname(pathname: string): {
   material: string | null;
 } {
   const raw = pathname.replace(/\/+$/, "") || "/";
+  const profilePrefix = String.raw`(?:(?:/jw-stone|/u/jw-stone|/p/jw-stone))?`;
 
-  const stoneMatch = raw.match(/^(?:\/jw-stone)?\/stones\/([^/]+)$/i);
+  const stoneMatch = raw.match(new RegExp(`^${profilePrefix}/stones/([^/]+)$`, "i"));
   if (stoneMatch?.[1]) {
     return { stone: decodeURIComponent(stoneMatch[1]).toLowerCase(), material: null };
   }
 
-  const materialMatch = raw.match(/^(?:\/jw-stone)?\/materials\/([^/]+)$/i);
+  const materialMatch = raw.match(new RegExp(`^${profilePrefix}/materials/([^/]+)$`, "i"));
   if (materialMatch?.[1]) {
     return {
       stone: null,
