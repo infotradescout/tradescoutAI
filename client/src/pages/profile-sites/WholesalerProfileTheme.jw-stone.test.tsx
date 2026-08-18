@@ -1,660 +1,94 @@
 // @vitest-environment jsdom
 
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { JW_STONE_PROFILE_PRESENTATION_BLOCK } from "@/data/jwStoneProfilePresentation";
+import { createRoot } from "react-dom/client";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import WholesalerProfileTheme from "./WholesalerProfileTheme";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
-const expressPanelProps = vi.fn();
-
-vi.mock("wouter", () => ({
-  Link: ({ href, children, ...rest }: any) => (
-    <a href={href} {...rest}>
-      {children}
-    </a>
-  ),
-  useLocation: () => ["/u/jw-stone", vi.fn()],
+vi.mock("@/features/jw-stone/JWStoneMarketplace", () => ({
+  default: () => <div data-testid="jw-stone-2-surface">JW Stone 2.0</div>,
 }));
 
-vi.mock("@/components/ShareButton", () => ({
-  ShareButton: ({
-    title,
-    className,
-    size,
-    destination,
-  }: {
-    title?: string;
-    className?: string;
-    size?: string;
-    destination?: string;
-  }) => (
-    <button
-      type="button"
-      aria-label={`Share ${title || "profile"}`}
-      className={className}
-      data-size={size}
-      data-destination={destination}
-    >
-      Share
-    </button>
+vi.mock("@/features/jw-stone/JwStoneProfileSeo", () => ({
+  JwStoneProfileSeo: ({ canonical }: { canonical: string }) => (
+    <div data-testid="jw-stone-profile-seo" data-canonical={canonical} />
   ),
 }));
 
-vi.mock("./ExpressDirectConnectPanel", () => ({
-  default: (props: Record<string, unknown>) => {
-    expressPanelProps(props);
-    return props.open ? (
-      <div
-        data-testid="express-direct-connect-panel"
-        data-request-type={String(props.initialRequestType || "")}
-      />
-    ) : null;
-  },
+vi.mock("./WholesalerProfileThemeLegacy", () => ({
+  default: ({ profileSlug }: { profileSlug: string }) => (
+    <div data-testid="legacy-wholesaler-theme">{profileSlug}</div>
+  ),
 }));
 
-const inventoryStones = Array.from({ length: 14 }, (_, index) => ({
-  name: `Test Stone ${index + 1}`,
-  slug: `test-stone-${index + 1}`,
-  images: [`/stone-${index + 1}.jpg`],
-  materialStatus: "source_folder" as const,
-  finishes: index === 0 ? ["Polished"] : undefined,
-  slabCounts: index === 0 ? [5] : undefined,
-}));
-
-const contentBlocks = [
-  JW_STONE_PROFILE_PRESENTATION_BLOCK,
-  {
-    type: "about",
-    body: "JW Stone source and project support.",
-  },
-  {
-    type: "inventoryCatalog",
-    data: {
-      title: "Full inventory",
-      description: "Browse every named stone.",
-      categories: [
-        {
-          category: "Granite",
-          categorySlug: "granite",
-          stones: inventoryStones,
-        },
-      ],
-    },
-  },
-  {
-    type: "audience",
-    data: {
-      items: [
-        { title: "Homeowners", body: "Homeowner project guidance." },
-        { title: "Fabricators", body: "Fabricator project guidance." },
-        { title: "Architects & Designers", body: "Design project guidance." },
-        { title: "Builders & Developers", body: "Development project guidance." },
-      ],
-    },
-  },
-  {
-    type: "faq",
-    data: {
-      faqs: [
-        { question: "How is availability confirmed?", answer: "Ask through Direct Connect." },
-        { question: "Can I share a stone?", answer: "Yes, each stone has a share action." },
-      ],
-    },
-  },
-];
-
-const nameIdentityContentBlocks = contentBlocks.map((block) =>
-  block.type === "inventoryCatalog"
-    ? {
-        ...block,
-        data: {
-          title: "Full inventory",
-          description: "Browse every named stone.",
-          categories: [
-            {
-              category: "Material to Confirm",
-              categorySlug: "unconfirmed",
-              stones: [
-                {
-                  name: "Amazonic Green",
-                  displayName: "Amazonic Green",
-                  nameStatus: "source" as const,
-                  slug: "amazonic-green",
-                  images: ["/amazonic-green.jpg"],
-                  materialStatus: "unconfirmed" as const,
-                  finishStatus: "unconfirmed" as const,
-                },
-                ...Array.from({ length: 10 }, (_, index) => {
-                  const ordinal = String(index + 1).padStart(2, "0");
-                  return {
-                    name: `Trending Selection ${ordinal}`,
-                    displayName: null,
-                    nameStatus: "placeholder" as const,
-                    slug: `trending-selection-${ordinal}`,
-                    images: [`/trending-selection-${ordinal}.jpg`],
-                    materialStatus: "unconfirmed" as const,
-                    finishStatus: "unconfirmed" as const,
-                  };
-                }),
-              ],
-            },
-          ],
-        },
-      }
-    : block
-);
-
-const recommendationsDirectory = Array.from({ length: 4 }, (_, index) => ({
-  id: `recommendation-${index + 1}`,
-  createdAt: null,
-  recommendationType: "positive" as const,
-  comment: `Recommendation ${index + 1}`,
-  projectType: null,
-  customerName: `Customer ${index + 1}`,
-  contractor: {
-    id: "jw",
-    companyName: "JW Stone",
-    slug: "jw-stone",
-  },
-}));
-
-const props = {
+const baseProps = {
   profileSlug: "jw-stone",
-  displayName: "JW Stone",
-  businessAddress: null,
+  displayName: "JW Stone Logistics",
+  businessAddress: "2103 W Herman Ave, Pensacola, FL 32505",
   headline: "Natural stone, selected at the source.",
-  contentBlocks,
+  contentBlocks: [],
   categories: ["Natural stone"],
-  serviceAreas: ["Test service area"],
+  serviceAreas: ["Pensacola, FL"],
   hasViewerSession: false,
   isSuperAdminViewer: false,
   useExpressDirectConnect: true,
-  allowExpressCall: false,
+  allowExpressCall: true,
   profileShareDestination: "/u/jw-stone",
   tradeScoutReturnHref: "/",
-  directConnectHref: "/direct-connect",
+  directConnectHref: "/direct-connect?profile=jw-stone",
   preScoutCreateHref: "/pre-scout-setup?mode=create",
   preScoutSignInHref: "/pre-scout-setup?mode=signin",
-  recommendationsDirectory,
-  trustActions: <div data-testid="profile-trust-section">Trust</div>,
-  profileItems: <div data-testid="profile-items">Preserved profile items</div>,
+  trustActions: <div data-testid="profile-actions">Profile actions</div>,
 };
 
-function click(element: Element | null) {
-  if (!element) throw new Error("Expected a clickable element");
-  act(() => {
-    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
-}
+const mounted: Array<() => void> = [];
 
-function changeInput(element: HTMLInputElement | null, value: string) {
-  if (!element) throw new Error("Expected an input");
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-  act(() => {
-    setter?.call(element, value);
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-}
+afterEach(() => {
+  while (mounted.length) mounted.pop()?.();
+});
 
-describe("WholesalerProfileTheme JW Stone Phase 2", () => {
-  let container: HTMLDivElement;
-  let root: Root;
-
-  beforeEach(() => {
-    expressPanelProps.mockClear();
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      configurable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: true,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
-    Object.defineProperty(HTMLMediaElement.prototype, "play", {
-      configurable: true,
-      writable: true,
-      value: vi.fn().mockResolvedValue(undefined),
-    });
-    Object.defineProperty(HTMLMediaElement.prototype, "pause", {
-      configurable: true,
-      writable: true,
-      value: vi.fn(),
-    });
-    Element.prototype.scrollIntoView = vi.fn();
-    window.scrollTo = vi.fn();
-    container = document.createElement("div");
+describe("WholesalerProfileTheme JW Stone profile selection", () => {
+  it("keeps the JW Stone 2.0 surface as the JW TradeScout profile theme", () => {
+    const container = document.createElement("div");
     document.body.appendChild(container);
-    root = createRoot(container);
-  });
-
-  afterEach(() => {
-    act(() => root.unmount());
-    container.remove();
-  });
-
-  it("keeps one Powered by TradeScout link in the branded footer across hosts", () => {
-    act(() => {
-      root.render(<WholesalerProfileTheme {...props} />);
+    const root = createRoot(container);
+    mounted.push(() => {
+      act(() => root.unmount());
+      container.remove();
     });
 
-    const platformFooter = container.querySelector('[data-testid="wholesaler-brand-footer"]');
-    const platformLink = platformFooter?.querySelector<HTMLAnchorElement>("a");
-    expect(platformFooter?.querySelectorAll("a")).toHaveLength(1);
-    expect(platformFooter?.querySelectorAll("p")).toHaveLength(1);
-    expect(platformLink?.textContent?.trim()).toBe("Powered by TradeScout");
-    expect(platformLink?.getAttribute("href")).toBe("/");
-    expect(platformFooter?.textContent).not.toContain("Quarry-direct sourcing");
-    expect(platformFooter?.textContent).not.toContain("contact details");
-    expect(container.querySelector('[data-testid="profile-tradescout-handoff"]')).toBeNull();
+    act(() => root.render(<WholesalerProfileTheme {...baseProps} />));
 
-    act(() => {
-      root.render(
-        <WholesalerProfileTheme {...props} platformBaseHref="https://www.thetradescout.com/" />
-      );
-    });
-
-    const customDomainLink = container.querySelector<HTMLAnchorElement>(
-      '[data-testid="wholesaler-brand-footer"] a'
-    );
-    expect(customDomainLink?.textContent?.trim()).toBe("Powered by TradeScout");
-    expect(customDomainLink?.getAttribute("href")).toBe("https://www.thetradescout.com/");
-  });
-
-  it("opens the compact full inventory immediately and preserves all long-form content", () => {
-    act(() => {
-      root.render(<WholesalerProfileTheme {...props} />);
-    });
-
-    const hero = container.querySelector('[data-testid="wholesaler-profile-hero"]');
-    expect(hero?.className).not.toContain("min-h-[460px]");
-    expect(hero?.className).toContain("md:min-h-[600px]");
-    expect(container.querySelector("#inventory-browser")).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Back within JW Stone"]')).not.toBeNull();
-    expect(container.querySelector('input[placeholder="Search by stone name"]')).not.toBeNull();
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
-    const compactCard = container.querySelector<HTMLElement>(
-      '[data-testid="profile-inventory-card"]'
-    );
-    const compactMedia = compactCard?.querySelector<HTMLElement>(
-      '[data-testid="profile-inventory-card-media"]'
-    );
-    const compactImage = compactMedia?.querySelector<HTMLImageElement>("img");
-    const compactStatus = compactMedia?.querySelector<HTMLElement>(
-      '[data-testid="profile-inventory-card-status"]'
-    );
-    const compactShare = compactMedia?.querySelector<HTMLButtonElement>(
-      'button[aria-label^="Share "]'
-    );
-    const compactActions = compactCard?.querySelector<HTMLElement>(
-      '[data-testid="profile-inventory-card-actions"]'
-    );
-    const compactDetails = Array.from(compactActions?.querySelectorAll("button") || []).find(
-      (button) => button.textContent?.trim() === "Details"
-    );
-    const compactAsk = Array.from(compactActions?.querySelectorAll("button") || []).find(
-      (button) => button.textContent?.trim() === "Ask"
-    );
-
-    expect(compactMedia?.className).toContain("aspect-[8/5]");
-    expect(compactMedia?.className).toContain("sm:h-40");
-    expect(compactMedia?.className).not.toContain("h-24 xs:h-28 sm:h-40");
-    expect(compactImage?.className).toContain("object-contain");
-    expect(compactImage?.className).toContain("p-0 sm:p-1");
-    expect(compactStatus?.className).toContain("px-1.5 py-0.5 text-[7px]");
-    expect(compactShare?.className).toContain("h-8 w-8");
-    expect(compactShare?.className).toContain("after:-inset-1");
-    expect(compactShare?.getAttribute("data-size")).toBe("icon");
-    expect(compactShare?.getAttribute("data-destination")).toContain("/inventory/");
-    expect(compactDetails?.className).toContain("min-h-9 rounded-lg");
-    expect(compactDetails?.className).toContain("text-[9px]");
-    expect(compactAsk?.className).toContain("min-h-9 rounded-lg");
-    expect(compactAsk?.className).toContain("text-[9px]");
-    expect(compactDetails?.getAttribute("aria-label")).toMatch(/^View details for /);
-    expect(compactAsk?.getAttribute("aria-label")).toMatch(/^Ask about /);
+    expect(container.querySelector('[data-testid="jw-stone-2-surface"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="legacy-wholesaler-theme"]')).toBeNull();
     expect(
-      container.querySelectorAll('[data-testid="profile-featured-product-card"]')
-    ).toHaveLength(0);
-    const showMoreInventory = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Show 12 more"
-    );
-    click(showMoreInventory || null);
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(14);
-    expect(container.querySelectorAll('[data-testid="profile-faq-item"]')).toHaveLength(2);
-    expect(container.querySelectorAll('img[src*="/story/"]')).toHaveLength(4);
-    expect(container.textContent).toContain("JW Stone source and project support.");
-    expect(container.textContent).toContain("Ask through Direct Connect.");
-    expect(container.textContent).toContain("Source slab count: 5 slabs");
-    expect(container.querySelector('[data-testid="profile-trust-section"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="profile-items"]')).not.toBeNull();
-    expect(container.textContent).toContain("Stone or material");
-    expect(
-      container.querySelector('button[aria-label="View details for Test Stone 1"]')
-    ).not.toBeNull();
-    expect(container.querySelector('button[aria-label="Ask about Test Stone 1"]')).not.toBeNull();
-    expect(container.textContent).toContain("Recommendation 1");
-    expect(container.textContent).toContain("Recommendation 3");
-    expect(container.textContent).not.toContain("Recommendation 4");
-
-    const showAll = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Show all 4 recommendations")
-    );
-    click(showAll || null);
-    expect(container.textContent).toContain("Recommendation 4");
-
-    const featuredView = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Show featured view"
-    );
-    click(featuredView || null);
-    expect(container.querySelector("#inventory-browser")).toBeNull();
-    expect(
-      container.querySelectorAll('[data-testid="profile-featured-product-card"]')
-    ).toHaveLength(3);
-    const reopenInventory = Array.from(container.querySelectorAll("#collection button")).find(
-      (button) => button.textContent?.includes("Browse full inventory")
-    );
-    click(reopenInventory || null);
-    expect(container.querySelector("#inventory-browser")).not.toBeNull();
-  });
-
-  it("hands Direct Connect the immutable JW item slug alongside its display name", () => {
-    act(() => {
-      root.render(<WholesalerProfileTheme {...props} />);
-    });
-
-    const askButton = container.querySelector<HTMLButtonElement>(
-      'button[aria-label^="Ask about Test Stone "]'
-    );
-    const selectedName = askButton?.getAttribute("aria-label")?.replace(/^Ask about /, "") || "";
-    const selectedStone = inventoryStones.find((stone) => stone.name === selectedName);
-    expect(selectedStone).toBeDefined();
-    click(askButton);
-
-    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
-      open: true,
-      initialItemId: selectedStone?.slug,
-      initialStoneName: selectedStone?.name,
-      initialRequestType: "request_material",
-    });
-    expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
-  });
-
-  it("keeps known stone names visible while synthetic groups stay explicitly unnamed", () => {
-    act(() => {
-      root.render(<WholesalerProfileTheme {...props} contentBlocks={nameIdentityContentBlocks} />);
-    });
-
-    const amazonDetails = container.querySelector(
-      'button[aria-label="View details for Amazonic Green"]'
-    );
-    const inventoryCards = Array.from(
-      container.querySelectorAll<HTMLElement>('[data-testid="profile-inventory-card"]')
-    );
-    const syntheticCards = inventoryCards.filter((card) =>
-      card.querySelector('img[src^="/trending-selection-"]')
-    );
-    const syntheticFiveCard = syntheticCards.find((card) =>
-      card.querySelector('img[src="/trending-selection-05.jpg"]')
-    );
-    const unnamedDetails = syntheticFiveCard?.querySelector(
-      'button[aria-label="View stone selection details"]'
-    );
-    expect(amazonDetails).not.toBeNull();
-    expect(unnamedDetails).not.toBeNull();
-    expect(syntheticCards).toHaveLength(10);
-    expect(
-      syntheticCards.every(
-        (card) =>
-          card.querySelector('[data-testid="profile-inventory-name"]') === null &&
-          card.querySelector('[data-testid="profile-inventory-availability"]')?.textContent ===
-            "Call for availability"
+      container.querySelector('[data-testid="jw-stone-profile-seo"]')?.getAttribute(
+        "data-canonical"
       )
-    ).toBe(true);
-    expect(amazonDetails?.closest("article")?.textContent).toContain(
-      "Material & finish pending confirmation"
-    );
-    expect(unnamedDetails?.closest("article")?.textContent).toContain(
-      "Name & finish pending confirmation"
-    );
-    expect(container.querySelector('button[aria-label="Share Amazonic Green"]')).not.toBeNull();
-    expect(
-      container.querySelectorAll('button[aria-label="Share Current stone selection"]')
-    ).toHaveLength(10);
-    expect(container.textContent).toContain("Amazonic Green");
-    expect(container.textContent).not.toContain("Unnamed slab");
-    expect(container.textContent).not.toContain("Trending Selection 05");
-
-    const search = container.querySelector<HTMLInputElement>(
-      'input[placeholder="Search by stone name"]'
-    );
-    changeInput(search, "Amazonic Green");
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(1);
-    expect(container.textContent).toContain("Amazonic Green");
-    changeInput(search, "Trending Selection 05");
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(0);
-    changeInput(search, "Unnamed slab");
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(0);
-    changeInput(search, "");
-
-    const reopenedSyntheticFiveCard = Array.from(
-      container.querySelectorAll<HTMLElement>('[data-testid="profile-inventory-card"]')
-    ).find((card) => card.querySelector('img[src="/trending-selection-05.jpg"]'));
-    click(
-      reopenedSyntheticFiveCard?.querySelector(
-        'button[aria-label="View stone selection details"]'
-      ) || null
-    );
-    expect(container.querySelector('[role="dialog"]')?.getAttribute("aria-label")).toBe(
-      "Stone selection photo gallery"
-    );
-    expect(container.querySelector('[role="dialog"]')?.textContent).toContain(
-      "Call for availability"
-    );
-    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
-      "Finish not confirmed"
-    );
-    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain("Unnamed slab");
-    expect(container.querySelector('[role="dialog"]')?.textContent).not.toContain(
-      "Trending Selection 05"
-    );
-    click(container.querySelector('button[aria-label="Close gallery"]'));
-
-    const syntheticAsk = reopenedSyntheticFiveCard?.querySelector(
-      'button[aria-label="Ask about availability for this stone selection"]'
-    );
-    click(syntheticAsk || null);
-    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
-      open: true,
-      initialItemId: "trending-selection-05",
-      initialStoneName: null,
-      initialRequestType: "request_material",
-    });
-
-    click(container.querySelector('button[aria-label="Ask about Amazonic Green"]'));
-    expect(expressPanelProps.mock.calls.at(-1)?.[0]).toMatchObject({
-      open: true,
-      initialItemId: "amazonic-green",
-      initialStoneName: "Amazonic Green",
-      initialRequestType: "request_material",
-    });
+    ).toBe("/u/jw-stone");
   });
 
-  it("adapts guidance and Direct Connect intent to the selected customer type", () => {
-    act(() => {
-      root.render(<WholesalerProfileTheme {...props} />);
+  it("leaves every other TradePartner on the existing wholesale theme", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    mounted.push(() => {
+      act(() => root.unmount());
+      container.remove();
     });
 
-    const chooser = container.querySelector('[data-testid="profile-audience-chooser"]');
-    const tabs = container.querySelector('[data-testid="profile-audience-tabs"]');
-    expect(chooser).not.toBeNull();
-    expect(tabs?.className).toContain("grid-cols-2");
-    expect(tabs?.className).not.toContain("overflow-x-auto");
-    expect(chooser?.querySelectorAll('[role="tab"]')).toHaveLength(4);
-    expect(chooser?.querySelectorAll('[role="tabpanel"]')).toHaveLength(1);
-    expect(chooser?.textContent).toContain("Fabricators");
-
-    const audienceCases = [
-      {
-        tab: "Homeowners",
-        storedGuidance: "Homeowner project guidance.",
-        richerGuidance: "Start with a room, inspiration, or selected stone",
-        action: "Match my project",
-        requestType: "match_project",
-      },
-      {
-        tab: "Fabricators",
-        storedGuidance: "Fabricator project guidance.",
-        richerGuidance: "Review named stone, confirmed finishes where listed",
-        action: "Ask about a bundle",
-        requestType: "ask_about_bundle",
-      },
-      {
-        tab: "Architects & Designers",
-        storedGuidance: "Design project guidance.",
-        richerGuidance: "Compare stone imagery, category, and confirmed finish details",
-        action: "Review a specification",
-        requestType: "match_project",
-      },
-      {
-        tab: "Builders & Developers",
-        storedGuidance: "Development project guidance.",
-        richerGuidance: "Share project volume, location, and timing",
-        action: "Match a development",
-        requestType: "match_project",
-      },
-    ];
-
-    for (const audienceCase of audienceCases) {
-      const tab = Array.from(chooser?.querySelectorAll('[role="tab"]') || []).find(
-        (candidate) => candidate.textContent === audienceCase.tab
-      );
-      click(tab || null);
-      expect(tab?.getAttribute("aria-selected")).toBe("true");
-      expect(chooser?.textContent).toContain(audienceCase.storedGuidance);
-      expect(chooser?.textContent).toContain(audienceCase.richerGuidance);
-
-      const action = Array.from(chooser?.querySelectorAll("button") || []).find(
-        (button) => button.textContent === audienceCase.action
-      );
-      click(action || null);
-      const lastPanelProps = expressPanelProps.mock.calls.at(-1)?.[0];
-      expect(lastPanelProps?.initialRequestType).toBe(audienceCase.requestType);
-    }
-
-    expect(container.querySelector('[data-testid="express-direct-connect-panel"]')).not.toBeNull();
-  });
-
-  it("reveals the complete inventory in-place and keeps search actionable", () => {
-    act(() => {
-      root.render(<WholesalerProfileTheme {...props} />);
-    });
-
-    const showMore = Array.from(container.querySelectorAll("button")).find(
-      (button) => button.textContent === "Show 12 more"
-    );
-    click(showMore || null);
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(14);
-    expect(container.textContent).toContain("Test Stone 14");
-    expect(container.textContent).not.toContain("Show 12 more");
-
-    const search = container.querySelector<HTMLInputElement>(
-      'input[placeholder="Search by stone name"]'
-    );
-    changeInput(search, "Test Stone 14");
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(1);
-    expect(container.textContent).toContain("Test Stone 14");
-
-    changeInput(search, "Unlisted Emerald");
-    expect(container.textContent).toContain("No match for “Unlisted Emerald”");
-    expect(container.textContent).toContain("JW Stone may be able to source it");
-    expect(container.textContent).toContain("Request this stone");
-  });
-
-  it("applies the same Phase 2 UI contract to a non-JW profile slug", () => {
-    const genericPresentation = {
-      type: "profilePresentation",
-      data: {
-        inventory: {
-          initialView: "catalog",
-          density: "compact",
-          pageSize: 12,
-          pageStep: 12,
-          stickyControls: true,
-          sourceRequests: true,
-        },
-        audience: { layout: "guided" },
-        faq: { layout: "disclosure" },
-        recommendations: { initialLimit: 3, maxVisible: 24 },
-      },
-    };
-
-    act(() => {
+    act(() =>
       root.render(
-        <WholesalerProfileTheme
-          {...props}
-          profileSlug="sample-stone-supplier"
-          displayName="Sample Stone Supplier"
-          profileShareDestination="/u/sample-stone-supplier"
-          contentBlocks={[
-            genericPresentation,
-            ...contentBlocks.filter((block) => block.type !== "profilePresentation"),
-          ]}
-        />
-      );
-    });
-
-    expect(container.querySelector("#inventory-browser")).not.toBeNull();
-    expect(container.querySelectorAll('[data-testid="profile-inventory-card"]')).toHaveLength(12);
-    expect(container.querySelector('[data-testid="profile-audience-chooser"]')).not.toBeNull();
-    expect(container.querySelectorAll('[data-testid="profile-faq-item"]')).toHaveLength(2);
-    expect(container.textContent).toContain("Recommendation 3");
-    expect(container.textContent).not.toContain("Recommendation 4");
-
-    const search = container.querySelector<HTMLInputElement>(
-      'input[placeholder="Search by stone name"]'
-    );
-    changeInput(search, "Unlisted Emerald");
-    expect(container.textContent).toContain(
-      "Sample Stone Supplier may be able to source it for your project."
-    );
-  });
-
-  it("preserves legacy wholesaler behavior when no presentation block opts in", () => {
-    act(() => {
-      root.render(
-        <WholesalerProfileTheme
-          {...props}
-          profileSlug="legacy-stone-supplier"
-          displayName="Legacy Stone Supplier"
-          profileShareDestination="/u/legacy-stone-supplier"
-          contentBlocks={contentBlocks.filter((block) => block.type !== "profilePresentation")}
-        />
-      );
-    });
-
-    expect(container.querySelector("#inventory-browser")).toBeNull();
-    expect(container.querySelector('[data-testid="profile-audience-chooser"]')).toBeNull();
-    expect(container.querySelectorAll("details")).toHaveLength(0);
-    expect(container.textContent).toContain("Ask through Direct Connect.");
-    expect(container.textContent).toContain("Recommendation 4");
-    expect(container.textContent).toContain("Order review");
-    expect(container.textContent).toContain(
-      "Each order is checked against the confirmed material selection and delivery details before it ships."
-    );
-    expect(container.textContent).not.toContain("reviewed through fabrication and finishing");
-    expect(
-      Array.from(container.querySelectorAll("button")).some(
-        (button) => button.textContent === "Show all 4 recommendations"
+        <WholesalerProfileTheme {...baseProps} profileSlug="another-tradepartner" />
       )
-    ).toBe(false);
+    );
+
+    expect(container.querySelector('[data-testid="jw-stone-2-surface"]')).toBeNull();
+    expect(container.querySelector('[data-testid="legacy-wholesaler-theme"]')?.textContent).toBe(
+      "another-tradepartner"
+    );
   });
 });

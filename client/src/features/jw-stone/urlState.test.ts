@@ -5,7 +5,7 @@ import {
   toMarketplaceHref,
 } from "./urlState";
 
-describe("JW Stone marketplace URL state", () => {
+describe("JW Stone 2.0 profile URL state", () => {
   it("restores aesthetic, color, filters, and named detail without buyer paths", () => {
     expect(parseMarketplaceUrlState("")).toEqual({
       aesthetic: null,
@@ -26,7 +26,7 @@ describe("JW Stone marketplace URL state", () => {
     });
   });
 
-  it("round trips aesthetic, literal color, material, and named detail", () => {
+  it("round trips profile-owned stone and material routes", () => {
     const state = {
       aesthetic: "warm-earthy" as const,
       color: "white",
@@ -39,13 +39,13 @@ describe("JW Stone marketplace URL state", () => {
       "aesthetic=warm-earthy&color=white&material=quartzite&stone=cristallo"
     );
     expect(toMarketplaceHref(state)).toBe(
-      "/jw-stone/stones/cristallo?aesthetic=warm-earthy&color=white"
+      "/u/jw-stone/stones/cristallo?aesthetic=warm-earthy&color=white"
     );
     expect(
       parseMarketplaceUrlState(
         "?aesthetic=warm-earthy&color=white",
         undefined,
-        "/jw-stone/stones/cristallo"
+        "/u/jw-stone/stones/cristallo"
       )
     ).toEqual({
       aesthetic: "warm-earthy",
@@ -55,14 +55,23 @@ describe("JW Stone marketplace URL state", () => {
       stone: "cristallo",
     });
     expect(toMarketplaceHref({ ...state, stone: null })).toBe(
-      "/jw-stone/materials/quartzite?aesthetic=warm-earthy&color=white"
+      "/u/jw-stone/materials/quartzite?aesthetic=warm-earthy&color=white"
     );
     expect(
-      parseMarketplaceUrlState("", undefined, "/jw-stone/materials/engineered-quartz")
+      parseMarketplaceUrlState("", undefined, "/u/jw-stone/materials/engineered-quartz")
     ).toMatchObject({
       material: "quartz",
       stone: null,
     });
+  });
+
+  it("continues to read released marketplace aliases while writing the profile route", () => {
+    expect(
+      parseMarketplaceUrlState("", undefined, "/jw-stone/stones/cristallo")
+    ).toMatchObject({ stone: "cristallo" });
+    expect(
+      parseMarketplaceUrlState("", undefined, "/p/jw-stone/materials/engineered-quartz")
+    ).toMatchObject({ material: "quartz" });
   });
 
   it("maps legacy color= aesthetic values and released aliases", () => {
@@ -97,7 +106,7 @@ describe("JW Stone marketplace URL state", () => {
   ])("canonicalizes released stone path %s without changing identity", (legacy, canonical) => {
     const state = parseMarketplaceUrlState("", undefined, `/jw-stone/stones/${legacy}`);
     expect(state.stone).toBe(canonical);
-    expect(toMarketplaceHref(state)).toBe(`/jw-stone/stones/${canonical}`);
+    expect(toMarketplaceHref(state)).toBe(`/u/jw-stone/stones/${canonical}`);
   });
 
   it("serializes safe filters without manufacturing buyer", () => {
