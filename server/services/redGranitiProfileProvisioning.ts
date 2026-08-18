@@ -1,4 +1,4 @@
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
@@ -10,11 +10,21 @@ import {
   RED_GRANITI_QUARRY_MEDIA,
 } from "@shared/redGranitiProfile";
 import { db } from "../db";
+import {
+  ADMIN_MANAGED_PROFILE_SOURCE,
+  hasVerifiedTradeScoutAdminCustody,
+} from "./ownerConfirmedDirectProfile";
 
 export const RED_GRANITI_PROFILE_PROVISIONING_SOURCE =
   "operator_confirmed_distribution_profile";
 export const RED_GRANITI_DISTRIBUTION_RELATIONSHIP =
   "jw_stone_exclusive_first_cut_distributor";
+export const RED_GRANITI_PROFILE_CONTROL = "tradescout_admin";
+
+const TRADE_SCOUT_DIRECT_CONNECT_INBOX = "contact@thetradescout.com";
+// A non-phone private value deliberately blocks fallback to the admin account's
+// personal phone when JW Stone has not stored a callable Direct Connect number.
+const REQUEST_ONLY_PHONE_SENTINEL = "request-only";
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -30,7 +40,7 @@ function stringList(value: unknown): string[] {
     : [];
 }
 
-function isVerifiedPublicOperator(owner: {
+function isVerifiedJwOperator(owner: {
   verifiedBadge: unknown;
   verificationStatus: unknown;
 }): boolean {
@@ -43,10 +53,14 @@ function isVerifiedPublicOperator(owner: {
 }
 
 /**
- * Publishes R.E.D. Graniti as an independent source-company profile operated
- * through JW Stone's exact account for this operator-confirmed distribution
- * relationship. The profile never copies R.E.D. Graniti's public phone or
- * email into Direct Connect; requests route to JW Stone through shared custody.
+ * Publishes R.E.D. Graniti as an independent company profile controlled by a
+ * verified TradeScout admin. JW Stone is recorded only as the exclusive
+ * first-cut distributor; it does not own the R.E.D. Graniti business or
+ * profile records.
+ *
+ * Requests remain in TradeScout admin custody for manual dispatch. A callable
+ * number may come only from JW Stone's private Direct Connect record, never
+ * from the admin steward or R.E.D. Graniti's public corporate contact details.
  */
 export async function provisionRedGranitiProfile(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
@@ -77,20 +91,20 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       !jwProfileOwnerUserId ||
       jwBusinessOwnerUserId !== jwProfileOwnerUserId
     ) {
-      throw new Error("JW Stone business and profile ownership must match before routing R.E.D.");
+      throw new Error("JW Stone business and profile ownership must match before distribution routing");
     }
 
     const [jwOwner] = await tx
       .select({
         id: users.id,
-        preferences: users.preferences,
+        phone: users.phone,
         verifiedBadge: users.verifiedBadge,
         verificationStatus: users.verificationStatus,
       })
       .from(users)
       .where(eq(users.id, jwBusinessOwnerUserId))
       .limit(1);
-    if (!jwOwner || !isVerifiedPublicOperator(jwOwner)) {
+    if (!jwOwner || !isVerifiedJwOperator(jwOwner)) {
       throw new Error("R.E.D. Graniti requires JW Stone's verified public operator account");
     }
 
@@ -108,10 +122,11 @@ export async function provisionRedGranitiProfile(): Promise<void> {
     const existingBusinessOwnerUserId = String(existingBusiness?.ownerUserId || "").trim();
     const existingProfileOwnerUserId = String(existingProfile?.ownerUserId || "").trim();
     if (
-      (existingBusinessOwnerUserId && existingBusinessOwnerUserId !== jwOwner.id) ||
-      (existingProfileOwnerUserId && existingProfileOwnerUserId !== jwOwner.id)
+      existingBusinessOwnerUserId &&
+      existingProfileOwnerUserId &&
+      existingBusinessOwnerUserId !== existingProfileOwnerUserId
     ) {
-      throw new Error("Existing R.E.D. Graniti ownership conflicts with JW Stone routing");
+      throw new Error("Existing R.E.D. Graniti business and profile ownership records disagree");
     }
     if (
       existingBusiness &&
@@ -121,16 +136,86 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       throw new Error("Existing R.E.D. Graniti business and profile records disagree");
     }
 
+    const existingOwnerUserId = existingProfileOwnerUserId || existingBusinessOwnerUserId;
+    const verifiedAdminPredicate = and(
+      or(eq(users.role, "super_admin"), eq(users.role, "head_admin")),
+      or(eq(users.verifiedBadge, true), eq(users.verificationStatus, "approved"))
+    );
+    const adminSelection = {
+      id: users.id,
+      role: users.role,
+      roles: users.roles,
+      preferences: users.preferences,
+      verifiedBadge: users.verifiedBadge,
+      verificationStatus: users.verificationStatus,
+    };
+
+    const [existingAdminOwner] = existingOwnerUserId
+      ? await tx
+          .select(adminSelection)
+          .from(users)
+          .where(eq(users.id, existingOwnerUserId))
+          .limit(1)
+      : [];
+    if (
+      existingOwnerUserId &&
+      (!existingAdminOwner ||
+        !hasVerifiedTradeScoutAdminCustody({
+          ownerRole: existingAdminOwner.role,
+          ownerRoles: existingAdminOwner.roles,
+          ownerVerifiedBadge: existingAdminOwner.verifiedBadge,
+          ownerVerificationStatus: existingAdminOwner.verificationStatus,
+        }))
+    ) {
+      throw new Error("Existing R.E.D. Graniti owner is not a verified TradeScout admin");
+    }
+
+    const configuredMasterAdminEmail = String(process.env.MASTER_ADMIN_EMAIL || "")
+      .trim()
+      .toLowerCase();
+    const [configuredAdmin] = existingAdminOwner
+      ? []
+      : configuredMasterAdminEmail
+        ? await tx
+            .select(adminSelection)
+            .from(users)
+            .where(
+              and(
+                sql`lower(${users.email}) = ${configuredMasterAdminEmail}`,
+                verifiedAdminPredicate
+              )
+            )
+            .limit(1)
+        : [];
+    const [fallbackAdmin] = existingAdminOwner || configuredAdmin
+      ? []
+      : await tx.select(adminSelection).from(users).where(verifiedAdminPredicate).limit(1);
+    const adminOwner = existingAdminOwner || configuredAdmin || fallbackAdmin;
+
+    if (
+      !adminOwner ||
+      !hasVerifiedTradeScoutAdminCustody({
+        ownerRole: adminOwner.role,
+        ownerRoles: adminOwner.roles,
+        ownerVerifiedBadge: adminOwner.verifiedBadge,
+        ownerVerificationStatus: adminOwner.verificationStatus,
+      })
+    ) {
+      throw new Error("R.E.D. Graniti needs a verified TradeScout admin steward");
+    }
+
     const now = new Date();
     const existingProfileData = recordValue(existingBusiness?.profileData);
     const existingImportExtras = recordValue(existingProfileData.importExtras);
     const existingSources = stringList(existingBusiness?.sources);
+    const jwProfileData = recordValue(jwBusiness.profileData);
+    const jwDirectConnectPhone = String(jwProfileData.phone || jwOwner.phone || "").trim();
 
     const businessValues = {
       name: RED_GRANITI_BUSINESS_NAME,
       slug: RED_GRANITI_PROFILE_SLUG,
       type: "vendor" as const,
-      ownerUserId: jwOwner.id,
+      ownerUserId: adminOwner.id,
       roleContext: "business_owner" as const,
       profileData: {
         ...existingProfileData,
@@ -149,20 +234,24 @@ export async function provisionRedGranitiProfile(): Promise<void> {
         publicContactEnabled: false,
         publicLocationEnabled: true,
         publicWebsiteEnabled: true,
-        // Preserve private operator-entered contact only. Never seed R.E.D.'s
-        // corporate phone or email into the JW Stone Direct Connect route.
-        phone: String(existingProfileData.phone || "").trim(),
-        email: String(existingProfileData.email || "").trim(),
+        // Keep the profile admin-controlled. Requests go to the TradeScout
+        // inbox for manual dispatch; only an already-stored JW Stone number may
+        // power the gated Call option.
+        phone: jwDirectConnectPhone || REQUEST_ONLY_PHONE_SENTINEL,
+        email: TRADE_SCOUT_DIRECT_CONNECT_INBOX,
+        notificationEmail: TRADE_SCOUT_DIRECT_CONNECT_INBOX,
         address: "Via Dorsale 12, 54100 Massa, Italy",
         tradePartner: true,
         importExtras: {
           ...existingImportExtras,
           business_identity: "red_graniti",
           source_company_ownership: "independent",
-          profile_operator: "jw_stone",
+          profile_control: RED_GRANITI_PROFILE_CONTROL,
+          profile_operator: "tradescout_admin",
+          distribution_partner: JW_STONE_PROFILE_SLUG,
           distribution_relationship: RED_GRANITI_DISTRIBUTION_RELATIONSHIP,
           territory_scope: "not_publicly_specified",
-          public_request_routing: "jw_stone_direct_connect",
+          public_request_routing: "tradescout_admin_manual_dispatch_to_jw_stone",
           official_company_source: RED_GRANITI_OFFICIAL_WEBSITE,
         },
         brandColors: {
@@ -174,14 +263,12 @@ export async function provisionRedGranitiProfile(): Promise<void> {
           surface: "#ffffff",
         },
       },
-      claimStatus:
-        existingBusiness?.claimStatus && existingBusiness.claimStatus !== "unclaimed"
-          ? existingBusiness.claimStatus
-          : "partner_managed",
+      claimStatus: "admin_managed",
       publicDiscoveryEnabled: true,
       sources: Array.from(
         new Set([
           ...existingSources,
+          ADMIN_MANAGED_PROFILE_SOURCE,
           RED_GRANITI_PROFILE_PROVISIONING_SOURCE,
           RED_GRANITI_DISTRIBUTION_RELATIONSHIP,
           ...RED_GRANITI_OFFICIAL_SOURCES,
@@ -206,7 +293,9 @@ export async function provisionRedGranitiProfile(): Promise<void> {
     const exactRecommendationTargets = await tx
       .select()
       .from(contractors)
-      .where(and(eq(contractors.userId, jwOwner.id), eq(contractors.businessId, business.id)))
+      .where(
+        and(eq(contractors.userId, adminOwner.id), eq(contractors.businessId, business.id))
+      )
       .limit(2);
     const slugRecommendationTargets = await tx
       .select()
@@ -226,7 +315,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       );
     } else if (hasNoRecommendationBinding) {
       await tx.insert(contractors).values({
-        userId: jwOwner.id,
+        userId: adminOwner.id,
         businessId: business.id,
         companyName: RED_GRANITI_BUSINESS_NAME,
         slug: RED_GRANITI_PROFILE_SLUG,
@@ -246,7 +335,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
     }
 
     const profileValues = {
-      ownerUserId: jwOwner.id,
+      ownerUserId: adminOwner.id,
       businessId: business.id,
       roleContext: "business_owner" as const,
       slug: RED_GRANITI_PROFILE_SLUG,
@@ -263,7 +352,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       seoMeta: {
         title: "R.E.D. Graniti Quarry Stone | JW Stone First-Cut Distribution",
         description:
-          "Explore source-backed R.E.D. Graniti quarry materials in blocks and slabs. Start an exclusive first-cut distribution request with JW Stone through TradeScout.",
+          "Explore source-backed R.E.D. Graniti quarry materials in blocks and slabs. Start an exclusive first-cut distribution request through TradeScout.",
         imageUrl: RED_GRANITI_QUARRY_MEDIA.lemurianBlue.imageUrl,
         faviconUrl: RED_GRANITI_QUARRY_MEDIA.lemurianBlue.imageUrl,
         imageWidth: 1600,
@@ -277,7 +366,9 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       ? await tx
           .update(profiles)
           .set(profileValues as any)
-          .where(eq(profiles.id, existingProfile.id))
+          .where(
+            and(eq(profiles.id, existingProfile.id), eq(profiles.ownerUserId, adminOwner.id))
+          )
           .returning()
       : await tx
           .insert(profiles)
@@ -285,7 +376,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
           .returning();
     if (!profile) throw new Error("R.E.D. Graniti profile provisioning failed");
 
-    const ownerPreferences = recordValue(jwOwner.preferences);
+    const ownerPreferences = recordValue(adminOwner.preferences);
     const publicProfileIds = Array.from(
       new Set([...stringList(ownerPreferences.publicProfileIds), String(profile.id)])
     );
@@ -298,6 +389,6 @@ export async function provisionRedGranitiProfile(): Promise<void> {
         } as any,
         updatedAt: now,
       })
-      .where(eq(users.id, jwOwner.id));
+      .where(eq(users.id, adminOwner.id));
   });
 }
