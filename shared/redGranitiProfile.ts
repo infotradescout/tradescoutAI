@@ -47,14 +47,14 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
   legalName: "R.E.D. Graniti S.p.A.",
   legalId: "P.IVA 13161430155",
   locationLabel: "Massa, Italy",
-  eyebrow: "QUARRIES · BLOCKS · SLABS · WORLDWIDE DISTRIBUTION",
-  headline: "Natural stone, controlled from quarry to market.",
+  profileLabel: "Quarries, blocks and slabs",
+  headline: "Quarries, blocks and slabs",
   summary:
-    "For more than 50 years, R.E.D. Graniti has extracted and supplied rough blocks and slabs from company-owned quarries across the world's leading stone regions.",
+    "For more than 50 years, R.E.D. Graniti has supplied rough blocks and slabs from company-owned quarries across leading stone regions worldwide.",
   about:
-    "Quality is the core of R.E.D. Graniti's business. Every block is checked, controlled, and cataloged. Slabs follow the same selection and quality standards, supported by a worldwide distribution network focused on reliable delivery and service.",
+    "R.E.D. Graniti built its business around the quality of natural stone from controlled production sources. Its network connects quarry production, block yards, slab processing, and distribution in the world's main stone markets.",
   qualityStatement:
-    "Each block is checked, controlled, and cataloged before it enters the sales network.",
+    "Every block is checked, controlled, and cataloged. Slabs follow the same quality standards, checks, and selection process used for rough blocks.",
   headquarters: {
     label: "Headquarters",
     addressLine1: "Via Dorsale 12",
@@ -70,17 +70,17 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       label: "Massa headquarters and block yard",
       location: "Massa, Italy",
       detail:
-        "A 60,000 m² yard with an average of 30,000 m³ of blocks available for direct viewing and selection.",
+        "Sales and accounting offices beside a 60,000 m² yard with an average of 30,000 m³ of blocks ready for viewing and selection.",
     },
     {
       label: "Dolcè block yard",
       location: "Verona, Italy",
-      detail: "A second Italian yard with average availability of about 12,000 m³ of block material.",
+      detail: "A second Italian block yard with average availability of about 12,000 m³ of material.",
     },
     {
       label: "Cavaion Veronese slab warehouse",
       location: "Verona, Italy",
-      detail: "An 8,500 m² warehouse dedicated to slabs ready for sale.",
+      detail: "An 8,500 m² warehouse used to store slabs ready for sale.",
     },
   ],
   stats: [
@@ -94,19 +94,19 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       title: "Rough blocks",
       shortLabel: "Blocks",
       description:
-        "Blocks from company-owned quarries are checked, selected, and cataloged for consistent quality and dependable supply.",
+        "Blocks from company-owned quarries are checked, controlled, cataloged, and selected for consistent quality and dependable supply.",
     },
     {
       title: "Natural stone slabs",
       shortLabel: "Slabs",
       description:
-        "Semi-finished slabs are produced near key source regions and follow the same checks and selection standards used for raw blocks.",
+        "Semi-finished slabs are produced near key source regions and follow the same checks and selection standards used for rough blocks.",
     },
     {
       title: "Worldwide distribution",
       shortLabel: "Distribution",
       description:
-        "R.E.D. Graniti serves major luxury-stone markets with broad material access, dependable schedules, and ongoing customer support.",
+        "The distribution network serves major luxury-stone markets with broad material access, on-schedule delivery, and ongoing service.",
     },
   ],
   quarryCountries: [
@@ -125,8 +125,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       id: "madagascar",
       region: "Madagascar",
       title: "Labradorite source region",
-      description:
-        "A distinctive source region within R.E.D. Graniti's company-owned quarry network.",
+      description: "A source region within R.E.D. Graniti's company-owned quarry network.",
       imageUrl: RED_GRANITI_QUARRY_MEDIA.madagascar.imageUrl,
       sourceUrl: RED_GRANITI_QUARRY_MEDIA.madagascar.sourceUrl,
     },
@@ -134,8 +133,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       id: "south-africa",
       region: "South Africa",
       title: "Black granite source region",
-      description:
-        "A long-established production region for controlled black-granite selection.",
+      description: "A long-established production region for controlled black-granite selection.",
       imageUrl: RED_GRANITI_QUARRY_MEDIA.southAfrica.imageUrl,
       sourceUrl: RED_GRANITI_QUARRY_MEDIA.southAfrica.sourceUrl,
     },
@@ -143,8 +141,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       id: "vermont",
       region: "Vermont, United States",
       title: "Danby marble source region",
-      description:
-        "A North American marble source connected to R.E.D. Graniti's block-and-slab network.",
+      description: "A North American marble source within R.E.D. Graniti's block-and-slab network.",
       imageUrl: RED_GRANITI_QUARRY_MEDIA.vermont.imageUrl,
       sourceUrl: RED_GRANITI_QUARRY_MEDIA.vermont.sourceUrl,
     },
@@ -153,9 +150,8 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
     partnerName: "JW Stone Logistics",
     partnerProfileSlug: "jw-stone",
     relationshipLabel: "Exclusive first-cut distributor",
-    headline: "R.E.D. Graniti stone. First-cut support through JW Stone.",
     description:
-      "Choose the R.E.D. material and share the block or slab format, dimensions, quantity, destination, and timing. JW Stone handles first-cut planning and next-step coordination.",
+      "First-cut distribution for R.E.D. Graniti stone is handled by JW Stone. Calls and requests from this profile connect to that team.",
   },
   officialLinks: [
     { label: "Official website", href: RED_GRANITI_OFFICIAL_WEBSITE },
@@ -254,7 +250,7 @@ export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
   {
     type: "cta",
     data: {
-      heading: "Call JW Stone or start a request",
+      heading: "Call or start a request",
       description:
         "Share the R.E.D. material, required format, dimensions, quantity, destination, and timing for first-cut review.",
       requestExamples: [
