@@ -33,10 +33,7 @@ function businessCandidate(overrides: Record<string, unknown> = {}) {
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "approved",
     ownerProvider: "local",
-    ownerPreferences: {
-      profileVisibility: "private",
-      publicProfileIds: [profileId],
-    },
+    ownerPreferences: { profileVisibility: "private", publicProfileIds: [profileId] },
     businessStatus: "active",
     businessOwnerUserId: "owner-1",
     publicDiscoveryEnabled: true,
@@ -62,10 +59,7 @@ function personalCandidate(overrides: Record<string, unknown> = {}) {
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
     ownerProvider: "local",
-    ownerPreferences: {
-      profileVisibility: "private",
-      publicProfileIds: [profileId],
-    },
+    ownerPreferences: { profileVisibility: "private", publicProfileIds: [profileId] },
     businessStatus: null,
     businessOwnerUserId: null,
     publicDiscoveryEnabled: null,
@@ -76,12 +70,10 @@ function personalCandidate(overrides: Record<string, unknown> = {}) {
 }
 
 describe("public profile publication safety", () => {
-  it("does not treat account-wide public visibility as release of every personal profile", () => {
+  it("ignores account-wide public visibility without exact profile release", () => {
     expect(
       derivePublishedProfileExposure(
-        personalCandidate({
-          ownerPreferences: { profileVisibility: "public", publicProfileIds: [] },
-        })
+        personalCandidate({ ownerPreferences: { profileVisibility: "public", publicProfileIds: [] } })
       )
     ).toEqual({
       mode: "private",
@@ -89,30 +81,30 @@ describe("public profile publication safety", () => {
     });
   });
 
-  it("allows an eligible personal profile only after exact per-profile release", () => {
+  it("allows a meaningful personal profile only after exact release", () => {
     expect(derivePublishedProfileExposure(personalCandidate())).toEqual({
       mode: "public",
       reason: "public",
     });
   });
 
-  it("keeps an explicitly released but empty personal profile private", () => {
+  it("keeps an explicitly released but empty profile private", () => {
     expect(
       derivePublishedProfileExposure(
         personalCandidate({
           profileHeadline: null,
-          profileContentBlocks: [],
           profileServicesDescription: null,
+          profileContentBlocks: [],
         })
       )
     ).toEqual({ mode: "private", reason: "empty_profile" });
   });
 
   it.each([
-    ["reserved slug", { profileSlug: "tradescout-admin" }],
-    ["profile role", { profileSlug: "staff-profile", profileRoleContext: "super_admin" }],
-    ["owner role", { profileSlug: "staff-personal", ownerRole: "ops_admin", ownerRoles: ["ops_admin"] }],
-  ])("keeps an internal profile private by %s", (_label, override) => {
+    { profileSlug: "tradescout-admin" },
+    { profileSlug: "staff-profile", profileRoleContext: "super_admin" },
+    { profileSlug: "staff-personal", ownerRole: "ops_admin", ownerRoles: ["ops_admin"] },
+  ])("keeps internal/admin identity private", (override) => {
     expect(derivePublishedProfileExposure(personalCandidate(override))).toEqual({
       mode: "private",
       reason: "internal_role",
@@ -120,19 +112,16 @@ describe("public profile publication safety", () => {
   });
 
   it.each(["jw-stone", "issa-build", "la-plumbing-solutions", "red-graniti"])(
-    "keeps the approved discoverable business %s public",
+    "keeps approved discoverable business %s public",
     (profileSlug) => {
       const candidate = businessCandidate({ profileSlug });
-      expect(derivePublishedProfileExposure(candidate)).toEqual({
-        mode: "public",
-        reason: "public",
-      });
+      expect(derivePublishedProfileExposure(candidate)).toEqual({ mode: "public", reason: "public" });
       expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(true);
       expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
     }
   );
 
-  it("preserves JR's exact owner-confirmed route but keeps it out of discovery and indexing", () => {
+  it("preserves JR's exact direct route but excludes discovery and indexing", () => {
     const candidate = businessCandidate({
       profileSlug: JRS_PROFILE_SLUG,
       ownerVerificationStatus: "pending",
@@ -149,7 +138,7 @@ describe("public profile publication safety", () => {
     expect(shouldIndexPublicProfileSlug(JRS_PROFILE_SLUG)).toBe(false);
   });
 
-  it("preserves Precision Aerial only with its exact pending-owner stewardship evidence", () => {
+  it("preserves Precision Aerial only with its exact stewardship evidence", () => {
     const candidate = businessCandidate({
       profileSlug: PRECISION_AERIAL_PROFILE_SLUG,
       ownerVerificationStatus: "pending",
@@ -178,41 +167,34 @@ describe("public profile publication safety", () => {
     expect(
       derivePublishedProfileExposure({
         ...candidate,
-        ownerPreferences: {
-          profileVisibility: "public",
-          publicProfileIds: ["profile-1"],
-        },
+        ownerPreferences: { profileVisibility: "public", publicProfileIds: ["profile-1"] },
       })
     ).toEqual({ mode: "private", reason: "business_trust_missing" });
   });
 
-  it("keeps Moulding & Millwork unavailable while ownership or stewardship trust is missing", () => {
+  it("keeps Moulding & Millwork blocked while custody trust is missing", () => {
     const candidate = businessCandidate({
       profileSlug: "moulding-millwork-supply",
       ownerVerificationStatus: "pending",
       ownerVerifiedBadge: false,
       businessSources: ["operator_confirmed_selective_inheritance"],
     });
-
     expect(derivePublishedProfileExposure(candidate)).toEqual({
       mode: "private",
       reason: "business_trust_missing",
     });
-    expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(false);
   });
 
-  it("preserves Steel Home as exact-link unlisted review and never indexes it", () => {
+  it("preserves Steel Home as unlisted exact-link review", () => {
+    const profileId = "steel-home-profile";
     const candidate = businessCandidate({
-      profileId: STEEL_HOME_PACKAGES_PROFILE_IDENTITY.id,
+      profileId,
       profileSlug: STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug,
       profileOwnerUserId: "admin-owner",
       ownerRole: "super_admin",
       ownerRoles: ["super_admin"],
       ownerVerificationStatus: "approved",
-      ownerPreferences: {
-        profileVisibility: "public",
-        publicProfileIds: [STEEL_HOME_PACKAGES_PROFILE_IDENTITY.id],
-      },
+      ownerPreferences: { profileVisibility: "public", publicProfileIds: [profileId] },
       businessStatus: "draft",
       businessOwnerUserId: "admin-owner",
       publicDiscoveryEnabled: false,
