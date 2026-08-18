@@ -778,7 +778,7 @@ export default function MapsPage() {
             <div className="mt-1 text-xl font-semibold text-white">
               {verifiedOnly ? "Verification-focused" : "Mixed visibility"}
             </div>
-            <div className="text-xs text-white/60">Contact remains gated through Scout flow</div>
+            <div className="text-xs text-white/60">Contact through Scout</div>
           </div>
         </div>
       </header>

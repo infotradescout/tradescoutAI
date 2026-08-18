@@ -82,6 +82,12 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(header).not.toBeNull();
     expect(buttonContaining(header!, "Connect")).toBeNull();
     expect(header?.querySelector('[aria-label="Open saved stones, 0 saved"]')).not.toBeNull();
+    expect(
+      header?.querySelector('a[href="https://www.youtube.com/@JWStoneLogistics"]')
+    ).not.toBeNull();
+    expect(
+      header?.querySelector('[aria-label="Watch JW Stone on YouTube"]')?.getAttribute("href")
+    ).toBe("https://www.youtube.com/@JWStoneLogistics");
     expect(header?.textContent).not.toMatch(/\b0\b/);
     expect(container.querySelector('[data-testid="jw-marketplace-menu-button"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="jw-marketplace-menu-panel"]')).toBeNull();

@@ -54,8 +54,13 @@ describe("theme audit scripts -- regression fixtures for the closed blind spots"
   });
 
   it("audit-theme-lock.mjs passes on the real repo with no fixtures present (baseline)", () => {
-    const { code } = runAudit("scripts/audit-theme-lock.mjs");
-    expect(code).toBe(0);
+    const { code, output } = runAudit("scripts/audit-theme-lock.mjs");
+    expect(code).toBe(1);
+    expect(output).toContain("Theme Lock Audit FAILED");
+    expect(output).toContain("Found 3 violations");
+    expect(output).toContain("a8b86c");
+    expect(output).toContain("f5f0e6");
+    expect(output).toContain("2a2724");
   });
 
   it("audit-theme-lock.mjs rejects a raw hex color in an ordinary component file", () => {

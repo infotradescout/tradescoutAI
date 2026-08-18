@@ -26,8 +26,6 @@ import {
   UserCircle,
   BadgeCheck,
   LockKeyhole,
-  ArrowRight,
-  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -72,53 +70,6 @@ type SurfaceOrientation = {
   actionHref?: string;
 };
 
-const START_GUIDE_SEEN_KEY = "ts:start-guide-seen-v1";
-
-const START_GUIDE_ITEMS: NavItem[] = [
-  {
-    label: "Get help with a project",
-    href: "/scout",
-    icon: <Compass className="h-5 w-5" />,
-    description: "Tell Scout what you need and get a clear next step.",
-  },
-  {
-    label: "Find a local business",
-    href: ROUTES.CONTRACTORS ?? "/contractors",
-    icon: <Building className="h-5 w-5" />,
-    description: "Browse businesses by service and location.",
-  },
-  {
-    label: "Check my requests and replies",
-    href: "/direct-connect/active",
-    icon: <ClipboardList className="h-5 w-5" />,
-    description: "See what you asked for, who replied, and what needs action.",
-  },
-  {
-    label: "Set up or manage my business",
-    href: "/business-dashboard",
-    icon: <Wrench className="h-5 w-5" />,
-    description: "Create a business profile or open its workspace and opportunities.",
-  },
-  {
-    label: "Find work or hire",
-    href: "/direct-connect/opportunities",
-    icon: <ClipboardList className="h-5 w-5" />,
-    description: "Browse jobs and resumes, post an opening, or apply.",
-  },
-  {
-    label: "Browse commercial work",
-    href: "/commercial-directory",
-    icon: <ShoppingBag className="h-5 w-5" />,
-    description: "Review published commercial projects and bid packages.",
-  },
-  {
-    label: "Ask my community",
-    href: ROUTES.COMMUNITY ?? "/community",
-    icon: <Users className="h-5 w-5" />,
-    description: "See nearby activity, share an update, or ask around.",
-  },
-];
-
 function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null {
   if (pathname.startsWith("/admin")) {
     return {
@@ -130,75 +81,18 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/scout") || pathname === "/") {
     return {
-      title: "Start here",
-      summary: "Tell Scout what you want to get done and receive a clear next step.",
-      actionLabel: "See my requests",
-      actionHref: "/direct-connect/active",
-    };
-  }
-  if (pathname.startsWith("/direct-connect/active")) {
-    return {
-      title: "My requests",
-      summary: "Review what you asked for, read replies, and see what needs your attention.",
-      actionLabel: "Start a new request",
+      title: "Scout",
+      summary: "Describe what you need and get the right next step.",
+      actionLabel: "Go to Direct Connect",
       actionHref: "/direct-connect",
-    };
-  }
-  if (pathname.startsWith("/direct-connect/inbox")) {
-    return {
-      title: "Inbox",
-      summary: "Review incoming opportunities, replies, and conversations that need action.",
-      actionLabel: "Open my requests",
-      actionHref: "/direct-connect/active",
-    };
-  }
-  if (
-    pathname.startsWith("/direct-connect/opportunities") ||
-    pathname.startsWith("/direct-connect/employment")
-  ) {
-    return {
-      title: "Jobs",
-      summary: "Find employment, post a job or resume, apply, and review applicants.",
     };
   }
   if (pathname.startsWith("/direct-connect")) {
     return {
-      title: "Make a request",
-      summary: "Describe what you need, review it, and choose where it goes.",
-      actionLabel: "Open my requests",
-      actionHref: "/direct-connect/active",
-    };
-  }
-  if (pathname.startsWith("/contractors") || pathname.startsWith("/find-local-businesses")) {
-    return {
-      title: "Find businesses",
-      summary: "Browse local businesses by the work you need and the area they serve.",
-      actionLabel: "Tell Scout what I need",
-      actionHref: "/scout",
-    };
-  }
-  if (pathname.startsWith("/commercial-directory")) {
-    return {
-      title: "Commercial work",
-      summary: "Review published projects and open the work that fits your business.",
-      actionLabel: "Open my business",
-      actionHref: "/business-dashboard",
-    };
-  }
-  if (pathname.startsWith("/business-dashboard") || pathname.startsWith("/contractor-dashboard")) {
-    return {
-      title: "My business",
-      summary: "Manage your profile, requests, work, and business activity from one place.",
-      actionLabel: "View incoming requests",
-      actionHref: "/direct-connect/inbox",
-    };
-  }
-  if (pathname.startsWith("/profile") || pathname.startsWith("/settings")) {
-    return {
-      title: "My account",
-      summary: "Manage your profile, preferences, permissions, privacy, and security.",
-      actionLabel: "Open my profile",
-      actionHref: "/profile",
+      title: "Direct Connect",
+      summary: "Post requests, review replies, and track what needs action.",
+      actionLabel: "Post a request",
+      actionHref: "/direct-connect",
     };
   }
   if (pathname.startsWith("/exchange")) {
@@ -296,16 +190,16 @@ const buildFeatureNav = (opts?: {
 }): NavItem[] => {
   const coreNav: NavItem[] = [
     {
-      label: "Scout",
-      href: "/scout",
-      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Open Scout to review what to do next.",
-    },
-    {
       label: "Direct Connect",
       href: "/direct-connect",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Post requests and track replies.",
+    },
+    {
+      label: "Scout",
+      href: "/scout",
+      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Open Scout to review what to do next.",
     },
     {
       label: "Businesses",
@@ -314,10 +208,10 @@ const buildFeatureNav = (opts?: {
       description: "Find businesses that serve your area.",
     },
     {
-      label: "Jobs",
-      href: "/direct-connect/opportunities",
+      label: "Commercial Jobs",
+      href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Find work, post jobs or resumes, and manage applicants.",
+      description: "Review published commercial projects and bid packages.",
     },
     {
       label: "Community",
@@ -417,21 +311,21 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
   const byHref = new globalThis.Map(items.map((item) => [item.href, item]));
   const communityHref = ROUTES.COMMUNITY ?? "/community";
   const scout = byHref.get("/scout");
-  const request = byHref.get("/direct-connect/active");
+  const request = byHref.get("/direct-connect");
   const community = byHref.get(communityHref);
   const inboxHref = "/direct-connect/inbox";
-  const pinnedHrefs = new Set(["/direct-connect/active", inboxHref, communityHref, "/scout"]);
+  const pinnedHrefs = new Set(["/direct-connect", inboxHref, communityHref, "/scout"]);
 
   const primary: NavItem[] = [
     request
       ? {
           ...request,
-          label: "Requests",
-          description: "Track requests, replies, and next actions.",
+          label: "Direct Connect",
+          description: "Ask local people and businesses for help.",
         }
       : {
-          label: "Requests",
-          href: "/direct-connect/active",
+          label: "Direct Connect",
+          href: "/direct-connect",
           icon: (
             <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
           ),
@@ -451,9 +345,9 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
           icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
         },
     scout
-      ? { ...scout, label: "Start", description: "Tell Scout what you want to get done." }
+      ? { ...scout, label: "Scout", description: "Open Scout to review what to do next." }
       : {
-          label: "Start",
+          label: "Scout",
           href: "/scout",
           icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
         },
@@ -469,7 +363,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isImpersonating = user?.isImpersonating || user?.impersonating;
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
-  const [isStartGuideOpen, setIsStartGuideOpen] = useState(false);
   const [isMobileUnlockablesOpen, setIsMobileUnlockablesOpen] = useState(false);
   const RIGHT_TOOLS_COLLAPSED_KEY = "ts:rightToolsCollapsed";
   const RIGHT_TOOLS_COLLAPSED_W = "56px";
@@ -567,7 +460,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       "/scout",
       "/direct-connect",
       ROUTES.CONTRACTORS ?? "/contractors",
-      "/direct-connect/opportunities",
+      "/commercial-directory",
       ROUTES.COMMUNITY ?? "/community",
       "/share",
     ]);
@@ -666,7 +559,8 @@ export function AppShell({ children, footer }: AppShellProps) {
   );
 
   const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
-  const showSurfaceOrientation = true;
+  const showSurfaceOrientation =
+    String(import.meta.env.VITE_SURFACE_ORIENTATION_V1 ?? "false") === "true";
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const currentPath = location.split("?")[0].split("#")[0];
   const publicProfileContinuation = useMemo(
@@ -773,40 +667,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     if (!isToolsOpen) setIsMobileUnlockablesOpen(false);
   }, [isToolsOpen]);
 
-  useEffect(() => {
-    if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
-    try {
-      if (window.localStorage.getItem(START_GUIDE_SEEN_KEY) !== "1") {
-        setIsStartGuideOpen(true);
-      }
-    } catch {
-      setIsStartGuideOpen(true);
-    }
-  }, [isLoggedIn, isAuthOrSetupSurface, isAdminSurface]);
-
-  useEffect(() => {
-    if (!isStartGuideOpen) return;
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsStartGuideOpen(false);
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [isStartGuideOpen]);
-
-  const closeStartGuide = () => {
-    setIsStartGuideOpen(false);
-    try {
-      window.localStorage.setItem(START_GUIDE_SEEN_KEY, "1");
-    } catch {
-      // ignore
-    }
-  };
-
-  const navigateFromStartGuide = (href: string) => {
-    closeStartGuide();
-    navigate(href);
-  };
-
   const toggleRightToolsCollapsed = () => {
     setIsRightToolsCollapsed((prev) => {
       const next = !prev;
@@ -830,9 +690,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       </p>
       {!isLoggedIn && (
         <div className="mt-2 space-y-1.5">
-          <p className="text-[11px] text-secondary">
-            Create an account to save requests and keep replies together.
-          </p>
+          <p className="text-[11px] text-secondary">Sign in to contact a business.</p>
           <div className="flex gap-2">
             <button
               type="button"
@@ -966,22 +824,6 @@ export function AppShell({ children, footer }: AppShellProps) {
             </span>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {!isAuthOrSetupSurface && (
-              <button
-                type="button"
-                onClick={() => setIsStartGuideOpen(true)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold"
-                style={{
-                  borderColor: "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
-                  backgroundColor: "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                  color: "var(--theme-accent-primary)",
-                }}
-                aria-label="Open Start here guide"
-              >
-                <Compass className="h-4 w-4" />
-                Start
-              </button>
-            )}
             {!isMobileSimplified && !isLoggedIn && !isAuthOrSetupSurface && (
               <>
                 <button
@@ -1070,7 +912,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         >
           {/* Brand */}
           <Link
-            href={mobileBrandHref}
+            href="/"
             className={`flex shrink-0 items-center gap-3 cursor-pointer ${
               handedness === "left" ? "justify-end" : ""
             }`}
@@ -1105,7 +947,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                     key={`desktop-nav-${item.href}`}
                     href={item.href}
                     data-active={isActive ? "true" : "false"}
-                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 items-center gap-2 whitespace-nowrap rounded-md border px-3 text-xs font-medium no-underline transition-colors"
+                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 max-w-[148px] items-center gap-2 rounded-md border px-3 text-xs font-medium no-underline transition-colors"
                     style={{
                       borderColor: isActive
                         ? "color-mix(in oklab, var(--theme-accent-primary) 44%, transparent)"
@@ -1121,7 +963,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                         {item.icon}
                       </span>
                     ) : null}
-                    <span>{item.label}</span>
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 );
               })}
@@ -1156,21 +998,6 @@ export function AppShell({ children, footer }: AppShellProps) {
 
             {!isAuthOrSetupSurface && (
               <>
-                <button
-                  type="button"
-                  onClick={() => setIsStartGuideOpen(true)}
-                  className="hidden h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors xl:inline-flex"
-                  style={{
-                    borderColor:
-                      "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
-                    backgroundColor:
-                      "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                    color: "var(--theme-accent-primary)",
-                  }}
-                >
-                  <CircleHelp className="h-4 w-4" />
-                  What can I do?
-                </button>
                 {showInstallAction && (
                   <button
                     type="button"
@@ -1399,122 +1226,6 @@ export function AppShell({ children, footer }: AppShellProps) {
               onNavigate={() => setIsToolsOpen(false)}
             />
           </aside>
-        </div>
-      )}
-
-      {isStartGuideOpen && !isAuthOrSetupSurface && (
-        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-3 sm:p-6">
-          <button
-            type="button"
-            aria-label="Close Start here guide"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={closeStartGuide}
-          />
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="start-guide-title"
-            className="relative max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-3xl border p-5 shadow-2xl sm:p-8"
-            style={{
-              borderColor: "color-mix(in oklab, var(--theme-accent-primary) 35%, transparent)",
-              background:
-                "radial-gradient(circle at 90% 5%, color-mix(in oklab, var(--theme-accent-primary) 14%, transparent), transparent 32%), var(--surface-card)",
-              color: "var(--text-primary)",
-            }}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p
-                  className="text-[10px] font-bold uppercase tracking-[0.24em]"
-                  style={{ color: "var(--theme-accent-primary)" }}
-                >
-                  Start here
-                </p>
-                <h2 id="start-guide-title" className="mt-2 text-2xl font-bold sm:text-3xl">
-                  What do you want to get done?
-                </h2>
-                <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--text-secondary)" }}>
-                  Choose one goal. TradeScout will take you to the right place.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closeStartGuide}
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
-                style={{ borderColor: "var(--border-primary)", color: "var(--text-secondary)" }}
-                aria-label="Close Start here guide"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {START_GUIDE_ITEMS.map((item) => (
-                <button
-                  key={`start-guide-${item.href}`}
-                  type="button"
-                  onClick={() => navigateFromStartGuide(item.href)}
-                  className="group flex min-h-[142px] flex-col rounded-2xl border p-4 text-left transition hover:-translate-y-0.5"
-                  style={{
-                    borderColor: "var(--border-primary)",
-                    backgroundColor:
-                      "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                  }}
-                >
-                  <span
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl"
-                    style={{
-                      backgroundColor:
-                        "color-mix(in oklab, var(--theme-accent-primary) 14%, transparent)",
-                      color: "var(--theme-accent-primary)",
-                    }}
-                  >
-                    {item.icon}
-                  </span>
-                  <span className="mt-4 flex w-full items-start justify-between gap-3">
-                    <span className="font-semibold">{item.label}</span>
-                    <ArrowRight
-                      className="mt-0.5 h-4 w-4 shrink-0 transition group-hover:translate-x-0.5"
-                      style={{ color: "var(--theme-accent-primary)" }}
-                    />
-                  </span>
-                  <span className="mt-1 text-xs leading-5" style={{ color: "var(--text-secondary)" }}>
-                    {item.description}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div
-              className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4"
-              style={{ borderColor: "var(--border-primary)" }}
-            >
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                You can reopen this guide anytime from the top navigation.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigateFromStartGuide("/profile")}
-                  className="rounded-full border px-3 py-2 text-xs font-semibold"
-                  style={{ borderColor: "var(--border-primary)" }}
-                >
-                  My profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigateFromStartGuide(ROUTES.HELP ?? "/help")}
-                  className="rounded-full border px-3 py-2 text-xs font-semibold"
-                  style={{
-                    borderColor: "var(--theme-accent-primary)",
-                    color: "var(--theme-accent-primary)",
-                  }}
-                >
-                  Help center
-                </button>
-              </div>
-            </div>
-          </section>
         </div>
       )}
 

@@ -57,7 +57,7 @@ describe("Scout live readiness response", () => {
     });
     const response = buildScoutLiveReadinessResponse(readiness);
 
-    expect(response.message).toContain("Contact stays gated");
+    expect(response.message).toContain("Direct Connect replies");
     expect(response.actions[0]).toMatchObject({ to: "/direct-connect/inbox" });
     expect((response.metadata.gates as any).contactUnlocked).toBe(false);
   });

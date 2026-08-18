@@ -253,9 +253,11 @@ describe("JW Stone profile presentation contract", () => {
     expect(presentation.social.profileImageUrl).toBe(
       "/images/businesses/jw-stone/video/hero-poster.jpg"
     );
+    expect(presentation.social.youtubeUrl).toBe("https://www.youtube.com/@JWStoneLogistics");
     expect(migrationSource).toContain(
       '"profileImageUrl": "/images/businesses/jw-stone/video/hero-poster.jpg"'
     );
+    expect(migrationSource).toContain('"youtubeUrl": "https://www.youtube.com/@JWStoneLogistics"');
     expect(migrationSource).toContain('"accentColor": "#81904a"');
     expect(migrationSource).toContain('"inventoryCta": "View photos · Request pricing"');
     expect(migrationSource).toContain('"label": "JW Stone Picks"');

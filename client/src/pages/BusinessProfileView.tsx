@@ -837,7 +837,7 @@ export default function BusinessProfileView() {
                       }}
                     >
                       <ShieldCheck className="h-4 w-4 mr-2" />
-                      Call after decision card
+                      Call
                     </Button>
                   ) : null}
 

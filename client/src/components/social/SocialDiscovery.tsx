@@ -296,8 +296,7 @@ export const SocialDiscovery = () => {
         <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-md flex gap-3 items-start">
           <AlertCircle className="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-blue-200">
-            When you choose to explore someone, Scout will assess the connection and capture your
-            intent before you can contact them.
+            Review the connection, then contact them when you are ready.
           </p>
         </div>
 

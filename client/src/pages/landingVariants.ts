@@ -499,12 +499,11 @@ function buildTradePatch(trade: Trade): Partial<LandingVariant> {
     audience: {
       sectionLabel: `For ${trade.name}`,
       sectionTitle: `Built For ${trade.name} Decisions`,
-      sectionDesc:
-        "Scout keeps contact gated and quality-first so you can move forward with fewer dead ends.",
+      sectionDesc: "Compare trustworthy options and contact when you are ready.",
       cards: [
         {
           title: `Hiring ${tradeLabel}?`,
-          desc: `Get 1-3 relevant ${tradeLower} matches with clear trust signals before contact is shared.`,
+          desc: `Get 1-3 relevant ${tradeLower} matches with clear trust signals.`,
         },
         {
           title: `Are You a ${tradeLabel} Business?`,
@@ -644,8 +643,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       audience: {
         sectionLabel: `For ${opsAudience}`,
         sectionTitle: `${tradeLabel} Workflows With Less Churn`,
-        sectionDesc:
-          "Decision quality stays visible while contact and action remain properly gated.",
+        sectionDesc: "Compare options clearly and contact when you are ready.",
         cards: [
           {
             title: "Operational Control",
