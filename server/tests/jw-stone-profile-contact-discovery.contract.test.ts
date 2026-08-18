@@ -11,6 +11,7 @@ const profileView = read("client/src/pages/ProfileSiteView.tsx");
 const profileWrapper = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
 const legacyTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
 const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
 const company = read("client/src/features/jw-stone/JwStoneCompanySection.tsx");
 const marketplaceRoutes = read("client/src/features/jw-stone/marketplaceRoutes.ts");
 const identity = read("shared/jwStonePresentation.ts");
@@ -64,6 +65,14 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(company).toContain("About JW Stone");
     expect(company).toContain("Visit JW Stone");
     expect(company).toContain("Follow JW Stone");
+  });
+
+  it("keeps YouTube with the bottom social identity and out of the header", () => {
+    expect(company).toContain('data-testid="jw-social-youtube"');
+    expect(company).toContain('aria-label="Watch JW Stone on YouTube"');
+    expect(header).not.toContain("JW_STONE_YOUTUBE_URL");
+    expect(header).not.toContain("jw-marketplace-youtube");
+    expect(header).not.toContain("Watch JW Stone on YouTube");
   });
 
   it("keeps Call protected behind the deliberate Direct Connect choice", () => {
