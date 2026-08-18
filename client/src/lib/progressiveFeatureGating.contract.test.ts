@@ -9,7 +9,7 @@ const read = (relativePath: string) => {
 
 describe("progressive feature gating contracts", () => {
   it("keeps core nav features stable and always present in AppShell", () => {
-    const source = read("client/src/components/layout/AppShell.tsx");
+    const source = read("client/src/components/layout/AppShellCore.tsx");
 
     expect(source).toContain('label: "Scout"');
     expect(source).toContain('href: "/scout"');
@@ -24,7 +24,7 @@ describe("progressive feature gating contracts", () => {
   });
 
   it("preserves established product names and signed-in landing behavior", () => {
-    const source = read("client/src/components/layout/AppShell.tsx");
+    const source = read("client/src/components/layout/AppShellCore.tsx");
 
     expect(source).toContain('label: "TradeDeals"');
     expect(source).toContain('label: "Exchange"');
@@ -37,7 +37,7 @@ describe("progressive feature gating contracts", () => {
   });
 
   it("provides one plain-language start guide across desktop and mobile", () => {
-    const source = read("client/src/components/layout/AppShell.tsx");
+    const source = read("client/src/components/layout/AppShellCore.tsx");
 
     expect(source).toContain('const START_GUIDE_SEEN_KEY = "ts:start-guide-seen-v1"');
     expect(source).toContain("What do you want to get done?");
@@ -55,7 +55,7 @@ describe("progressive feature gating contracts", () => {
   });
 
   it("keeps request creation, requester history, and provider inbox distinct", () => {
-    const appShellSource = read("client/src/components/layout/AppShell.tsx");
+    const appShellSource = read("client/src/components/layout/AppShellCore.tsx");
     const directConnectSource = read(
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
@@ -76,7 +76,7 @@ describe("progressive feature gating contracts", () => {
   });
 
   it("applies action-driven advanced nav filtering in AppShell", () => {
-    const source = read("client/src/components/layout/AppShell.tsx");
+    const source = read("client/src/components/layout/AppShellCore.tsx");
 
     expect(source).toContain("FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING");
     expect(source).toContain("evaluateFeatureUnlocks");

@@ -10,7 +10,7 @@ const read = (relativePath: string) => {
 describe("direct connect notification center ui contract", () => {
   it("keeps Direct Connect shell free of duplicate notification-center ownership", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    const appShell = read("client/src/components/layout/AppShell.tsx");
+    const appShell = read("client/src/components/layout/AppShellCore.tsx");
 
     expect(source).not.toContain("/api/direct-connect/notifications");
     expect(source).not.toContain("unreadDirectConnectNotificationCount");
