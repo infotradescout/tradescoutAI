@@ -11,7 +11,6 @@ import {
 import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
 import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
 import { JW_STONE_PROFILE_SLUG, JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
-import { RED_GRANITI_PUBLIC_IDENTITY } from "@shared/redGranitiProfile";
 
 export type RedGranitiContactEntry = "choice" | "request";
 
@@ -68,6 +67,7 @@ export default function RedGranitiDirectConnectPanel({
   platformBaseHref = "",
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const busyRef = useRef(false);
   const [view, setView] = useState<PanelView>(initialView);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -91,6 +91,10 @@ export default function RedGranitiDirectConnectPanel({
   });
 
   useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -104,14 +108,14 @@ export default function RedGranitiDirectConnectPanel({
     requestAnimationFrame(() => panelRef.current?.focus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) onClose();
+      if (event.key === "Escape" && !busyRef.current) onClose();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [busy, initialView, onClose, open]);
+  }, [initialView, onClose, open]);
 
   const requestHref = useMemo(() => {
     if (requestWorkspacePath) {
