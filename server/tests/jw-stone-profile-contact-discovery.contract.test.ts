@@ -67,7 +67,7 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
   });
 
   it("keeps Call protected behind the deliberate Direct Connect choice", () => {
-    expect(marketplace).toContain("profileSlug=\"jw-stone\"");
+    expect(marketplace).toContain('profileSlug="jw-stone"');
     expect(marketplace).toContain("businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}");
     expect(marketplace).toContain("allowCall");
     expect(marketplace).toContain('initialView="choice"');
