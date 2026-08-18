@@ -357,7 +357,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       roleContext: "business_owner" as const,
       slug: RED_GRANITI_PROFILE_SLUG,
       displayName: RED_GRANITI_BUSINESS_NAME,
-      headline: "Company-owned quarries, rough blocks, slabs, and worldwide distribution.",
+      headline: RED_GRANITI_PUBLIC_IDENTITY.headline,
       contentBlocks: RED_GRANITI_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
@@ -369,7 +369,7 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       seoMeta: {
         title: "R.E.D. Graniti | Quarries, Rough Blocks & Natural Stone Slabs",
         description:
-          "Explore R.E.D. Graniti's company-owned quarry network, rough blocks, natural stone slabs, and worldwide distribution. Call JW Stone or send first-cut project details.",
+          "Explore R.E.D. Graniti's company-owned quarry network, rough blocks, natural stone slabs, and worldwide distribution. Call or send first-cut project details.",
         imageUrl: RED_GRANITI_LOGO_URL,
         faviconUrl: RED_GRANITI_LOGO_URL,
         imageWidth: 78,
