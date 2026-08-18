@@ -10,26 +10,17 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("JW Stone and R.E.D. Graniti partnership separation", () => {
-  it("shows the relationship on JW Stone as a source partnership, not copied inventory", () => {
-    const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+  it("keeps the source relationship off the JW Stone public profile", () => {
     const section = read("client/src/features/jw-stone/JwStoneSourcePartnersSection.tsx");
 
-    expect(marketplace).toContain(
-      'import { JwStoneSourcePartnersSection } from "./JwStoneSourcePartnersSection"'
-    );
-    expect(marketplace).toContain(
-      "<JwStoneSourcePartnersSection onStartRequest={() => startRequest([])} />"
-    );
-    expect(section).toContain("Source partnerships");
-    expect(section).toContain("Exclusive first-cut distributor");
-    expect(section).toContain("Kept separate from available inventory");
-    expect(section).toContain("received, verified, and added to the");
-    expect(section).toContain("View company profile");
-    expect(section).toContain("Start a first-cut request");
-
-    expect(section).not.toContain("JW_STONE_CATALOG");
-    expect(section).not.toContain("STONE_CORE_RED_GRANITI_MATERIALS");
-    expect(section).not.toMatch(/inventoryCatalog|stone card|slab count|bundle count/i);
+    expect(section).toContain("return null");
+    expect(section).not.toContain("Source partnerships");
+    expect(section).not.toContain("Exclusive first-cut distributor");
+    expect(section).not.toContain("View company profile");
+    expect(section).not.toContain("Start a first-cut request");
+    expect(section).not.toContain("RED_GRANITI_BUSINESS_NAME");
+    expect(section).not.toContain("RED_GRANITI_LOGO_URL");
+    expect(section).not.toContain("RED_GRANITI_PROFILE_SLUG");
   });
 
   it("keeps the relationship and future material views as independent records", () => {
