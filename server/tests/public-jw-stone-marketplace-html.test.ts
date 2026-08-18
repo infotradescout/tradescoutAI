@@ -165,7 +165,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain(name);
   });
 
-  it("registers marketplace routes after custom-domain authority and before the SPA catch-all", () => {
+  it("registers legacy marketplace aliases after custom-domain authority and before the SPA catch-all", () => {
     const source = read("server/index.ts");
     const customDomainMarker = source.indexOf("const CUSTOM_DOMAIN_CACHE");
     const customDomainMiddleware = source.indexOf(
@@ -181,9 +181,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(marketplaceRoute).toBeGreaterThan(customDomainMiddleware);
     expect(stoneRoute).toBeGreaterThan(marketplaceRoute);
     expect(catchAllRoute).toBeGreaterThan(stoneRoute);
-
-    expect(source).toContain("serveJwStoneMarketplaceCustomDomainPath");
-    expect(source).toContain("buildPublicJwStoneMarketplaceHtml");
-    expect(source).toContain("jwstonelogistics.com");
+    expect(source).toContain("`${origin}/u/${JW_STONE_PROFILE_SLUG}`");
+    expect(source).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
   });
 });
