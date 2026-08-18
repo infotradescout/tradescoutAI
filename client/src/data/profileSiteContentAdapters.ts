@@ -3,6 +3,7 @@ import {
   JW_STONE_PROFILE_PRESENTATION_BLOCK,
   JW_STONE_PUBLIC_DISCOVERY_BLOCK,
 } from "@/data/jwStoneProfilePresentation";
+import { JW_STONE_YOUTUBE_URL } from "@shared/jwStonePresentation";
 import {
   applyInventoryLeadImageOverrides,
   readFeaturedStoneSlugs,
@@ -19,6 +20,29 @@ type ProfileContentBlock = {
 };
 
 type ProfileSiteContentAdapter = (blocks: ProfileContentBlock[]) => ProfileContentBlock[];
+
+function withJwStonePresentationDefaults(block: ProfileContentBlock): ProfileContentBlock {
+  if (block?.type !== "profilePresentation") return block;
+  const data =
+    block.data && typeof block.data === "object" && !Array.isArray(block.data)
+      ? block.data
+      : {};
+  const social =
+    data.social && typeof data.social === "object" && !Array.isArray(data.social)
+      ? (data.social as Record<string, unknown>)
+      : {};
+
+  return {
+    ...block,
+    data: {
+      ...data,
+      social: {
+        ...social,
+        youtubeUrl: JW_STONE_YOUTUBE_URL,
+      },
+    },
+  };
+}
 
 const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
   const leadImageBySlug = readInventoryLeadImageBySlug(blocks);
@@ -47,12 +71,18 @@ const jwStoneContentAdapter: ProfileSiteContentAdapter = (blocks) => {
       },
     };
   });
+  const withPresentationDefaults = withDiscoveryDefaults.map(withJwStonePresentationDefaults);
+
   return [
-    ...withDiscoveryDefaults.filter((block) => block?.type !== "inventoryCatalog"),
-    ...(withDiscoveryDefaults.some((block) => block?.type === "profilePresentation")
+    ...withPresentationDefaults.filter((block) => block?.type !== "inventoryCatalog"),
+    ...(withPresentationDefaults.some((block) => block?.type === "profilePresentation")
       ? []
-      : [{ ...JW_STONE_PROFILE_PRESENTATION_BLOCK } as ProfileContentBlock]),
-    ...(withDiscoveryDefaults.some((block) => block?.type === "publicDiscovery")
+      : [
+          withJwStonePresentationDefaults({
+            ...JW_STONE_PROFILE_PRESENTATION_BLOCK,
+          } as ProfileContentBlock),
+        ]),
+    ...(withPresentationDefaults.some((block) => block?.type === "publicDiscovery")
       ? []
       : [{ ...JW_STONE_PUBLIC_DISCOVERY_BLOCK } as ProfileContentBlock]),
     {
