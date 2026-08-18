@@ -66,7 +66,9 @@ function checkExports(absPath, source) {
   const isShell = isShellFile(absPath);
   const rel = path.relative(projectRoot, absPath).replace(/\\/g, "/");
 
-  const isGlobalAppShellFile = rel === "client/src/components/layout/AppShell.tsx";
+  const isGlobalAppShellFile =
+    rel === "client/src/components/layout/AppShell.tsx" ||
+    rel === "client/src/components/layout/AppShellCore.tsx";
   const isLegacyCommunityShellFile = rel === "client/src/components/layout/CommunityShell.tsx";
 
   // Matches patterns like:
@@ -79,9 +81,9 @@ function checkExports(absPath, source) {
   while ((match = exportNameRegex.exec(source)) !== null) {
     const name = match[1];
     if (name.endsWith("Shell") && !isShell) {
-      // Allow the global AppShell (the one shared shell) to live
-      // in components/layout, and permit the legacy CommunityShell
-      // definition to exist as long as nothing imports it.
+      // Allow the public AppShell wrapper and its preserved implementation
+      // core to live in components/layout. CommunityShell may remain defined
+      // only as legacy code as long as nothing imports it.
       if (isGlobalAppShellFile && name === "AppShell") continue;
       if (isLegacyCommunityShellFile && name === "CommunityShell") continue;
       addViolation(
