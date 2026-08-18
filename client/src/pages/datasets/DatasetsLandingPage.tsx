@@ -8,7 +8,7 @@ const DatasetsLandingPage = memo(function DatasetsLandingPage() {
     <>
       <SEOHelmet
         title="Open Datasets | TradeScout"
-        description="Public, read-only datasets for trades, counties, cities, and directory discovery."
+        description="Public, read-only datasets for trades, counties, cities, and directory discovery. Contact remains protected through TradeScout Direct Connect."
         keywords="datasets, open data, contractors, trades, counties, cities, TradeScout"
         canonical="https://www.thetradescout.com/datasets"
       />
@@ -18,7 +18,8 @@ const DatasetsLandingPage = memo(function DatasetsLandingPage() {
           <CardHeader>
             <CardTitle className="text-3xl text-white">Open Datasets</CardTitle>
             <p className="text-white/60">
-              Read-only discovery datasets for trades, counties, cities, and directories.
+              Read-only discovery datasets. Business contact still stays protected inside
+              TradeScout.
             </p>
           </CardHeader>
           <CardContent className="p-6 pt-0">

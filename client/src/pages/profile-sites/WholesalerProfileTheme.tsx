@@ -18,7 +18,6 @@ import {
   Search,
   LayoutGrid,
   X,
-  Youtube,
 } from "lucide-react";
 import ExpressDirectConnectPanel, {
   type ExpressDirectConnectRequestType,
@@ -194,7 +193,6 @@ type ProfilePresentationConfig = {
     profileCta?: string;
     inventoryCta?: string;
     galleryCta?: string;
-    youtubeUrl?: string;
   };
 };
 
@@ -302,22 +300,6 @@ const AUDIENCE_PATH_TEMPLATES = [
     ],
   },
 ] as const;
-
-const ALLOWED_SOCIAL_LINK_HOSTS = new Set(["youtube.com", "www.youtube.com", "youtu.be"]);
-
-function sanitizeSocialVideoUrl(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  try {
-    const parsed = new URL(trimmed);
-    if (!["http:", "https:"].includes(parsed.protocol)) return null;
-    if (!ALLOWED_SOCIAL_LINK_HOSTS.has(parsed.hostname.toLowerCase())) return null;
-    return parsed.toString();
-  } catch {
-    return null;
-  }
-}
 
 function audiencePathConfig(title: unknown, fallbackIndex: number, displayName: string) {
   const label = String(title || "").toLowerCase();
@@ -522,7 +504,6 @@ export default function WholesalerProfileTheme({
     presentation.header?.layout === "centered-brand" &&
     typeof presentation.header.logoUrl === "string" &&
     presentation.header.logoUrl.trim().length > 0;
-  const presentationYouTubeUrl = sanitizeSocialVideoUrl(presentation.social?.youtubeUrl);
   const preserveHeroMedia = presentation.hero?.preserveMedia === true;
   const socialPreviewPageOrigin =
     typeof window !== "undefined" ? window.location.origin : "https://www.thetradescout.com";
@@ -1513,18 +1494,6 @@ export default function WholesalerProfileTheme({
                 />
               </button>
               <div className="flex items-center justify-self-end gap-2">
-                {presentationYouTubeUrl ? (
-                  <a
-                    href={presentationYouTubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Watch ${displayName} on YouTube`}
-                    className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#ff0000]/45 bg-black/10 text-[#ff0000] transition-colors hover:bg-[#ff0000]/20"
-                  >
-                    <Youtube className="h-4 w-4" aria-hidden="true" />
-                    <span className="sr-only">Watch {displayName} on YouTube</span>
-                  </a>
-                ) : null}
                 <ShareButton
                   destination={activePageShareDestination}
                   title={activePageShareTitle}
@@ -1562,18 +1531,6 @@ export default function WholesalerProfileTheme({
                 </p>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">
-                {presentationYouTubeUrl ? (
-                  <a
-                    href={presentationYouTubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Watch ${displayName} on YouTube`}
-                    className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[#ff0000]/45 bg-black/10 text-[#ff0000] transition-colors hover:bg-[#ff0000]/20"
-                  >
-                    <Youtube className="h-4 w-4" aria-hidden="true" />
-                    <span className="sr-only">Watch {displayName} on YouTube</span>
-                  </a>
-                ) : null}
                 <ShareButton
                   destination={activePageShareDestination}
                   title={activePageShareTitle}

@@ -83,7 +83,9 @@ export const ScoutHasDonePanel: React.FC = () => {
             <Search className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
             Share when ready
           </div>
-          <p className="mt-0.5 text-[11px]">Contact when you are ready to start a real request.</p>
+          <p className="mt-0.5 text-[11px]">
+            Contact stays gated until you choose to move from search into a real request.
+          </p>
         </div>
       </div>
 

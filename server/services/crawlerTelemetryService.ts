@@ -10,7 +10,12 @@ import type { Request } from "express";
 import { slugifyCountyName } from "../../shared/tradeSeo";
 import { BoundedTaskQueue } from "../utils/boundedTaskQueue";
 
-function readBoundedIntegerEnv(name: string, fallback: number, min: number, max: number): number {
+function readBoundedIntegerEnv(
+  name: string,
+  fallback: number,
+  min: number,
+  max: number
+): number {
   const parsed = Number.parseInt(String(process.env[name] || ""), 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
@@ -45,7 +50,12 @@ const BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS = Math.max(
   1000,
   Number(process.env.BOT_DAILY_AGG_REFRESH_DEBOUNCE_MS || 30000)
 );
-const BOT_DAILY_AGG_MAX_PENDING = readBoundedIntegerEnv("BOT_DAILY_AGG_MAX_PENDING", 200, 10, 1000);
+const BOT_DAILY_AGG_MAX_PENDING = readBoundedIntegerEnv(
+  "BOT_DAILY_AGG_MAX_PENDING",
+  200,
+  10,
+  1000
+);
 
 type BotDailyAggregateRefreshArgs = {
   observedAt: Date;
@@ -71,17 +81,9 @@ function isTransientDatabaseError(error: unknown): boolean {
       : String(error || "").toLowerCase();
 
   return (
-    [
-      "53300",
-      "57P01",
-      "57P02",
-      "57P03",
-      "08000",
-      "08003",
-      "08006",
-      "ECONNRESET",
-      "ETIMEDOUT",
-    ].includes(code) ||
+    ["53300", "57P01", "57P02", "57P03", "08000", "08003", "08006", "ECONNRESET", "ETIMEDOUT"].includes(
+      code
+    ) ||
     message.includes("connection timeout") ||
     message.includes("connection terminated") ||
     message.includes("timeout exceeded when trying to connect")
@@ -97,7 +99,8 @@ function markCrawlerTelemetryRetrySafe(error: unknown): Error {
 function isRetrySafeCrawlerTelemetryError(error: unknown): boolean {
   return (
     Boolean(
-      (error as (Error & { crawlerTelemetryRetrySafe?: boolean }) | null)?.crawlerTelemetryRetrySafe
+      (error as (Error & { crawlerTelemetryRetrySafe?: boolean }) | null)
+        ?.crawlerTelemetryRetrySafe
     ) && isTransientDatabaseError(error)
   );
 }
@@ -125,7 +128,12 @@ const crawlerTelemetryWriteQueue = new BoundedTaskQueue({
   maxOutstanding: readBoundedIntegerEnv("CRAWLER_TELEMETRY_MAX_OUTSTANDING", 100, 10, 1000),
   maxRetries: readBoundedIntegerEnv("CRAWLER_TELEMETRY_MAX_RETRIES", 2, 0, 5),
   baseBackoffMs: readBoundedIntegerEnv("CRAWLER_TELEMETRY_RETRY_BACKOFF_MS", 100, 25, 5000),
-  maxBackoffMs: readBoundedIntegerEnv("CRAWLER_TELEMETRY_RETRY_MAX_BACKOFF_MS", 1000, 100, 30000),
+  maxBackoffMs: readBoundedIntegerEnv(
+    "CRAWLER_TELEMETRY_RETRY_MAX_BACKOFF_MS",
+    1000,
+    100,
+    30000
+  ),
   shouldRetry: isRetrySafeCrawlerTelemetryError,
   onFinalError: recordCrawlerPersistenceFailure,
 });
@@ -579,8 +587,8 @@ function inferLandingIntentContract(
     return {
       intentStage: "evaluation",
       audienceHint: "homeowners_pros",
-      knowledgeHint: "Review identity, trust signals, and locality before contact.",
-      actionHint: "Contact through Scout when you are ready.",
+      knowledgeHint: "Verify identity, trust signals, and locality before contact.",
+      actionHint: "Open Scout to route to Decision Card before direct contact.",
     };
   }
 
@@ -602,8 +610,8 @@ function inferLandingIntentContract(
     return {
       intentStage: "action",
       audienceHint: "project_ready",
-      knowledgeHint: "Direct Connect helps you contact businesses for a project.",
-      actionHint: "Describe what you need to get started.",
+      knowledgeHint: "Direct Connect is intent-gated and routes through Decision Card.",
+      actionHint: "Submit intent in Direct Connect to begin guided matching.",
     };
   }
 
@@ -620,8 +628,7 @@ function inferLandingIntentContract(
     return {
       intentStage: "discovery",
       audienceHint: "community_members",
-      knowledgeHint:
-        "Community visibility is read-only globally; use Scout when you are ready to act.",
+      knowledgeHint: "Community visibility is read-only globally; action remains gated.",
       actionHint: "Use Scout to convert discovery into an intent-backed decision path.",
     };
   }
@@ -1336,10 +1343,7 @@ function flushBotDailyAggregateRefreshes(): void {
 
 function scheduleBotDailyAggregateRefresh(args: BotDailyAggregateRefreshArgs): void {
   const key = buildBotDailyAggQueueKey(args);
-  if (
-    !botDailyAggRefreshPending.has(key) &&
-    botDailyAggRefreshPending.size >= BOT_DAILY_AGG_MAX_PENDING
-  ) {
+  if (!botDailyAggRefreshPending.has(key) && botDailyAggRefreshPending.size >= BOT_DAILY_AGG_MAX_PENDING) {
     botDailyAggPendingDropped += 1;
     return;
   }
@@ -1356,18 +1360,16 @@ function scheduleBotDailyAggregateRefresh(args: BotDailyAggregateRefreshArgs): v
 async function persistCrawlerRequestEvent(
   req: Request,
   statusCode: number,
-  metrics:
-    | {
-        responseTimeMs?: number | null;
-        responseBytes?: number | null;
-        /**
-         * Canonical application path for host-rewritten surfaces. The request
-         * object still carries the public host path, but attribution should match
-         * the route family that supplied the response.
-         */
-        pathOverride?: string | null;
-      }
-    | undefined,
+  metrics: {
+    responseTimeMs?: number | null;
+    responseBytes?: number | null;
+    /**
+     * Canonical application path for host-rewritten surfaces. The request
+     * object still carries the public host path, but attribution should match
+     * the route family that supplied the response.
+     */
+    pathOverride?: string | null;
+  } | undefined,
   userAgent: string | undefined,
   botNameRaw: string | null | undefined,
   statusClass: "2xx" | "4xx" | "5xx"
@@ -1399,20 +1401,20 @@ async function persistCrawlerRequestEvent(
       await client.query("BEGIN");
       transactionStarted = true;
       const previousObservation = await client.query(
-        `
+      `
         select 1
         from bot_observation_events
         where bot_family = $1
           and canonical_url = $2
         limit 1
       `,
-        [botName, canonicalUrl]
-      );
+      [botName, canonicalUrl]
+    );
       const isRecrawl = (previousObservation.rowCount || 0) > 0;
       const isFirstSeenUrl = !isRecrawl;
 
       await client.query(
-        `
+      `
         INSERT INTO crawler_request_events (
           bot_name,
           method,
@@ -1431,26 +1433,26 @@ async function persistCrawlerRequestEvent(
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       `,
-        [
-          botName,
-          cleanMethod(req.method),
-          requestPath,
-          requestType,
-          attribution.sourceSurface,
-          attribution.stateCode,
-          attribution.countySlug,
-          attribution.countyFips,
-          attribution.categorySlug,
-          statusCode,
-          statusClass,
-          cleanRefererHost(req.get("Referer")),
-          hashIp(ip),
-          cleanUserAgent(userAgent),
-        ]
-      );
+      [
+        botName,
+        cleanMethod(req.method),
+        requestPath,
+        requestType,
+        attribution.sourceSurface,
+        attribution.stateCode,
+        attribution.countySlug,
+        attribution.countyFips,
+        attribution.categorySlug,
+        statusCode,
+        statusClass,
+        cleanRefererHost(req.get("Referer")),
+        hashIp(ip),
+        cleanUserAgent(userAgent),
+      ]
+    );
 
       await client.query(
-        `
+      `
         insert into bot_observation_events (
           observed_at,
           request_id,
@@ -1488,43 +1490,43 @@ async function persistCrawlerRequestEvent(
           $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31
         )
       `,
-        [
-          observedAt.toISOString(),
-          cleanText((req as { requestId?: string }).requestId, 128),
-          hashIp(ip),
-          cleanUserAgent(userAgent),
-          cleanMethod(req.method),
-          cleanText(req.get("Host"), 255),
-          requestPath,
-          cleanQueryString(parsedUrl.search),
-          statusCode,
-          cleanInteger(metrics?.responseTimeMs),
-          cleanInteger(metrics?.responseBytes),
-          cleanText(req.get("Referer"), 1000),
-          cleanText(req.get("Accept-Language"), 255),
-          cleanText(req.get("X-Cache") || req.get("CF-Cache-Status"), 64),
-          cleanText(requestType, 128),
-          cleanText(routeContext.routeFamily, 64),
-          botName,
-          cleanText(canonicalUrl, 2000),
-          cleanText(String((req.route as { path?: string } | undefined)?.path || ""), 255),
-          cleanText(resolveResponseContentType(req), 255),
-          isFirstSeenUrl,
-          isRecrawl,
-          routeContext.county,
-          routeContext.state,
-          routeContext.trade,
-          routeContext.entityType,
-          routeContext.entitySlug,
-          cleanText(intentContract.intentStage, 32),
-          cleanText(intentContract.audienceHint, 128),
-          cleanLandingHint(intentContract.knowledgeHint),
-          cleanLandingHint(intentContract.actionHint),
-        ]
-      );
+      [
+        observedAt.toISOString(),
+        cleanText((req as { requestId?: string }).requestId, 128),
+        hashIp(ip),
+        cleanUserAgent(userAgent),
+        cleanMethod(req.method),
+        cleanText(req.get("Host"), 255),
+        requestPath,
+        cleanQueryString(parsedUrl.search),
+        statusCode,
+        cleanInteger(metrics?.responseTimeMs),
+        cleanInteger(metrics?.responseBytes),
+        cleanText(req.get("Referer"), 1000),
+        cleanText(req.get("Accept-Language"), 255),
+        cleanText(req.get("X-Cache") || req.get("CF-Cache-Status"), 64),
+        cleanText(requestType, 128),
+        cleanText(routeContext.routeFamily, 64),
+        botName,
+        cleanText(canonicalUrl, 2000),
+        cleanText(String((req.route as { path?: string } | undefined)?.path || ""), 255),
+        cleanText(resolveResponseContentType(req), 255),
+        isFirstSeenUrl,
+        isRecrawl,
+        routeContext.county,
+        routeContext.state,
+        routeContext.trade,
+        routeContext.entityType,
+        routeContext.entitySlug,
+        cleanText(intentContract.intentStage, 32),
+        cleanText(intentContract.audienceHint, 128),
+        cleanLandingHint(intentContract.knowledgeHint),
+        cleanLandingHint(intentContract.actionHint),
+      ]
+    );
 
       await client.query(
-        `
+      `
         insert into crawler_request_hourly_rollups (
           bucket_start,
           bot_name,
@@ -1566,15 +1568,15 @@ async function persistCrawlerRequestEvent(
           request_count = crawler_request_hourly_rollups.request_count + 1,
           updated_at = now()
       `,
-        [
-          botName,
-          requestType,
-          attribution.sourceSurface,
-          attribution.stateCode,
-          attribution.countySlug,
-          attribution.countyFips,
-          attribution.categorySlug,
-          statusClass,
+      [
+        botName,
+        requestType,
+        attribution.sourceSurface,
+        attribution.stateCode,
+        attribution.countySlug,
+        attribution.countyFips,
+        attribution.categorySlug,
+        statusClass,
         ]
       );
       commitAttempted = true;

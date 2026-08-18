@@ -20,7 +20,7 @@ const STATE_MESSAGES: Record<LiveReadinessResult["state"], string> = {
   has_direct_connect_request_waiting:
     "Your next valid step is tracking your Direct Connect request. It is still moving through routing or waiting for responses.",
   has_direct_connect_reply_to_review:
-    "Your next step is reviewing Direct Connect replies and contacting the right business.",
+    "Your next valid step is reviewing Direct Connect replies. Contact stays gated until an accepted coordination path exists.",
   has_direct_connect_response_to_accept_or_decline:
     "Your next valid step is responding to a Direct Connect request. Accept, decline, or hold from Direct Connect so the coordination trail stays clear.",
   in_active_coordination:

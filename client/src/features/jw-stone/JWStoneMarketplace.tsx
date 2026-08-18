@@ -26,8 +26,6 @@ import { useMarketplaceUrlState } from "./useMarketplaceUrlState";
 
 const JW_STONE_DESCRIPTION =
   "Browse JW Stone's stone collection, open full photo galleries, save selections, and ask about a material when you are ready.";
-const JW_STONE_SOCIAL_IMAGE_URL =
-  "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
 
 function marketplaceCanonicalUrl(): string {
   if (typeof window !== "undefined" && isJwStoneMarketplaceDomainSurface()) {
@@ -204,7 +202,7 @@ export default function JWStoneMarketplace() {
         description={JW_STONE_DESCRIPTION}
         canonical={canonicalUrl}
         ogType="website"
-        ogImage={JW_STONE_SOCIAL_IMAGE_URL}
+        ogImage="/images/businesses/jw-stone/logo-social-preview.png"
         structuredData={collectionData}
       />
       <MarketplaceHeader

@@ -71,6 +71,6 @@ describe("JW Stone saved-stones email copy", () => {
     expect(panel).toContain("/api/jw-stone/saved-stones/email");
     expect(panel).toContain("shareSlug");
     expect(panel).not.toContain("Sheet Wish List");
-    expect(panel).toContain("Email my saved stones");
+    expect(panel).toContain("Email yourself a copy");
   });
 });

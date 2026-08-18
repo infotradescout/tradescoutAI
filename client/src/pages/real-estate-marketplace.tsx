@@ -555,7 +555,9 @@ const RealEstateMarketplace = memo(function RealEstateMarketplace() {
                       </div>
 
                       <div className="pt-2 flex items-center justify-between">
-                        <div className="text-xs text-white/60">Contact through TradeScout.</div>
+                        <div className="text-xs text-white/60">
+                          Contact requires intent confirmation (Decision Card required).
+                        </div>
                         <Link href={`/homescout/listings/${listing.id}`}>
                           <Button
                             size="sm"

@@ -29,6 +29,7 @@ import {
   mergeCompatibilityRedirectTarget,
   type CompatibilityRedirectSlot,
 } from "@/routing/compatibilityRedirects";
+import { resolveJwStonePublicStorefrontRedirect } from "@/features/jw-stone/profileStorefrontRedirect";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
@@ -167,6 +168,7 @@ const ProgressiveFeatureGate = memo(function ProgressiveFeatureGate({
 });
 
 const PublicLandingPage = React.lazy(() => import("./pages/TradeScoutLandingPage"));
+const JWStoneMarketplace = React.lazy(() => import("./pages/JWStoneMarketplace"));
 
 // Root landing router: show public users the landing surface, authenticated users their appropriate dashboard
 const RootLanding = memo(function RootLanding() {
@@ -383,6 +385,17 @@ const PublicProfileView = React.lazy(() => import("./pages/PublicProfileView"));
 const BusinessProfileView = React.lazy(() => import("./pages/BusinessProfileView"));
 const BusinessProfileEditor = React.lazy(() => import("./pages/BusinessProfileEditor"));
 const ProfileSiteView = React.lazy(() => import("./pages/ProfileSiteView"));
+/** Legacy `/u/jw-stone` public storefront → marketplace. Edit/booking stay on profile. */
+const ProfileSiteOrJwMarketplaceRedirect = memo(function ProfileSiteOrJwMarketplaceRedirect() {
+  const [location] = useLocation();
+  const raw =
+    typeof window !== "undefined"
+      ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+      : String(location || "");
+  const marketplaceTarget = resolveJwStonePublicStorefrontRedirect(raw);
+  if (marketplaceTarget) return <RedirectTo to={marketplaceTarget} />;
+  return <LazyPage Component={ProfileSiteView} />;
+});
 const ProfileSiteEditor = React.lazy(() => import("./pages/ProfileSiteEditor"));
 const Help = React.lazy(() => import("./pages/help"));
 const HowTradeScoutWorks = React.lazy(() => import("./pages/how-tradescout-works"));
@@ -587,6 +600,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute,
   isPublicRootLanding,
   isShareRoute,
+  isJwStoneMarketplaceRoute,
   isStandaloneProfileRoute,
   isCustomDomainProfileRoute,
 }: {
@@ -595,6 +609,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute: boolean;
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
+  isJwStoneMarketplaceRoute: boolean;
   isStandaloneProfileRoute: boolean;
   isCustomDomainProfileRoute: boolean;
 }) {
@@ -608,6 +623,11 @@ export const AppRoutes = memo(function AppRoutes({
         // while their profile chunk downloads.
         <LazyPage
           Component={ProfileSiteView}
+          fallback={<PageLoadingSpinner message="Loading…" />}
+        />
+      ) : isJwStoneMarketplaceRoute ? (
+        <LazyPage
+          Component={JWStoneMarketplace}
           fallback={<PageLoadingSpinner message="Loading…" />}
         />
       ) : isLiteScoutRoute ? (
@@ -633,16 +653,16 @@ export const AppRoutes = memo(function AppRoutes({
       ) : isStandaloneProfileRoute ? (
         <Switch>
           <Route path="/u/:slug/:collection/:itemSlug">
-            <LazyPage Component={ProfileSiteView} />
+            <ProfileSiteOrJwMarketplaceRedirect />
           </Route>
           <Route path="/p/:slug/:collection/:itemSlug">
-            <LazyPage Component={ProfileSiteView} />
+            <ProfileSiteOrJwMarketplaceRedirect />
           </Route>
           <Route path="/u/:slug">
-            <LazyPage Component={ProfileSiteView} />
+            <ProfileSiteOrJwMarketplaceRedirect />
           </Route>
           <Route path="/p/:slug">
-            <LazyPage Component={ProfileSiteView} />
+            <ProfileSiteOrJwMarketplaceRedirect />
           </Route>
           <Route path=":rest*">
             <LazyPage Component={NotFound} />
@@ -957,16 +977,16 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={PublicProfileView} />
               </Route>
               <Route path="/u/:slug/:collection/:itemSlug">
-                <LazyPage Component={ProfileSiteView} />
+                <ProfileSiteOrJwMarketplaceRedirect />
               </Route>
               <Route path="/p/:slug/:collection/:itemSlug">
-                <LazyPage Component={ProfileSiteView} />
+                <ProfileSiteOrJwMarketplaceRedirect />
               </Route>
               <Route path="/u/:slug">
-                <LazyPage Component={ProfileSiteView} />
+                <ProfileSiteOrJwMarketplaceRedirect />
               </Route>
               <Route path="/p/:slug">
-                <LazyPage Component={ProfileSiteView} />
+                <ProfileSiteOrJwMarketplaceRedirect />
               </Route>
               <Route path="/p/:slug/edit">
                 <ProtectedRoute>

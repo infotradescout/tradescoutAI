@@ -110,19 +110,18 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain('onboardingEmailStatus = "failed"');
     expect(routeSource).toContain("onboardingPath,");
     expect(routeSource).toContain("onboardingEmailStatus,");
-    expect(routeSource).toContain("membershipNext: requesterWasCreated");
-    expect(panelSource).toContain("Manage this request");
+    expect(panelSource).toContain("No email is required to continue from this browser.");
   });
 
-  it("returns signup copy to My Requests only after signup", () => {
+  it("returns signup to My Requests and offers HomeID only after signup", () => {
     expect(routeSource).toContain("const requestWorkspaceParams = new URLSearchParams");
     expect(routeSource).toContain('from: "public_profile"');
     expect(routeSource).toContain("profile: target.profileSlug");
     expect(panelSource).toContain("setRequestWorkspacePath");
+    expect(panelSource).toContain("Manage this request");
     expect(resetSource).toContain("const safeNext = useMemo");
     expect(resetSource).toContain("mode=signin&next=");
-    expect(routeSource).toContain("Open My Requests to follow this request in Direct Connect.");
-    expect(routeSource).toContain("Set up account access");
+    expect(panelSource).toContain("add this project to your HomeID later");
   });
 });
 

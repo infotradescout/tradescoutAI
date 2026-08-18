@@ -13,7 +13,7 @@ const faqItems = [
   {
     question: "How is TradeScout Pensacola different from lead marketplaces?",
     answer:
-      "TradeScout does not resell one request to everyone. It helps you contact local businesses through county-aware matching.",
+      "TradeScout does not resell one request to everyone. It keeps contact intent-gated and routes through trust-first matching and county context.",
   },
   {
     question: "How do I get better results in Pensacola?",
