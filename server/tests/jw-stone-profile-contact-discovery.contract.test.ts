@@ -5,57 +5,48 @@ import { describe, expect, it } from "vitest";
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
-const app = read("client/src/App.tsx");
-const routes = read("client/src/AppRoutes.tsx");
-const profileView = read("client/src/pages/ProfileSiteView.tsx");
-const profileTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
-const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
-const identityRegistry = read("client/src/data/publicProfileIdentity.ts");
-const contentAdapter = read("client/src/data/profileSiteContentAdapters.ts");
+const selector = read("client/src/pages/ProfileSiteView.tsx");
+const profile = read("client/src/features/jw-stone/JWStoneProfile.tsx");
+const experience = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
+const company = read("client/src/features/jw-stone/JwStoneCompanySection.tsx");
 const identity = read("shared/jwStonePresentation.ts");
 const expressPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 const expressRoute = read("server/routes/tradepartner-express.ts");
 const serverIndex = read("server/index.ts");
 
 describe("JW Stone 2.0 profile contact and discovery contract", () => {
-  it("renders JW Stone through the canonical profile surface instead of the marketplace shell", () => {
-    expect(app).toContain("isJwStoneProfileRoute");
-    expect(app).not.toContain("isJwStoneMarketplaceRoute");
-    expect(routes).not.toContain("const JWStoneMarketplace");
-    expect(routes).not.toContain("ProfileSiteOrJwMarketplaceRedirect");
-    expect(routes).toContain('<Route path="/u/:slug">');
-    expect(profileView).toContain("<WholesalerProfileTheme");
-    expect(serverIndex).toContain("`${origin}/u/${JW_STONE_PROFILE_SLUG}`");
-    expect(serverIndex).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
+  it("keeps the current JW Stone 2.0 design as the visible TradeScout profile", () => {
+    expect(selector).toContain("profileSlug === JW_STONE_PROFILE_SLUG");
+    expect(selector).toContain("<JWStoneProfile />");
+    expect(profile).toContain("<JWStoneProfileExperience />");
+    expect(experience).toContain("<MarketplaceIntroduction />");
+    expect(experience).toContain("<StoneCollection");
+    expect(experience).toContain("<ColorPaletteRail");
+    expect(experience).toContain("<MaterialCategoryRail");
+    expect(experience).toContain("<JwStoneStorySection />");
+    expect(experience).toContain("<JwStoneCompanySection />");
   });
 
-  it("keeps the verified address and official socials on the visible profile identity", () => {
+  it("keeps the original founder story, verified address, and official social identity visible", () => {
+    expect(identity).toContain("JW Stone was born from a shared vision between two lifelong friends");
     expect(identity).toContain('streetAddress: "2103 W Herman Ave"');
     expect(identity).toContain('addressLocality: "Pensacola"');
     expect(identity).toContain('postalCode: "32505"');
     expect(identity).toContain('publicHandle: "@jwstonellc"');
     expect(identity).toContain('publicHandle: "JW Stone Logistics"');
     expect(identity).toContain('publicHandle: "@JWStoneLogistics"');
-    expect(identityRegistry).toContain("JW_STONE_PUBLIC_IDENTITY.address.formatted");
-    expect(identityRegistry).toContain("JW_STONE_PUBLIC_IDENTITY.socials");
-    expect(trustActions).toContain('data-testid="public-profile-identity"');
-    expect(trustActions).toContain('data-testid="public-profile-address"');
-    expect(trustActions).toContain("public-profile-social-${social.id}");
+    expect(company).toContain('data-testid="jw-founder-story"');
+    expect(company).toContain("address.streetAddress");
+    expect(company).toContain('data-testid="jw-social-youtube"');
+    expect(header).toContain("JW_STONE_YOUTUBE_URL");
   });
 
-  it("adds the official YouTube destination to the Phase 2 profile presentation", () => {
-    expect(contentAdapter).toContain("withJwStonePresentationDefaults");
-    expect(contentAdapter).toContain("youtubeUrl: JW_STONE_YOUTUBE_URL");
-    expect(profileTheme).toContain("presentation.social?.youtubeUrl");
-    expect(profileTheme).toContain("sanitizeSocialVideoUrl");
-    expect(profileTheme).toContain("Watch ${displayName} on YouTube");
-  });
-
-  it("keeps Call protected behind the deliberate Direct Connect choice", () => {
-    expect(profileView).toContain("allowExpressCall={canExpressCall}");
-    expect(profileView).toContain("businessAddress={publicBusinessAddress}");
-    expect(profileTheme).toContain("allowCall={allowExpressCall}");
-    expect(profileTheme).toContain("businessAddress={businessAddress}");
+  it("restores Call inside Express Direct Connect without publishing the phone", () => {
+    expect(experience).toContain('profileSlug="jw-stone"');
+    expect(experience).toContain("businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}");
+    expect(experience).toContain("allowCall");
+    expect(experience).toContain('initialView="choice"');
     expect(expressPanel).toContain("const startCall = async () =>");
     expect(expressPanel).toContain("/express-contact/reveal");
     expect(expressPanel).toContain('decision: "call"');
@@ -63,6 +54,18 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(expressRoute).toContain('decision: z.literal("call")');
     expect(expressRoute).toContain("normalizeDirectConnectPhone(target.phone)");
     expect(identity).not.toContain("(850) 543-0748");
-    expect(identityRegistry).not.toContain("(850) 543-0748");
+    expect(profile).not.toContain("(850) 543-0748");
+  });
+
+  it("publishes the modern experience as a profile page with profile-owned canonical URLs", () => {
+    expect(profile).toContain('"@type": "ProfilePage"');
+    expect(profile).toContain('"@type": "LocalBusiness"');
+    expect(profile).toContain("PLATFORM_PROFILE_URL");
+    expect(profile).toContain("/u/${JW_STONE_PROFILE_SLUG}");
+    expect(profile).toContain("JW_STONE_PUBLIC_IDENTITY.address.mapUrl");
+    expect(profile).toContain("JW_STONE_PUBLIC_IDENTITY.socials.map");
+    expect(profile).toContain('ogType="profile"');
+    expect(serverIndex).toContain("`${origin}/u/${JW_STONE_PROFILE_SLUG}`");
+    expect(serverIndex).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
   });
 });

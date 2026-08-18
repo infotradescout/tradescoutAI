@@ -1,7 +1,10 @@
 import { JW_STONE_PUBLIC_DISCOVERY_BLOCK } from "@/data/jwStoneProfilePresentation";
+import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import type { MarketplaceUrlState } from "./types";
 
-export const JW_STONE_PLATFORM_MARKETPLACE_BASE = "/jw-stone";
+export const JW_STONE_PLATFORM_PROFILE_BASE = `/u/${JW_STONE_PROFILE_SLUG}`;
+/** @deprecated Internal compatibility name. JW Stone 2.0 now writes profile-owned routes. */
+export const JW_STONE_PLATFORM_MARKETPLACE_BASE = JW_STONE_PLATFORM_PROFILE_BASE;
 
 const PUBLIC_TO_SOURCE_MATERIAL = new Map<string, string>(
   JW_STONE_PUBLIC_DISCOVERY_BLOCK.data.categories.map((category) => [
@@ -17,16 +20,36 @@ const SOURCE_TO_PUBLIC_MATERIAL = new Map<string, string>(
   ])
 );
 
-export function isJwStoneMarketplaceDomainSurface(): boolean {
+export function isJwStoneProfileDomainSurface(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(
+  const customDomainSlug = String(
+    (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
+      .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__ || ""
+  )
+    .trim()
+    .toLowerCase();
+  const legacySurfaceFlag = Boolean(
     (window as unknown as { __TS_JW_STONE_MARKETPLACE_SURFACE__?: boolean })
       .__TS_JW_STONE_MARKETPLACE_SURFACE__
   );
+  return customDomainSlug === JW_STONE_PROFILE_SLUG || legacySurfaceFlag;
+}
+
+/** @deprecated Use isJwStoneProfileDomainSurface. */
+export function isJwStoneMarketplaceDomainSurface(): boolean {
+  return isJwStoneProfileDomainSurface();
 }
 
 export function marketplaceBasePath(): string {
-  return isJwStoneMarketplaceDomainSurface() ? "" : JW_STONE_PLATFORM_MARKETPLACE_BASE;
+  if (isJwStoneProfileDomainSurface()) return "";
+  if (typeof window !== "undefined") {
+    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+    // Released aliases remain readable in-place until the server redirect runs.
+    if (pathname === "/jw-stone" || pathname.startsWith("/jw-stone/")) {
+      return "/jw-stone";
+    }
+  }
+  return JW_STONE_PLATFORM_PROFILE_BASE;
 }
 
 export function toPublicMaterialSlug(sourceSlug: string | null | undefined): string | null {
@@ -44,13 +67,18 @@ export function parseMarketplacePathname(pathname: string): {
   material: string | null;
 } {
   const raw = pathname.replace(/\/+$/, "") || "/";
+  const optionalProfilePrefix = "(?:(?:/jw-stone)|(?:/(?:u|p)/jw-stone))?";
 
-  const stoneMatch = raw.match(/^(?:\/jw-stone)?\/stones\/([^/]+)$/i);
+  const stoneMatch = raw.match(
+    new RegExp(`^${optionalProfilePrefix}/stones/([^/]+)$`, "i")
+  );
   if (stoneMatch?.[1]) {
     return { stone: decodeURIComponent(stoneMatch[1]).toLowerCase(), material: null };
   }
 
-  const materialMatch = raw.match(/^(?:\/jw-stone)?\/materials\/([^/]+)$/i);
+  const materialMatch = raw.match(
+    new RegExp(`^${optionalProfilePrefix}/materials/([^/]+)$`, "i")
+  );
   if (materialMatch?.[1]) {
     return {
       stone: null,
