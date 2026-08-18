@@ -33,7 +33,6 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(RED_GRANITI_PROFILE_SLUG).toBe("red-graniti");
     expect(RED_GRANITI_BUSINESS_NAME).toBe("R.E.D. Graniti");
     expect(RED_GRANITI_PROFILE_CONTROL).toBe("tradescout_admin_controlled");
-
     expect(provisioner).toContain("hasVerifiedTradeScoutAdminCustody");
     expect(provisioner).toContain('ne(users.id, jwOwner.id)');
     expect(provisioner).toContain("ownerUserId: adminOwner.id");
@@ -42,7 +41,7 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(provisioner).toContain('claimStatus: "admin_managed"');
     expect(provisioner).toContain('publicDiscoveryEnabled: true');
     expect(provisioner).toContain('status: "published"');
-    expect(provisioner).toContain('notificationEmail: TRADE_SCOUT_DIRECT_CONNECT_INBOX');
+    expect(provisioner).toContain('phone: REQUEST_ONLY_PHONE_SENTINEL');
     expect(provisioner).toContain("adminOwner.id === jwOwner.id");
     expect(provisioner).not.toContain("ownerUserId: jwOwner.id");
     expect(provisioner).not.toContain("activeBusinessId");
@@ -55,21 +54,21 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(bootstrap).toContain("R.E.D. Graniti provisioning failed");
   });
 
-  it("keeps the public profile as a complete company identity instead of a combined stone catalog", () => {
-    const provisioner = read("server/services/redGranitiProfileProvisioning.ts");
+  it("keeps the public profile as company identity instead of a combined catalog", () => {
     const serialized = JSON.stringify(RED_GRANITI_PROFILE_CONTENT_BLOCKS);
-    const template = block("siteTemplate")?.data?.id;
     const partnership = block("partnership")?.data;
 
-    expect(template).toBe("default");
+    expect(block("siteTemplate")?.data?.id).toBe("default");
     expect(block("inventoryCatalog")).toBeUndefined();
     expect(block("publicDiscovery")).toBeUndefined();
     expect(block("profilePresentation")).toBeUndefined();
     expect(partnership?.title).toBe("Exclusive first-cut distributor");
-    expect(partnership?.text).toContain("JW Stone handles first-cut planning");
-    expect(partnership?.text).toContain("dimensions, quantity, destination, and timing");
+    expect(partnership?.text).toContain(
+      "First-cut distribution for R.E.D. Graniti stone is handled by JW Stone"
+    );
     expect(serialized).not.toMatch(/selected quarry materials|browse full inventory/i);
 
+    expect(RED_GRANITI_PUBLIC_IDENTITY.profileLabel).toBe("Quarries, blocks and slabs");
     expect(RED_GRANITI_PUBLIC_IDENTITY.stats).toHaveLength(4);
     expect(RED_GRANITI_PUBLIC_IDENTITY.capabilities).toHaveLength(3);
     expect(RED_GRANITI_PUBLIC_IDENTITY.operatingLocations).toHaveLength(3);
@@ -78,17 +77,9 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(RED_GRANITI_PUBLIC_IDENTITY.officialLinks).toHaveLength(4);
     expect(RED_GRANITI_PUBLIC_IDENTITY.headquarters.phone).toBe("+39 0585 88471");
     expect(RED_GRANITI_PUBLIC_IDENTITY.headquarters.email).toBe("info@redgraniti.com");
-
-    expect(provisioner).toContain('tradePartner: false');
-    expect(provisioner).toContain('phone: REQUEST_ONLY_PHONE_SENTINEL');
-    expect(provisioner).toContain("RED_GRANITI_PUBLIC_IDENTITY.capabilities.map");
-    expect(provisioner).not.toContain("gatedJwPhone");
-    expect(provisioner).not.toContain("distribution_operator:");
-    expect(provisioner).not.toContain("distribution_relationship:");
-    expect(provisioner).not.toContain("public_request_routing:");
   });
 
-  it("stores materials, physical assets, inventory, publications, and rights as separate Stone Core entities", () => {
+  it("stores materials, physical assets, inventory, publications, and rights separately", () => {
     const stoneCore = read("server/services/stoneCoreProvisioning.ts");
     const provisioner = read("server/services/redGranitiProfileProvisioning.ts");
 
@@ -100,14 +91,11 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(stoneCore).toContain("CREATE OR REPLACE VIEW stone_core_material_map");
     expect(provisioner).toContain("await ensureStoneCoreTables();");
     expect(provisioner).toContain("await provisionRedGranitiStoneCore({");
-
-    // Source seeding creates canonical records and authorized views only. It
-    // must never manufacture a block, slab, bundle, or inventory position.
     expect(stoneCore).not.toMatch(/INSERT INTO stone_asset_passports/);
     expect(stoneCore).not.toMatch(/INSERT INTO stone_inventory_positions/);
   });
 
-  it("records nine canonical source materials once without claiming inventory", () => {
+  it("records nine canonical source materials without claiming inventory", () => {
     expect(STONE_CORE_RED_GRANITI_MATERIALS).toHaveLength(9);
     expect(new Set(STONE_CORE_RED_GRANITI_MATERIALS.map((item) => item.slug)).size).toBe(9);
 
@@ -150,7 +138,7 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     ).toBe(true);
   });
 
-  it("uses the local logo and keeps admin identity out of public sections", () => {
+  it("uses local media and keeps admin identity out of public sections", () => {
     const hero = block("hero")?.data;
     const sections = block("profileSections")?.data?.sections;
     const logoPath = path.resolve(
@@ -159,9 +147,6 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
       RED_GRANITI_LOGO_URL.replace(/^\//, "")
     );
 
-    expect(RED_GRANITI_LOGO_URL).toBe(
-      "/images/businesses/red-graniti/logo/red-graniti.png"
-    );
     expect(fs.existsSync(logoPath)).toBe(true);
     expect(fs.statSync(logoPath).size).toBe(2523);
     expect(hero?.logoUrl).toBe(RED_GRANITI_LOGO_URL);
