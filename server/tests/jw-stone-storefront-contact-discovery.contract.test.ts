@@ -18,9 +18,9 @@ describe("JW Stone 2.0 contact and discovery contract", () => {
     expect(marketplace).toContain("JWStoneMarketplace");
     expect(marketplace).toContain("MarketplaceHeader");
     expect(header).toContain('data-testid="jw-marketplace-youtube"');
-    expect(header).toContain("JW_STONE_SOCIAL_PRESENTATION.youtubeUrl");
+    expect(header).toContain("JW_STONE_YOUTUBE_URL");
     expect(company).toContain('data-testid="jw-social-youtube"');
-    expect(identity).toContain('https://www.youtube.com/@JWStoneLogistics');
+    expect(identity).toContain('JW_STONE_YOUTUBE_URL = "https://www.youtube.com/@JWStoneLogistics"');
     expect(identity).toContain('publicHandle: "@JWStoneLogistics"');
   });
 
