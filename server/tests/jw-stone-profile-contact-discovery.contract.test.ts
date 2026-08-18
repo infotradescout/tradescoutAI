@@ -52,7 +52,7 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(serverIndex).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
   });
 
-  it("keeps verified company identity and TradeScout profile actions inside 2.0", () => {
+  it("keeps one polished company identity surface without repeating it inside profile actions", () => {
     expect(identity).toContain('streetAddress: "2103 W Herman Ave"');
     expect(identity).toContain('addressLocality: "Pensacola"');
     expect(identity).toContain('postalCode: "32505"');
@@ -62,14 +62,21 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(profileWrapper).toContain("profileActions={props.trustActions}");
     expect(company).toContain("useJwStoneProfileContext");
     expect(company).toContain('data-testid="jw-tradescout-profile-actions"');
+    expect(company).toContain("[&_[data-testid=public-profile-identity]]:hidden");
+    expect(company).toContain('data-testid="jw-address-link"');
+    expect(company).toContain("href={address.mapUrl}");
+    expect(company).toContain('data-testid={`jw-social-${social.id}`}');
+    expect(company).toContain("href={social.href}");
     expect(company).toContain("About JW Stone");
+    expect(company).toContain("Our Journey to Excellence");
     expect(company).toContain("Visit JW Stone");
     expect(company).toContain("Follow JW Stone");
   });
 
   it("keeps YouTube with the bottom social identity and out of the header", () => {
-    expect(company).toContain('data-testid="jw-social-youtube"');
-    expect(company).toContain('aria-label="Watch JW Stone on YouTube"');
+    expect(identity).toContain('publicHandle: "@JWStoneLogistics"');
+    expect(company).toContain('data-testid={`jw-social-${social.id}`}');
+    expect(company).toContain('aria-label={`Open JW Stone on ${social.label}`}');
     expect(header).not.toContain("JW_STONE_YOUTUBE_URL");
     expect(header).not.toContain("jw-marketplace-youtube");
     expect(header).not.toContain("Watch JW Stone on YouTube");
