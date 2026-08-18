@@ -120,7 +120,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(presentation).toContain("Monday–Friday · 7:00am–4:00pm");
     expect(presentation).toContain("legacy claims are intentionally excluded");
     expect(presentation).not.toContain("48439 Fox Hollow");
-    expect(presentation).not.toContain("24/7 service");
+    expect(presentation).not.toContain('hoursLabel: "24/7');
+    expect(presentation).not.toContain("guaranteed 24/7 availability");
+    expect(presentation).toContain("rather than assuming 24/7 service");
 
     for (const asset of [
       "logo.jpg",
