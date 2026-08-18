@@ -44,7 +44,7 @@ describe("public profile search trust limit", () => {
     expect(trustBeforeLimit.map((row) => row.profileSlug)).toEqual(["verified-1", "verified-2"]);
   });
 
-  it("places the complete anonymous trust predicate in SQL before order and limit", () => {
+  it("places explicit release, discovery, and trust predicates in SQL before order and limit", () => {
     const repository = read("server/repositories/profileRepository.ts");
     const search = repository.slice(
       repository.indexOf("async searchProfilesPublic"),
@@ -63,12 +63,15 @@ describe("public profile search trust limit", () => {
     );
     expect(search.indexOf(".orderBy(")).toBeLessThan(search.indexOf(".limit(limit)"));
     expect(predicate).toContain("publicProfileIds");
-    expect(predicate).toContain("${profiles.businessId} IS NULL");
+    expect(predicate).toContain("${profiles.businessId} IS NOT NULL");
+    expect(predicate).toContain("${businesses.status} = 'active'");
+    expect(predicate).toContain("${businesses.publicDiscoveryEnabled} = true");
     expect(predicate).toContain("${users.verifiedBadge} = true");
     expect(predicate).toContain("${users.verificationStatus}");
-    expect(predicate).toContain("OWNER_CONFIRMED_PROFILE_SOURCE");
-    expect(predicate).toContain("ADMIN_MANAGED_PROFILE_SOURCE");
-    expect(predicate).toContain("internalProfileSteward");
+    expect(predicate).not.toContain("profileVisibility");
+    expect(predicate).not.toContain("OWNER_CONFIRMED_PROFILE_SOURCE");
+    expect(predicate).not.toContain("ADMIN_MANAGED_PROFILE_SOURCE");
+    expect(predicate).not.toContain("internalProfileSteward");
   });
 
   it("returns only public-safe fields without route-level owner lookups", () => {
