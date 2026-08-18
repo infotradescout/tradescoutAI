@@ -68,6 +68,8 @@ export const JW_STONE_PUBLIC_IDENTITY = {
   brandName: "JW Stone Logistics",
   about:
     "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery. Based in Pensacola, FL, JW Stone works with fabricators, builders, architects, designers and homeowners across the Gulf South and beyond.",
+  founderStory:
+    "JW Stone was born from a shared vision between two lifelong friends, Jared and Wagner, who embarked on an extraordinary journey in 2017. Their adventure began with a visit to Brazil, where they were inspired by Wagner’s aunt, Sonia Scar, a seasoned expert in the natural stone industry. Captivated by the beauty and potential of granite, Jared and Wagner decided to bring these exquisite materials to the United States. With Sonia’s guidance and Wagner’s logistical expertise, they established JW Stone in Pensacola, FL. Today, JW Stone stands as a testament to their dedication, offering a vast array of stunning stone slabs to builders, designers, and homeowners across the Gulf Coast.",
   address: {
     streetAddress: "2103 W Herman Ave",
     addressLocality: "Pensacola",
