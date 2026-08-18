@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
 import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
+import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import { SafeProfileImg } from "@/pages/profile-sites/safeProfileImage";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
@@ -29,8 +30,8 @@ type Props = {
   profileSlug: string;
   platformBaseHref?: string;
   profileShareDestination: string;
-  profileShareImage?: string;
-  onDirectConnect: () => void;
+  hasViewerSession: boolean;
+  businessAddress?: string | null;
   trustActions: ReactNode;
   profileItems?: ReactNode;
 };
@@ -48,17 +49,19 @@ export default function RedGranitiProfileTheme({
   profileSlug,
   platformBaseHref = "",
   profileShareDestination,
-  profileShareImage,
-  onDirectConnect,
+  hasViewerSession,
+  businessAddress,
   trustActions,
   profileItems,
 }: Props) {
   const identity = RED_GRANITI_PUBLIC_IDENTITY;
+  const [requestOpen, setRequestOpen] = useState(false);
   const jwProfileHref = qualifyPublicProfileItemDestination(
     `/u/${identity.partnership.partnerProfileSlug}`,
     platformBaseHref
   );
   const homeHref = qualifyPublicProfileItemDestination("/", platformBaseHref);
+  const formattedHeadquarters = `${identity.headquarters.addressLine1}, ${identity.headquarters.addressLine2}`;
   const pageStyle = {
     ["--red-ink" as string]: "#171313",
     ["--red-ink-soft" as string]: "#2b2323",
@@ -67,6 +70,8 @@ export default function RedGranitiProfileTheme({
     ["--red-surface" as string]: "#ffffff",
     ["--red-line" as string]: "rgba(23, 19, 19, 0.14)",
   } as CSSProperties;
+
+  const openRequest = () => setRequestOpen(true);
 
   return (
     <div
@@ -122,12 +127,12 @@ export default function RedGranitiProfileTheme({
               destination={profileShareDestination}
               title={`${identity.brandName} | TradeScout`}
               text={`View ${identity.brandName}'s company profile on TradeScout.`}
-              imageUrl={profileShareImage}
+              imageUrl={RED_GRANITI_LOGO_URL}
               className="hidden rounded-full border-black/15 bg-white text-black hover:bg-black hover:text-white sm:inline-flex"
             />
             <button
               type="button"
-              onClick={onDirectConnect}
+              onClick={openRequest}
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--red-mark)] px-5 text-sm font-black text-white shadow-lg shadow-red-950/15 transition-transform hover:-translate-y-0.5"
             >
               Start a Request
@@ -143,6 +148,7 @@ export default function RedGranitiProfileTheme({
             alt="R.E.D. Graniti natural stone source"
             loading="eager"
             fetchPriority="high"
+            referrerPolicy="no-referrer"
             className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55"
           />
           <div
@@ -155,7 +161,7 @@ export default function RedGranitiProfileTheme({
           />
           <div
             aria-hidden="true"
-            className="absolute -right-40 top-24 -z-10 h-[34rem] w-[34rem] rounded-full bg-[var(--red-mark)]/20 blur-3xl"
+            className="absolute -right-40 top-24 -z-10 h-[34rem] w-[34rem] rounded-full bg-[rgba(215,25,32,0.2)] blur-3xl"
           />
 
           <div className="mx-auto grid min-h-[700px] max-w-[1560px] items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] lg:px-12 lg:py-24">
@@ -166,15 +172,15 @@ export default function RedGranitiProfileTheme({
               <h1 className="mt-6 max-w-5xl text-5xl font-black leading-[0.94] tracking-[-0.055em] sm:text-6xl lg:text-7xl xl:text-[6.5rem]">
                 {identity.headline}
               </h1>
-              <p className="mt-7 max-w-3xl text-base leading-8 text-white/78 sm:text-xl sm:leading-9">
+              <p className="mt-7 max-w-3xl text-base leading-8 text-white/80 sm:text-xl sm:leading-9">
                 {identity.summary}
               </p>
 
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={onDirectConnect}
-                  className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-[var(--red-mark)] px-7 text-sm font-black text-white shadow-xl shadow-black/25 transition-transform hover:-translate-y-0.5"
+                  onClick={openRequest}
+                  className="inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full bg-[var(--red-mark)] px-7 text-sm font-black text-white shadow-xl shadow-black/25 transition-transform hover:-translate-y-0.5"
                 >
                   Start a Request
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -182,7 +188,7 @@ export default function RedGranitiProfileTheme({
                 <a
                   href={identity.officialLinks[0].href}
                   {...externalLinkProps()}
-                  className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full border border-white/30 bg-white/8 px-7 text-sm font-black text-white backdrop-blur-sm transition-colors hover:bg-white hover:text-black"
+                  className="inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-full border border-white/30 bg-white/10 px-7 text-sm font-black text-white backdrop-blur-sm transition-colors hover:bg-white hover:text-black"
                 >
                   Official website
                   <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
@@ -190,7 +196,7 @@ export default function RedGranitiProfileTheme({
               </div>
             </div>
 
-            <aside className="rounded-[2rem] border border-white/18 bg-black/28 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8">
+            <aside className="rounded-[2rem] border border-white/20 bg-black/30 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl sm:p-8">
               <div className="flex items-center gap-4">
                 <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-white p-2 shadow-lg">
                   <img
@@ -235,7 +241,7 @@ export default function RedGranitiProfileTheme({
             </aside>
           </div>
 
-          <div className="border-t border-white/12 bg-black/28 backdrop-blur-md">
+          <div className="border-t border-white/10 bg-black/30 backdrop-blur-md">
             <div className="mx-auto grid max-w-[1560px] grid-cols-2 divide-x divide-y divide-white/10 px-5 sm:px-8 lg:grid-cols-4 lg:divide-y-0 lg:px-12">
               {identity.stats.map((stat) => (
                 <div key={stat.label} className="px-4 py-6 sm:px-6 lg:py-7">
@@ -261,7 +267,7 @@ export default function RedGranitiProfileTheme({
                 <h2 className="mt-4 max-w-4xl text-4xl font-black leading-[1.02] tracking-[-0.045em] sm:text-5xl lg:text-6xl">
                   Quarry ownership, selection, processing, and delivery in one global operation.
                 </h2>
-                <p className="mt-7 max-w-4xl text-base leading-8 text-black/67 sm:text-lg sm:leading-9">
+                <p className="mt-7 max-w-4xl text-base leading-8 text-black/65 sm:text-lg sm:leading-9">
                   {identity.about}
                 </p>
               </div>
@@ -285,7 +291,7 @@ export default function RedGranitiProfileTheme({
                     key={capability.title}
                     className="group rounded-[1.75rem] border border-black/10 bg-white p-7 shadow-[0_18px_50px_rgba(23,19,19,0.055)] transition-transform hover:-translate-y-1 sm:p-8"
                   >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--red-mark)]/9 text-[var(--red-mark)]">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[rgba(215,25,32,0.09)] text-[var(--red-mark)]">
                       <Icon className="h-6 w-6" aria-hidden="true" />
                     </span>
                     <p className="mt-8 text-xs font-black uppercase tracking-[0.16em] text-black/40">
@@ -294,7 +300,7 @@ export default function RedGranitiProfileTheme({
                     <h3 className="mt-2 text-2xl font-black tracking-[-0.03em]">
                       {capability.title}
                     </h3>
-                    <p className="mt-4 text-sm leading-7 text-black/62 sm:text-base">
+                    <p className="mt-4 text-sm leading-7 text-black/60 sm:text-base">
                       {capability.description}
                     </p>
                   </article>
@@ -315,7 +321,7 @@ export default function RedGranitiProfileTheme({
                   Built to move stone from source to market.
                 </h2>
               </div>
-              <p className="max-w-xl text-sm leading-7 text-white/62 sm:text-base">
+              <p className="max-w-xl text-sm leading-7 text-white/60 sm:text-base">
                 These figures are the operating footprint reported by R.E.D. Graniti on its official
                 group pages.
               </p>
@@ -325,7 +331,7 @@ export default function RedGranitiProfileTheme({
               {identity.operatingLocations.map((location, index) => (
                 <article
                   key={location.label}
-                  className="rounded-[1.75rem] border border-white/12 bg-white/[0.055] p-7 backdrop-blur-sm sm:p-8"
+                  className="rounded-[1.75rem] border border-white/10 bg-white/[0.055] p-7 backdrop-blur-sm sm:p-8"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--red-mark)] text-white">
@@ -343,7 +349,7 @@ export default function RedGranitiProfileTheme({
                     {location.label}
                   </h3>
                   <p className="mt-2 text-sm font-bold text-[var(--red-mark)]">{location.location}</p>
-                  <p className="mt-4 text-sm leading-7 text-white/62 sm:text-base">
+                  <p className="mt-4 text-sm leading-7 text-white/60 sm:text-base">
                     {location.detail}
                   </p>
                 </article>
@@ -364,7 +370,7 @@ export default function RedGranitiProfileTheme({
                 </h2>
               </div>
               <div>
-                <p className="max-w-3xl text-base leading-8 text-black/62">
+                <p className="max-w-3xl text-base leading-8 text-black/60">
                   R.E.D. Graniti reports owned quarries across Africa, the Americas, and Northern
                   Europe. Stone identity remains tied to the source company; physical JW Stone
                   inventory is recorded separately only after it is received and verified.
@@ -373,7 +379,7 @@ export default function RedGranitiProfileTheme({
                   {identity.quarryCountries.map((country) => (
                     <span
                       key={country}
-                      className="rounded-full border border-black/10 bg-[var(--red-paper)] px-4 py-2 text-xs font-bold text-black/68"
+                      className="rounded-full border border-black/10 bg-[var(--red-paper)] px-4 py-2 text-xs font-bold text-black/70"
                     >
                       {country}
                     </span>
@@ -392,7 +398,8 @@ export default function RedGranitiProfileTheme({
                     src={highlight.imageUrl}
                     alt={`R.E.D. Graniti source region in ${highlight.region}`}
                     loading="lazy"
-                    className="absolute inset-0 h-full w-full object-cover opacity-72 transition-transform duration-700 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                    className="absolute inset-0 h-full w-full object-cover opacity-75 transition-transform duration-700 group-hover:scale-105"
                   />
                   <div
                     aria-hidden="true"
@@ -440,7 +447,7 @@ export default function RedGranitiProfileTheme({
               <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden bg-[var(--red-ink)] p-10 text-white">
                 <div
                   aria-hidden="true"
-                  className="absolute -left-28 -top-24 h-80 w-80 rounded-full bg-[var(--red-mark)]/35 blur-3xl"
+                  className="absolute -left-28 -top-24 h-80 w-80 rounded-full bg-[rgba(215,25,32,0.35)] blur-3xl"
                 />
                 <div className="relative flex items-center gap-5 sm:gap-8">
                   <span className="flex h-24 w-24 items-center justify-center rounded-[1.5rem] bg-white p-3 shadow-2xl sm:h-32 sm:w-32">
@@ -462,7 +469,7 @@ export default function RedGranitiProfileTheme({
               </div>
 
               <div className="p-7 sm:p-10 lg:p-14">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--red-mark)]/25 bg-[var(--red-mark)]/6 px-4 py-2 text-xs font-black uppercase tracking-[0.15em] text-[var(--red-mark)]">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(215,25,32,0.25)] bg-[rgba(215,25,32,0.06)] px-4 py-2 text-xs font-black uppercase tracking-[0.15em] text-[var(--red-mark)]">
                   <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                   {identity.partnership.relationshipLabel}
                 </div>
@@ -491,7 +498,7 @@ export default function RedGranitiProfileTheme({
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
-                    onClick={onDirectConnect}
+                    onClick={openRequest}
                     className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[var(--red-mark)] px-6 text-sm font-black text-white transition-transform hover:-translate-y-0.5"
                   >
                     Start a Request
@@ -525,7 +532,7 @@ export default function RedGranitiProfileTheme({
               <h2 className="mt-4 text-4xl font-black leading-[1.05] tracking-[-0.04em] sm:text-5xl">
                 Keep this source within reach.
               </h2>
-              <p className="mt-5 max-w-xl text-base leading-8 text-black/62">
+              <p className="mt-5 max-w-xl text-base leading-8 text-black/60">
                 Save, like, or share the company profile, then use Start a Request when a project
                 needs source review or first-cut coordination.
               </p>
@@ -560,7 +567,7 @@ export default function RedGranitiProfileTheme({
               <p className="mt-5 text-sm text-white/45">{identity.legalId}</p>
             </div>
 
-            <div className="rounded-[1.75rem] border border-white/12 bg-white/[0.055] p-6 sm:p-8">
+            <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.055] p-6 sm:p-8">
               <p className="text-xs font-black uppercase tracking-[0.16em] text-white/45">
                 Official links
               </p>
@@ -579,7 +586,7 @@ export default function RedGranitiProfileTheme({
               </div>
               <button
                 type="button"
-                onClick={onDirectConnect}
+                onClick={openRequest}
                 className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--red-mark)] px-6 text-sm font-black text-white"
               >
                 Start a Request
@@ -594,6 +601,23 @@ export default function RedGranitiProfileTheme({
         profileSlug={profileSlug}
         profileName={identity.brandName}
         platformBaseHref={platformBaseHref}
+      />
+
+      <ExpressDirectConnectPanel
+        open={requestOpen}
+        onClose={() => setRequestOpen(false)}
+        profileSlug={profileSlug}
+        platformBaseHref={platformBaseHref}
+        businessName={identity.brandName}
+        businessAddress={businessAddress || formattedHeadquarters}
+        hasViewerSession={hasViewerSession}
+        allowCall={false}
+        stayInProfile
+        requestMode="materials"
+        initialView="request"
+        initialRequestType="request_material"
+        contactOperatorName={JW_STONE_PUBLIC_IDENTITY.brandName}
+        contactOperatorRole="exclusive first-cut distributor"
       />
 
       <a
