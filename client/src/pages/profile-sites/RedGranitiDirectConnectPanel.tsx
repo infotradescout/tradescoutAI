@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { qualifyPublicProfileItemDestination } from "@/lib/publicProfileItemDestination";
+import { revealJwStoneProtectedCall } from "@/pages/profile-sites/redGranitiProtectedContact";
 import { isValidDirectConnectRequestPhone } from "@shared/directConnectPhone";
 import { JW_STONE_PROFILE_SLUG, JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 
@@ -68,6 +69,7 @@ export default function RedGranitiDirectConnectPanel({
 }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
   const busyRef = useRef(false);
+  const autoCallAttemptedRef = useRef(false);
   const [view, setView] = useState<PanelView>(initialView);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -90,12 +92,31 @@ export default function RedGranitiDirectConnectPanel({
     website: "",
   });
 
+  const performCall = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await revealJwStoneProtectedCall();
+      setCallPhone(result.phone);
+      setCallTel(result.tel);
+      setView("call_started");
+      window.location.href = result.tel;
+    } catch (cause: any) {
+      setError(cause?.message || "Calling is unavailable right now. Start a request instead.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
     busyRef.current = busy;
   }, [busy]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      autoCallAttemptedRef.current = false;
+      return;
+    }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     setView(initialView);
@@ -116,6 +137,15 @@ export default function RedGranitiDirectConnectPanel({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [initialView, onClose, open]);
+
+  useEffect(() => {
+    if (!open || initialView !== "choice" || autoCallAttemptedRef.current) return;
+    autoCallAttemptedRef.current = true;
+    void performCall();
+    // The call action intentionally fires once for each deliberate opening of
+    // the panel from a visible Call JW Stone button.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialView, open]);
 
   const requestHref = useMemo(() => {
     if (requestWorkspacePath) {
@@ -139,37 +169,6 @@ export default function RedGranitiDirectConnectPanel({
 
   const close = () => {
     if (!busy) onClose();
-  };
-
-  const startCall = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch(
-        `/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-contact/reveal`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            authorityGate: "profile_direct_connect",
-            decision: "call",
-          }),
-        }
-      );
-      const json = await response.json().catch(() => ({}));
-      if (!response.ok || typeof json?.tel !== "string") {
-        throw new Error("Calling is unavailable right now. Send a request instead.");
-      }
-      setCallPhone(String(json.phone || ""));
-      setCallTel(json.tel);
-      setView("call_started");
-      window.location.href = json.tel;
-    } catch (cause: any) {
-      setError(cause?.message || "Calling is unavailable right now. Send a request instead.");
-    } finally {
-      setBusy(false);
-    }
   };
 
   const submitRequest = async (event: FormEvent) => {
@@ -299,6 +298,8 @@ export default function RedGranitiDirectConnectPanel({
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d71920] text-white">
               {view === "success" ? (
                 <CheckCircle2 className="h-5 w-5" />
+              ) : busy ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <Phone className="h-5 w-5" />
               )}
@@ -315,7 +316,9 @@ export default function RedGranitiDirectConnectPanel({
                   ? "Request sent"
                   : view === "call_started"
                     ? "Calling JW Stone"
-                    : "Contact JW Stone"}
+                    : busy
+                      ? "Connecting to JW Stone"
+                      : "Contact JW Stone"}
             </h2>
           </div>
           <button
@@ -339,19 +342,22 @@ export default function RedGranitiDirectConnectPanel({
           {view === "choice" ? (
             <div>
               <p className="max-w-2xl text-base leading-7 text-black/65">
-                JW Stone handles first-cut requests for R.E.D. Graniti stone. Call now or send the
-                material, format, destination, and timing for review.
+                {busy
+                  ? "Connecting your call to JW Stone."
+                  : "JW Stone handles first-cut requests for R.E.D. Graniti stone. Call now or send the material, format, destination, and timing for review."}
               </p>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={startCall}
+                  onClick={performCall}
                   disabled={busy}
                   className="flex min-h-44 flex-col items-start justify-between rounded-[1.5rem] bg-[#d71920] p-6 text-left text-white shadow-lg shadow-red-950/15 transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy ? <Loader2 className="h-7 w-7 animate-spin" /> : <Phone className="h-7 w-7" />}
                   <span>
-                    <strong className="block text-2xl font-black">Call JW Stone</strong>
+                    <strong className="block text-2xl font-black">
+                      {busy ? "Connecting…" : "Call JW Stone"}
+                    </strong>
                     <span className="mt-2 block text-sm leading-6 text-white/80">
                       Speak with the exclusive first-cut distributor.
                     </span>
@@ -386,7 +392,7 @@ export default function RedGranitiDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-6">
               <div>
                 <p className="text-base leading-7 text-black/65">
-                  Share what you know. JW Stone can help finish the source and first-cut plan.
+                  Share what you know. JW Stone can help finish the material and first-cut plan.
                 </p>
               </div>
 
