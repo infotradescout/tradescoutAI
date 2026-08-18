@@ -8,54 +8,69 @@ const read = (relativePath: string) =>
 const app = read("client/src/App.tsx");
 const routes = read("client/src/AppRoutes.tsx");
 const profileView = read("client/src/pages/ProfileSiteView.tsx");
-const profileTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
-const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
-const identityRegistry = read("client/src/data/publicProfileIdentity.ts");
-const contentAdapter = read("client/src/data/profileSiteContentAdapters.ts");
+const profileWrapper = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+const legacyTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
+const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+const company = read("client/src/features/jw-stone/JwStoneCompanySection.tsx");
+const marketplaceRoutes = read("client/src/features/jw-stone/marketplaceRoutes.ts");
 const identity = read("shared/jwStonePresentation.ts");
 const expressPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 const expressRoute = read("server/routes/tradepartner-express.ts");
 const serverIndex = read("server/index.ts");
 
 describe("JW Stone 2.0 profile contact and discovery contract", () => {
-  it("renders JW Stone through the canonical profile surface instead of the marketplace shell", () => {
+  it("keeps the complete JW Stone 2.0 experience as the custom JW profile theme", () => {
     expect(app).toContain("isJwStoneProfileRoute");
     expect(app).not.toContain("isJwStoneMarketplaceRoute");
     expect(routes).not.toContain("const JWStoneMarketplace");
     expect(routes).not.toContain("ProfileSiteOrJwMarketplaceRedirect");
     expect(routes).toContain('<Route path="/u/:slug">');
     expect(profileView).toContain("<WholesalerProfileTheme");
+    expect(profileWrapper).toContain('import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace"');
+    expect(profileWrapper).toContain("props.profileSlug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG");
+    expect(profileWrapper).toContain("<JWStoneMarketplace />");
+    expect(profileWrapper).toContain("<LegacyWholesalerProfileTheme {...props} />");
+    expect(legacyTheme).toContain("export default function WholesalerProfileTheme");
+
+    expect(marketplace).toContain("<MarketplaceIntroduction />");
+    expect(marketplace).toContain("<FirstCutSection");
+    expect(marketplace).toContain("<StoneCollection");
+    expect(marketplace).toContain("<ColorPaletteRail");
+    expect(marketplace).toContain("<MaterialCategoryRail");
+    expect(marketplace).toContain("<JwStoneStorySection />");
+    expect(marketplace).toContain("<JwStoneCompanySection />");
+    expect(marketplace).toContain("<WishlistPanel");
+  });
+
+  it("keeps JW Stone profile-owned on both TradeScout and its custom domain", () => {
+    expect(marketplaceRoutes).toContain("JW_STONE_PLATFORM_PROFILE_BASE");
+    expect(marketplaceRoutes).toContain('`/u/${JW_STONE_PROFILE_SLUG}`');
+    expect(marketplaceRoutes).toContain("__TS_CUSTOM_DOMAIN_PROFILE_SLUG__");
+    expect(marketplaceRoutes).toContain("/u/jw-stone|/p/jw-stone");
     expect(serverIndex).toContain("`${origin}/u/${JW_STONE_PROFILE_SLUG}`");
     expect(serverIndex).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
   });
 
-  it("keeps the verified address and official socials on the visible profile identity", () => {
+  it("keeps verified company identity and TradeScout profile actions inside 2.0", () => {
     expect(identity).toContain('streetAddress: "2103 W Herman Ave"');
     expect(identity).toContain('addressLocality: "Pensacola"');
     expect(identity).toContain('postalCode: "32505"');
     expect(identity).toContain('publicHandle: "@jwstonellc"');
     expect(identity).toContain('publicHandle: "JW Stone Logistics"');
     expect(identity).toContain('publicHandle: "@JWStoneLogistics"');
-    expect(identityRegistry).toContain("JW_STONE_PUBLIC_IDENTITY.address.formatted");
-    expect(identityRegistry).toContain("JW_STONE_PUBLIC_IDENTITY.socials");
-    expect(trustActions).toContain('data-testid="public-profile-identity"');
-    expect(trustActions).toContain('data-testid="public-profile-address"');
-    expect(trustActions).toContain("public-profile-social-${social.id}");
-  });
-
-  it("adds the official YouTube destination to the Phase 2 profile presentation", () => {
-    expect(contentAdapter).toContain("withJwStonePresentationDefaults");
-    expect(contentAdapter).toContain("youtubeUrl: JW_STONE_YOUTUBE_URL");
-    expect(profileTheme).toContain("presentation.social?.youtubeUrl");
-    expect(profileTheme).toContain("sanitizeSocialVideoUrl");
-    expect(profileTheme).toContain("Watch ${displayName} on YouTube");
+    expect(profileWrapper).toContain("profileActions={props.trustActions}");
+    expect(company).toContain("useJwStoneProfileContext");
+    expect(company).toContain('data-testid="jw-tradescout-profile-actions"');
+    expect(company).toContain("About JW Stone");
+    expect(company).toContain("Visit JW Stone");
+    expect(company).toContain("Follow JW Stone");
   });
 
   it("keeps Call protected behind the deliberate Direct Connect choice", () => {
-    expect(profileView).toContain("allowExpressCall={canExpressCall}");
-    expect(profileView).toContain("businessAddress={publicBusinessAddress}");
-    expect(profileTheme).toContain("allowCall={allowExpressCall}");
-    expect(profileTheme).toContain("businessAddress={businessAddress}");
+    expect(marketplace).toContain("profileSlug=\"jw-stone\"");
+    expect(marketplace).toContain("businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}");
+    expect(marketplace).toContain("allowCall");
+    expect(marketplace).toContain('initialView="choice"');
     expect(expressPanel).toContain("const startCall = async () =>");
     expect(expressPanel).toContain("/express-contact/reveal");
     expect(expressPanel).toContain('decision: "call"');
@@ -63,6 +78,5 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(expressRoute).toContain('decision: z.literal("call")');
     expect(expressRoute).toContain("normalizeDirectConnectPhone(target.phone)");
     expect(identity).not.toContain("(850) 543-0748");
-    expect(identityRegistry).not.toContain("(850) 543-0748");
   });
 });
