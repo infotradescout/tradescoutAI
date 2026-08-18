@@ -7,6 +7,16 @@ export type LocalServiceProfileIcon =
   | "repair"
   | "water-heater";
 
+export type LocalServiceCredential = {
+  label: string;
+  value: string;
+  authority?: string;
+  verificationUrl?: string;
+  checkedAt?: string;
+  statusLabel?: string;
+  note?: string;
+};
+
 export type LocalServiceProfilePresentation = {
   template: "local-service";
   eyebrow: string;
@@ -19,6 +29,13 @@ export type LocalServiceProfilePresentation = {
   logoImage: string;
   logoAlt: string;
   locationLabel: string;
+  addressLabel?: string;
+  websiteUrl?: string;
+  directionsUrl?: string;
+  primaryActionLabel?: string;
+  callActionLabel?: string;
+  websiteActionLabel?: string;
+  directionsActionLabel?: string;
   serviceNote: string;
   servicesEyebrow: string;
   servicesTitle: string;
@@ -49,11 +66,15 @@ export type LocalServiceProfilePresentation = {
   galleryDescription: string;
   galleryShareText: string;
   credentialLabel: string;
-  credentials: Array<{ label: string; value: string }>;
+  credentials: LocalServiceCredential[];
   credentialDisclosure?: string;
   verificationHistoryNote?: string;
+  sourceCheckedAt?: string;
+  sourceSummary?: string;
   hoursLabel?: string;
+  hoursNote?: string;
   financingTitle?: string;
+  financingProvider?: string;
   financingDescription?: string;
   requestTitle: string;
   requestDescription?: string;
@@ -72,107 +93,104 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   eyebrow: "Residential + commercial plumbing",
   missionEyebrow: "The LA Plumbing promise",
   missionStatement: "Your comfort is our mission.",
-  heroTitle: "Reliable plumbing, handled professionally from start to finish.",
+  heroTitle: "Tell the team what is wrong. They will take it from there.",
   heroDescription:
-    "From repairs and drain diagnostics to tankless systems, renovations, and complete new construction, LA Plumbing brings licensed expertise and clear communication to homes and businesses across southeast Louisiana.",
+    "Start with the problem, project, or property. LA Plumbing handles repairs, drains, water heaters, renovations, backflow, gas, and complete residential or commercial plumbing systems across southeast Louisiana.",
   heroImage: "/images/businesses/la-plumbing-solutions/hero.jpg",
   heroImageAlt: "LA Plumbing Solutions plumber installing a tankless water-heater system",
   logoImage: "/images/businesses/la-plumbing-solutions/logo.jpg",
   logoAlt: "LA Plumbing Solutions",
   locationLabel: "Hammond, Louisiana",
-  serviceNote: "Licensed plumbing for homes, businesses, renovations, and new construction.",
-  servicesEyebrow: "Complete plumbing service",
-  servicesTitle: "From the first repair to a complete new system.",
+  addressLabel: "13073 Hwy 190 West, Hammond, LA 70401",
+  websiteUrl: "https://www.laplumbingsolutions.com/",
+  directionsUrl:
+    "https://www.google.com/maps/search/?api=1&query=13073+Hwy+190+West+Hammond+LA+70401",
+  primaryActionLabel: "Start a Request",
+  callActionLabel: "Call LA Plumbing",
+  websiteActionLabel: "Company Website",
+  directionsActionLabel: "Get Directions",
+  serviceNote:
+    "Choose the closest job type. The request opens with room for the property, symptoms, timing, and photos.",
+  servicesEyebrow: "Choose the job",
+  servicesTitle: "Start with what needs to happen.",
   highlights: [
-    "Master licensed plumbers",
+    "Verified TradeScout provider",
     "Residential + commercial",
-    "Tank + tankless specialists",
-    "Project financing available",
+    "Tank + tankless systems",
+    "Financing through Hearth",
   ],
   services: [
     {
-      title: "Repairs & replacements",
+      title: "Repairs, leaks & replacements",
       description:
-        "Leaks, damaged piping, fixtures, and full system replacements handled with a clear plan.",
+        "Leaks, damaged piping, fixtures, and full system replacements with the problem and options explained first.",
       icon: "repair",
     },
     {
-      title: "Fixtures & appliances",
+      title: "Drains, sewer & diagnostics",
       description:
-        "Professional installation for sinks, faucets, showers, toilets, dishwashers, and disposals.",
-      icon: "bath",
-    },
-    {
-      title: "Drain clearing & cleaning",
-      description:
-        "Drain clearing, camera locating, and hydro jetting for stubborn wastewater problems.",
+        "Drain clearing, camera locating, hydro jetting, sewer work, leak detection, and tunneling.",
       icon: "drain",
     },
     {
-      title: "Backflow protection",
+      title: "Water heaters & gas",
       description:
-        "Backflow testing, prevention, and installation for homes and commercial properties.",
-      icon: "backflow",
-    },
-    {
-      title: "Water heaters",
-      description:
-        "Tank and tankless water-heater repair, installation, replacement, and conversion.",
+        "Tank and tankless repair, installation, replacement, conversion, gas lines, and related equipment.",
       icon: "water-heater",
     },
     {
-      title: "Water, sewer & gas",
+      title: "Fixtures & renovations",
       description:
-        "Water lines, sewer and drainage systems, gas lines, leak detection, and tunneling.",
-      icon: "gas",
+        "Sinks, faucets, showers, toilets, appliances, and plumbing changes for kitchens, baths, and utility rooms.",
+      icon: "bath",
+    },
+    {
+      title: "Backflow & system protection",
+      description:
+        "Backflow testing and prevention plus service and maintenance planning for homes and businesses.",
+      icon: "backflow",
     },
     {
       title: "New construction plumbing",
       description:
-        "Code-conscious plumbing systems for residential and commercial projects from the ground up.",
+        "Complete residential and commercial plumbing systems coordinated before walls and finishes close the work in.",
       icon: "construction",
-    },
-    {
-      title: "Kitchen & bath renovations",
-      description:
-        "Plumbing moves and modern fixture installation for kitchens, bathrooms, and utility rooms.",
-      icon: "bath",
     },
   ],
   serviceGroups: [
     {
-      eyebrow: "Solve a problem",
-      title: "Repairs, diagnostics, and system protection",
+      eyebrow: "Something is wrong",
+      title: "Repair, diagnose, or protect the system",
       description:
-        "Find the source, explain the options, and make the repair with the right tools and the least unnecessary disruption.",
-      imageUrl: "/images/businesses/la-plumbing-solutions/tankless.jpg",
-      imageAlt: "Tankless water heater with organized copper piping and filtration",
+        "Get the source of the problem identified, understand the next step, and avoid unnecessary disruption.",
+      imageUrl: "/images/businesses/la-plumbing-solutions/underground.jpg",
+      imageAlt: "Plumber installing underground drainage piping",
       services: [
-        "Plumbing repairs and replacements",
-        "Drain clearing, cameras, and locating",
-        "Backflow testing and prevention",
+        "Leaks, repairs, and full replacements",
+        "Drain clearing, cameras, and hydro jetting",
         "Water, sewer, gas, and leak detection",
+        "Backflow and maintenance planning",
       ],
     },
     {
-      eyebrow: "Improve a space",
-      title: "Fixtures, water heating, and renovations",
+      eyebrow: "Improve the property",
+      title: "Water heating, fixtures, and renovations",
       description:
         "Coordinate the plumbing behind a more comfortable, efficient kitchen, bathroom, utility room, or whole property.",
       imageUrl: "/images/businesses/la-plumbing-solutions/bathroom.jpg",
       imageAlt: "Finished freestanding bath and plumbing fixtures",
       services: [
-        "Fixture and appliance installation",
         "Tank and tankless water heaters",
+        "Fixture and appliance installation",
         "Kitchen and bath renovations",
-        "Efficiency upgrades and replacements",
+        "Efficiency upgrades and conversions",
       ],
     },
     {
       eyebrow: "Build from the ground up",
       title: "Residential and commercial construction",
       description:
-        "Plan and install complete plumbing systems with the project team before the walls and finishes make changes expensive.",
+        "Plan and install the complete plumbing system with the project team before late changes become expensive.",
       imageUrl: "/images/businesses/la-plumbing-solutions/new-construction.jpg",
       imageAlt: "Underground plumbing rough-in for new construction",
       services: [
@@ -183,42 +201,85 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
       ],
     },
   ],
-  aboutTitle: "Family-owned. Raised in the trade. Here for the next job too.",
+  aboutTitle: "A family plumbing company built to answer the next call too.",
   aboutBody:
-    "LA Plumbing Solutions is a local, family-owned company founded by two brothers who learned the plumbing trade from their father. Master plumbers, journeymen, apprentices, and office staff work as one team so scheduling, communication, installation, and follow-up stay coordinated—not passed from one disconnected person to the next.",
+    "LA Plumbing Solutions is a local, family-owned company founded by two brothers who learned the trade from their father. Master plumbers, journeymen, apprentices, and office staff work as one team so scheduling, communication, installation, and follow-up stay coordinated instead of being passed between disconnected people.",
   aboutEyebrow: "The people behind the work",
   commitments: [
-    "Do the job right the first time",
-    "Explain the work without surprises",
-    "Use modern tools where they save time and guesswork",
-    "Treat the current job like the start of a long relationship",
+    "Explain the work before surprises appear",
+    "Use modern tools when they reduce guesswork",
+    "Coordinate scheduling, installation, and follow-up",
+    "Treat the current job as the start of a long relationship",
   ],
   aboutImage: "/images/businesses/la-plumbing-solutions/family.jpg",
   aboutImageAlt: "A family moment shared by LA Plumbing Solutions",
   serviceAreas: ["Hammond", "Ponchatoula", "Baton Rouge", "Covington", "Mandeville", "Slidell"],
-  serviceAreaDescription: "Based in Hammond and serving projects across southeast Louisiana.",
-  galleryEyebrow: "Proof from the field",
-  galleryTitle: "LA Plumbing Solutions on the job.",
+  serviceAreaDescription:
+    "Based in Hammond and serving residential and commercial projects across southeast Louisiana.",
+  galleryEyebrow: "Completed work",
+  galleryTitle: "See the systems, not stock photography.",
   galleryDescription:
-    "Selected residential, commercial, renovation, and new-construction plumbing work from across southeast Louisiana.",
+    "Selected residential, commercial, renovation, water-heating, and new-construction work published by LA Plumbing Solutions.",
   galleryShareText: "See this LA Plumbing Solutions project",
-  credentialLabel: "Credentials listed by LA Plumbing Solutions",
+  credentialLabel: "Credential numbers and where to verify them",
   credentials: [
-    { label: "Commercial plumbing", value: "CL 75460" },
-    { label: "Master plumbing", value: "LMP 8436" },
-    { label: "Natural gas", value: "LMNGF 9933" },
-    { label: "Backflow", value: "WSPS 20230920" },
-    { label: "Boiler installation", value: "457" },
+    {
+      label: "Commercial plumbing",
+      value: "CL 75460",
+      authority: "Louisiana State Licensing Board for Contractors",
+      verificationUrl: "https://lslbc.louisiana.gov/verify-licensure/",
+      checkedAt: "August 18, 2026",
+      statusLabel: "Confirm current status with LSLBC",
+    },
+    {
+      label: "Master plumbing",
+      value: "LMP 8436",
+      authority: "State Plumbing Board of Louisiana",
+      verificationUrl: "https://www.spbla.com/",
+      checkedAt: "August 18, 2026",
+      statusLabel: "Published by LA Plumbing; verify with the board",
+    },
+    {
+      label: "Natural gas",
+      value: "LMNGF 9933",
+      authority: "State Plumbing Board of Louisiana",
+      verificationUrl: "https://www.spbla.com/",
+      checkedAt: "August 18, 2026",
+      statusLabel: "Published by LA Plumbing; verify with the board",
+    },
+    {
+      label: "Backflow",
+      value: "WSPS 20230920",
+      authority: "State Plumbing Board of Louisiana",
+      verificationUrl: "https://www.spbla.com/",
+      checkedAt: "August 18, 2026",
+      statusLabel: "Published by LA Plumbing; verify with the board",
+    },
+    {
+      label: "Boiler installation",
+      value: "457",
+      authority: "Published by LA Plumbing Solutions",
+      checkedAt: "August 18, 2026",
+      statusLabel: "Confirm the applicable authority before regulated work",
+    },
   ],
   credentialDisclosure:
-    "TradeScout has reviewed this profile and its required provider credentials. Credential numbers are also published by LA Plumbing Solutions.",
-  hoursLabel: "Monday–Friday · 7:00am–4:00pm",
-  financingTitle: "Flexible project financing is available.",
+    "LA Plumbing publishes these credential numbers on its current company website. TradeScout shows the source and review date; confirm current status with the issuing authority before regulated work.",
+  verificationHistoryNote:
+    "The verified profile confirms the TradeScout business identity and onboarding record. It is not a substitute for a current license lookup for a specific regulated job.",
+  sourceCheckedAt: "August 18, 2026",
+  sourceSummary:
+    "Current facts use the company’s active www website and the Tangipahoa Chamber listing. Older non-www pages still show a former Fox Hollow address and 24/7 hours; those legacy claims are intentionally excluded.",
+  hoursLabel: "Office hours · Monday–Friday · 7:00am–4:00pm",
+  hoursNote:
+    "The current company website lists weekends closed. For urgent needs outside office hours, use the call option to confirm availability rather than assuming 24/7 service.",
+  financingTitle: "Explore project financing through Hearth.",
+  financingProvider: "Hearth",
   financingDescription:
-    "Qualifying customers can explore monthly payment options for larger repairs, replacements, renovations, and construction work. Ask LA Plumbing through Direct Connect for the current options.",
-  requestTitle: "Call now or send LA Plumbing the job details.",
+    "LA Plumbing’s current website connects qualifying customers to Hearth for personalized payment options. Eligibility, lender offers, rates, and funding terms are handled by Hearth and participating lenders and can change.",
+  requestTitle: "Put the plumbing problem in front of the right team.",
   requestDescription:
-    "Choose Call for a direct conversation, or fill out the form with the property, problem, timing, and photos.",
+    "Start a Request with the property, problem, timing, and photos. Choose the call option in the next panel when a direct conversation is the better first step.",
   brand: {
     primary: "#1ba9dc",
     primaryDark: "#0878a6",
