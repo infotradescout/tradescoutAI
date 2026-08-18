@@ -79,13 +79,7 @@ export function JwStoneCompanySection() {
           <div id="jw-stone-location" className={jw.scrollTarget}>
             <h3 className="font-editorial text-2xl text-[var(--jw-ink)]">Visit JW Stone</h3>
             <address className="mt-4 not-italic">
-              <a
-                href={address.mapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start gap-3 text-sm font-semibold leading-6 text-[var(--jw-ink)] transition-opacity hover:opacity-75"
-                aria-label={`Get directions to ${address.formatted}`}
-              >
+              <div className="flex items-start gap-3 text-sm font-semibold leading-6 text-[var(--jw-ink)]">
                 <MapPin
                   className="mt-0.5 h-5 w-5 shrink-0 text-[var(--jw-mark)]"
                   aria-hidden="true"
@@ -96,7 +90,7 @@ export function JwStoneCompanySection() {
                     {address.addressLocality}, {address.addressRegion} {address.postalCode}
                   </span>
                 </span>
-              </a>
+              </div>
             </address>
           </div>
 
@@ -105,24 +99,38 @@ export function JwStoneCompanySection() {
             <ul className="mt-4 grid grid-cols-2 gap-2" aria-label="JW Stone social media">
               {socials.map((social) => {
                 const Icon = SOCIAL_ICONS[social.id];
+                const content = (
+                  <>
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    <span>
+                      <span className="block font-semibold">{social.label}</span>
+                      <span className="block text-xs text-[var(--jw-muted)]">
+                        {social.publicHandle}
+                      </span>
+                    </span>
+                  </>
+                );
+
                 return (
                   <li key={social.id}>
-                    <a
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-testid={`jw-social-${social.id}`}
-                      aria-label={`Open JW Stone on ${social.label}`}
-                      className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm transition-colors hover:bg-[var(--jw-bg)] ${jw.border}`}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                      <span>
-                        <span className="block font-semibold">{social.label}</span>
-                        <span className="block text-xs text-[var(--jw-muted)]">
-                          {social.publicHandle}
-                        </span>
-                      </span>
-                    </a>
+                    {social.id === "youtube" ? (
+                      <a
+                        href={social.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid="jw-social-youtube"
+                        aria-label="Watch JW Stone on YouTube"
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm transition-colors hover:bg-[var(--jw-bg)] ${jw.border}`}
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        className={`flex min-h-11 w-full items-center justify-center gap-2 border px-3 text-sm ${jw.border}`}
+                      >
+                        {content}
+                      </div>
+                    )}
                   </li>
                 );
               })}
