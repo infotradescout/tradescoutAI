@@ -47,18 +47,21 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
   legalName: "R.E.D. Graniti S.p.A.",
   legalId: "P.IVA 13161430155",
   locationLabel: "Massa, Italy",
-  eyebrow: "NATURAL STONE · QUARRIES · BLOCKS · SLABS",
-  headline: "Natural stone at the source.",
+  eyebrow: "QUARRIES · BLOCKS · SLABS · WORLDWIDE DISTRIBUTION",
+  headline: "Natural stone, controlled from quarry to market.",
   summary:
-    "For more than 50 years, R.E.D. Graniti has built a global natural-stone business around quarry ownership, block selection, slab production, and dependable distribution.",
+    "For more than 50 years, R.E.D. Graniti has extracted and supplied rough blocks and slabs from company-owned quarries across the world's leading stone regions.",
   about:
-    "R.E.D. Graniti operates from Massa, Italy, with production and commercial companies positioned across major stone markets. The company controls source relationships, inspects and catalogs rough blocks, supplies slabs produced near key quarry regions, and supports customers from material selection through scheduled delivery.",
+    "Quality is the core of R.E.D. Graniti's business. Every block is checked, controlled, and cataloged. Slabs follow the same selection and quality standards, supported by a worldwide distribution network focused on reliable delivery and service.",
   qualityStatement:
-    "Every source decision begins with material quality, consistent selection, documented control, and a clear path from quarry to customer.",
+    "Each block is checked, controlled, and cataloged before it enters the sales network.",
   headquarters: {
     label: "Headquarters",
     addressLine1: "Via Dorsale 12",
     addressLine2: "54100 Massa, Italy",
+    phone: "+39 0585 88471",
+    fax: "+39 0585 884848",
+    email: "info@redgraniti.com",
     mapUrl:
       "https://www.google.com/maps/search/?api=1&query=Via%20Dorsale%2012%2C%2054100%20Massa%2C%20Italy",
   },
@@ -67,43 +70,43 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       label: "Massa headquarters and block yard",
       location: "Massa, Italy",
       detail:
-        "Company-reported 60,000 m² yard with an average of 30,000 m³ of blocks available for selection.",
+        "A 60,000 m² yard with an average of 30,000 m³ of blocks available for direct viewing and selection.",
     },
     {
       label: "Dolcè block yard",
       location: "Verona, Italy",
-      detail: "Company-reported average availability of about 12,000 m³ of block material.",
+      detail: "A second Italian yard with average availability of about 12,000 m³ of block material.",
     },
     {
       label: "Cavaion Veronese slab warehouse",
       location: "Verona, Italy",
-      detail: "Company-reported 8,500 m² warehouse dedicated to slabs ready for sale.",
+      detail: "An 8,500 m² warehouse dedicated to slabs ready for sale.",
     },
   ],
   stats: [
     { value: "50+", label: "years in natural stone" },
-    { value: "4", label: "continents represented" },
+    { value: "4", label: "continents with group presence" },
     { value: "9", label: "countries with company-owned quarries" },
-    { value: "16", label: "production companies reported worldwide" },
+    { value: "16", label: "production companies worldwide" },
   ],
   capabilities: [
     {
       title: "Rough blocks",
       shortLabel: "Blocks",
       description:
-        "Blocks from company-controlled sources are inspected, selected, and cataloged before entering the sales network.",
+        "Blocks from company-owned quarries are checked, selected, and cataloged for consistent quality and dependable supply.",
     },
     {
       title: "Natural stone slabs",
       shortLabel: "Slabs",
       description:
-        "Semi-finished slabs are produced through modern facilities near key production regions and held to the same source-quality standards.",
+        "Semi-finished slabs are produced near key source regions and follow the same checks and selection standards used for raw blocks.",
     },
     {
-      title: "Global distribution",
+      title: "Worldwide distribution",
       shortLabel: "Distribution",
       description:
-        "The commercial network connects quarry production, yards, processing locations, and major luxury-stone markets around the world.",
+        "R.E.D. Graniti serves major luxury-stone markets with broad material access, dependable schedules, and ongoing customer support.",
     },
   ],
   quarryCountries: [
@@ -123,7 +126,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       region: "Madagascar",
       title: "Labradorite source region",
       description:
-        "One part of R.E.D. Graniti's owned-quarry network across major stone-producing regions.",
+        "A distinctive source region within R.E.D. Graniti's company-owned quarry network.",
       imageUrl: RED_GRANITI_QUARRY_MEDIA.madagascar.imageUrl,
       sourceUrl: RED_GRANITI_QUARRY_MEDIA.madagascar.sourceUrl,
     },
@@ -132,7 +135,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       region: "South Africa",
       title: "Black granite source region",
       description:
-        "A long-established production region within R.E.D. Graniti's international quarry network.",
+        "A long-established production region for controlled black-granite selection.",
       imageUrl: RED_GRANITI_QUARRY_MEDIA.southAfrica.imageUrl,
       sourceUrl: RED_GRANITI_QUARRY_MEDIA.southAfrica.sourceUrl,
     },
@@ -141,7 +144,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
       region: "Vermont, United States",
       title: "Danby marble source region",
       description:
-        "A North American source connected to R.E.D. Graniti's broader block-and-slab operation.",
+        "A North American marble source connected to R.E.D. Graniti's block-and-slab network.",
       imageUrl: RED_GRANITI_QUARRY_MEDIA.vermont.imageUrl,
       sourceUrl: RED_GRANITI_QUARRY_MEDIA.vermont.sourceUrl,
     },
@@ -150,13 +153,13 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
     partnerName: "JW Stone Logistics",
     partnerProfileSlug: "jw-stone",
     relationshipLabel: "Exclusive first-cut distributor",
-    headline: "From R.E.D. Graniti source to JW Stone first cut.",
+    headline: "R.E.D. Graniti stone. First-cut support through JW Stone.",
     description:
-      "R.E.D. Graniti remains the source company. JW Stone handles the exclusive first-cut distribution path, while TradeScout keeps each request connected to the right company, material, and next step.",
+      "Choose the R.E.D. material and share the block or slab format, dimensions, quantity, destination, and timing. JW Stone handles first-cut planning and next-step coordination.",
   },
   officialLinks: [
     { label: "Official website", href: RED_GRANITI_OFFICIAL_WEBSITE },
-    { label: "Company group", href: RED_GRANITI_GROUP_URL },
+    { label: "R.E.D. Group", href: RED_GRANITI_GROUP_URL },
     { label: "Quarry directory", href: RED_GRANITI_QUARRIES_URL },
     { label: "Blocks and slabs", href: RED_GRANITI_BLOCKS_AND_SLABS_URL },
   ],
@@ -164,7 +167,7 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
 
 /**
  * Company identity only. Material truth, physical assets, inventory positions,
- * publications, and distribution rights are separate Stone Core records.
+ * publications, and distribution rights remain separate Stone Core records.
  */
 export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
   {
@@ -213,9 +216,8 @@ export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
   {
     type: "gallery",
     data: {
-      title: "Quarry network",
-      description:
-        "Source-region imagery tied to official R.E.D. Graniti quarry pages.",
+      title: "Company-owned quarry network",
+      description: "Source-region imagery tied to official R.E.D. Graniti quarry pages.",
       images: RED_GRANITI_PUBLIC_IDENTITY.quarryHighlights.map((highlight) => ({
         id: `red-graniti-${highlight.id}-quarry`,
         imageUrl: highlight.imageUrl,
@@ -229,9 +231,9 @@ export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
   {
     type: "companyFacts",
     data: {
-      title: "A global source company",
+      title: "More than 50 years in natural stone",
       text:
-        "R.E.D. Graniti reports operations across four continents, company-owned quarries in nine countries, sixteen production companies, major Italian block yards, and a dedicated slab warehouse.",
+        "R.E.D. Graniti operates across four continents, owns quarries in nine countries, and connects sixteen production companies with major stone markets worldwide.",
     },
   },
   {
@@ -244,22 +246,22 @@ export const RED_GRANITI_PROFILE_CONTENT_BLOCKS = [
   {
     type: "officialSource",
     data: {
-      title: "Official company information",
+      title: "R.E.D. Graniti company information",
       text:
-        "Company facts shown here are tied to R.E.D. Graniti's official website, group information, and quarry directory.",
+        "Company facts, operating locations, and quarry references are tied to R.E.D. Graniti's official website and group pages.",
     },
   },
   {
     type: "cta",
     data: {
-      heading: "Start a Request",
+      heading: "Call JW Stone or start a request",
       description:
-        "TradeScout reviews the request and routes first-cut distribution needs through JW Stone without changing R.E.D. Graniti's company identity.",
+        "Share the R.E.D. material, required format, dimensions, quantity, destination, and timing for first-cut review.",
       requestExamples: [
-        "Discuss a source material",
-        "Plan a first-cut requirement",
-        "Ask about blocks or slabs",
-        "Request next-step coordination",
+        "Ask about a R.E.D. material",
+        "Plan rough-block supply",
+        "Plan slab supply",
+        "Review a first-cut requirement",
       ],
     },
   },
