@@ -7,7 +7,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("R.E.D. Graniti profile image delivery", () => {
-  it("serves all profile imagery from TradeScout-owned paths", () => {
+  it("serves all canonical quarry imagery from TradeScout-owned paths", () => {
     const localImages = Object.values(RED_GRANITI_QUARRY_MEDIA).map(
       (entry) => entry.imageUrl
     );
@@ -21,23 +21,42 @@ describe("R.E.D. Graniti profile image delivery", () => {
     expect(localImages.some((imageUrl) => /^https?:\/\//i.test(imageUrl))).toBe(false);
   });
 
-  it("caches official source imagery before Vite builds the profile", () => {
+  it("caches the official homepage, business, quarry, and project imagery before Vite builds", () => {
     const sitemapBuild = read("scripts/generate-sitemap.mjs");
     const cacheScript = read("scripts/cache-red-graniti-assets.mjs");
+    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
 
     expect(sitemapBuild).toContain("import './cache-red-graniti-assets.mjs';");
     expect(cacheScript).toContain(
       "client/public/images/businesses/red-graniti/source"
     );
-    expect(cacheScript).toContain("lemurian-blue.svg");
-    expect(cacheScript).toContain("nero-africa.svg");
-    expect(cacheScript).toContain("eureka-danby.svg");
+
+    for (const outputFile of [
+      "home-hero.svg",
+      "business-blocks.svg",
+      "business-slabs.svg",
+      "business-distribution.svg",
+      "lemurian-blue.svg",
+      "nero-africa.svg",
+      "eureka-danby.svg",
+      "project-arkansas-office.svg",
+      "project-colorado-bank.svg",
+      "project-lincoln-memorial.svg",
+      "project-mansion-dubai.svg",
+    ]) {
+      expect(cacheScript).toContain(outputFile);
+      expect(theme).toContain(outputFile);
+    }
+
     expect(cacheScript).toContain("https://www.redgraniti.com/wp-content/uploads/");
+    expect(cacheScript).toContain("blocchi-grezzi.png");
+    expect(cacheScript).toContain("commercializzazione.png");
+    expect(cacheScript).toContain("LincolnMemorialWashington.jpg");
     expect(cacheScript).toContain("fallbackSourceSvg");
     expect(cacheScript).toContain("official image unavailable");
   });
 
-  it("keeps every cached image tied to an official R.E.D. Graniti page", () => {
+  it("keeps canonical quarry cards tied to official R.E.D. Graniti pages", () => {
     for (const entry of Object.values(RED_GRANITI_QUARRY_MEDIA)) {
       expect(entry.sourceUrl).toMatch(/^https:\/\/www\.redgraniti\.com\/en\/portfolio\//);
     }
