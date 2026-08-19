@@ -12,21 +12,25 @@ Operator-controlled. Do not surface co-tenancy, unrelated businesses, owner-acco
 - **Ownership:** Independent business. Confirmed directly to the TradeScout operator.
 - **TradeScout verification:** **100% verified** for the ISSA Build business identity and the full-service operating scope listed below.
 - **Profile control:** The owner account is pending attachment. TradeScout admin stewardship supplies and manages the public profile record until that account is attached. This is only an account-control state; it is not an incomplete-verification state and does not reduce ISSA Build's verified status.
-- Verification of this business identity and operating scope does not manufacture unrelated license, insurance, territory, or credential claims that have not been separately recorded.
+- Verification of this business identity and operating scope does not manufacture unrelated license, insurance, or credential claims that have not been separately recorded.
 
 ## Verified full-service scope
 
 ISSA Build handles the complete onyx project. TradeScout manages the inquiry funnel; ISSA Build performs the work and customer delivery for:
 
+- Material sourcing and current-availability review
 - Material selection
 - Custom onyx fabrication, including cutting and shaping
 - Backlighting design and installation
 - Custom onyx installation
 - Residential projects
 - Commercial projects
+- Project-location review and fulfillment
 - Project consultation
 
 Do not describe ISSA Build as material-only, consultation-only, referral-only, installation-pending, or dependent on another company to complete this scope.
+
+A project address or service territory should be confirmed through the request. Do not invent a fixed geographic boundary that the operator has not supplied.
 
 ## Product evidence (owner-supplied pack only)
 
@@ -47,7 +51,7 @@ Do not describe ISSA Build as material-only, consultation-only, referral-only, i
 
 - Public CTA label is **Start a Request** inside the existing premium profile experience.
 - Material and project requests retain the selected offering and the existing request flow.
-- TradeScout receives and manages the inquiry. ISSA Build remains the business responsible for selection, fabrication, backlighting, installation, and project delivery.
+- TradeScout receives and manages the inquiry. ISSA Build remains the business responsible for sourcing, availability review, selection, fabrication, backlighting, installation, project-location review, and fulfillment.
 - Operator confirmation: the contact stored on the ISSA Build record is the intended Levon routing pair. Preserve that exact pair on ISSA Build itself; do not read it from JW Stone or any other business at runtime.
 - Operator correction (2026-08-19): the former rule to “never emit either value in public HTML” is superseded for ISSA Build's dedicated presentation. The approved pair is now the visible **TradeScout managed contact** on the public profile.
 - Only the approved managed pair may be shown. Owner-account contact, imported contact, unrelated business contact, and co-tenancy remain private.
