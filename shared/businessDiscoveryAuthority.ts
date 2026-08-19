@@ -1,8 +1,7 @@
 export const FULLY_VERIFIED_BUSINESS_STATUS = "fully_verified";
 export const FULLY_VERIFIED_BUSINESS_PERCENT = 100;
 export const BUSINESS_IDENTITY_VERIFICATION_SCOPE = "business_identity";
-export const LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE =
-  "location_confirmed_per_request";
+export const LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE = "location_confirmed_per_request";
 
 export type BusinessDiscoveryAuthorityCandidate = {
   profileData: unknown;
@@ -17,7 +16,13 @@ function recordValue(value: unknown): Record<string, unknown> {
 
 function stringList(value: unknown): string[] {
   return Array.isArray(value)
-    ? value.map((entry) => String(entry || "").trim().toLowerCase()).filter(Boolean)
+    ? value
+        .map((entry) =>
+          String(entry || "")
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
     : [];
 }
 
@@ -48,9 +53,7 @@ export function hasExactBusinessLevelVerification(
   );
 }
 
-export function hasLocationConfirmedPerRequestServiceArea(
-  profileData: unknown
-): boolean {
+export function hasLocationConfirmedPerRequestServiceArea(profileData: unknown): boolean {
   const importExtras = recordValue(recordValue(profileData).importExtras);
   return (
     String(importExtras.service_area_mode || "")
