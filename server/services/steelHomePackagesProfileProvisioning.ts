@@ -8,7 +8,7 @@ import {
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
 import { db } from "../db";
-import { provisionJwStoneManagedContact } from "./jwStoneManagedContactProvisioning";
+import { provisionTradeScoutManagedPartnerContacts } from "./jwStoneManagedContactProvisioning";
 import { hasVerifiedTradeScoutAdminCustody } from "./ownerConfirmedDirectProfile";
 import { provisionRedGranitiProfile } from "./redGranitiProfileProvisioning";
 
@@ -232,20 +232,13 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
  */
 export async function provisionSteelHomePackagesProfile(): Promise<void> {
   let steelHomeFailure: unknown = null;
-  let jwStoneContactFailure: unknown = null;
   let redGranitiFailure: unknown = null;
+  let managedContactFailure: unknown = null;
 
   try {
     await provisionSteelHomePackagesProfileRecord();
   } catch (error) {
     steelHomeFailure = error;
-  }
-
-  try {
-    await provisionJwStoneManagedContact();
-  } catch (error) {
-    jwStoneContactFailure = error;
-    console.error("[profile-provisioning] JW Stone managed contact failed", error);
   }
 
   try {
@@ -255,7 +248,17 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
     console.error("[profile-provisioning] R.E.D. Graniti provisioning failed", error);
   }
 
+  // This must remain the final pass. Individual profile provisioners may write
+  // source-specific placeholders while creating their records; the registry
+  // then restores the one approved public contact across every managed partner.
+  try {
+    await provisionTradeScoutManagedPartnerContacts();
+  } catch (error) {
+    managedContactFailure = error;
+    console.error("[profile-provisioning] Managed partner contacts failed", error);
+  }
+
   if (steelHomeFailure) throw steelHomeFailure;
-  if (jwStoneContactFailure) throw jwStoneContactFailure;
   if (redGranitiFailure) throw redGranitiFailure;
+  if (managedContactFailure) throw managedContactFailure;
 }
