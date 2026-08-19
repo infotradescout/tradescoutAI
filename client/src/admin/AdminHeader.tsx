@@ -14,10 +14,10 @@ export function AdminHeader({
   onOpenNavigation,
   onFindTool,
 }: AdminHeaderProps) {
-  const label = currentItem?.label ?? "Admin Home";
+  const label = currentItem?.label ?? "Admin workspace";
   const summary = currentItem
     ? getAdminToolDescription(currentItem)
-    : "See the work that needs an operator decision.";
+    : "Choose a registered operating tool from the navigation.";
 
   return (
     <header className="sticky top-0 z-40 flex min-h-[4.5rem] items-center gap-3 border-b border-white/10 bg-[#090a0b]/95 px-4 backdrop-blur-xl sm:px-6 xl:px-8">
