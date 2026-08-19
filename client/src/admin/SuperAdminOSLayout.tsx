@@ -61,18 +61,13 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   return (
     <div className="ts-admin-shell min-h-full bg-[#08090a] text-zinc-100">
       <div
-        className={`grid min-h-[var(--app-height)] transition-[grid-template-columns] duration-200 lg:grid-cols-[${
-          railCollapsed ? "4.75rem" : "16.5rem"
-        }_minmax(0,1fr)]`}
-        style={{
-          gridTemplateColumns: undefined,
-        }}
+        className={`grid min-h-[var(--app-height)] transition-[grid-template-columns] duration-200 ${
+          railCollapsed
+            ? "lg:grid-cols-[4.75rem_minmax(0,1fr)]"
+            : "lg:grid-cols-[16.5rem_minmax(0,1fr)]"
+        }`}
       >
-        <div
-          className={`hidden border-r border-white/10 bg-[#0b0c0d] lg:block ${
-            railCollapsed ? "lg:w-[4.75rem]" : "lg:w-[16.5rem]"
-          }`}
-        >
+        <div className="hidden border-r border-white/10 bg-[#0b0c0d] lg:block">
           <div className="sticky top-0 h-[var(--app-height)]">
             <SuperAdminLeftNav
               sections={navSections}
