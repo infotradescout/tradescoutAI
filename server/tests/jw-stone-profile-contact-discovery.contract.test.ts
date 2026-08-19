@@ -114,11 +114,18 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(marketplace).toContain("email: JW_STONE_MANAGED_CONTACT.email");
   });
 
-  it("persists the managed phone and TradeScout inbox without transferring ownership", () => {
-    expect(contactProvisioner).toContain("export async function provisionJwStoneManagedContact");
-    expect(contactProvisioner).toContain("phone: JW_STONE_MANAGED_CONTACT.phone");
-    expect(contactProvisioner).toContain("email: JW_STONE_MANAGED_CONTACT.email");
-    expect(contactProvisioner).toContain("notificationEmail: JW_STONE_MANAGED_CONTACT.email");
+  it("persists the managed pair through the shared partner contact normalizer without transferring ownership", () => {
+    expect(contactProvisioner).toContain(
+      "export async function provisionTradeScoutManagedPartnerContacts"
+    );
+    expect(contactProvisioner).toContain(
+      "export async function provisionJwStoneManagedContact"
+    );
+    expect(contactProvisioner).toContain("MANAGED_PARTNER_PROFILE_DEFINITIONS.filter");
+    expect(contactProvisioner).toContain('definition.contactMode === "tradescout_managed"');
+    expect(contactProvisioner).toContain("phone,");
+    expect(contactProvisioner).toContain("email,");
+    expect(contactProvisioner).toContain("notificationEmail,");
     expect(contactProvisioner).toContain('contact_management: "tradescout_managed"');
     expect(contactProvisioner).toContain("String(profile.ownerUserId || \"\")");
     expect(contactProvisioner).toContain("String(business.ownerUserId || \"\")");
@@ -128,9 +135,12 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(contactProvisioner).not.toContain("ownerUserId:");
 
     expect(bootstrap).toContain(
-      'import { provisionJwStoneManagedContact } from "./jwStoneManagedContactProvisioning"'
+      'import { provisionTradeScoutManagedPartnerContacts } from "./jwStoneManagedContactProvisioning"'
     );
-    expect(bootstrap).toContain("await provisionJwStoneManagedContact();");
-    expect(bootstrap).toContain("JW Stone managed contact failed");
+    expect(bootstrap).toContain("await provisionTradeScoutManagedPartnerContacts();");
+    expect(bootstrap).toContain("Managed partner contacts failed");
+    expect(bootstrap.indexOf("await provisionTradeScoutManagedPartnerContacts();")).toBeGreaterThan(
+      bootstrap.indexOf("await provisionRedGranitiProfile();")
+    );
   });
 });
