@@ -47,6 +47,12 @@ export const COMPATIBILITY_REDIRECTS = [
     access: "admin",
     slot: "before-admin-wildcard",
   },
+  {
+    from: "/admin/partner-operations",
+    to: "/admin/tradepartners",
+    access: "admin",
+    slot: "before-admin-wildcard",
+  },
 
   { from: "/conversations", to: "/messages", access: "protected", slot: "standard" },
   { from: "/marketplace", to: "/exchange", access: "public", slot: "standard" },
