@@ -21,6 +21,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "scout-resilience",
   "geo-map",
   "commercial-directory",
+  "procurement",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
