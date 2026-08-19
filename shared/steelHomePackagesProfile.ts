@@ -59,7 +59,7 @@ const STEEL_HOME_PROJECT_TOOL_CARDS = [
     key: "countertops",
     label: "Countertops",
     title: "Countertop Planner",
-    body: "Plan measured countertop runs, place fabrication openings, and apply a real JW Stone catalog photo in an orbitable room. Stone ordering and countertop fabrication stay separate.",
+    body: "Start with a measured top-down plan, place fabrication openings, and keep the exact JW Stone inventory photo beside the model as a truthful reference. Only a verified stone-only crop may be projected in 3D. Stone ordering and countertop fabrication stay separate.",
     image: "/images/stone-designer/cristallo/1.webp",
     imageAlt: "Cristallo quartzite surface",
     action: "Open Countertop Planner",
@@ -85,7 +85,7 @@ const STEEL_HOME_PROJECT_TOOL_CARDS = [
 ] as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
-  version: 14,
+  version: 15,
   header: {
     label: "Steel Home Planning Tools",
     navigation: [
@@ -111,8 +111,8 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
     cards: STEEL_HOME_PROJECT_TOOL_CARDS,
     countertops: {
       eyebrow: "Countertop Planner",
-      title: "Measure the layout and see the stone in the room.",
-      body: "Choose Quartzite, Engineered Quartz, or another catalog surface from real photos and plan the approximate area. Stone selection and ordering cover material supply only. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator.",
+      title: "Measure the layout before opening the 3D preview.",
+      body: "Choose Quartzite, Engineered Quartz, or another catalog surface from real inventory photos and plan the approximate area. Raw inventory photos remain reference evidence unless a verified stone-only crop exists. Stone selection and ordering cover material supply only. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator.",
     },
     cabinets: {
       eyebrow: "Cabinet Planner",
@@ -126,7 +126,7 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
     },
   },
   disclosure:
-    "Countertop area remains a planning measurement, not a final field template. Stone ordering and countertop fabrication are separate. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator. Cabinet and metal-building products, engineering, availability, delivery, installation, and price require professional review and a quote.",
+    "Countertop area remains a planning measurement, not a final field template. Raw stone inventory photos are reference evidence unless a verified stone-only crop exists. Stone ordering and countertop fabrication are separate. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator. Cabinet and metal-building products, engineering, availability, delivery, installation, and price require professional review and a quote.",
 } as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT_BLOCKS = [
