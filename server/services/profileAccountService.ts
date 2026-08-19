@@ -7,33 +7,46 @@ import {
 import { pool } from "../db";
 
 const PROFILE_ACCOUNT_DDL = `
-CREATE TABLE IF NOT EXISTS profile_business_accounts (
+CREATE TABLE IF NOT EXISTS profile_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  business_profile_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
   owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  business_profile_id TEXT REFERENCES user_profiles(id) ON DELETE SET NULL,
   target_profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   target_business_id TEXT REFERENCES businesses(id) ON DELETE SET NULL,
+  identity_kind TEXT NOT NULL,
+  priority_key TEXT NOT NULL DEFAULT 'profile_account',
   status TEXT NOT NULL DEFAULT 'active',
-  verification_status TEXT NOT NULL DEFAULT 'pending',
+  verification_status TEXT NOT NULL DEFAULT 'not_required',
   source_path TEXT,
   resume_path TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (business_profile_id, target_profile_id),
+  UNIQUE (owner_user_id, target_profile_id),
+  CHECK (identity_kind IN ('user', 'business')),
+  CHECK (priority_key ~ '^[a-z0-9_]{2,80}$'),
   CHECK (status IN ('active', 'suspended', 'closed')),
-  CHECK (verification_status IN ('pending', 'approved', 'rejected')),
+  CHECK (verification_status IN ('not_required', 'pending', 'approved', 'rejected')),
+  CHECK (
+    (identity_kind = 'user' AND business_profile_id IS NULL AND verification_status = 'not_required')
+    OR
+    (identity_kind = 'business' AND business_profile_id IS NOT NULL AND verification_status <> 'not_required')
+  ),
   CHECK (source_path IS NULL OR (source_path ~ '^/u/' AND source_path NOT LIKE '%\\%')),
   CHECK (resume_path IS NULL OR (resume_path ~ '^/u/' AND resume_path NOT LIKE '%\\%'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_profile_business_accounts_target
-  ON profile_business_accounts(target_profile_id, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_profile_accounts_target
+  ON profile_accounts(target_profile_id, status, updated_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_profile_business_accounts_owner
-  ON profile_business_accounts(owner_user_id, status, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_profile_accounts_owner
+  ON profile_accounts(owner_user_id, status, updated_at DESC);
 
-CREATE OR REPLACE FUNCTION enforce_profile_business_account_identity()
+CREATE INDEX IF NOT EXISTS idx_profile_accounts_business
+  ON profile_accounts(business_profile_id, status, updated_at DESC)
+  WHERE business_profile_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION enforce_profile_account_identity()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
@@ -41,13 +54,20 @@ DECLARE
   profile_owner_user_id TEXT;
   profile_intent TEXT;
 BEGIN
+  IF NEW.identity_kind = 'user' THEN
+    IF NEW.business_profile_id IS NOT NULL OR NEW.verification_status <> 'not_required' THEN
+      RAISE EXCEPTION 'User profile accounts cannot carry a business identity';
+    END IF;
+    RETURN NEW;
+  END IF;
+
   SELECT user_id, user_intent::text
     INTO profile_owner_user_id, profile_intent
     FROM user_profiles
    WHERE id = NEW.business_profile_id;
 
   IF NOT FOUND OR profile_intent <> 'business' THEN
-    RAISE EXCEPTION 'Profile accounts require a TradeScout business profile';
+    RAISE EXCEPTION 'This profile account requires a TradeScout business profile';
   END IF;
 
   IF profile_owner_user_id <> NEW.owner_user_id THEN
@@ -58,14 +78,14 @@ BEGIN
 END;
 $$;
 
-DROP TRIGGER IF EXISTS profile_business_accounts_identity_trigger
-  ON profile_business_accounts;
+DROP TRIGGER IF EXISTS profile_accounts_identity_trigger
+  ON profile_accounts;
 
-CREATE TRIGGER profile_business_accounts_identity_trigger
-BEFORE INSERT OR UPDATE OF business_profile_id, owner_user_id
-ON profile_business_accounts
+CREATE TRIGGER profile_accounts_identity_trigger
+BEFORE INSERT OR UPDATE OF identity_kind, business_profile_id, owner_user_id, verification_status
+ON profile_accounts
 FOR EACH ROW
-EXECUTE FUNCTION enforce_profile_business_account_identity();
+EXECUTE FUNCTION enforce_profile_account_identity();
 `;
 
 let ensurePromise: Promise<void> | null = null;
@@ -89,6 +109,7 @@ type ProfileAccountTarget = {
   profileName: string;
   businessId: string | null;
   contentBlocks: unknown;
+  profilePriorityConfig: unknown;
 };
 
 export type ViewerBusinessProfile = Readonly<{
@@ -101,10 +122,12 @@ export type ProfileAccountRecord = Readonly<{
   id: string;
   profileSlug: string;
   profileName: string;
-  businessProfileId: string;
-  businessName: string;
+  identityKind: "user" | "business";
+  businessProfileId: string | null;
+  businessName: string | null;
+  priorityKey: string;
   status: "active" | "suspended" | "closed";
-  verificationStatus: "pending" | "approved" | "rejected";
+  verificationStatus: "not_required" | "pending" | "approved" | "rejected";
   resumePath: string;
   lastSeenAt: string | null;
   bidRockIncluded: boolean;
@@ -134,7 +157,7 @@ function normalizeProfilePath(value: unknown, fallback: string): string {
   return path.slice(0, 500);
 }
 
-function normalizeVerificationStatus(
+function normalizeBusinessVerificationStatus(
   value: unknown
 ): ViewerBusinessProfile["verificationStatus"] {
   const status = String(value || "")
@@ -143,6 +166,18 @@ function normalizeVerificationStatus(
   if (status === "approved") return "approved";
   if (status === "rejected") return "rejected";
   return "pending";
+}
+
+function normalizeAccountVerificationStatus(
+  value: unknown
+): ProfileAccountRecord["verificationStatus"] {
+  const status = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (status === "approved") return "approved";
+  if (status === "rejected") return "rejected";
+  if (status === "pending") return "pending";
+  return "not_required";
 }
 
 async function loadProfileAccountTarget(
@@ -156,7 +191,8 @@ async function loadProfileAccountTarget(
             p.slug AS profile_slug,
             p.display_name AS profile_name,
             p.business_id,
-            p.content_blocks
+            p.content_blocks,
+            p.seo_meta -> 'profileAccount' AS profile_priority_config
        FROM profiles p
       WHERE p.slug = $1
         AND p.status = 'published'
@@ -171,6 +207,7 @@ async function loadProfileAccountTarget(
     profileName: String(row.profile_name || row.profile_slug),
     businessId: row.business_id ? String(row.business_id) : null,
     contentBlocks: row.content_blocks,
+    profilePriorityConfig: row.profile_priority_config,
   };
 }
 
@@ -179,6 +216,7 @@ function policyForTarget(target: ProfileAccountTarget): ProfileAccountPolicy {
     profileSlug: target.profileSlug,
     profileName: target.profileName,
     contentBlocks: target.contentBlocks,
+    profilePriorityConfig: target.profilePriorityConfig,
   });
 }
 
@@ -206,24 +244,36 @@ async function loadViewerBusinessProfile(
   return Object.freeze({
     id: String(row.id),
     name: String(row.display_name || "TradeScout business"),
-    verificationStatus: normalizeVerificationStatus(row.verification_status),
+    verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
   });
 }
 
 function toAccountRecord(args: {
   target: ProfileAccountTarget;
   policy: ProfileAccountPolicy;
-  viewerBusiness: ViewerBusinessProfile;
+  viewerBusiness: ViewerBusinessProfile | null;
   row: any;
 }): ProfileAccountRecord {
+  const identityKind = String(args.row.identity_kind || "user") === "business" ? "business" : "user";
+  const businessProfileId = args.row.business_profile_id
+    ? String(args.row.business_profile_id)
+    : null;
+  const businessName =
+    identityKind === "business" && args.viewerBusiness?.id === businessProfileId
+      ? args.viewerBusiness.name
+      : args.row.business_name
+        ? String(args.row.business_name)
+        : null;
   return Object.freeze({
     id: String(args.row.id),
     profileSlug: args.target.profileSlug,
     profileName: args.target.profileName,
-    businessProfileId: args.viewerBusiness.id,
-    businessName: args.viewerBusiness.name,
+    identityKind,
+    businessProfileId,
+    businessName,
+    priorityKey: String(args.row.priority_key || args.policy.priorityKey),
     status: String(args.row.status || "active") as ProfileAccountRecord["status"],
-    verificationStatus: normalizeVerificationStatus(args.row.verification_status),
+    verificationStatus: normalizeAccountVerificationStatus(args.row.verification_status),
     resumePath: normalizeProfilePath(
       args.row.resume_path,
       buildProfileAccountReturnPath(args.target.profileSlug)
@@ -248,40 +298,38 @@ export async function getProfileAccountState(args: {
     return Object.freeze({
       policy,
       viewerBusiness: null,
-      requiresBusinessSetup: true,
+      requiresBusinessSetup: policy.requiredIdentity === "business",
       account: null,
     });
   }
 
-  const viewerBusiness = await loadViewerBusinessProfile(userId);
-  if (!viewerBusiness) {
-    return Object.freeze({
-      policy,
-      viewerBusiness: null,
-      requiresBusinessSetup: true,
-      account: null,
-    });
-  }
-
+  const viewerBusiness =
+    policy.requiredIdentity === "business" ? await loadViewerBusinessProfile(userId) : null;
   const result = await pool.query(
-    `UPDATE profile_business_accounts
-        SET verification_status = $1,
+    `UPDATE profile_accounts
+        SET verification_status = CASE
+              WHEN identity_kind = 'business' THEN $1
+              ELSE 'not_required'
+            END,
             last_seen_at = NOW(),
             updated_at = NOW()
-      WHERE business_profile_id = $2
+      WHERE owner_user_id = $2
         AND target_profile_id = $3
       RETURNING id,
+                identity_kind,
+                business_profile_id,
+                priority_key,
                 status,
                 verification_status,
                 resume_path,
                 last_seen_at`,
-    [viewerBusiness.verificationStatus, viewerBusiness.id, target.profileId]
+    [viewerBusiness?.verificationStatus || "pending", userId, target.profileId]
   );
 
   return Object.freeze({
     policy,
     viewerBusiness,
-    requiresBusinessSetup: false,
+    requiresBusinessSetup: policy.requiredIdentity === "business" && !viewerBusiness,
     account: result.rows[0]
       ? toAccountRecord({
           target,
@@ -299,7 +347,7 @@ export async function ensureProfileAccount(args: {
   sourcePath?: string | null;
 }): Promise<{
   policy: ProfileAccountPolicy;
-  viewerBusiness: ViewerBusinessProfile;
+  viewerBusiness: ViewerBusinessProfile | null;
   requiresBusinessSetup: false;
   account: ProfileAccountRecord;
 }> {
@@ -313,27 +361,32 @@ export async function ensureProfileAccount(args: {
     const target = await loadProfileAccountTarget(args.profileSlug, client);
     if (!target) throw new Error("Profile account target not found");
     const policy = policyForTarget(target);
-    if (!policy.enabled || !policy.businessOnly) {
-      throw new Error("Business accounts are not available for this profile");
-    }
+    if (!policy.enabled) throw new Error("Accounts are not available for this profile");
 
     const userResult = await client.query(`SELECT id FROM users WHERE id = $1 LIMIT 1`, [userId]);
     if (!userResult.rows[0]) throw new Error("TradeScout identity not found");
 
-    const viewerBusiness = await loadViewerBusinessProfile(userId, client, true);
-    if (!viewerBusiness) {
+    const viewerBusiness =
+      policy.requiredIdentity === "business"
+        ? await loadViewerBusinessProfile(userId, client, true)
+        : null;
+    if (policy.requiredIdentity === "business" && !viewerBusiness) {
       throw new Error("A TradeScout business profile is required to create this account");
     }
 
+    const identityKind = policy.requiredIdentity;
+    const verificationStatus = viewerBusiness?.verificationStatus || "not_required";
     const resumePath = buildProfileAccountReturnPath(target.profileSlug);
     const sourcePath = normalizeProfilePath(args.sourcePath, `/u/${target.profileSlug}`);
 
     const result = await client.query(
-      `INSERT INTO profile_business_accounts (
-         business_profile_id,
+      `INSERT INTO profile_accounts (
          owner_user_id,
+         business_profile_id,
          target_profile_id,
          target_business_id,
+         identity_kind,
+         priority_key,
          status,
          verification_status,
          source_path,
@@ -342,16 +395,18 @@ export async function ensureProfileAccount(args: {
          last_seen_at,
          updated_at
        ) VALUES (
-         $1, $2, $3, $4, 'active', $5, $6, $7, NOW(), NOW(), NOW()
+         $1, $2, $3, $4, $5, $6, 'active', $7, $8, $9, NOW(), NOW(), NOW()
        )
-       ON CONFLICT (business_profile_id, target_profile_id) DO UPDATE SET
-         owner_user_id = EXCLUDED.owner_user_id,
+       ON CONFLICT (owner_user_id, target_profile_id) DO UPDATE SET
+         business_profile_id = EXCLUDED.business_profile_id,
          target_business_id = COALESCE(
-           profile_business_accounts.target_business_id,
+           profile_accounts.target_business_id,
            EXCLUDED.target_business_id
          ),
+         identity_kind = EXCLUDED.identity_kind,
+         priority_key = EXCLUDED.priority_key,
          status = CASE
-           WHEN profile_business_accounts.status = 'suspended' THEN 'suspended'
+           WHEN profile_accounts.status = 'suspended' THEN 'suspended'
            ELSE 'active'
          END,
          verification_status = EXCLUDED.verification_status,
@@ -360,16 +415,21 @@ export async function ensureProfileAccount(args: {
          last_seen_at = NOW(),
          updated_at = NOW()
        RETURNING id,
+                 identity_kind,
+                 business_profile_id,
+                 priority_key,
                  status,
                  verification_status,
                  resume_path,
                  last_seen_at`,
       [
-        viewerBusiness.id,
         userId,
+        viewerBusiness?.id || null,
         target.profileId,
         target.businessId,
-        viewerBusiness.verificationStatus,
+        identityKind,
+        policy.priorityKey,
+        verificationStatus,
         sourcePath,
         resumePath,
       ]
