@@ -9,6 +9,7 @@ import {
   Radio,
   RefreshCw,
   ShieldCheck,
+  type LucideIcon,
 } from "lucide-react";
 import {
   AdminEmptyState,
@@ -340,7 +341,7 @@ function SignalRow({
   available,
   attention = false,
 }: {
-  icon: typeof CheckCircle2;
+  icon: LucideIcon;
   label: string;
   value: string;
   available: boolean;
