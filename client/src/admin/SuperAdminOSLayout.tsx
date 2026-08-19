@@ -26,10 +26,13 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
     () => getAdminNavWorkspacesForRole(effectiveRole, superFlag),
     [effectiveRole, superFlag]
   );
+  const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
   const activeItem = React.useMemo(() => {
-    const matchedItem = findActiveAdminTool(location);
-    return matchedItem ? getAdminToolPresentation(matchedItem) : null;
-  }, [location]);
+    const matchedItem = findActiveAdminTool(pathname);
+    if (!matchedItem) return null;
+    if (matchedItem.path === "/admin" && pathname !== "/admin") return null;
+    return getAdminToolPresentation(matchedItem);
+  }, [pathname]);
   const activeSection =
     navSections.find((section) => section.items.some((item) => item.id === activeItem?.id))?.section ||
     "Operations";
