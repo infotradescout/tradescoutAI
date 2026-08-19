@@ -24,6 +24,11 @@ describe("compatibility redirect registry", () => {
       expect.arrayContaining([
         expect.objectContaining({ from: "/admin/contractors" }),
         expect.objectContaining({ from: "/admin/contractor-settings" }),
+        expect.objectContaining({
+          from: "/admin/partner-operations",
+          to: "/admin/tradepartners",
+          access: "admin",
+        }),
       ])
     );
   });
