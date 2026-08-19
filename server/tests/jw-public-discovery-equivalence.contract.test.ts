@@ -51,6 +51,9 @@ function extractPublicFactSet(html: string) {
       html
     ),
     hasContactCue: /ask JW Stone|ask about a material|Start a Request|Contact/i.test(html),
+    hasManagedPhone: /\(850\) 543-0748/.test(html),
+    hasManagedEmail: /contact@thetradescout\.com/i.test(html),
+    hasPrivateOwnerEmail: /wagner@jwstonellc\.com/i.test(html),
     hasEmptyRootOnly:
       /<div id="root">\s*<\/div>/i.test(html) && !/data-seo-jw-stone-marketplace/i.test(html),
     hasJsRequiredOnlyBody:
@@ -85,6 +88,9 @@ describe("JW Stone public discovery equivalence (Phase 3A)", () => {
     expect(facts.hasBusinessIdentity).toBe(true);
     expect(facts.hasInventoryCue).toBe(true);
     expect(facts.hasContactCue).toBe(true);
+    expect(facts.hasManagedPhone).toBe(true);
+    expect(facts.hasManagedEmail).toBe(true);
+    expect(facts.hasPrivateOwnerEmail).toBe(false);
     expect(facts.hasEmptyRootOnly).toBe(false);
     expect(facts.hasJsRequiredOnlyBody).toBe(false);
     expect(facts.jsonLdType).toBe("CollectionPage");
