@@ -88,7 +88,9 @@ export async function provisionTradeScoutManagedPartnerContacts(): Promise<void>
   if (process.env.NODE_ENV !== "production") return;
 
   const runtimeDefinitions = await getRuntimeManagedPartnerProfileDefinitions();
-  const managedDefinitions = runtimeDefinitions.filter((definition) => definition.contactMode === "tradescout_managed");
+  const managedDefinitions = runtimeDefinitions.filter(
+    (definition) => definition.contactMode === "tradescout_managed"
+  );
   const failures: string[] = [];
 
   for (const definition of managedDefinitions) {
@@ -98,12 +100,15 @@ export async function provisionTradeScoutManagedPartnerContacts(): Promise<void>
       const message = error instanceof Error ? error.message : String(error);
       failures.push(`${definition.slug}: ${message}`);
       console.error(
-`[profile-provisioning] ${definition.displayName} managed contact failed`,
+        `[profile-provisioning] ${definition.displayName} managed contact failed`,
         error
       );
     }
   }
 
+  // Contact management and service delivery are separate truths. This final
+  // exact-profile pass preserves the shared TradeScout inquiry destination
+  // while ISSA Build remains the verified business performing the work.
   try {
     await normalizeIssaBuildVerifiedFullServiceProfile();
   } catch (error) {
