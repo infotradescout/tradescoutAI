@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Profile data is a schema-owned JSON document. */
 import { eq } from "drizzle-orm";
-import {
-  MANAGED_PARTNER_PROFILE_DEFINITIONS,
-  type ManagedPartnerProfileDefinition,
-} from "@shared/managedPartnerProfileRegistry";
+import type { ManagedPartnerProfileDefinition } from "@shared/managedPartnerProfileRegistry";
 import { businesses, profiles } from "@shared/schema";
 import { TRADESCOUT_MANAGED_CONTACT } from "@shared/tradeScoutManagedContact";
 import { db } from "../db";
+import { getRuntimeManagedPartnerProfileDefinitions } from "./managedPartnerIntake";
 
 export const JW_STONE_MANAGED_CONTACT_SOURCE = "tradescout_managed_contact";
 export const TRADESCOUT_MANAGED_CONTACT_SOURCE = JW_STONE_MANAGED_CONTACT_SOURCE;
@@ -17,7 +15,7 @@ function recordValue(value: unknown): Record<string, any> {
     : {};
 }
 
-async function normalizeManagedPartnerContact(
+export async function normalizeManagedPartnerContact(
   definition: ManagedPartnerProfileDefinition
 ): Promise<void> {
   await db.transaction(async (tx) => {
@@ -78,14 +76,16 @@ async function normalizeManagedPartnerContact(
 }
 
 /**
- * Normalizes each managed profile in an independent transaction. One missing or
- * malformed partner cannot roll back the contact correction for every other
- * active partner arriving concurrently.
+ * Normalizes each managed profile in an independent transaction. Static
+ * partners and intake-queue partners promoted to live are resolved together.
+ * One missing or malformed partner cannot roll back contact corrections that
+ * already completed for other partners moving concurrently.
  */
 export async function provisionTradeScoutManagedPartnerContacts(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
 
-  const managedDefinitions = MANAGED_PARTNER_PROFILE_DEFINITIONS.filter(
+  const runtimeDefinitions = await getRuntimeManagedPartnerProfileDefinitions();
+  const managedDefinitions = runtimeDefinitions.filter(
     (definition) => definition.contactMode === "tradescout_managed"
   );
   const failures: string[] = [];
