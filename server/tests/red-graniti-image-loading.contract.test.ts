@@ -24,7 +24,7 @@ describe("R.E.D. Graniti profile image delivery", () => {
   it("caches the official homepage, business, quarry, and project imagery before Vite builds", () => {
     const sitemapBuild = read("scripts/generate-sitemap.mjs");
     const cacheScript = read("scripts/cache-red-graniti-assets.mjs");
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
     expect(sitemapBuild).toContain("import './cache-red-graniti-assets.mjs';");
     expect(cacheScript).toContain(
@@ -45,7 +45,7 @@ describe("R.E.D. Graniti profile image delivery", () => {
       "project-mansion-dubai.svg",
     ]) {
       expect(cacheScript).toContain(outputFile);
-      expect(theme).toContain(outputFile);
+      expect(profile).toContain(outputFile);
     }
 
     expect(cacheScript).toContain("https://www.redgraniti.com/wp-content/uploads/");
