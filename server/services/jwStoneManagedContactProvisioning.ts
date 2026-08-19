@@ -38,9 +38,7 @@ export async function normalizeManagedPartnerContact(
       throw new Error(`${definition.displayName} profile is linked to a different business`);
     }
     if (String(profile.ownerUserId || "") !== String(business.ownerUserId || "")) {
-      throw new Error(
-        `${definition.displayName} business and profile ownership records disagree`
-      );
+      throw new Error(`${definition.displayName} business and profile ownership records disagree`);
     }
     if (business.status !== "active" || profile.status !== "published") {
       throw new Error(`${definition.displayName} must remain active and published`);
