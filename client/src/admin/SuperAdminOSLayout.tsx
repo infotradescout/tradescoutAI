@@ -48,7 +48,7 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
     });
   };
 
-  const focusToolSearch = () => {
+  const focusToolSearch = React.useCallback(() => {
     if (typeof window === "undefined") return;
     if (!window.matchMedia("(min-width: 1024px)").matches) {
       setMobileNavOpen(true);
@@ -56,7 +56,20 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
       return;
     }
     window.dispatchEvent(new Event("admin:focus-tool-search"));
-  };
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      event.preventDefault();
+      focusToolSearch();
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [focusToolSearch]);
 
   return (
     <div className="ts-admin-shell min-h-full bg-[#08090a] text-zinc-100">
