@@ -14,7 +14,7 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("concurrent managed partner profile operations", () => {
-  it("tracks every current managed or temporarily stewarded partner in one registry", () => {
+  it("keeps the five established profiles in the permanent registry", () => {
     expect(MANAGED_PARTNER_PROFILE_DEFINITIONS).toHaveLength(5);
     expect(new Set(MANAGED_PARTNER_PROFILE_DEFINITIONS.map((item) => item.slug)).size).toBe(5);
     expect(MANAGED_PARTNER_PROFILE_DEFINITIONS.map((item) => item.slug)).toEqual([
@@ -67,15 +67,19 @@ describe("concurrent managed partner profile operations", () => {
       contactMode: "pending_owner_contact",
       exposureMode: "direct_only",
       requestMode: "pending",
+      expectedPrimaryCta: "Start a Request",
     });
   });
 
-  it("normalizes managed contacts only after the current profile provisioners finish", () => {
+  it("normalizes permanent and intake-promoted contacts after profile provisioning", () => {
     const contactProvisioner = read("server/services/jwStoneManagedContactProvisioning.ts");
     const bootstrap = read("server/services/steelHomePackagesProfileProvisioning.ts");
 
     expect(contactProvisioner).toContain(
-      "MANAGED_PARTNER_PROFILE_DEFINITIONS.filter"
+      'import { getRuntimeManagedPartnerProfileDefinitions } from "./managedPartnerIntake"'
+    );
+    expect(contactProvisioner).toContain(
+      "const runtimeDefinitions = await getRuntimeManagedPartnerProfileDefinitions()"
     );
     expect(contactProvisioner).toContain('definition.contactMode === "tradescout_managed"');
     expect(contactProvisioner).toContain("normalizeManagedPartnerContact(definition)");
@@ -93,8 +97,9 @@ describe("concurrent managed partner profile operations", () => {
     expect(bootstrap).toContain("This must remain the final pass");
   });
 
-  it("audits contact, ownership, discovery, publication, request recipient, and CTA truth", () => {
-    const health = read("server/services/managedPartnerProfileHealth.ts");
+  it("extends the live health board with intake-promoted profile definitions", () => {
+    const staticHealth = read("server/services/managedPartnerProfileHealth.ts");
+    const runtimeHealth = read("server/services/runtimeManagedPartnerProfileHealth.ts");
 
     for (const code of [
       "business_missing",
@@ -113,39 +118,53 @@ describe("concurrent managed partner profile operations", () => {
       "legacy_direct_connect_copy",
       "request_recipient_unavailable",
     ]) {
-      expect(health).toContain(code);
+      expect(`${staticHealth}\n${runtimeHealth}`).toContain(code);
     }
 
-    expect(health).toContain("hasVerifiedTradeScoutAdminCustody");
-    expect(health).toContain("resolveStatus(issues)");
-    expect(health).toContain("ready: items.filter");
-    expect(health).toContain("attention: items.filter");
-    expect(health).toContain("blocked: items.filter");
+    expect(runtimeHealth).toContain("getRuntimeManagedPartnerProfileDefinitions");
+    expect(runtimeHealth).toContain("getManagedPartnerProfileHealth()");
+    expect(runtimeHealth).toContain("dynamicDefinitions");
+    expect(runtimeHealth).toContain("auditRuntimeDefinition");
+    expect(runtimeHealth).toContain("hasVerifiedTradeScoutAdminCustody");
+    expect(runtimeHealth).toContain("ready: items.filter");
+    expect(runtimeHealth).toContain("attention: items.filter");
+    expect(runtimeHealth).toContain("blocked: items.filter");
   });
 
-  it("exposes the live audit inside the existing TradePartner operations portal", () => {
+  it("exposes intake and live health inside the existing TradePartner operations portal", () => {
     const route = read("server/routes/professional-partnerships.ts");
     const portal = read("client/src/pages/admin-tradepartner-ops.tsx");
-    const board = read("client/src/pages/admin-managed-partner-profiles.tsx");
+    const healthBoard = read("client/src/pages/admin-managed-partner-profiles.tsx");
+    const intakeBoard = read("client/src/pages/admin-managed-partner-intakes.tsx");
 
     expect(route).toContain('"/api/admin/managed-partners"');
+    expect(route).toContain("getRuntimeManagedPartnerProfileHealth");
+    expect(route).toContain('"/api/admin/managed-partner-intakes"');
+    expect(route).toContain('"/api/admin/managed-partner-intakes/:id"');
+    expect(route).toContain("createManagedPartnerIntake");
+    expect(route).toContain("updateManagedPartnerIntake");
     expect(route).toContain("isAuthenticated");
     expect(route).toContain("requireAdmin");
-    expect(route).toContain("getManagedPartnerProfileHealth");
     expect(route).toContain('res.setHeader("Cache-Control", "no-store")');
 
     expect(portal).toContain(
-      'import AdminManagedPartnerProfilesPage from "@/pages/admin-managed-partner-profiles"'
+      'import AdminManagedPartnerIntakesPage from "@/pages/admin-managed-partner-intakes"'
     );
-    expect(portal).toContain('defaultValue="managed-profiles"');
-    expect(portal).toContain('value="managed-profiles"');
+    expect(portal).toContain('defaultValue="partner-intake"');
+    expect(portal).toContain('value="partner-intake"');
+    expect(portal).toContain("<AdminManagedPartnerIntakesPage />");
     expect(portal).toContain("<AdminManagedPartnerProfilesPage />");
 
-    expect(board).toContain('queryKey: ["/api/admin/managed-partners"]');
-    expect(board).toContain("refetchInterval: 60_000");
-    expect(board).toContain('data-testid="managed-partner-profile-ops"');
-    expect(board).toContain("Open live profile");
-    expect(board).toContain("Requests → {item.requestRecipientSlug}");
-    expect(board).toContain("No operating gaps found.");
+    expect(intakeBoard).toContain('queryKey: ["/api/admin/managed-partner-intakes"]');
+    expect(intakeBoard).toContain("refetchInterval: 30_000");
+    expect(intakeBoard).toContain('data-testid="managed-partner-intake-queue"');
+    expect(intakeBoard).toContain("Add partner");
+    expect(intakeBoard).toContain("Edit intake");
+    expect(intakeBoard).toContain("Open live profile");
+
+    expect(healthBoard).toContain('queryKey: ["/api/admin/managed-partners"]');
+    expect(healthBoard).toContain("refetchInterval: 60_000");
+    expect(healthBoard).toContain('data-testid="managed-partner-profile-ops"');
+    expect(healthBoard).toContain("Requests → {item.requestRecipientSlug}");
   });
 });
