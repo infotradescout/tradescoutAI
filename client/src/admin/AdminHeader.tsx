@@ -57,7 +57,7 @@ export function AdminHeader({
 
       <a
         href="/admin/live-stream"
-        className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-white/60 transition hover:border-cyan-400/25 hover:bg-cyan-400/8 hover:text-cyan-100"
+        className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-semibold text-white/60 transition hover:border-cyan-400/25 hover:bg-cyan-400/10 hover:text-cyan-100"
       >
         <Activity className="h-4 w-4" />
         <span className="hidden sm:inline">System status</span>
