@@ -1,6 +1,6 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Briefcase, Megaphone, ShieldCheck, UserRoundPlus } from "lucide-react";
+import { AdminWorkspace, AdminWorkspaceSubnav } from "@/admin/AdminWorkspace";
 import AdminManagedPartnerIntakesPage from "@/pages/admin-managed-partner-intakes";
 import AdminManagedPartnerProfilesPage from "@/pages/admin-managed-partner-profiles";
 import AdminPromotionsPage from "@/pages/admin-promotions";
@@ -8,54 +8,54 @@ import AdminTradePartnerCampaignsPage from "@/pages/admin-tradepartner-campaigns
 
 export default function AdminTradePartnerOpsPage() {
   return (
-    <div className="space-y-4">
-      <Card className="bg-tsCard/95 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-ts-orange" />
-            TradePartners and TradeDeals Portal
-          </CardTitle>
-          <CardDescription className="text-white/70">
-            Unified control surface for incoming partnerships, managed live profiles, promotions,
-            TradeDeals operations, and partner campaigns running at the same time.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs defaultValue="partner-intake" className="space-y-4">
-            <TabsList className="h-auto flex-wrap justify-start">
-              <TabsTrigger value="partner-intake" className="flex items-center gap-2">
-                <UserRoundPlus className="h-3 w-3" />
-                Partner Intake
-              </TabsTrigger>
-              <TabsTrigger value="managed-profiles" className="flex items-center gap-2">
-                <ShieldCheck className="h-3 w-3" />
-                Live Profiles
-              </TabsTrigger>
-              <TabsTrigger value="tradedeals" className="flex items-center gap-2">
-                <Briefcase className="h-3 w-3" />
-                TradeDeals and Promotions
-              </TabsTrigger>
-              <TabsTrigger value="campaigns" className="flex items-center gap-2">
-                <Megaphone className="h-3 w-3" />
-                TradePartner Campaigns
-              </TabsTrigger>
-            </TabsList>
+    <AdminWorkspace data-testid="admin-tradepartner-workspace">
+      <Tabs defaultValue="partner-intake" className="space-y-6">
+        <AdminWorkspaceSubnav>
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-0 bg-transparent p-0">
+            <TabsTrigger
+              value="partner-intake"
+              className="min-h-10 shrink-0 gap-2 rounded-lg border border-transparent px-3 text-white/55 data-[state=active]:border-orange-500/25 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-100"
+            >
+              <UserRoundPlus className="h-4 w-4" />
+              Partner Intake
+            </TabsTrigger>
+            <TabsTrigger
+              value="managed-profiles"
+              className="min-h-10 shrink-0 gap-2 rounded-lg border border-transparent px-3 text-white/55 data-[state=active]:border-orange-500/25 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-100"
+            >
+              <ShieldCheck className="h-4 w-4" />
+              Live Profiles
+            </TabsTrigger>
+            <TabsTrigger
+              value="tradedeals"
+              className="min-h-10 shrink-0 gap-2 rounded-lg border border-transparent px-3 text-white/55 data-[state=active]:border-orange-500/25 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-100"
+            >
+              <Briefcase className="h-4 w-4" />
+              TradeDeals
+            </TabsTrigger>
+            <TabsTrigger
+              value="campaigns"
+              className="min-h-10 shrink-0 gap-2 rounded-lg border border-transparent px-3 text-white/55 data-[state=active]:border-orange-500/25 data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-100"
+            >
+              <Megaphone className="h-4 w-4" />
+              Campaigns
+            </TabsTrigger>
+          </TabsList>
+        </AdminWorkspaceSubnav>
 
-            <TabsContent value="partner-intake">
-              <AdminManagedPartnerIntakesPage />
-            </TabsContent>
-            <TabsContent value="managed-profiles">
-              <AdminManagedPartnerProfilesPage />
-            </TabsContent>
-            <TabsContent value="tradedeals">
-              <AdminPromotionsPage />
-            </TabsContent>
-            <TabsContent value="campaigns">
-              <AdminTradePartnerCampaignsPage />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    </div>
+        <TabsContent value="partner-intake" className="m-0 outline-none">
+          <AdminManagedPartnerIntakesPage />
+        </TabsContent>
+        <TabsContent value="managed-profiles" className="m-0 outline-none">
+          <AdminManagedPartnerProfilesPage />
+        </TabsContent>
+        <TabsContent value="tradedeals" className="m-0 outline-none">
+          <AdminPromotionsPage />
+        </TabsContent>
+        <TabsContent value="campaigns" className="m-0 outline-none">
+          <AdminTradePartnerCampaignsPage />
+        </TabsContent>
+      </Tabs>
+    </AdminWorkspace>
   );
 }
