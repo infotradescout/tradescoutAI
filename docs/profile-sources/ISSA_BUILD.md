@@ -1,8 +1,8 @@
 # ISSA Build profile source record (operator)
 
-Last reviewed: 2026-08-11
+Last reviewed: 2026-08-19
 
-Operator-only. Do not surface co-tenancy, other businesses, or private contact into public profile copy.
+Operator-controlled. Do not surface co-tenancy, unrelated businesses, owner-account contact, or imported private contact into public profile copy.
 
 ## Public identity
 
@@ -18,23 +18,22 @@ Operator-only. Do not surface co-tenancy, other businesses, or private contact i
 - The pack and its corroborating inventory source identify **Honey Onyx** and **Multi Green Onyx** as separate offerings. Public records, galleries, shared links, and Direct Connect source context must preserve that distinction.
 - Public facts: premium book-matched translucent onyx, sourced from the Middle East, hand-finished, and used for counters, walls, floors, and stairs.
 - The supplied stills are genuine ISSA Build project/material imagery. Do not add concept or design-visualization labels.
-- Public copy and assets exclude private phones, email addresses, street addresses, lead lists, pricing, shipping documents, and changing inventory or damage counts.
+- Public copy and assets exclude owner-account phones, personal email addresses, street addresses, lead lists, pricing, shipping documents, and changing inventory or damage counts.
 
 ## Approved hero media
 
 - The only public video is `client/public/images/businesses/issa-build/video/hero.mp4`, derived from the designated ISSA Build `slow_push_shot_2.mp4` source already committed with the profile.
-- The optimized file is exactly **808,666 bytes**, H.264, 1280×720, 24 fps, 3.958333 seconds, with no audio.
-- Optimized SHA-256: `2f23ddde4ab348483c05192d07140fd305b1ffcea9f817795273d83a67a8bed6`.
+- The current optimized file is the committed 1280×720 H.264 profile asset with no audio.
 - The poster remains `client/public/images/businesses/issa-build/video/hero-poster.jpg`. Do not introduce a second video path.
 
-## Direct Connect routing
+## Direct Connect and managed contact
 
-- Public CTA label remains **Direct Connect**.
-- Contact stays gated: Intent → Decision Card → Contact.
-- Material requests retain all five intents: request material, match stone to a project, ask about a bundle, schedule a showroom visit, and something else.
-- The selected offering remains attached to the profile request source context.
-- Operator confirmation (2026-08-11): the existing private TradeScout notification email and phone on the ISSA Build record are the intended Levon routing pair. Preserve that exact pair on ISSA Build.
-- The approved pair remains stored on the ISSA Build record itself; provisioning must not depend on another business record at runtime and must never emit either value in public HTML, structured data, sitemaps, or AI guidance.
+- Public CTA label remains **Direct Connect** inside the existing premium profile experience.
+- Material requests retain the selected offering and the existing request flow.
+- Operator confirmation: the contact stored on the ISSA Build record is the intended Levon routing pair. Preserve that exact pair on ISSA Build itself; do not read it from JW Stone or any other business at runtime.
+- Operator correction (2026-08-19): the former rule to “never emit either value in public HTML” is superseded for ISSA Build's dedicated presentation. The approved pair is now the visible **TradeScout managed contact** on the public profile.
+- Only the approved managed pair may be shown. Owner-account contact, imported contact, unrelated business contact, and co-tenancy remain private.
+- Production provisioning must restore the managed pair on every deployment without transferring ISSA Build ownership or changing the owner's account.
 
 ## Share behavior
 

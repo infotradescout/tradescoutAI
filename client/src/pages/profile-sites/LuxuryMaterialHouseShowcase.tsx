@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, MessageCircle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Mail, MessageCircle, Phone, X } from "lucide-react";
+import { ISSA_BUILD_BUSINESS_NAME } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_MANAGED_CONTACT } from "@shared/issaBuildManagedContact";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
 import type { DirectConnectTarget } from "./directConnectMaterial";
 import { SafeProfileImg } from "./safeProfileImage";
@@ -88,6 +90,10 @@ export default function LuxuryMaterialHouseShowcase({
   const deepLinkAppliedRef = useRef(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const sampleGroups = house.materialSamples?.groups || [];
+  const managedContact =
+    profileName.trim().toLowerCase() === ISSA_BUILD_BUSINESS_NAME.toLowerCase()
+      ? ISSA_BUILD_MANAGED_CONTACT
+      : null;
 
   useEffect(() => {
     if (!initialProductSlug) return;
@@ -476,6 +482,40 @@ export default function LuxuryMaterialHouseShowcase({
             <p className="mt-4 max-w-xl text-xs leading-5 text-[var(--profile-luxury-light-muted,#5c5348)]">
               {house.consultation.note}
             </p>
+          ) : null}
+
+          {managedContact ? (
+            <aside
+              className="mt-8 border-t border-[var(--profile-luxury-light-ink,#342316)]/20 pt-6"
+              data-testid="issa-build-managed-contact"
+              aria-label={managedContact.label}
+            >
+              <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--brand-accent,#d9a441)]">
+                {managedContact.label}
+              </p>
+              <h3 className="mt-2 font-editorial text-2xl font-medium">
+                {managedContact.heading}
+              </h3>
+              <p className="mt-2 max-w-xl text-sm font-light leading-6 text-[var(--profile-luxury-light-muted,#5c5348)]">
+                {managedContact.description}
+              </p>
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                <a
+                  href={`tel:${managedContact.tel}`}
+                  className="inline-flex min-h-12 items-center gap-3 border border-[var(--profile-luxury-light-ink,#342316)]/20 px-4 text-sm font-medium transition hover:border-[var(--brand-accent,#d9a441)]"
+                >
+                  <Phone className="h-4 w-4 text-[var(--brand-accent,#d9a441)]" />
+                  {managedContact.phone}
+                </a>
+                <a
+                  href={`mailto:${managedContact.email}`}
+                  className="inline-flex min-h-12 items-center gap-3 border border-[var(--profile-luxury-light-ink,#342316)]/20 px-4 text-sm font-medium transition hover:border-[var(--brand-accent,#d9a441)]"
+                >
+                  <Mail className="h-4 w-4 text-[var(--brand-accent,#d9a441)]" />
+                  {managedContact.email}
+                </a>
+              </div>
+            </aside>
           ) : null}
         </div>
       </section>
