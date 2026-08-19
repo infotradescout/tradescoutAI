@@ -38,7 +38,10 @@ describe("ISSA Build verified full-service profile", () => {
     }
 
     expect(normalizer).toContain(
-      "TradeScout manages the inquiry; ISSA Build handles material sourcing and availability, selection, custom fabrication, backlighting, installation, project-location review, and fulfillment"
+      "TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation"
+    );
+    expect(normalizer).toContain(
+      "ISSA Build also handles material sourcing and availability, project-location review, and fulfillment"
     );
   });
 
