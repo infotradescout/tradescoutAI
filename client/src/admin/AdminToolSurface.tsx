@@ -23,6 +23,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "commercial-directory",
   "procurement",
   "crm",
+  "finance",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
