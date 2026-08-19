@@ -100,7 +100,7 @@ describe("HomeID focused workspace product contract", () => {
     expect(propertyBlessingsSource).toContain("Private source-review pipeline");
     expect(propertyBlessingsSource).toContain("No signed partner claim");
     expect(propertyBlessingsSource).toContain("No pay-per-lead requirement");
-    expect(propertyBlessingsSource).toContain("Target only").or.toContain("unconfirmed");
+    expect(propertyBlessingsSource).toContain("unconfirmed");
   });
 
   it("keeps source references distinct from stored property files", () => {
