@@ -26,10 +26,12 @@ describe("ISSA Build verified full-service profile", () => {
     expect(normalizer).toContain("publicDiscoveryEnabled: true");
     for (const fact of [
       "Material selection",
+      "Material sourcing and availability",
       "Custom onyx fabrication",
       "Backlighting design and installation",
       "Custom onyx installation",
       "Residential and commercial projects",
+      "Project location and fulfillment",
       "Project consultation",
     ]) {
       expect(normalizer).toContain(fact);
@@ -37,6 +39,9 @@ describe("ISSA Build verified full-service profile", () => {
 
     expect(normalizer).toContain(
       "TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation"
+    );
+    expect(normalizer).toContain(
+      "ISSA Build also handles material sourcing and availability, project-location review, and fulfillment"
     );
   });
 
@@ -79,9 +84,11 @@ describe("ISSA Build verified full-service profile", () => {
     const sourceRecord = read("docs/profile-sources/ISSA_BUILD.md");
 
     expect(sourceRecord).toContain("100% verified");
+    expect(sourceRecord).toContain("Material sourcing and current-availability review");
     expect(sourceRecord).toContain("Custom onyx fabrication, including cutting and shaping");
     expect(sourceRecord).toContain("Backlighting design and installation");
     expect(sourceRecord).toContain("Custom onyx installation");
+    expect(sourceRecord).toContain("Project-location review and fulfillment");
     expect(sourceRecord).toContain("TradeScout manages the inquiry funnel");
     expect(sourceRecord).toContain("only an account-control state");
     expect(sourceRecord).toContain("without transferring ISSA Build ownership");
