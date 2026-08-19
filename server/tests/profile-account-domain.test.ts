@@ -6,22 +6,33 @@ import {
 } from "@shared/profileAccount";
 
 describe("profile account policy", () => {
-  it("uses one generic business-only account action on JW Stone", () => {
-    const policy = resolveProfileAccountPolicy({
+  it("uses the same generic business-only account action on every public profile", () => {
+    const jwPolicy = resolveProfileAccountPolicy({
       profileSlug: "jw-stone",
       profileName: "JW Stone",
       contentBlocks: [],
     });
+    const ordinaryPolicy = resolveProfileAccountPolicy({
+      profileSlug: "local-electrician",
+      profileName: "Local Electrician",
+      contentBlocks: [],
+    });
 
-    expect(policy.businessOnly).toBe(true);
-    expect(policy.includesBidRock).toBe(true);
-    expect(policy.heading).toBe("Create an account with JW Stone");
-    expect(policy.description).toContain("Businesses can create an account");
-    expect(policy).not.toHaveProperty("roles");
-    expect(policy).not.toHaveProperty("defaultRole");
+    for (const policy of [jwPolicy, ordinaryPolicy]) {
+      expect(policy.enabled).toBe(true);
+      expect(policy.businessOnly).toBe(true);
+      expect(policy.label).toBe("Account");
+      expect(policy.heading).toBe("Create an account");
+      expect(policy).not.toHaveProperty("roles");
+      expect(policy).not.toHaveProperty("defaultRole");
+    }
+    expect(jwPolicy.description).toContain("Businesses can create an account with JW Stone");
+    expect(ordinaryPolicy.description).toContain(
+      "Businesses can create an account with Local Electrician"
+    );
   });
 
-  it("detects stone-profile BidRock inclusion without role selection", () => {
+  it("detects stone-profile BidRock inclusion without changing the account action", () => {
     expect(
       profileAccountIncludesBidRock({
         profileSlug: "future-stone-yard",
