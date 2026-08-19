@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { AdminTool } from "./adminTools";
 import "./admin-os-v2.css";
 
-const NATIVE_ADMIN_V2_TOOLS = new Set([
+export const NATIVE_ADMIN_V2_TOOL_IDS = [
   "overview",
   "users",
   "tradepartner-ops",
@@ -24,7 +24,9 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "procurement",
   "crm",
   "finance",
-]);
+] as const;
+
+const NATIVE_ADMIN_V2_TOOLS = new Set<string>(NATIVE_ADMIN_V2_TOOL_IDS);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
   return NATIVE_ADMIN_V2_TOOLS.has(toolId);
