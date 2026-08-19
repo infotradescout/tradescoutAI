@@ -20,8 +20,8 @@ import {
 } from "./AdminWorkspace";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
+import { getAdminNavWorkspacesForRole } from "./adminNavWorkspaces";
 import {
-  getAdminNavSectionsForRole,
   getAdminToolDescription,
   type AdminRole,
   type AdminTool,
@@ -80,7 +80,7 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
   const canReadSignals =
     isSuperAdmin || role === "owner" || role === "super_admin" || role === "ops_admin";
   const sections = useMemo(
-    () => getAdminNavSectionsForRole(role, isSuperAdmin),
+    () => getAdminNavWorkspacesForRole(role, isSuperAdmin),
     [isSuperAdmin, role]
   );
   const tools = useMemo<ToolEntry[]>(
