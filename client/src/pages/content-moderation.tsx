@@ -1,100 +1,134 @@
-import { memo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { memo, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Shield,
-  Flag,
-  Eye,
-  EyeOff,
-  Trash2,
-  CheckCircle2,
-  XCircle,
-  MessageSquare,
-  Users2,
   AlertTriangle,
+  CheckCircle2,
+  Clock,
+  EyeOff,
+  Flag,
+  RefreshCw,
+  Shield,
+  Trash2,
+  UserX,
+  XCircle,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminWorkspace,
+  AdminWorkspaceSubnav,
+} from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { Page, Section } from "@/components/layout/PagePrimitives";
+
+type FlaggedItem = {
+  id: string;
+  targetId: string;
+  targetType: string;
+  flagCount: number;
+  [key: string]: unknown;
+};
+
+type ModerationStats = {
+  flaggedContentCount?: number;
+  hiddenContentCount?: number;
+  totalFlags?: number;
+};
+
+type RecentAction = {
+  id: string;
+  targetType?: string;
+  targetId?: string;
+  flagCount?: number;
+  isHidden?: boolean;
+  updatedAt?: string;
+};
+
+type KickQueueReport = {
+  id: string;
+  contentId?: string;
+  totalVotes?: number;
+  status?: string;
+  updatedAt?: string;
+  additionalContext?: Record<string, unknown> | null;
+};
+
+type KickDecision = "dismiss" | "warning" | "suspend" | "recommend_ban";
+
+function readable(value: unknown): string {
+  const text = String(value || "").trim();
+  return text ? text.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "Not recorded";
+}
+
+function formatDate(value: unknown): string {
+  if (!value) return "Unknown time";
+  const date = new Date(value as string | number | Date);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString() : "Invalid time";
+}
+
+function normalizeArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function roleTokens(user: unknown): string[] {
+  const source = user && typeof user === "object" ? (user as Record<string, unknown>) : {};
+  const tokens: string[] = [];
+  const add = (value: unknown) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized) return;
+    tokens.push(normalized === "owner" || normalized === "head_admin" ? "super_admin" : normalized);
+  };
+  add(source.role);
+  add(source.activeRole);
+  if (Array.isArray(source.roles)) source.roles.forEach(add);
+  return Array.from(new Set(tokens));
+}
 
 const ContentModeration = memo(function ContentModeration() {
   const [activeTab, setActiveTab] = useState("flagged");
+  const [moderationNotes, setModerationNotes] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const [moderationNotes, setModerationNotes] = useState<{ [key: string]: string }>({});
+  const roles = roleTokens(user);
+  const isOpsOrAbove = roles.includes("ops_admin") || roles.includes("super_admin");
 
-  const roleTokens = (() => {
-    const tokens: string[] = [];
-    const push = (v: any) => {
-      const r = String(v || "")
-        .trim()
-        .toLowerCase();
-      if (!r) return;
-      tokens.push(r === "owner" ? "super_admin" : r);
-    };
-    push((user as any)?.role);
-    push((user as any)?.activeRole);
-    const roles = Array.isArray((user as any)?.roles) ? (user as any).roles : [];
-    for (const r of roles) push(r);
-    return Array.from(new Set(tokens));
-  })();
-  const isOpsOrAbove = roleTokens.includes("ops_admin") || roleTokens.includes("super_admin");
-
-  // Fetch flagged content
-  const { data: flaggedItems = [], isLoading: flaggedLoading } = useQuery({
+  const flaggedQuery = useQuery<FlaggedItem[]>({
     queryKey: ["/api/admin/moderation/flagged"],
-    queryFn: async () => {
-      try {
-        return await apiRequest("GET", "/api/admin/moderation/flagged");
-      } catch {
-        return [];
-      }
-    },
+    queryFn: async () => normalizeArray<FlaggedItem>(await apiRequest("GET", "/api/admin/moderation/flagged")),
   });
-
-  // Fetch moderation stats
-  const { data: stats = {} } = useQuery({
+  const statsQuery = useQuery<ModerationStats>({
     queryKey: ["/api/admin/moderation/reports"],
     queryFn: async () => {
-      try {
-        return await apiRequest("GET", "/api/admin/moderation/reports");
-      } catch {
-        return {};
-      }
+      const response = await apiRequest("GET", "/api/admin/moderation/reports");
+      return response && typeof response === "object" ? (response as ModerationStats) : {};
     },
   });
-
-  // Fetch recent moderation actions (removed/hidden)
-  const { data: recentActions = [] } = useQuery({
+  const actionsQuery = useQuery<RecentAction[]>({
     queryKey: ["/api/admin/moderation/recent-actions"],
-    queryFn: async () => {
-      try {
-        return await apiRequest("GET", "/api/admin/moderation/recent-actions");
-      } catch {
-        return [];
-      }
-    },
+    queryFn: async () => normalizeArray<RecentAction>(await apiRequest("GET", "/api/admin/moderation/recent-actions")),
+  });
+  const kickQueueQuery = useQuery<KickQueueReport[]>({
+    queryKey: ["/api/admin/moderation/kick-queue"],
+    queryFn: async () => normalizeArray<KickQueueReport>(await apiRequest("GET", "/api/admin/moderation/kick-queue")),
   });
 
-  // Fetch community kick-vote queue (staff review)
-  const { data: kickQueue = [], isLoading: kickQueueLoading } = useQuery({
-    queryKey: ["/api/admin/moderation/kick-queue"],
-    queryFn: async () => {
-      try {
-        return await apiRequest("GET", "/api/admin/moderation/kick-queue");
-      } catch {
-        return [];
-      }
-    },
-  });
+  const invalidateModeration = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/flagged"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/reports"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/recent-actions"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] }),
+    ]);
+  };
 
   const staffDecisionMutation = useMutation({
     mutationFn: async ({
@@ -103,72 +137,65 @@ const ContentModeration = memo(function ContentModeration() {
       notes,
     }: {
       reportId: string;
-      decision: string;
+      decision: KickDecision;
       notes?: string;
-    }) => {
-      return await apiRequest("POST", `/api/admin/moderation/kick-queue/${reportId}/decision`, {
+    }) =>
+      apiRequest("POST", `/api/admin/moderation/kick-queue/${reportId}/decision`, {
         decision,
         notes,
+      }),
+    onSuccess: async (_response, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] });
+      toast({
+        title: "Community escalation updated",
+        description: `Decision saved as ${readable(variables.decision)}.`,
       });
     },
-    onSuccess: () => {
-      toast({ title: "Decision saved", description: "Updated staff review decision." });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] });
-    },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
-        title: "Decision failed",
-        description: formatUserFacingErrorMessage(error, "Failed to save decision."),
+        title: "Community escalation was not updated",
+        description: formatUserFacingErrorMessage(error, "Failed to save the moderation decision."),
         variant: "destructive",
       });
     },
   });
 
   const opsBanMutation = useMutation({
-    mutationFn: async ({ reportId, notes }: { reportId: string; notes?: string }) => {
-      return await apiRequest("POST", `/api/admin/moderation/kick-queue/${reportId}/ops-ban`, {
+    mutationFn: async ({ reportId, notes }: { reportId: string; notes?: string }) =>
+      apiRequest("POST", `/api/admin/moderation/kick-queue/${reportId}/ops-ban`, {
         notes,
-      });
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] });
+      toast({ title: "Ops ban applied", description: "The durable ban and suspension action completed." });
     },
-    onSuccess: () => {
-      toast({ title: "Ops action complete", description: "User action applied." });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/kick-queue"] });
-    },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
-        title: "Ops action failed",
-        description: formatUserFacingErrorMessage(error, "Failed to apply ops action."),
+        title: "Ops ban was not applied",
+        description: formatUserFacingErrorMessage(error, "Failed to apply the ops action."),
         variant: "destructive",
       });
     },
   });
 
-  // Approve content mutation
   const approveMutation = useMutation({
-    mutationFn: async (contentId: string) => {
-      return await apiRequest("POST", `/api/admin/moderation/approve/${contentId}`, {
+    mutationFn: async (contentId: string) =>
+      apiRequest("POST", `/api/admin/moderation/approve/${contentId}`, {
         targetType: "post",
-      });
+      }),
+    onSuccess: async () => {
+      await invalidateModeration();
+      toast({ title: "Content approved", description: "The flag was cleared without hiding the content." });
     },
-    onSuccess: () => {
+    onError: (error: unknown) => {
       toast({
-        title: "Content Approved",
-        description: "The flagged content has been approved.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/flagged"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/recent-actions"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: formatUserFacingErrorMessage(error, "Failed to approve content."),
+        title: "Content was not approved",
+        description: formatUserFacingErrorMessage(error, "Failed to approve the content."),
         variant: "destructive",
       });
     },
   });
 
-  // Remove content mutation
   const removeMutation = useMutation({
     mutationFn: async ({
       contentId,
@@ -177,399 +204,359 @@ const ContentModeration = memo(function ContentModeration() {
     }: {
       contentId: string;
       targetType: string;
-      reason?: string;
-    }) => {
-      return await apiRequest("POST", `/api/admin/moderation/remove/${contentId}`, {
+      reason: string;
+    }) =>
+      apiRequest("POST", `/api/admin/moderation/remove/${contentId}`, {
         targetType,
         reason,
-      });
-    },
-    onSuccess: () => {
+      }),
+    onSuccess: async () => {
+      await invalidateModeration();
       toast({
-        title: "Content Removed",
-        description: "The flagged content has been removed.",
+        title: "Content removed",
+        description: "The destructive action was applied and remains available in recent actions.",
         variant: "destructive",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/flagged"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/moderation/recent-actions"] });
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
-        title: "Error",
-        description: formatUserFacingErrorMessage(error, "Failed to remove content."),
+        title: "Content was not removed",
+        description: formatUserFacingErrorMessage(error, "Failed to remove the content."),
         variant: "destructive",
       });
     },
   });
 
-  const handleApproveContent = (contentId: string) => {
-    approveMutation.mutate(contentId);
-  };
+  const flaggedItems = flaggedQuery.data || [];
+  const recentActions = actionsQuery.data || [];
+  const kickQueue = kickQueueQuery.data || [];
+  const stats = statsQuery.data || {};
+  const totalKickVotes = useMemo(
+    () =>
+      kickQueue.reduce((sum, report) => {
+        const context = report.additionalContext || {};
+        const count = Number(context.kickVoteCount || report.totalVotes || 0);
+        return sum + (Number.isFinite(count) ? count : 0);
+      }, 0),
+    [kickQueue]
+  );
 
-  const handleRemoveContent = (item: any) => {
-    const contentId = String(item?.targetId || "");
-    const targetType = String(item?.targetType || "post");
-    const reason = (moderationNotes[item.id] || "").trim();
-
+  const removeContent = (item: FlaggedItem) => {
+    const contentId = String(item.targetId || "").trim();
+    const targetType = String(item.targetType || "post").trim() || "post";
+    const reason = String(moderationNotes[item.id] || "").trim();
     if (reason.length < 5) {
       toast({
-        title: "Reason required",
-        description: "Add a short moderation reason (at least 5 characters) before removal.",
+        title: "Removal reason required",
+        description: "Record at least five characters explaining the destructive action.",
         variant: "destructive",
       });
       return;
     }
-
-    const confirmed = window.confirm(
-      `Remove ${targetType} ${contentId}? This action is destructive and will be logged.`
-    );
-    if (!confirmed) return;
-
+    if (!window.confirm(`Remove ${targetType} ${contentId}? This action is destructive and logged.`)) {
+      return;
+    }
     removeMutation.mutate({ contentId, targetType, reason });
   };
 
+  const refreshAll = () => {
+    flaggedQuery.refetch();
+    statsQuery.refetch();
+    actionsQuery.refetch();
+    kickQueueQuery.refetch();
+  };
+  const anyFetching =
+    flaggedQuery.isFetching || statsQuery.isFetching || actionsQuery.isFetching || kickQueueQuery.isFetching;
+
   return (
-    <Page>
-      <Section
-        title={
-          <span className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Content Moderation
-          </span>
+    <AdminWorkspace data-testid="admin-moderation-v2">
+      <AdminSection
+        title="Moderation queues"
+        description="Review reported content, prior destructive actions, and community kick-vote escalations. Missing feeds remain visible as unavailable instead of being shown as zero."
+        className="pt-0"
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={refreshAll}
+            disabled={anyFetching}
+            className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${anyFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         }
-        subtitle="Monitor and moderate platform content to maintain community standards"
       >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Flagged content",
+              value: statsQuery.isError ? "—" : Number(stats.flaggedContentCount ?? flaggedItems.length),
+              detail: statsQuery.isError ? "Moderation summary unavailable" : "Content awaiting review",
+              tone: flaggedItems.length > 0 ? "warning" : "good",
+            },
+            {
+              label: "Hidden content",
+              value: statsQuery.isError ? "—" : Number(stats.hiddenContentCount ?? 0),
+              detail: statsQuery.isError ? "Moderation summary unavailable" : "Currently hidden by moderation state",
+            },
+            {
+              label: "Total flags",
+              value: statsQuery.isError ? "—" : Number(stats.totalFlags ?? 0),
+              detail: "Recorded flag events",
+            },
+            {
+              label: "Kick escalations",
+              value: kickQueueQuery.isError ? "—" : kickQueue.length,
+              detail: kickQueueQuery.isError ? "Escalation queue unavailable" : `${totalKickVotes} recorded votes`,
+              tone: kickQueue.length > 0 ? "warning" : "good",
+            },
+          ]}
+        />
+      </AdminSection>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-muted-foreground text-sm">Flagged Content</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {(stats as any).flaggedContentCount || 0}
-                  </p>
-                </div>
-                <Flag className="h-8 w-8 text-destructive" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-muted-foreground text-sm">Hidden Content</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {(stats as any).hiddenContentCount || 0}
-                  </p>
-                </div>
-                <Eye className="h-8 w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-muted-foreground text-sm">Total Flags</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {(stats as any).totalFlags || 0}
-                  </p>
-                </div>
-                <AlertTriangle className="h-8 w-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-muted-foreground text-sm">Status</p>
-                  <p className="text-2xl font-bold text-green-500">Active</p>
-                </div>
-                <CheckCircle2 className="h-8 w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Moderation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-muted">
-            <TabsTrigger value="flagged">Flagged Content ({flaggedItems.length})</TabsTrigger>
-            <TabsTrigger value="queue">Moderation Queue</TabsTrigger>
-            <TabsTrigger value="kick">
-              Kick Queue ({Array.isArray(kickQueue) ? kickQueue.length : 0})
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <AdminWorkspaceSubnav>
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0">
+            <TabsTrigger value="flagged" className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white">
+              Flagged content {flaggedItems.length ? `(${flaggedItems.length})` : ""}
+            </TabsTrigger>
+            <TabsTrigger value="actions" className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white">
+              Recent actions
+            </TabsTrigger>
+            <TabsTrigger value="kick" className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white">
+              Kick escalations {kickQueue.length ? `(${kickQueue.length})` : ""}
             </TabsTrigger>
           </TabsList>
+        </AdminWorkspaceSubnav>
 
-          {/* Flagged Content Tab */}
-          <TabsContent value="flagged" className="space-y-6">
-            {flaggedLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-                <p className="text-muted-foreground mt-2">Loading flagged content...</p>
-              </div>
-            ) : flaggedItems.length === 0 ? (
-              <Card className="bg-card border-border">
-                <CardContent className="p-8">
-                  <div className="text-center">
-                    <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <p className="text-foreground font-semibold">No Flagged Content</p>
-                    <p className="text-muted-foreground">
-                      All content has been reviewed and approved.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              flaggedItems.map((item: any) => (
-                <Card key={item.id} className="bg-card border-border">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="error">{item.flagCount} flags</Badge>
-                        <Badge variant="outline">{item.targetType}</Badge>
+        <TabsContent value="flagged" className="mt-0">
+          <AdminSection
+            title="Flagged content"
+            description="Approval clears the report. Removal requires a written reason and a second destructive confirmation."
+            className="pt-0"
+          >
+            {flaggedQuery.isLoading ? (
+              <QueueLoading label="Loading flagged content…" />
+            ) : flaggedQuery.isError ? (
+              <QueueUnavailable message="The flagged-content queue could not be loaded." />
+            ) : flaggedItems.length ? (
+              <AdminList>
+                {flaggedItems.map((item) => (
+                  <div key={item.id} className="grid gap-4 px-3 py-5 sm:px-4 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.65fr)]">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className="border-red-400/30 bg-red-400/10 text-red-100">
+                          <Flag className="mr-1 h-3 w-3" />
+                          {Number(item.flagCount || 0)} flags
+                        </Badge>
+                        <Badge className="border-white/15 bg-white/5 text-white/55">{readable(item.targetType)}</Badge>
+                        <span className="truncate font-mono text-xs text-white/30">{item.targetId}</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">ID: {item.targetId}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <p className="text-sm font-semibold text-foreground mb-2">Content:</p>
-                      <p className="text-sm text-muted-foreground p-3 bg-muted rounded">
-                        Content ID: {item.targetId} · Type: {item.targetType} · Flags:{" "}
-                        {item.flagCount}
+                      <p className="mt-4 text-sm leading-6 text-white/52">
+                        The moderation source returned the target identity and flag count. Open the public content separately when the target type supports it.
                       </p>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground mb-2">
-                        Moderation Notes:
-                      </p>
+                    <div className="space-y-3">
                       <Textarea
-                        placeholder="Add notes about this content..."
                         value={moderationNotes[item.id] || ""}
-                        onChange={(e) =>
-                          setModerationNotes((prev) => ({
-                            ...prev,
-                            [item.id]: e.target.value,
+                        onChange={(event) =>
+                          setModerationNotes((current) => ({
+                            ...current,
+                            [item.id]: event.target.value,
                           }))
                         }
-                        className="min-h-[100px]"
+                        placeholder="Reason required only for removal"
+                        className="min-h-24 border-white/10 bg-black/20 text-white"
                       />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleApproveContent(item.targetId)}
-                        disabled={approveMutation.isPending}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Approve Content
-                      </Button>
-                      <Button
-                        onClick={() => handleRemoveContent(item)}
-                        disabled={removeMutation.isPending}
-                        variant="destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Remove / Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-
-          {/* Queue Tab */}
-          <TabsContent value="queue">
-            <div className="space-y-6">
-              <Card className="bg-card border-border">
-                <CardHeader>
-                  <CardTitle className="text-foreground">Recent Destructive Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {Array.isArray(recentActions) && recentActions.length > 0 ? (
-                    <div className="space-y-3">
-                      {recentActions.map((action: any) => (
-                        <div
-                          key={action.id}
-                          className="p-3 rounded border border-border bg-muted/40 flex items-center justify-between gap-3"
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <Button
+                          type="button"
+                          onClick={() => approveMutation.mutate(String(item.targetId))}
+                          disabled={approveMutation.isPending || removeMutation.isPending}
+                          className="bg-emerald-400 text-black hover:bg-emerald-300"
                         >
-                          <div className="space-y-1">
-                            <p className="text-sm text-foreground font-medium">
-                              {action.targetType} · {action.targetId}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Flags: {action.flagCount || 0} · Hidden:{" "}
-                              {action.isHidden ? "Yes" : "No"}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {action.updatedAt
-                              ? new Date(action.updatedAt).toLocaleString()
-                              : "Unknown time"}
-                          </Badge>
-                        </div>
-                      ))}
+                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          Approve
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => removeContent(item)}
+                          disabled={approveMutation.isPending || removeMutation.isPending}
+                          className="border-red-300/25 bg-transparent text-red-100 hover:bg-red-400/10"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Remove
+                        </Button>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No recent destructive moderation actions.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card border-border">
-                <CardContent className="p-8">
-                  <div className="text-center">
-                    <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-foreground font-semibold">Moderation Queue</p>
-                    <p className="text-muted-foreground">
-                      System is monitoring platform activity in real-time.
-                    </p>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                ))}
+              </AdminList>
+            ) : (
+              <AdminEmptyState title="No flagged content" description="No content currently requires a moderation decision." />
+            )}
+          </AdminSection>
+        </TabsContent>
 
-          {/* Kick Queue Tab */}
-          <TabsContent value="kick" className="space-y-6">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="text-foreground">Community Kick-Vote Escalations</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {kickQueueLoading ? (
-                  <div className="text-sm text-muted-foreground">Loading kick queue...</div>
-                ) : !Array.isArray(kickQueue) || kickQueue.length === 0 ? (
-                  <div className="text-sm text-muted-foreground">No escalated kick votes.</div>
-                ) : (
-                  kickQueue.map((report: any) => {
-                    const reportId = String(report?.id || "");
-                    const targetUserId = String(report?.contentId || "");
-                    const ctx =
-                      report?.additionalContext && typeof report.additionalContext === "object"
-                        ? report.additionalContext
-                        : {};
-                    const voteCount = Number(ctx?.kickVoteCount || report?.totalVotes || 0);
-                    const notesKey = `kick:${reportId}`;
-                    return (
-                      <div
-                        key={reportId}
-                        className="rounded border border-border bg-muted/30 p-4 space-y-3"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="text-sm font-semibold text-foreground">
-                              User: <span className="font-mono">{targetUserId}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Votes: {voteCount} · Status: {String(report?.status || "")}
-                            </div>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            {report?.updatedAt ? new Date(report.updatedAt).toLocaleString() : "—"}
-                          </Badge>
+        <TabsContent value="actions" className="mt-0">
+          <AdminSection
+            title="Recent destructive actions"
+            description="A read-only history of content that was hidden or removed through moderation."
+            className="pt-0"
+          >
+            {actionsQuery.isLoading ? (
+              <QueueLoading label="Loading moderation actions…" />
+            ) : actionsQuery.isError ? (
+              <QueueUnavailable message="The recent-actions history could not be loaded." />
+            ) : recentActions.length ? (
+              <AdminList>
+                {recentActions.map((action) => (
+                  <div key={action.id} className="grid gap-3 px-3 py-4 sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center sm:px-4">
+                    <span className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${action.isHidden ? "bg-red-400/10 text-red-200" : "bg-white/[0.04] text-white/50"}`}>
+                      {action.isHidden ? <EyeOff className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-white">
+                        {readable(action.targetType)} · {action.targetId || "Unknown target"}
+                      </p>
+                      <p className="mt-1 text-xs text-white/35">
+                        {Number(action.flagCount || 0)} flags · Hidden: {action.isHidden ? "Yes" : "No"}
+                      </p>
+                    </div>
+                    <span className="text-xs text-white/35">{formatDate(action.updatedAt)}</span>
+                  </div>
+                ))}
+              </AdminList>
+            ) : (
+              <AdminEmptyState title="No recent destructive actions" description="No hidden or removed moderation actions were returned." />
+            )}
+          </AdminSection>
+        </TabsContent>
+
+        <TabsContent value="kick" className="mt-0">
+          <AdminSection
+            title="Community kick-vote escalations"
+            description="Staff decisions remain separate from the ops-only durable ban action."
+            className="pt-0"
+          >
+            {kickQueueQuery.isLoading ? (
+              <QueueLoading label="Loading kick escalations…" />
+            ) : kickQueueQuery.isError ? (
+              <QueueUnavailable message="The community escalation queue could not be loaded." />
+            ) : kickQueue.length ? (
+              <AdminList>
+                {kickQueue.map((report) => {
+                  const reportId = String(report.id || "");
+                  const targetUserId = String(report.contentId || "");
+                  const context = report.additionalContext || {};
+                  const voteCount = Number(context.kickVoteCount || report.totalVotes || 0);
+                  const notesKey = `kick:${reportId}`;
+                  const note = moderationNotes[notesKey] || "";
+                  return (
+                    <div key={reportId} className="grid gap-4 px-3 py-5 sm:px-4 xl:grid-cols-[minmax(0,0.72fr)_minmax(18rem,1.28fr)]">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <UserX className="h-4 w-4 shrink-0 text-orange-200" />
+                          <p className="truncate font-semibold text-white">User {targetUserId || "not recorded"}</p>
                         </div>
-
+                        <p className="mt-2 text-sm text-white/48">
+                          {Number.isFinite(voteCount) ? voteCount : 0} votes · {readable(report.status)}
+                        </p>
+                        <p className="mt-2 text-xs text-white/30">Updated {formatDate(report.updatedAt)}</p>
+                      </div>
+                      <div className="space-y-3">
                         <Textarea
-                          placeholder="Staff notes / decision rationale..."
-                          value={moderationNotes[notesKey] || ""}
-                          onChange={(e) =>
-                            setModerationNotes((prev) => ({ ...prev, [notesKey]: e.target.value }))
+                          value={note}
+                          onChange={(event) =>
+                            setModerationNotes((current) => ({
+                              ...current,
+                              [notesKey]: event.target.value,
+                            }))
                           }
-                          className="min-h-[90px]"
+                          placeholder="Staff notes and decision rationale"
+                          className="min-h-24 border-white/10 bg-black/20 text-white"
                         />
-
                         <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            disabled={staffDecisionMutation.isPending}
-                            onClick={() =>
-                              staffDecisionMutation.mutate({
-                                reportId,
-                                decision: "dismiss",
-                                notes: moderationNotes[notesKey] || "",
-                              })
-                            }
-                          >
-                            Dismiss
-                          </Button>
-                          <Button
-                            className="bg-yellow-600 hover:bg-yellow-700"
-                            disabled={staffDecisionMutation.isPending}
-                            onClick={() =>
-                              staffDecisionMutation.mutate({
-                                reportId,
-                                decision: "warning",
-                                notes: moderationNotes[notesKey] || "",
-                              })
-                            }
-                          >
-                            Warning
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            disabled={staffDecisionMutation.isPending}
-                            onClick={() =>
-                              staffDecisionMutation.mutate({
-                                reportId,
-                                decision: "suspend",
-                                notes: moderationNotes[notesKey] || "",
-                              })
-                            }
-                          >
-                            Suspend
-                          </Button>
-                          <Button
-                            className="bg-ts-orange text-black hover:bg-ts-orange-dark"
-                            disabled={staffDecisionMutation.isPending}
-                            onClick={() =>
-                              staffDecisionMutation.mutate({
-                                reportId,
-                                decision: "recommend_ban",
-                                notes: moderationNotes[notesKey] || "",
-                              })
-                            }
-                            title="Escalates to ops for final action"
-                          >
-                            Recommend Ban → Ops
-                          </Button>
+                          <DecisionButton label="Dismiss" onClick={() => staffDecisionMutation.mutate({ reportId, decision: "dismiss", notes: note })} disabled={staffDecisionMutation.isPending} />
+                          <DecisionButton label="Warning" onClick={() => staffDecisionMutation.mutate({ reportId, decision: "warning", notes: note })} disabled={staffDecisionMutation.isPending} tone="warning" />
+                          <DecisionButton label="Suspend" onClick={() => staffDecisionMutation.mutate({ reportId, decision: "suspend", notes: note })} disabled={staffDecisionMutation.isPending} tone="danger" />
+                          <DecisionButton label="Recommend ban" onClick={() => staffDecisionMutation.mutate({ reportId, decision: "recommend_ban", notes: note })} disabled={staffDecisionMutation.isPending} tone="orange" />
                           {isOpsOrAbove ? (
                             <Button
-                              className="bg-red-700 hover:bg-red-800 text-white"
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm(`Apply a durable ban and hard suspension to user ${targetUserId}?`)) {
+                                  opsBanMutation.mutate({ reportId, notes: note });
+                                }
+                              }}
                               disabled={opsBanMutation.isPending}
-                              onClick={() =>
-                                opsBanMutation.mutate({
-                                  reportId,
-                                  notes: moderationNotes[notesKey] || "",
-                                })
-                              }
-                              title="Ops-only: applies a durable ban marker + hard suspension"
+                              className="bg-red-600 text-white hover:bg-red-500"
                             >
-                              Ops Ban
+                              Ops ban
                             </Button>
                           ) : null}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-       </Section>
-    </Page>
+                    </div>
+                  );
+                })}
+              </AdminList>
+            ) : (
+              <AdminEmptyState title="No kick-vote escalations" description="No community kick vote currently requires staff review." />
+            )}
+          </AdminSection>
+        </TabsContent>
+      </Tabs>
+    </AdminWorkspace>
   );
 });
+
+function QueueLoading({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-44 items-center justify-center border-y border-white/10 text-sm text-white/45">
+      <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+      {label}
+    </div>
+  );
+}
+
+function QueueUnavailable({ message }: { message: string }) {
+  return (
+    <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+      {message}
+    </div>
+  );
+}
+
+function DecisionButton({
+  label,
+  onClick,
+  disabled,
+  tone = "neutral",
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  tone?: "neutral" | "warning" | "danger" | "orange";
+}) {
+  const className =
+    tone === "warning"
+      ? "border-amber-300/25 bg-transparent text-amber-100 hover:bg-amber-400/10"
+      : tone === "danger"
+        ? "border-red-300/25 bg-transparent text-red-100 hover:bg-red-400/10"
+        : tone === "orange"
+          ? "bg-orange-500 text-black hover:bg-orange-400"
+          : "border-white/12 bg-transparent text-white/65 hover:bg-white/[0.05]";
+  return (
+    <Button type="button" size="sm" variant={tone === "orange" ? "default" : "outline"} onClick={onClick} disabled={disabled} className={className}>
+      {tone === "danger" ? <XCircle className="mr-2 h-4 w-4" /> : tone === "orange" ? <Shield className="mr-2 h-4 w-4" /> : null}
+      {label}
+    </Button>
+  );
+}
+
 export default ContentModeration;
