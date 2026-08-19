@@ -82,7 +82,7 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(presentation).not.toContain("Pristine Plumbing");
   });
 
-  it("renders an action-first local-service profile instead of a score-first portfolio page", () => {
+  it("renders a compact business profile instead of a long campaign landing page", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const presentation = read("shared/localServiceProfile.ts");
@@ -91,38 +91,42 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(profileView).toContain('resolvedLocalServicePresentation.template === "local-service"');
     expect(profileView).toContain("<LocalServiceProfileTheme");
     expect(theme).toContain('data-testid="local-service-profile-theme"');
-
-    expect(theme).toContain("Choose how to start");
-    expect(theme).toContain('presentation.primaryActionLabel || "Start a Request"');
-    expect(theme).toContain('presentation.callActionLabel || "Call"');
-    expect(theme).toContain("presentation.directionsUrl");
-    expect(theme).toContain("presentation.websiteUrl");
+    expect(theme).toContain('data-profile-layout="compact-business-profile"');
+    expect(theme).toContain("{businessName}");
     expect(theme).toContain('id="services"');
     expect(theme).toContain('id="work"');
     expect(theme).toContain('id="company"');
-    expect(theme).toContain('id="verify"');
-    expect(theme).toContain("Start this request");
+    expect(theme).toContain('id="details"');
+    expect(theme).toContain("What do you need?");
+    expect(theme).toContain("Recent work");
+    expect(theme).toContain("grid-cols-[minmax(0,1fr)_340px]");
+    expect(theme).toContain("lg:sticky lg:top-24");
+    expect(theme).toContain('openProtectedContact("request", "mobile_bar")');
     expect(theme).toContain("snap-x snap-mandatory");
     expect(theme).toContain("publicRecommendations.length > 0");
     expect(theme).not.toContain("0 customer recommendations have been published");
-    expect(theme).not.toContain('data-testid="community-verification-card"');
-    expect(theme).toContain("<details");
-    expect(theme).toContain("Community Verification Score · {verificationScore}");
+    expect(theme).not.toContain("min-h-[680px]");
+    expect(theme).not.toContain("Choose how to start");
+    expect(theme).not.toContain("Current source decision");
+    expect(theme).not.toContain("One current record, not blended claims.");
+    expect(theme).not.toContain("final_cta");
+    expect(theme).not.toContain("presentation.sourceSummary");
 
     expect(presentation).toContain('primaryActionLabel: "Start a Request"');
     expect(presentation).toContain('callActionLabel: "Call LA Plumbing"');
     expect(presentation).toContain('directionsActionLabel: "Get Directions"');
     expect(presentation).toContain('websiteActionLabel: "Company Website"');
-    expect(presentation).toContain("Start with what needs to happen.");
-    expect(presentation).toContain("Financing through Hearth");
+    expect(presentation).toContain("Residential and commercial plumbing across southeast Louisiana.");
+    expect(presentation).toContain("Financing available");
     expect(presentation).toContain('financingProvider: "Hearth"');
     expect(presentation).toContain("13073 Hwy 190 West, Hammond, LA 70401");
     expect(presentation).toContain("Monday–Friday · 7:00am–4:00pm");
-    expect(presentation).toContain("legacy claims are intentionally excluded");
-    expect(presentation).not.toContain("48439 Fox Hollow");
-    expect(presentation).not.toContain('hoursLabel: "24/7');
-    expect(presentation).not.toContain("guaranteed 24/7 availability");
-    expect(presentation).toContain("rather than assuming 24/7 service");
+    expect(presentation).toContain("Call to confirm availability outside regular office hours.");
+    expect(presentation).not.toContain("Fox Hollow");
+    expect(presentation).not.toContain("24/7");
+    expect(presentation).not.toContain("legacy claims");
+    expect(presentation).not.toContain("sourceSummary");
+    expect(presentation).not.toContain("sourceCheckedAt");
 
     for (const asset of [
       "logo.jpg",
@@ -149,7 +153,7 @@ describe("LA Plumbing Solutions public profile contract", () => {
     }
   });
 
-  it("keeps calling protected while making the current address, website, and directions useful", () => {
+  it("keeps calling protected while making request, address, website, and directions useful", () => {
     const publicRoute = read("server/routes/profiles.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
@@ -165,8 +169,10 @@ describe("LA Plumbing Solutions public profile contract", () => {
 
     expect(theme).not.toContain("tel:");
     expect(theme).not.toContain("mailto:");
-    expect(theme).toContain('openProtectedContact("call", "hero")');
-    expect(theme).toContain('openProtectedContact("request", "hero")');
+    expect(theme).toContain('openProtectedContact("call", "profile_header")');
+    expect(theme).toContain('openProtectedContact("request", "profile_header")');
+    expect(theme).toContain('openProtectedContact("call", "mobile_bar")');
+    expect(theme).toContain('openProtectedContact("request", "mobile_bar")');
     expect(theme).toContain('action: "directions"');
     expect(theme).toContain('action: "website"');
 
@@ -176,7 +182,7 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(presentation).not.toContain("(985) 551-0589");
   });
 
-  it("shows credential authority and freshness without turning a published number into a current-status claim", () => {
+  it("keeps credential evidence available without leading with it", () => {
     const theme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const presentation = read("shared/localServiceProfile.ts");
     const sourceRecord = read("docs/profile-sources/LA_PLUMBING_SOLUTIONS.md");
@@ -189,13 +195,14 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(presentation).toContain("Confirm current status with LSLBC");
     expect(presentation).toContain("Published by LA Plumbing; verify with the board");
     expect(presentation).toContain(
-      "confirm current status with the issuing authority before regulated work"
+      "Confirm current status with the issuing authority before regulated work."
     );
 
-    expect(theme).toContain("Verify with the authority");
+    expect(theme).toContain("View credential numbers");
     expect(theme).toContain("Source reviewed {credential.checkedAt}");
-    expect(theme).toContain("What TradeScout verification means");
-    expect(theme).toContain("One current record, not blended claims.");
+    expect(theme).toContain("Credentials and trust");
+    expect(theme).toContain("<details");
+    expect(theme).toContain("Community Verification Score · {verificationScore}");
 
     expect(sourceRecord).toContain("The profile must not claim that every credential is currently active");
     expect(sourceRecord).toContain("TradeScout does not replace a current authority lookup");
