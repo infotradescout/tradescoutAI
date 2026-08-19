@@ -13,6 +13,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "listings",
   "moderation",
   "errors",
+  "controls",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
