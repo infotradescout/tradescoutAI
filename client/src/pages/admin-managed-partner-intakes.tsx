@@ -3,14 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
-  CircleCheckBig,
+  CheckCircle2,
+  ChevronDown,
   ExternalLink,
   LoaderCircle,
   Pencil,
   Plus,
   RefreshCw,
   ShieldCheck,
-  UserRoundPlus,
+  X,
   XCircle,
 } from "lucide-react";
 import {
@@ -28,15 +29,15 @@ import {
   type ManagedPartnerIntakeReport,
   type ManagedPartnerIntakeStage,
 } from "@shared/managedPartnerIntake";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+} from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -99,16 +100,8 @@ const EMPTY_FORM: IntakeEditorForm = {
   blockerNote: "",
 };
 
-const ACTIVE_BUILD_STAGES = new Set<ManagedPartnerIntakeStage>([
-  "source_review",
-  "profile_build",
-  "routing_review",
-]);
-
 function readable(value: string): string {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function stageLabel(stage: ManagedPartnerIntakeStage): string {
@@ -127,18 +120,10 @@ function stageLabel(stage: ManagedPartnerIntakeStage): string {
 
 function stageBadge(stage: ManagedPartnerIntakeStage) {
   if (stage === "live") {
-    return (
-      <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
-        Live
-      </Badge>
-    );
+    return <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">Live</Badge>;
   }
   if (stage === "blocked") {
-    return (
-      <Badge className="border-red-400/30 bg-red-400/10 text-red-200">
-        Blocked
-      </Badge>
-    );
+    return <Badge className="border-red-400/30 bg-red-400/10 text-red-200">Blocked</Badge>;
   }
   if (stage === "ready_to_publish") {
     return (
@@ -148,41 +133,19 @@ function stageBadge(stage: ManagedPartnerIntakeStage) {
     );
   }
   if (stage === "incoming") {
-    return (
-      <Badge className="border-ts-orange/30 bg-ts-orange/10 text-ts-orange">
-        Incoming
-      </Badge>
-    );
+    return <Badge className="border-orange-400/30 bg-orange-400/10 text-orange-200">Incoming</Badge>;
   }
-  return (
-    <Badge className="border-white/15 bg-white/5 text-white/70">
-      {stageLabel(stage)}
-    </Badge>
-  );
+  return <Badge className="border-white/15 bg-white/5 text-white/65">{stageLabel(stage)}</Badge>;
 }
 
 function priorityBadge(priority: ManagedPartnerIntakePriority) {
   const classes: Record<ManagedPartnerIntakePriority, string> = {
     urgent: "border-red-400/30 bg-red-400/10 text-red-200",
     high: "border-amber-400/30 bg-amber-400/10 text-amber-100",
-    normal: "border-white/15 bg-white/5 text-white/65",
+    normal: "border-white/15 bg-white/5 text-white/55",
     low: "border-sky-400/20 bg-sky-400/5 text-sky-100",
   };
   return <Badge className={classes[priority]}>{readable(priority)}</Badge>;
-}
-
-function summaryCard(label: string, value: number, detail: string) {
-  return (
-    <Card className="border-white/10 bg-black/20">
-      <CardContent className="p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
-          {label}
-        </p>
-        <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-        <p className="mt-1 text-xs leading-5 text-white/50">{detail}</p>
-      </CardContent>
-    </Card>
-  );
 }
 
 function recordToForm(item: ManagedPartnerIntakeRecord): IntakeEditorForm {
@@ -249,18 +212,13 @@ export default function AdminManagedPartnerIntakesPage() {
   const intakeQuery = useQuery({
     queryKey: ["/api/admin/managed-partner-intakes"],
     queryFn: async () =>
-      (await apiRequest(
-        "GET",
-        "/api/admin/managed-partner-intakes"
-      )) as ManagedPartnerIntakeReport,
+      (await apiRequest("GET", "/api/admin/managed-partner-intakes")) as ManagedPartnerIntakeReport,
     refetchInterval: 30_000,
   });
 
   const invalidateOperations = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ["/api/admin/managed-partner-intakes"],
-      }),
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/managed-partner-intakes"] }),
       queryClient.invalidateQueries({ queryKey: ["/api/admin/managed-partners"] }),
     ]);
   };
@@ -282,10 +240,7 @@ export default function AdminManagedPartnerIntakesPage() {
     },
     onSuccess: async (response) => {
       await invalidateOperations();
-      setEditorOpen(false);
-      setEditingId(null);
-      setSlugTouched(false);
-      setForm(EMPTY_FORM);
+      closeEditor();
       toast({
         title: response.item.stage === "live" ? "Partner moved live" : "Partner intake saved",
         description:
@@ -297,7 +252,8 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Partner intake was not saved",
-        description: error instanceof Error ? error.message : "Review the intake details and try again.",
+        description:
+          error instanceof Error ? error.message : "Review the intake details and try again.",
         variant: "destructive",
       });
     },
@@ -329,7 +285,8 @@ export default function AdminManagedPartnerIntakesPage() {
     onError: (error: unknown) => {
       toast({
         title: "Queue update failed",
-        description: error instanceof Error ? error.message : "Review the partner state and try again.",
+        description:
+          error instanceof Error ? error.message : "Review the partner state and try again.",
         variant: "destructive",
       });
     },
@@ -355,6 +312,13 @@ export default function AdminManagedPartnerIntakesPage() {
         .some((value) => String(value).toLowerCase().includes(query));
     });
   }, [report?.items, search, stageFilter]);
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditingId(null);
+    setSlugTouched(false);
+    setForm(EMPTY_FORM);
+  };
 
   const beginCreate = () => {
     setEditingId(null);
@@ -395,126 +359,140 @@ export default function AdminManagedPartnerIntakesPage() {
     if (stage === "blocked") {
       beginEdit(item, "blocked");
       toast({
-        title: "Add the blocker before saving",
+        title: "Name the blocker before saving",
         description: "The queue keeps the exact reason visible until the partner can move again.",
       });
       return;
     }
     quickUpdateMutation.mutate({
       item,
-      patch: {
-        stage,
-        latestAction: `Moved to ${stageLabel(stage)}`,
-      },
+      patch: { stage, latestAction: `Moved to ${stageLabel(stage)}` },
     });
   };
 
   return (
-    <div className="space-y-4" data-testid="managed-partner-intake-queue">
-      <Card className="border-white/10 bg-tsCard/95">
-        <CardHeader className="gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-white">
-              <UserRoundPlus className="h-5 w-5 text-ts-orange" />
-              Partner Intake Queue
-            </CardTitle>
-            <CardDescription className="mt-2 max-w-3xl text-white/65">
-              Add the next partner as soon as the relationship arrives. Source review, profile build,
-              contact, routing, publication, and the existing live-profile audit continue at the same
-              time.
-            </CardDescription>
-          </div>
+    <div className="space-y-6" data-testid="managed-partner-intake-queue">
+      <AdminSection
+        title="Partner intake"
+        description="Capture a new relationship immediately, then move it through source review, profile build, routing, and release without stopping any live partner."
+        actions={
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => intakeQuery.refetch()}
               disabled={intakeQuery.isFetching}
-              className="border-white/15 bg-black/20 text-white hover:bg-white/10"
+              className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
             >
               <RefreshCw
                 className={`mr-2 h-4 w-4 ${intakeQuery.isFetching ? "animate-spin" : ""}`}
               />
-              Refresh queue
+              Refresh
             </Button>
-            <Button type="button" onClick={beginCreate} className="bg-ts-orange text-black hover:bg-ts-orange/90">
+            <Button
+              type="button"
+              onClick={beginCreate}
+              className="bg-orange-500 text-black hover:bg-orange-400"
+            >
               <Plus className="mr-2 h-4 w-4" />
               Add partner
             </Button>
           </div>
-        </CardHeader>
-
+        }
+      >
         {report ? (
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
-              {summaryCard("Tracked", report.summary.total, "Open intake records")}
-              {summaryCard("Incoming", report.summary.incoming, "New relationships")}
-              {summaryCard("In progress", report.summary.activeBuilds, "Research, build, or routing")}
-              {summaryCard("Ready", report.summary.readyToPublish, "Waiting for publication")}
-              {summaryCard("Live", report.summary.live, "Joined the live audit")}
-              {summaryCard("Blocked", report.summary.blocked, "Needs a named decision")}
-            </div>
+          <>
+            <AdminSummaryStrip
+              items={[
+                {
+                  label: "Incoming",
+                  value: report.summary.incoming,
+                  detail: `${report.summary.total} open intake records`,
+                  tone: report.summary.incoming > 0 ? "warning" : "neutral",
+                },
+                {
+                  label: "In progress",
+                  value: report.summary.activeBuilds,
+                  detail: "Source, profile, or routing work",
+                },
+                {
+                  label: "Ready to publish",
+                  value: report.summary.readyToPublish,
+                  detail: `${report.summary.live} already live`,
+                  tone: report.summary.readyToPublish > 0 ? "good" : "neutral",
+                },
+                {
+                  label: "Blocked",
+                  value: report.summary.blocked,
+                  detail: "Requires a named decision",
+                  tone: report.summary.blocked > 0 ? "danger" : "good",
+                },
+              ]}
+            />
 
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+            <AdminToolbar className="mt-4">
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search partner, source, relationship, or recipient"
-                className="border-white/10 bg-black/25 text-white placeholder:text-white/35"
+                placeholder="Search partner, source, relationship, or request recipient"
+                className="min-w-0 border-white/10 bg-black/20 text-white placeholder:text-white/30 md:max-w-2xl"
               />
-              <Select
-                value={stageFilter}
-                onValueChange={(value) =>
-                  setStageFilter(value as "all" | ManagedPartnerIntakeStage)
-                }
-              >
-                <SelectTrigger className="border-white/10 bg-black/25 text-white">
-                  <SelectValue placeholder="Filter stage" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All stages</SelectItem>
-                  {MANAGED_PARTNER_INTAKE_STAGES.map((stage) => (
-                    <SelectItem key={stage} value={stage}>
-                      {stageLabel(stage)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <p className="text-xs text-white/45">
-              Last refreshed {new Date(report.generatedAt).toLocaleString()} · refreshes every 30 seconds
-            </p>
-          </CardContent>
+              <div className="flex items-center gap-3">
+                <Select
+                  value={stageFilter}
+                  onValueChange={(value) =>
+                    setStageFilter(value as "all" | ManagedPartnerIntakeStage)
+                  }
+                >
+                  <SelectTrigger className="w-[12rem] border-white/10 bg-black/20 text-white">
+                    <SelectValue placeholder="Filter stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All stages</SelectItem>
+                    {MANAGED_PARTNER_INTAKE_STAGES.map((stage) => (
+                      <SelectItem key={stage} value={stage}>
+                        {stageLabel(stage)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="hidden text-xs text-white/35 xl:inline">
+                  Updated {new Date(report.generatedAt).toLocaleString()}
+                </span>
+              </div>
+            </AdminToolbar>
+          </>
         ) : null}
-      </Card>
+      </AdminSection>
 
       {editorOpen ? (
-        <Card className="border-ts-orange/25 bg-tsCard/95" data-testid="managed-partner-intake-editor">
-          <CardHeader>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-white">
-                  {editingId ? "Update partner intake" : "Add incoming partner"}
-                </CardTitle>
-                <CardDescription className="mt-2 text-white/60">
-                  Record what is known now. Unknown owner contact stays pending instead of being invented.
-                </CardDescription>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setEditorOpen(false)}
-                className="text-white/60 hover:bg-white/10 hover:text-white"
-              >
-                Close
-              </Button>
+        <section
+          className="border-y border-orange-400/25 bg-orange-400/[0.035]"
+          data-testid="managed-partner-intake-editor"
+        >
+          <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-white">
+                {editingId ? "Update partner intake" : "Add incoming partner"}
+              </h2>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-white/50">
+                Record what is known now. Unknown owner contact stays pending instead of being invented.
+              </p>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeEditor}
+              className="self-start text-white/50 hover:bg-white/[0.06] hover:text-white"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Close
+            </Button>
+          </div>
+
+          <div className="space-y-6 px-4 py-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="partner-display-name" className="text-white/80">Partner name</Label>
+              <Field label="Partner name" htmlFor="partner-display-name">
                 <Input
                   id="partner-display-name"
                   value={form.displayName}
@@ -522,9 +500,8 @@ export default function AdminManagedPartnerIntakesPage() {
                   placeholder="Company or partner name"
                   className="border-white/10 bg-black/25 text-white"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="partner-slug" className="text-white/80">Profile slug</Label>
+              </Field>
+              <Field label="Profile slug" htmlFor="partner-slug">
                 <Input
                   id="partner-slug"
                   value={form.slug}
@@ -535,9 +512,12 @@ export default function AdminManagedPartnerIntakesPage() {
                   placeholder="company-name"
                   className="border-white/10 bg-black/25 text-white"
                 />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="partner-source-urls" className="text-white/80">Existing website and source links</Label>
+              </Field>
+              <Field
+                label="Existing website and source links"
+                htmlFor="partner-source-urls"
+                className="md:col-span-2"
+              >
                 <Textarea
                   id="partner-source-urls"
                   value={form.sourceUrlsText}
@@ -545,67 +525,76 @@ export default function AdminManagedPartnerIntakesPage() {
                   placeholder="One public source URL per line"
                   className="min-h-24 border-white/10 bg-black/25 text-white"
                 />
-              </div>
+              </Field>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <div className="space-y-2">
-                <Label className="text-white/80">Profile type</Label>
-                <Select value={form.archetype} onValueChange={(value) => updateForm("archetype", value as IntakeEditorForm["archetype"])}>
-                  <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MANAGED_PARTNER_ARCHETYPES.map((value) => <SelectItem key={value} value={value}>{readable(value)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-white/80">Profile control</Label>
-                <Select value={form.controlMode} onValueChange={(value) => updateForm("controlMode", value as IntakeEditorForm["controlMode"])}>
-                  <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MANAGED_PARTNER_CONTROL_MODES.map((value) => <SelectItem key={value} value={value}>{readable(value)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-white/80">Contact handling</Label>
-                <Select value={form.contactMode} onValueChange={(value) => updateForm("contactMode", value as IntakeEditorForm["contactMode"])}>
-                  <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MANAGED_PARTNER_CONTACT_MODES.map((value) => <SelectItem key={value} value={value}>{readable(value)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-white/80">Exposure</Label>
-                <Select value={form.exposureMode} onValueChange={(value) => updateForm("exposureMode", value as IntakeEditorForm["exposureMode"])}>
-                  <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MANAGED_PARTNER_EXPOSURE_MODES.map((value) => <SelectItem key={value} value={value}>{readable(value)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-white/80">Request experience</Label>
-                <Select value={form.requestMode} onValueChange={(value) => updateForm("requestMode", value as IntakeEditorForm["requestMode"])}>
-                  <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MANAGED_PARTNER_REQUEST_MODES.map((value) => <SelectItem key={value} value={value}>{readable(value)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-white/80">Priority</Label>
-                <Select value={form.priority} onValueChange={(value) => updateForm("priority", value as ManagedPartnerIntakePriority)}>
-                  <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MANAGED_PARTNER_INTAKE_PRIORITIES.map((value) => <SelectItem key={value} value={value}>{readable(value)}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+              <SelectField
+                label="Profile type"
+                value={form.archetype}
+                options={MANAGED_PARTNER_ARCHETYPES}
+                onChange={(value) =>
+                  updateForm("archetype", value as IntakeEditorForm["archetype"])
+                }
+              />
+              <SelectField
+                label="Profile control"
+                value={form.controlMode}
+                options={MANAGED_PARTNER_CONTROL_MODES}
+                onChange={(value) =>
+                  updateForm("controlMode", value as IntakeEditorForm["controlMode"])
+                }
+              />
+              <SelectField
+                label="Contact handling"
+                value={form.contactMode}
+                options={MANAGED_PARTNER_CONTACT_MODES}
+                onChange={(value) =>
+                  updateForm("contactMode", value as IntakeEditorForm["contactMode"])
+                }
+              />
+              <SelectField
+                label="Exposure"
+                value={form.exposureMode}
+                options={MANAGED_PARTNER_EXPOSURE_MODES}
+                onChange={(value) =>
+                  updateForm("exposureMode", value as IntakeEditorForm["exposureMode"])
+                }
+              />
+              <SelectField
+                label="Request experience"
+                value={form.requestMode}
+                options={MANAGED_PARTNER_REQUEST_MODES}
+                onChange={(value) =>
+                  updateForm("requestMode", value as IntakeEditorForm["requestMode"])
+                }
+              />
+              <SelectField
+                label="Priority"
+                value={form.priority}
+                options={MANAGED_PARTNER_INTAKE_PRIORITIES}
+                onChange={(value) =>
+                  updateForm("priority", value as ManagedPartnerIntakePriority)
+                }
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="partner-request-recipient" className="text-white/80">Operating request recipient slug</Label>
+              <Field label="Operating request recipient" htmlFor="partner-request-recipient">
                 <Input
                   id="partner-request-recipient"
                   value={form.requestRecipientSlug}
-                  onChange={(event) => updateForm("requestRecipientSlug", slugifyManagedPartnerName(event.target.value))}
+                  onChange={(event) =>
+                    updateForm(
+                      "requestRecipientSlug",
+                      slugifyManagedPartnerName(event.target.value)
+                    )
+                  }
                   placeholder={form.slug || "Defaults to this partner"}
                   className="border-white/10 bg-black/25 text-white"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="partner-primary-cta" className="text-white/80">Primary customer action</Label>
+              </Field>
+              <Field label="Primary customer action" htmlFor="partner-primary-cta">
                 <Input
                   id="partner-primary-cta"
                   value={form.expectedPrimaryCta}
@@ -613,9 +602,12 @@ export default function AdminManagedPartnerIntakesPage() {
                   placeholder="Start a Request"
                   className="border-white/10 bg-black/25 text-white"
                 />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="partner-relationship" className="text-white/80">Verified relationship</Label>
+              </Field>
+              <Field
+                label="Verified relationship"
+                htmlFor="partner-relationship"
+                className="md:col-span-2"
+              >
                 <Input
                   id="partner-relationship"
                   value={form.relationshipLabel}
@@ -623,54 +615,69 @@ export default function AdminManagedPartnerIntakesPage() {
                   placeholder="Example: Exclusive first-cut distribution through JW Stone"
                   className="border-white/10 bg-black/25 text-white"
                 />
-              </div>
+              </Field>
             </div>
 
-            <details className="rounded border border-white/10 bg-black/15 p-4">
-              <summary className="cursor-pointer text-sm font-semibold text-white/75">
-                Contact override and routing details
+            <details className="border-y border-white/10 bg-black/10 px-3 py-3">
+              <summary className="cursor-pointer text-sm font-semibold text-white/65">
+                Contact override and notification details
               </summary>
               <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="partner-phone" className="text-white/70">Expected phone</Label>
-                  <Input id="partner-phone" value={form.expectedPhone} onChange={(event) => updateForm("expectedPhone", event.target.value)} className="border-white/10 bg-black/25 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="partner-email" className="text-white/70">Expected email</Label>
-                  <Input id="partner-email" value={form.expectedEmail} onChange={(event) => updateForm("expectedEmail", event.target.value)} className="border-white/10 bg-black/25 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="partner-notification-email" className="text-white/70">Notification email</Label>
-                  <Input id="partner-notification-email" value={form.expectedNotificationEmail} onChange={(event) => updateForm("expectedNotificationEmail", event.target.value)} className="border-white/10 bg-black/25 text-white" />
-                </div>
+                <Field label="Expected phone" htmlFor="partner-phone">
+                  <Input
+                    id="partner-phone"
+                    value={form.expectedPhone}
+                    onChange={(event) => updateForm("expectedPhone", event.target.value)}
+                    className="border-white/10 bg-black/25 text-white"
+                  />
+                </Field>
+                <Field label="Expected email" htmlFor="partner-email">
+                  <Input
+                    id="partner-email"
+                    value={form.expectedEmail}
+                    onChange={(event) => updateForm("expectedEmail", event.target.value)}
+                    className="border-white/10 bg-black/25 text-white"
+                  />
+                </Field>
+                <Field label="Notification email" htmlFor="partner-notification-email">
+                  <Input
+                    id="partner-notification-email"
+                    value={form.expectedNotificationEmail}
+                    onChange={(event) =>
+                      updateForm("expectedNotificationEmail", event.target.value)
+                    }
+                    className="border-white/10 bg-black/25 text-white"
+                  />
+                </Field>
               </div>
-              <p className="mt-3 text-xs leading-5 text-white/45">
-                Leave these blank for TradeScout-managed contact. The server applies the approved phone and inbox automatically.
+              <p className="mt-3 text-xs leading-5 text-white/38">
+                Leave these blank for TradeScout-managed contact. The server applies the approved
+                phone and inbox automatically.
               </p>
             </details>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="partner-notes" className="text-white/80">What is known and what must be preserved</Label>
+              <Field label="Known facts and boundaries" htmlFor="partner-notes">
                 <Textarea
                   id="partner-notes"
                   value={form.notes}
                   onChange={(event) => updateForm("notes", event.target.value)}
-                  placeholder="Company facts, profile expectations, owner boundaries, products, and public language"
-                  className="min-h-32 border-white/10 bg-black/25 text-white"
+                  placeholder="Company facts, profile expectations, ownership boundaries, products, services, and public language"
+                  className="min-h-36 border-white/10 bg-black/25 text-white"
                 />
-              </div>
+              </Field>
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-white/80">Current stage</Label>
-                  <Select value={form.stage} onValueChange={(value) => updateForm("stage", value as ManagedPartnerIntakeStage)}>
-                    <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                    <SelectContent>{MANAGED_PARTNER_INTAKE_STAGES.map((stage) => <SelectItem key={stage} value={stage}>{stageLabel(stage)}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+                <SelectField
+                  label="Current stage"
+                  value={form.stage}
+                  options={MANAGED_PARTNER_INTAKE_STAGES}
+                  labelForOption={stageLabel}
+                  onChange={(value) =>
+                    updateForm("stage", value as ManagedPartnerIntakeStage)
+                  }
+                />
                 {form.stage === "blocked" ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="partner-blocker" className="text-red-100">Blocker</Label>
+                  <Field label="Blocker" htmlFor="partner-blocker">
                     <Textarea
                       id="partner-blocker"
                       value={form.blockerNote}
@@ -678,10 +685,9 @@ export default function AdminManagedPartnerIntakesPage() {
                       placeholder="Name the exact missing decision, contact, source, or routing fact"
                       className="min-h-24 border-red-400/25 bg-red-950/20 text-white"
                     />
-                  </div>
+                  </Field>
                 ) : null}
-                <div className="space-y-2">
-                  <Label htmlFor="partner-latest-action" className="text-white/80">Latest action</Label>
+                <Field label="Latest action" htmlFor="partner-latest-action">
                   <Input
                     id="partner-latest-action"
                     value={form.latestAction}
@@ -689,151 +695,278 @@ export default function AdminManagedPartnerIntakesPage() {
                     placeholder="Optional plain-language update"
                     className="border-white/10 bg-black/25 text-white"
                   />
-                </div>
+                </Field>
               </div>
             </div>
 
             <div className="flex flex-wrap justify-end gap-2 border-t border-white/10 pt-5">
-              <Button type="button" variant="outline" onClick={() => setEditorOpen(false)} className="border-white/15 bg-transparent text-white hover:bg-white/10">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeEditor}
+                className="border-white/15 bg-transparent text-white/70 hover:bg-white/[0.06] hover:text-white"
+              >
                 Cancel
               </Button>
-              <Button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-ts-orange text-black hover:bg-ts-orange/90">
-                {saveMutation.isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <CircleCheckBig className="mr-2 h-4 w-4" />}
+              <Button
+                type="button"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                className="bg-orange-500 text-black hover:bg-orange-400"
+              >
+                {saveMutation.isPending ? (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
                 {editingId ? "Save intake" : "Add to queue"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       ) : null}
 
       {intakeQuery.isLoading ? (
-        <Card className="border-white/10 bg-black/20">
-          <CardContent className="flex min-h-48 items-center justify-center text-white/60">
-            <LoaderCircle className="mr-3 h-5 w-5 animate-spin" />
-            Loading partner intake queue…
-          </CardContent>
-        </Card>
+        <div className="flex min-h-52 items-center justify-center border-y border-white/10 text-sm text-white/50">
+          <LoaderCircle className="mr-3 h-5 w-5 animate-spin" />
+          Loading partner intake…
+        </div>
       ) : intakeQuery.isError ? (
-        <Card className="border-red-400/20 bg-red-950/20">
-          <CardContent className="p-6 text-red-100">
-            <div className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5" />Partner intake queue unavailable</div>
-            <p className="mt-2 text-sm text-red-100/70">Existing profiles remain live. Retry the queue without interrupting partner operations.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="border-y border-red-400/20 bg-red-950/15 px-4 py-8 text-red-100">
+          <div className="flex items-center gap-2 font-semibold">
+            <AlertTriangle className="h-5 w-5" />
+            Partner intake unavailable
+          </div>
+          <p className="mt-2 text-sm text-red-100/70">
+            Existing profiles remain live. Retry the queue without interrupting partner operations.
+          </p>
+        </div>
+      ) : filteredItems.length ? (
+        <AdminList>
           {filteredItems.map((item) => (
-            <Card key={item.id} className="overflow-hidden border-white/10 bg-tsCard/95">
-              <CardHeader className="border-b border-white/8 bg-black/15">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-xl text-white">{item.displayName}</CardTitle>
-                    <CardDescription className="mt-1 text-white/50">/{item.slug || "slug pending"}</CardDescription>
+            <details key={item.id} className="group">
+              <summary className="grid cursor-pointer list-none gap-3 px-3 py-4 transition-colors hover:bg-white/[0.025] sm:px-4 lg:grid-cols-[minmax(15rem,1.35fr)_minmax(10rem,0.85fr)_minmax(12rem,0.95fr)_minmax(12rem,0.95fr)_auto] lg:items-center [&::-webkit-details-marker]:hidden">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="truncate font-semibold text-white">{item.displayName}</h3>
+                    {stageBadge(item.stage)}
+                    {priorityBadge(item.priority)}
                   </div>
-                  <div className="flex flex-wrap gap-2">{priorityBadge(item.priority)}{stageBadge(item.stage)}</div>
+                  <p className="mt-1 truncate text-xs text-white/38">
+                    /{item.slug || "slug pending"}
+                  </p>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-5 p-5">
-                <div className="grid gap-3 text-sm sm:grid-cols-2">
-                  <div className="rounded border border-white/8 bg-black/20 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Profile lane</p>
-                    <p className="mt-3 text-white/75">{readable(item.archetype)}</p>
-                    <p className="mt-2 text-white/55">{readable(item.controlMode)}</p>
-                    <p className="mt-2 text-white/55">{readable(item.exposureMode)}</p>
+                <div className="min-w-0 text-sm text-white/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+                    Profile lane
+                  </p>
+                  <p className="mt-1 truncate">{readable(item.archetype)}</p>
+                  <p className="truncate text-xs text-white/38">{readable(item.controlMode)}</p>
+                </div>
+                <div className="min-w-0 text-sm text-white/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+                    Response lane
+                  </p>
+                  <p className="mt-1 truncate">{readable(item.contactMode)}</p>
+                  <p className="truncate text-xs text-white/38">
+                    Requests → {item.requestRecipientSlug || item.slug}
+                  </p>
+                </div>
+                <div className="min-w-0 text-sm text-white/60">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+                    Latest action
+                  </p>
+                  <p className="mt-1 line-clamp-1">{item.latestAction || "No action recorded"}</p>
+                  <p className="truncate text-xs text-white/38">
+                    {new Date(item.updatedAt).toLocaleString()}
+                  </p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-white/35 transition-transform group-open:rotate-180" />
+              </summary>
+
+              <div className="border-t border-white/10 bg-white/[0.018] px-3 py-5 sm:px-4">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(19rem,0.8fr)]">
+                  <div className="space-y-5">
+                    {item.relationshipLabel ? (
+                      <div className="border-l-2 border-orange-400 bg-orange-400/5 px-4 py-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-orange-200">
+                          Verified relationship
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-white/65">
+                          {item.relationshipLabel}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    {item.blockerNote ? (
+                      <div className="flex items-start gap-3 border-l-2 border-red-400 bg-red-400/5 px-4 py-3 text-sm leading-6 text-red-100">
+                        <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{item.blockerNote}</span>
+                      </div>
+                    ) : null}
+
+                    {item.notes ? (
+                      <p className="text-sm leading-6 text-white/50">{item.notes}</p>
+                    ) : null}
+
+                    {item.sourceUrls.length ? (
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+                          Source presence
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {item.sourceUrls.map((url, index) => (
+                            <a
+                              key={url}
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-white/12 bg-white/[0.025] px-3 text-xs font-semibold text-white/65 hover:bg-white/[0.06] hover:text-white"
+                            >
+                              Source {index + 1}
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="rounded border border-white/8 bg-black/20 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Response lane</p>
-                    <p className="mt-3 text-white/75">{readable(item.contactMode)}</p>
-                    <p className="mt-2 text-white/55">{readable(item.requestMode)}</p>
-                    <p className="mt-2 text-white/55">Requests → {item.requestRecipientSlug || item.slug}</p>
+
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                    <SelectField
+                      label="Stage"
+                      value={item.stage}
+                      options={MANAGED_PARTNER_INTAKE_STAGES}
+                      labelForOption={stageLabel}
+                      disabled={quickUpdateMutation.isPending}
+                      onChange={(value) =>
+                        quickStageChange(item, value as ManagedPartnerIntakeStage)
+                      }
+                    />
+                    <SelectField
+                      label="Priority"
+                      value={item.priority}
+                      options={MANAGED_PARTNER_INTAKE_PRIORITIES}
+                      disabled={quickUpdateMutation.isPending}
+                      onChange={(value) =>
+                        quickUpdateMutation.mutate({
+                          item,
+                          patch: {
+                            priority: value as ManagedPartnerIntakePriority,
+                            latestAction: `Priority changed to ${readable(value)}`,
+                          },
+                        })
+                      }
+                    />
                   </div>
                 </div>
 
-                {item.relationshipLabel ? (
-                  <div className="rounded border border-ts-orange/25 bg-ts-orange/5 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ts-orange">Verified relationship</p>
-                    <p className="mt-2 text-sm leading-6 text-white/75">{item.relationshipLabel}</p>
-                  </div>
-                ) : null}
-
-                {item.blockerNote ? (
-                  <div className="flex items-start gap-3 rounded border border-red-400/20 bg-red-950/20 p-3 text-sm leading-6 text-red-100">
-                    <XCircle className="mt-1 h-4 w-4 shrink-0" />
-                    <span>{item.blockerNote}</span>
-                  </div>
-                ) : null}
-
-                {item.notes ? <p className="text-sm leading-6 text-white/60">{item.notes}</p> : null}
-
-                {item.sourceUrls.length ? (
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/40">Source presence</p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {item.sourceUrls.map((url, index) => (
-                        <a key={url} href={url} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-9 items-center gap-2 rounded border border-white/12 bg-black/20 px-3 text-xs font-semibold text-white/75 hover:bg-white/10">
-                          Source {index + 1}<ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-white/50">Stage</Label>
-                    <Select value={item.stage} onValueChange={(value) => quickStageChange(item, value as ManagedPartnerIntakeStage)} disabled={quickUpdateMutation.isPending}>
-                      <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>{MANAGED_PARTNER_INTAKE_STAGES.map((stage) => <SelectItem key={stage} value={stage}>{stageLabel(stage)}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs text-white/50">Priority</Label>
-                    <Select value={item.priority} onValueChange={(value) => quickUpdateMutation.mutate({ item, patch: { priority: value as ManagedPartnerIntakePriority, latestAction: `Priority changed to ${readable(value)}` } })} disabled={quickUpdateMutation.isPending}>
-                      <SelectTrigger className="border-white/10 bg-black/25 text-white"><SelectValue /></SelectTrigger>
-                      <SelectContent>{MANAGED_PARTNER_INTAKE_PRIORITIES.map((priority) => <SelectItem key={priority} value={priority}>{readable(priority)}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="rounded border border-white/8 bg-black/15 p-3 text-xs leading-5 text-white/50">
-                  <p>{item.latestAction || "No action recorded yet."}</p>
-                  <p className="mt-1">Updated {new Date(item.updatedAt).toLocaleString()}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" onClick={() => beginEdit(item)} className="border-white/15 bg-black/20 text-white hover:bg-white/10">
-                    <Pencil className="mr-2 h-4 w-4" />Edit intake
+                <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => beginEdit(item)}
+                    className="border-white/12 bg-white/[0.025] text-white/70 hover:bg-white/[0.06] hover:text-white"
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit intake
                   </Button>
                   {item.stage === "live" && item.slug ? (
-                    <a href={`/u/${encodeURIComponent(item.slug)}`} target="_blank" rel="noreferrer noopener" className="inline-flex min-h-10 items-center gap-2 rounded-md bg-ts-orange px-4 text-sm font-semibold text-black transition hover:bg-ts-orange/90">
-                      Open live profile<ArrowRight className="h-4 w-4" />
+                    <a
+                      href={`/u/${encodeURIComponent(item.slug)}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-black transition hover:bg-orange-400"
+                    >
+                      Open live profile
+                      <ArrowRight className="h-4 w-4" />
                     </a>
                   ) : null}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </details>
           ))}
-        </div>
+        </AdminList>
+      ) : (
+        <AdminEmptyState
+          title="No partner intakes match this view"
+          description="Add the next partner or change the filters. Live profiles continue operating independently."
+          action={
+            <Button
+              type="button"
+              onClick={beginCreate}
+              className="bg-orange-500 text-black hover:bg-orange-400"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add partner
+            </Button>
+          }
+        />
       )}
 
-      {!intakeQuery.isLoading && !intakeQuery.isError && filteredItems.length === 0 ? (
-        <Card className="border-white/10 bg-black/20">
-          <CardContent className="p-8 text-center text-white/55">
-            No partner intakes match this filter. New partners can be added without changing or pausing any live profile.
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <div className="rounded border border-white/8 bg-black/15 p-4 text-xs leading-6 text-white/50">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-ts-orange" />
-          <p>
-            Moving an intake to <strong className="text-white/75">Live</strong> requires an active business,
-            a published profile, and matching ownership. Once live, it joins the managed-profile health board
-            automatically. A managed contact is normalized without changing company ownership.
-          </p>
-        </div>
+      <div className="flex items-start gap-3 border-y border-white/10 bg-white/[0.018] px-4 py-4 text-xs leading-6 text-white/45">
+        <ShieldCheck className="mt-1 h-4 w-4 shrink-0 text-orange-300" />
+        <p>
+          Moving an intake to <strong className="text-white/70">Live</strong> requires an active
+          business, a published profile, and matching ownership. Once live, it joins the profile
+          health audit automatically. Managed contact normalization never transfers company ownership.
+        </p>
       </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  children,
+  className = "",
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <Label htmlFor={htmlFor} className="text-white/65">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+  labelForOption = readable,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+  labelForOption?: (value: any) => string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-white/65">{label}</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger className="border-white/10 bg-black/25 text-white">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {labelForOption(option)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
