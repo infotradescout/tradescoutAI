@@ -88,9 +88,13 @@ describe("business discovery authority", () => {
     const pruneJob = read("server/services/seoPublicationPruneJob.ts");
 
     expect(pruneJob).not.toContain("issa-build");
+    expect(pruneJob).toContain("owner_verified");
+    expect(pruneJob).toContain("business_level_verified");
     expect(pruneJob).toContain("publication_verified");
     expect(pruneJob).toContain("location_confirmed_per_request");
-    expect(pruneJob).toMatch(/not\s+\(publication_verified and location_confirmed_per_request\)/);
+    expect(pruneJob).toMatch(
+      /not\s+\(business_level_verified and location_confirmed_per_request\)/
+    );
     expect(pruneJob).toMatch(
       /publication_verified\s+and updated_at < \(now\(\) - \(\$\{staleVerifiedDays\}/
     );
