@@ -1,15 +1,16 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export function AdminWorkspace({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("mx-auto w-full max-w-[1680px] space-y-6", className)}>
+    <div
+      className={cn("mx-auto w-full max-w-[1680px] space-y-6", className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -18,16 +19,15 @@ export function AdminWorkspace({
 export function AdminWorkspaceSubnav({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
         "sticky top-[4.5rem] z-20 -mx-4 border-b border-white/10 bg-[#090a0b]/95 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8",
         className
       )}
+      {...props}
     >
       {children}
     </div>
@@ -115,16 +115,15 @@ export function AdminSummaryStrip({
 export function AdminToolbar({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
         "flex flex-col gap-3 border-y border-white/10 bg-white/[0.018] px-3 py-3 md:flex-row md:items-center md:justify-between",
         className
       )}
+      {...props}
     >
       {children}
     </div>
@@ -134,11 +133,16 @@ export function AdminToolbar({
 export function AdminList({
   children,
   className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return <div className={cn("divide-y divide-white/10 border-y border-white/10", className)}>{children}</div>;
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("divide-y divide-white/10 border-y border-white/10", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function AdminEmptyState({
