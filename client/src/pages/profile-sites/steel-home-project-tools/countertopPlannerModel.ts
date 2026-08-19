@@ -34,10 +34,18 @@ export type CountertopPlannerDesignInput = SteelHomeCountertopDesign &
 
 export type CountertopPlannerDesign = SteelHomeCountertopDesign & CountertopPlannerExtension;
 
-export type CountertopPlannerOpeningScheduleItem = CountertopOpeningScheduleItem & {
+type CountertopPlannerOpeningScheduleBase = CountertopOpeningScheduleItem & {
   representation: "coordination-point" | "template-opening" | "full-depth-gap";
   templateStatus: "not-needed" | "unresolved" | "entered";
 };
+
+export type CountertopPlannerOpeningScheduleItem =
+  | (Omit<CountertopPlannerOpeningScheduleBase, "run"> & {
+      readonly run: CountertopCutoutRun;
+    })
+  | (Omit<CountertopPlannerOpeningScheduleBase, "run"> & {
+      readonly run: "";
+    });
 
 export type CountertopPlannerDiagnostic = {
   id: string;
@@ -233,7 +241,7 @@ export function getCountertopPlannerOpeningSchedule(
   designInput: CountertopPlannerDesignInput
 ): CountertopPlannerOpeningScheduleItem[] {
   const design = resolveCountertopPlannerDesign(designInput);
-  const items: CountertopPlannerOpeningScheduleItem[] = [];
+  const items: CountertopPlannerOpeningScheduleBase[] = [];
 
   if (design.sink !== "None") {
     const isApronFront = design.sink === "Farmhouse";
@@ -307,7 +315,7 @@ export function getCountertopPlannerOpeningSchedule(
     });
   }
 
-  return items;
+  return items as CountertopPlannerOpeningScheduleItem[];
 }
 
 export function getCountertopPlannerOpeningFrontBounds(
