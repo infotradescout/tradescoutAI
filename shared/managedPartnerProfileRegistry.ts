@@ -134,7 +134,7 @@ export const MANAGED_PARTNER_PROFILE_DEFINITIONS = [
     exposureMode: "direct_only",
     requestMode: "pending",
     requestRecipientSlug: PRECISION_AERIAL_PROFILE_SLUG,
-    expectedPrimaryCta: "Direct Connect",
+    expectedPrimaryCta: "Start a Request",
     notes:
       "Direct-only profile under a narrow admin steward authority. Public contact and final owner claim remain intentionally unresolved and must stay visible as an operations gap.",
   },
