@@ -3,8 +3,8 @@ export type ProfileAccountPolicy = Readonly<{
   profileSlug: string;
   businessOnly: true;
   includesBidRock: boolean;
-  label: string;
-  heading: string;
+  label: "Account";
+  heading: "Create an account";
   description: string;
 }>;
 
@@ -91,10 +91,9 @@ export function resolveProfileAccountPolicy(args: {
       profileSlug,
       contentBlocks: args.contentBlocks,
     }),
-    label: `${profileName} account`,
-    heading: `Create an account with ${profileName}`,
-    description:
-      "Businesses can create an account with this profile using their existing TradeScout business identity.",
+    label: "Account" as const,
+    heading: "Create an account" as const,
+    description: `Businesses can create an account with ${profileName} using their TradeScout business identity.`,
   });
 }
 
