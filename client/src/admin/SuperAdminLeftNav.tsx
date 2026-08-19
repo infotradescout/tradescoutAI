@@ -1,11 +1,17 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { ChevronDown, ChevronRight, Search } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { cn } from "@/lib/utils";
 import {
-  getAdminToolDescription,
   getAdminToolSearchText,
   type AdminTool,
   type AdminToolSection,
@@ -14,48 +20,95 @@ import {
 interface SuperAdminLeftNavProps {
   sections: AdminToolSection[];
   onNavigate?: () => void;
-  density?: "comfortable" | "compact";
+  onClose?: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
-const COLLAPSE_KEY = "admin:nav:collapsedSections:v1";
+const COLLAPSE_KEY = "admin:nav:collapsedSections:v2";
 
 function isItemActive(pathname: string, item: AdminTool): boolean {
   if (!pathname) return false;
   if (pathname === item.path) return true;
-  if (item.path !== "/admin" && pathname.startsWith(item.path + "/")) return true;
-  return false;
+  return item.path !== "/admin" && pathname.startsWith(`${item.path}/`);
 }
 
 export function SuperAdminLeftNav({
   sections,
   onNavigate,
-  density = "comfortable",
+  onClose,
+  collapsed = false,
+  onToggleCollapsed,
 }: SuperAdminLeftNavProps) {
   const [location, setLocation] = useLocation();
   const normalizedLocation = (location || "/").split(/[?#]/, 1)[0] || "/";
-  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
-  const [navQuery, setNavQuery] = React.useState("");
+  const [collapsedSections, setCollapsedSections] = React.useState<Record<string, boolean>>({});
+  const [query, setQuery] = React.useState("");
+  const searchRef = React.useRef<HTMLInputElement>(null);
+
   const { data: toolNotifications } = useQuery<{
     byTool?: Record<string, number>;
-    totalUnread?: number;
   }>({
     queryKey: ["/api/admin/tool-notifications"],
     queryFn: () => apiRequest("GET", "/api/admin/tool-notifications"),
-    refetchInterval: 30000,
-    staleTime: 15000,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
   });
 
+  React.useEffect(() => {
+    const focus = () => searchRef.current?.focus();
+    window.addEventListener("admin:focus-tool-search", focus);
+    return () => window.removeEventListener("admin:focus-tool-search", focus);
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = window.localStorage.getItem(COLLAPSE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && typeof parsed === "object") {
+          setCollapsedSections(parsed as Record<string, boolean>);
+          return;
+        }
+      }
+    } catch {
+      // Fall through to the active-section default.
+    }
+
+    const next: Record<string, boolean> = {};
+    for (const section of sections) next[section.section] = true;
+    const activeSection = sections.find((section) =>
+      section.items.some((item) => isItemActive(normalizedLocation, item))
+    )?.section;
+    if (activeSection) next[activeSection] = false;
+    else if (sections[0]) next[sections[0].section] = false;
+    setCollapsedSections(next);
+  }, [normalizedLocation, sections]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsedSections));
+    } catch {
+      // The rail remains usable without persistence.
+    }
+  }, [collapsedSections]);
+
+  React.useEffect(() => {
+    const activeSection = sections.find((section) =>
+      section.items.some((item) => isItemActive(normalizedLocation, item))
+    )?.section;
+    if (!activeSection) return;
+    setCollapsedSections((current) =>
+      current[activeSection] ? { ...current, [activeSection]: false } : current
+    );
+  }, [normalizedLocation, sections]);
+
   const unreadByTool = toolNotifications?.byTool || {};
-  const getToolUnreadCount = React.useCallback(
-    (toolId: string) => {
-      return Number(unreadByTool[toolId] || 0);
-    },
-    [unreadByTool]
-  );
-  const normalizedQuery = navQuery.trim().toLowerCase();
+  const normalizedQuery = query.trim().toLowerCase();
   const visibleSections = React.useMemo(() => {
     if (!normalizedQuery) return sections;
-
     return sections
       .map((section) => ({
         section: section.section,
@@ -66,241 +119,170 @@ export function SuperAdminLeftNav({
       .filter((section) => section.items.length > 0);
   }, [normalizedQuery, sections]);
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(COLLAPSE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") {
-          setCollapsed(parsed as Record<string, boolean>);
-          return;
-        }
-      }
-    } catch {
-      // ignore storage/parse errors and fall back to compact defaults
-    }
-
-    // Default behavior with no prior preference: collapse all sections except the
-    // currently active section (or first section if none is active).
-    const defaults: Record<string, boolean> = {};
-    for (const section of sections) defaults[section.section] = true;
-    const activeSection = sections.find((section) =>
-      section.items.some((item) => isItemActive(normalizedLocation, item))
-    )?.section;
-    if (activeSection) defaults[activeSection] = false;
-    else if (sections.length > 0) defaults[sections[0].section] = false;
-    setCollapsed(defaults);
-  }, [sections, normalizedLocation]);
-
-  const collapseAll = React.useCallback(() => {
-    const next: Record<string, boolean> = {};
-    for (const section of sections) next[section.section] = true;
-    setCollapsed(next);
-  }, [sections]);
-
-  const expandAll = React.useCallback(() => {
-    const next: Record<string, boolean> = {};
-    for (const section of sections) next[section.section] = false;
-    setCollapsed(next);
-  }, [sections]);
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(COLLAPSE_KEY, JSON.stringify(collapsed));
-    } catch {
-      // ignore storage errors
-    }
-  }, [collapsed]);
-
-  // Always keep the active section visible.
-  React.useEffect(() => {
-    const activeSection = sections.find((section) =>
-      section.items.some((item) => isItemActive(normalizedLocation, item))
-    )?.section;
-    if (!activeSection) return;
-    setCollapsed((prev) => (prev[activeSection] ? { ...prev, [activeSection]: false } : prev));
-  }, [normalizedLocation, sections]);
-
-  const activeSection = sections.find((section) =>
-    section.items.some((item) => isItemActive(normalizedLocation, item))
-  );
-  const activeItem =
-    activeSection?.items.find((item) => isItemActive(normalizedLocation, item)) ?? null;
-  const visibleToolCount = sections.reduce((sum, section) => sum + section.items.length, 0);
-  const filteredToolCount = visibleSections.reduce((sum, section) => sum + section.items.length, 0);
-  const totalUnread = sections.reduce(
-    (sum, section) =>
-      sum + section.items.reduce((inner, item) => inner + getToolUnreadCount(item.id), 0),
-    0
-  );
+  const openTool = (item: AdminTool) => {
+    setLocation(item.path);
+    onNavigate?.();
+  };
 
   return (
-    <aside
-      className={`ts-admin-left-nav ${density === "compact" ? "w-64 shrink-0" : "w-[18rem] shrink-0"}`}
-    >
-      <div className="ts-admin-left-nav-card rounded-2xl border border-zinc-800 bg-zinc-950 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.3)]">
-        <div className="border-b border-zinc-800 pb-3">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
-            Admin navigation
+    <aside className="flex h-full flex-col bg-[#0b0c0d]" aria-label="Admin workspaces">
+      <div className="flex h-[4.5rem] items-center gap-3 border-b border-white/10 px-3">
+        <button
+          type="button"
+          onClick={() => setLocation("/admin")}
+          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-black"
+          aria-label="Open Admin Home"
+        >
+          <ShieldCheck className="h-5 w-5" />
+        </button>
+        {!collapsed ? (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">TradeScout Admin</p>
+            <p className="truncate text-[11px] text-white/40">Operate the platform</p>
           </div>
-          <div className="mt-2 text-lg font-semibold text-zinc-100">
-            {activeSection?.section || "Platform ops"}
-          </div>
-          <div className="mt-1 text-sm text-zinc-400">
-            {activeItem?.label || "Choose a tool"} / {visibleToolCount} tools available
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full border border-zinc-700 bg-zinc-900/80 px-2.5 py-1 text-zinc-300">
-              {sections.length} sections
-            </span>
-            <span className="rounded-full border border-zinc-700 bg-zinc-900/80 px-2.5 py-1 text-zinc-300">
-              {totalUnread} unread
-            </span>
-          </div>
-          <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+        ) : null}
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white/55 hover:bg-white/10 hover:text-white lg:hidden"
+            aria-label="Close admin navigation"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+      </div>
+
+      {!collapsed ? (
+        <div className="border-b border-white/10 p-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
             <input
-              value={navQuery}
-              onChange={(event) => setNavQuery(event.target.value)}
-              placeholder="Find tool"
-              className="h-9 w-full rounded-xl border border-zinc-800 bg-zinc-900 pl-8 pr-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:ring-2 focus:ring-orange-500/35"
+              ref={searchRef}
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Find an admin tool"
+              className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.035] pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/15"
             />
           </div>
-          {normalizedQuery ? (
-            <div className="mt-2 text-xs text-zinc-500">
-              {filteredToolCount} match{filteredToolCount === 1 ? "" : "es"}
-            </div>
-          ) : null}
         </div>
+      ) : null}
 
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={expandAll}
-            className="rounded-xl border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-300 hover:bg-zinc-900/80"
-          >
-            Expand all
-          </button>
-          <button
-            type="button"
-            onClick={collapseAll}
-            className="rounded-xl border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-300 hover:bg-zinc-900/80"
-          >
-            Collapse all
-          </button>
-        </div>
-
-        <nav
-          className={
-            density === "compact"
-              ? "mt-3 space-y-3 max-h-[calc(var(--app-height)-180px)] overflow-y-auto pr-1"
-              : "mt-3 space-y-4 max-h-[calc(var(--app-height)-190px)] overflow-y-auto pr-1"
-          }
-        >
-          {visibleSections.map((section) => (
-            <div key={section.section} className="space-y-1.5">
-              {(() => {
-                const sectionUnread = section.items.reduce(
-                  (sum, item) => sum + getToolUnreadCount(item.id),
-                  0
-                );
-                const sectionActive = section.items.some((item) =>
-                  isItemActive(normalizedLocation, item)
-                );
-                return (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCollapsed((prev) => ({
-                        ...prev,
-                        [section.section]: !prev[section.section],
-                      }))
-                    }
-                    className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
-                      sectionActive
-                        ? "border-zinc-600 bg-zinc-900"
-                        : "border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900"
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+        {visibleSections.map((section) => {
+          const sectionOpen = normalizedQuery || !collapsedSections[section.section];
+          const sectionActive = section.items.some((item) =>
+            isItemActive(normalizedLocation, item)
+          );
+          return (
+            <div key={section.section} className="mb-3 last:mb-0">
+              {!collapsed ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedSections((current) => ({
+                      ...current,
+                      [section.section]: !current[section.section],
+                    }))
+                  }
+                  className="flex w-full items-center justify-between gap-2 px-2 py-2 text-left"
+                  aria-expanded={sectionOpen}
+                >
+                  <span
+                    className={`truncate text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                      sectionActive ? "text-orange-300" : "text-white/35"
                     }`}
-                    aria-expanded={!collapsed[section.section]}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
-                        {section.section}
-                      </span>
-                      {!normalizedQuery && collapsed[section.section] ? (
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                      ) : (
-                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-                      )}
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 text-[11px] text-zinc-500">
-                      <span>{section.items.length} tools</span>
-                      {sectionUnread > 0 && (
-                        <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-orange-200">
-                          {sectionUnread} new
+                    {section.section}
+                  </span>
+                  {sectionOpen ? (
+                    <ChevronDown className="h-3.5 w-3.5 text-white/25" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5 text-white/25" />
+                  )}
+                </button>
+              ) : null}
+
+              {(collapsed || sectionOpen) && (
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isItemActive(normalizedLocation, item);
+                    const unread = Number(unreadByTool[item.id] || 0);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        title={collapsed ? item.label : undefined}
+                        onClick={() => openTool(item)}
+                        className={`group relative flex w-full items-center gap-3 rounded-lg text-left transition-colors ${
+                          collapsed ? "justify-center px-2 py-2.5" : "px-2.5 py-2.5"
+                        } ${
+                          active
+                            ? "bg-orange-500/12 text-white"
+                            : "text-white/58 hover:bg-white/[0.055] hover:text-white"
+                        }`}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        {active ? (
+                          <span className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-orange-400" />
+                        ) : null}
+                        <span
+                          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            active
+                              ? "bg-orange-500/15 text-orange-200"
+                              : "bg-white/[0.035] text-white/42 group-hover:text-white/75"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
                         </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })()}
-              {(normalizedQuery || !collapsed[section.section]) &&
-                section.items.map((item) => {
-                  const Icon = item.icon;
-                  const active = isItemActive(normalizedLocation, item);
-                  const unreadCount = getToolUnreadCount(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setLocation(item.path);
-                        if (onNavigate) onNavigate();
-                      }}
-                      className={`w-full rounded-xl border text-left transition-colors ${
-                        active
-                          ? "border-orange-500/60 bg-orange-500/12 text-orange-50 shadow-[0_0_0_1px_rgba(249,115,22,0.08)]"
-                          : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
-                      } ${density === "compact" ? "px-3 py-2" : "px-3 py-2.5"}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {Icon && (
+                        {!collapsed ? (
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                            {item.label}
+                          </span>
+                        ) : null}
+                        {unread > 0 ? (
                           <span
-                            className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border ${
-                              active
-                                ? "border-orange-400/30 bg-orange-500/10 text-orange-200"
-                                : "border-zinc-800 bg-zinc-950 text-zinc-400"
+                            className={`rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-bold text-black ${
+                              collapsed ? "absolute right-1 top-1" : ""
                             }`}
                           >
-                            <Icon className="h-4 w-4" />
+                            {unread > 99 ? "99+" : unread}
                           </span>
-                        )}
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{item.label}</span>
-                          <span className="mt-0.5 block truncate text-[11px] text-zinc-500">
-                            {getAdminToolDescription(item)}
-                          </span>
-                        </span>
-                        {unreadCount > 0 && (
-                          <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-200">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ))}
-          {visibleSections.length === 0 ? (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 text-sm text-zinc-500">
-              No matching admin tools.
-            </div>
-          ) : null}
-        </nav>
-      </div>
+          );
+        })}
+
+        {visibleSections.length === 0 ? (
+          <div className="px-3 py-8 text-center text-sm text-white/35">No matching tools.</div>
+        ) : null}
+      </nav>
+
+      {onToggleCollapsed ? (
+        <div className="border-t border-white/10 p-2">
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className={`flex min-h-10 w-full items-center rounded-lg text-white/45 hover:bg-white/[0.055] hover:text-white ${
+              collapsed ? "justify-center px-2" : "gap-3 px-2.5"
+            }`}
+            aria-label={collapsed ? "Expand admin navigation" : "Collapse admin navigation"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="h-4 w-4" />
+            ) : (
+              <PanelLeftClose className="h-4 w-4" />
+            )}
+            {!collapsed ? <span className="text-xs font-medium">Collapse navigation</span> : null}
+          </button>
+        </div>
+      ) : null}
     </aside>
   );
 }

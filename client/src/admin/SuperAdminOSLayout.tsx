@@ -1,6 +1,10 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { findActiveAdminTool, getAdminNavSectionsForRole, type AdminRole } from "./adminTools";
+import { findActiveAdminTool, type AdminRole } from "./adminTools";
+import {
+  getAdminNavWorkspacesForRole,
+  getAdminToolPresentation,
+} from "./adminNavWorkspaces";
 import { SuperAdminLeftNav } from "./SuperAdminLeftNav";
 import { AdminHeader } from "./AdminHeader";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,181 +15,137 @@ interface SuperAdminOSLayoutProps {
   isSuperAdmin?: boolean;
 }
 
+const RAIL_KEY = "admin:ui:railCollapsed:v2";
+
 export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminOSLayoutProps) {
-  const [location, setLocation] = useLocation();
+  const [location] = useLocation();
   const { user } = useAuth();
   const effectiveRole = role || (user?.role as AdminRole) || "ops_admin";
   const superFlag = Boolean(isSuperAdmin || (user as any)?.isSuperAdmin === true);
-  const navSections = getAdminNavSectionsForRole(effectiveRole, superFlag);
-  const activeItem = findActiveAdminTool(location);
-  const mobileNavItems = React.useMemo(() => {
-    const all = navSections.flatMap((section) => section.items);
-    const prioritized = all.filter(
-      (item) =>
-        item.path === "/admin" ||
-        item.path.startsWith("/admin/live-stream") ||
-        item.path.startsWith("/admin/scout-resilience")
-    );
+  const navSections = React.useMemo(
+    () => getAdminNavWorkspacesForRole(effectiveRole, superFlag),
+    [effectiveRole, superFlag]
+  );
+  const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
+  const activeItem = React.useMemo(() => {
+    const matchedItem = findActiveAdminTool(pathname);
+    if (!matchedItem) return null;
+    if (matchedItem.path === "/admin" && pathname !== "/admin") return null;
+    return getAdminToolPresentation(matchedItem);
+  }, [pathname]);
+  const activeSection =
+    navSections.find((section) => section.items.some((item) => item.id === activeItem?.id))?.section ||
+    "Operations";
 
-    const ordered = [...prioritized];
-    for (const item of all) {
-      if (ordered.some((existing) => existing.path === item.path)) continue;
-      ordered.push(item);
-    }
-    return ordered.slice(0, 4);
-  }, [navSections]);
-
-  const [density, setDensity] = React.useState<"comfortable" | "compact">("comfortable");
-  const [isNavOpen, setIsNavOpen] = React.useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+  const [railCollapsed, setRailCollapsed] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const stored = window.localStorage.getItem("admin:ui:density");
-      if (stored === "compact" || stored === "comfortable") {
-        setDensity(stored);
-        return;
-      }
+      setRailCollapsed(window.localStorage.getItem(RAIL_KEY) === "1");
     } catch {
-      // ignore storage errors
+      // Keep the expanded rail when storage is unavailable.
+    }
+  }, []);
+
+  const persistRailState = React.useCallback((collapsed: boolean) => {
+    try {
+      window.localStorage.setItem(RAIL_KEY, collapsed ? "1" : "0");
+    } catch {
+      // Ignore storage errors; the current session still updates.
+    }
+  }, []);
+
+  const toggleRail = () => {
+    setRailCollapsed((current) => {
+      const next = !current;
+      persistRailState(next);
+      return next;
+    });
+  };
+
+  const focusToolSearch = React.useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!window.matchMedia("(min-width: 1024px)").matches) {
+      setMobileNavOpen(true);
+      window.setTimeout(() => window.dispatchEvent(new Event("admin:focus-tool-search")), 80);
+      return;
     }
 
-    // New default: keep admin nav compact on mobile to prevent long-scroll menus.
-    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-    setDensity(isDesktop ? "comfortable" : "compact");
-  }, []);
+    if (railCollapsed) {
+      setRailCollapsed(false);
+      persistRailState(false);
+      window.setTimeout(() => window.dispatchEvent(new Event("admin:focus-tool-search")), 80);
+      return;
+    }
+
+    window.dispatchEvent(new Event("admin:focus-tool-search"));
+  }, [persistRailState, railCollapsed]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const stored = window.localStorage.getItem("admin:ui:navOpen");
-      if (stored === "0" || stored === "1") {
-        setIsNavOpen(stored === "1");
-        return;
-      }
-    } catch {
-      // ignore storage errors
-    }
-
-    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-    setIsNavOpen(isDesktop);
-  }, []);
-
-  const toggleDensity = () => {
-    setDensity((prev) => {
-      const next = prev === "compact" ? "comfortable" : "compact";
-      try {
-        window.localStorage.setItem("admin:ui:density", next);
-      } catch {
-        // ignore storage errors
-      }
-      return next;
-    });
-  };
-
-  const handleToggleNav = () => {
-    setIsNavOpen((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem("admin:ui:navOpen", next ? "1" : "0");
-      } catch {
-        // ignore storage errors
-      }
-      return next;
-    });
-  };
-
-  const handleNavigate = () => {
-    if (typeof window === "undefined") return;
-    const isDesktop = window.matchMedia("(min-width: 768px)").matches;
-    // Keep nav persistent on desktop, collapse only on mobile/tablet.
-    if (!isDesktop) {
-      setIsNavOpen(false);
-      try {
-        window.localStorage.setItem("admin:ui:navOpen", "0");
-      } catch {
-        // ignore storage errors
-      }
-    }
-  };
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      event.preventDefault();
+      focusToolSearch();
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [focusToolSearch]);
 
   return (
-    <div
-      className={
-        density === "compact"
-          ? "ts-admin-shell min-h-full bg-zinc-950 py-3 pb-[calc(84px+env(safe-area-inset-bottom))] md:pb-3"
-          : "ts-admin-shell min-h-full bg-zinc-950 py-5 pb-[calc(86px+env(safe-area-inset-bottom))] md:pb-5"
-      }
-    >
+    <div className="ts-admin-shell min-h-full bg-[#08090a] text-zinc-100">
       <div
-        className={
-          density === "compact"
-            ? "mx-auto flex max-w-[1560px] flex-col gap-3 px-3 sm:px-4 lg:flex-row lg:px-5"
-            : "mx-auto flex max-w-[1560px] flex-col gap-4 px-4 sm:px-5 lg:flex-row lg:px-6"
-        }
+        className={`grid min-h-[var(--app-height)] transition-[grid-template-columns] duration-200 ${
+          railCollapsed
+            ? "lg:grid-cols-[4.75rem_minmax(0,1fr)]"
+            : "lg:grid-cols-[16.5rem_minmax(0,1fr)]"
+        }`}
       >
-        <div className={isNavOpen ? "block md:shrink-0" : "hidden"}>
-          <SuperAdminLeftNav sections={navSections} onNavigate={handleNavigate} density={density} />
-        </div>
-        <div
-          className={
-            density === "compact"
-              ? "flex-1 flex flex-col space-y-3"
-              : "flex-1 flex flex-col space-y-4"
-          }
-        >
-          <AdminHeader
-            currentItem={activeItem}
-            onToggleNav={handleToggleNav}
-            isNavOpen={isNavOpen}
-            density={density}
-            onToggleDensity={toggleDensity}
-          />
-          <div
-            className={
-              density === "compact"
-                ? "ts-admin-content min-w-0 flex-1 overflow-auto"
-                : "ts-admin-content min-w-0 flex-1 overflow-auto"
-            }
-          >
-            {children}
+        <div className="hidden border-r border-white/10 bg-[#0b0c0d] lg:block">
+          <div className="sticky top-0 h-[var(--app-height)]">
+            <SuperAdminLeftNav
+              sections={navSections}
+              onNavigate={() => undefined}
+              collapsed={railCollapsed}
+              onToggleCollapsed={toggleRail}
+            />
           </div>
         </div>
-      </div>
 
-      <nav
-        className="ts-admin-mobile-nav fixed inset-x-3 bottom-3 z-40 rounded-2xl border border-zinc-700/80 bg-zinc-950/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_20px_50px_rgba(0,0,0,0.42)] backdrop-blur md:hidden"
-        aria-label="Admin OS bottom navigation"
-      >
-        <div className="grid grid-cols-4 gap-1">
-          {mobileNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeItem?.path === item.path;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  setLocation(item.path);
-                  handleNavigate();
-                }}
-                className={`rounded-xl px-2 py-2 text-center transition-colors ${
-                  isActive
-                    ? "bg-orange-500/15 text-orange-100"
-                    : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white"
-                }`}
-                aria-current={isActive ? "page" : undefined}
-                aria-label={item.label}
-              >
-                {Icon && <Icon className="mx-auto h-4 w-4" />}
-                <span className="mt-1 block truncate text-[10px] font-medium leading-tight">
-                  {item.label}
-                </span>
-              </button>
-            );
-          })}
+        {mobileNavOpen ? (
+          <div className="fixed inset-0 z-[120] lg:hidden" role="dialog" aria-modal="true">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              aria-label="Close admin navigation"
+              onClick={() => setMobileNavOpen(false)}
+            />
+            <div className="relative h-full w-[min(21rem,88vw)] border-r border-white/10 bg-[#0b0c0d] shadow-2xl">
+              <SuperAdminLeftNav
+                sections={navSections}
+                onNavigate={() => setMobileNavOpen(false)}
+                onClose={() => setMobileNavOpen(false)}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="min-w-0">
+          <AdminHeader
+            currentItem={activeItem}
+            currentSection={activeSection}
+            onOpenNavigation={() => setMobileNavOpen(true)}
+            onFindTool={focusToolSearch}
+          />
+          <main className="ts-admin-content min-w-0 px-4 py-5 sm:px-6 sm:py-6 xl:px-8 xl:py-7">
+            {children}
+          </main>
         </div>
-      </nav>
+      </div>
     </div>
   );
 }

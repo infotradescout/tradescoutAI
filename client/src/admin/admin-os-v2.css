@@ -1,0 +1,62 @@
+.ts-admin-tool-surface {
+  min-width: 0;
+  width: 100%;
+}
+
+.ts-admin-tool-surface--native {
+  min-height: 0;
+}
+
+/*
+ * Until an individual tool is rebuilt with AdminWorkspace primitives, keep it
+ * inside the new shell without preserving its old page-within-a-page frame.
+ * This adapter changes presentation only. It does not move actions, inputs,
+ * dialogs, tables, or API behavior.
+ */
+.ts-admin-tool-surface--adapted > :first-child {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.ts-admin-tool-surface--adapted :where(.shadow-sm, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) {
+  box-shadow: none !important;
+}
+
+.ts-admin-tool-surface--adapted :where(.rounded-2xl, .rounded-xl) {
+  border-radius: 0.75rem !important;
+}
+
+.ts-admin-tool-surface--adapted :where([class*="bg-tsCard"], [class*="bg-[color:var(--surface-card)]"], .bg-card) {
+  background-color: rgba(255, 255, 255, 0.018) !important;
+}
+
+.ts-admin-tool-surface--adapted :where(table) {
+  width: 100%;
+}
+
+.ts-admin-tool-surface--adapted :where(th) {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ts-admin-tool-surface--adapted :where(tr) {
+  border-color: rgba(255, 255, 255, 0.09) !important;
+}
+
+.ts-admin-tool-surface--adapted :where(input, textarea, select) {
+  box-shadow: none !important;
+}
+
+@media (max-width: 767px) {
+  .ts-admin-tool-surface--adapted > :first-child {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
