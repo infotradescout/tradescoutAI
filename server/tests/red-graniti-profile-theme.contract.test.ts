@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { RED_GRANITI_PUBLIC_IDENTITY } from "@shared/redGranitiProfile";
+import {
+  RED_GRANITI_MANAGED_CONTACT,
+  RED_GRANITI_PUBLIC_IDENTITY,
+} from "@shared/redGranitiProfile";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -34,7 +37,7 @@ describe("R.E.D. Graniti business profile renderer", () => {
     expect(theme).toContain('data-testid="red-graniti-business-areas"');
     expect(theme).toContain('data-testid="red-graniti-quarries"');
     expect(theme).toContain('data-testid="red-graniti-locations"');
-    expect(theme).toContain('data-testid="red-graniti-company-contact"');
+    expect(theme).toContain('data-testid="red-graniti-managed-contact"');
     expect(theme).toContain('data-testid="red-graniti-first-cut-relationship"');
     expect(theme).toContain("About R.E.D. Graniti");
     expect(theme).toContain("Blocks, slabs and distribution");
@@ -61,6 +64,31 @@ describe("R.E.D. Graniti business profile renderer", () => {
     expect(theme).not.toContain("Call JW Stone");
     expect(theme).not.toContain("red-graniti-header-call");
     expect(theme).not.toContain("red-graniti-hero-call");
+  });
+
+  it("shows the TradeScout-managed phone and email instead of R.E.D. corporate contact", () => {
+    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+
+    expect(RED_GRANITI_MANAGED_CONTACT).toEqual({
+      label: "TradeScout managed contact",
+      heading: "R.E.D. Graniti inquiries",
+      phone: "(850) 543-0748",
+      tel: "+18505430748",
+      email: "contact@thetradescout.com",
+      description: "Calls and messages from this profile are handled through TradeScout.",
+    });
+    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.label");
+    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.phone");
+    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.email");
+    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.tel");
+    expect(theme).toContain("Company headquarters");
+    expect(theme).not.toContain("Company contact");
+    expect(theme).not.toContain('href="tel:+39058588471"');
+    expect(theme).not.toContain("identity.headquarters.phone");
+    expect(theme).not.toContain("identity.headquarters.email");
+    expect(JSON.stringify(RED_GRANITI_PUBLIC_IDENTITY.headquarters)).not.toMatch(
+      /info@redgraniti\.com|0585 88471|0585 884848/
+    );
   });
 
   it("uses the protected JW Stone call path without making it the profile identity", () => {
