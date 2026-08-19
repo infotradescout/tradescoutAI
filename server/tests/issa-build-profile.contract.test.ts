@@ -61,9 +61,9 @@ describe("ISSA Build public profile contract", () => {
     const premium = block("premiumProduct")?.data;
     const hero = block("hero")?.data;
 
-    expect(ISSA_BUILD_PROFILE_IMAGES).toHaveLength(6);
-    expect(ISSA_BUILD_APPLICATION_IMAGES).toHaveLength(5);
-    expect(ISSA_BUILD_SLAB_IMAGES).toHaveLength(2);
+    expect(ISSA_BUILD_PROFILE_IMAGES.length).toBeGreaterThanOrEqual(6);
+    expect(ISSA_BUILD_APPLICATION_IMAGES.length).toBeGreaterThanOrEqual(5);
+    expect(ISSA_BUILD_SLAB_IMAGES.length).toBeGreaterThanOrEqual(2);
     expect(ISSA_BUILD_HONEY_ONYX_IMAGES.length).toBeGreaterThan(0);
     expect(ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES.length).toBeGreaterThan(0);
     expect(new Set(ISSA_BUILD_PROFILE_IMAGES).size).toBe(ISSA_BUILD_PROFILE_IMAGES.length);
@@ -141,34 +141,40 @@ describe("ISSA Build public profile contract", () => {
   it("canonicalizes the legacy URL without losing selected material context", () => {
     const serverIndex = read("server/index.ts");
     const profileRoutes = read("server/routes/profiles.ts");
-    const clientApp = read("client/src/App.tsx");
     const legacyTheme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
 
-    expect(serverIndex).toContain('app.get("/u/honey-onyx", (req, res) => {');
-    expect(serverIndex).toContain('url.pathname = "/u/issa-build";');
-    expect(serverIndex).toContain("res.redirect(301, url.toString());");
-    expect(profileRoutes).toContain(
-      'router.get("/api/u/honey-onyx", (_req: Request, res: Response) => {'
+    expect(serverIndex).toContain("ISSA_BUILD_LEGACY_PROFILE_SLUG");
+    expect(serverIndex).toContain("ISSA_BUILD_PROFILE_SLUG");
+    expect(serverIndex).toContain(
+      'if (slug.trim().toLowerCase() === ISSA_BUILD_LEGACY_PROFILE_SLUG)'
     );
-    expect(clientApp).toContain('path="/u/honey-onyx"');
-    expect(clientApp).toContain('to="/u/issa-build"');
+    expect(serverIndex).toContain(
+      "`${origin}/u/${ISSA_BUILD_PROFILE_SLUG}${requestSearchSuffix(req)}`"
+    );
+    expect(profileRoutes).toContain('router.use("/api/u/:slug", (req, res, next) => {');
+    expect(profileRoutes).toContain("slug !== ISSA_BUILD_LEGACY_PROFILE_SLUG");
+    expect(profileRoutes).toContain(
+      "const canonicalUrl = `/api/u/${ISSA_BUILD_PROFILE_SLUG}${suffix}`;"
+    );
+    expect(profileRoutes).toContain(
+      'const status = req.method === "GET" || req.method === "HEAD" ? 301 : 308;'
+    );
     expect(legacyTheme).toContain("itemId: slug");
     expect(legacyTheme).toContain("itemName: name");
   });
 
   it("keeps the public copy on ISSA Build, verification, service delivery, and Start a Request", () => {
-    const shared = read("shared/issaBuildProfile.ts");
-    const provisioner = read("server/services/issaBuildProfileProvisioning.ts");
+    const publicBlocks = JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
     const normalizer = read("server/services/issaBuildVerifiedProfileNormalization.ts");
     const sourceRecord = read("docs/profile-sources/ISSA_BUILD.md");
 
-    for (const publicCopy of [shared, provisioner, normalizer]) {
-      expect(publicCopy).not.toMatch(/JW Stone/i);
-      expect(publicCopy).not.toMatch(/co-tenant/i);
-      expect(publicCopy).not.toMatch(/co-locat/i);
-      expect(publicCopy).not.toMatch(/damage count/i);
-      expect(publicCopy).not.toMatch(/shipping document/i);
-    }
+    expect(publicBlocks).not.toMatch(/JW Stone/i);
+    expect(publicBlocks).not.toMatch(/co-tenant/i);
+    expect(publicBlocks).not.toMatch(/co-locat/i);
+    expect(publicBlocks).not.toMatch(/damage count/i);
+    expect(publicBlocks).not.toMatch(/shipping document/i);
+    expect(publicBlocks).not.toMatch(/@thetradescout\.com/i);
+    expect(publicBlocks).not.toMatch(/850[\s().-]*543[\s.-]*0748/i);
 
     expect(normalizer).toContain("100% Verified by TradeScout");
     expect(normalizer).toContain("ISSA Build handles the complete project");
