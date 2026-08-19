@@ -4,12 +4,14 @@ import "./admin-os-v2.css";
 
 const NATIVE_ADMIN_V2_TOOLS = new Set([
   "overview",
+  "users",
   "tradepartner-ops",
   "direct-connect-requests",
   "verification",
   "business-verifications",
   "business-directory-ops",
   "listings",
+  "moderation",
   "errors",
 ]);
 
