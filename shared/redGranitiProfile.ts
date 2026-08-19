@@ -23,6 +23,20 @@ export const RED_GRANITI_OFFICIAL_SOURCES = [
 ] as const;
 
 /**
+ * The public profile is controlled by TradeScout. This is the visible managed
+ * contact for calls and email; the R.E.D. corporate address remains company
+ * information rather than the operating response destination.
+ */
+export const RED_GRANITI_MANAGED_CONTACT = {
+  label: "TradeScout managed contact",
+  heading: "R.E.D. Graniti inquiries",
+  phone: "(850) 543-0748",
+  tel: "+18505430748",
+  email: "contact@thetradescout.com",
+  description: "Calls and messages from this profile are handled through TradeScout.",
+} as const;
+
+/**
  * Official source-region imagery cached into TradeScout during the production
  * build. Local delivery prevents CSP and source-site hotlink failures while
  * every card remains linked to the corresponding official quarry page.
@@ -59,9 +73,6 @@ export const RED_GRANITI_PUBLIC_IDENTITY = {
     label: "Headquarters",
     addressLine1: "Via Dorsale 12",
     addressLine2: "54100 Massa, Italy",
-    phone: "+39 0585 88471",
-    fax: "+39 0585 884848",
-    email: "info@redgraniti.com",
     mapUrl:
       "https://www.google.com/maps/search/?api=1&query=Via%20Dorsale%2012%2C%2054100%20Massa%2C%20Italy",
   },
