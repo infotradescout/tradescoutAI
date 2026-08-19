@@ -40,7 +40,6 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
             <PublicProfileAccountCard
               profileSlug={JW_STONE_PROFILE_SLUG}
               profileName="JW Stone"
-              preferredRole="fabricator"
               tone="light"
               compact
               className="mt-5"
