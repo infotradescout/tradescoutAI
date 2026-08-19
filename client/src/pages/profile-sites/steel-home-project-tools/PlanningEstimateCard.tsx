@@ -88,8 +88,8 @@ export default function PlanningEstimateCard({
       </div>
 
       <p className={`mt-5 text-xs leading-5 ${dark ? "text-white/[0.52]" : "text-[#68736f]"}`}>
-        Measurements and selections are planning inputs only. Availability, engineering,
-        field conditions, and pricing require a qualified professional review.
+        Measurements and selections are planning inputs only. Availability, engineering, field
+        conditions, and pricing require a qualified professional review.
       </p>
     </details>
   );
