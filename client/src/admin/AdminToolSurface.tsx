@@ -8,6 +8,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "direct-connect-requests",
   "verification",
   "business-verifications",
+  "business-directory-ops",
   "errors",
 ]);
 
