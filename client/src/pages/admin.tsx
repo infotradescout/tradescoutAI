@@ -1,11 +1,12 @@
 import React, { Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 import { SuperAdminOSLayout } from "@/admin/SuperAdminOSLayout";
 import AdminHome from "@/admin/AdminHome";
+import { AdminEmptyState, AdminWorkspace } from "@/admin/AdminWorkspace";
+import { AdminToolSurface } from "@/admin/AdminToolSurface";
 import { resolveAdminToolByLocation, type AdminRole } from "@/admin/adminTools";
 
 type AdminHealthResponse = {
@@ -26,36 +27,25 @@ export default function AdminShell() {
 
   if (error || !data?.ok) {
     return (
-      <div className="bg-background flex items-center justify-center py-24 px-4">
-        <Card className="max-w-md w-full border-destructive/40 bg-card">
-          <CardHeader>
-            <CardTitle className="text-destructive">Admin access required</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              This portal is restricted to platform administrators. Your current session does not
-              have access.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              If you believe this is an error, check your assigned role or contact the platform
-              owner.
-            </p>
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Requested: /admin</span>
-              <span>Role: {data?.role || "unknown"}</span>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Link href="/">
-                <Button variant="outline" size="sm">
-                  Return home
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex min-h-[var(--app-height)] items-center justify-center bg-[#08090a] px-4 py-20">
+        <div className="w-full max-w-lg border-y border-red-400/20 bg-red-400/[0.035] px-5 py-10 text-center">
+          <h1 className="text-xl font-semibold text-red-100">Admin access required</h1>
+          <p className="mt-3 text-sm leading-6 text-red-100/65">
+            This workspace is restricted to platform administrators. The current session does not
+            have admin access.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <Link href="/">
+              <Button variant="outline" className="border-white/15 bg-transparent text-white">
+                Return home
+              </Button>
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
+
   const role = ((data?.role as AdminRole) || "ops_admin") as AdminRole;
   const isSuperAdmin = Boolean(data?.isSuperAdmin);
 
@@ -74,56 +64,55 @@ function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAd
     return <AdminHome role={role} isSuperAdmin={isSuperAdmin} />;
   }
 
-  const resolved = resolveAdminToolByLocation(pathname || "/admin", role, isSuperAdmin);
-  if (!resolved.tool) return <UnknownAdminRoute />;
+  const resolved = resolveAdminToolByLocation(pathname, role, isSuperAdmin);
+  const silentlyFellBackToHome = resolved.tool?.path === "/admin" && pathname !== "/admin";
+  if (!resolved.tool || silentlyFellBackToHome) return <UnknownAdminRoute requestedPath={pathname} />;
   if (!resolved.allowed) return <AdminAccessDenied />;
 
   return (
     <Suspense fallback={<PageLoadingSpinner message="Loading admin tool..." />}>
-      {resolved.tool.render()}
+      <AdminToolSurface tool={resolved.tool}>{resolved.tool.render()}</AdminToolSurface>
     </Suspense>
   );
 }
 
 function AdminAccessDenied() {
   return (
-    <Card className="bg-black/30 border-white/10">
-      <CardHeader>
-        <CardTitle className="text-sm text-white">Insufficient role</CardTitle>
-        <CardDescription className="text-xs text-white/60">
-          This admin tool is restricted to super admins.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0 flex justify-end">
-        <Link href="/admin">
-          <Button size="sm" variant="outline">
-            Back to admin home
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
+    <AdminWorkspace>
+      <AdminEmptyState
+        title="This workspace requires a higher admin role"
+        description="Your current role can see the Admin OS, but it cannot open this operating surface."
+        action={
+          <Link href="/admin">
+            <Button variant="outline" className="border-white/15 bg-transparent text-white">
+              Return to Admin Home
+            </Button>
+          </Link>
+        }
+      />
+    </AdminWorkspace>
   );
 }
 
-function UnknownAdminRoute() {
-  const [location] = useLocation();
-
+function UnknownAdminRoute({ requestedPath }: { requestedPath: string }) {
   return (
-    <Card className="bg-black/30 border-white/10">
-      <CardHeader>
-        <CardTitle className="text-sm text-white">Unknown admin tool</CardTitle>
-        <CardDescription className="text-xs text-white/60">
-          This admin path is not wired into the Admin OS yet.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-0 flex justify-between items-center text-xs text-white/60">
-        <span>Requested: {location}</span>
-        <Link href="/admin">
-          <Button size="sm" variant="outline">
-            Go to Admin dashboard
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
+    <AdminWorkspace>
+      <AdminEmptyState
+        title="This admin route is not registered"
+        description={
+          <>
+            The Admin OS will not silently replace an unknown workspace with Admin Home. Requested:{" "}
+            <span className="font-mono text-white/70">{requestedPath}</span>
+          </>
+        }
+        action={
+          <Link href="/admin">
+            <Button variant="outline" className="border-white/15 bg-transparent text-white">
+              Return to Admin Home
+            </Button>
+          </Link>
+        }
+      />
+    </AdminWorkspace>
   );
 }
