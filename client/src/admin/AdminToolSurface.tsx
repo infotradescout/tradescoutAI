@@ -19,6 +19,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "business-onboarding-telemetry",
   "discovery-observatory",
   "scout-resilience",
+  "geo-map",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
