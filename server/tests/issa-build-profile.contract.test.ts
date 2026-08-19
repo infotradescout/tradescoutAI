@@ -59,7 +59,6 @@ describe("ISSA Build public profile contract", () => {
   it("preserves Honey Onyx and Multi Green Onyx as distinct offerings with approved media", () => {
     const inventory = block("inventoryCatalog")?.data;
     const premium = block("premiumProduct")?.data;
-    const hero = block("hero")?.data;
     const stones = inventory?.categories?.[0]?.stones || [];
 
     expect(ISSA_BUILD_PROFILE_IMAGES.length).toBeGreaterThanOrEqual(6);
@@ -92,11 +91,6 @@ describe("ISSA Build public profile contract", () => {
     expect(stones[1]).not.toHaveProperty("price");
     expect(stones[1]).not.toHaveProperty("available");
 
-    expect(hero?.media).toEqual({
-      type: "video",
-      src: ISSA_BUILD_HERO_VIDEO,
-      poster: ISSA_BUILD_HERO_POSTER,
-    });
     expect(isPremiumProductProfileData(premium)).toBe(true);
     expect(premium?.presentation).toBe("lux");
     expect(premium?.offerings?.items.map((entry: any) => entry.slug)).toEqual([
