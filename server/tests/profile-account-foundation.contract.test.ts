@@ -58,13 +58,19 @@ describe("in-profile account foundation", () => {
     const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
     const profileSite = read("client/src/pages/ProfileSiteView.tsx");
     const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const steelHomeDirectory = read(
+      "client/src/pages/profile-sites/steel-home-project-tools/SteelHomeBuilderDirectory.tsx"
+    );
     const shared = read("shared/profileAccount.ts");
 
+    expect(profileSite).toContain("renderProfileTrustActions");
     expect(profileSite).toContain("PublicProfileTrustActions");
     expect(trustActions).toContain('import { PublicProfileAccountCard }');
     expect(trustActions).toContain("<PublicProfileAccountCard");
     expect(trustActions).toContain("profileSlug={profileSlug}");
     expect(trustActions).toContain("profileName={profileName}");
+    expect(steelHomeDirectory).toContain('import { PublicProfileAccountCard }');
+    expect(steelHomeDirectory).toContain("<PublicProfileAccountCard");
     expect(accountCard).toContain('"Create an account"');
     expect(accountCard).toContain("Businesses can create an account");
     expect(wholesalerTheme).not.toContain("PublicProfileAccountCard");
