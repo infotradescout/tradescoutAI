@@ -5,6 +5,7 @@ import {
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_SLUG,
 } from "@shared/issaBuildProfile";
+import { LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE } from "@shared/businessDiscoveryAuthority";
 import { businesses, profiles } from "@shared/schema";
 import { db } from "../db";
 
@@ -178,6 +179,8 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
             verification_label: "100% Verified by TradeScout",
             verification_source: ISSA_BUILD_VERIFIED_BUSINESS_SOURCE,
             verification_scope: ["business_identity", "full_service_capability"],
+            service_area_mode: LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE,
+            service_area_resolution: "project_location_reviewed_through_request",
             request_routing: "tradescout_managed_inquiry_funnel",
             service_delivery: "issa_build",
           },
