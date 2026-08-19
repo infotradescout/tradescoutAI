@@ -1,10 +1,29 @@
 import type { Express } from "express";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { professionalPartnerships, users } from "../../shared/schema";
-import { isAuthenticated } from "../auth";
+import { isAuthenticated, requireAdmin } from "../auth";
 import { db } from "../db";
+import { getManagedPartnerProfileHealth } from "../services/managedPartnerProfileHealth";
 
 export function registerProfessionalPartnershipRoutes(app: Express): void {
+  // ==================== MANAGED PARTNER OPERATIONS ====================
+
+  app.get(
+    "/api/admin/managed-partners",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: any, res: any) => {
+      try {
+        const report = await getManagedPartnerProfileHealth();
+        res.setHeader("Cache-Control", "no-store");
+        return res.json(report);
+      } catch (error: any) {
+        console.error("Error auditing managed partner profiles:", error);
+        return res.status(500).json({ message: "Failed to audit managed partner profiles" });
+      }
+    }
+  );
+
   // ==================== PROFESSIONAL PARTNERSHIPS ====================
 
   // Request partnership between professionals (dealers, contractors, realtors)
