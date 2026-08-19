@@ -64,32 +64,29 @@ export async function runSeoPublicationPruneJob(): Promise<SeoPublicationPruneRe
             where bc.business_id = b.id
           ) as has_fixed_county,
           (
-            (
-              lower(coalesce(u.verification_status::text, '')) = 'approved'
-              and coalesce(u.address_verified, false) = true
-            )
-            or
-            (
-              lower(
-                coalesce(
-                  b.profile_data->'importExtras'->>'business_verification',
-                  ''
-                )
-              ) = ${FULLY_VERIFIED_BUSINESS_STATUS}
-              and coalesce(
-                b.profile_data->'importExtras'->>'verification_percent',
-                ''
-              ) = ${String(FULLY_VERIFIED_BUSINESS_PERCENT)}
-              and coalesce(
-                b.profile_data->'importExtras'->'verification_scope',
-                '[]'::jsonb
-              ) ? ${BUSINESS_IDENTITY_VERIFICATION_SCOPE}
-              and coalesce(b.sources, '[]'::jsonb) ? coalesce(
-                b.profile_data->'importExtras'->>'verification_source',
+            lower(coalesce(u.verification_status::text, '')) = 'approved'
+            and coalesce(u.address_verified, false) = true
+          ) as owner_verified,
+          (
+            lower(
+              coalesce(
+                b.profile_data->'importExtras'->>'business_verification',
                 ''
               )
+            ) = ${FULLY_VERIFIED_BUSINESS_STATUS}
+            and coalesce(
+              b.profile_data->'importExtras'->>'verification_percent',
+              ''
+            ) = ${String(FULLY_VERIFIED_BUSINESS_PERCENT)}
+            and coalesce(
+              b.profile_data->'importExtras'->'verification_scope',
+              '[]'::jsonb
+            ) ? ${BUSINESS_IDENTITY_VERIFICATION_SCOPE}
+            and coalesce(b.sources, '[]'::jsonb) ? coalesce(
+              b.profile_data->'importExtras'->>'verification_source',
+              ''
             )
-          ) as publication_verified,
+          ) as business_level_verified,
           lower(
             coalesce(
               b.profile_data->'importExtras'->>'service_area_mode',
@@ -102,13 +99,19 @@ export async function runSeoPublicationPruneJob(): Promise<SeoPublicationPruneRe
         where b.status = 'active'
           and b.public_discovery_enabled = true
       ),
+      classified as (
+        select
+          *,
+          (owner_verified or business_level_verified) as publication_verified
+        from candidates
+      ),
       stale as (
         select id
-        from candidates
+        from classified
         where
           (
             not has_fixed_county
-            and not (publication_verified and location_confirmed_per_request)
+            and not (business_level_verified and location_confirmed_per_request)
           )
           or
           (
