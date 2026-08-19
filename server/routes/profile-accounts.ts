@@ -12,6 +12,7 @@ import {
 import {
   ensureProfileAccountEntitlement,
   listProfileAccountEntitlements,
+  type ProfileAccountEntitlement,
 } from "../services/profileAccountEntitlementService";
 
 type OptionalAuthedRequest = Request & {
@@ -73,20 +74,20 @@ export function registerProfileAccountRoutes(app: Express) {
           role: parsed.data.role,
           sourcePath: parsed.data.sourcePath,
         });
-        const entitlements = [];
+        let entitlements: readonly ProfileAccountEntitlement[];
         if (
           created.policy.kind === "stone_business" &&
           profileAccountRoleIncludesBidRock(parsed.data.role)
         ) {
-          entitlements.push(
+          entitlements = [
             await ensureProfileAccountEntitlement({
               profileAccountId: created.account.id,
               productKey: "bidrock",
               verificationStatus: created.account.verificationStatus,
-            })
-          );
+            }),
+          ];
         } else {
-          entitlements.push(...(await listProfileAccountEntitlements(created.account.id)));
+          entitlements = await listProfileAccountEntitlements(created.account.id);
         }
 
         res.setHeader("Cache-Control", "private, no-store");
