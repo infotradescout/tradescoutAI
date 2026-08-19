@@ -14,6 +14,7 @@ describe("in-profile account foundation", () => {
     expect(service).toContain("REFERENCES user_profiles(id)");
     expect(service).toContain("REFERENCES profiles(id)");
     expect(service).toContain("ON CONFLICT (business_profile_id, target_profile_id) DO UPDATE");
+    expect(service).toContain("enforce_profile_business_account_identity");
     expect(service).not.toMatch(/password|password_hash/i);
   });
 
@@ -52,18 +53,31 @@ describe("in-profile account foundation", () => {
     expect(card).toContain("sourcePath");
   });
 
-  it("uses the exact generic CTA and removes fabricator-specific account copy", () => {
-    const card = read("client/src/components/profile/PublicProfileAccountCard.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+  it("exposes the same generic Create an account action through every public profile", () => {
+    const accountCard = read("client/src/components/profile/PublicProfileAccountCard.tsx");
+    const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
+    const profileSite = read("client/src/pages/ProfileSiteView.tsx");
+    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const shared = read("shared/profileAccount.ts");
 
-    expect(card).toContain("Create an account");
-    expect(card).toContain("Businesses can create an account");
-    expect(theme).toContain("PublicProfileAccountCard");
-    expect(theme).toContain('profileSlug={JW_STONE_PROFILE_SLUG}');
-    expect(`${card}\n${theme}\n${shared}`).not.toMatch(/Create a fabricator account/i);
-    expect(`${card}\n${theme}\n${shared}`).not.toContain("preferredRole");
-    expect(`${card}\n${theme}\n${shared}`).not.toContain("PROFILE_ACCOUNT_ROLES");
+    expect(profileSite).toContain("PublicProfileTrustActions");
+    expect(trustActions).toContain('import { PublicProfileAccountCard }');
+    expect(trustActions).toContain("<PublicProfileAccountCard");
+    expect(trustActions).toContain("profileSlug={profileSlug}");
+    expect(trustActions).toContain("profileName={profileName}");
+    expect(accountCard).toContain('"Create an account"');
+    expect(accountCard).toContain("Businesses can create an account");
+    expect(wholesalerTheme).not.toContain("PublicProfileAccountCard");
+    expect(wholesalerTheme).not.toContain('profileName="JW Stone"');
+    expect(`${accountCard}\n${trustActions}\n${wholesalerTheme}\n${shared}`).not.toMatch(
+      /Create a fabricator account/i
+    );
+    expect(`${accountCard}\n${trustActions}\n${wholesalerTheme}\n${shared}`).not.toContain(
+      "preferredRole"
+    );
+    expect(`${accountCard}\n${trustActions}\n${wholesalerTheme}\n${shared}`).not.toContain(
+      "PROFILE_ACCOUNT_ROLES"
+    );
   });
 
   it("mounts platform profile-account routes independently from BidRock routes", () => {
