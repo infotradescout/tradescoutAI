@@ -1,4 +1,10 @@
 import { sql } from "drizzle-orm";
+import {
+  BUSINESS_IDENTITY_VERIFICATION_SCOPE,
+  FULLY_VERIFIED_BUSINESS_PERCENT,
+  FULLY_VERIFIED_BUSINESS_STATUS,
+  LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE,
+} from "@shared/businessDiscoveryAuthority";
 import { db } from "../db";
 import { getPublicationRules, invalidatePublicationRulesCache } from "../publicationRules";
 import { invalidateDirectorySitemapCaches } from "../routes/profiles";
@@ -46,31 +52,84 @@ export async function runSeoPublicationPruneJob(): Promise<SeoPublicationPruneRe
   let businessesDeactivated = 0;
   if (await hasPublicDiscoveryEnabledColumn()) {
     const deactivated = await db.execute(sql`
-      with stale as (
-        select b.id
+      with candidates as (
+        select
+          b.id,
+          b.owner_user_id,
+          lower(coalesce(b.claim_status::text, '')) as claim_status,
+          b.updated_at,
+          exists (
+            select 1
+            from business_counties bc
+            where bc.business_id = b.id
+          ) as has_fixed_county,
+          (
+            lower(coalesce(u.verification_status::text, '')) = 'approved'
+            and coalesce(u.address_verified, false) = true
+          ) as owner_verified,
+          (
+            lower(
+              coalesce(
+                b.profile_data->'importExtras'->>'business_verification',
+                ''
+              )
+            ) = ${FULLY_VERIFIED_BUSINESS_STATUS}
+            and coalesce(
+              b.profile_data->'importExtras'->>'verification_percent',
+              ''
+            ) = ${String(FULLY_VERIFIED_BUSINESS_PERCENT)}
+            and coalesce(
+              b.profile_data->'importExtras'->'verification_scope',
+              '[]'::jsonb
+            ) ? ${BUSINESS_IDENTITY_VERIFICATION_SCOPE}
+            and coalesce(b.sources, '[]'::jsonb) ? coalesce(
+              b.profile_data->'importExtras'->>'verification_source',
+              ''
+            )
+          ) as business_level_verified,
+          lower(
+            coalesce(
+              b.profile_data->'importExtras'->>'service_area_mode',
+              ''
+            )
+          ) = ${LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE}
+            as location_confirmed_per_request
         from businesses b
         left join users u on u.id = b.owner_user_id
         where b.status = 'active'
           and b.public_discovery_enabled = true
-          and (
-            not exists (select 1 from business_counties bc where bc.business_id = b.id)
-            or
-            (
-              (b.owner_user_id is null or lower(coalesce(b.claim_status::text, '')) = 'unclaimed')
-              and b.updated_at < (now() - (${staleUnclaimedDays}::int * interval '1 day'))
-            )
-            or
-            (
-              (b.owner_user_id is not null and lower(coalesce(b.claim_status::text, '')) <> 'unclaimed')
-              and not (lower(coalesce(u.verification_status::text, '')) = 'approved' and coalesce(u.address_verified, false) = true)
-              and b.updated_at < (now() - (${staleClaimedDays}::int * interval '1 day'))
-            )
-            or
-            (
-              (b.owner_user_id is not null and lower(coalesce(b.claim_status::text, '')) <> 'unclaimed')
-              and (lower(coalesce(u.verification_status::text, '')) = 'approved' and coalesce(u.address_verified, false) = true)
-              and b.updated_at < (now() - (${staleVerifiedDays}::int * interval '1 day'))
-            )
+      ),
+      classified as (
+        select
+          *,
+          (owner_verified or business_level_verified) as publication_verified
+        from candidates
+      ),
+      stale as (
+        select id
+        from classified
+        where
+          (
+            not has_fixed_county
+            and not (business_level_verified and location_confirmed_per_request)
+          )
+          or
+          (
+            publication_verified
+            and updated_at < (now() - (${staleVerifiedDays}::int * interval '1 day'))
+          )
+          or
+          (
+            not publication_verified
+            and (owner_user_id is null or claim_status = 'unclaimed')
+            and updated_at < (now() - (${staleUnclaimedDays}::int * interval '1 day'))
+          )
+          or
+          (
+            not publication_verified
+            and owner_user_id is not null
+            and claim_status <> 'unclaimed'
+            and updated_at < (now() - (${staleClaimedDays}::int * interval '1 day'))
           )
       ),
       updated as (
