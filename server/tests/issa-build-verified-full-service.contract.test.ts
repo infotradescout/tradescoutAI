@@ -11,7 +11,7 @@ describe("ISSA Build verified full-service profile", () => {
     const normalizer = read("server/services/issaBuildVerifiedProfileNormalization.ts");
 
     expect(normalizer).toContain('ISSA_BUILD_VERIFICATION_STATUS = "fully_verified"');
-    expect(normalizer).toContain('verification_percent: 100');
+    expect(normalizer).toContain("verification_percent: 100");
     expect(normalizer).toContain('verification_label: "100% Verified by TradeScout"');
     expect(normalizer).toContain('"business_identity", "full_service_capability"');
     expect(normalizer).toContain('request_routing: "tradescout_managed_inquiry_funnel"');
