@@ -1,74 +1,56 @@
 import { describe, expect, it } from "vitest";
 import {
   buildProfileAccountReturnPath,
-  isProfileAccountBusinessRole,
-  isProfileAccountRole,
-  profileAccountRoleIncludesBidRock,
+  profileAccountIncludesBidRock,
   resolveProfileAccountPolicy,
 } from "@shared/profileAccount";
 
 describe("profile account policy", () => {
-  it("treats JW Stone as a profile-owned stone relationship with a fabricator default", () => {
+  it("uses one generic business-only account action on JW Stone", () => {
     const policy = resolveProfileAccountPolicy({
       profileSlug: "jw-stone",
       profileName: "JW Stone",
-      hasBusiness: true,
       contentBlocks: [],
     });
 
-    expect(policy.kind).toBe("stone_business");
-    expect(policy.defaultRole).toBe("fabricator");
-    expect(policy.roles).toContain("customer");
-    expect(policy.roles).toContain("fabricator");
-    expect(policy.roles).toContain("builder_contractor");
-    expect(policy.roles).toContain("designer");
+    expect(policy.businessOnly).toBe(true);
+    expect(policy.includesBidRock).toBe(true);
+    expect(policy.heading).toBe("Create an account with JW Stone");
+    expect(policy.description).toContain("Businesses can create an account");
+    expect(policy).not.toHaveProperty("roles");
+    expect(policy).not.toHaveProperty("defaultRole");
   });
 
-  it("detects a stone business from a published profile inventory without requiring a hardcoded slug", () => {
-    const policy = resolveProfileAccountPolicy({
-      profileSlug: "future-stone-yard",
-      profileName: "Future Stone Yard",
-      hasBusiness: true,
-      contentBlocks: [
-        {
-          type: "inventoryCatalog",
-          data: {
-            categories: [{ category: "Quartzite", stones: [{ name: "Example" }] }],
+  it("detects stone-profile BidRock inclusion without role selection", () => {
+    expect(
+      profileAccountIncludesBidRock({
+        profileSlug: "future-stone-yard",
+        contentBlocks: [
+          {
+            type: "inventoryCatalog",
+            data: {
+              categories: [{ category: "Quartzite", stones: [{ name: "Example" }] }],
+            },
           },
-        },
-      ],
-    });
-
-    expect(policy.kind).toBe("stone_business");
-    expect(policy.roles).toContain("stone_yard_dealer");
+        ],
+      })
+    ).toBe(true);
   });
 
-  it("keeps ordinary business profiles out of BidRock account roles", () => {
+  it("does not grant BidRock from an ordinary profile", () => {
     const policy = resolveProfileAccountPolicy({
       profileSlug: "local-electrician",
       profileName: "Local Electrician",
-      hasBusiness: true,
       contentBlocks: [],
     });
 
-    expect(policy.kind).toBe("business");
-    expect(policy.roles).toEqual(["customer", "trade_professional"]);
-    expect(profileAccountRoleIncludesBidRock("trade_professional")).toBe(false);
+    expect(policy.businessOnly).toBe(true);
+    expect(policy.includesBidRock).toBe(false);
   });
 
-  it("separates relationship roles, business-persona roles, and product entitlements", () => {
-    expect(isProfileAccountRole("customer")).toBe(true);
-    expect(isProfileAccountRole("fabricator")).toBe(true);
-    expect(isProfileAccountRole("unknown")).toBe(false);
-    expect(isProfileAccountBusinessRole("customer")).toBe(false);
-    expect(isProfileAccountBusinessRole("fabricator")).toBe(true);
-    expect(profileAccountRoleIncludesBidRock("fabricator")).toBe(true);
-    expect(profileAccountRoleIncludesBidRock("customer")).toBe(false);
-  });
-
-  it("returns to the exact profile through an internal TradeScout route", () => {
-    expect(buildProfileAccountReturnPath({ profileSlug: "JW Stone", role: "fabricator" })).toBe(
-      "/u/jw-stone?profileAccount=1&role=fabricator"
+  it("returns to the exact profile without an account-role parameter", () => {
+    expect(buildProfileAccountReturnPath("JW Stone")).toBe(
+      "/u/jw-stone?profileAccount=1"
     );
   });
 });
