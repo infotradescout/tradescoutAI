@@ -110,7 +110,7 @@ describe("Admin OS v2 primary workspace completion", () => {
 
     expect(source).toContain("The primary Admin OS migration is structurally complete");
     expect(source).toContain("Every primary role-visible navigation tool is registered as a native v2 surface");
-    expect(source).toContain("all twenty-one primary role-visible Admin OS tools");
+    expect(source).toContain("The 21 outcome-based navigation tools are native v2 surfaces");
     expect(source).toContain("Authenticated browser evidence remains the authority");
   });
 });
