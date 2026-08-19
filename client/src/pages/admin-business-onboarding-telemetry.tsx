@@ -1,8 +1,23 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RefreshCw } from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+  AdminWorkspace,
+} from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 
 type ModuleId =
@@ -39,34 +54,57 @@ const MODULE_LABELS: Record<ModuleId, string> = {
   operations_payout: "Operations & Payout",
 };
 
-function fmt(value: number | null | undefined) {
+function formatNumber(value: number | null | undefined): string {
   return new Intl.NumberFormat("en-US").format(value ?? 0);
 }
 
-function pct(part: number, total: number) {
+function percentage(part: number, total: number): string {
   if (!total) return "0%";
   return `${Math.round((part / total) * 100)}%`;
 }
 
-function statusTone(status: ModuleStatus | string) {
-  if (status === "complete") return "success" as const;
-  if (status === "in_progress") return "warning" as const;
-  return "outline" as const;
+function readable(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function statusBadge(status: ModuleStatus | string) {
+  if (status === "complete") {
+    return (
+      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
+        Complete
+      </Badge>
+    );
+  }
+  if (status === "in_progress") {
+    return (
+      <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">
+        In progress
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="border-white/15 bg-white/5 text-white/50">{readable(status || "not_started")}</Badge>
+  );
 }
 
 export default function AdminBusinessOnboardingTelemetry() {
-  const [days, setDays] = useState(14);
+  const [days, setDays] = useState("14");
 
-  const { data, isLoading, isFetching, refetch, error } = useQuery<TelemetryResponse>({
+  const telemetryQuery = useQuery<TelemetryResponse>({
     queryKey: ["/api/admin/business-onboarding/telemetry", days],
-    queryFn: () => apiRequest("GET", `/api/admin/business-onboarding/telemetry?days=${days}`),
-    staleTime: 20000,
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/admin/business-onboarding/telemetry?days=${encodeURIComponent(days)}`
+      ) as Promise<TelemetryResponse>,
+    staleTime: 20_000,
     retry: false,
   });
 
   const moduleRows = useMemo(() => {
-    const counts = data?.statusCounts;
+    const counts = telemetryQuery.data?.statusCounts;
     if (!counts) return [];
+
     return (Object.keys(MODULE_LABELS) as ModuleId[]).map((moduleId) => {
       const row = counts[moduleId] || { not_started: 0, in_progress: 0, complete: 0 };
       const total = row.not_started + row.in_progress + row.complete;
@@ -79,198 +117,238 @@ export default function AdminBusinessOnboardingTelemetry() {
         total,
       };
     });
-  }, [data?.statusCounts]);
+  }, [telemetryQuery.data?.statusCounts]);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold text-zinc-100">Business Onboarding Telemetry</h1>
-        <p className="text-sm text-zinc-400">Loading telemetry…</p>
-      </div>
-    );
-  }
+  const transitions = telemetryQuery.data?.recentTransitions || [];
+  const topTransitionModules = useMemo(
+    () =>
+      Object.entries(telemetryQuery.data?.transitionCounts || {})
+        .sort((left, right) => right[1] - left[1])
+        .slice(0, 5),
+    [telemetryQuery.data?.transitionCounts]
+  );
 
-  if (error) {
-    return (
-      <Card className="border-red-500/30 bg-zinc-950">
-        <CardHeader>
-          <CardTitle className="text-zinc-100">Business Onboarding Telemetry</CardTitle>
-          <CardDescription className="text-zinc-400">
-            Unable to load telemetry from `/api/admin/business-onboarding/telemetry`.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button size="sm" variant="outline" onClick={() => refetch()}>
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const transitions = data?.recentTransitions || [];
-  const transitionCounts = data?.transitionCounts || {};
-  const topTransitionModules = Object.entries(transitionCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const statusTotals = useMemo(
+    () =>
+      moduleRows.reduce(
+        (totals, row) => ({
+          complete: totals.complete + row.complete,
+          inProgress: totals.inProgress + row.inProgress,
+          notStarted: totals.notStarted + row.notStarted,
+          all: totals.all + row.total,
+        }),
+        { complete: 0, inProgress: 0, notStarted: 0, all: 0 }
+      ),
+    [moduleRows]
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-100">Business Onboarding Telemetry</h1>
-          <p className="text-sm text-zinc-400">
-            Completion coverage, module bottlenecks, and recent transition flow.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-zinc-400" htmlFor="telemetry-days">
-            Lookback
-          </label>
-          <select
-            id="telemetry-days"
-            value={days}
-            onChange={(event) => setDays(Number(event.target.value))}
-            className="h-9 rounded-md border border-zinc-700 bg-zinc-900 px-2 text-sm text-zinc-100"
+    <AdminWorkspace data-testid="admin-business-onboarding-v2">
+      <AdminSection
+        title="Business onboarding health"
+        description="Module completion, movement, and friction across business-account setup. The source reports actual stored states; unavailable telemetry is not replaced with zeroes."
+        className="pt-0"
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => telemetryQuery.refetch()}
+            disabled={telemetryQuery.isFetching}
+            className="border-white/12 bg-transparent text-white/65"
           >
-            <option value={7}>7 days</option>
-            <option value={14}>14 days</option>
-            <option value={30}>30 days</option>
-            <option value={60}>60 days</option>
-          </select>
-          <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
-            {isFetching ? "Refreshing..." : "Refresh"}
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${telemetryQuery.isFetching ? "animate-spin" : ""}`}
+            />
+            Refresh
           </Button>
-        </div>
-      </div>
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Businesses in setup",
+              value: telemetryQuery.isError
+                ? "—"
+                : formatNumber(telemetryQuery.data?.usersWithBusinessOnboarding),
+              detail: telemetryQuery.isError
+                ? "Telemetry unavailable"
+                : `${telemetryQuery.data?.lookbackDays || Number(days)}-day window`,
+              tone: telemetryQuery.isError ? "warning" : "neutral",
+            },
+            {
+              label: "Complete module states",
+              value: telemetryQuery.isError ? "—" : formatNumber(statusTotals.complete),
+              detail: telemetryQuery.isError
+                ? "Module states unavailable"
+                : `${percentage(statusTotals.complete, statusTotals.all)} of recorded module states`,
+              tone: telemetryQuery.isError ? "warning" : "good",
+            },
+            {
+              label: "In progress",
+              value: telemetryQuery.isError ? "—" : formatNumber(statusTotals.inProgress),
+              detail: "Recorded module states still moving",
+              tone:
+                telemetryQuery.isError || statusTotals.inProgress > 0 ? "warning" : "good",
+            },
+            {
+              label: "Transitions",
+              value: telemetryQuery.isError ? "—" : formatNumber(transitions.length),
+              detail: "Recent stored status changes",
+              tone: telemetryQuery.isError ? "warning" : "neutral",
+            },
+          ]}
+        />
+      </AdminSection>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <Card className="border-zinc-800 bg-zinc-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-zinc-400">Users in flow</CardDescription>
-            <CardTitle className="text-2xl text-zinc-100">
-              {fmt(data?.usersWithBusinessOnboarding)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-zinc-800 bg-zinc-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-zinc-400">Transitions (window)</CardDescription>
-            <CardTitle className="text-2xl text-zinc-100">{fmt(transitions.length)}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="border-zinc-800 bg-zinc-950">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-zinc-400">Lookback days</CardDescription>
-            <CardTitle className="text-2xl text-zinc-100">{fmt(data?.lookbackDays)}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      <AdminSection
+        title="Module completion"
+        description="Each row shows the current distribution for one required business setup module."
+        className="pt-0"
+      >
+        <AdminToolbar>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-white/38">Lookback</span>
+            <Select value={days} onValueChange={setDays}>
+              <SelectTrigger className="w-[10rem] border-white/10 bg-black/20 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 days</SelectItem>
+                <SelectItem value="14">14 days</SelectItem>
+                <SelectItem value="30">30 days</SelectItem>
+                <SelectItem value="60">60 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-xs text-white/35">
+            {moduleRows.length} required modules
+          </span>
+        </AdminToolbar>
 
-      <Card className="border-zinc-800 bg-zinc-950">
-        <CardHeader>
-          <CardTitle className="text-zinc-100">Module status distribution</CardTitle>
-          <CardDescription className="text-zinc-400">
-            Completion should trend toward full coverage before discoverability unlock.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {moduleRows.map((row) => (
-            <div
-              key={row.moduleId}
-              className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3"
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-sm font-medium text-zinc-100">{row.label}</div>
-                <div className="text-xs text-zinc-500">{fmt(row.total)} users</div>
+        {telemetryQuery.isLoading ? (
+          <div className="flex min-h-44 items-center justify-center border-y border-white/10 text-sm text-white/45">
+            <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+            Loading onboarding telemetry…
+          </div>
+        ) : telemetryQuery.isError ? (
+          <div className="border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+            Business onboarding telemetry is unavailable. No setup state was changed.
+          </div>
+        ) : moduleRows.length ? (
+          <AdminList className="mt-4">
+            {moduleRows.map((row) => (
+              <div
+                key={row.moduleId}
+                className="grid gap-4 px-3 py-4 sm:px-4 lg:grid-cols-[minmax(14rem,1fr)_minmax(8rem,0.45fr)_minmax(8rem,0.45fr)_minmax(8rem,0.45fr)] lg:items-center"
+              >
+                <div className="min-w-0">
+                  <p className="font-semibold text-white">{row.label}</p>
+                  <p className="mt-1 font-mono text-xs text-white/30">{row.moduleId}</p>
+                  <p className="mt-2 text-xs text-white/42">{formatNumber(row.total)} accounts</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                    Complete
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-emerald-200">
+                    {formatNumber(row.complete)}
+                  </p>
+                  <p className="text-xs text-white/32">{percentage(row.complete, row.total)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                    In progress
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-amber-100">
+                    {formatNumber(row.inProgress)}
+                  </p>
+                  <p className="text-xs text-white/32">{percentage(row.inProgress, row.total)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                    Not started
+                  </p>
+                  <p className="mt-2 text-lg font-semibold text-white/65">
+                    {formatNumber(row.notStarted)}
+                  </p>
+                  <p className="text-xs text-white/32">{percentage(row.notStarted, row.total)}</p>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <Badge variant="success">
-                  Complete {fmt(row.complete)} ({pct(row.complete, row.total)})
-                </Badge>
-                <Badge variant="warning">
-                  In progress {fmt(row.inProgress)} ({pct(row.inProgress, row.total)})
-                </Badge>
-                <Badge variant="outline">
-                  Not started {fmt(row.notStarted)} ({pct(row.notStarted, row.total)})
-                </Badge>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            ))}
+          </AdminList>
+        ) : (
+          <AdminEmptyState
+            title="No module-state telemetry"
+            description="The onboarding source returned no module distributions for this window."
+          />
+        )}
+      </AdminSection>
 
-      <div className="grid gap-3 xl:grid-cols-2">
-        <Card className="border-zinc-800 bg-zinc-950">
-          <CardHeader>
-            <CardTitle className="text-zinc-100">Transition velocity by module</CardTitle>
-            <CardDescription className="text-zinc-400">
-              High transition volume can indicate active completion pushes or friction loops.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {topTransitionModules.length ? (
-              topTransitionModules.map(([moduleId, count]) => (
+      <div className="grid gap-7 xl:grid-cols-[minmax(16rem,0.65fr)_minmax(0,1.35fr)]">
+        <AdminSection
+          title="Transition velocity"
+          description="The modules receiving the most stored status changes in this window."
+          className="pt-0"
+        >
+          {topTransitionModules.length ? (
+            <AdminList>
+              {topTransitionModules.map(([moduleId, count]) => (
                 <div
                   key={moduleId}
-                  className="flex items-center justify-between rounded-md border border-zinc-800 px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-4 px-3 py-3 text-sm sm:px-4"
                 >
-                  <span className="text-zinc-200">
-                    {MODULE_LABELS[moduleId as ModuleId] || moduleId}
+                  <span className="min-w-0 truncate text-white/58">
+                    {MODULE_LABELS[moduleId as ModuleId] || readable(moduleId)}
                   </span>
-                  <span className="text-zinc-400">{fmt(count)}</span>
+                  <span className="font-mono text-white/75">{formatNumber(count)}</span>
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-zinc-500">No transitions captured in this window.</div>
-            )}
-          </CardContent>
-        </Card>
+              ))}
+            </AdminList>
+          ) : (
+            <AdminEmptyState
+              title="No transition movement"
+              description="No onboarding transitions were recorded in this window."
+            />
+          )}
+        </AdminSection>
 
-        <Card className="border-zinc-800 bg-zinc-950">
-          <CardHeader>
-            <CardTitle className="text-zinc-100">Recent transitions</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Last {fmt(transitions.length)} transition events in descending time order.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
-              {transitions.length ? (
-                transitions.map((row, idx) => (
-                  <div
-                    key={`${row.at}-${row.userId}-${idx}`}
-                    className="rounded-md border border-zinc-800 p-2"
-                  >
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                      <span>{new Date(row.at).toLocaleString()}</span>
-                      <span>•</span>
-                      <span>{row.source || "unknown_source"}</span>
+        <AdminSection
+          title="Recent transitions"
+          description="Newest stored module transitions, including source and account identifier."
+          className="pt-0"
+        >
+          {transitions.length ? (
+            <AdminList>
+              {transitions.map((row, index) => (
+                <details key={`${row.at}-${row.userId}-${index}`} className="group">
+                  <summary className="grid cursor-pointer list-none gap-3 px-3 py-4 transition-colors hover:bg-white/[0.025] sm:px-4 lg:grid-cols-[minmax(0,1fr)_minmax(11rem,0.45fr)_auto] lg:items-center [&::-webkit-details-marker]:hidden">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white">
+                        {MODULE_LABELS[row.moduleId as ModuleId] || readable(row.moduleId)}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-white/35">Account {row.userId}</p>
                     </div>
-                    <div className="mt-1 text-sm text-zinc-200">
-                      {MODULE_LABELS[row.moduleId as ModuleId] || row.moduleId}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {statusBadge(row.fromStatus)}
+                      <span className="text-white/28">→</span>
+                      {statusBadge(row.toStatus)}
                     </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs">
-                      <Badge variant={statusTone(row.fromStatus)}>
-                        {row.fromStatus || "unknown"}
-                      </Badge>
-                      <span className="text-zinc-500">→</span>
-                      <Badge variant={statusTone(row.toStatus)}>{row.toStatus || "unknown"}</Badge>
-                    </div>
-                    <div className="mt-1 text-[11px] text-zinc-500">
-                      User: {row.userId || "unknown"}
-                    </div>
+                    <span className="text-xs text-white/38">{new Date(row.at).toLocaleString()}</span>
+                  </summary>
+                  <div className="border-t border-white/10 bg-white/[0.015] px-3 py-4 text-sm text-white/55 sm:px-4">
+                    Source: {row.source || "Not recorded"}
                   </div>
-                ))
-              ) : (
-                <div className="text-sm text-zinc-500">
-                  No recent transition events in this window.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                </details>
+              ))}
+            </AdminList>
+          ) : (
+            <AdminEmptyState
+              title="No recent onboarding transitions"
+              description="No transition records were returned for this lookback window."
+            />
+          )}
+        </AdminSection>
       </div>
-    </div>
+    </AdminWorkspace>
   );
 }
