@@ -41,14 +41,18 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
     }
   }, []);
 
+  const persistRailState = React.useCallback((collapsed: boolean) => {
+    try {
+      window.localStorage.setItem(RAIL_KEY, collapsed ? "1" : "0");
+    } catch {
+      // Ignore storage errors; the current session still updates.
+    }
+  }, []);
+
   const toggleRail = () => {
     setRailCollapsed((current) => {
       const next = !current;
-      try {
-        window.localStorage.setItem(RAIL_KEY, next ? "1" : "0");
-      } catch {
-        // Ignore storage errors; the current session still updates.
-      }
+      persistRailState(next);
       return next;
     });
   };
@@ -60,8 +64,16 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
       window.setTimeout(() => window.dispatchEvent(new Event("admin:focus-tool-search")), 80);
       return;
     }
+
+    if (railCollapsed) {
+      setRailCollapsed(false);
+      persistRailState(false);
+      window.setTimeout(() => window.dispatchEvent(new Event("admin:focus-tool-search")), 80);
+      return;
+    }
+
     window.dispatchEvent(new Event("admin:focus-tool-search"));
-  }, []);
+  }, [persistRailState, railCollapsed]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
