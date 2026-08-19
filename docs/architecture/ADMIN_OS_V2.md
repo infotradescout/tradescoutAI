@@ -66,6 +66,38 @@ Admin OS v2 adds a presentation taxonomy that reorganizes role-visible tools by 
 
 All 21 primary tools are represented. A `More` section is reserved only for a future role-visible tool that has not yet been assigned to an outcome workspace.
 
+## Primary workspace completion
+
+The primary Admin OS migration is structurally complete as of August 19, 2026.
+
+Every primary role-visible navigation tool is registered as a native v2 surface:
+
+| Operating group | Tool ID | Operator label |
+|---|---|---|
+| Inbox & Requests | `overview` | Admin Home |
+| Inbox & Requests | `direct-connect-requests` | Requests |
+| Inbox & Requests | `commercial-directory` | Commercial Work |
+| Inbox & Requests | `procurement` | Procurement |
+| People & Trust | `users` | Users |
+| People & Trust | `verification` | Address & Identity |
+| People & Trust | `business-verifications` | Business Verification |
+| People & Trust | `moderation` | Moderation |
+| People & Trust | `business-directory-ops` | Business Directory |
+| Partners & Market | `tradepartner-ops` | Partner Operations |
+| Partners & Market | `listings` | Marketplace Listings |
+| Partners & Market | `crm` | Sales Pipeline |
+| Coverage & Intelligence | `geo-map` | County Coverage |
+| Coverage & Intelligence | `business-onboarding-telemetry` | Onboarding Health |
+| Coverage & Intelligence | `discovery-observatory` | Discovery |
+| Platform | `live-stream` | System Status |
+| Platform | `scout-resilience` | Scout Resilience |
+| Platform | `errors` | Error Reports |
+| Platform | `panel` | Platform Settings |
+| Platform | `controls` | Platform Controls |
+| Finance | `finance` | Finance |
+
+The runtime registry is exported from `AdminToolSurface.tsx` as `NATIVE_ADMIN_V2_TOOL_IDS`. A completion contract verifies that it exactly matches the 21 IDs declared by the primary navigation taxonomy.
+
 ## Tool surfaces
 
 ### Native v2 surface
@@ -86,7 +118,9 @@ Native pages do not recreate the app shell, page header, or nested dashboard con
 
 An adapted tool retains its current functional component while Admin OS v2 removes the legacy outer page constraints and normalizes visual treatment.
 
-Adapted surfaces are temporary migration states. They preserve functionality while each workflow is rebuilt independently.
+After primary completion, the adapted surface is reserved for hidden detail routes, compatibility aliases, diagnostic laboratories, and other non-primary tools. Examples include individual procurement orders, procurement fulfillment workspaces, commercial-business management, Vault Contributions, protected redirects, and hidden legacy compatibility paths.
+
+A hidden or detail route being adapted does not make it a primary Admin OS navigation workspace.
 
 ## Route behavior
 
@@ -105,45 +139,46 @@ Admin Home answers four questions:
 
 It does not duplicate the navigation tool catalog.
 
-## Partner Operations
+## Workspace grammar
 
-Partner Operations demonstrates the intended workspace grammar:
+Primary workspaces share these rules:
 
-- One sticky local subnavigation
-- No portal wrapper card
-- No duplicate title
-- Summary strip only when useful
-- One search/filter toolbar
-- Compact expandable rows
-- Detail only on demand
+- One page title comes from the integrated shell toolbar.
+- A tool does not render another page shell inside the workspace.
+- Local tabs use one thin sticky subnavigation when multiple operating lanes are required.
+- Summary strips show current operating state, not decorative metrics.
+- Unavailable data remains unavailable instead of becoming zero.
+- Lists are compact by default and reveal detail on demand.
+- Existing server routes remain the read and write authority.
+- Destructive actions preserve existing confirmation, reason, and permission requirements.
+- Mobile access remains part of the same workspace rather than a second admin product.
 
-## Migration order
+## Completed migration sequence
 
-Individual tools migrate concurrently in this order of operational value:
+The primary workspace sequence completed in this order:
 
-1. Requests
-2. Users
+1. Admin Home and Partner Operations foundation
+2. Requests
 3. Address & Identity
 4. Business Verification
 5. Business Directory
-6. Error Reports
-7. System Status
-8. Marketplace Listings
-9. Commercial Work
-10. Procurement
-11. Sales Pipeline
-12. County Coverage
-13. Platform Settings
-14. Platform Controls
+6. Marketplace Listings
+7. Error Reports
+8. Users
+9. Moderation
+10. Platform Settings
+11. Platform Controls
+12. System Status
+13. Onboarding Health
+14. Discovery
 15. Scout Resilience
-16. Discovery
-17. Onboarding Health
-18. Moderation
-19. Finance
+16. County Coverage
+17. Commercial Work
+18. Procurement
+19. Sales Pipeline
+20. Finance
 
-Partner Operations and Admin Home are already part of the foundation.
-
-The order is not a gate. A tool can move earlier when production demand requires it.
+The order was not used as a gate. Company-specific work, HomeID work, partner work, and other production corrections continued concurrently.
 
 ## Non-negotiable boundaries
 
@@ -161,11 +196,25 @@ Admin redesign must not:
 - Remove compatibility routes without a replacement
 - Break mobile access
 
+## Completion meaning
+
+Primary completion means:
+
+- The 21 outcome-based navigation tools are native v2 surfaces.
+- Their canonical routes and permissions remain authoritative.
+- Their page-specific operating work no longer depends on the temporary adapted-v1 presentation layer.
+- Hidden detail and compatibility routes can continue using the adapter until their own production demand justifies a native redesign.
+
+Primary completion does not by itself claim that every production pixel, every empty state, or every authenticated write has been visually approved on every device. That claim requires the release proof below.
+
 ## Release proof
 
 Every Admin OS release requires:
 
 - Production build success
+- Server bundle success
+- Critical schema preflight success
+- Production service startup
 - Role-based route reachability
 - Unknown-route behavior check
 - Desktop evidence at 1440 pixels or wider
@@ -173,3 +222,5 @@ Every Admin OS release requires:
 - Keyboard Find Tool evidence
 - Read/write verification for every migrated workflow
 - Clear identification of native versus adapted surfaces
+
+The structural completion contract proves registry coverage. Authenticated browser evidence remains the authority for final visual and interaction approval.
