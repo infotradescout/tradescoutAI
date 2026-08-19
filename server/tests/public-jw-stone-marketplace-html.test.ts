@@ -44,7 +44,7 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain('property="og:image:height" content="630"');
   });
 
-  it("publishes collection metadata without product, offer, inventory-list, or price entities", () => {
+  it("publishes the managed contact without product, offer, inventory-list, or price entities", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
     const scripts = Array.from(
       html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)
@@ -66,6 +66,14 @@ describe("JW Stone marketplace public HTML", () => {
         description:
           "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone, with one expert overseeing the journey from quarry selection through processing and delivery. Based in Pensacola, FL, JW Stone works with fabricators, builders, architects, designers and homeowners across the Gulf South and beyond.",
         url: "https://www.thetradescout.com/jw-stone",
+        telephone: "(850) 543-0748",
+        email: "contact@thetradescout.com",
+        contactPoint: {
+          "@type": "ContactPoint",
+          contactType: "customer service",
+          telephone: "(850) 543-0748",
+          email: "contact@thetradescout.com",
+        },
         address: {
           "@type": "PostalAddress",
           streetAddress: "2103 W Herman Ave",
@@ -85,9 +93,10 @@ describe("JW Stone marketplace public HTML", () => {
     const serialized = JSON.stringify(jsonLd);
     expect(serialized).not.toMatch(/Product|Offer|ItemList|price|priceRange|availability/i);
     expect(serialized).not.toMatch(/Trending Selection|Unnamed slab|First Cut|countryOfOrigin/i);
+    expect(serialized).not.toContain("wagner@jwstonellc.com");
   });
 
-  it("renders the canonical public company identity without exposing gated contact details", () => {
+  it("renders the canonical company identity and TradeScout-managed contact", () => {
     const html = buildPublicJwStoneMarketplaceHtml({ templateHtml });
 
     expect(html).toContain('data-seo-jw-stone-marketplace="true"');
@@ -99,6 +108,9 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).toContain(
       "Founded in 2017 by Jared and Wagner, JW Stone gives customers direct access to hand-selected natural stone"
     );
+    expect(html).toContain("TradeScout managed contact");
+    expect(html).toContain("Phone: (850) 543-0748");
+    expect(html).toContain("Email: contact@thetradescout.com");
     expect(html).toContain("2103 W Herman Ave, Pensacola, FL 32505");
     expect(html).toContain("Instagram: @jwstonellc");
     expect(html).toContain("Facebook: JW Stone Logistics");
@@ -111,19 +123,22 @@ describe("JW Stone marketplace public HTML", () => {
     expect(html).not.toContain("New Arrivals");
     expect(html).not.toContain("Learn about stone");
     expect(html).not.toContain("Call for availability");
-    expect(html).not.toContain("(850) 543-0748");
     expect(html).not.toContain("wagner@jwstonellc.com");
     expect(html).not.toMatch(/Trending Selection|Unnamed slab|Name not confirmed/i);
   });
 
-  it("keeps About, address, and official social identities in the LLM discovery file", () => {
+  it("keeps managed contact, address, and official social identities in the LLM discovery file", () => {
     const text = buildJwStoneMarketplaceLlmsText("https://jwstonelogistics.com");
 
     expect(text).toContain("Founded in 2017 by Jared and Wagner");
+    expect(text).toContain("TradeScout managed phone: (850) 543-0748");
+    expect(text).toContain("TradeScout managed email: contact@thetradescout.com");
     expect(text).toContain("Address: 2103 W Herman Ave, Pensacola, FL 32505");
     expect(text).toContain("Instagram: @jwstonellc");
     expect(text).toContain("Facebook: JW Stone Logistics");
     expect(text).toContain("YouTube: @JWStoneLogistics");
+    expect(text).toContain("Calls and requests are handled through TradeScout.");
+    expect(text).not.toContain("wagner@jwstonellc.com");
   });
 
   it("publishes stone OG metadata for shareable marketplace stone URLs", () => {
