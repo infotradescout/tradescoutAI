@@ -20,11 +20,11 @@ export const ISSA_BUILD_FULL_SERVICE_SCOPE = [
 ] as const;
 
 const VERIFIED_HERO_COPY =
-  "Verified full-service Honey Onyx and Multi Green Onyx—from material selection and custom fabrication through backlighting and installation.";
+  "100% verified full-service Honey Onyx and Multi Green Onyx—from material selection and custom fabrication through backlighting and installation.";
 const VERIFIED_ABOUT_COPY =
-  "ISSA Build handles complete residential and commercial onyx projects. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation.";
+  "ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation for residential and commercial projects.";
 const VERIFIED_SEO_COPY =
-  "Verified full-service Honey Onyx and Multi Green Onyx for residential and commercial projects, including material selection, custom fabrication, backlighting, and installation.";
+  "100% verified full-service Honey Onyx and Multi Green Onyx for residential and commercial projects, including material selection, custom fabrication, backlighting, and installation.";
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -66,8 +66,8 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
         data: {
           ...data,
           items: [
-            "Verified by TradeScout",
-            "Full service: selection, fabrication, backlighting, and installation",
+            "100% Verified by TradeScout",
+            "Verified full-service scope: selection, fabrication, backlighting, and installation",
           ],
         },
       };
@@ -160,9 +160,10 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
     await tx
       .update(businesses)
       .set({
+        publicDiscoveryEnabled: true,
         profileData: {
           ...profileData,
-          tagline: "Verified full-service onyx, crafted for light.",
+          tagline: "100% verified full-service onyx, crafted for light.",
           description:
             "ISSA Build handles complete Honey Onyx and Multi Green Onyx projects for residential and commercial interiors, including material selection, custom fabrication, backlighting design and installation, and onyx installation.",
           category: "Custom translucent onyx",
@@ -170,6 +171,8 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
           importExtras: {
             ...importExtras,
             business_verification: ISSA_BUILD_VERIFICATION_STATUS,
+            verification_percent: 100,
+            verification_label: "100% Verified by TradeScout",
             verification_source: ISSA_BUILD_VERIFIED_BUSINESS_SOURCE,
             verification_scope: ["business_identity", "full_service_capability"],
             request_routing: "tradescout_managed_inquiry_funnel",
@@ -184,7 +187,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
     await tx
       .update(profiles)
       .set({
-        headline: "Verified full-service onyx, crafted for light.",
+        headline: "100% verified full-service onyx, crafted for light.",
         contentBlocks: buildVerifiedIssaBuildContentBlocks(),
         ctaConfig: {
           primary: {
@@ -195,7 +198,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
         } as any,
         seoMeta: {
           ...recordValue(profile.seoMeta),
-          title: "ISSA Build | Verified Full-Service Onyx",
+          title: "ISSA Build | 100% Verified Full-Service Onyx",
           description: VERIFIED_SEO_COPY,
         } as any,
         updatedAt: now,
