@@ -4,7 +4,7 @@ import { ensureProfileAccountTables } from "./profileAccountService";
 const PROFILE_ACCOUNT_ENTITLEMENT_DDL = `
 CREATE TABLE IF NOT EXISTS profile_account_entitlements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_account_id UUID NOT NULL REFERENCES profile_business_accounts(id) ON DELETE CASCADE,
+  profile_account_id UUID NOT NULL REFERENCES profile_accounts(id) ON DELETE CASCADE,
   product_key TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending_verification',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -41,7 +41,7 @@ export type ProfileAccountEntitlement = Readonly<{
 export async function ensureProfileAccountEntitlement(args: {
   profileAccountId: string;
   productKey: string;
-  verificationStatus: "pending" | "approved" | "rejected";
+  verificationStatus: "not_required" | "pending" | "approved" | "rejected";
 }): Promise<ProfileAccountEntitlement> {
   await ensureProfileAccountEntitlementTables();
   const productKey = String(args.productKey || "")
