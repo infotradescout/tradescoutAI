@@ -1,19 +1,10 @@
-import {
-  ISSA_BUILD_BUSINESS_NAME,
-  ISSA_BUILD_PROFILE_SLUG,
-} from "./issaBuildProfile";
-import {
-  JW_STONE_PROFILE_SLUG,
-  JW_STONE_PUBLIC_IDENTITY,
-} from "./jwStonePresentation";
+import { ISSA_BUILD_BUSINESS_NAME, ISSA_BUILD_PROFILE_SLUG } from "./issaBuildProfile";
+import { JW_STONE_PROFILE_SLUG, JW_STONE_PUBLIC_IDENTITY } from "./jwStonePresentation";
 import {
   PRECISION_AERIAL_BUSINESS_NAME,
   PRECISION_AERIAL_PROFILE_SLUG,
 } from "./precisionAerialProfile";
-import {
-  RED_GRANITI_BUSINESS_NAME,
-  RED_GRANITI_PROFILE_SLUG,
-} from "./redGranitiProfile";
+import { RED_GRANITI_BUSINESS_NAME, RED_GRANITI_PROFILE_SLUG } from "./redGranitiProfile";
 import { TRADESCOUT_MANAGED_CONTACT } from "./tradeScoutManagedContact";
 
 export type ManagedPartnerControlMode =
@@ -29,10 +20,7 @@ export type ManagedPartnerContactMode =
 
 export type ManagedPartnerExposureMode = "public" | "direct_only";
 
-export type ManagedPartnerRequestMode =
-  | "inline_profile_form"
-  | "profile_request_flow"
-  | "pending";
+export type ManagedPartnerRequestMode = "inline_profile_form" | "profile_request_flow" | "pending";
 
 export type ManagedPartnerArchetype =
   | "contractor"
@@ -103,12 +91,13 @@ export const MANAGED_PARTNER_PROFILE_DEFINITIONS = [
     exposureMode: "public",
     requestMode: "profile_request_flow",
     requestRecipientSlug: ISSA_BUILD_PROFILE_SLUG,
-    expectedPrimaryCta: "Discuss a project",
+    expectedPrimaryCta: "Start a Request",
     expectedPhone: TRADESCOUT_MANAGED_CONTACT.phone,
     expectedEmail: TRADESCOUT_MANAGED_CONTACT.email,
     expectedNotificationEmail: TRADESCOUT_MANAGED_CONTACT.email,
+    relationshipLabel: "Verified full-service translucent onyx projects",
     notes:
-      "Independent product business under temporary TradeScout stewardship until the owner account is attached. Honey Onyx and Multi Green Onyx remain separate offerings.",
+      "Fully verified independent business. TradeScout manages the public profile and inquiry funnel while ISSA Build performs material selection, custom fabrication, backlighting, and installation for residential and commercial projects. Temporary admin stewardship is only an account-control state and does not reduce verification.",
   },
   {
     slug: "property-blessings",
