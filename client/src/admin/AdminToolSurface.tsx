@@ -6,6 +6,11 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "overview",
   "tradepartner-ops",
   "direct-connect-requests",
+  "verification",
+  "business-verifications",
+  "business-directory-ops",
+  "listings",
+  "errors",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
