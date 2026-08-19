@@ -158,8 +158,8 @@ describe("Steel Home Planning Tools unlisted profile contract", () => {
       "reference evidence",
       "only a verified stone-only crop may be projected",
       "stone ordering and countertop fabrication stay separate",
-      "cabinet measured room planner",
-      "metal building measured planner",
+      "room measurements, fixed features, placed modules",
+      "use, structure, roof, measurements, placed openings",
       "professional review and quote",
       "price require a quote",
     ]) {
