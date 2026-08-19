@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   RED_GRANITI_BUSINESS_NAME,
   RED_GRANITI_LOGO_URL,
+  RED_GRANITI_MANAGED_CONTACT,
   RED_GRANITI_OFFICIAL_SOURCES,
   RED_GRANITI_PROFILE_CONTENT_BLOCKS,
   RED_GRANITI_PROFILE_CONTROL,
@@ -42,10 +43,16 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(provisioner).toContain('publicDiscoveryEnabled: true');
     expect(provisioner).toContain('status: "published"');
     expect(provisioner).toContain('phone: REQUEST_ONLY_PHONE_SENTINEL');
+    expect(provisioner).toContain('notificationEmail: TRADE_SCOUT_DIRECT_CONNECT_INBOX');
+    expect(provisioner).toContain('email: TRADE_SCOUT_DIRECT_CONNECT_INBOX');
     expect(provisioner).toContain("adminOwner.id === jwOwner.id");
     expect(provisioner).not.toContain("ownerUserId: jwOwner.id");
     expect(provisioner).not.toContain("activeBusinessId");
     expect(provisioner).not.toContain("activeProfileId");
+
+    expect(RED_GRANITI_MANAGED_CONTACT.phone).toBe("(850) 543-0748");
+    expect(RED_GRANITI_MANAGED_CONTACT.tel).toBe("+18505430748");
+    expect(RED_GRANITI_MANAGED_CONTACT.email).toBe("contact@thetradescout.com");
 
     expect(bootstrap).toContain(
       'import { provisionRedGranitiProfile } from "./redGranitiProfileProvisioning"'
@@ -75,8 +82,9 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
     expect(RED_GRANITI_PUBLIC_IDENTITY.quarryCountries).toHaveLength(9);
     expect(RED_GRANITI_PUBLIC_IDENTITY.quarryHighlights).toHaveLength(3);
     expect(RED_GRANITI_PUBLIC_IDENTITY.officialLinks).toHaveLength(4);
-    expect(RED_GRANITI_PUBLIC_IDENTITY.headquarters.phone).toBe("+39 0585 88471");
-    expect(RED_GRANITI_PUBLIC_IDENTITY.headquarters.email).toBe("info@redgraniti.com");
+    expect(JSON.stringify(RED_GRANITI_PUBLIC_IDENTITY.headquarters)).not.toMatch(
+      /info@redgraniti\.com|0585 88471|0585 884848/
+    );
   });
 
   it("stores materials, physical assets, inventory, publications, and rights separately", () => {

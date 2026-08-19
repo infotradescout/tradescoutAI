@@ -20,6 +20,7 @@ import { SafeProfileImg } from "@/pages/profile-sites/safeProfileImage";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
   RED_GRANITI_LOGO_URL,
+  RED_GRANITI_MANAGED_CONTACT,
   RED_GRANITI_PUBLIC_IDENTITY,
   RED_GRANITI_QUARRIES_URL,
 } from "@shared/redGranitiProfile";
@@ -318,41 +319,50 @@ export default function RedGranitiProfileTheme({
             <aside className="space-y-6 lg:sticky lg:top-[calc(var(--ts-profile-top-offset,0px)+1rem)]">
               <section
                 className="rounded-2xl border border-[var(--red-line)] bg-white p-6"
-                data-testid="red-graniti-company-contact"
+                data-testid="red-graniti-managed-contact"
               >
                 <p className="text-xs font-black uppercase tracking-[0.17em] text-[var(--red-mark)]">
-                  Company contact
+                  {RED_GRANITI_MANAGED_CONTACT.label}
                 </p>
-                <h2 className="mt-2 text-xl font-black">{identity.legalName}</h2>
+                <h2 className="mt-2 text-xl font-black">
+                  {RED_GRANITI_MANAGED_CONTACT.heading}
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-black/62">
+                  {RED_GRANITI_MANAGED_CONTACT.description}
+                </p>
                 <a
-                  href={identity.headquarters.mapUrl}
-                  {...externalLinkProps()}
-                  className="mt-5 flex items-start gap-3 text-sm leading-6 text-black/66 hover:text-black"
-                >
-                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--red-mark)]" />
-                  <span>
-                    {identity.headquarters.addressLine1}
-                    <br />
-                    {identity.headquarters.addressLine2}
-                  </span>
-                </a>
-                <a
-                  href="tel:+39058588471"
-                  className="mt-4 flex items-center gap-3 text-sm font-bold text-black/66 hover:text-black"
+                  href={`tel:${RED_GRANITI_MANAGED_CONTACT.tel}`}
+                  className="mt-5 flex items-center gap-3 text-sm font-bold text-black/66 hover:text-black"
                 >
                   <Phone className="h-4 w-4 text-[var(--red-mark)]" />
-                  {identity.headquarters.phone}
+                  {RED_GRANITI_MANAGED_CONTACT.phone}
                 </a>
                 <a
-                  href={`mailto:${identity.headquarters.email}`}
+                  href={`mailto:${RED_GRANITI_MANAGED_CONTACT.email}`}
                   className="mt-4 flex items-center gap-3 text-sm font-bold text-black/66 hover:text-black"
                 >
                   <Mail className="h-4 w-4 text-[var(--red-mark)]" />
-                  {identity.headquarters.email}
+                  {RED_GRANITI_MANAGED_CONTACT.email}
                 </a>
-                <p className="mt-5 border-t border-black/10 pt-4 text-xs text-black/45">
-                  {identity.legalId}
-                </p>
+
+                <div className="mt-5 border-t border-black/10 pt-4">
+                  <p className="text-[10px] font-black uppercase tracking-[0.15em] text-black/42">
+                    Company headquarters
+                  </p>
+                  <a
+                    href={identity.headquarters.mapUrl}
+                    {...externalLinkProps()}
+                    className="mt-3 flex items-start gap-3 text-sm leading-6 text-black/62 hover:text-black"
+                  >
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--red-mark)]" />
+                    <span>
+                      {identity.headquarters.addressLine1}
+                      <br />
+                      {identity.headquarters.addressLine2}
+                    </span>
+                  </a>
+                  <p className="mt-3 text-xs text-black/42">{identity.legalId}</p>
+                </div>
               </section>
 
               <section
