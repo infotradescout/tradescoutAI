@@ -10,10 +10,12 @@ type UnknownRecord = Record<string, unknown>;
 const ISSA_BUILD_VERIFICATION_LABEL = "100% Verified by TradeScout";
 const ISSA_BUILD_FULL_SERVICE_SCOPE = [
   "Material selection",
+  "Material sourcing and availability",
   "Custom onyx fabrication",
   "Backlighting design and installation",
   "Custom onyx installation",
   "Residential and commercial projects",
+  "Project fulfillment",
 ] as const;
 
 function recordValue(value: unknown): UnknownRecord {
@@ -37,7 +39,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
         data: {
           ...data,
           teaser:
-            "100% verified full-service Honey Onyx and Multi Green Onyx—from material selection and custom fabrication through backlighting and installation.",
+            "100% verified full-service Honey Onyx and Multi Green Onyx—from material sourcing and selection through custom fabrication, backlighting, installation, and project fulfillment.",
         },
       } as ContentBlock;
     }
@@ -47,7 +49,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
         ...block,
         data: {
           ...data,
-          text: "TradeScout manages every inquiry. ISSA Build handles material selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial projects.",
+          text: "TradeScout manages every inquiry. ISSA Build handles material sourcing and availability, selection, custom onyx fabrication, backlighting design and installation, custom onyx installation, and residential and commercial project fulfillment.",
         },
       } as ContentBlock;
     }
@@ -59,7 +61,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
           ...data,
           items: [
             ISSA_BUILD_VERIFICATION_LABEL,
-            "Verified full-service scope: selection, fabrication, backlighting, and installation",
+            "Verified full-service scope: sourcing, selection, fabrication, backlighting, installation, and fulfillment",
           ],
         },
       } as ContentBlock;
@@ -75,7 +77,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
             ...luxuryHouse,
             designedWithLight: {
               ...recordValue(luxuryHouse.designedWithLight),
-              body: "ISSA Build takes the project from material selection and custom onyx fabrication through backlighting design, installation, and final onyx installation.",
+              body: "ISSA Build takes the project from material sourcing, availability, and selection through custom onyx fabrication, backlighting design, installation, and final project fulfillment.",
             },
             capabilities: {
               ...recordValue(luxuryHouse.capabilities),
@@ -86,7 +88,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
             consultation: {
               ...recordValue(luxuryHouse.consultation),
               title: "Start a Request.",
-              body: "Tell TradeScout about the room, material, scale, location, and timing. TradeScout manages the inquiry and ISSA Build handles the complete onyx project.",
+              body: "Tell TradeScout about the room, material, scale, location, and timing. TradeScout manages the inquiry and ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and project fulfillment.",
             },
           },
         },
@@ -100,7 +102,7 @@ function applyIssaBuildPublicTruth(contentBlocks: Props["contentBlocks"]): Props
           ...data,
           heading: "Start a Request",
           description:
-            "Tell TradeScout about the space, material, scale, location, and timing. ISSA Build handles the complete onyx project.",
+            "Tell TradeScout about the space, material, scale, location, and timing. ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and project fulfillment.",
         },
       } as ContentBlock;
     }
