@@ -2,94 +2,91 @@
 
 ## Product decision
 
-A visitor may create an account **with a public TradeScout profile** without creating another identity system.
+The user-facing action is simply:
+
+**Create an account**
+
+It is not “Create a fabricator account,” “Create a builder account,” or another role-specific signup.
+
+Only businesses can create an account with a public TradeScout profile.
 
 The relationship is:
 
-`one TradeScout identity → one profile-scoped account → optional verified business persona → optional product entitlements`
+`one TradeScout business identity → one account with a public profile → optional product access`
 
-A profile account is not a second password, a duplicate TradeScout user, a clone of the business profile, or a separate BidRock identity.
+A profile account is not a second password, a duplicate TradeScout user, a copied business profile, or a separate BidRock identity.
 
 ## User job
 
-A visitor should be able to begin on a business's public profile, create the relationship in that same profile experience, and return later through one TradeScout sign-in.
+A business should be able to begin on another business's public profile, create the relationship there, and return later through its existing TradeScout business identity.
 
-Examples:
+Example:
 
-- A homeowner creates a customer account with a local business.
-- A fabricator creates a fabricator account with JW Stone.
-- A builder creates a builder/contractor account with a stone supplier.
-- A member creates an account with a community profile.
+1. A business visits the JW Stone profile.
+2. It selects **Create an account**.
+3. TradeScout creates or reuses the visitor's business identity.
+4. TradeScout creates one account between that business identity and JW Stone.
+5. Eligible stone-marketplace access is added concurrently behind the same relationship.
 
-The profile account is the durable relationship boundary for later profile-specific capabilities such as saved work, private pricing, project continuity, documents, orders, and conversations. Those capabilities attach only when their own authoritative systems are integrated; creating the account does not falsely claim they already exist.
+The profile does not ask the visitor to choose Fabricator, Builder, Designer, Supplier, or another account type. Those business facts belong to the visitor's existing TradeScout business profile and verification records.
 
 ## Canonical ownership
 
 | Concern | Authority |
 | --- | --- |
 | Sign-in, email, password, social login | Existing TradeScout user identity |
+| Visitor's business identity and verification | Existing private `user_profiles` business profile |
 | Public business presentation | Existing TradeScout profile |
-| Relationship between visitor and profile | `profile_accounts` |
-| Business role and verification | Existing private `user_profiles` business persona |
+| Business-to-profile account relationship | `profile_business_accounts` |
 | Product-specific access | `profile_account_entitlements` |
-| Saved items | The relevant product's saved-state authority |
-| Private pricing | Seller/pricing authority |
-| Messages and requests | Existing Direct Connect/conversation authority |
-| Orders and payments | Existing commerce/procurement/payment authority |
+| Saved items | The applicable product's saved-state authority |
+| Private pricing | Seller and pricing authority |
+| Messages and requests | Direct Connect and conversation authority |
+| Orders and payments | Commerce, procurement, and payment authority |
 
-## Account roles
+## Business-only rule
 
-The foundation supports:
+- A personal or homeowner-only identity cannot create a profile account.
+- A signed-out visitor is sent through the existing TradeScout account setup with business setup selected.
+- A signed-in person without a TradeScout business profile is sent through business setup.
+- A business may create one account with each eligible public profile.
+- Repeating the action reuses the same account instead of creating duplicates.
+- Verification remains pending, approved, or rejected according to the existing TradeScout business-verification record.
 
-- Customer
-- Fabricator
-- Builder or contractor
-- Designer
-- Stone yard or dealer
-- Supplier
-- Trade professional
-- Member
+## Concurrent BidRock access
 
-Each public profile receives a policy derived from the profile and its published content. Ordinary businesses expose customer and trade-professional relationships. Stone businesses expose the stone-specific roles. JW Stone defaults to Fabricator for the first proof without removing the other valid paths.
+BidRock is downstream product access, not the account owner.
 
-## Concurrent product access
+When a business creates an account with an eligible stone profile:
 
-Product access is downstream of the profile relationship.
+1. The business-to-profile account is created.
+2. A `bidrock` product entitlement is added to that account.
+3. The entitlement remains pending until business verification is approved.
 
-For an eligible verified-business role on a stone profile:
-
-1. Create or reuse the TradeScout identity.
-2. Create or reuse the private TradeScout business persona.
-3. Create or update the profile account.
-4. Add the `bidrock` product entitlement.
-5. Keep the entitlement pending until business verification passes.
-
-BidRock therefore runs concurrently with profile account creation without owning the profile relationship or creating another account universe.
-
-Customer-only profile accounts do not automatically receive business-only BidRock access.
+No role selection is required. The CTA and account remain owned by the profile experience.
 
 ## Routes
 
-- `GET /api/u/:slug/account` — public-safe policy and signed-in relationship state
-- `POST /api/u/:slug/account` — authenticated, idempotent account creation or role addition
+- `GET /api/u/:slug/account` — profile policy, business eligibility, and current relationship state
+- `POST /api/u/:slug/account` — authenticated, idempotent business-account creation
 
-The public profile card sends unsigned visitors through the existing TradeScout account setup and returns them to:
+Unsigned visitors return through:
 
-`/u/:slug?profileAccount=1&role=:role`
+`/u/:slug?profileAccount=1`
 
-The profile then completes the relationship automatically after the TradeScout session exists.
+The profile completes the relationship after the TradeScout business identity exists.
 
 ## Privacy and trust
 
 - No second password or credential record.
 - No request text, message text, phone number, address, private note, or uploaded content is stored in the profile-account record.
-- Business personas remain private while verification is pending.
-- Account creation does not claim the visitor is a verified business.
-- Suspended profile relationships and suspended product entitlements remain suspended during idempotent re-entry.
-- Product entitlements do not bypass their product's pricing, commerce, or verification rules.
+- Business profiles remain private while verification is pending.
+- Account creation does not claim that the business is verified.
+- Suspended relationships and suspended product entitlements remain suspended during repeat entry.
+- Product entitlements do not bypass pricing, commerce, account verification, or contact rules.
 
-## Current first useful lane
+## Current lane
 
-This lane establishes the reusable platform contract and places the first working in-profile account card inside JW Stone. It deliberately does not redesign the JW Stone profile, place Stone Core partnership promotion on it, launch BidRock checkout, or claim private pricing and saved-state integration are complete.
+This lane establishes the reusable business-only account contract and places the first **Create an account** action inside JW Stone.
 
-After this foundation is proven, the same card can be placed in the standard profile action area for every eligible profile without changing the identity or persistence model.
+It does not redesign JW Stone, add Stone Core promotion to the profile, launch BidRock checkout, or claim that saved-state, private pricing, orders, and conversations are already connected.
