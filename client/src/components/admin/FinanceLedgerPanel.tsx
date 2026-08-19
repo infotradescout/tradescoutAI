@@ -1,8 +1,29 @@
-import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronDown, RefreshCw, Search } from "lucide-react";
+import { Link } from "wouter";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+  AdminWorkspace,
+} from "@/admin/AdminWorkspace";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
+type LedgerRange = "7d" | "30d" | "90d" | "all";
+type LedgerDirection = "all" | "credit" | "debit";
 
 interface FinanceLedgerSummary {
   count: number;
@@ -29,21 +50,57 @@ interface FinanceLedgerResponse {
   summary: FinanceLedgerSummary;
 }
 
+function formatMoney(value: number | null | undefined, signed = false): string {
+  const numeric = Number(value || 0);
+  const absolute = Math.abs(numeric).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+  });
+  if (!signed || numeric === 0) return absolute;
+  return `${numeric > 0 ? "+" : "−"}${absolute}`;
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString() : "Invalid date";
+}
+
+function readable(value: string | null | undefined): string {
+  const text = String(value || "").trim();
+  if (!text) return "Not recorded";
+  return text.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function DirectionBadge({ direction }: { direction: FinanceLedgerTransaction["direction"] }) {
+  return direction === "credit" ? (
+    <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
+      Credit
+    </Badge>
+  ) : (
+    <Badge className="border-rose-400/25 bg-rose-400/10 text-rose-100">Debit</Badge>
+  );
+}
+
 export function FinanceLedgerPanel() {
-  const [range, setRange] = useState<"7d" | "30d" | "90d" | "all">("30d");
-  const [direction, setDirection] = useState<"all" | "credit" | "debit">("all");
-  const [typeFilter, setTypeFilter] = useState<string>("");
+  const [range, setRange] = useState<LedgerRange>("30d");
+  const [direction, setDirection] = useState<LedgerDirection>("all");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   const { from, to } = useMemo(() => {
-    if (range === "all") return { from: undefined as string | undefined, to: undefined as string | undefined };
+    if (range === "all") {
+      return { from: undefined as string | undefined, to: undefined as string | undefined };
+    }
     const now = new Date();
-    const endIso = now.toISOString();
     const days = range === "7d" ? 7 : range === "30d" ? 30 : 90;
-    const start = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-    return { from: start.toISOString(), to: endIso };
+    return {
+      from: new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString(),
+      to: now.toISOString(),
+    };
   }, [range]);
 
-  const { data, isLoading, isError } = useQuery<FinanceLedgerResponse>({
+  const ledgerQuery = useQuery<FinanceLedgerResponse>({
     queryKey: ["/api/admin/finance/ledger", { range, direction, typeFilter, from, to }],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -52,162 +109,280 @@ export function FinanceLedgerPanel() {
       if (to) params.set("to", to);
       if (direction !== "all") params.set("direction", direction);
       if (typeFilter.trim()) params.set("transactionType", typeFilter.trim());
-      const res = await apiRequest("GET", `/api/admin/finance/ledger?${params.toString()}`);
-      return res as FinanceLedgerResponse;
+      return (await apiRequest(
+        "GET",
+        `/api/admin/finance/ledger?${params.toString()}`
+      )) as FinanceLedgerResponse;
     },
     staleTime: 30_000,
+    retry: false,
   });
 
-  if (isLoading) {
-    return (
-      <Card className="bg-tsCard border-white/10">
-        <CardContent className="py-8 text-center text-white/70">Loading finance ledger…</CardContent>
-      </Card>
+  const transactions = ledgerQuery.data?.transactions || [];
+  const summary = ledgerQuery.data?.summary;
+  const filteredTransactions = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return transactions;
+    return transactions.filter((transaction) =>
+      [
+        transaction.id,
+        transaction.userId,
+        transaction.counterpartyUserId,
+        transaction.transactionType,
+        transaction.referenceType,
+        transaction.referenceId,
+        transaction.memo,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(term))
     );
-  }
+  }, [search, transactions]);
 
-  if (isError || !data) {
-    return (
-      <Card className="bg-tsCard border-white/10">
-        <CardContent className="py-8 text-center text-red-300">
-          Unable to load finance ledger. Please try again.
-        </CardContent>
-      </Card>
+  const uniqueUsers = useMemo(
+    () =>
+      new Set(
+        transactions.flatMap((transaction) =>
+          [transaction.userId, transaction.counterpartyUserId].filter(Boolean)
+        )
+      ).size,
+    [transactions]
+  );
+  const uniqueTypes = useMemo(
+    () => new Set(transactions.map((transaction) => transaction.transactionType).filter(Boolean)).size,
+    [transactions]
+  );
+  const referenceCoverage = useMemo(() => {
+    if (!transactions.length) return 0;
+    return Math.round(
+      (transactions.filter((transaction) => transaction.referenceType || transaction.referenceId).length /
+        transactions.length) *
+        100
     );
-  }
-
-  const { transactions, summary } = data;
+  }, [transactions]);
 
   return (
-    <div className="space-y-4">
-      <Card className="bg-tsCard border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-sm font-semibold text-white">Ledger Summary (latest {summary.count} tx)</CardTitle>
-            <CardDescription className="text-xs text-white/60">
-              Totals across all wallet accounts. Positive balance delta indicates net credits into the system.
-            </CardDescription>
+    <AdminWorkspace data-testid="admin-finance-ledger-v2">
+      <AdminSection
+        title="Finance ledger"
+        description="Read-only wallet movement across TradeScout. Positive net change means more credits than debits in the selected server window; it is not a bank balance or recognized revenue statement."
+        className="pt-0"
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => ledgerQuery.refetch()}
+              disabled={ledgerQuery.isFetching}
+              className="border-white/12 bg-transparent text-white/65"
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${ledgerQuery.isFetching ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            <Link href="/admin/vault-contributions">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-white/12 bg-transparent text-white/65"
+              >
+                Vault contributions
+              </Button>
+            </Link>
           </div>
-          <div className="flex flex-col items-end gap-2 text-xs">
-            <div className="flex gap-2 items-center">
-              <span className="text-white/60">Window:</span>
-              <select
-                className="bg-tsBg border border-white/10 rounded px-2 py-1 text-[11px] text-white"
-                value={range}
-                onChange={(e) => setRange(e.target.value as any)}
-              >
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-                <option value="all">All time</option>
-              </select>
-              <span className="text-white/60 mx-1">|</span>
-              <span className="text-white/60">Direction:</span>
-              <select
-                className="bg-tsBg border border-white/10 rounded px-2 py-1 text-[11px] text-white"
-                value={direction}
-                onChange={(e) => setDirection(e.target.value as any)}
-              >
-                <option value="all">All</option>
-                <option value="credit">Credits</option>
-                <option value="debit">Debits</option>
-              </select>
-              <span className="text-white/60 mx-1">|</span>
-              <input
-                className="bg-tsBg border border-white/10 rounded px-2 py-1 text-[11px] text-white min-w-[140px]"
-                placeholder="Filter by type (e.g. marketplace_sale)"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Net movement",
+              value: ledgerQuery.isError ? "—" : formatMoney(summary?.balanceDelta, true),
+              detail: ledgerQuery.isError
+                ? "Ledger source unavailable"
+                : "Credits minus debits in this filtered window",
+              tone:
+                ledgerQuery.isError
+                  ? "warning"
+                  : Number(summary?.balanceDelta || 0) >= 0
+                    ? "good"
+                    : "danger",
+            },
+            {
+              label: "Credits",
+              value: ledgerQuery.isError ? "—" : formatMoney(summary?.totalCredits),
+              detail: "Server-reported credit total",
+              tone: ledgerQuery.isError ? "warning" : "good",
+            },
+            {
+              label: "Debits",
+              value: ledgerQuery.isError ? "—" : formatMoney(summary?.totalDebits),
+              detail: "Server-reported debit total",
+              tone: ledgerQuery.isError ? "warning" : "neutral",
+            },
+            {
+              label: "Transactions",
+              value: ledgerQuery.isError ? "—" : summary?.count ?? 0,
+              detail: ledgerQuery.isError
+                ? "Transaction source unavailable"
+                : `${uniqueUsers} users · ${uniqueTypes} types`,
+              tone: ledgerQuery.isError ? "warning" : "neutral",
+            },
+          ]}
+        />
+      </AdminSection>
+
+      <AdminSection
+        title="Transaction evidence"
+        description="Filter the server window, direction, and transaction type. Local search then narrows the returned records by account, reference, memo, type, or transaction identifier."
+        className="pt-0"
+      >
+        <AdminToolbar>
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+            <div className="relative min-w-[15rem] flex-1 md:max-w-xl">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-white/28" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search user, reference, memo, type, or transaction ID"
+                className="border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/28"
               />
             </div>
-            <div className="flex gap-2">
-              <span className="text-white/60">Credits:</span>
-              <span className="text-emerald-300 font-semibold">${summary.totalCredits.toFixed(2)}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-white/60">Debits:</span>
-              <span className="text-rose-300 font-semibold">${summary.totalDebits.toFixed(2)}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="text-white/60">Net change:</span>
-              <span className={summary.balanceDelta >= 0 ? "text-emerald-300 font-semibold" : "text-rose-300 font-semibold"}>
-                {summary.balanceDelta >= 0 ? "+" : "-"}${Math.abs(summary.balanceDelta).toFixed(2)}
-              </span>
-            </div>
+            <Select value={range} onValueChange={(value) => setRange(value as LedgerRange)}>
+              <SelectTrigger className="w-[10rem] border-white/10 bg-black/20 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+                <SelectItem value="all">All time</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={direction}
+              onValueChange={(value) => setDirection(value as LedgerDirection)}
+            >
+              <SelectTrigger className="w-[10rem] border-white/10 bg-black/20 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All directions</SelectItem>
+                <SelectItem value="credit">Credits</SelectItem>
+                <SelectItem value="debit">Debits</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+              placeholder="Transaction type"
+              className="w-[13rem] border-white/10 bg-black/20 text-white placeholder:text-white/28"
+            />
           </div>
-        </CardHeader>
-      </Card>
+          <span className="text-xs text-white/35">
+            {filteredTransactions.length} of {transactions.length} returned · {referenceCoverage}%
+            referenced
+          </span>
+        </AdminToolbar>
 
-      <Card className="bg-tsCard border-white/10 overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-sm font-semibold text-white">Recent Transactions</CardTitle>
-          <CardDescription className="text-xs text-white/60">
-            Most recent wallet transactions across all users. For detailed investigation, pivot by user ID and
-            reference type.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="max-h-[420px] overflow-auto">
-            <Table>
-              <TableHeader className="bg-tsCard/95 sticky top-0 z-10">
-                <TableRow>
-                  <TableHead className="text-xs text-white/60">When</TableHead>
-                  <TableHead className="text-xs text-white/60">User</TableHead>
-                  <TableHead className="text-xs text-white/60">Direction</TableHead>
-                  <TableHead className="text-xs text-white/60">Amount</TableHead>
-                  <TableHead className="text-xs text-white/60">Type</TableHead>
-                  <TableHead className="text-xs text-white/60">Reference</TableHead>
-                  <TableHead className="text-xs text-white/60">Memo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transactions.map((tx) => {
-                  const created = tx.createdAt ? new Date(tx.createdAt) : null;
-                  const when = created ? created.toLocaleString() : "—";
-                  const amountLabel = `${tx.direction === "credit" ? "+" : "-"}${tx.amount.toFixed(2)}`;
-                  return (
-                    <TableRow key={tx.id} className="hover:bg-white/5">
-                      <TableCell className="text-xs text-white/70 whitespace-nowrap">{when}</TableCell>
-                      <TableCell className="text-xs text-white/70">
-                        <div className="flex flex-col">
-                          <span className="font-mono text-[11px]">{tx.userId}</span>
-                          {tx.counterpartyUserId && (
-                            <span className="font-mono text-[10px] text-white/60">
-                              ↔ {tx.counterpartyUserId}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <span className={tx.direction === "credit" ? "text-emerald-300" : "text-rose-300"}>
-                          {tx.direction === "credit" ? "Credit" : "Debit"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono text-white">{amountLabel}</TableCell>
-                      <TableCell className="text-xs text-white/70 whitespace-nowrap">
-                        {tx.transactionType || "—"}
-                      </TableCell>
-                      <TableCell className="text-xs text-white/70">
-                        <div className="flex flex-col">
-                          {tx.referenceType && (
-                            <span className="text-[11px] text-white/70">{tx.referenceType}</span>
-                          )}
-                          {tx.referenceId && (
-                            <span className="font-mono text-[10px] text-white/60">{tx.referenceId}</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-white/70 max-w-xs truncate">
-                        {tx.memo || "—"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+        {ledgerQuery.isLoading ? (
+          <div className="flex min-h-44 items-center justify-center border-y border-white/10 text-sm text-white/45">
+            <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+            Loading finance ledger…
           </div>
-        </CardContent>
-      </Card>
+        ) : ledgerQuery.isError || !ledgerQuery.data ? (
+          <div className="border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+            Finance ledger data is unavailable. No missing movement was represented as zero.
+          </div>
+        ) : filteredTransactions.length ? (
+          <AdminList className="mt-4">
+            {filteredTransactions.map((transaction) => (
+              <details key={transaction.id} className="group">
+                <summary className="grid cursor-pointer list-none gap-4 px-3 py-4 transition-colors hover:bg-white/[0.025] sm:px-4 lg:grid-cols-[minmax(15rem,1fr)_minmax(10rem,0.45fr)_minmax(12rem,0.65fr)_auto] lg:items-center [&::-webkit-details-marker]:hidden">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate font-semibold text-white">
+                        {readable(transaction.transactionType)}
+                      </p>
+                      <DirectionBadge direction={transaction.direction} />
+                    </div>
+                    <p className="mt-1 truncate font-mono text-xs text-white/30">
+                      {transaction.id}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                      Amount
+                    </p>
+                    <p
+                      className={`mt-2 text-lg font-semibold ${
+                        transaction.direction === "credit" ? "text-emerald-200" : "text-rose-100"
+                      }`}
+                    >
+                      {transaction.direction === "credit" ? "+" : "−"}
+                      {formatMoney(transaction.amount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                      Account
+                    </p>
+                    <p className="mt-2 truncate font-mono text-xs text-white/58">
+                      {transaction.userId}
+                    </p>
+                    {transaction.counterpartyUserId ? (
+                      <p className="mt-1 truncate font-mono text-xs text-white/30">
+                        ↔ {transaction.counterpartyUserId}
+                      </p>
+                    ) : null}
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-white/30 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="border-t border-white/10 bg-white/[0.015] px-3 py-5 sm:px-4">
+                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                    <DetailBlock label="When" value={formatDate(transaction.createdAt)} />
+                    <DetailBlock
+                      label="Reference type"
+                      value={readable(transaction.referenceType)}
+                    />
+                    <DetailBlock
+                      label="Reference ID"
+                      value={transaction.referenceId || "Not recorded"}
+                    />
+                    <DetailBlock
+                      label="Counterparty"
+                      value={transaction.counterpartyUserId || "Not recorded"}
+                    />
+                  </div>
+                  <div className="mt-5 border-t border-white/10 pt-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                      Memo
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white/58">
+                      {transaction.memo || "No memo recorded."}
+                    </p>
+                  </div>
+                </div>
+              </details>
+            ))}
+          </AdminList>
+        ) : (
+          <AdminEmptyState
+            title="No transactions match these filters"
+            description="Change the server window, direction, type, or local search filter."
+          />
+        )}
+      </AdminSection>
+    </AdminWorkspace>
+  );
+}
+
+function DetailBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+        {label}
+      </p>
+      <p className="mt-2 break-words text-sm leading-6 text-white/58">{value}</p>
     </div>
   );
 }
