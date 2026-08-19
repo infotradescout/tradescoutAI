@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 import { SuperAdminOSLayout } from "@/admin/SuperAdminOSLayout";
-import AdminHome from "@/admin/AdminHome";
+import { AdminHome } from "@/admin/AdminHome";
 import { AdminEmptyState, AdminWorkspace } from "@/admin/AdminWorkspace";
 import { AdminToolSurface } from "@/admin/AdminToolSurface";
 import { resolveAdminToolByLocation, type AdminRole } from "@/admin/adminTools";
