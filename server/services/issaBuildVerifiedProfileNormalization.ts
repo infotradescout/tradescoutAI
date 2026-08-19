@@ -88,6 +88,7 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
             capabilities: {
               ...recordValue(luxuryHouse.capabilities),
               body: "ISSA Build handles the complete project: material selection, custom fabrication, backlighting, and installation for residential and commercial interiors.",
+              items: ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title })),
             },
             consultation: {
               ...recordValue(luxuryHouse.consultation),
