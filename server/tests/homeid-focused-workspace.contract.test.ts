@@ -22,6 +22,7 @@ describe("HomeID focused workspace product contract", () => {
   it("routes the Property Blessings master HomeID into dedicated launch control", () => {
     expect(entrySource).toContain("073b355c-1aa3-4658-a776-ebedaa6aaefc");
     expect(entrySource).toContain("PropertyBlessingsLaunchWorkspace");
+    expect(entrySource).toContain("selectedHomeId = requestedHomeId || firstHomeId");
     expect(entrySource).toContain('mode !== "passport"');
     expect(propertyBlessingsSource).toContain(
       'data-testid="property-blessings-launch-workspace"'
