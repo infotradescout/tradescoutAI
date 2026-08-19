@@ -8,6 +8,7 @@ Operator-controlled. Do not surface co-tenancy, unrelated businesses, owner-acco
 
 - **Public business profile:** ISSA Build (`/u/issa-build`)
 - **Legacy URL:** `/u/honey-onyx` is a permanent 301 alias to `/u/issa-build`; it is not a second public profile
+- **Exposure:** Public, discoverable, and indexable. Every inquiry remains routed through TradeScout.
 - **Ownership:** Independent business. Confirmed directly to the TradeScout operator.
 - **TradeScout verification:** **100% verified** for the ISSA Build business identity and the full-service operating scope listed below.
 - **Profile control:** The owner account is pending attachment. TradeScout admin stewardship supplies and manages the public profile record until that account is attached. This is only an account-control state; it is not an incomplete-verification state and does not reduce ISSA Build's verified status.
@@ -50,7 +51,7 @@ Do not describe ISSA Build as material-only, consultation-only, referral-only, i
 - Operator confirmation: the contact stored on the ISSA Build record is the intended Levon routing pair. Preserve that exact pair on ISSA Build itself; do not read it from JW Stone or any other business at runtime.
 - Operator correction (2026-08-19): the former rule to “never emit either value in public HTML” is superseded for ISSA Build's dedicated presentation. The approved pair is now the visible **TradeScout managed contact** on the public profile.
 - Only the approved managed pair may be shown. Owner-account contact, imported contact, unrelated business contact, and co-tenancy remain private.
-- Production provisioning must restore the managed pair, verified full-service scope, and Start a Request action on every deployment without transferring ISSA Build ownership.
+- Production provisioning must restore the managed pair, 100% verified full-service scope, public discovery, and Start a Request action on every deployment without transferring ISSA Build ownership.
 
 ## Share behavior
 
