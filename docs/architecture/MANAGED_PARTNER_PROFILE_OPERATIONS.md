@@ -6,6 +6,40 @@ Partner intake and platform development run at the same time.
 
 No partner waits for a shared template to become perfect. No shared architecture waits for partner intake to slow down.
 
+## Partner intake queue
+
+The Partner Intake queue records a new relationship as soon as it arrives. It does not wait for the company-specific profile build, and it does not stop any existing partner profile.
+
+The queue stages are:
+
+- `incoming`
+- `source_review`
+- `profile_build`
+- `routing_review`
+- `ready_to_publish`
+- `live`
+- `blocked`
+- `archived`
+
+A new intake records the company name, proposed slug, public source links, profile lane, control mode, contact policy, exposure, request path, operating request recipient, verified relationship, priority, and known boundaries.
+
+Unknown owner or contact facts remain pending. They are not replaced with invented information.
+
+The company-specific profile build continues independently and concurrently. The queue does not create a generic public profile or force every company into the same presentation.
+
+## Promotion to live operations
+
+An intake may be promoted to live only after the production records prove that:
+
+1. The canonical business exists and is active.
+2. The canonical profile exists and is published.
+3. The profile belongs to the business.
+4. Business and profile ownership match.
+
+Once promoted to live, the intake becomes a runtime managed-profile definition. It enters the same continuous health board as the permanent managed profiles without another checked-in registry edit.
+
+If the live intake uses TradeScout-managed contact, the approved phone and inbox are normalized on the business record without changing profile ownership.
+
 ## What is shared
 
 The shared system governs facts that must remain consistent across partners:
@@ -96,8 +130,10 @@ The Managed Profiles board checks:
 
 Profiles are shown as Ready, Needs Attention, or Blocked. An issue on one partner does not stop another partner from onboarding or remaining live.
 
-## Startup normalization
+## Startup and promotion normalization
 
-Individual profile provisioners may create or restore company-specific records. The final managed-contact pass runs afterward and restores the approved shared contact to every profile whose registry contact mode is `tradescout_managed`.
+Individual profile provisioners may create or restore company-specific records. The final managed-contact pass runs afterward and restores the approved shared contact to every permanent or intake-promoted profile whose contact mode is `tradescout_managed`.
 
 Each contact update runs independently. A missing or malformed partner cannot roll back corrections already made for other partners.
+
+When an intake is promoted to live from the admin portal, the same contact normalization is attempted immediately. Any unresolved result appears on the live health board rather than redirecting or blocking unrelated partners.
