@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 
 /**
- * Cache the small set of official R.E.D. Graniti source images used by the
- * dedicated company profile. The page then serves them from TradeScout's own
- * origin, avoiding CSP failures, hotlink rendering problems, and layout shifts.
+ * Cache the official R.E.D. Graniti images used by the dedicated company
+ * profile. The TradeScout page intentionally follows the structure and visual
+ * language of R.E.D. Graniti's existing website, but serves the images from
+ * TradeScout's own origin so CSP, hotlinking, and source-host outages cannot
+ * leave the public profile blank.
  *
- * A labeled stone-texture SVG is written when a source image is temporarily
- * unavailable. The build never fails merely because an outside image host is
- * slow or offline.
+ * A labeled fallback SVG is written when an outside image is temporarily
+ * unavailable. The build therefore remains deterministic and never publishes
+ * an empty image frame.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -22,6 +24,37 @@ const OUTPUT_DIR = resolve(
 );
 
 const ASSETS = [
+  {
+    id: "home-hero",
+    label: "R.E.D. Graniti natural stone quarry",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2018/06/lemurian-blue-1.jpg",
+    outputFile: "home-hero.svg",
+    accent: "#453433",
+  },
+  {
+    id: "business-blocks",
+    label: "R.E.D. Graniti rough blocks",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2016/05/blocchi-grezzi.png",
+    outputFile: "business-blocks.svg",
+    accent: "#6f4e43",
+  },
+  {
+    id: "business-slabs",
+    label: "R.E.D. Graniti natural stone slabs",
+    sourceUrl: "https://www.redgraniti.com/wp-content/uploads/2016/05/lastre.png",
+    outputFile: "business-slabs.svg",
+    accent: "#8e8178",
+  },
+  {
+    id: "business-distribution",
+    label: "R.E.D. Graniti worldwide distribution",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2016/05/commercializzazione.png",
+    outputFile: "business-distribution.svg",
+    accent: "#675853",
+  },
   {
     id: "lemurian-blue",
     label: "Madagascar labradorite source region",
@@ -45,6 +78,38 @@ const ASSETS = [
       "https://www.redgraniti.com/wp-content/uploads/2018/06/eureka-danby-1.jpg",
     outputFile: "eureka-danby.svg",
     accent: "#aaa39a",
+  },
+  {
+    id: "project-arkansas-office",
+    label: "The Arkansas Office project",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2017/08/ark-off-01.jpg",
+    outputFile: "project-arkansas-office.svg",
+    accent: "#7b6a60",
+  },
+  {
+    id: "project-colorado-bank",
+    label: "Colorado National Bank Building project",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2018/08/colorado-national-bank-building.jpg",
+    outputFile: "project-colorado-bank.svg",
+    accent: "#847970",
+  },
+  {
+    id: "project-lincoln-memorial",
+    label: "Lincoln Memorial project",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2018/08/LincolnMemorialWashington.jpg",
+    outputFile: "project-lincoln-memorial.svg",
+    accent: "#aca59b",
+  },
+  {
+    id: "project-mansion-dubai",
+    label: "Mansion in Dubai project",
+    sourceUrl:
+      "https://www.redgraniti.com/wp-content/uploads/2018/08/MansioninDubai.jpg",
+    outputFile: "project-mansion-dubai.svg",
+    accent: "#9a836d",
   },
 ];
 
