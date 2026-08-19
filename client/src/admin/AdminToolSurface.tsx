@@ -10,6 +10,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "business-verifications",
   "business-directory-ops",
   "listings",
+  "moderation",
   "errors",
 ]);
 
