@@ -105,47 +105,27 @@ describe("countertop spatial studio sharing", () => {
     expect(buildCountertopStudioShareUrl(anonymousDesign, "https://example.com/studio")).toBeNull();
 
     const namedUrl = buildCountertopStudioShareUrl(
-      createEmptySteelHomeProjectDraft().countertops,
+      {
+        ...createEmptySteelHomeProjectDraft().countertops,
+        stoneId: "taj-mahal",
+      },
       "https://example.com/studio"
     );
     const snapshot = decodeShareSnapshot(namedUrl!);
     snapshot.s = "invented-stone";
     expect(parseCountertopStudioShareUrl(replaceShareSnapshot(namedUrl!, snapshot))).toBeNull();
-  });
 
-  it.each([
-    ["stale", "ph_0000000000000000"],
-    ["malformed", "../../private"],
-  ])("recovers the remaining design when its photo key is %s", (_label, photoKey) => {
-    const design = {
-      ...createEmptySteelHomeProjectDraft().countertops,
-      room: "Living room" as const,
-      layout: "u-shape" as const,
-      island: true,
-      stoneId: "taj-mahal",
-      textureImageIndex: 2,
-      textureOffsetX: 0.35,
-      textureScale: 1.7,
-      waterfall: "Left" as const,
-    };
-    const namedUrl = buildCountertopStudioShareUrl(design, "https://example.com/studio")!;
-    const snapshot = decodeShareSnapshot(namedUrl);
-    snapshot.pk = photoKey;
+    const invalidPhotoSnapshot = decodeShareSnapshot(namedUrl!);
+    invalidPhotoSnapshot.pk = "ph_0000000000000000";
+    expect(
+      parseCountertopStudioShareUrl(replaceShareSnapshot(namedUrl!, invalidPhotoSnapshot))
+    ).toBeNull();
 
-    const restored = parseCountertopStudioShareUrl(replaceShareSnapshot(namedUrl, snapshot));
-    const stone = getCatalogItemById("taj-mahal")!;
-
-    expect(restored).toMatchObject({
-      room: "Living room",
-      layout: "u-shape",
-      island: true,
-      stoneId: "taj-mahal",
-      textureImageIndex: 0,
-      texturePhotoKey: buildStoneDesignerPhotoKey(stone.images[0]!),
-      textureOffsetX: 0.35,
-      textureScale: 1.7,
-      waterfall: "Left",
-    });
+    const malformedPhotoSnapshot = decodeShareSnapshot(namedUrl!);
+    malformedPhotoSnapshot.pk = "../../private";
+    expect(
+      parseCountertopStudioShareUrl(replaceShareSnapshot(namedUrl!, malformedPhotoSnapshot))
+    ).toBeNull();
   });
 
   it("round-trips the last real photo of a large catalog set", () => {

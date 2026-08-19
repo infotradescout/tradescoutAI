@@ -1,9 +1,5 @@
 import { ArrowUpRight, Building2, PanelsTopLeft, RectangleHorizontal } from "lucide-react";
-import { PublicProfileAccountCard } from "@/components/profile/PublicProfileAccountCard";
-import {
-  STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
-  STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
-} from "@shared/steelHomePackagesProfile";
+import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
 import {
   buildSteelHomeBuilderPath,
   type SteelHomeBuilderKey,
@@ -15,22 +11,22 @@ export const STEEL_HOME_BUILDERS = [
   {
     key: "countertops",
     label: "Countertops",
-    title: "Countertop Builder",
-    result: "Surface + tops-only area",
+    title: "Countertop Planner",
+    result: "Measured layout + material request",
     icon: RectangleHorizontal,
   },
   {
     key: "cabinets",
     label: "Cabinets",
-    title: "Cabinet Builder",
-    result: "Layout + early estimate",
+    title: "Cabinet Planner",
+    result: "Measured room + Quote required",
     icon: PanelsTopLeft,
   },
   {
     key: "building",
     label: "Metal Buildings",
-    title: "Metal Building Builder",
-    result: "Building + early estimate",
+    title: "Metal Building Planner",
+    result: "Measured concept + Quote required",
     icon: Building2,
   },
 ] as const;
@@ -74,14 +70,14 @@ export default function SteelHomeBuilderDirectory({ onOpen }: Props) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[0.7rem] font-black uppercase tracking-[0.2em] text-[#a94f2e]">
-            Three stand-alone builders
+            Three stand-alone planners
           </p>
           <h2 className="mt-2 font-editorial text-3xl font-semibold tracking-[-0.04em] text-[#18312f] sm:text-4xl">
             Open the one you need.
           </h2>
         </div>
         <p className="max-w-md text-sm leading-6 text-[#68736f]">
-          Each builder keeps its own choices, result, and request.
+          Each planner keeps its own choices, measured scene, and request.
         </p>
       </div>
 
@@ -172,14 +168,6 @@ export default function SteelHomeBuilderDirectory({ onOpen }: Props) {
           );
         })}
       </div>
-
-      <PublicProfileAccountCard
-        profileSlug={identity.slug}
-        profileName={identity.displayLabel}
-        tone="light"
-        compact
-        className="mt-6"
-      />
     </div>
   );
 }

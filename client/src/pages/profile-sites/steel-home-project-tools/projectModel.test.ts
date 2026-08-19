@@ -28,13 +28,9 @@ import {
   formatCountertopOpeningSchedule,
   getAvailableCountertopCutoutRuns,
   getCountertopCutoutRunDepth,
-  getCountertopCutoutRunLength,
-  getCountertopActiveRoomDesign,
   getCountertopOpeningFrontBounds,
   getCountertopOpeningSchedule,
   getCountertopPlacementProblems,
-  getCountertopRoomCategory,
-  getCountertopRoomChangePatch,
   getSteelHomeProjectEstimateSummary,
   getSteelHomeProjectReadiness,
   loadSteelHomeProjectDraft,
@@ -47,6 +43,15 @@ import {
   buildStoneDesignerImageHref,
   buildStoneDesignerPhotoKey,
 } from "./stoneDesignerImages";
+import {
+  createBlankCabinetPlannerExtension,
+  createCabinetPlannerModule,
+  type CabinetPlannerExtensionV1,
+} from "./cabinetPlannerModel";
+import {
+  createEmptyBuildingPlannerExtension,
+  type BuildingPlannerExtensionV1,
+} from "./buildingPlannerModel";
 
 const FORBIDDEN_PUBLIC_NAMES = [
   "Worldwide Steel Buildings",
@@ -95,6 +100,45 @@ function memoryStorage(initial: Record<string, string> = {}) {
     removeItem: (key) => values.delete(key),
   };
   return { storage, values };
+}
+
+function measuredCabinetPlanner(notes = ""): CabinetPlannerExtensionV1 {
+  return {
+    ...createBlankCabinetPlannerExtension(),
+    starter: "kitchen",
+    shell: {
+      widthIn: 144,
+      depthIn: 120,
+      heightIn: 96,
+      measurementsReviewed: true,
+    },
+    modules: [
+      {
+        ...createCabinetPlannerModule("base-cabinet", "base-1"),
+        label: "Sink base",
+        offsetIn: 18,
+        widthIn: 36,
+      },
+    ],
+    notes,
+  };
+}
+
+function measuredBuildingPlanner(
+  options: { widthFt?: number; notes?: string } = {}
+): BuildingPlannerExtensionV1 {
+  return {
+    ...createEmptyBuildingPlannerExtension(),
+    useId: "home-with-shop",
+    systemId: "open-web-truss",
+    widthFt: options.widthFt ?? 40,
+    lengthFt: 60,
+    eaveHeightFt: 14,
+    roofId: "gable",
+    roofPitchRise12: 4,
+    colors: { wall: "polar-white", roof: "charcoal", trim: "bronze" },
+    notes: options.notes ?? "",
+  };
 }
 
 describe("steel-home project model", () => {
@@ -146,7 +190,7 @@ describe("steel-home project model", () => {
       eaveHeightFt: 18,
       roofStyle: "gable",
     });
-    expect(reconciled.countertops.stoneId).toBe("cristallo");
+    expect(reconciled.countertops.stoneId).toBe("");
     expect(reconciled.countertops.wallAIn).toBe(26);
     expect(reconciled.cabinets.upperHeightIn).toBe(36);
     expect(reconciled.cabinets.pantryCount).toBe(4);
@@ -321,7 +365,7 @@ describe("steel-home project model", () => {
       version: 9,
       countertops: {
         textureImageIndex: 0,
-        texturePhotoKey: expect.stringMatching(/^ph_[0-9a-f]{16}$/),
+        texturePhotoKey: "",
         textureOffsetX: 0,
         textureOffsetY: 0,
         textureScale: 1,
@@ -383,181 +427,6 @@ describe("steel-home project model", () => {
     draft.countertops.island = false;
     draft.countertops.waterfall = "Both";
     expect(reconcileSteelHomeProjectDraft(draft).countertops.waterfall).toBe("None");
-  });
-
-  it("centralizes bathroom display semantics without deleting the saved kitchen plan", () => {
-    const draft = createEmptySteelHomeProjectDraft();
-    draft.countertops.room = "Primary bathroom";
-    draft.countertops.layout = "u-shape";
-    draft.countertops.wallAIn = 132;
-    draft.countertops.wallBIn = 84;
-    draft.countertops.wallCIn = 72;
-    draft.countertops.wallDepthIn = 22;
-    draft.countertops.island = true;
-    draft.countertops.waterfall = "Both";
-    draft.countertops.cooktop = "36-inch range gap";
-    draft.countertops.cooktopRun = "island";
-    draft.countertops.cooktopPositionIn = 42;
-    draft.countertops.sink = "Single-bowl undermount";
-    draft.countertops.sinkRun = "main";
-    draft.countertops.sinkPositionIn = 66;
-    draft.countertops.sinkFrontPositionIn = 11;
-    draft.countertops.notes = "Keep the measured vanity walls.";
-
-    const reconciled = reconcileSteelHomeProjectDraft(draft).countertops;
-
-    expect(getCountertopRoomCategory(reconciled.room)).toBe("bathroom");
-    expect(reconciled).toMatchObject({
-      room: "Primary bathroom",
-      layout: "u-shape",
-      wallAIn: 132,
-      wallBIn: 84,
-      wallCIn: 72,
-      wallDepthIn: 22,
-      island: true,
-      waterfall: "Both",
-      cooktop: "36-inch range gap",
-      cooktopRun: "island",
-      cooktopPositionIn: 42,
-      cooktopFrontPositionIn: null,
-      sink: "Single-bowl undermount",
-      sinkRun: "main",
-      sinkPositionIn: 66,
-      sinkFrontPositionIn: 11,
-      notes: "Keep the measured vanity walls.",
-    });
-    expect(getCountertopActiveRoomDesign(reconciled)).toMatchObject({
-      room: "Primary bathroom",
-      island: false,
-      waterfall: "None",
-      cooktop: "None",
-      cooktopRun: "",
-      cooktopPositionIn: null,
-      cooktopFrontPositionIn: null,
-    });
-    const { storage } = memoryStorage();
-    expect(saveSteelHomeProjectDraft(storage, draft)).toBe(true);
-    expect(loadSteelHomeProjectDraft(storage).countertops).toMatchObject({
-      room: "Primary bathroom",
-      wallAIn: 132,
-      wallDepthIn: 22,
-      island: true,
-      cooktop: "36-inch range gap",
-      sink: "Single-bowl undermount",
-      notes: "Keep the measured vanity walls.",
-    });
-  });
-
-  it("projects bathroom island openings as unplaced without reading or deleting kitchen geometry", () => {
-    const raw = createEmptySteelHomeProjectDraft().countertops;
-    raw.room = "Guest bathroom";
-    raw.island = true;
-    raw.islandLengthIn = 150;
-    raw.islandWidthIn = 66;
-    raw.sink = "Single-bowl undermount";
-    raw.sinkRun = "island";
-    raw.sinkPositionIn = 55;
-    raw.sinkFrontPositionIn = 30;
-    raw.cooktop = "30-inch cooktop cutout";
-    raw.cooktopRun = "island";
-    raw.cooktopPositionIn = 96;
-    raw.cooktopFrontPositionIn = 31;
-    raw.otherCutouts = [
-      {
-        id: "other-1",
-        type: "Pop-up outlet",
-        label: "",
-        run: "island",
-        positionIn: 42,
-        frontPositionIn: 21,
-        widthIn: 4,
-        depthIn: 4,
-      },
-    ];
-
-    const active = getCountertopActiveRoomDesign(raw);
-    expect(active).toMatchObject({
-      island: false,
-      sinkRun: "",
-      sinkPositionIn: null,
-      sinkFrontPositionIn: null,
-      cooktop: "None",
-      cooktopRun: "",
-      otherCutouts: [{ id: "other-1", run: "", positionIn: null, frontPositionIn: null }],
-    });
-    expect(getCountertopOpeningSchedule(raw)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "sink", run: "", positionIn: null }),
-        expect.objectContaining({ id: "other-1", run: "", positionIn: null }),
-      ])
-    );
-    expect(getCountertopOpeningSchedule(raw).some((item) => item.id === "cooktop")).toBe(false);
-    expect(getAvailableCountertopCutoutRuns(raw).map((run) => run.value)).not.toContain("island");
-    expect(getCountertopCutoutRunLength(raw, "island")).toBe(0);
-    expect(getCountertopCutoutRunDepth(raw, "island")).toBe(0);
-    expect(raw).toMatchObject({
-      island: true,
-      islandLengthIn: 150,
-      islandWidthIn: 66,
-      sinkRun: "island",
-      sinkPositionIn: 55,
-      cooktop: "30-inch cooktop cutout",
-      cooktopRun: "island",
-      cooktopPositionIn: 96,
-      otherCutouts: [{ id: "other-1", run: "island", positionIn: 42 }],
-    });
-  });
-
-  it("restores the same kitchen choices after a Kitchen to Bathroom round trip", () => {
-    const kitchen = createEmptySteelHomeProjectDraft().countertops;
-    kitchen.island = true;
-    kitchen.waterfall = "Left";
-    kitchen.cooktop = "30-inch cooktop cutout";
-    kitchen.cooktopRun = "main";
-    kitchen.cooktopPositionIn = 72;
-    kitchen.cooktopFrontPositionIn = 13;
-    kitchen.wallAIn = 144;
-
-    const switched = reconcileSteelHomeProjectDraft({
-      countertops: {
-        ...kitchen,
-        ...getCountertopRoomChangePatch("Guest bathroom"),
-      },
-    }).countertops;
-
-    expect(switched).toMatchObject({
-      room: "Guest bathroom",
-      wallAIn: 144,
-      island: true,
-      waterfall: "Left",
-      cooktop: "30-inch cooktop cutout",
-      cooktopRun: "main",
-      cooktopPositionIn: 72,
-      cooktopFrontPositionIn: 13,
-    });
-    expect(getCountertopActiveRoomDesign(switched)).toMatchObject({
-      room: "Guest bathroom",
-      island: false,
-      waterfall: "None",
-      cooktop: "None",
-      cooktopRun: "",
-    });
-
-    const restored = reconcileSteelHomeProjectDraft({
-      countertops: {
-        ...switched,
-        ...getCountertopRoomChangePatch("Kitchen"),
-      },
-    }).countertops;
-    expect(restored).toMatchObject({
-      room: "Kitchen",
-      island: true,
-      waterfall: "Left",
-      cooktop: "30-inch cooktop cutout",
-      cooktopRun: "main",
-      cooktopPositionIn: 72,
-      cooktopFrontPositionIn: 13,
-    });
   });
 
   it("migrates v7 countertop dimensions to v9 with the former 25.5-inch wall depth", () => {
@@ -840,6 +709,7 @@ describe("steel-home project model", () => {
     draft.countertops.wallBIn = 96;
     draft.countertops.wallCIn = 72;
     draft.countertops.island = false;
+    draft.countertops.measurementsReviewed = true;
 
     expect(calculateCountertopSquareFeet(draft.countertops)).toBe(42);
     draft.countertops.wallDepthIn = 22;
@@ -852,6 +722,8 @@ describe("steel-home project model", () => {
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 60;
     draft.countertops.sinkFrontPositionIn = 11;
+    draft.countertops.sinkTemplateWidthIn = 30;
+    draft.countertops.sinkTemplateDepthIn = 18;
     const [sink] = getCountertopOpeningSchedule(draft.countertops);
     expect(getCountertopOpeningFrontBounds(draft.countertops, sink)).toEqual({
       minimum: 10,
@@ -864,14 +736,8 @@ describe("steel-home project model", () => {
       "Sink — Single-bowl undermount is too close to the front or back edge of main run."
     );
     draft.countertops.sinkFrontPositionIn = 11;
-    draft.countertops.island = true;
-    draft.countertops.waterfall = "Both";
-    draft.countertops.cooktop = "36-inch range gap";
-    draft.countertops.cooktopRun = "island";
-    draft.countertops.cooktopPositionIn = 42;
 
     const descriptions = [
-      buildSteelHomeProjectDescription(draft),
       buildCountertopStoneRequestDescription(draft),
       buildCountertopFabricatorRequestDescription(draft),
     ];
@@ -881,14 +747,7 @@ describe("steel-home project model", () => {
       expect(description).toContain('Right return: 72"');
       expect(description).toContain('Wall-top depth: 22"');
       expect(description).not.toContain('Wall runs: 120" × 96" × 72"');
-      expect(description).not.toContain("Island:");
-      expect(description.toLowerCase()).not.toContain("cooktop");
-      expect(description.toLowerCase()).not.toContain("range gap");
-      expect(description.toLowerCase()).not.toContain("waterfall");
     }
-    expect(descriptions[0]).toContain("Gross vanity-top layout footprint");
-    expect(descriptions[1]).toContain("Gross vanity-top layout footprint");
-    expect(descriptions[2]).toContain("Gross vanity-top layout footprint");
   });
 
   it("enforces layout-aware run minima and a nondecreasing legal gross footprint", () => {
@@ -1175,10 +1034,14 @@ describe("steel-home project model", () => {
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 48;
     draft.countertops.sinkFrontPositionIn = 13;
+    draft.countertops.sinkTemplateWidthIn = 33;
+    draft.countertops.sinkTemplateDepthIn = 20;
     draft.countertops.cooktop = "36-inch cooktop cutout";
     draft.countertops.cooktopRun = "left-return";
     draft.countertops.cooktopPositionIn = 52;
     draft.countertops.cooktopFrontPositionIn = 13;
+    draft.countertops.cooktopTemplateWidthIn = 36;
+    draft.countertops.cooktopTemplateDepthIn = 22;
     draft.countertops.otherCutouts = [
       {
         id: "faucet",
@@ -1204,6 +1067,8 @@ describe("steel-home project model", () => {
         widthIn: 33,
         depthIn: 20,
         planningWidthIn: 33,
+        representation: "template-opening",
+        templateStatus: "entered",
       },
       {
         id: "cooktop",
@@ -1216,6 +1081,8 @@ describe("steel-home project model", () => {
         widthIn: 36,
         depthIn: 22,
         planningWidthIn: 36,
+        representation: "template-opening",
+        templateStatus: "entered",
       },
       {
         id: "faucet",
@@ -1228,6 +1095,8 @@ describe("steel-home project model", () => {
         widthIn: 1,
         depthIn: 1,
         planningWidthIn: 1,
+        representation: "template-opening",
+        templateStatus: "entered",
       },
     ]);
     expect(getCountertopPlacementProblems(draft.countertops)).toEqual([]);
@@ -1259,6 +1128,8 @@ describe("steel-home project model", () => {
         widthIn: 36,
         depthIn: null,
         planningWidthIn: 36,
+        representation: "full-depth-gap",
+        templateStatus: "not-needed",
       },
     ]);
     expect(getCountertopPlacementProblems(draft.countertops)).toEqual([]);
@@ -1337,6 +1208,8 @@ describe("steel-home project model", () => {
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 60;
     draft.countertops.sinkFrontPositionIn = 13;
+    draft.countertops.sinkTemplateWidthIn = 33;
+    draft.countertops.sinkTemplateDepthIn = 20;
     draft.countertops.otherCutouts = [
       {
         id: "faucet",
@@ -1574,38 +1447,18 @@ describe("steel-home project model", () => {
     ).toBe(baseline);
   });
 
-  it("builds an itemized early building estimate with the base roof included once", () => {
+  it("keeps metal building pricing quote-only", () => {
     const draft = createEmptySteelHomeProjectDraft();
     const estimate = calculateBuildingPlanningEstimate(draft.building);
 
     expect(estimate).toMatchObject({
       key: "building",
-      label: "Metal building package early estimate",
-      range: { lower: 80400, high: 124050 },
+      label: "Metal building — quote required",
+      range: { lower: 0, high: 0 },
     });
-    expect(formatPlanningRange(estimate.range)).toBe("$80,400–$124,050");
-    expect(estimate.breakdown[0]).toMatchObject({
-      key: "building-shell-with-roof",
-      label: "Metal building shell with base roof",
-      quantity: 2400,
-      unit: "sq. ft.",
-      range: { lower: 64800, high: 96000 },
-    });
-    expect(
-      estimate.breakdown.filter((line) => line.key === "building-shell-with-roof")
-    ).toHaveLength(1);
-    expect(estimate.breakdown.find((line) => line.key === "roof-options")?.detail).toContain(
-      "not a second roof charge"
-    );
-    expect(estimate.range).toEqual(
-      estimate.breakdown.reduce(
-        (total, line) => ({
-          lower: total.lower + line.range.lower,
-          high: total.high + line.range.high,
-        }),
-        { lower: 0, high: 0 }
-      )
-    );
+    expect(formatPlanningRange(estimate.range)).toBe("Quote required");
+    expect(estimate.breakdown).toEqual([]);
+    expect(estimate.disclaimer).toContain("Quote required");
 
     const publicEstimateText = JSON.stringify(estimate).toLowerCase();
     for (const forbidden of [
@@ -1617,50 +1470,18 @@ describe("steel-home project model", () => {
     }
   });
 
-  it("uses cabinet linear and per-module prices in a fully itemized early estimate", () => {
+  it("keeps cabinet pricing quote-only", () => {
     const draft = createEmptySteelHomeProjectDraft();
     const estimate = calculateCabinetPlanningEstimate(draft.cabinets);
 
     expect(estimate).toMatchObject({
       key: "cabinets",
-      label: "Cabinet early estimate",
-      range: { lower: 15650, high: 26950 },
+      label: "Cabinets — quote required",
+      range: { lower: 0, high: 0 },
     });
-    expect(formatPlanningRange(estimate.range)).toBe("$15,650–$26,950");
-    expect(estimate.breakdown.find((line) => line.key === "standard-cabinet-run")).toMatchObject({
-      quantity: 13.5,
-      unit: "linear ft.",
-    });
-    expect(estimate.breakdown.find((line) => line.key === "pantry-modules")).toMatchObject({
-      quantity: 1,
-      unit: "module",
-      range: { lower: 950, high: 1650 },
-    });
-    expect(estimate.breakdown.find((line) => line.key === "drawer-base-modules")).toMatchObject({
-      quantity: 2,
-      unit: "modules",
-      range: { lower: 1600, high: 2700 },
-    });
-    expect(estimate.range).toEqual(
-      estimate.breakdown.reduce(
-        (total, line) => ({
-          lower: total.lower + line.range.lower,
-          high: total.high + line.range.high,
-        }),
-        { lower: 0, high: 0 }
-      )
-    );
-
-    const smaller = calculateCabinetPlanningEstimate({
-      ...draft.cabinets,
-      layout: "one-wall",
-      primaryWallIn: 120,
-      pantryCount: 0,
-      drawerBaseCount: 0,
-      island: false,
-    });
-    expect(smaller.range.lower).toBeLessThan(estimate.range.lower);
-    expect(smaller.range.high).toBeLessThan(estimate.range.high);
+    expect(formatPlanningRange(estimate.range)).toBe("Quote required");
+    expect(estimate.breakdown).toEqual([]);
+    expect(estimate.disclaimer).toContain("Quote required");
 
     const publicEstimateText = JSON.stringify(estimate).toLowerCase();
     for (const forbidden of [
@@ -1672,7 +1493,7 @@ describe("steel-home project model", () => {
     }
   });
 
-  it("keeps quote-needed countertops outside the numeric estimated total", () => {
+  it("keeps every planner outside a numeric estimated total", () => {
     const draft = createEmptySteelHomeProjectDraft();
     expect(getSteelHomeProjectEstimateSummary(draft)).toMatchObject({
       planningRange: null,
@@ -1687,22 +1508,19 @@ describe("steel-home project model", () => {
     draft.additionalScopes = ["insulation", "mini-split-hvac", "foundation-and-site-work"];
 
     const summary = getSteelHomeProjectEstimateSummary(draft);
-    expect(summary.planningEstimates.map((estimate) => estimate.key)).toEqual([
-      "building",
-      "cabinets",
-    ]);
-    expect(summary.planningRange).toEqual({ lower: 96050, high: 151000 });
+    expect(summary.planningEstimates).toEqual([]);
+    expect(summary.planningRange).toBeNull();
     expect(summary.quoteRequired).toEqual([
+      "Metal building: catalog availability, engineering, freight, foundation coordination, delivery, and installation.",
+      "Cabinets: field measurements, exact products, hardware, trim, delivery, and installation.",
       "Taj Mahal: stone availability, slab quantity, and delivery. Fabrication is separate.",
     ]);
     expect(JSON.stringify(summary.quoteRequired)).not.toContain("$0");
-    expect(summary.disclaimer).toContain("not included in the estimated total");
+    expect(summary.disclaimer).toContain("do not publish prices");
     expect(calculateBuildingPlanningEstimate(draft.building).disclaimer).toContain(
-      "Site work, foundation, engineering, taxes, and installation are not included"
+      "Quote required"
     );
-    expect(calculateCabinetPlanningEstimate(draft.cabinets).disclaimer.toLowerCase()).toContain(
-      "countertops, field measurement, taxes, and installation are not included"
-    );
+    expect(calculateCabinetPlanningEstimate(draft.cabinets).disclaimer).toContain("Quote required");
 
     const quoteOnlyDraft = createEmptySteelHomeProjectDraft();
     quoteOnlyDraft.countertops.included = true;
@@ -1737,10 +1555,74 @@ describe("steel-home project model", () => {
     });
 
     draft.building.included = true;
+    draft.building.planner = measuredBuildingPlanner();
     expect(getSteelHomeProjectReadiness(draft)).toMatchObject({
       projectReady: true,
       needsDesign: false,
     });
+  });
+
+  it("persists canonical cabinet geometry and blocks requests until it is reviewed", () => {
+    const draft = createEmptySteelHomeProjectDraft();
+    draft.location = "Ocean Springs, MS";
+    draft.stateCode = "MS";
+    draft.countyFips = "28059";
+    draft.projectRole = "self-contracted";
+    draft.cabinets.included = true;
+
+    expect(draft.cabinets.planner.starter).toBeNull();
+    expect(getSteelHomeProjectReadiness(draft).projectReady).toBe(false);
+
+    draft.cabinets.planner = measuredCabinetPlanner("Keep the north wall clear at the door.");
+    const reconciled = reconcileSteelHomeProjectDraft(draft);
+    expect(reconciled.cabinets.planner).toEqual(draft.cabinets.planner);
+    expect(getSteelHomeProjectReadiness(reconciled).projectReady).toBe(true);
+
+    const description = buildSteelHomeProjectDescription(reconciled);
+    expect(description).toContain('Sink base: 36" W × 24" D × 34.5" H');
+    expect(description).toContain("Keep the north wall clear at the door.");
+    expect(description).not.toContain("Shaker");
+    expect(description).not.toContain("Matte black");
+    expect(description).not.toMatch(/\$\d/);
+  });
+
+  it("persists the canonical metal scene and uses it for readiness and request details", () => {
+    const draft = createEmptySteelHomeProjectDraft();
+    draft.location = "Ocean Springs, MS";
+    draft.stateCode = "MS";
+    draft.countyFips = "28059";
+    draft.projectRole = "self-contracted";
+    draft.building.included = true;
+    draft.building.planner = {
+      ...measuredBuildingPlanner({ widthFt: 50, notes: "Keep the rear wall clear." }),
+      openings: [
+        {
+          id: "door-1",
+          typeId: "overhead-door",
+          surface: "front",
+          widthFt: 12,
+          heightFt: 12,
+          offsetFt: 5,
+          sillHeightFt: 0,
+          roofXFt: null,
+          roofZFt: null,
+        },
+      ],
+    };
+
+    const reconciled = reconcileSteelHomeProjectDraft(draft);
+    expect(reconciled.building.planner).toEqual(draft.building.planner);
+    expect(getSteelHomeProjectReadiness(reconciled)).toMatchObject({
+      projectReady: true,
+      buildingProblems: [],
+    });
+
+    const description = buildSteelHomeProjectDescription(reconciled);
+    expect(description).toContain("Measured shell: 50 × 60 × 14 ft eave");
+    expect(description).toContain("Overhead sectional door: 12 × 12 ft on front");
+    expect(description).toContain("Scene reference: building-");
+    expect(description).toContain("Private planner notes: Keep the rear wall clear.");
+    expect(description).not.toMatch(/\$\d/);
   });
 
   it("carries exact completed designs and the selected photographed surface into the summary", () => {
@@ -1754,20 +1636,23 @@ describe("steel-home project model", () => {
     draft.additionalScopes = ["insulation", "tankless-water-heating"];
     draft.building.included = true;
     draft.building.widthFt = 54;
+    draft.building.planner = measuredBuildingPlanner({ widthFt: 54 });
     draft.countertops.included = true;
     draft.countertops.island = true;
     draft.countertops.stoneId = "taj-mahal";
     draft.countertops.wallAIn = 132;
+    draft.countertops.measurementsReviewed = true;
     draft.cabinets.included = true;
-    draft.cabinets.doorStyle = "Slab";
+    draft.cabinets.planner = measuredCabinetPlanner();
 
     const description = buildSteelHomeProjectDescription(draft);
     expect(description).toMatch(/^TradeScout Steel Home Planning Request\n/);
-    expect(description).toContain("54' wide × 60' long × 14' eave");
+    expect(description).toContain("Measured shell: 54 × 60 × 14 ft eave");
     expect(description).toContain("Project location: Ocean Springs, MS 39564 — Jackson County, MS");
     expect(description).toContain("Contracting setup: Self-contracted homeowner");
-    expect(description).toMatch(/Early estimated total: \$[\d,]+–\$[\d,]+/);
-    expect(description).toContain("Quote needed: Taj Mahal:");
+    expect(description).not.toMatch(/\$\d/);
+    expect(description).toContain("Quote needed: Metal building:");
+    expect(description).toContain("Taj Mahal: stone availability");
     expect(description).not.toContain("Insulation");
     expect(description).not.toContain("Tankless water heating");
     expect(description).toContain("Taj Mahal — Quartzite");
@@ -1776,10 +1661,10 @@ describe("steel-home project model", () => {
     expect(description).not.toContain("Stone image:");
     expect(description).toContain('Wall runs: Main run: 132"; Left return: 96"');
     expect(description).toContain('Wall-top depth: 25.5"');
-    expect(description).toContain("Style: Slab");
     expect(description).toContain("Metal Building Details");
-    expect(description).toContain("Cabinet Details");
-    expect(description).toContain('Main wall used: 198" of 216"');
+    expect(description).toContain("TradeScout Cabinet Planning Request");
+    expect(description).toContain('Room shell: 144" × 120" × 96" high');
+    expect(description).toContain('Sink base: 36" W × 24" D × 34.5" H');
     expect(description).toContain(
       "Gross countertop layout footprint (backsplash excluded; range gaps not deducted): About 60.4 sq. ft."
     );
@@ -1851,13 +1736,15 @@ describe("steel-home project model", () => {
     draft.countertops.included = true;
     draft.cabinets.included = true;
     draft.building.notes = `BUILD-${"B".repeat(234)}`;
+    draft.building.planner = measuredBuildingPlanner({ notes: draft.building.notes });
     draft.countertops.notes = `STONE-${"S".repeat(234)}`;
     draft.cabinets.notes = `CABINET-${"C".repeat(232)}`;
+    draft.cabinets.planner = measuredCabinetPlanner(draft.cabinets.notes);
 
     const description = buildSteelHomeProjectDescription(draft);
     expect(description).toContain("Metal Building Details");
     expect(description).toContain("Countertop Details");
-    expect(description).toContain("Cabinet Details");
+    expect(description).toContain("TradeScout Cabinet Planning Request");
     expect(description).toContain(draft.building.notes);
     expect(description).toContain(draft.countertops.notes);
     expect(description).toContain(draft.cabinets.notes);
@@ -1877,6 +1764,7 @@ describe("steel-home project model", () => {
     draft.countertops.included = true;
     draft.countertops.island = true;
     draft.countertops.stoneId = "aj-quartz";
+    draft.countertops.measurementsReviewed = true;
     draft.countertops.sink = "Farmhouse";
     draft.countertops.sinkRun = "main";
     draft.countertops.sinkPositionIn = 48;
@@ -1945,10 +1833,10 @@ describe("steel-home project model", () => {
       "Gross countertop layout footprint (backsplash excluded; range gaps not deducted):"
     );
     expect(stoneDescription).toContain(
-      "Backsplash and range-gap deductions are excluded from the footprint shown. Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout."
+      "Material request only: ask about stone availability and delivery. Opening locations do not establish stone quantity or price."
     );
     expect(stoneDescription).toContain(
-      "Material request only: ask about stone availability and delivery. Opening locations do not change this gross layout footprint or price the stone."
+      "Slab quantity, backsplash height, seams, waste, and final material quantity require field measurement and slab layout."
     );
     expect(stoneDescription).toContain(
       "does not provide field templating, fabrication, cutting, or countertop installation"
@@ -2129,7 +2017,7 @@ describe("steel-home project model", () => {
     expect(url.searchParams.get("county")).toBe("28047");
     expect(url.searchParams.get("state")).toBe("MS");
     expect(url.searchParams.get("description")).toContain(
-      "Countertop details: Kitchen; Cristallo — Quartzite; About 58.2 sq. ft."
+      "Countertop details: Kitchen; Cristallo — Quartzite; surface dimensions unreviewed"
     );
     expect(url.searchParams.get("description")).toMatch(/^TradeScout Local Trade Request\n/);
     expect(url.searchParams.get("title")).toBe(

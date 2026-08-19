@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type KeyboardEvent } from "react";
-import { Check, CircleDollarSign, MapPin, Ruler, ShieldCheck, X } from "lucide-react";
+import { Check, FileSearch, MapPin, Ruler, ShieldCheck, X } from "lucide-react";
 import { getCatalogItemById } from "@/features/jw-stone/catalog";
 import {
   parseDirectConnectEntryContext,
@@ -13,14 +13,12 @@ import {
   buildCountertopFabricatorRequestHref,
   buildCountertopStoneRequestHref,
   buildSteelHomeProjectRequestHref,
-  calculateBuildingPlanningEstimate,
-  calculateCabinetPlanningEstimate,
   calculateCountertopSquareFeet,
-  formatPlanningRange,
-  getCountertopPlacementProblems,
+  getSteelHomeProjectReadiness,
   reconcileSteelHomeProjectDraft,
   type SteelHomeProjectDraft,
 } from "./projectModel";
+import { getCountertopPlannerRequestReadiness } from "./countertopPlannerModel";
 
 type Props = {
   request: SteelHomeRequestSelection;
@@ -29,7 +27,6 @@ type Props = {
   requestHref: string;
   laborRequestHref: string;
   saved: boolean;
-  saveFailed: boolean;
   onClose: () => void;
 };
 
@@ -72,17 +69,17 @@ const PLANNER_COPY: Record<
 > = {
   building: {
     label: "Metal Building",
-    requestTitle: "TradeScout Metal Building Builder Request",
+    requestTitle: "TradeScout Metal Building Planner Request",
     color: "bg-[#18312f]",
   },
   countertops: {
     label: "Countertop",
-    requestTitle: "TradeScout Countertop Builder Request",
+    requestTitle: "TradeScout Countertop Planner Request",
     color: "bg-[#17201f]",
   },
   cabinets: {
     label: "Cabinet",
-    requestTitle: "TradeScout Cabinet Builder Request",
+    requestTitle: "TradeScout Cabinet Planner Request",
     color: "bg-[#654936]",
   },
 };
@@ -108,25 +105,31 @@ export function buildScopedSteelHomePlannerDraft(
 
 function plannerResult(planner: SteelHomePlanner, draft: SteelHomeProjectDraft) {
   if (planner === "building") {
-    const estimate = calculateBuildingPlanningEstimate(draft.building);
     return {
-      eyebrow: "Early metal building estimate",
-      value: formatPlanningRange(estimate.range),
-      detail: `${draft.building.widthFt}' × ${draft.building.lengthFt}' metal building with roof`,
-      icon: CircleDollarSign,
+      eyebrow: "Metal building planning scope",
+      value: "Quote required",
+      detail: `${draft.building.widthFt}' × ${draft.building.lengthFt}' planning footprint · Engineering and exact availability require review`,
+      icon: FileSearch,
     };
   }
   if (planner === "cabinets") {
-    const estimate = calculateCabinetPlanningEstimate(draft.cabinets);
     return {
-      eyebrow: "Early cabinet estimate",
-      value: formatPlanningRange(estimate.range),
-      detail: `${draft.cabinets.room} · ${draft.cabinets.primaryWallIn}" main wall`,
-      icon: CircleDollarSign,
+      eyebrow: "Cabinet planning scope",
+      value: "Quote required",
+      detail: `${draft.cabinets.room} · Field measurements, catalog selection, and installation require review`,
+      icon: FileSearch,
     };
   }
 
   const stone = getCatalogItemById(draft.countertops.stoneId);
+  if (!draft.countertops.measurementsReviewed) {
+    return {
+      eyebrow: "Countertop planning status",
+      value: "Starter values unreviewed",
+      detail: `${stone?.publicLabel || "No surface selected"} · Measurement-based quantities are excluded until reviewed · Quote required`,
+      icon: Ruler,
+    };
+  }
   return {
     eyebrow: "Gross countertop layout footprint",
     value: `About ${calculateCountertopSquareFeet(draft.countertops)} sq. ft.`,
@@ -142,7 +145,6 @@ export default function SteelHomePlannerRequest({
   requestHref,
   laborRequestHref,
   saved,
-  saveFailed,
   onClose,
 }: Props) {
   const { planner } = request;
@@ -193,8 +195,8 @@ export default function SteelHomePlannerRequest({
     );
     return {
       kind: "builder",
-      heading: `${copy.label} builder request`,
-      scope: `Only the choices saved in this ${copy.label.toLowerCase()} builder are included.`,
+      heading: `${copy.label} planner request`,
+      scope: `Only the choices saved in this ${copy.label.toLowerCase()} planner are included.`,
       label: "Continue to contact details",
       testId: "steel-home-planner-request-submit",
       destinationHref: requestHref,
@@ -204,27 +206,19 @@ export default function SteelHomePlannerRequest({
         title: copy.requestTitle,
         description: (parsed.description || "")
           .replace(/TradeScout Steel Home (?:Project|Planning) Request/, copy.requestTitle)
-          .replace(/Selected packages:|Selected planning tools:|Planner:/, "Builder:"),
+          .replace(/Selected packages:|Selected planning tools:|Builder:/, "Planner:"),
       },
     };
   }, [copy.label, copy.requestTitle, laborRequestHref, request, requestHref, scopedDraft]);
   const hasVisibleProjectRole = REQUEST_ROLE_OPTIONS.some(
     (option) => option.value === draft.projectRole
   );
-  const fabricatorPlacementProblems =
-    request.planner === "countertops" && request.intent === "fabricator"
-      ? getCountertopPlacementProblems(scopedDraft.countertops)
-      : [];
-  const ready =
-    hasVisibleProjectRole &&
-    draft.location.trim().length >= 2 &&
-    /^[A-Z]{2}$/.test(draft.stateCode) &&
-    /^\d{5}$/.test(draft.countyFips) &&
-    !(
-      request.planner === "countertops" &&
-      request.intent === "fabricator" &&
-      fabricatorPlacementProblems.length > 0
-    );
+  const countertopReadiness =
+    request.planner === "countertops"
+      ? getCountertopPlannerRequestReadiness(scopedDraft.countertops, request.intent)
+      : { ready: true, problems: [] };
+  const plannerReadiness = getSteelHomeProjectReadiness(scopedDraft);
+  const ready = hasVisibleProjectRole && plannerReadiness.projectReady && countertopReadiness.ready;
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement | null;
@@ -286,7 +280,7 @@ export default function SteelHomePlannerRequest({
         >
           <div>
             <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-[#f0b392]">
-              {copy.label} Builder
+              {copy.label} Planner
             </p>
             <h2
               id="steel-home-planner-request-title"
@@ -332,10 +326,10 @@ export default function SteelHomePlannerRequest({
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#a94f2e]" aria-hidden="true" />
               <div>
-                <h3 className="text-base font-black">Only this builder goes into the request.</h3>
+                <h3 className="text-base font-black">Only this planner goes into the request.</h3>
                 <p className="mt-1 text-sm leading-6 text-[#68736f]">
                   Your {copy.label.toLowerCase()} choices stay separate from anything saved in the
-                  other two builders.
+                  other two planners.
                 </p>
               </div>
             </div>
@@ -386,15 +380,15 @@ export default function SteelHomePlannerRequest({
             <p className="text-xs leading-5 text-[#68736f]" aria-live="polite">
               {!hasVisibleProjectRole
                 ? "Choose who is planning the request."
-                : fabricatorPlacementProblems.length
-                  ? "Return to the builder and place every opening before matching with a fabricator."
-                  : !ready
-                    ? "Add the jobsite city or ZIP, state, and county."
-                    : saveFailed
-                      ? "Changes could not be saved on this device. They remain available in this tab."
+                : countertopReadiness.problems.length
+                  ? countertopReadiness.problems[0]
+                  : request.planner === "building" && plannerReadiness.buildingProblems.length
+                    ? plannerReadiness.buildingProblems[0]
+                    : !ready
+                      ? "Add the jobsite city or ZIP, state, and county."
                       : saved
-                      ? "Ready. You will review contact details before anything is sent."
-                      : "Saving your choices on this device."}
+                        ? "Ready. You will review contact details before anything is sent."
+                        : "Saving your choices on this device."}
             </p>
             <div className="w-full shrink-0 sm:w-auto sm:min-w-64">
               <p className="mb-3 text-xs leading-5 text-[#68736f]">{requestIntent.scope}</p>
