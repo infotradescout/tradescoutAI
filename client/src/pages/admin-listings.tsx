@@ -1,293 +1,466 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Calendar,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  MapPin,
+  RefreshCw,
+  Search,
+  XCircle,
+} from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+  AdminWorkspace,
+} from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { CheckCircle, XCircle, Clock, User, MapPin, DollarSign, Calendar } from "lucide-react";
+
+interface PendingListing {
+  id: string;
+  title: string;
+  description?: string | null;
+  price: string | number;
+  condition?: string | null;
+  city?: string | null;
+  state?: string | null;
+  createdAt: string | Date;
+  category?: string | null;
+  sellerName?: string | null;
+  sellerEmail?: string | null;
+  [key: string]: unknown;
+}
+
+function readable(value: unknown): string {
+  const text = String(value || "").trim();
+  return text ? text.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "Not recorded";
+}
+
+function priceValue(value: unknown): number | null {
+  const parsed = Number.parseFloat(String(value ?? ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatMoney(value: unknown): string {
+  const parsed = priceValue(value);
+  if (parsed === null) return "Price not recorded";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(parsed);
+}
+
+function formatDate(value: unknown): string {
+  if (!value) return "Date not recorded";
+  const date = new Date(value as string | number | Date);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString() : "Invalid date";
+}
+
+function locationLabel(listing: PendingListing): string {
+  return [listing.city, listing.state].filter(Boolean).join(", ") || "Location not recorded";
+}
 
 export default function AdminListings() {
   const { toast } = useToast();
-  const [selectedListing, setSelectedListing] = useState<any>(null);
+  const queryClient = useQueryClient();
+  const [selectedListing, setSelectedListing] = useState<PendingListing | null>(null);
   const [notes, setNotes] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
+  const [search, setSearch] = useState("");
 
-  // Fetch pending listings
-  interface PendingListing {
-    id: string;
-    title: string;
-    description?: string;
-    price: string | number;
-    city?: string | null;
-    state?: string | null;
-    createdAt: string | Date;
-    [key: string]: any;
-  }
-
-  const { data: pendingListings = [] as PendingListing[], isLoading } = useQuery<PendingListing[]>({
+  const listingsQuery = useQuery<PendingListing[]>({
     queryKey: ["/api/admin/marketplace/pending"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/admin/marketplace/pending");
+      return Array.isArray(response) ? (response as PendingListing[]) : [];
+    },
   });
 
-  // Approve listing mutation
   const approveMutation = useMutation({
-    mutationFn: async ({ id, notes }: { id: string; notes?: string }) => {
-      return apiRequest("POST", `/api/admin/marketplace/listings/${id}/approve`, { notes });
-    },
-    onSuccess: () => {
+    mutationFn: async ({ id, notes: adminNotes }: { id: string; notes?: string }) =>
+      apiRequest("POST", `/api/admin/marketplace/listings/${id}/approve`, {
+        notes: adminNotes,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/marketplace/pending"] });
       toast({
-        title: "Listing Approved",
-        description: "The listing has been approved and is now live.",
+        title: "Listing approved",
+        description: "The listing is now live.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/marketplace/pending"] });
-      setSelectedListing(null);
-      setNotes("");
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: formatUserFacingErrorMessage(error, "Failed to approve listing."),
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Reject listing mutation
-  const rejectMutation = useMutation({
-    mutationFn: async ({ id, reason, notes }: { id: string; reason: string; notes?: string }) => {
-      return apiRequest("POST", `/api/admin/marketplace/listings/${id}/reject`, { reason, notes });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Listing Rejected",
-        description: "The listing has been rejected and the seller will be notified.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/marketplace/pending"] });
       setSelectedListing(null);
       setNotes("");
       setRejectionReason("");
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       toast({
-        title: "Error",
-        description: formatUserFacingErrorMessage(error, "Failed to reject listing."),
+        title: "Listing was not approved",
+        description: formatUserFacingErrorMessage(error, "Failed to approve the listing."),
         variant: "destructive",
       });
     },
   });
 
-  const handleApprove = (listing: any) => {
-    approveMutation.mutate({ id: listing.id, notes });
+  const rejectMutation = useMutation({
+    mutationFn: async ({
+      id,
+      reason,
+      notes: adminNotes,
+    }: {
+      id: string;
+      reason: string;
+      notes?: string;
+    }) =>
+      apiRequest("POST", `/api/admin/marketplace/listings/${id}/reject`, {
+        reason,
+        notes: adminNotes,
+      }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/marketplace/pending"] });
+      toast({
+        title: "Listing rejected",
+        description: "The seller will receive the recorded reason.",
+      });
+      setSelectedListing(null);
+      setNotes("");
+      setRejectionReason("");
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Listing was not rejected",
+        description: formatUserFacingErrorMessage(error, "Failed to reject the listing."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const pendingListings = listingsQuery.data || [];
+  const filteredListings = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return pendingListings
+      .filter((listing) => {
+        if (!normalizedSearch) return true;
+        return [
+          listing.title,
+          listing.description,
+          listing.condition,
+          listing.city,
+          listing.state,
+          listing.category,
+          listing.sellerName,
+          listing.sellerEmail,
+        ]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(normalizedSearch));
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [pendingListings, search]);
+
+  const totalValue = useMemo(
+    () => pendingListings.reduce((sum, listing) => sum + (priceValue(listing.price) || 0), 0),
+    [pendingListings]
+  );
+  const distinctLocations = useMemo(
+    () => new Set(pendingListings.map(locationLabel).filter((value) => value !== "Location not recorded")).size,
+    [pendingListings]
+  );
+
+  const selectListing = (listing: PendingListing) => {
+    setSelectedListing(listing);
+    setNotes("");
+    setRejectionReason("");
   };
 
-  const handleReject = (listing: any) => {
+  const approveSelected = () => {
+    if (!selectedListing) return;
+    approveMutation.mutate({ id: selectedListing.id, notes: notes.trim() || undefined });
+  };
+
+  const rejectSelected = () => {
+    if (!selectedListing) return;
     if (!rejectionReason.trim()) {
       toast({
-        title: "Rejection Reason Required",
-        description: "Please provide a reason for rejecting this listing.",
+        title: "Rejection reason required",
+        description: "Record a clear seller-facing reason before rejecting the listing.",
         variant: "destructive",
       });
       return;
     }
     rejectMutation.mutate({
-      id: listing.id,
-      reason: rejectionReason,
-      notes,
+      id: selectedListing.id,
+      reason: rejectionReason.trim(),
+      notes: notes.trim() || undefined,
     });
   };
 
-  if (isLoading) {
+  if (listingsQuery.isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-white/10 rounded w-1/4 mb-6"></div>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 bg-white/10 rounded"></div>
-            ))}
-          </div>
+      <AdminWorkspace>
+        <div className="flex min-h-64 items-center justify-center border-y border-white/10 text-sm text-white/50">
+          <RefreshCw className="mr-3 h-5 w-5 animate-spin" />
+          Loading marketplace listings…
         </div>
-      </div>
+      </AdminWorkspace>
+    );
+  }
+
+  if (listingsQuery.isError) {
+    return (
+      <AdminWorkspace>
+        <AdminEmptyState
+          title="Marketplace approval queue unavailable"
+          description="Pending listings could not be read. No listing was approved or rejected."
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => listingsQuery.refetch()}
+              className="border-white/15 bg-transparent text-white"
+            >
+              Retry
+            </Button>
+          }
+        />
+      </AdminWorkspace>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-ts-orange mb-2">Pending Listings Approval</h1>
-        <p className="text-white/60 dark:text-white/60">
-          Review and approve marketplace listings before they go live
-        </p>
-      </div>
+    <AdminWorkspace data-testid="admin-marketplace-listings-v2">
+      <AdminSection
+        title="Marketplace approval queue"
+        description="Review the listing, seller-facing rejection reason, and admin notes before changing public visibility."
+        className="pt-0"
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => listingsQuery.refetch()}
+            disabled={listingsQuery.isFetching}
+            className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${listingsQuery.isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Pending",
+              value: pendingListings.length,
+              detail: "Listings awaiting an admin decision",
+              tone: pendingListings.length > 0 ? "warning" : "good",
+            },
+            {
+              label: "Asking value",
+              value: formatMoney(totalValue),
+              detail: "Combined advertised price of pending listings",
+            },
+            {
+              label: "Locations",
+              value: distinctLocations,
+              detail: "Distinct city and state combinations",
+            },
+            {
+              label: "Selected",
+              value: selectedListing ? "1" : "—",
+              detail: selectedListing ? selectedListing.title : "Choose a listing to review",
+            },
+          ]}
+        />
 
-      {!pendingListings || pendingListings.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-ts-orange mb-2">No Pending Listings</h3>
-            <p className="text-white/60 dark:text-white/60">
-              All marketplace listings have been reviewed and approved.
-            </p>
-          </CardContent>
-        </Card>
+        <AdminToolbar className="mt-4">
+          <div className="relative min-w-0 flex-1 md:max-w-2xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search title, description, category, location, or seller"
+              className="border-white/10 bg-black/20 pl-9 text-white placeholder:text-white/30"
+            />
+          </div>
+          <p className="text-xs text-white/35">
+            {filteredListings.length} of {pendingListings.length} shown
+          </p>
+        </AdminToolbar>
+      </AdminSection>
+
+      {pendingListings.length === 0 ? (
+        <AdminEmptyState
+          title="No pending marketplace listings"
+          description="Every submitted listing currently has an admin decision."
+        />
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* Listings List */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-ts-orange">
-              Pending Approval ({pendingListings.length})
-            </h2>
-
-            {pendingListings.map((listing: any) => (
-              <Card
-                key={listing.id}
-                className={`cursor-pointer transition-all ${
-                  selectedListing?.id === listing.id
-                    ? "ring-2 ring-blue-500 border-blue-500"
-                    : "hover:shadow-md"
-                }`}
-                onClick={() => setSelectedListing(listing)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-medium text-ts-orange line-clamp-2">{listing.title}</h3>
-                    <Badge variant="outline" className="ml-2">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Pending
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-2 text-sm text-white/60 dark:text-white/60">
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-2" />$
-                      {parseFloat(listing.price).toLocaleString()}
-                    </div>
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {listing.city}, {listing.state}
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {new Date(listing.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Listing Details */}
-          <div className="sticky top-8">
-            {selectedListing ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Review Listing</span>
-                    <Badge variant="outline">
-                      <Clock className="h-3 w-3 mr-1" />
-                      Pending Approval
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Listing Details */}
-                  <div>
-                    <h3 className="font-medium text-ts-orange mb-2">{selectedListing.title}</h3>
-                    <p className="text-sm text-white/60 dark:text-white/60 line-clamp-3">
-                      {selectedListing.description}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium">Price:</span>
-                      <p className="text-white/60 dark:text-white/60">
-                        ${parseFloat(selectedListing.price).toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Condition:</span>
-                      <p className="text-white/60 dark:text-white/60 capitalize">
-                        {selectedListing.condition?.replace("_", " ")}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Location:</span>
-                      <p className="text-white/60 dark:text-white/60">
-                        {selectedListing.city}, {selectedListing.state}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="font-medium">Created:</span>
-                      <p className="text-white/60 dark:text-white/60">
-                        {new Date(selectedListing.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Admin Notes */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Admin Notes (Optional)</label>
-                    <Textarea
-                      placeholder="Add any notes about this approval/rejection..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="min-h-20"
-                    />
-                  </div>
-
-                  {/* Rejection Reason */}
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Rejection Reason (Required if rejecting)
-                    </label>
-                    <Textarea
-                      placeholder="Provide a clear reason for rejection that will be shown to the seller..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="min-h-20"
-                    />
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => handleApprove(selectedListing)}
-                      disabled={approveMutation.isPending}
-                      className="flex-1"
-                      variant="default"
+        <div className="grid gap-7 xl:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)]">
+          <AdminSection
+            title="Pending listings"
+            description="Newest submissions appear first."
+            className="pt-0"
+          >
+            {filteredListings.length ? (
+              <AdminList>
+                {filteredListings.map((listing) => {
+                  const selected = selectedListing?.id === listing.id;
+                  return (
+                    <button
+                      key={listing.id}
+                      type="button"
+                      onClick={() => selectListing(listing)}
+                      className={`grid w-full gap-3 px-3 py-4 text-left transition-colors sm:grid-cols-[minmax(0,1fr)_minmax(9rem,0.55fr)] sm:items-center sm:px-4 ${
+                        selected ? "bg-orange-500/[0.08]" : "hover:bg-white/[0.025]"
+                      }`}
                     >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      {approveMutation.isPending ? "Approving..." : "Approve"}
-                    </Button>
-                    <Button
-                      onClick={() => handleReject(selectedListing)}
-                      disabled={rejectMutation.isPending}
-                      variant="destructive"
-                      className="flex-1"
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      {rejectMutation.isPending ? "Rejecting..." : "Reject"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate font-semibold text-white">{listing.title || "Untitled listing"}</span>
+                          <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">
+                            <Clock className="mr-1 h-3 w-3" />
+                            Pending
+                          </Badge>
+                        </span>
+                        <span className="mt-2 line-clamp-2 block text-sm leading-6 text-white/48">
+                          {listing.description || "No description was provided."}
+                        </span>
+                        <span className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/35">
+                          <span className="inline-flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {locationLabel(listing)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {formatDate(listing.createdAt)}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="sm:text-right">
+                        <span className="block text-lg font-semibold text-white">{formatMoney(listing.price)}</span>
+                        <span className="mt-1 block text-xs text-white/35">{readable(listing.condition)}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </AdminList>
             ) : (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <User className="h-12 w-12 text-white/60 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-ts-orange mb-2">Select a Listing</h3>
-                  <p className="text-white/60 dark:text-white/60">
-                    Choose a listing from the left to review and approve or reject it.
-                  </p>
-                </CardContent>
-              </Card>
+              <AdminEmptyState
+                title="No pending listings match this search"
+                description="Clear or change the search to inspect another submission."
+              />
             )}
-          </div>
+          </AdminSection>
+
+          <AdminSection
+            title="Review decision"
+            description="The selected listing remains unchanged until Approve or Reject is submitted."
+            className="pt-0 xl:sticky xl:top-[6rem] xl:self-start"
+          >
+            {selectedListing ? (
+              <div className="border-y border-white/10">
+                <div className="px-3 py-5 sm:px-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-xl font-semibold text-white">{selectedListing.title || "Untitled listing"}</h3>
+                      <p className="mt-2 line-clamp-4 text-sm leading-6 text-white/52">
+                        {selectedListing.description || "No description was provided."}
+                      </p>
+                    </div>
+                    <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">Pending</Badge>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <ReviewFact label="Price" value={formatMoney(selectedListing.price)} icon={DollarSign} />
+                    <ReviewFact label="Condition" value={readable(selectedListing.condition)} icon={CheckCircle2} />
+                    <ReviewFact label="Location" value={locationLabel(selectedListing)} icon={MapPin} />
+                    <ReviewFact label="Created" value={formatDate(selectedListing.createdAt)} icon={Calendar} />
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t border-white/10 px-3 py-5 sm:px-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="listing-admin-notes" className="text-white/65">Admin notes</Label>
+                    <Textarea
+                      id="listing-admin-notes"
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      placeholder="Optional internal notes about the decision"
+                      className="min-h-24 border-white/10 bg-black/20 text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="listing-rejection-reason" className="text-white/65">
+                      Seller-facing rejection reason
+                    </Label>
+                    <Textarea
+                      id="listing-rejection-reason"
+                      value={rejectionReason}
+                      onChange={(event) => setRejectionReason(event.target.value)}
+                      placeholder="Required only when rejecting"
+                      className="min-h-28 border-white/10 bg-black/20 text-white"
+                    />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button
+                      type="button"
+                      onClick={approveSelected}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                      className="bg-emerald-400 text-black hover:bg-emerald-300"
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      {approveMutation.isPending ? "Approving…" : "Approve listing"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={rejectSelected}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                      className="border-red-300/25 bg-transparent text-red-100 hover:bg-red-400/10"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      {rejectMutation.isPending ? "Rejecting…" : "Reject listing"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <AdminEmptyState
+                title="Select a listing"
+                description="Choose a pending listing to inspect its details and record the approval decision."
+              />
+            )}
+          </AdminSection>
         </div>
       )}
+    </AdminWorkspace>
+  );
+}
+
+function ReviewFact({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon: typeof DollarSign;
+}) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">{label}</p>
+      <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-white/62">
+        <Icon className="mt-1 h-4 w-4 shrink-0 text-orange-300" />
+        <span>{value}</span>
+      </p>
     </div>
   );
 }
