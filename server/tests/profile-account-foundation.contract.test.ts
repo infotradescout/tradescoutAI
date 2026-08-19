@@ -25,13 +25,14 @@ describe("in-profile account foundation", () => {
     const service = read("server/services/profileAccountService.ts");
     const shared = read("shared/profileAccount.ts");
 
-    expect(shared).toContain('requiredIdentity: ProfileAccountIdentityRequirement');
-    expect(shared).toContain('stoneProfile ? "business"');
+    expect(shared).toContain("requiredIdentity: ProfileAccountIdentityRequirement");
+    expect(shared).toContain("const requiredIdentity: ProfileAccountIdentityRequirement");
+    expect(shared).toContain('? "business"');
     expect(shared).toContain('configured.requiredIdentity || "user"');
     expect(service).toContain('policy.requiredIdentity === "business"');
     expect(service).toContain("A TradeScout business profile is required to create this account");
     expect(service).toContain("identityKind = policy.requiredIdentity");
-    expect(service).toContain("viewerBusiness?.verificationStatus || \"not_required\"");
+    expect(service).toContain('viewerBusiness?.verificationStatus || "not_required"');
     expect(service).not.toContain("roles TEXT[]");
   });
 
@@ -44,7 +45,7 @@ describe("in-profile account foundation", () => {
     expect(entitlement).toContain("REFERENCES profile_accounts(id)");
     expect(route).toContain('productKey: "bidrock"');
     expect(route).toContain("created.policy.includesBidRock");
-    expect(shared).toContain('priorityKey = stoneProfile');
+    expect(shared).toContain("priorityKey = stoneProfile");
     expect(shared).toContain('"stone_business_access"');
     expect(route).not.toContain("bidrock_profile_accounts");
   });
