@@ -226,10 +226,10 @@ export function PublicProfileAccountCard({
               isDark ? "text-amber-300" : "text-stone-500"
             )}
           >
-            {connected ? "Account created" : "Business account"}
+            {connected ? "Account created" : "Account"}
           </p>
           <h3 className="mt-2 font-editorial text-3xl leading-none">
-            {connected ? `Your account with ${profileName}` : `Create an account with ${profileName}`}
+            {connected ? `Your account with ${profileName}` : "Create an account"}
           </h3>
         </div>
       </div>
@@ -248,8 +248,8 @@ export function PublicProfileAccountCard({
         <>
           <p className={cn("mt-4 text-sm leading-6", isDark ? "text-white/70" : "text-stone-600")}>
             {connected
-              ? `${data.account?.businessName || "Your business"} is connected to this profile.`
-              : "Businesses can create an account with this profile using their TradeScout business identity."}
+              ? `${data.account?.businessName || "Your business"} is connected to ${profileName}.`
+              : `Businesses can create an account with ${profileName} using their TradeScout business identity.`}
           </p>
 
           {connected ? (
