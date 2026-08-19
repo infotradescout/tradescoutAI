@@ -22,9 +22,14 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   const { user } = useAuth();
   const effectiveRole = role || (user?.role as AdminRole) || "ops_admin";
   const superFlag = Boolean(isSuperAdmin || (user as any)?.isSuperAdmin === true);
-  const navSections = getAdminNavWorkspacesForRole(effectiveRole, superFlag);
-  const matchedItem = findActiveAdminTool(location);
-  const activeItem = matchedItem ? getAdminToolPresentation(matchedItem) : null;
+  const navSections = React.useMemo(
+    () => getAdminNavWorkspacesForRole(effectiveRole, superFlag),
+    [effectiveRole, superFlag]
+  );
+  const activeItem = React.useMemo(() => {
+    const matchedItem = findActiveAdminTool(location);
+    return matchedItem ? getAdminToolPresentation(matchedItem) : null;
+  }, [location]);
   const activeSection =
     navSections.find((section) => section.items.some((item) => item.id === activeItem?.id))?.section ||
     "Operations";
