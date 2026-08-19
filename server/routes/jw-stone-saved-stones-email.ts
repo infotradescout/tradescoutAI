@@ -8,8 +8,10 @@ import {
   buildJwStoneSavedStonesEmail,
   sanitizeJwStoneSavedStoneEmailItems,
 } from "../services/jwStoneSavedStonesEmail";
+import { registerBidRockStoneBoundary } from "../services/bidrockStoneBoundary";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { JW_STONE_DIRECT_CONNECT_SELECTION_LIMIT } from "@shared/jwStoneDirectConnect";
+import { registerBidRockRoutes } from "./bidrock";
 import { registerProfileAccountRoutes } from "./profile-accounts";
 
 type OptionalAuthedRequest = Request & {
@@ -48,10 +50,11 @@ function normalizeEmail(value: unknown): string {
 }
 
 export function registerJwStoneSavedStonesEmailRoutes(app: Express) {
-  // Profile accounts are a platform capability. Mount them in the existing
-  // authenticated profile-adjacent route phase without making JW Stone the
-  // owner of the account model.
+  // Profile accounts are a platform capability. BidRock consumes the resulting
+  // stone-profile entitlement and never creates a second account system.
   registerProfileAccountRoutes(app);
+  registerBidRockStoneBoundary(app);
+  registerBidRockRoutes(app);
 
   const isProduction = process.env.NODE_ENV === "production";
   const noopLimiter: any = (_req: Request, _res: Response, next: () => void) => next();
