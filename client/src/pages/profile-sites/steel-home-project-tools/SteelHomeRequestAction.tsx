@@ -3,7 +3,7 @@ import { ArrowRight, Send } from "lucide-react";
 import type { DirectConnectEntryContext } from "@/pages/direct-connect/directConnectEntryContext";
 import {
   getDirectConnectEntryFallbackHref,
-  tryStageDirectConnectEntryContext,
+  stageDirectConnectEntryContext,
 } from "@/pages/direct-connect/stagedDirectConnectEntryContext";
 
 type Props = {
@@ -43,15 +43,12 @@ export default function SteelHomeRequestAction({
     if (!refresh && new URL(anchor.href, window.location.href).searchParams.has("staged")) {
       return true;
     }
-    const result = tryStageDirectConnectEntryContext(context, destinationHref);
-    if (result.staged) {
-      anchor.href = result.href;
-      setStageFailed(false);
-      return true;
-    }
-    anchor.href = result.fallbackHref;
-    setStageFailed(true);
-    return false;
+
+    const href = stageDirectConnectEntryContext(context, destinationHref);
+    const staged = new URL(href, window.location.href).searchParams.has("staged");
+    anchor.href = href;
+    setStageFailed(!staged);
+    return staged;
   };
 
   return (
