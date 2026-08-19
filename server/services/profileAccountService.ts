@@ -32,6 +32,40 @@ CREATE INDEX IF NOT EXISTS idx_profile_business_accounts_target
 
 CREATE INDEX IF NOT EXISTS idx_profile_business_accounts_owner
   ON profile_business_accounts(owner_user_id, status, updated_at DESC);
+
+CREATE OR REPLACE FUNCTION enforce_profile_business_account_identity()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  profile_owner_user_id TEXT;
+  profile_intent TEXT;
+BEGIN
+  SELECT user_id, user_intent::text
+    INTO profile_owner_user_id, profile_intent
+    FROM user_profiles
+   WHERE id = NEW.business_profile_id;
+
+  IF NOT FOUND OR profile_intent <> 'business' THEN
+    RAISE EXCEPTION 'Profile accounts require a TradeScout business profile';
+  END IF;
+
+  IF profile_owner_user_id <> NEW.owner_user_id THEN
+    RAISE EXCEPTION 'Profile account business ownership does not match the signed-in user';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS profile_business_accounts_identity_trigger
+  ON profile_business_accounts;
+
+CREATE TRIGGER profile_business_accounts_identity_trigger
+BEFORE INSERT OR UPDATE OF business_profile_id, owner_user_id
+ON profile_business_accounts
+FOR EACH ROW
+EXECUTE FUNCTION enforce_profile_business_account_identity();
 `;
 
 let ensurePromise: Promise<void> | null = null;
