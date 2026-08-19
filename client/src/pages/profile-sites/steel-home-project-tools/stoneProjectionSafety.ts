@@ -12,7 +12,9 @@ export type StoneProjectionDecision = {
  * neighboring slab. Only an explicitly prepared stone-only texture asset may be projected into a
  * room. Raw catalog photos remain visible as references beside the measured model.
  */
-export function getStoneProjectionDecision(imageHref: string | null | undefined): StoneProjectionDecision {
+export function getStoneProjectionDecision(
+  imageHref: string | null | undefined
+): StoneProjectionDecision {
   const source = typeof imageHref === "string" ? imageHref.trim() : "";
   const dimensions = source ? resolveSlabDimensionForInventoryImage(source) : null;
 
