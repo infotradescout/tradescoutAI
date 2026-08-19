@@ -1,14 +1,40 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertTriangle,
+  Building2,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  Play,
+  RefreshCw,
+  TerminalSquare,
+  XCircle,
+} from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+  AdminWorkspace,
+  AdminWorkspaceSubnav,
+} from "@/admin/AdminWorkspace";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiRequest } from "@/lib/queryClient";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Play, RefreshCw } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type SeedRun = {
@@ -41,7 +67,7 @@ type Suggestion = {
   businessId: string;
   kind: "edit" | "removal" | string;
   status: "open" | "resolved" | "rejected" | string;
-  payload: any;
+  payload: unknown;
   createdByUserId: string | null;
   createdAt: string | null;
   updatedAt: string | null;
@@ -80,8 +106,45 @@ type PensacolaLiquiditySupplySummary = {
   blockers: Record<string, { supported: boolean; count: number }>;
 };
 
+type SuggestionStatus = "open" | "resolved" | "rejected";
+
+function readable(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDate(value: unknown): string {
+  if (!value) return "Not recorded";
+  const date = new Date(value as string | number | Date);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString() : "Invalid date";
+}
+
+function seedStatusBadge(status: string) {
+  if (status === "succeeded") {
+    return (
+      <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
+        Succeeded
+      </Badge>
+    );
+  }
+  if (status === "failed") {
+    return <Badge className="border-red-400/30 bg-red-400/10 text-red-200">Failed</Badge>;
+  }
+  if (status === "running") {
+    return (
+      <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">Running</Badge>
+    );
+  }
+  return <Badge className="border-white/15 bg-white/5 text-white/55">{readable(status)}</Badge>;
+}
+
+function suggestionMessage(payload: unknown): string {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return "";
+  const message = (payload as Record<string, unknown>).message;
+  return typeof message === "string" ? message.trim() : "";
+}
+
 export default function AdminBusinessDirectoryOpsPage() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const [locationText, setLocationText] = useState("Pensacola, FL");
@@ -89,27 +152,23 @@ export default function AdminBusinessDirectoryOpsPage() {
   const [stateCode, setStateCode] = useState("FL");
   const [terms, setTerms] = useState("business, plumber, electrician, roofing");
   const [delayMs, setDelayMs] = useState("1500");
-
-  const [suggestionsStatus, setSuggestionsStatus] = useState<"open" | "resolved" | "rejected">(
-    "open"
-  );
+  const [suggestionsStatus, setSuggestionsStatus] = useState<SuggestionStatus>("open");
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   const runsQuery = useQuery({
     queryKey: ["admin-seed-runs"],
-    queryFn: async () => (await apiRequest("/api/admin/business-seeding/runs?limit=50")) as any,
+    queryFn: async () => apiRequest("GET", "/api/admin/business-seeding/runs?limit=50"),
   });
-
   const runs: SeedRun[] = Array.isArray(runsQuery.data?.items) ? runsQuery.data.items : [];
 
   const suggestionsQuery = useQuery({
     queryKey: ["admin-business-suggestions", suggestionsStatus],
     queryFn: async () =>
-      (await apiRequest(
+      apiRequest(
+        "GET",
         `/api/admin/business-directory/suggestions?status=${encodeURIComponent(suggestionsStatus)}&limit=200`
-      )) as any,
+      ),
   });
-
   const suggestions: Suggestion[] = Array.isArray(suggestionsQuery.data?.items)
     ? suggestionsQuery.data.items
     : [];
@@ -117,449 +176,521 @@ export default function AdminBusinessDirectoryOpsPage() {
   const pensacolaLiquidityQuery = useQuery<PensacolaLiquiditySupplySummary>({
     queryKey: ["admin-pensacola-liquidity-supply"],
     queryFn: async () =>
-      (await apiRequest("/api/admin/business-directory/pensacola-liquidity/summary")) as any,
+      apiRequest("GET", "/api/admin/business-directory/pensacola-liquidity/summary"),
   });
-
-  const pensacolaLiquidity = pensacolaLiquidityQuery.data;
 
   const logsQuery = useQuery({
     queryKey: ["admin-seed-run-logs", selectedRunId],
     enabled: Boolean(selectedRunId),
     queryFn: async () =>
-      (await apiRequest(
+      apiRequest(
+        "GET",
         `/api/admin/business-seeding/runs/${encodeURIComponent(String(selectedRunId))}/logs?limit=400`
-      )) as any,
+      ),
   });
-
   const logs: SeedRunLog[] = Array.isArray(logsQuery.data?.items) ? logsQuery.data.items : [];
 
   const startSeedMutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
+    mutationFn: async () =>
+      apiRequest("POST", "/api/admin/business-seeding/places-textsearch/run", {
         locationText: locationText.trim(),
         countyFips: countyFips.trim(),
         stateCode: stateCode.trim().toUpperCase(),
         terms: terms.trim(),
         delayMs: Number(delayMs),
-      };
-      return await apiRequest("POST", "/api/admin/business-seeding/places-textsearch/run", payload);
-    },
-    onSuccess: async (data: any) => {
+      }),
+    onSuccess: async (data: unknown) => {
+      const record = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
       toast({
-        title: "Seed started",
-        description: data?.seedRunId ? `Run ${data.seedRunId}` : "Seeding job spawned",
+        title: "Directory seed started",
+        description: record.seedRunId ? `Run ${String(record.seedRunId)}` : "The seeding job started.",
       });
-      await qc.invalidateQueries({ queryKey: ["admin-seed-runs"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin-seed-runs"] });
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
       toast({
-        title: "Failed to start seed",
-        description: formatUserFacingErrorMessage(err, "Could not start seeding job"),
+        title: "Directory seed was not started",
+        description: formatUserFacingErrorMessage(error, "Could not start the seeding job."),
         variant: "destructive",
       });
     },
   });
 
   const updateSuggestionMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "resolved" | "rejected" }) => {
-      return await apiRequest(
+    mutationFn: async ({ id, status }: { id: string; status: "resolved" | "rejected" }) =>
+      apiRequest(
         "POST",
         `/api/admin/business-directory/suggestions/${encodeURIComponent(id)}/status`,
         { status }
-      );
-    },
-    onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ["admin-business-suggestions"] });
-      toast({ title: "Updated", description: "Suggestion status updated." });
-    },
-    onError: (err: any) => {
+      ),
+    onSuccess: async (_response, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-business-suggestions"] });
       toast({
-        title: "Failed",
-        description: formatUserFacingErrorMessage(err, "Could not update suggestion."),
+        title: variables.status === "resolved" ? "Suggestion resolved" : "Suggestion rejected",
+        description: "The directory suggestion state was updated.",
+      });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Suggestion was not updated",
+        description: formatUserFacingErrorMessage(error, "Could not update the suggestion."),
         variant: "destructive",
       });
     },
   });
 
   const runningCount = useMemo(
-    () => runs.filter((r) => String(r.status) === "running").length,
+    () => runs.filter((run) => String(run.status) === "running").length,
     [runs]
   );
+  const canStartSeed =
+    Boolean(locationText.trim()) &&
+    Boolean(terms.trim()) &&
+    Boolean(stateCode.trim()) &&
+    Number.isFinite(Number(delayMs)) &&
+    Number(delayMs) >= 0;
+  const liquidity = pensacolaLiquidityQuery.data;
 
   return (
-    <div className="p-4 space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Business Directory Ops</CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Seed unclaimed listings (Places API New) and review the edit/removal queue.
-          </div>
-        </CardHeader>
-      </Card>
+    <AdminWorkspace data-testid="admin-business-directory-v2">
+      <Tabs defaultValue="seeding" className="space-y-6">
+        <AdminWorkspaceSubnav>
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0">
+            <TabsTrigger
+              value="seeding"
+              className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white"
+            >
+              Directory supply
+            </TabsTrigger>
+            <TabsTrigger
+              value="suggestions"
+              className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white"
+            >
+              Suggested changes
+            </TabsTrigger>
+          </TabsList>
+        </AdminWorkspaceSubnav>
 
-      <Tabs defaultValue="seeding">
-        <TabsList>
-          <TabsTrigger value="seeding">Seeding</TabsTrigger>
-          <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="seeding" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-3">
-                <span>Pensacola / Escambia Supply Health</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => pensacolaLiquidityQuery.refetch()}
-                  disabled={pensacolaLiquidityQuery.isFetching}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-              </CardTitle>
-              <div className="text-sm text-muted-foreground">
-                Aggregated counts only for county FIPS 12033. No contact lists or lead exports.
+        <TabsContent value="seeding" className="mt-0 space-y-7">
+          <AdminSection
+            title="Pensacola and Escambia supply"
+            description="Aggregated county supply health only. This view does not expose contact lists or sell leads."
+            className="pt-0"
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => pensacolaLiquidityQuery.refetch()}
+                disabled={pensacolaLiquidityQuery.isFetching}
+                className="border-white/12 bg-transparent text-white/60"
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${pensacolaLiquidityQuery.isFetching ? "animate-spin" : ""}`}
+                />
+                Refresh supply
+              </Button>
+            }
+          >
+            {pensacolaLiquidityQuery.isLoading ? (
+              <div className="flex min-h-44 items-center justify-center border-y border-white/10 text-sm text-white/45">
+                <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+                Loading supply health…
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {pensacolaLiquidityQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading Pensacola supply…</div>
-              ) : !pensacolaLiquidity ? (
-                <div className="text-sm text-muted-foreground">
-                  Pensacola supply summary unavailable.
-                </div>
-              ) : (
-                <>
-                  <div className="grid gap-3 md:grid-cols-4">
-                    {[
-                      ["Candidate businesses", pensacolaLiquidity.supply.candidateCount],
-                      ["Verified-active providers", pensacolaLiquidity.supply.verifiedActiveCount],
-                      ["Claimed", pensacolaLiquidity.supply.claimedCount],
-                      ["Unclaimed", pensacolaLiquidity.supply.unclaimedCount],
-                    ].map(([label, value]) => (
-                      <div key={String(label)} className="rounded-lg border border-border p-3">
-                        <div className="text-xs text-muted-foreground">{label}</div>
-                        <div className="mt-1 text-2xl font-semibold">{String(value)}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-border p-3">
-                      <div className="text-sm font-medium">Verified-active by trade/category</div>
-                      <div className="mt-2 space-y-1 text-sm">
-                        {pensacolaLiquidity.tradeCategoryCounts.length === 0 ? (
-                          <div className="text-muted-foreground">No category counts yet.</div>
-                        ) : (
-                          pensacolaLiquidity.tradeCategoryCounts.slice(0, 8).map((row) => (
-                            <div
-                              key={row.tradeCategory}
-                              className="flex items-center justify-between gap-3"
-                            >
-                              <span className="truncate">{row.tradeCategory}</span>
-                              <span className="font-mono">
-                                {row.verifiedActiveCount}/{row.candidateCount}
-                              </span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-border p-3">
-                      <div className="text-sm font-medium">Derived status notes</div>
-                      <div className="mt-2 space-y-2 text-xs text-muted-foreground">
-                        <p>{pensacolaLiquidity.supply.verifiedActiveSource}</p>
-                        <p>
-                          Contacted/interested provider counts are unsupported until an existing
-                          safe audit event source is available.
-                        </p>
-                        <p>
-                          Recent seed inserts: {pensacolaLiquidity.recentSeeding.insertedCount};
-                          errors: {pensacolaLiquidity.recentSeeding.errorCount}.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Run Places Seeding</span>
-                <div className="flex items-center gap-2">
-                  {runningCount > 0 ? (
-                    <Badge variant="secondary">{runningCount} running</Badge>
-                  ) : null}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => runsQuery.refetch()}
-                    disabled={runsQuery.isFetching}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">SEED_LOCATION</div>
-                <Input value={locationText} onChange={(e) => setLocationText(e.target.value)} />
+            ) : pensacolaLiquidityQuery.isError || !liquidity ? (
+              <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                The Pensacola supply summary is unavailable. Existing directory records were not changed.
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">County FIPS</div>
-                  <Input
-                    value={countyFips}
-                    onChange={(e) => setCountyFips(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                    placeholder="12033"
-                  />
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">State</div>
-                  <Input
-                    value={stateCode}
-                    onChange={(e) =>
-                      setStateCode(
-                        e.target.value
-                          .toUpperCase()
-                          .replace(/[^A-Z]/g, "")
-                          .slice(0, 2)
-                      )
-                    }
-                    placeholder="FL"
-                  />
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Delay (ms)</div>
-                  <Input
-                    value={delayMs}
-                    onChange={(e) => setDelayMs(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
-                  />
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <div className="text-xs text-muted-foreground mb-1">
-                  SEED_TERMS (comma-separated)
-                </div>
-                <Textarea value={terms} onChange={(e) => setTerms(e.target.value)} />
-              </div>
-              <div className="md:col-span-2">
-                <Button
-                  onClick={() => startSeedMutation.mutate()}
-                  disabled={startSeedMutation.isPending}
-                >
-                  {startSeedMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Starting…
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" /> Start seed run
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <>
+                <AdminSummaryStrip
+                  items={[
+                    {
+                      label: "Candidates",
+                      value: liquidity.supply.candidateCount,
+                      detail: "Businesses in the county supply set",
+                    },
+                    {
+                      label: "Verified active",
+                      value: liquidity.supply.verifiedActiveCount,
+                      detail: "Providers meeting the current verified-active rule",
+                      tone: liquidity.supply.verifiedActiveCount > 0 ? "good" : "warning",
+                    },
+                    {
+                      label: "Claimed",
+                      value: liquidity.supply.claimedCount,
+                      detail: "Businesses with a current claim state",
+                    },
+                    {
+                      label: "Unclaimed",
+                      value: liquidity.supply.unclaimedCount,
+                      detail: "Potential claim and verification work",
+                      tone: liquidity.supply.unclaimedCount > 0 ? "warning" : "neutral",
+                    },
+                  ]}
+                />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent seed runs</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {runsQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading…</div>
-              ) : runs.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No runs yet.</div>
-              ) : (
-                runs.map((r) => (
-                  <div
-                    key={r.id}
-                    className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 rounded-lg border border-border p-3"
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="font-mono text-xs">{r.id}</div>
-                        <Badge
-                          variant={
-                            r.status === "succeeded"
-                              ? "secondary"
-                              : r.status === "failed"
-                                ? "error"
-                                : "outline"
-                          }
-                        >
-                          {r.status}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {r.stateCode}-{r.countyFips}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        inserted={r.insertedCount} duplicates={r.duplicateCount} errors=
-                        {r.errorCount}
-                        {r.errorMessage ? ` • ${r.errorMessage}` : ""}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setSelectedRunId(r.id)}>
-                        View logs
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {selectedRunId ? (
-                <Card className="mt-3">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Logs</span>
-                      <Button variant="outline" size="sm" onClick={() => setSelectedRunId(null)}>
-                        Close
-                      </Button>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {logsQuery.isLoading ? (
-                      <div className="text-sm text-muted-foreground">Loading logs…</div>
-                    ) : logs.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">No logs.</div>
-                    ) : (
-                      <div className="space-y-2">
-                        {logs.map((l) => (
+                <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                      Verified-active by category
+                    </p>
+                    {liquidity.tradeCategoryCounts.length ? (
+                      <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+                        {liquidity.tradeCategoryCounts.slice(0, 10).map((row) => (
                           <div
-                            key={l.id}
-                            className="rounded border border-border p-2 text-xs font-mono whitespace-pre-wrap"
+                            key={row.tradeCategory}
+                            className="flex items-center justify-between gap-4 px-3 py-3 text-sm sm:px-4"
                           >
-                            <span className="text-muted-foreground">[{l.level}] </span>
-                            {l.message}
+                            <span className="truncate text-white/62">{row.tradeCategory}</span>
+                            <span className="font-mono text-white/45">
+                              {row.verifiedActiveCount}/{row.candidateCount}
+                            </span>
                           </div>
                         ))}
                       </div>
+                    ) : (
+                      <AdminEmptyState
+                        title="No category counts yet"
+                        description="The county summary has no category breakdown to display."
+                      />
                     )}
-                  </CardContent>
-                </Card>
-              ) : null}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </div>
 
-        <TabsContent value="suggestions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Suggestions queue</span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={suggestionsStatus === "open" ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setSuggestionsStatus("open")}
+                  <div className="border-y border-white/10 px-3 py-4 text-sm leading-6 text-white/48 sm:px-4">
+                    <p className="font-medium text-white/70">Current evidence</p>
+                    <p className="mt-2">{liquidity.supply.verifiedActiveSource}</p>
+                    <p className="mt-3">
+                      Recent seed window: {liquidity.recentSeeding.windowDays} days · {liquidity.recentSeeding.totalRuns} runs · {liquidity.recentSeeding.insertedCount} inserted · {liquidity.recentSeeding.errorCount} errors.
+                    </p>
+                    <p className="mt-3">
+                      Contacted and interested counts stay unavailable until a safe operating event source exists.
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </AdminSection>
+
+          <AdminSection
+            title="Run directory search"
+            description="Create unclaimed directory candidates from the approved Places text-search source."
+            actions={
+              <div className="flex items-center gap-2">
+                {runningCount > 0 ? (
+                  <Badge className="border-amber-400/30 bg-amber-400/10 text-amber-100">
+                    {runningCount} running
+                  </Badge>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => runsQuery.refetch()}
+                  disabled={runsQuery.isFetching}
+                  className="border-white/12 bg-transparent text-white/60"
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${runsQuery.isFetching ? "animate-spin" : ""}`} />
+                  Refresh runs
+                </Button>
+              </div>
+            }
+          >
+            <div className="grid gap-4 border-y border-white/10 px-3 py-5 md:grid-cols-2 sm:px-4">
+              <div className="space-y-2">
+                <Label htmlFor="seed-location" className="text-white/65">Location</Label>
+                <Input
+                  id="seed-location"
+                  value={locationText}
+                  onChange={(event) => setLocationText(event.target.value)}
+                  placeholder="Pensacola, FL"
+                  className="border-white/10 bg-black/20 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="seed-fips" className="text-white/65">County FIPS</Label>
+                  <Input
+                    id="seed-fips"
+                    value={countyFips}
+                    onChange={(event) => setCountyFips(event.target.value.replace(/\D/g, "").slice(0, 5))}
+                    placeholder="12033"
+                    className="border-white/10 bg-black/20 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="seed-state" className="text-white/65">State</Label>
+                  <Input
+                    id="seed-state"
+                    value={stateCode}
+                    onChange={(event) =>
+                      setStateCode(event.target.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 2))
+                    }
+                    placeholder="FL"
+                    className="border-white/10 bg-black/20 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="seed-delay" className="text-white/65">Delay ms</Label>
+                  <Input
+                    id="seed-delay"
+                    value={delayMs}
+                    onChange={(event) => setDelayMs(event.target.value.replace(/\D/g, "").slice(0, 5))}
+                    className="border-white/10 bg-black/20 text-white"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="seed-terms" className="text-white/65">Search terms</Label>
+                <Textarea
+                  id="seed-terms"
+                  value={terms}
+                  onChange={(event) => setTerms(event.target.value)}
+                  placeholder="business, plumber, electrician, roofing"
+                  className="min-h-24 border-white/10 bg-black/20 text-white"
+                />
+                <p className="text-xs text-white/32">Comma-separated terms. The server records inserts, duplicates, and errors for each run.</p>
+              </div>
+              <div className="md:col-span-2">
+                <Button
+                  type="button"
+                  onClick={() => startSeedMutation.mutate()}
+                  disabled={startSeedMutation.isPending || !canStartSeed}
+                  className="bg-orange-500 text-black hover:bg-orange-400"
+                >
+                  {startSeedMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Play className="mr-2 h-4 w-4" />
+                  )}
+                  {startSeedMutation.isPending ? "Starting…" : "Start seed run"}
+                </Button>
+              </div>
+            </div>
+          </AdminSection>
+
+          <AdminSection
+            title="Recent seed runs"
+            description="Review outcomes before opening the detailed log stream."
+          >
+            {runsQuery.isLoading ? (
+              <div className="flex min-h-40 items-center justify-center border-y border-white/10 text-sm text-white/45">
+                <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+                Loading seed runs…
+              </div>
+            ) : runsQuery.isError ? (
+              <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                Seed run history is unavailable.
+              </div>
+            ) : runs.length ? (
+              <AdminList>
+                {runs.map((run) => (
+                  <div
+                    key={run.id}
+                    className="grid gap-4 px-3 py-4 sm:px-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(12rem,0.75fr)_minmax(12rem,0.75fr)_auto] lg:items-center"
                   >
-                    Open
-                  </Button>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {seedStatusBadge(String(run.status))}
+                        <span className="truncate font-mono text-xs text-white/38">{run.id}</span>
+                      </div>
+                      <p className="mt-2 truncate text-sm text-white/62">
+                        {run.locationText || [run.stateCode, run.countyFips].filter(Boolean).join("-") || "Location not recorded"}
+                      </p>
+                      <p className="mt-1 text-xs text-white/32">Started {formatDate(run.startedAt)}</p>
+                    </div>
+                    <div className="text-sm text-white/55">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">Results</p>
+                      <p className="mt-1">{run.insertedCount} inserted · {run.duplicateCount} duplicates</p>
+                    </div>
+                    <div className="text-sm text-white/55">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">Errors</p>
+                      <p className={`mt-1 ${run.errorCount > 0 ? "text-red-200" : ""}`}>{run.errorCount}</p>
+                      {run.errorMessage ? <p className="mt-1 line-clamp-1 text-xs text-red-200/70">{run.errorMessage}</p> : null}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setSelectedRunId(run.id)}
+                      className="border-white/12 bg-transparent text-white/65"
+                    >
+                      <TerminalSquare className="mr-2 h-4 w-4" />
+                      View logs
+                    </Button>
+                  </div>
+                ))}
+              </AdminList>
+            ) : (
+              <AdminEmptyState title="No seed runs yet" description="Start a directory search to create the first audited run." />
+            )}
+
+            {selectedRunId ? (
+              <div className="mt-5 border-y border-white/10 bg-black/20">
+                <div className="flex items-center justify-between gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
+                  <div>
+                    <p className="font-semibold text-white">Run logs</p>
+                    <p className="mt-1 font-mono text-xs text-white/35">{selectedRunId}</p>
+                  </div>
                   <Button
-                    variant={suggestionsStatus === "resolved" ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setSuggestionsStatus("resolved")}
-                  >
-                    Resolved
-                  </Button>
-                  <Button
-                    variant={suggestionsStatus === "rejected" ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setSuggestionsStatus("rejected")}
-                  >
-                    Rejected
-                  </Button>
-                  <Button
+                    type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => suggestionsQuery.refetch()}
-                    disabled={suggestionsQuery.isFetching}
+                    onClick={() => setSelectedRunId(null)}
+                    className="border-white/12 bg-transparent text-white/60"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
+                    Close
                   </Button>
                 </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {suggestionsQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading…</div>
-              ) : suggestions.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No suggestions.</div>
-              ) : (
-                suggestions.map((s) => {
-                  const message = typeof s.payload?.message === "string" ? s.payload.message : "";
+                {logsQuery.isLoading ? (
+                  <div className="px-4 py-8 text-sm text-white/45">Loading logs…</div>
+                ) : logsQuery.isError ? (
+                  <div className="px-4 py-8 text-sm text-red-200">The log stream could not be loaded.</div>
+                ) : logs.length ? (
+                  <div className="max-h-[34rem] divide-y divide-white/8 overflow-y-auto">
+                    {logs.map((log) => (
+                      <div key={log.id} className="grid gap-2 px-3 py-3 font-mono text-xs sm:grid-cols-[7rem_minmax(0,1fr)] sm:px-4">
+                        <span className="text-white/32">[{String(log.level).toUpperCase()}]</span>
+                        <span className="whitespace-pre-wrap text-white/58">{log.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-8 text-sm text-white/45">No logs were recorded for this run.</div>
+                )}
+              </div>
+            ) : null}
+          </AdminSection>
+        </TabsContent>
+
+        <TabsContent value="suggestions" className="mt-0">
+          <AdminSection
+            title="Suggested directory changes"
+            description="Review edit and removal suggestions against the public business record before resolving or rejecting them."
+            className="pt-0"
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => suggestionsQuery.refetch()}
+                disabled={suggestionsQuery.isFetching}
+                className="border-white/12 bg-transparent text-white/60"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${suggestionsQuery.isFetching ? "animate-spin" : ""}`} />
+                Refresh
+              </Button>
+            }
+          >
+            <AdminToolbar>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select
+                  value={suggestionsStatus}
+                  onValueChange={(value) => setSuggestionsStatus(value as SuggestionStatus)}
+                >
+                  <SelectTrigger className="w-[12rem] border-white/10 bg-black/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-white/35">{suggestions.length} suggestions</p>
+            </AdminToolbar>
+
+            {suggestionsQuery.isLoading ? (
+              <div className="flex min-h-48 items-center justify-center border-y border-white/10 text-sm text-white/45">
+                <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+                Loading suggestions…
+              </div>
+            ) : suggestionsQuery.isError ? (
+              <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                The suggestion queue is unavailable. No suggestion state was changed.
+              </div>
+            ) : suggestions.length ? (
+              <AdminList className="mt-4">
+                {suggestions.map((suggestion) => {
+                  const message = suggestionMessage(suggestion.payload);
                   return (
                     <div
-                      key={s.id}
-                      className="rounded-lg border border-border p-3 flex flex-col md:flex-row md:items-start md:justify-between gap-3"
+                      key={suggestion.id}
+                      className="grid gap-4 px-3 py-4 sm:px-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start"
                     >
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="outline">{s.kind}</Badge>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className="border-white/15 bg-white/5 text-white/55">{readable(suggestion.kind)}</Badge>
                           <a
-                            className="font-semibold hover:underline"
-                            href={`/business/${encodeURIComponent(s.businessSlug)}`}
+                            href={`/business/${encodeURIComponent(suggestion.businessSlug)}`}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noreferrer noopener"
+                            className="inline-flex min-w-0 items-center gap-2 font-semibold text-white hover:text-orange-200"
                           >
-                            {s.businessName}
+                            <Building2 className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{suggestion.businessName}</span>
+                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                           </a>
-                          <span className="text-xs text-muted-foreground">{s.businessSlug}</span>
+                          <span className="truncate text-xs text-white/32">/{suggestion.businessSlug}</span>
                         </div>
-                        {message ? (
-                          <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                            {message}
-                          </div>
-                        ) : (
-                          <div className="mt-2 text-sm text-muted-foreground">(no message)</div>
-                        )}
-                        <div className="mt-2 text-xs text-muted-foreground font-mono">{s.id}</div>
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-white/52">
+                          {message || "No explanatory message was provided."}
+                        </p>
+                        <p className="mt-3 font-mono text-[10px] text-white/24">{suggestion.id}</p>
                       </div>
 
-                      {s.status === "open" ? (
-                        <div className="flex items-center gap-2">
+                      {suggestion.status === "open" ? (
+                        <div className="flex flex-wrap gap-2">
                           <Button
-                            variant="outline"
+                            type="button"
                             size="sm"
-                            disabled={updateSuggestionMutation.isPending}
                             onClick={() =>
-                              updateSuggestionMutation.mutate({ id: s.id, status: "resolved" })
+                              updateSuggestionMutation.mutate({
+                                id: suggestion.id,
+                                status: "resolved",
+                              })
                             }
+                            disabled={updateSuggestionMutation.isPending}
+                            className="bg-emerald-400 text-black hover:bg-emerald-300"
                           >
+                            <CheckCircle2 className="mr-2 h-4 w-4" />
                             Resolve
                           </Button>
                           <Button
-                            variant="destructive"
+                            type="button"
                             size="sm"
-                            disabled={updateSuggestionMutation.isPending}
+                            variant="outline"
                             onClick={() =>
-                              updateSuggestionMutation.mutate({ id: s.id, status: "rejected" })
+                              updateSuggestionMutation.mutate({
+                                id: suggestion.id,
+                                status: "rejected",
+                              })
                             }
+                            disabled={updateSuggestionMutation.isPending}
+                            className="border-red-300/25 bg-transparent text-red-100 hover:bg-red-400/10"
                           >
+                            <XCircle className="mr-2 h-4 w-4" />
                             Reject
                           </Button>
                         </div>
                       ) : (
-                        <Badge variant="secondary">{s.status}</Badge>
+                        <Badge className="border-white/15 bg-white/5 text-white/55">
+                          {readable(suggestion.status)}
+                        </Badge>
                       )}
                     </div>
                   );
-                })
-              )}
-            </CardContent>
-          </Card>
+                })}
+              </AdminList>
+            ) : (
+              <AdminEmptyState
+                title={`No ${suggestionsStatus} suggestions`}
+                description="Choose another status to inspect a different part of the suggestion queue."
+              />
+            )}
+          </AdminSection>
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminWorkspace>
   );
 }
