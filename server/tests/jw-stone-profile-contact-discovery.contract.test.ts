@@ -114,14 +114,15 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(marketplace).toContain("email: JW_STONE_MANAGED_CONTACT.email");
   });
 
-  it("persists the managed pair through the shared partner contact normalizer without transferring ownership", () => {
+  it("persists the managed pair through the runtime partner normalizer without transferring ownership", () => {
     expect(contactProvisioner).toContain(
       "export async function provisionTradeScoutManagedPartnerContacts"
     );
     expect(contactProvisioner).toContain(
       "export async function provisionJwStoneManagedContact"
     );
-    expect(contactProvisioner).toContain("MANAGED_PARTNER_PROFILE_DEFINITIONS.filter");
+    expect(contactProvisioner).toContain("getRuntimeManagedPartnerProfileDefinitions");
+    expect(contactProvisioner).toContain("const runtimeDefinitions = await");
     expect(contactProvisioner).toContain('definition.contactMode === "tradescout_managed"');
     expect(contactProvisioner).toContain("phone,");
     expect(contactProvisioner).toContain("email,");
