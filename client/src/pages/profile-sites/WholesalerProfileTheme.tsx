@@ -1,9 +1,11 @@
 import { useEffect, type ComponentProps } from "react";
+import { ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
 import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
 import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
 import { JwStoneProfileSeo } from "@/features/jw-stone/JwStoneProfileSeo";
+import IssaBuildProfileTruthFrame from "./IssaBuildProfileTruthFrame";
 import RedGranitiWebsiteProfile from "./RedGranitiWebsiteProfile";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 
@@ -14,11 +16,13 @@ type WholesalerProfileThemeProps = ComponentProps<typeof LegacyWholesalerProfile
 /**
  * TradePartner profiles may own a completely custom presentation while still
  * remaining profiles. JW Stone 2.0 and R.E.D. Graniti use their dedicated
- * profile experiences; every other TradePartner continues through the
- * established wholesale theme.
+ * profile experiences. ISSA Build keeps its established luxury presentation
+ * behind a verified full-service truth and request layer. Every other
+ * TradePartner continues through the established wholesale theme.
  */
 export default function WholesalerProfileTheme(props: WholesalerProfileThemeProps) {
   const normalizedSlug = props.profileSlug.trim().toLowerCase();
+  const isIssaBuildProfile = normalizedSlug === ISSA_BUILD_PROFILE_SLUG;
   const isJwStoneProfile = normalizedSlug === JW_STONE_PROFILE_SLUG;
   const isRedGranitiProfile = normalizedSlug === RED_GRANITI_PROFILE_SLUG;
 
@@ -49,6 +53,10 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
         platformBaseHref={props.platformBaseHref}
       />
     );
+  }
+
+  if (isIssaBuildProfile) {
+    return <IssaBuildProfileTruthFrame {...props} />;
   }
 
   return <LegacyWholesalerProfileTheme {...props} />;
