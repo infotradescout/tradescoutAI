@@ -90,9 +90,7 @@ describe("business discovery authority", () => {
     expect(pruneJob).not.toContain("issa-build");
     expect(pruneJob).toContain("publication_verified");
     expect(pruneJob).toContain("location_confirmed_per_request");
-    expect(pruneJob).toMatch(
-      /not\s+\(publication_verified and location_confirmed_per_request\)/
-    );
+    expect(pruneJob).toMatch(/not\s+\(publication_verified and location_confirmed_per_request\)/);
     expect(pruneJob).toMatch(
       /publication_verified\s+and updated_at < \(now\(\) - \(\$\{staleVerifiedDays\}/
     );
