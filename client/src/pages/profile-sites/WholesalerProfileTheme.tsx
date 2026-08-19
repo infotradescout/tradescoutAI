@@ -4,6 +4,7 @@ import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
 import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
 import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
 import { JwStoneProfileSeo } from "@/features/jw-stone/JwStoneProfileSeo";
+import { PublicProfileAccountCard } from "@/components/profile/PublicProfileAccountCard";
 import RedGranitiProfileTheme from "./RedGranitiProfileTheme";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 
@@ -33,7 +34,19 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
   if (isJwStoneProfile) {
     return (
       <JwStoneProfileProvider
-        profileActions={props.trustActions}
+        profileActions={
+          <>
+            {props.trustActions}
+            <PublicProfileAccountCard
+              profileSlug={JW_STONE_PROFILE_SLUG}
+              profileName="JW Stone"
+              preferredRole="fabricator"
+              tone="light"
+              compact
+              className="mt-5"
+            />
+          </>
+        }
         profileCanonicalUrl={props.profileShareDestination}
       >
         <JWStoneMarketplace />
