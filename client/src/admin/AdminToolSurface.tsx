@@ -22,6 +22,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "geo-map",
   "commercial-directory",
   "procurement",
+  "crm",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
