@@ -18,6 +18,8 @@ describe("Admin OS v2 foundation", () => {
     expect(layout).toContain("<AdminHeader");
     expect(layout).toContain("<SuperAdminLeftNav");
     expect(layout).toContain('window.addEventListener("keydown", handleShortcut)');
+    expect(layout).toContain('new Event("admin:focus-tool-search")');
+    expect(layout).toContain("setRailCollapsed(false)");
     expect(layout).not.toContain("ts-admin-mobile-nav");
     expect(layout).not.toContain("admin:ui:density");
     expect(layout).not.toContain("max-w-[1560px]");
@@ -30,6 +32,7 @@ describe("Admin OS v2 foundation", () => {
     expect(workspace).toContain("export function AdminToolbar");
     expect(workspace).toContain("export function AdminList");
     expect(workspace).toContain("export function AdminEmptyState");
+    expect(workspace).toContain("HTMLAttributes<HTMLDivElement>");
   });
 
   it("uses an integrated toolbar with one title and one global tool search", () => {
@@ -61,7 +64,7 @@ describe("Admin OS v2 foundation", () => {
     expect(nav).not.toContain("sections.length");
   });
 
-  it("organizes tools by operator outcomes rather than implementation names", () => {
+  it("organizes every primary tool by operator outcome rather than implementation name", () => {
     const taxonomy = read("client/src/admin/adminNavWorkspaces.ts");
 
     for (const workspace of [
@@ -73,6 +76,32 @@ describe("Admin OS v2 foundation", () => {
       "Finance",
     ]) {
       expect(taxonomy).toContain(`section: "${workspace}"`);
+    }
+
+    for (const toolId of [
+      "overview",
+      "direct-connect-requests",
+      "commercial-directory",
+      "procurement",
+      "users",
+      "verification",
+      "business-verifications",
+      "moderation",
+      "business-directory-ops",
+      "tradepartner-ops",
+      "listings",
+      "crm",
+      "geo-map",
+      "business-onboarding-telemetry",
+      "discovery-observatory",
+      "live-stream",
+      "scout-resilience",
+      "errors",
+      "panel",
+      "controls",
+      "finance",
+    ]) {
+      expect(taxonomy).toContain(`id: "${toolId}"`);
     }
 
     expect(taxonomy).toContain('label: "Partner Operations"');
@@ -87,6 +116,7 @@ describe("Admin OS v2 foundation", () => {
   it("makes Admin Home an action inbox rather than another tool catalog", () => {
     const home = read("client/src/admin/AdminHome.tsx");
 
+    expect(home).toContain("getAdminNavWorkspacesForRole");
     expect(home).toContain("Operator inbox");
     expect(home).toContain("Needs action");
     expect(home).toContain("Platform state");
@@ -98,6 +128,30 @@ describe("Admin OS v2 foundation", () => {
     expect(home).not.toContain("Tool index");
     expect(home).not.toContain("Law guardrails");
     expect(home).not.toContain("No urgent issue right now");
+  });
+
+  it("routes every tool through one v2 surface and never silently substitutes Admin Home", () => {
+    const router = read("client/src/pages/admin.tsx");
+    const surface = read("client/src/admin/AdminToolSurface.tsx");
+    const styles = read("client/src/admin/admin-os-v2.css");
+
+    expect(router).toContain("<AdminToolSurface tool={resolved.tool}>");
+    expect(router).toContain("silentlyFellBackToHome");
+    expect(router).toContain("This admin route is not registered");
+    expect(router).toContain("will not silently replace an unknown workspace with Admin Home");
+    expect(router).not.toContain("Unknown admin tool");
+
+    expect(surface).toContain("NATIVE_ADMIN_V2_TOOLS");
+    expect(surface).toContain('"overview"');
+    expect(surface).toContain('"tradepartner-ops"');
+    expect(surface).toContain('"direct-connect-requests"');
+    expect(surface).toContain('data-admin-surface={native ? "native-v2" : "adapted-v1"}');
+    expect(surface).toContain('import "./admin-os-v2.css"');
+
+    expect(styles).toContain("ts-admin-tool-surface--adapted");
+    expect(styles).toContain("max-width: none !important");
+    expect(styles).toContain("box-shadow: none !important");
+    expect(styles).toContain("This adapter changes presentation only");
   });
 
   it("flattens partner operations and replaces card grids with workflow lists", () => {
@@ -126,5 +180,38 @@ describe("Admin OS v2 foundation", () => {
     expect(intake).toContain("<details");
     expect(intake).not.toContain("<Card");
     expect(intake).not.toContain("Partner Intake Queue");
+  });
+
+  it("migrates request operations without changing the existing request composer", () => {
+    const requests = read("client/src/pages/admin-direct-connect-requests.tsx");
+    const composer = read("client/src/components/admin/AdminDirectConnectRequestCard.tsx");
+
+    expect(requests).toContain("AdminWorkspace");
+    expect(requests).toContain("AdminSection");
+    expect(requests).toContain('data-testid="admin-request-operations-v2"');
+    expect(requests).toContain("Create a request");
+    expect(requests).toContain("Request detail");
+    expect(requests).toContain("[&>div>div:first-child]:hidden");
+    expect(composer).toContain('"POST", "/api/admin/direct-connect/requests"');
+    expect(composer).toContain("Create request (manual routing)");
+    expect(composer).toContain("Skip manual routing and auto-route");
+  });
+
+  it("records the Selective Intelligence scope and release boundary", () => {
+    const evidence = read(
+      ".selective-intelligence/builds/admin-os-v2-foundation/evidence.md"
+    );
+    const architecture = read("docs/architecture/ADMIN_OS_V2.md");
+
+    expect(evidence).toContain("dashboards inside dashboards");
+    expect(evidence).toContain("Native v2");
+    expect(evidence).toContain("Adapted v1");
+    expect(evidence).toContain("not a claim that all 21 individual workflows are fully redesigned");
+    expect(evidence).toContain("Unknown `/admin/...` paths no longer silently resolve to Admin Home");
+
+    expect(architecture).toContain("one operating system for platform work");
+    expect(architecture).toContain("All 21 primary tools are represented");
+    expect(architecture).toContain("Individual tools migrate concurrently");
+    expect(architecture).toContain("Unknown admin routes must never silently render Admin Home");
   });
 });
