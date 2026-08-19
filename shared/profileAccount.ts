@@ -1,8 +1,11 @@
+export type ProfileAccountIdentityRequirement = "user" | "business";
+
 export type ProfileAccountPolicy = Readonly<{
   enabled: boolean;
   profileSlug: string;
-  businessOnly: true;
+  requiredIdentity: ProfileAccountIdentityRequirement;
   includesBidRock: boolean;
+  priorityKey: string;
   label: "Account";
   heading: "Create an account";
   description: string;
@@ -37,6 +40,16 @@ function normalizeSlug(value: unknown): string {
     .slice(0, 120);
 }
 
+function normalizePriorityKey(value: unknown, fallback: string): string {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+  return normalized || fallback;
+}
+
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
@@ -67,6 +80,24 @@ function contentContainsStone(contentBlocks: unknown): boolean {
   return false;
 }
 
+function readProfilePriorityConfig(value: unknown): Readonly<{
+  requiredIdentity: ProfileAccountIdentityRequirement | null;
+  priorityKey: string | null;
+  description: string | null;
+}> {
+  if (!value || typeof value !== "object") {
+    return Object.freeze({ requiredIdentity: null, priorityKey: null, description: null });
+  }
+  const record = value as Record<string, unknown>;
+  const requiredIdentity =
+    record.requiredIdentity === "business" || record.requiredIdentity === "user"
+      ? record.requiredIdentity
+      : null;
+  const priorityKey = String(record.priorityKey || "").trim().slice(0, 80) || null;
+  const description = String(record.description || "").trim().slice(0, 280) || null;
+  return Object.freeze({ requiredIdentity, priorityKey, description });
+}
+
 export function profileAccountIncludesBidRock(args: {
   profileSlug: string;
   contentBlocks?: unknown;
@@ -79,21 +110,40 @@ export function resolveProfileAccountPolicy(args: {
   profileSlug: string;
   profileName?: string | null;
   contentBlocks?: unknown;
+  profilePriorityConfig?: unknown;
 }): ProfileAccountPolicy {
   const profileSlug = normalizeSlug(args.profileSlug);
   const profileName = String(args.profileName || "this profile").trim() || "this profile";
+  const stoneProfile = profileAccountIncludesBidRock({
+    profileSlug,
+    contentBlocks: args.contentBlocks,
+  });
+  const configured = readProfilePriorityConfig(args.profilePriorityConfig);
+
+  // Stone profiles are the first completed account lane. Their accounts are
+  // business-only because they can unlock verified-business stone access and
+  // BidRock. Other profiles keep the same generic CTA but choose their own
+  // identity requirement and priority through profile configuration.
+  const requiredIdentity: ProfileAccountIdentityRequirement = stoneProfile
+    ? "business"
+    : configured.requiredIdentity || "user";
+  const priorityKey = stoneProfile
+    ? "stone_business_access"
+    : normalizePriorityKey(configured.priorityKey, "profile_account");
+  const defaultDescription =
+    requiredIdentity === "business"
+      ? `Businesses can create an account with ${profileName} using their TradeScout business identity.`
+      : `Create an account with ${profileName} using your TradeScout identity.`;
 
   return Object.freeze({
     enabled: true,
     profileSlug,
-    businessOnly: true as const,
-    includesBidRock: profileAccountIncludesBidRock({
-      profileSlug,
-      contentBlocks: args.contentBlocks,
-    }),
+    requiredIdentity,
+    includesBidRock: stoneProfile,
+    priorityKey,
     label: "Account" as const,
     heading: "Create an account" as const,
-    description: `Businesses can create an account with ${profileName} using their TradeScout business identity.`,
+    description: configured.description || defaultDescription,
   });
 }
 
