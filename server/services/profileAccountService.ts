@@ -10,7 +10,7 @@ const PROFILE_ACCOUNT_DDL = `
 CREATE TABLE IF NOT EXISTS profile_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  business_profile_id TEXT REFERENCES user_profiles(id) ON DELETE SET NULL,
+  business_profile_id TEXT REFERENCES user_profiles(id) ON DELETE CASCADE,
   target_profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   target_business_id TEXT REFERENCES businesses(id) ON DELETE SET NULL,
   identity_kind TEXT NOT NULL,
@@ -315,6 +315,7 @@ export async function getProfileAccountState(args: {
             updated_at = NOW()
       WHERE owner_user_id = $2
         AND target_profile_id = $3
+        AND identity_kind = $4
       RETURNING id,
                 identity_kind,
                 business_profile_id,
@@ -323,7 +324,12 @@ export async function getProfileAccountState(args: {
                 verification_status,
                 resume_path,
                 last_seen_at`,
-    [viewerBusiness?.verificationStatus || "pending", userId, target.profileId]
+    [
+      viewerBusiness?.verificationStatus || "pending",
+      userId,
+      target.profileId,
+      policy.requiredIdentity,
+    ]
   );
 
   return Object.freeze({
