@@ -6,9 +6,11 @@ import {
   ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
   ISSA_BUILD_PROFILE_SLUG,
 } from "@shared/issaBuildProfile";
+import { ISSA_BUILD_MANAGED_CONTACT } from "@shared/issaBuildManagedContact";
 import { db } from "../db";
 
 export const ISSA_BUILD_PROFILE_PROVISIONING_SOURCE = "operator_confirmed_business_profile";
+export const ISSA_BUILD_MANAGED_CONTACT_SOURCE = "tradescout_managed_contact";
 export const ISSA_BUILD_STEWARDSHIP_STATUS = "tradescout_admin_pending_owner_account_transfer";
 
 function recordValue(value: unknown): Record<string, any> {
@@ -76,7 +78,8 @@ async function quarantineDuplicateIssaBuildRecords(): Promise<void> {
 /**
  * Publishes ISSA Build as its own independent business profile.
  * Never use another business as owner, distributor, or Direct Connect routing.
- * Private DC fields are only kept if already present on this record.
+ * The operator-approved TradeScout-managed phone and email live on this exact
+ * business record and do not depend on JW Stone or any owner-account contact.
  */
 export async function provisionIssaBuildProfile(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
@@ -205,17 +208,15 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           "Project consultation",
         ],
         contactPreference: "message",
-        // Preserve any operator-only contact/location values already stored,
-        // but keep them out of every generic public-business projection.
+        // The dedicated ISSA presentation shows only the approved managed pair.
+        // Generic public-business contact projection remains disabled so no
+        // owner-account or imported contact can leak into another presentation.
         publicContactEnabled: false,
         publicLocationEnabled: false,
         publicWebsiteEnabled: false,
-        // Keep only contact already stored on this business. Never copy from
-        // another company or the owner website. Owner attaches private DC routing later.
-        phone: String(existingProfileData.phone || "").trim(),
-        notificationEmail: String(
-          existingProfileData.notificationEmail || existingProfileData.email || ""
-        ).trim(),
+        phone: ISSA_BUILD_MANAGED_CONTACT.phone,
+        email: ISSA_BUILD_MANAGED_CONTACT.email,
+        notificationEmail: ISSA_BUILD_MANAGED_CONTACT.email,
         tradePartner: true,
         importExtras: {
           ...cleanImportExtras,
@@ -224,6 +225,9 @@ export async function provisionIssaBuildProfile(): Promise<void> {
           owner_confirmation: "confirmed_by_tradescout_operator",
           owner_identity_visibility: "not_publicly_disclosed",
           stewardship_status: ISSA_BUILD_STEWARDSHIP_STATUS,
+          contact_management: "tradescout_managed",
+          managed_contact_phone: ISSA_BUILD_MANAGED_CONTACT.phone,
+          managed_contact_email: ISSA_BUILD_MANAGED_CONTACT.email,
           presentation_archetype: "lux",
           capability_source: "owner_business_story",
           inherited_platform_capabilities: [
@@ -260,6 +264,7 @@ export async function provisionIssaBuildProfile(): Promise<void> {
               !source.startsWith("jw_stone_")
           ),
           ISSA_BUILD_PROFILE_PROVISIONING_SOURCE,
+          ISSA_BUILD_MANAGED_CONTACT_SOURCE,
         ])
       ),
       status: "active" as const,
