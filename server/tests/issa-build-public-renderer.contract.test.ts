@@ -9,7 +9,7 @@ describe("ISSA Build verified public renderer", () => {
   it("routes ISSA Build through its verified full-service frame", () => {
     const dispatcher = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
 
-    expect(dispatcher).toContain('normalizedSlug === ISSA_BUILD_PROFILE_SLUG');
+    expect(dispatcher).toContain("normalizedSlug === ISSA_BUILD_PROFILE_SLUG");
     expect(dispatcher).toContain("<IssaBuildProfileTruthFrame {...props} />");
   });
 
@@ -24,9 +24,7 @@ describe("ISSA Build verified public renderer", () => {
     expect(renderer).toContain("Custom onyx installation");
     expect(renderer).toContain("Residential and commercial projects");
     expect(renderer).toContain("Project fulfillment");
-    expect(renderer).toContain(
-      "TradeScout manages every inquiry. ISSA Build handles the work."
-    );
+    expect(renderer).toContain("TradeScout manages every inquiry. ISSA Build handles the work.");
     expect(renderer).toContain("Start a Request");
     expect(renderer).toContain("<ExpressDirectConnectPanel");
     expect(renderer).toContain('initialView="request"');
