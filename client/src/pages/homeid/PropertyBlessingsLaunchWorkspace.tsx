@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, type ReactNode } from "react";
+import React, { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Database,
   FileCheck2,
-  FileText,
   FolderOpen,
   HardHat,
   Home,
@@ -22,7 +21,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Target,
-  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,42 +28,8 @@ const HOME_ID = "073b355c-1aa3-4658-a776-ebedaa6aaefc";
 const PROJECT_ID = "d703435e-f059-468a-a8b2-bafff6a5047e";
 
 type LaunchTab = "control" | "scope" | "packages" | "partners" | "evidence" | "release";
-
-type HomeRow = {
-  id?: string;
-  nickname?: string | null;
-  propertyType?: string | null;
-  address1?: string | null;
-  address2?: string | null;
-  city?: string | null;
-  stateCode?: string | null;
-  zipCode?: string | null;
-};
-
-type HomeProject = {
-  id?: string;
-  title?: string | null;
-  description?: string | null;
-  status?: string | null;
-  projectType?: string | null;
-  metadata?: unknown;
-};
-
-type Evidence = {
-  id?: string;
-  title?: string;
-  description?: string;
-  status?: string;
-  fileName?: string;
-  fileUrl?: string;
-};
-
-type Component = {
-  id?: string;
-  type?: string;
-  label?: string;
-  status?: string;
-};
+type AnyRecord = Record<string, any>;
+type TargetRow = { slug: string; lane: string; role: string };
 
 const TABS: Array<{ id: LaunchTab; label: string }> = [
   { id: "control", label: "Launch Control" },
@@ -76,19 +40,17 @@ const TABS: Array<{ id: LaunchTab; label: string }> = [
   { id: "release", label: "Release Gates" },
 ];
 
-const PANEL =
-  "rounded-3xl border border-white/[0.10] bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,.035)]";
+const PANEL = "rounded-3xl border border-border/70 bg-card/70 shadow-sm";
 const PRIMARY = "bg-orange-500 font-black text-black hover:bg-orange-400";
-const SECONDARY =
-  "border-white/[0.10] bg-white/[0.04] text-white hover:bg-white/[0.08] hover:text-white";
+const SECONDARY = "border-border bg-card text-foreground hover:bg-muted";
 
-function record(value: unknown): Record<string, any> {
+function asRecord(value: unknown): AnyRecord {
   return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, any>)
+    ? (value as AnyRecord)
     : {};
 }
 
-function list<T>(value: unknown): T[] {
+function asList<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }
 
@@ -114,39 +76,45 @@ function money(value: unknown): string {
     : "Not set";
 }
 
+function passportUrl(tab?: string): string {
+  const params = new URLSearchParams({ homeId: HOME_ID, mode: "passport" });
+  if (tab) params.set("tab", tab);
+  return `/homes?${params.toString()}`;
+}
+
 function initialTab(): LaunchTab {
   if (typeof window === "undefined") return "control";
   const value = new URLSearchParams(window.location.search).get("launchTab") || "";
   return TABS.some((tab) => tab.id === value) ? (value as LaunchTab) : "control";
 }
 
-function tone(status: string): string {
+function statusTone(status: string): string {
   const normalized = status.toLowerCase();
   if (["complete", "known", "verified", "active", "included", "confirmed"].includes(normalized)) {
-    return "border-emerald-400/[0.25] bg-emerald-400/[0.10] text-emerald-300";
+    return "border-emerald-500/25 bg-emerald-500/10 text-emerald-300";
   }
   if (
     [
       "next",
-      "active",
       "planning",
       "needs_review",
       "needs_confirmation",
+      "needs_info",
       "source_review",
       "blocked",
       "unconfirmed",
       "blocked_on_written_confirmation",
     ].includes(normalized)
   ) {
-    return "border-amber-400/[0.25] bg-amber-400/[0.10] text-amber-200";
+    return "border-amber-500/25 bg-amber-500/10 text-amber-200";
   }
-  return "border-white/[0.10] bg-white/[0.04] text-white/[0.55]";
+  return "border-border bg-muted/40 text-muted-foreground";
 }
 
 function Pill({ status, label }: { status: string; label?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.11em] ${tone(status)}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.11em] ${statusTone(status)}`}
     >
       <CircleDot className="h-3 w-3" />
       {label || human(status)}
@@ -169,14 +137,14 @@ function Panel({
 }) {
   return (
     <section className={`${PANEL} ${className}`}>
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border/60 px-5 py-4">
         <div>
           {eyebrow ? (
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-300">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-orange-400">
               {eyebrow}
             </p>
           ) : null}
-          <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-white">{title}</h2>
+          <h2 className="mt-1 text-lg font-black tracking-[-0.03em] text-foreground">{title}</h2>
         </div>
         {action}
       </div>
@@ -185,25 +153,30 @@ function Panel({
   );
 }
 
-function EmptyState({ title, text }: { title: string; text: string }) {
+function LoadingState() {
   return (
-    <div className="grid min-h-[220px] place-items-center rounded-2xl border border-dashed border-white/[0.12] bg-black/[0.14] p-6 text-center">
-      <div>
-        <FolderOpen className="mx-auto h-8 w-8 text-orange-300" />
-        <h3 className="mt-4 font-black text-white">{title}</h3>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-white/[0.50]">{text}</p>
+    <div className="grid min-h-[70vh] place-items-center bg-background text-foreground">
+      <div className="text-center">
+        <RefreshCw className="mx-auto h-8 w-8 animate-spin text-orange-400" />
+        <p className="mt-4 text-sm text-muted-foreground">Loading Property Blessings HomeID…</p>
       </div>
     </div>
   );
 }
 
-function passportUrl(tab?: string): string {
-  const params = new URLSearchParams({ homeId: HOME_ID, mode: "passport" });
-  if (tab) params.set("tab", tab);
-  return `/homes?${params.toString()}`;
+function EmptyState({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="grid min-h-[260px] place-items-center rounded-3xl border border-dashed border-border bg-card/60 p-8 text-center">
+      <div>
+        <FolderOpen className="mx-auto h-8 w-8 text-orange-400" />
+        <h2 className="mt-4 text-lg font-black text-foreground">{title}</h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-muted-foreground">{text}</p>
+      </div>
+    </div>
+  );
 }
 
-function targetLabel(slug: string): string {
+function targetName(slug: string): string {
   const labels: Record<string, string> = {
     "pb-target-provia": "ProVia",
     "pb-target-mrcool": "MRCOOL",
@@ -231,6 +204,19 @@ function targetLabel(slug: string): string {
   return labels[slug] || human(slug);
 }
 
+function collectTargets(primaryTargets: AnyRecord[]): TargetRow[] {
+  const rows: TargetRow[] = [];
+  for (const item of primaryTargets) {
+    const lane = String(item.lane || "Package lane");
+    if (item.slug) rows.push({ slug: String(item.slug), lane, role: "Primary" });
+    if (item.backupSlug) rows.push({ slug: String(item.backupSlug), lane, role: "Backup" });
+    if (item.incentiveSlug) {
+      rows.push({ slug: String(item.incentiveSlug), lane, role: "Incentive" });
+    }
+  }
+  return Array.from(new Map(rows.map((row) => [row.slug, row])).values());
+}
+
 export default function PropertyBlessingsLaunchWorkspace() {
   const [tab, setTab] = useState<LaunchTab>(() => initialTab());
 
@@ -239,9 +225,8 @@ export default function PropertyBlessingsLaunchWorkspace() {
     const url = new URL(window.location.href);
     url.searchParams.set("homeId", HOME_ID);
     url.searchParams.delete("mode");
-    tab === "control"
-      ? url.searchParams.delete("launchTab")
-      : url.searchParams.set("launchTab", tab);
+    if (tab === "control") url.searchParams.delete("launchTab");
+    else url.searchParams.set("launchTab", tab);
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, [tab]);
 
@@ -249,78 +234,62 @@ export default function PropertyBlessingsLaunchWorkspace() {
   const persistenceQuery = useQuery({ queryKey: [`/api/homeid/${HOME_ID}/persistence`] });
   const projectsQuery = useQuery({ queryKey: [`/api/homes/${HOME_ID}/projects`] });
 
-  const detailData = record(detailQuery.data);
-  const home = (detailData.home || {}) as HomeRow;
-  const documents = list<Record<string, any>>(detailData.documents);
-  const records = list<Record<string, any>>(detailData.records).filter(
+  if (detailQuery.isLoading || persistenceQuery.isLoading || projectsQuery.isLoading) {
+    return <LoadingState />;
+  }
+
+  const detailData = asRecord(detailQuery.data);
+  const home = asRecord(detailData.home);
+  const documents = asList<AnyRecord>(detailData.documents);
+  const records = asList<AnyRecord>(detailData.records).filter(
     (item) => !String(item.title || "").startsWith("homeid:")
   );
 
-  const persistence = record(record(persistenceQuery.data).persistence);
-  const evidence = list<Evidence>(persistence.evidence);
-  const components = list<Component>(persistence.components);
-  const facts = list<Record<string, any>>(persistence.propertyDetails);
-  const requestPackets = list<Record<string, any>>(persistence.requestPackets);
+  const persistence = asRecord(asRecord(persistenceQuery.data).persistence);
+  const evidence = asList<AnyRecord>(persistence.evidence);
+  const components = asList<AnyRecord>(persistence.components);
+  const facts = asList<AnyRecord>(persistence.propertyDetails);
+  const requestPackets = asList<AnyRecord>(persistence.requestPackets);
 
-  const projects = list<HomeProject>(record(projectsQuery.data).projects);
-  const project = projects.find((item) => String(item.id || "") === PROJECT_ID) || projects[0] || null;
-  const metadata = record(project?.metadata);
+  const projects = asList<AnyRecord>(asRecord(projectsQuery.data).projects);
+  const project =
+    projects.find((item) => String(item.id || "") === PROJECT_ID) || projects[0] || null;
 
-  const launchBoard = record(metadata.launchBoard);
-  const launchTasks = list<Record<string, any>>(launchBoard.tasks);
-  const packageExecution = record(metadata.packageExecution);
-  const scopeMatrix = list<Record<string, any>>(packageExecution.anchorScopeMatrix);
-  const packageLevels = list<Record<string, any>>(packageExecution.packageLevels);
-  const executionSteps = list<Record<string, any>>(packageExecution.executionSteps);
-  const partnerPipeline = record(metadata.partnerPipeline);
-  const primaryTargets = list<Record<string, any>>(partnerPipeline.primaryTargets);
-  const sourcePlan = record(metadata.sourceDerivedPlan);
-  const commissionableCoverage = record(sourcePlan.commissionableCoverage);
-  const economics = record(sourcePlan.planningEconomicsExample);
-  const spaceExample = record(sourcePlan.mechanicalSpaceExample);
-  const currentCoverage = record(metadata.currentCoverage);
-  const commercialChecklists = record(metadata.commercialTermsChecklists);
-  const screeningTemplate = record(metadata.destinationScreeningTemplate);
-  const quoteTemplate = record(metadata.firstPackageQuoteTemplate);
-  const handoffTemplate = record(metadata.builderHandoffTemplate);
-  const ownershipTemplate = record(metadata.ownershipActivationTemplate);
-  const requiredNextInputs = list<string>(metadata.requiredNextInputs);
-  const boundaries = list<string>(metadata.boundaries);
-  const sourceFiles = list<Record<string, any>>(metadata.sourceFilesUsed);
-  const excludedFiles = list<Record<string, any>>(metadata.sourceFilesExcluded);
+  if (detailQuery.isError || persistenceQuery.isError || projectsQuery.isError || !project) {
+    return (
+      <div className="min-h-screen bg-background p-6 text-foreground">
+        <EmptyState
+          title="The Property Blessings launch record could not be loaded"
+          text="The full property passport remains available while this launch-control record is checked."
+        />
+      </div>
+    );
+  }
 
-  const partnerTargets = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          primaryTargets
-            .flatMap((item) => [
-              item.slug
-                ? { slug: String(item.slug), lane: String(item.lane || "Package lane"), role: "Primary" }
-                : null,
-              item.backupSlug
-                ? {
-                    slug: String(item.backupSlug),
-                    lane: String(item.lane || "Package lane"),
-                    role: "Backup",
-                  }
-                : null,
-              item.incentiveSlug
-                ? {
-                    slug: String(item.incentiveSlug),
-                    lane: String(item.lane || "Package lane"),
-                    role: "Incentive",
-                  }
-                : null,
-            ])
-            .filter(Boolean)
-            .map((item) => [String(item?.slug || ""), item] as const)
-        ).values()
-      ).filter(
-        (item): item is { slug: string; lane: string; role: string } => Boolean(item?.slug)
-      ),
-    [primaryTargets]
-  );
+  const metadata = asRecord(project.metadata);
+  const launchBoard = asRecord(metadata.launchBoard);
+  const launchTasks = asList<AnyRecord>(launchBoard.tasks);
+  const partnerPipeline = asRecord(metadata.partnerPipeline);
+  const primaryTargets = asList<AnyRecord>(partnerPipeline.primaryTargets);
+  const partnerTargets = collectTargets(primaryTargets);
+  const packageExecution = asRecord(metadata.packageExecution);
+  const scopeMatrix = asList<AnyRecord>(packageExecution.anchorScopeMatrix);
+  const packageLevels = asList<AnyRecord>(packageExecution.packageLevels);
+  const executionSteps = asList<AnyRecord>(packageExecution.executionSteps);
+  const currentCoverage = asRecord(metadata.currentCoverage);
+  const commercialChecklists = asRecord(metadata.commercialTermsChecklists);
+  const sourcePlan = asRecord(metadata.sourceDerivedPlan);
+  const coverageTargets = asRecord(sourcePlan.commissionableCoverage);
+  const economics = asRecord(sourcePlan.planningEconomicsExample);
+  const spaceExample = asRecord(sourcePlan.mechanicalSpaceExample);
+  const sourceFiles = asList<AnyRecord>(metadata.sourceFilesUsed);
+  const excludedFiles = asList<AnyRecord>(metadata.sourceFilesExcluded);
+  const requiredNextInputs = asList<string>(metadata.requiredNextInputs);
+  const screeningTemplate = asRecord(metadata.destinationScreeningTemplate);
+  const quoteTemplate = asRecord(metadata.firstPackageQuoteTemplate);
+  const handoffTemplate = asRecord(metadata.builderHandoffTemplate);
+  const ownershipTemplate = asRecord(metadata.ownershipActivationTemplate);
+  const boundaries = asList<string>(metadata.boundaries);
 
   const scopeConfirmed = scopeMatrix.filter((item) =>
     ["confirmed", "included", "covered"].includes(String(item.status || "").toLowerCase())
@@ -328,42 +297,18 @@ export default function PropertyBlessingsLaunchWorkspace() {
   const propertyAssigned = Boolean(
     [home.address1, home.city, home.stateCode, home.zipCode].filter(Boolean).join("")
   );
-  const loading = detailQuery.isLoading || persistenceQuery.isLoading || projectsQuery.isLoading;
-  const failed = detailQuery.isError || persistenceQuery.isError || projectsQuery.isError;
-
-  if (loading) {
-    return (
-      <div className="grid min-h-[70vh] place-items-center bg-[#080b0d] text-white">
-        <div className="text-center">
-          <RefreshCw className="mx-auto h-8 w-8 animate-spin text-orange-300" />
-          <p className="mt-4 text-sm text-white/[0.55]">Loading Property Blessings HomeID…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (failed || !project) {
-    return (
-      <div className="grid min-h-[70vh] place-items-center bg-[#080b0d] p-6 text-white">
-        <EmptyState
-          title="The Property Blessings launch record could not be loaded"
-          text="The full property passport remains available while the launch-control record is checked."
-        />
-      </div>
-    );
-  }
 
   return (
     <div
       data-testid="property-blessings-launch-workspace"
-      className="min-h-screen bg-[#080b0d] text-white"
+      className="min-h-screen bg-background text-foreground"
     >
-      <header className="border-b border-white/[0.08] bg-black/[0.18]">
-        <div className="mx-auto max-w-[1540px] px-4 py-5 sm:px-6 lg:py-7">
+      <header className="border-b border-border bg-card/40">
+        <div className="mx-auto max-w-[1540px] px-4 py-6 sm:px-6 lg:py-8">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-full border border-orange-400/[0.24] bg-orange-400/[0.09] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-orange-200">
+                <span className="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-orange-300">
                   <LockKeyhole className="h-3.5 w-3.5" />
                   Private Property Blessings operations
                 </span>
@@ -373,18 +318,20 @@ export default function PropertyBlessingsLaunchWorkspace() {
                   label={propertyAssigned ? "Property assigned" : "Property not assigned"}
                 />
               </div>
-              <p className="mt-5 text-[11px] font-black uppercase tracking-[0.18em] text-orange-300">
+              <p className="mt-5 text-[11px] font-black uppercase tracking-[0.18em] text-orange-400">
                 Property Blessings LLC · Master package HomeID
               </p>
-              <h1 className="mt-2 max-w-5xl text-3xl font-black tracking-[-0.055em] text-white sm:text-4xl lg:text-5xl">
-                {home.nickname || project.title || "Full-Size Steel Home Package"}
+              <h1 className="mt-2 max-w-5xl text-3xl font-black tracking-[-0.055em] sm:text-4xl lg:text-5xl">
+                {String(home.nickname || project.title || "Full-Size Steel Home Package")}
               </h1>
-              <p className="mt-4 max-w-4xl text-sm leading-7 text-white/[0.55] sm:text-base">
-                {project.description ||
-                  "Launch control for the first coordinated, location-ready full-size steel-home package."}
+              <p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground sm:text-base">
+                {String(
+                  project.description ||
+                    "Launch control for the first coordinated, location-ready full-size steel-home package."
+                )}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2 xl:max-w-[460px] xl:justify-end">
+            <div className="flex flex-wrap gap-2 xl:max-w-[470px] xl:justify-end">
               <Button
                 variant="outline"
                 className={SECONDARY}
@@ -405,34 +352,34 @@ export default function PropertyBlessingsLaunchWorkspace() {
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
             {[
-              [String(launchTasks.length || 17), "Launch tasks", ClipboardCheck],
-              [`${scopeConfirmed}/${scopeMatrix.length || 18}`, "Scope lines", ClipboardList],
-              [String(packageLevels.length || 3), "Package levels", Layers3],
-              [String(partnerTargets.length || 22), "Private targets", Target],
-              [String(evidence.length + documents.length), "Source records", FileCheck2],
-              [String(requiredNextInputs.length || 12), "Release decisions", AlertTriangle],
-            ].map(([value, label, Icon]) => {
-              const StatIcon = Icon as typeof ClipboardCheck;
-              return (
-                <div
-                  key={String(label)}
-                  className="rounded-2xl border border-white/[0.09] bg-white/[0.03] p-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <StatIcon className="h-5 w-5 text-orange-300" />
-                    <p className="text-2xl font-black tracking-[-0.04em] text-white">{value}</p>
-                  </div>
-                  <p className="mt-3 text-[10px] font-black uppercase tracking-[0.12em] text-white/[0.45]">
-                    {label}
-                  </p>
-                </div>
-              );
-            })}
+              { value: String(launchTasks.length || 17), label: "Launch tasks" },
+              {
+                value: `${scopeConfirmed}/${scopeMatrix.length || 18}`,
+                label: "Scope lines",
+              },
+              { value: String(packageLevels.length || 3), label: "Package levels" },
+              { value: String(partnerTargets.length || 22), label: "Private targets" },
+              {
+                value: String(evidence.length + documents.length),
+                label: "Source records",
+              },
+              {
+                value: String(requiredNextInputs.length || 12),
+                label: "Release decisions",
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-border bg-card/70 p-4">
+                <p className="text-2xl font-black tracking-[-0.04em]">{stat.value}</p>
+                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                  {stat.label}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </header>
 
-      <nav className="sticky top-0 z-20 border-b border-white/[0.08] bg-[#080b0d]/95 backdrop-blur">
+      <nav className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-[1540px] gap-1 overflow-x-auto px-4 py-2 sm:px-6">
           {TABS.map((item) => (
             <button
@@ -442,7 +389,7 @@ export default function PropertyBlessingsLaunchWorkspace() {
               className={`min-h-10 flex-none rounded-full px-4 text-xs font-black transition ${
                 tab === item.id
                   ? "bg-orange-500 text-black"
-                  : "text-white/[0.52] hover:bg-white/[0.055] hover:text-white"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
               {item.label}
@@ -466,17 +413,13 @@ export default function PropertyBlessingsLaunchWorkspace() {
         ) : tab === "packages" ? (
           <PackagesTab
             packageLevels={packageLevels}
+            components={components}
             quoteTemplate={quoteTemplate}
             handoffTemplate={handoffTemplate}
             ownershipTemplate={ownershipTemplate}
-            components={components}
           />
         ) : tab === "partners" ? (
-          <PartnersTab
-            targets={partnerTargets}
-            pipeline={partnerPipeline}
-            anchorScopeSlug={String(partnerPipeline.anchorScopeSlug || "")}
-          />
+          <PartnersTab targets={partnerTargets} pipeline={partnerPipeline} />
         ) : tab === "evidence" ? (
           <EvidenceTab
             evidence={evidence}
@@ -485,7 +428,7 @@ export default function PropertyBlessingsLaunchWorkspace() {
             facts={facts}
             records={records}
             economics={economics}
-            coverage={commissionableCoverage}
+            coverage={coverageTargets}
             spaceExample={spaceExample}
           />
         ) : (
@@ -510,39 +453,36 @@ function ControlTab({
   scopeConfirmed,
   scopeTotal,
 }: {
-  launchBoard: Record<string, any>;
-  launchTasks: Array<Record<string, any>>;
-  executionSteps: Array<Record<string, any>>;
-  currentCoverage: Record<string, any>;
+  launchBoard: AnyRecord;
+  launchTasks: AnyRecord[];
+  executionSteps: AnyRecord[];
+  currentCoverage: AnyRecord;
   scopeConfirmed: number;
   scopeTotal: number;
 }) {
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-3xl border border-orange-400/[0.25] bg-gradient-to-br from-orange-500/[0.14] via-white/[0.035] to-transparent">
+      <section className="overflow-hidden rounded-3xl border border-orange-500/25 bg-orange-500/5">
         <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(310px,.75fr)] lg:p-7">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-orange-300/[0.24] bg-orange-400/[0.10] px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-orange-200">
+              <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-orange-300">
                 Current launch gate
               </span>
-              <Pill
-                status={String(launchBoard.currentGateStatus || "needs_confirmation")}
-                label={human(launchBoard.currentGateStatus || "needs confirmation")}
-              />
+              <Pill status={String(launchBoard.currentGateStatus || "needs_confirmation")} />
             </div>
-            <h2 className="mt-4 max-w-4xl text-2xl font-black tracking-[-0.045em] text-white sm:text-3xl">
+            <h2 className="mt-4 max-w-4xl text-2xl font-black tracking-[-0.045em] sm:text-3xl">
               {String(
                 launchBoard.currentGate || "Anchor metal-building partner written scope matrix"
               )}
             </h2>
-            <p className="mt-3 max-w-4xl text-sm leading-7 text-white/[0.60]">
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-muted-foreground">
               {String(
                 launchBoard.currentBlocker ||
                   "The structure-and-roofing relationship must be confirmed line by line before outside sourcing, final package pricing, or supplier order release."
               )}
             </p>
-            <p className="mt-4 max-w-4xl text-sm leading-7 text-white/[0.48]">
+            <p className="mt-4 max-w-4xl text-sm leading-7 text-muted-foreground">
               {String(
                 launchBoard.productSpine ||
                   "Sell one coordinated, location-ready steel-home package through Property Blessings, then preserve and protect the home through HomeID."
@@ -567,18 +507,15 @@ function ControlTab({
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              [`${scopeConfirmed}/${scopeTotal}`, "Scope lines confirmed"],
-              [String(Number(launchBoard.completedCount || 0)), "Tasks complete"],
-              [String(Number(launchBoard.activeCount || 0)), "Tasks active"],
-              [String(Number(launchBoard.blockedCount || 0)), "Tasks blocked"],
-            ].map(([value, label]) => (
-              <div
-                key={label}
-                className="rounded-2xl border border-white/[0.10] bg-black/[0.20] p-4"
-              >
-                <p className="text-2xl font-black tracking-[-0.04em] text-white">{value}</p>
-                <p className="mt-2 text-[10px] font-black uppercase leading-4 tracking-[0.11em] text-white/[0.44]">
-                  {label}
+              { value: `${scopeConfirmed}/${scopeTotal}`, label: "Scope lines confirmed" },
+              { value: String(Number(launchBoard.completedCount || 0)), label: "Tasks complete" },
+              { value: String(Number(launchBoard.activeCount || 0)), label: "Tasks active" },
+              { value: String(Number(launchBoard.blockedCount || 0)), label: "Tasks blocked" },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-border bg-card/80 p-4">
+                <p className="text-2xl font-black tracking-[-0.04em]">{item.value}</p>
+                <p className="mt-2 text-[10px] font-black uppercase leading-4 tracking-[0.11em] text-muted-foreground">
+                  {item.label}
                 </p>
               </div>
             ))}
@@ -587,40 +524,36 @@ function ControlTab({
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(330px,.75fr)]">
-        <Panel
-          eyebrow="First 90 days"
-          title="Launch board"
-          action={<span className="text-xs font-black text-white/[0.42]">17 source tasks</span>}
-        >
+        <Panel eyebrow="First 90 days" title="Launch board">
           <div className="grid gap-3 lg:grid-cols-2">
             {launchTasks.map((task) => (
               <article
                 key={`${String(task.order || "")}-${String(task.title || "")}`}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+                className="rounded-2xl border border-border bg-background/40 p-4"
               >
                 <div className="flex items-start gap-3">
-                  <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-orange-400/[0.12] text-xs font-black text-orange-200">
+                  <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-orange-500/10 text-xs font-black text-orange-400">
                     {String(task.order || "–")}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
-                      <h3 className="text-sm font-black leading-5 text-white/[0.78]">
+                      <h3 className="text-sm font-black leading-5">
                         {String(task.title || "Launch task")}
                       </h3>
                       <Pill status={String(task.status || "not_started")} />
                     </div>
                     {task.dependency ? (
-                      <p className="mt-2 text-xs leading-5 text-amber-100/[0.58]">
+                      <p className="mt-2 text-xs leading-5 text-amber-200/70">
                         Depends on: {String(task.dependency)}
                       </p>
                     ) : null}
                     {task.proof ? (
-                      <p className="mt-2 text-xs leading-5 text-emerald-100/[0.50]">
+                      <p className="mt-2 text-xs leading-5 text-emerald-300/70">
                         Proof: {String(task.proof)}
                       </p>
                     ) : null}
                     {task.sourceConflict ? (
-                      <p className="mt-2 text-xs leading-5 text-sky-100/[0.52]">
+                      <p className="mt-2 text-xs leading-5 text-sky-300/70">
                         Corrected source order: {String(task.sourceConflict)}
                       </p>
                     ) : null}
@@ -635,21 +568,18 @@ function ControlTab({
           <Panel eyebrow="Already represented" title="Current package coverage">
             <div className="space-y-2">
               {Object.entries(currentCoverage).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="rounded-xl border border-emerald-400/[0.12] bg-emerald-400/[0.04] p-3"
-                >
+                <div key={key} className="rounded-xl border border-emerald-500/15 bg-emerald-500/5 p-3">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-300" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-400" />
                     <div>
-                      <p className="text-sm font-black text-white/[0.72]">{human(key)}</p>
-                      <p className="mt-1 text-xs leading-5 text-white/[0.43]">{String(value)}</p>
+                      <p className="text-sm font-black">{human(key)}</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{String(value)}</p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-xs leading-5 text-white/[0.38]">
+            <p className="mt-4 text-xs leading-5 text-muted-foreground">
               Covered means a relationship or operating lane exists. It does not mean the exact
               product, quantity, delivery, price, warranty, or property scope is confirmed.
             </p>
@@ -660,13 +590,13 @@ function ControlTab({
               {executionSteps.map((step, index) => (
                 <article
                   key={String(step.id || step.label || index)}
-                  className="flex items-start gap-3 rounded-2xl border border-white/[0.09] bg-black/[0.15] p-3.5"
+                  className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-3.5"
                 >
-                  <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-orange-400/[0.12] text-[10px] font-black text-orange-200">
+                  <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-orange-500/10 text-[10px] font-black text-orange-400">
                     {String(step.order || index + 1)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-black leading-5 text-white/[0.72]">
+                    <p className="text-sm font-black leading-5">
                       {String(step.label || "Execution step")}
                     </p>
                     <div className="mt-2">
@@ -683,14 +613,7 @@ function ControlTab({
   );
 }
 
-function ScopeTab({
-  scopeMatrix,
-  checklists,
-}: {
-  scopeMatrix: Array<Record<string, any>>;
-  checklists: Record<string, any>;
-}) {
-  const checklistEntries = Object.entries(checklists);
+function ScopeTab({ scopeMatrix, checklists }: { scopeMatrix: AnyRecord[]; checklists: AnyRecord }) {
   return (
     <div className="space-y-5">
       <Panel
@@ -698,7 +621,7 @@ function ScopeTab({
         title="18-line anchor metal-building scope matrix"
         action={<Pill status="needs_confirmation" label="Written confirmation required" />}
       >
-        <p className="max-w-5xl text-sm leading-7 text-white/[0.55]">
+        <p className="max-w-5xl text-sm leading-7 text-muted-foreground">
           Each line must be marked included, optional, excluded, locally sourced, or unresolved.
           Pricing, engineering, freight, erection support, damage responsibility, warranty, and
           Property Blessings economics must be attached before duplicate sourcing is removed.
@@ -707,15 +630,15 @@ function ScopeTab({
           {scopeMatrix.map((item, index) => (
             <article
               key={String(item.key || item.label || index)}
-              className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+              className="rounded-2xl border border-border bg-background/40 p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-orange-400/[0.12] text-[10px] font-black text-orange-200">
+                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-orange-500/10 text-[10px] font-black text-orange-400">
                   {index + 1}
                 </span>
                 <Pill status={String(item.status || "unconfirmed")} />
               </div>
-              <p className="mt-4 text-sm font-black leading-5 text-white/[0.76]">
+              <p className="mt-4 text-sm font-black leading-5">
                 {String(item.label || human(item.key))}
               </p>
             </article>
@@ -739,9 +662,9 @@ function ScopeTab({
       </Panel>
 
       <div className="grid gap-5 xl:grid-cols-3">
-        {checklistEntries.map(([key, value]) => {
-          const checklist = record(value);
-          const fields = list<string>(checklist.requiredFields);
+        {Object.entries(checklists).map(([key, raw]) => {
+          const checklist = asRecord(raw);
+          const fields = asList<string>(checklist.requiredFields);
           return (
             <Panel
               key={key}
@@ -753,12 +676,12 @@ function ScopeTab({
                 {fields.map((field, index) => (
                   <li
                     key={field}
-                    className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2.5"
+                    className="flex items-start gap-3 rounded-xl border border-border bg-background/40 px-3 py-2.5"
                   >
-                    <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-white/[0.05] text-[10px] font-black text-white/[0.45]">
+                    <span className="grid h-6 w-6 flex-none place-items-center rounded-full bg-muted text-[10px] font-black text-muted-foreground">
                       {index + 1}
                     </span>
-                    <span className="text-xs leading-5 text-white/[0.58]">{field}</span>
+                    <span className="text-xs leading-5 text-muted-foreground">{field}</span>
                   </li>
                 ))}
               </ol>
@@ -772,16 +695,16 @@ function ScopeTab({
 
 function PackagesTab({
   packageLevels,
+  components,
   quoteTemplate,
   handoffTemplate,
   ownershipTemplate,
-  components,
 }: {
-  packageLevels: Array<Record<string, any>>;
-  quoteTemplate: Record<string, any>;
-  handoffTemplate: Record<string, any>;
-  ownershipTemplate: Record<string, any>;
-  components: Component[];
+  packageLevels: AnyRecord[];
+  components: AnyRecord[];
+  quoteTemplate: AnyRecord;
+  handoffTemplate: AnyRecord;
+  ownershipTemplate: AnyRecord;
 }) {
   return (
     <div className="space-y-5">
@@ -794,17 +717,17 @@ function PackagesTab({
             action={<Pill status={String(level.status || "source_defined_not_priced")} />}
           >
             <div className="space-y-2">
-              {list<string>(level.includes).map((item) => (
+              {asList<string>(level.includes).map((item) => (
                 <div
                   key={item}
-                  className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-black/[0.15] px-3 py-2.5"
+                  className="flex items-start gap-3 rounded-xl border border-border bg-background/40 px-3 py-2.5"
                 >
-                  <Check className="mt-0.5 h-4 w-4 flex-none text-orange-300" />
-                  <span className="text-sm leading-5 text-white/[0.62]">{item}</span>
+                  <Check className="mt-0.5 h-4 w-4 flex-none text-orange-400" />
+                  <span className="text-sm leading-5 text-muted-foreground">{item}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-xs leading-5 text-amber-100/[0.55]">
+            <p className="mt-4 text-xs leading-5 text-amber-200/70">
               Source-defined structure only. No Property Blessings customer price or supplier order
               is approved yet.
             </p>
@@ -818,13 +741,13 @@ function PackagesTab({
             {components.map((component) => (
               <article
                 key={String(component.id || component.type || component.label)}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+                className="rounded-2xl border border-border bg-background/40 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <PackageCheck className="h-4 w-4 flex-none text-orange-300" />
+                  <PackageCheck className="h-4 w-4 flex-none text-orange-400" />
                   <Pill status={String(component.status || "unknown")} />
                 </div>
-                <p className="mt-3 text-sm font-black leading-5 text-white/[0.72]">
+                <p className="mt-3 text-sm font-black leading-5">
                   {String(component.label || human(component.type))}
                 </p>
               </article>
@@ -844,20 +767,20 @@ function PackagesTab({
             eyebrow="Quote control"
             title="First package quote template"
             status={String(quoteTemplate.status || "template_ready_not_priced")}
-            items={list<string>(quoteTemplate.requiredSections)}
+            items={asList<string>(quoteTemplate.requiredSections)}
             note={String(quoteTemplate.pricingBoundary || "")}
           />
           <TemplatePanel
             eyebrow="Formal handoff"
             title="Builder Handoff Pack"
             status={String(handoffTemplate.status || "template_ready_no_handoff")}
-            items={list<string>(handoffTemplate.requiredItems)}
+            items={asList<string>(handoffTemplate.requiredItems)}
           />
           <TemplatePanel
             eyebrow="After occupancy"
             title="Ownership protection activation"
             status={String(ownershipTemplate.status || "template_ready_not_active")}
-            items={list<string>(ownershipTemplate.activationRequirements)}
+            items={asList<string>(ownershipTemplate.activationRequirements)}
           />
         </div>
       </div>
@@ -880,49 +803,41 @@ function TemplatePanel({
 }) {
   return (
     <Panel eyebrow={eyebrow} title={title} action={<Pill status={status} />}>
-      {note ? <p className="mb-4 text-xs leading-5 text-amber-100/[0.55]">{note}</p> : null}
+      {note ? <p className="mb-4 text-xs leading-5 text-amber-200/70">{note}</p> : null}
       <div className="space-y-2">
         {items.slice(0, 8).map((item) => (
           <div key={item} className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-white/[0.32]" />
-            <span className="text-xs leading-5 text-white/[0.55]">{item}</span>
+            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-muted-foreground" />
+            <span className="text-xs leading-5 text-muted-foreground">{item}</span>
           </div>
         ))}
         {items.length > 8 ? (
-          <p className="pt-2 text-xs font-black text-orange-300">+ {items.length - 8} more required items</p>
+          <p className="pt-2 text-xs font-black text-orange-400">+ {items.length - 8} more required items</p>
         ) : null}
       </div>
     </Panel>
   );
 }
 
-function PartnersTab({
-  targets,
-  pipeline,
-  anchorScopeSlug,
-}: {
-  targets: Array<{ slug: string; lane: string; role: string }>;
-  pipeline: Record<string, any>;
-  anchorScopeSlug: string;
-}) {
+function PartnersTab({ targets, pipeline }: { targets: TargetRow[]; pipeline: AnyRecord }) {
   return (
     <div className="space-y-5">
-      <section className="rounded-3xl border border-amber-400/[0.22] bg-amber-400/[0.055] p-5 lg:p-6">
+      <section className="rounded-3xl border border-amber-500/25 bg-amber-500/5 p-5 lg:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Pill status={String(pipeline.queueStatus || "source_review")} />
-              <span className="rounded-full border border-amber-400/[0.20] px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-200">
+              <span className="rounded-full border border-amber-500/25 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-200">
                 No signed partner claim
               </span>
             </div>
-            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em]">
               Private source-review pipeline
             </h2>
-            <p className="mt-3 max-w-5xl text-sm leading-7 text-white/[0.56]">
+            <p className="mt-3 max-w-5xl text-sm leading-7 text-muted-foreground">
               {String(
                 pipeline.contactRule ||
-                  "Review may continue, but no target is a partner and no customer traffic or duplicate-prone commercial outreach begins until the anchor scope is confirmed."
+                  "Every target remains unconfirmed. Source review may continue, but no customer traffic or duplicate-prone commercial outreach starts until the anchor scope is confirmed."
               )}
             </p>
           </div>
@@ -936,15 +851,15 @@ function PartnersTab({
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:max-w-3xl">
           {[
-            [String(Number(pipeline.urgentCount || 0)), "Urgent"],
-            [String(Number(pipeline.highCount || 0)), "High"],
-            [String(Number(pipeline.normalCount || 0)), "Normal"],
-            [String(Number(pipeline.lowCount || 0)), "Conditional"],
-          ].map(([value, label]) => (
-            <div key={label} className="rounded-2xl border border-white/[0.09] bg-black/[0.18] p-4">
-              <p className="text-2xl font-black text-white">{value}</p>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-white/[0.42]">
-                {label}
+            { value: String(Number(pipeline.urgentCount || 0)), label: "Urgent" },
+            { value: String(Number(pipeline.highCount || 0)), label: "High" },
+            { value: String(Number(pipeline.normalCount || 0)), label: "Normal" },
+            { value: String(Number(pipeline.lowCount || 0)), label: "Conditional" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-2xl border border-border bg-card/70 p-4">
+              <p className="text-2xl font-black">{item.value}</p>
+              <p className="mt-1 text-[10px] font-black uppercase tracking-[0.12em] text-muted-foreground">
+                {item.label}
               </p>
             </div>
           ))}
@@ -957,18 +872,18 @@ function PartnersTab({
             {targets.map((target) => (
               <article
                 key={target.slug}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+                className="rounded-2xl border border-border bg-background/40 p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="text-sm font-black leading-5 text-white/[0.78]">
-                    {targetLabel(target.slug)}
-                  </h3>
+                  <h3 className="text-sm font-black leading-5">{targetName(target.slug)}</h3>
                   <Pill
                     status={target.role === "Primary" ? "source_review" : "unknown"}
                     label={target.role}
                   />
                 </div>
-                <p className="mt-3 text-xs leading-5 text-white/[0.46]">{human(target.lane)}</p>
+                <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                  {human(target.lane)}
+                </p>
               </article>
             ))}
           </div>
@@ -976,17 +891,12 @@ function PartnersTab({
 
         <div className="space-y-5">
           <Panel eyebrow="Anchor gate" title="Existing structure and roofing relationship">
-            <div className="rounded-2xl border border-orange-400/[0.20] bg-orange-400/[0.06] p-4">
-              <p className="text-sm font-black text-white/[0.78]">Written scope confirmation</p>
-              <p className="mt-2 text-xs leading-5 text-white/[0.48]">
+            <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+              <p className="text-sm font-black">Written scope confirmation</p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
                 Structure and roofing are relationship-covered. Detailed inclusions, exclusions,
                 engineering, freight, support, warranties, and economics remain unconfirmed.
               </p>
-              {anchorScopeSlug ? (
-                <p className="mt-3 text-[10px] font-black uppercase tracking-[0.11em] text-orange-300">
-                  Private intake gate active
-                </p>
-              ) : null}
             </div>
             <Button
               className={`mt-5 w-full ${PRIMARY}`}
@@ -1008,8 +918,8 @@ function PartnersTab({
               "No pay-per-lead requirement",
             ].map((item) => (
               <div key={item} className="mb-3 flex items-start gap-3 last:mb-0">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-emerald-300" />
-                <span className="text-sm leading-5 text-white/[0.58]">{item}</span>
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-emerald-400" />
+                <span className="text-sm leading-5 text-muted-foreground">{item}</span>
               </div>
             ))}
           </Panel>
@@ -1029,28 +939,40 @@ function EvidenceTab({
   coverage,
   spaceExample,
 }: {
-  evidence: Evidence[];
-  sourceFiles: Array<Record<string, any>>;
-  excludedFiles: Array<Record<string, any>>;
-  facts: Array<Record<string, any>>;
-  records: Array<Record<string, any>>;
-  economics: Record<string, any>;
-  coverage: Record<string, any>;
-  spaceExample: Record<string, any>;
+  evidence: AnyRecord[];
+  sourceFiles: AnyRecord[];
+  excludedFiles: AnyRecord[];
+  facts: AnyRecord[];
+  records: AnyRecord[];
+  economics: AnyRecord;
+  coverage: AnyRecord;
+  spaceExample: AnyRecord;
 }) {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          [`${Number(coverage.launchMinimumPercent || 75)}%`, "Launch coverage target"],
-          [`>${Number(coverage.operatingTargetAbovePercent || 90)}%`, "Operating coverage target"],
-          [money(economics.upfrontPackageRevenue || 13600), "Source revenue example"],
-          [`${Number(spaceExample.recoveredSquareFeet || 17)} sq ft`, "Source space example"],
-        ].map(([value, label]) => (
-          <div key={label} className={`${PANEL} p-5`}>
-            <p className="text-3xl font-black tracking-[-0.04em] text-white">{value}</p>
-            <p className="mt-2 text-xs font-black uppercase tracking-[0.11em] text-white/[0.44]">
-              {label}
+          {
+            value: `${Number(coverage.launchMinimumPercent || 75)}%`,
+            label: "Launch coverage target",
+          },
+          {
+            value: `>${Number(coverage.operatingTargetAbovePercent || 90)}%`,
+            label: "Operating coverage target",
+          },
+          {
+            value: money(economics.upfrontPackageRevenue || 13600),
+            label: "Source revenue example",
+          },
+          {
+            value: `${Number(spaceExample.recoveredSquareFeet || 17)} sq ft`,
+            label: "Source space example",
+          },
+        ].map((item) => (
+          <div key={item.label} className={`${PANEL} p-5`}>
+            <p className="text-3xl font-black tracking-[-0.04em]">{item.value}</p>
+            <p className="mt-2 text-xs font-black uppercase tracking-[0.11em] text-muted-foreground">
+              {item.label}
             </p>
           </div>
         ))}
@@ -1066,19 +988,19 @@ function EvidenceTab({
             {evidence.map((item) => (
               <article
                 key={String(item.id || item.title)}
-                className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+                className="rounded-2xl border border-border bg-background/40 p-4"
               >
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h3 className="text-sm font-black leading-5 text-white/[0.78]">
-                    {item.title || "Source record"}
+                  <h3 className="text-sm font-black leading-5">
+                    {String(item.title || "Source record")}
                   </h3>
                   <Pill status={String(item.status || "needs_review")} />
                 </div>
-                <p className="mt-3 text-xs leading-6 text-white/[0.48]">
-                  {item.description || "Source-backed planning evidence."}
+                <p className="mt-3 text-xs leading-6 text-muted-foreground">
+                  {String(item.description || "Source-backed planning evidence.")}
                 </p>
                 {!item.fileUrl ? (
-                  <span className="mt-3 inline-flex rounded-full border border-white/[0.09] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.10em] text-white/[0.35]">
+                  <span className="mt-3 inline-flex rounded-full border border-border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.10em] text-muted-foreground">
                     Reference only — original file not stored as a downloadable attachment
                   </span>
                 ) : null}
@@ -1108,8 +1030,8 @@ function EvidenceTab({
               "Seven-phase HomeScout path",
             ].map((item) => (
               <div key={item} className="mb-3 flex items-start gap-3 last:mb-0">
-                <Database className="mt-0.5 h-4 w-4 flex-none text-orange-300" />
-                <span className="text-sm leading-5 text-white/[0.58]">{item}</span>
+                <Database className="mt-0.5 h-4 w-4 flex-none text-orange-400" />
+                <span className="text-sm leading-5 text-muted-foreground">{item}</span>
               </div>
             ))}
           </Panel>
@@ -1119,10 +1041,12 @@ function EvidenceTab({
               {excludedFiles.map((item) => (
                 <article
                   key={String(item.title)}
-                  className="rounded-xl border border-white/[0.08] bg-black/[0.15] p-3"
+                  className="rounded-xl border border-border bg-background/40 p-3"
                 >
-                  <p className="text-sm font-black text-white/[0.68]">{String(item.title)}</p>
-                  <p className="mt-1 text-xs leading-5 text-white/[0.42]">{String(item.reason)}</p>
+                  <p className="text-sm font-black">{String(item.title)}</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {String(item.reason)}
+                  </p>
                 </article>
               ))}
             </div>
@@ -1141,15 +1065,15 @@ function ReleaseTab({
   propertyAssigned,
 }: {
   required: string[];
-  screening: Record<string, any>;
+  screening: AnyRecord;
   boundaries: string[];
-  packets: Array<Record<string, any>>;
+  packets: AnyRecord[];
   propertyAssigned: boolean;
 }) {
-  const screeningSections = list<string>(screening.sections);
+  const screeningSections = asList<string>(screening.sections);
   return (
     <div className="space-y-5">
-      <section className="rounded-3xl border border-amber-400/[0.22] bg-amber-400/[0.055] p-5 lg:p-6">
+      <section className="rounded-3xl border border-amber-500/25 bg-amber-500/5 p-5 lg:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -1159,10 +1083,10 @@ function ReleaseTab({
                 label={propertyAssigned ? "Property assigned" : "Property not assigned"}
               />
             </div>
-            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em] text-white">
+            <h2 className="mt-4 text-2xl font-black tracking-[-0.04em]">
               No package release until the real property and written supplier scopes agree
             </h2>
-            <p className="mt-3 max-w-5xl text-sm leading-7 text-white/[0.56]">
+            <p className="mt-3 max-w-5xl text-sm leading-7 text-muted-foreground">
               The master HomeID can organize the package now. A customer-specific HomeID is created
               only after a real parcel, jurisdiction, classification, funding path, responsible
               professionals, supplier scopes, and package selections are known.
@@ -1184,12 +1108,12 @@ function ReleaseTab({
             {required.map((item, index) => (
               <li
                 key={item}
-                className="flex items-start gap-3 rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+                className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4"
               >
-                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-orange-400/[0.12] text-xs font-black text-orange-200">
+                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-orange-500/10 text-xs font-black text-orange-400">
                   {index + 1}
                 </span>
-                <span className="text-sm leading-6 text-white/[0.62]">{item}</span>
+                <span className="text-sm leading-6 text-muted-foreground">{item}</span>
               </li>
             ))}
           </ol>
@@ -1204,12 +1128,12 @@ function ReleaseTab({
             <div className="space-y-2">
               {screeningSections.map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <Building2 className="mt-0.5 h-4 w-4 flex-none text-orange-300" />
-                  <span className="text-xs leading-5 text-white/[0.56]">{item}</span>
+                  <Building2 className="mt-0.5 h-4 w-4 flex-none text-orange-400" />
+                  <span className="text-xs leading-5 text-muted-foreground">{item}</span>
                 </div>
               ))}
             </div>
-            <p className="mt-4 rounded-2xl border border-amber-400/[0.18] bg-amber-400/[0.05] p-4 text-xs leading-5 text-amber-100/[0.62]">
+            <p className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs leading-5 text-amber-200/70">
               {String(
                 screening.releaseBoundary ||
                   "Final release requires the applicable professionals and authorities for the exact property and classification."
@@ -1222,21 +1146,21 @@ function ReleaseTab({
               packets.map((packet, index) => (
                 <div
                   key={String(packet.id || index)}
-                  className="rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+                  className="rounded-2xl border border-border bg-background/40 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-black text-white/[0.72]">
+                    <p className="text-sm font-black">
                       {human(packet.requestType || "documentation")}
                     </p>
                     <Pill status={String(packet.status || "needs_info")} />
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-white/[0.44]">
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">
                     {Number(packet.missingHelpfulInfoCount || 0)} supporting inputs remain.
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-sm leading-6 text-white/[0.48]">No readiness packet is stored.</p>
+              <p className="text-sm leading-6 text-muted-foreground">No readiness packet is stored.</p>
             )}
             <Button
               variant="outline"
@@ -1254,10 +1178,10 @@ function ReleaseTab({
           {boundaries.map((item) => (
             <div
               key={item}
-              className="flex items-start gap-3 rounded-2xl border border-white/[0.09] bg-black/[0.15] p-4"
+              className="flex items-start gap-3 rounded-2xl border border-border bg-background/40 p-4"
             >
-              <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-amber-300" />
-              <p className="text-sm leading-6 text-white/[0.58]">{item}</p>
+              <ShieldCheck className="mt-0.5 h-4 w-4 flex-none text-amber-400" />
+              <p className="text-sm leading-6 text-muted-foreground">{item}</p>
             </div>
           ))}
         </div>
