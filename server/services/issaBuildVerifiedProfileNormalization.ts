@@ -12,19 +12,21 @@ export const ISSA_BUILD_VERIFIED_BUSINESS_SOURCE = "operator_verified_business_p
 export const ISSA_BUILD_VERIFICATION_STATUS = "fully_verified";
 export const ISSA_BUILD_FULL_SERVICE_SCOPE = [
   "Material selection",
+  "Material sourcing and availability",
   "Custom onyx fabrication",
   "Backlighting design and installation",
   "Custom onyx installation",
   "Residential and commercial projects",
+  "Project location and fulfillment",
   "Project consultation",
 ] as const;
 
 const VERIFIED_HERO_COPY =
-  "100% verified full-service Honey Onyx and Multi Green Onyx—from material selection and custom fabrication through backlighting and installation.";
+  "100% verified full-service Honey Onyx and Multi Green Onyx—from material sourcing, availability, and selection through custom fabrication, backlighting, installation, and project fulfillment.";
 const VERIFIED_ABOUT_COPY =
-  "ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation for residential and commercial projects.";
+  "ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material sourcing and availability, selection, custom fabrication, backlighting, installation, project-location review, and fulfillment for residential and commercial projects.";
 const VERIFIED_SEO_COPY =
-  "100% verified full-service Honey Onyx and Multi Green Onyx for residential and commercial projects, including material selection, custom fabrication, backlighting, and installation.";
+  "100% verified full-service Honey Onyx and Multi Green Onyx for residential and commercial projects, including sourcing, availability, material selection, custom fabrication, backlighting, installation, and fulfillment.";
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -67,7 +69,7 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
           ...data,
           items: [
             "100% Verified by TradeScout",
-            "Verified full-service scope: selection, fabrication, backlighting, and installation",
+            "Verified full-service scope: sourcing, availability, selection, fabrication, backlighting, installation, and fulfillment",
           ],
         },
       };
@@ -83,17 +85,17 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
             ...luxuryHouse,
             designedWithLight: {
               ...recordValue(luxuryHouse.designedWithLight),
-              body: "ISSA Build takes the project from material selection and custom fabrication through backlighting and final installation.",
+              body: "ISSA Build takes the project from material sourcing, availability, and selection through custom fabrication, backlighting design, installation, and final project fulfillment.",
             },
             capabilities: {
               ...recordValue(luxuryHouse.capabilities),
-              body: "ISSA Build handles the complete project: material selection, custom fabrication, backlighting, and installation for residential and commercial interiors.",
+              body: "ISSA Build handles the complete project: material sourcing and availability, selection, custom fabrication, backlighting, installation, project-location review, and fulfillment for residential and commercial interiors.",
               items: ISSA_BUILD_FULL_SERVICE_SCOPE.map((title) => ({ title })),
             },
             consultation: {
               ...recordValue(luxuryHouse.consultation),
               title: "Start a Request.",
-              body: "Tell TradeScout about the room, material, scale, and timing. TradeScout manages the inquiry and ISSA Build handles the complete onyx project.",
+              body: "Tell TradeScout about the room, material, scale, location, and timing. TradeScout manages the inquiry and ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and fulfillment.",
             },
           },
         },
@@ -107,7 +109,7 @@ function buildVerifiedIssaBuildContentBlocks(): any[] {
           ...data,
           heading: "Start a Request",
           description:
-            "Tell TradeScout about the space, material, scale, and timing. ISSA Build handles the complete onyx project.",
+            "Tell TradeScout about the space, material, scale, location, and timing. ISSA Build handles sourcing, availability, fabrication, backlighting, installation, and fulfillment.",
         },
       };
     }
@@ -166,7 +168,7 @@ export async function normalizeIssaBuildVerifiedFullServiceProfile(): Promise<vo
           ...profileData,
           tagline: "100% verified full-service onyx, crafted for light.",
           description:
-            "ISSA Build handles complete Honey Onyx and Multi Green Onyx projects for residential and commercial interiors, including material selection, custom fabrication, backlighting design and installation, and onyx installation.",
+            "ISSA Build handles complete Honey Onyx and Multi Green Onyx projects for residential and commercial interiors, including material sourcing and availability, selection, custom fabrication, backlighting design and installation, custom onyx installation, project-location review, and fulfillment.",
           category: "Custom translucent onyx",
           services: [...ISSA_BUILD_FULL_SERVICE_SCOPE],
           importExtras: {
