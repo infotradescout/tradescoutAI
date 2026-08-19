@@ -1,6 +1,10 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { findActiveAdminTool, getAdminNavSectionsForRole, type AdminRole } from "./adminTools";
+import { findActiveAdminTool, type AdminRole } from "./adminTools";
+import {
+  getAdminNavWorkspacesForRole,
+  getAdminToolPresentation,
+} from "./adminNavWorkspaces";
 import { SuperAdminLeftNav } from "./SuperAdminLeftNav";
 import { AdminHeader } from "./AdminHeader";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,8 +22,9 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   const { user } = useAuth();
   const effectiveRole = role || (user?.role as AdminRole) || "ops_admin";
   const superFlag = Boolean(isSuperAdmin || (user as any)?.isSuperAdmin === true);
-  const navSections = getAdminNavSectionsForRole(effectiveRole, superFlag);
-  const activeItem = findActiveAdminTool(location);
+  const navSections = getAdminNavWorkspacesForRole(effectiveRole, superFlag);
+  const matchedItem = findActiveAdminTool(location);
+  const activeItem = matchedItem ? getAdminToolPresentation(matchedItem) : null;
   const activeSection =
     navSections.find((section) => section.items.some((item) => item.id === activeItem?.id))?.section ||
     "Operations";
