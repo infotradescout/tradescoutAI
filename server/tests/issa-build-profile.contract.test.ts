@@ -57,9 +57,10 @@ describe("ISSA Build public profile contract", () => {
   });
 
   it("preserves Honey Onyx and Multi Green Onyx as distinct offerings with approved media", () => {
-    const inventory = block("inventory")?.data;
+    const inventory = block("inventoryCatalog")?.data;
     const premium = block("premiumProduct")?.data;
     const hero = block("hero")?.data;
+    const stones = inventory?.categories?.[0]?.stones || [];
 
     expect(ISSA_BUILD_PROFILE_IMAGES.length).toBeGreaterThanOrEqual(6);
     expect(ISSA_BUILD_APPLICATION_IMAGES.length).toBeGreaterThanOrEqual(5);
@@ -76,20 +77,20 @@ describe("ISSA Build public profile contract", () => {
       expect(fs.existsSync(path.resolve(process.cwd(), `client/public${publicAsset}`))).toBe(true);
     }
 
-    expect(inventory?.publicKind).toBe("offering");
-    expect(inventory?.categories).toHaveLength(2);
-    expect(inventory?.categories.map((entry: any) => entry.stones[0].name)).toEqual([
+    expect(inventory?.categories).toHaveLength(1);
+    expect(stones).toHaveLength(2);
+    expect(stones.map((entry: any) => entry.name)).toEqual([
       "Honey Onyx",
       "Multi Green Onyx",
     ]);
-    expect(inventory?.categories[0].stones[0].images).toEqual(ISSA_BUILD_HONEY_ONYX_IMAGES);
-    expect(inventory?.categories[1].stones[0].images).toEqual(
-      ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES
-    );
-    expect(inventory?.categories[0].stones[0]).not.toHaveProperty("price");
-    expect(inventory?.categories[0].stones[0]).not.toHaveProperty("available");
-    expect(inventory?.categories[1].stones[0]).not.toHaveProperty("price");
-    expect(inventory?.categories[1].stones[0]).not.toHaveProperty("available");
+    expect(stones[0].publicKind).toBe("offering");
+    expect(stones[1].publicKind).toBe("offering");
+    expect(stones[0].images).toEqual(ISSA_BUILD_HONEY_ONYX_IMAGES);
+    expect(stones[1].images).toEqual(ISSA_BUILD_MULTI_GREEN_ONYX_IMAGES);
+    expect(stones[0]).not.toHaveProperty("price");
+    expect(stones[0]).not.toHaveProperty("available");
+    expect(stones[1]).not.toHaveProperty("price");
+    expect(stones[1]).not.toHaveProperty("available");
 
     expect(hero?.media).toEqual({
       type: "video",
@@ -159,8 +160,12 @@ describe("ISSA Build public profile contract", () => {
     expect(profileRoutes).toContain(
       'const status = req.method === "GET" || req.method === "HEAD" ? 301 : 308;'
     );
-    expect(legacyTheme).toContain("itemId: slug");
-    expect(legacyTheme).toContain("itemName: name");
+    expect(legacyTheme).toContain("resolveProfilePublicItemRoute");
+    expect(legacyTheme).toContain(
+      'routedItem?.itemType === "inventory" ? routedItem.itemSlug : params.get("stone")'
+    );
+    expect(legacyTheme).toContain("setPremiumSharedItem");
+    expect(legacyTheme).toContain("buildProfilePublicItemPath");
   });
 
   it("keeps the public copy on ISSA Build, verification, service delivery, and Start a Request", () => {
