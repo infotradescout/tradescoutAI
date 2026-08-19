@@ -16,6 +16,9 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "panel",
   "controls",
   "live-stream",
+  "business-onboarding-telemetry",
+  "discovery-observatory",
+  "scout-resilience",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
