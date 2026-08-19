@@ -1,5 +1,8 @@
 import { formatTradeScoutTitle } from "@shared/brand";
-import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_MANAGED_CONTACT,
+  JW_STONE_PUBLIC_IDENTITY,
+} from "@shared/jwStonePresentation";
 import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import {
   createProfileInventoryCategoryShareMetadata,
@@ -94,6 +97,14 @@ export function buildPublicJwStoneMarketplaceHtml(
     name: JW_STONE_PUBLIC_IDENTITY.brandName,
     description: JW_STONE_PUBLIC_IDENTITY.about,
     url: profileUrl,
+    telephone: JW_STONE_MANAGED_CONTACT.phone,
+    email: JW_STONE_MANAGED_CONTACT.email,
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      telephone: JW_STONE_MANAGED_CONTACT.phone,
+      email: JW_STONE_MANAGED_CONTACT.email,
+    },
     address: {
       "@type": "PostalAddress",
       streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
@@ -145,6 +156,8 @@ export function buildPublicJwStoneMarketplaceHtml(
   <section data-seo-jw-stone-company="true" aria-labelledby="seo-jw-stone-about">
     <h2 id="seo-jw-stone-about">About JW Stone</h2>
     <p>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.about)}</p>
+    <h2>${escapeHtml(JW_STONE_MANAGED_CONTACT.label)}</h2>
+    <p>Phone: ${escapeHtml(JW_STONE_MANAGED_CONTACT.phone)} · Email: ${escapeHtml(JW_STONE_MANAGED_CONTACT.email)}</p>
     <h2>Visit JW Stone</h2>
     <address>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.formatted)}</address>
     <h2>Follow JW Stone</h2>
@@ -371,6 +384,8 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "",
     JW_STONE_PUBLIC_IDENTITY.about,
     "",
+    `TradeScout managed phone: ${JW_STONE_MANAGED_CONTACT.phone}`,
+    `TradeScout managed email: ${JW_STONE_MANAGED_CONTACT.email}`,
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
     ...JW_STONE_PUBLIC_IDENTITY.socials.map(
       (social) => `${social.label}: ${social.publicHandle}`
@@ -385,7 +400,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     `- Stones: ${publicOrigin}/stones/{slug}`,
     `- Materials: ${publicOrigin}/materials/{slug}`,
     "",
-    "Contact is gated through TradeScout Express Direct Connect.",
+    "Calls and requests are handled through TradeScout.",
     "",
   ].join("\n");
 }
