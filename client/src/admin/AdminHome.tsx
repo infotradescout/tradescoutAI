@@ -1,30 +1,27 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
+  AlertTriangle,
   ArrowRight,
-  Bell,
   CheckCircle2,
   CircleAlert,
-  Command,
-  Compass,
-  Fingerprint,
-  MapPinned,
   Radio,
-  Search,
+  RefreshCw,
   ShieldCheck,
-  TriangleAlert,
-  Workflow,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminWorkspace,
+} from "./AdminWorkspace";
+import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
-import { cn } from "@/lib/utils";
 import {
   getAdminNavSectionsForRole,
   getAdminToolDescription,
-  getAdminToolSearchText,
   type AdminRole,
   type AdminTool,
 } from "./adminTools";
@@ -61,75 +58,30 @@ type ToolEntry = {
   tool: AdminTool;
 };
 
-const LAW_GUARDS = [
-  {
-    label: "Contact gate",
-    status: "enforced",
-    detail: "Intent -> Decision Card -> Contact",
-    icon: Workflow,
-  },
-  {
-    label: "County containers",
-    status: "enforced",
-    detail: "county_metrics, county_entities, county_notes",
-    icon: MapPinned,
-  },
-  {
-    label: "Trust exposure",
-    status: "enforced",
-    detail: "Trust/CVS governs visibility and action",
-    icon: Fingerprint,
-  },
-  {
-    label: "Global view",
-    status: "policy_target",
-    detail: "Read-only global community, no global action",
-    icon: Compass,
-  },
-] as const;
-
-const FOCUS_TOOL_IDS = [
-  "overview",
+const QUICK_TOOL_IDS = [
   "direct-connect-requests",
+  "tradepartner-ops",
+  "users",
   "verification",
   "commercial-directory",
   "procurement",
+  "errors",
   "live-stream",
-  "controls",
-  "users",
 ];
 
-function formatCount(value: number | null | undefined) {
-  return new Intl.NumberFormat("en-US").format(value ?? 0);
-}
-
-function roleLabel(role: AdminRole) {
-  if (role === "super_admin" || role === "owner") return "Super admin";
-  if (role === "ops_admin") return "Ops admin";
-  return "Moderator";
-}
-
-function compactPath(path: string) {
-  if (path === "/admin") return "admin home";
-  return path.replace("/admin/", "").replaceAll("-", " ");
-}
-
-function lawBadge(status: (typeof LAW_GUARDS)[number]["status"]) {
-  return status === "enforced" ? "success" : "warning";
+function formatCount(value: number | null | undefined): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return new Intl.NumberFormat("en-US").format(value);
 }
 
 export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
   const [, navigate] = useLocation();
-  const [query, setQuery] = useState("");
-  const [sectionFilter, setSectionFilter] = useState("all");
-  const canReadOpsSignals =
+  const canReadSignals =
     isSuperAdmin || role === "owner" || role === "super_admin" || role === "ops_admin";
-
   const sections = useMemo(
     () => getAdminNavSectionsForRole(role, isSuperAdmin),
     [isSuperAdmin, role]
   );
-
   const tools = useMemo<ToolEntry[]>(
     () =>
       sections.flatMap((section) =>
@@ -138,47 +90,37 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
     [sections]
   );
 
-  const { data: notifications } = useQuery<ToolNotifications>({
+  const notificationsQuery = useQuery<ToolNotifications>({
     queryKey: ["/api/admin/tool-notifications"],
     queryFn: () => apiRequest("GET", "/api/admin/tool-notifications"),
-    staleTime: 15000,
-    refetchInterval: 30000,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
   });
-
-  const { data: missionSummary } = useQuery<MissionControlSummary>({
+  const missionQuery = useQuery<MissionControlSummary>({
     queryKey: ["/api/admin/mission-control/summary"],
     queryFn: () => apiRequest("GET", "/api/admin/mission-control/summary"),
-    enabled: canReadOpsSignals,
+    enabled: canReadSignals,
     retry: false,
   });
-
-  const { data: snapshotStatus } = useQuery<SnapshotStatusResponse>({
+  const snapshotQuery = useQuery<SnapshotStatusResponse>({
     queryKey: ["/api/admin/observability/snapshot-status"],
     queryFn: () => apiRequest("GET", "/api/admin/observability/snapshot-status"),
-    enabled: canReadOpsSignals,
+    enabled: canReadSignals,
     retry: false,
   });
 
-  const unreadByTool = notifications?.byTool || {};
-  const getUnread = (toolId: string) => Number(unreadByTool[toolId] || 0);
-  const totalUnread =
-    typeof notifications?.totalUnread === "number"
-      ? notifications.totalUnread
-      : tools.reduce((sum, entry) => sum + getUnread(entry.tool.id), 0);
-
-  const normalizedQuery = query.trim().toLowerCase();
-  const filteredTools = useMemo(() => {
-    return tools.filter((entry) => {
-      const sectionMatches = sectionFilter === "all" || entry.section === sectionFilter;
-      if (!sectionMatches) return false;
-      if (!normalizedQuery) return true;
-      return getAdminToolSearchText(entry.tool, entry.section).includes(normalizedQuery);
-    });
-  }, [normalizedQuery, sectionFilter, tools]);
-
-  const focusTools = useMemo(() => {
+  const unreadByTool = notificationsQuery.data?.byTool || {};
+  const actionTools = useMemo(
+    () =>
+      tools
+        .map((entry) => ({ ...entry, unread: Number(unreadByTool[entry.tool.id] || 0) }))
+        .filter((entry) => entry.unread > 0)
+        .sort((a, b) => b.unread - a.unread || a.tool.label.localeCompare(b.tool.label)),
+    [tools, unreadByTool]
+  );
+  const quickTools = useMemo(() => {
     const byId = new Map(tools.map((entry) => [entry.tool.id, entry]));
-    const ordered = FOCUS_TOOL_IDS.map((id) => byId.get(id)).filter(Boolean) as ToolEntry[];
+    const ordered = QUICK_TOOL_IDS.map((id) => byId.get(id)).filter(Boolean) as ToolEntry[];
     for (const entry of tools) {
       if (ordered.length >= 8) break;
       if (!ordered.some((candidate) => candidate.tool.id === entry.tool.id)) ordered.push(entry);
@@ -186,385 +128,239 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
     return ordered.slice(0, 8);
   }, [tools]);
 
-  const staleSnapshots = snapshotStatus?.statuses?.filter((status) => status.isStale) ?? [];
-  const connectionAttempts = missionSummary?.totalConnectionAttempts ?? 0;
+  const mission = missionQuery.data;
+  const connectionAttempts = mission?.totalConnectionAttempts;
   const connectionRate =
-    connectionAttempts > 0
-      ? Math.round(((missionSummary?.successfulConnections ?? 0) / connectionAttempts) * 100)
-      : 0;
+    typeof connectionAttempts === "number" && connectionAttempts > 0
+      ? Math.round(((mission?.successfulConnections || 0) / connectionAttempts) * 100)
+      : null;
+  const staleSnapshots = snapshotQuery.data?.statuses?.filter((status) => status.isStale) || [];
+  const totalUnread =
+    typeof notificationsQuery.data?.totalUnread === "number"
+      ? notificationsQuery.data.totalUnread
+      : actionTools.reduce((sum, entry) => sum + entry.unread, 0);
+  const anySignalUnavailable = missionQuery.isError || snapshotQuery.isError;
+
+  const refreshAll = () => {
+    notificationsQuery.refetch();
+    missionQuery.refetch();
+    snapshotQuery.refetch();
+  };
 
   return (
-    <div className="mx-auto flex max-w-[1480px] flex-col gap-5 px-3 py-3 sm:px-4 lg:px-5">
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.26)] sm:px-5">
-        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr] xl:items-center">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className="border-emerald-500/25 bg-emerald-500/10 text-emerald-100"
-              >
-                Admin OS
-              </Badge>
-              <Badge variant="outline" className="border-zinc-700 bg-zinc-900 text-zinc-300">
-                {roleLabel(role)}
-              </Badge>
-              {isSuperAdmin ? (
-                <Badge
-                  variant="outline"
-                  className="border-orange-500/30 bg-orange-500/10 text-orange-100"
-                >
-                  Super controls
-                </Badge>
-              ) : null}
-            </div>
-            <div className="mt-3 flex items-start gap-3">
-              <span className="mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-orange-500/25 bg-orange-500/10 text-orange-100">
-                <Command className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <h1 className="truncate text-2xl font-semibold text-zinc-50 sm:text-3xl">
-                  Admin command center
-                </h1>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-400">
-                  One condensed hub for platform operations, county intelligence, trust work,
-                  automation, marketplace ops, and finance.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-2">
-            <MetricTile
-              label="Tools"
-              value={formatCount(tools.length)}
-              detail={`${sections.length} sections`}
+    <AdminWorkspace data-testid="admin-home-v2">
+      <AdminSection
+        title="Operator inbox"
+        description="Start with work that needs a decision. Tool discovery belongs in the navigation search, not in another dashboard of cards."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={refreshAll}
+            disabled={
+              notificationsQuery.isFetching || missionQuery.isFetching || snapshotQuery.isFetching
+            }
+            className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${
+                notificationsQuery.isFetching || missionQuery.isFetching || snapshotQuery.isFetching
+                  ? "animate-spin"
+                  : ""
+              }`}
             />
-            <MetricTile
-              label="Unread"
-              value={formatCount(totalUnread)}
-              detail="Tool notices"
-              tone={totalUnread > 0 ? "orange" : "neutral"}
-            />
-            <MetricTile label="Connection" value={`${connectionRate}%`} detail="Mission rate" />
-            <MetricTile
-              label="Snapshots"
-              value={formatCount(staleSnapshots.length)}
-              detail="Stale"
-              tone={staleSnapshots.length > 0 ? "red" : "green"}
-            />
-          </div>
-        </div>
-      </section>
+            Refresh
+          </Button>
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Unread work",
+              value: formatCount(totalUnread),
+              detail: "Across role-visible admin queues",
+              tone: totalUnread > 0 ? "warning" : "good",
+            },
+            {
+              label: "Connection success",
+              value: connectionRate === null ? "—" : `${connectionRate}%`,
+              detail:
+                typeof connectionAttempts === "number"
+                  ? `${formatCount(connectionAttempts)} recorded attempts`
+                  : "No current mission summary",
+              tone:
+                connectionRate === null ? "neutral" : connectionRate >= 80 ? "good" : "warning",
+            },
+            {
+              label: "Blocked paths",
+              value: formatCount(mission?.blockedConnections),
+              detail: "Recorded hard stops",
+              tone: (mission?.blockedConnections || 0) > 0 ? "warning" : "good",
+            },
+            {
+              label: "Stale snapshots",
+              value: snapshotQuery.isError ? "—" : formatCount(staleSnapshots.length),
+              detail: anySignalUnavailable ? "One or more signal feeds unavailable" : "Current data containers",
+              tone: anySignalUnavailable || staleSnapshots.length > 0 ? "warning" : "good",
+            },
+          ]}
+        />
+      </AdminSection>
 
-      <section className="grid gap-3 lg:grid-cols-4">
-        <SignalTile
-          icon={ShieldCheck}
-          label="Successful contact paths"
-          value={formatCount(missionSummary?.successfulConnections)}
-          detail={`${formatCount(connectionAttempts)} attempts`}
-        />
-        <SignalTile
-          icon={CircleAlert}
-          label="Blocked contact paths"
-          value={formatCount(missionSummary?.blockedConnections)}
-          detail="Contact gates preserved"
-          tone={(missionSummary?.blockedConnections ?? 0) > 0 ? "orange" : "neutral"}
-        />
-        <SignalTile
-          icon={TriangleAlert}
-          label="Confusing experiences"
-          value={formatCount(missionSummary?.confusingExperiences)}
-          detail="UI or copy friction"
-          tone={(missionSummary?.confusingExperiences ?? 0) > 0 ? "orange" : "neutral"}
-        />
-        <SignalTile
-          icon={Radio}
-          label="Snapshot drift"
-          value={formatCount(staleSnapshots.length)}
-          detail={
-            staleSnapshots.length > 0
-              ? staleSnapshots
-                  .map((s) => s.label)
-                  .slice(0, 2)
-                  .join(", ")
-              : "Current"
-          }
-          tone={staleSnapshots.length > 0 ? "red" : "green"}
-        />
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,0.75fr)]">
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-950">
-          <div className="border-b border-zinc-800 p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-base font-semibold text-zinc-100">Tool index</h2>
-                <p className="mt-1 text-sm text-zinc-500">
-                  {filteredTools.length} of {tools.length} tools visible for this role.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="relative min-w-0 sm:w-72">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <Input
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search admin tools"
-                    className="border-zinc-800 bg-zinc-900 pl-9 text-zinc-100 placeholder:text-zinc-500"
-                  />
-                </div>
-                <select
-                  value={sectionFilter}
-                  onChange={(event) => setSectionFilter(event.target.value)}
-                  className="h-10 rounded-md border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-orange-500/40"
-                >
-                  <option value="all">All sections</option>
-                  {sections.map((section) => (
-                    <option key={section.section} value={section.section}>
-                      {section.section}
-                    </option>
-                  ))}
-                </select>
-              </div>
+      <div className="grid gap-7 xl:grid-cols-[minmax(0,1.25fr)_minmax(19rem,0.75fr)]">
+        <AdminSection
+          title="Needs action"
+          description="Unread counts come from the operating queues themselves. No synthetic urgency is added here."
+          className="pt-0"
+        >
+          {notificationsQuery.isLoading ? (
+            <div className="flex min-h-40 items-center justify-center border-y border-white/10 text-sm text-white/45">
+              <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+              Loading admin queues…
             </div>
-          </div>
-
-          <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredTools.length > 0 ? (
-              filteredTools.map((entry) => (
-                <ToolButton
-                  key={entry.tool.id}
-                  entry={entry}
-                  unread={getUnread(entry.tool.id)}
-                  onOpen={() => navigate(entry.tool.path)}
-                />
-              ))
-            ) : (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 text-sm text-zinc-400 md:col-span-2 xl:col-span-3">
-                No tools match the current filter.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-5">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-            <div className="flex items-center gap-2">
-              <Bell className="h-4 w-4 text-orange-200" />
-              <h2 className="text-base font-semibold text-zinc-100">Today openers</h2>
+          ) : notificationsQuery.isError ? (
+            <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              The queue summary is unavailable. Open a workspace directly or retry the refresh.
             </div>
-            <div className="mt-3 grid gap-2">
-              {focusTools.map((entry) => {
+          ) : actionTools.length ? (
+            <AdminList>
+              {actionTools.map((entry) => {
                 const Icon = entry.tool.icon;
                 return (
                   <button
                     key={entry.tool.id}
                     type="button"
                     onClick={() => navigate(entry.tool.path)}
-                    className="group flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 text-left transition-colors hover:border-orange-500/35 hover:bg-zinc-900"
+                    className="grid w-full gap-3 px-3 py-4 text-left transition-colors hover:bg-white/[0.025] sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center sm:px-4"
                   >
-                    <Icon className="h-4 w-4 shrink-0 text-zinc-400 group-hover:text-orange-100" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-zinc-100">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10 text-orange-200">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-semibold text-white">
                         {entry.tool.label}
                       </span>
-                      <span className="block truncate text-xs text-zinc-500">{entry.section}</span>
-                    </span>
-                    {getUnread(entry.tool.id) > 0 ? (
-                      <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-100">
-                        {getUnread(entry.tool.id)}
+                      <span className="mt-1 block line-clamp-1 text-sm text-white/45">
+                        {getAdminToolDescription(entry.tool)}
                       </span>
-                    ) : null}
-                    <ArrowRight className="h-4 w-4 text-zinc-600 group-hover:text-orange-100" />
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="rounded-full bg-orange-500 px-2 py-1 text-xs font-bold text-black">
+                        {entry.unread}
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-white/30" />
+                    </span>
                   </button>
                 );
               })}
-            </div>
-          </div>
+            </AdminList>
+          ) : (
+            <AdminEmptyState
+              title="No unread admin queues"
+              description="This does not mean every system is healthy. It means no role-visible tool currently reports unread work."
+            />
+          )}
+        </AdminSection>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-200" />
-              <h2 className="text-base font-semibold text-zinc-100">Law guardrails</h2>
-            </div>
-            <div className="mt-3 grid gap-2">
-              {LAW_GUARDS.map((guard) => {
-                const Icon = guard.icon;
-                return (
-                  <div
-                    key={guard.label}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-medium text-zinc-100">{guard.label}</span>
-                          <Badge variant={lawBadge(guard.status)} className="px-2 py-0 text-[10px]">
-                            {guard.status}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-zinc-500">{guard.detail}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        <AdminSection
+          title="Platform state"
+          description="Live operating signals, including unavailable states."
+          className="pt-0"
+        >
+          <div className="divide-y divide-white/10 border-y border-white/10">
+            <SignalRow
+              icon={CheckCircle2}
+              label="Successful connections"
+              value={formatCount(mission?.successfulConnections)}
+              available={!missionQuery.isError}
+            />
+            <SignalRow
+              icon={CircleAlert}
+              label="Confusing experiences"
+              value={formatCount(mission?.confusingExperiences)}
+              available={!missionQuery.isError}
+              attention={(mission?.confusingExperiences || 0) > 0}
+            />
+            <SignalRow
+              icon={Radio}
+              label="Snapshot containers"
+              value={
+                snapshotQuery.isError
+                  ? "Unavailable"
+                  : staleSnapshots.length
+                    ? `${staleSnapshots.length} stale`
+                    : "Current"
+              }
+              available={!snapshotQuery.isError}
+              attention={staleSnapshots.length > 0}
+            />
+            <SignalRow
+              icon={ShieldCheck}
+              label="Role-visible workspaces"
+              value={String(tools.length)}
+              available
+            />
           </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
-            <h2 className="text-base font-semibold text-zinc-100">Section loadout</h2>
-            <div className="mt-3 grid gap-2">
-              {sections.map((section) => {
-                const sectionUnread = section.items.reduce(
-                  (sum, item) => sum + getUnread(item.id),
-                  0
-                );
-                return (
-                  <button
-                    key={section.section}
-                    type="button"
-                    onClick={() => setSectionFilter(section.section)}
-                    className={cn(
-                      "flex items-center justify-between rounded-xl border px-3 py-2 text-left transition-colors",
-                      sectionFilter === section.section
-                        ? "border-orange-500/35 bg-orange-500/10"
-                        : "border-zinc-800 bg-zinc-900/70 hover:bg-zinc-900"
-                    )}
-                  >
-                    <span>
-                      <span className="block text-sm font-medium text-zinc-100">
-                        {section.section}
-                      </span>
-                      <span className="block text-xs text-zinc-500">
-                        {section.items.length} tools
-                      </span>
-                    </span>
-                    <span className="text-xs text-zinc-500">{sectionUnread} unread</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function MetricTile({
-  label,
-  value,
-  detail,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  detail: string;
-  tone?: "neutral" | "orange" | "green" | "red";
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border p-3",
-        tone === "orange" && "border-orange-500/25 bg-orange-500/10",
-        tone === "green" && "border-emerald-500/25 bg-emerald-500/10",
-        tone === "red" && "border-red-500/25 bg-red-500/10",
-        tone === "neutral" && "border-zinc-800 bg-zinc-900/70"
-      )}
-    >
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-        {label}
+        </AdminSection>
       </div>
-      <div className="mt-1 text-2xl font-semibold text-zinc-50">{value}</div>
-      <div className="mt-1 truncate text-xs text-zinc-500">{detail}</div>
-    </div>
+
+      <AdminSection
+        title="Common workspaces"
+        description="Direct access to the operating surfaces used most often. Use Find tool in the top bar for everything else."
+      >
+        <div className="grid border-y border-white/10 sm:grid-cols-2 xl:grid-cols-4">
+          {quickTools.map((entry) => {
+            const Icon = entry.tool.icon;
+            return (
+              <button
+                key={entry.tool.id}
+                type="button"
+                onClick={() => navigate(entry.tool.path)}
+                className="group min-h-32 border-b border-white/10 px-4 py-4 text-left transition-colors hover:bg-white/[0.03] sm:border-r xl:border-b-0"
+              >
+                <Icon className="h-5 w-5 text-white/35 group-hover:text-orange-200" />
+                <p className="mt-4 font-semibold text-white">{entry.tool.label}</p>
+                <p className="mt-1 line-clamp-2 text-sm leading-5 text-white/42">
+                  {getAdminToolDescription(entry.tool)}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </AdminSection>
+    </AdminWorkspace>
   );
 }
 
-function SignalTile({
+function SignalRow({
   icon: Icon,
   label,
   value,
-  detail,
-  tone = "neutral",
+  available,
+  attention = false,
 }: {
-  icon: LucideIcon;
+  icon: typeof CheckCircle2;
   label: string;
   value: string;
-  detail: string;
-  tone?: "neutral" | "orange" | "green" | "red";
+  available: boolean;
+  attention?: boolean;
 }) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border bg-zinc-950 p-4",
-        tone === "orange" && "border-orange-500/25",
-        tone === "green" && "border-emerald-500/25",
-        tone === "red" && "border-red-500/25",
-        tone === "neutral" && "border-zinc-800"
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-sm font-medium text-zinc-400">{label}</span>
-        <Icon className="h-4 w-4 text-zinc-500" />
-      </div>
-      <div className="mt-3 text-2xl font-semibold text-zinc-50">{value}</div>
-      <div className="mt-1 truncate text-xs text-zinc-500" title={detail}>
-        {detail}
-      </div>
+    <div className="flex items-center gap-3 px-3 py-4 sm:px-4">
+      <span
+        className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+          !available
+            ? "bg-red-400/10 text-red-200"
+            : attention
+              ? "bg-amber-400/10 text-amber-200"
+              : "bg-emerald-400/10 text-emerald-200"
+        }`}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1 text-sm text-white/55">{label}</span>
+      <span className="text-sm font-semibold text-white">{value}</span>
     </div>
   );
 }
-
-function ToolButton({
-  entry,
-  unread,
-  onOpen,
-}: {
-  entry: ToolEntry;
-  unread: number;
-  onOpen: () => void;
-}) {
-  const Icon = entry.tool.icon;
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex min-h-[132px] flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-900/70 p-4 text-left transition-colors hover:border-orange-500/35 hover:bg-zinc-900"
-    >
-      <span>
-        <span className="flex items-start gap-3">
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950 text-zinc-400 group-hover:border-orange-500/30 group-hover:text-orange-100">
-            <Icon className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold text-zinc-100">
-              {entry.tool.label}
-            </span>
-            <span className="mt-0.5 block truncate text-xs text-zinc-500">
-              {compactPath(entry.tool.path)}
-            </span>
-          </span>
-        </span>
-        <span className="mt-3 line-clamp-2 block text-sm leading-5 text-zinc-400">
-          {getAdminToolDescription(entry.tool)}
-        </span>
-      </span>
-      <span className="mt-4 flex items-center justify-between gap-3">
-        <span className="truncate text-xs text-zinc-500">{entry.section}</span>
-        <span className="flex items-center gap-2">
-          {unread > 0 ? (
-            <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-[10px] font-semibold text-orange-100">
-              {unread}
-            </span>
-          ) : null}
-          <ArrowRight className="h-4 w-4 text-zinc-600 group-hover:text-orange-100" />
-        </span>
-      </span>
-    </button>
-  );
-}
-
-export default AdminHome;
