@@ -18,10 +18,12 @@ describe("ISSA Build verified public renderer", () => {
 
     expect(renderer).toContain("100% Verified by TradeScout");
     expect(renderer).toContain("Material selection");
+    expect(renderer).toContain("Material sourcing and availability");
     expect(renderer).toContain("Custom onyx fabrication");
     expect(renderer).toContain("Backlighting design and installation");
     expect(renderer).toContain("Custom onyx installation");
     expect(renderer).toContain("Residential and commercial projects");
+    expect(renderer).toContain("Project fulfillment");
     expect(renderer).toContain("TradeScout manages every inquiry. ISSA Build handles the work.");
     expect(renderer).toContain("Start a Request");
     expect(renderer).toContain("<ExpressDirectConnectPanel");
