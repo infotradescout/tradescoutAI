@@ -10,6 +10,7 @@ import {
   Youtube,
   type LucideIcon,
 } from "lucide-react";
+import { PublicProfileAccountCard } from "@/components/profile/PublicProfileAccountCard";
 import { RecommendationForm } from "@/components/RecommendationForm";
 import { ShareButton } from "@/components/ShareButton";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -455,6 +456,14 @@ export function PublicProfileTrustActions({
 
         {loading && !state ? <span className="sr-only">Loading saved actions.</span> : null}
       </div>
+
+      <PublicProfileAccountCard
+        profileSlug={profileSlug}
+        profileName={profileName}
+        tone={tone}
+        compact={isCompact}
+        className={isCompact ? "mt-2" : "mt-3"}
+      />
 
       <Dialog open={recommendationOpen} onOpenChange={setRecommendationOpen}>
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto p-0">

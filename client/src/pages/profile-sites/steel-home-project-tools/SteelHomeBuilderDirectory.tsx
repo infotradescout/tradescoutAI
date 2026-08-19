@@ -1,5 +1,9 @@
 import { ArrowUpRight, Building2, PanelsTopLeft, RectangleHorizontal } from "lucide-react";
-import { STEEL_HOME_PACKAGES_PROFILE_CONTENT as content } from "@shared/steelHomePackagesProfile";
+import { PublicProfileAccountCard } from "@/components/profile/PublicProfileAccountCard";
+import {
+  STEEL_HOME_PACKAGES_PROFILE_CONTENT as content,
+  STEEL_HOME_PACKAGES_PROFILE_IDENTITY as identity,
+} from "@shared/steelHomePackagesProfile";
 import {
   buildSteelHomeBuilderPath,
   type SteelHomeBuilderKey,
@@ -168,6 +172,14 @@ export default function SteelHomeBuilderDirectory({ onOpen }: Props) {
           );
         })}
       </div>
+
+      <PublicProfileAccountCard
+        profileSlug={identity.slug}
+        profileName={identity.displayLabel}
+        tone="light"
+        compact
+        className="mt-6"
+      />
     </div>
   );
 }
