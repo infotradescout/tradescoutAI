@@ -4,8 +4,7 @@ import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
 import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
 import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
 import { JwStoneProfileSeo } from "@/features/jw-stone/JwStoneProfileSeo";
-import RedGranitiInteractionBoundary from "./RedGranitiInteractionBoundary";
-import RedGranitiProfileTheme from "./RedGranitiProfileTheme";
+import RedGranitiWebsiteProfile from "./RedGranitiWebsiteProfile";
 import LegacyWholesalerProfileTheme from "./WholesalerProfileThemeLegacy";
 
 export type { WholesalerBrandColors } from "./WholesalerProfileThemeLegacy";
@@ -45,17 +44,10 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
 
   if (isRedGranitiProfile) {
     return (
-      <RedGranitiInteractionBoundary platformBaseHref={props.platformBaseHref}>
-        <RedGranitiProfileTheme
-          profileSlug={props.profileSlug}
-          platformBaseHref={props.platformBaseHref}
-          profileShareDestination={props.profileShareDestination}
-          hasViewerSession={props.hasViewerSession}
-          businessAddress={props.businessAddress}
-          trustActions={props.trustActions}
-          profileItems={props.profileItems}
-        />
-      </RedGranitiInteractionBoundary>
+      <RedGranitiWebsiteProfile
+        profileSlug={props.profileSlug}
+        platformBaseHref={props.platformBaseHref}
+      />
     );
   }
 
