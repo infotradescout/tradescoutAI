@@ -15,6 +15,7 @@ const NATIVE_ADMIN_V2_TOOLS = new Set([
   "errors",
   "panel",
   "controls",
+  "live-stream",
 ]);
 
 export function isNativeAdminV2Tool(toolId: string): boolean {
