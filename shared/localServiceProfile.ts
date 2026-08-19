@@ -69,8 +69,6 @@ export type LocalServiceProfilePresentation = {
   credentials: LocalServiceCredential[];
   credentialDisclosure?: string;
   verificationHistoryNote?: string;
-  sourceCheckedAt?: string;
-  sourceSummary?: string;
   hoursLabel?: string;
   hoursNote?: string;
   financingTitle?: string;
@@ -93,9 +91,9 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   eyebrow: "Residential + commercial plumbing",
   missionEyebrow: "The LA Plumbing promise",
   missionStatement: "Your comfort is our mission.",
-  heroTitle: "Tell the team what is wrong. They will take it from there.",
+  heroTitle: "Residential and commercial plumbing across southeast Louisiana.",
   heroDescription:
-    "Start with the problem, project, or property. LA Plumbing handles repairs, drains, water heaters, renovations, backflow, gas, and complete residential or commercial plumbing systems across southeast Louisiana.",
+    "Repairs, drains, water heaters, gas, backflow, renovations, and complete new-construction plumbing from a Hammond-based team.",
   heroImage: "/images/businesses/la-plumbing-solutions/hero.jpg",
   heroImageAlt: "LA Plumbing Solutions plumber installing a tankless water-heater system",
   logoImage: "/images/businesses/la-plumbing-solutions/logo.jpg",
@@ -110,14 +108,14 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   websiteActionLabel: "Company Website",
   directionsActionLabel: "Get Directions",
   serviceNote:
-    "Choose the closest job type. The request opens with room for the property, symptoms, timing, and photos.",
-  servicesEyebrow: "Choose the job",
-  servicesTitle: "Start with what needs to happen.",
+    "Choose the closest service. Add the property, symptoms, timing, and photos in the request.",
+  servicesEyebrow: "Plumbing services",
+  servicesTitle: "What do you need?",
   highlights: [
-    "Verified TradeScout provider",
+    "Verified TradeScout business",
     "Residential + commercial",
     "Tank + tankless systems",
-    "Financing through Hearth",
+    "Financing available",
   ],
   services: [
     {
@@ -201,10 +199,10 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
       ],
     },
   ],
-  aboutTitle: "A family plumbing company built to answer the next call too.",
+  aboutTitle: "Family-owned and built around coordinated work.",
   aboutBody:
-    "LA Plumbing Solutions is a local, family-owned company founded by two brothers who learned the trade from their father. Master plumbers, journeymen, apprentices, and office staff work as one team so scheduling, communication, installation, and follow-up stay coordinated instead of being passed between disconnected people.",
-  aboutEyebrow: "The people behind the work",
+    "LA Plumbing Solutions is a local company founded by two brothers who learned the trade from their father. Master plumbers, journeymen, apprentices, and office staff work as one team so scheduling, communication, installation, and follow-up stay connected.",
+  aboutEyebrow: "About LA Plumbing",
   commitments: [
     "Explain the work before surprises appear",
     "Use modern tools when they reduce guesswork",
@@ -217,11 +215,11 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   serviceAreaDescription:
     "Based in Hammond and serving residential and commercial projects across southeast Louisiana.",
   galleryEyebrow: "Completed work",
-  galleryTitle: "See the systems, not stock photography.",
+  galleryTitle: "Recent work",
   galleryDescription:
-    "Selected residential, commercial, renovation, water-heating, and new-construction work published by LA Plumbing Solutions.",
+    "Residential, commercial, renovation, water-heating, and new-construction work published by LA Plumbing Solutions.",
   galleryShareText: "See this LA Plumbing Solutions project",
-  credentialLabel: "Credential numbers and where to verify them",
+  credentialLabel: "Licenses and credentials",
   credentials: [
     {
       label: "Commercial plumbing",
@@ -264,22 +262,18 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
     },
   ],
   credentialDisclosure:
-    "LA Plumbing publishes these credential numbers on its current company website. TradeScout shows the source and review date; confirm current status with the issuing authority before regulated work.",
+    "LA Plumbing publishes these credential numbers on its current company website. Confirm current status with the issuing authority before regulated work.",
   verificationHistoryNote:
-    "The verified profile confirms the TradeScout business identity and onboarding record. It is not a substitute for a current license lookup for a specific regulated job.",
-  sourceCheckedAt: "August 18, 2026",
-  sourceSummary:
-    "Current facts use the company’s active www website and the Tangipahoa Chamber listing. Older non-www pages still show a former Fox Hollow address and 24/7 hours; those legacy claims are intentionally excluded.",
-  hoursLabel: "Office hours · Monday–Friday · 7:00am–4:00pm",
-  hoursNote:
-    "The current company website lists weekends closed. For urgent needs outside office hours, use the call option to confirm availability rather than assuming 24/7 service.",
-  financingTitle: "Explore project financing through Hearth.",
+    "TradeScout verification confirms the business identity and onboarding record. It does not replace a current license lookup for a specific regulated job.",
+  hoursLabel: "Monday–Friday · 7:00am–4:00pm",
+  hoursNote: "Call to confirm availability outside regular office hours.",
+  financingTitle: "Project financing through Hearth",
   financingProvider: "Hearth",
   financingDescription:
-    "LA Plumbing’s current website connects qualifying customers to Hearth for personalized payment options. Eligibility, lender offers, rates, and funding terms are handled by Hearth and participating lenders and can change.",
-  requestTitle: "Put the plumbing problem in front of the right team.",
+    "LA Plumbing connects qualifying customers to Hearth for personalized payment options. Eligibility, lender offers, rates, and funding terms are handled by Hearth and participating lenders.",
+  requestTitle: "Start with the plumbing problem or project.",
   requestDescription:
-    "Start a Request with the property, problem, timing, and photos. Choose the call option in the next panel when a direct conversation is the better first step.",
+    "Include the property, problem, timing, and photos. The LA Plumbing team can review the request before direct contact opens.",
   brand: {
     primary: "#1ba9dc",
     primaryDark: "#0878a6",
