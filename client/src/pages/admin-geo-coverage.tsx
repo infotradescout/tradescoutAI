@@ -1,21 +1,18 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
-import { AlertCircle } from "lucide-react";
-import { ErrorState, SkeletonTable } from "@/components/ui/states";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AlertTriangle, MapPinned, RefreshCw, Search, ShieldCheck, UsersRound } from "lucide-react";
+import { useLocation } from "wouter";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminToolbar,
+  AdminWorkspace,
+  AdminWorkspaceSubnav,
+} from "@/admin/AdminWorkspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -25,12 +22,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient as globalQueryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export type CountyCoverageStatus = "unassigned" | "partial" | "full";
 
-interface CountyCoverageRow {
+type CountyCoverageRow = {
   countyFips: string;
   countyName: string;
   stateCode: string;
@@ -43,9 +49,9 @@ interface CountyCoverageRow {
   hasRiskNote: boolean;
   hasPartnerNote: boolean;
   lastNoteAt: string | null;
-}
+};
 
-interface CountyCoverageSummaryResponse {
+type CountyCoverageSummaryResponse = {
   ok: true;
   totalCounties: number;
   unassignedCounties: number;
@@ -54,9 +60,9 @@ interface CountyCoverageSummaryResponse {
   verifiedCoverageRatePercent: number;
   fullCoverageNewLast30: number;
   rows: CountyCoverageRow[];
-}
+};
 
-interface CountyFolderResponse {
+type CountyFolderResponse = {
   county: {
     fips: string;
     countyName: string;
@@ -111,24 +117,21 @@ interface CountyFolderResponse {
     serviceCategory: string;
     createdAt?: string | null;
   }>;
-}
+};
 
 type CoverageFilter = "all" | "unassigned" | "partial" | "full";
-
 type NotesFilter = "any" | "ops" | "risk" | "partner";
-
 type TerritoryFilter = "any" | "yes" | "no";
-
 type AffiliateEntityType = "affiliate" | "partner";
 
-interface AdminUserSummary {
+type AdminUserSummary = {
   id: string;
   email: string;
   firstName?: string | null;
   lastName?: string | null;
   role?: string | null;
   roles?: string[] | null;
-}
+};
 
 declare global {
   interface Window {
@@ -139,10 +142,31 @@ declare global {
 
 const GEO_ADMIN_SCRIPT_ID = "ts-google-maps-admin-geo-script";
 
-function normalizeCoverageMarkerIcon(status: CountyCoverageStatus): string {
+function markerIcon(status: CountyCoverageStatus): string {
   if (status === "full") return "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
   if (status === "partial") return "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png";
   return "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
+}
+
+function readable(value: unknown): string {
+  const text = String(value || "").trim();
+  if (!text) return "Not recorded";
+  return text.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatDate(value: unknown): string {
+  if (!value) return "Not recorded";
+  const date = new Date(value as string | number | Date);
+  return Number.isFinite(date.getTime()) ? date.toLocaleString() : "Invalid date";
+}
+
+function userLabel(user: AdminUserSummary): string {
+  return `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+}
+
+function userRoles(user: AdminUserSummary): string[] {
+  if (Array.isArray(user.roles) && user.roles.length) return user.roles;
+  return user.role ? [user.role] : [];
 }
 
 async function fetchAdminGoogleMapsKey(): Promise<string> {
@@ -189,85 +213,82 @@ async function loadAdminGoogleMapsScript(apiKey: string): Promise<void> {
 }
 
 export default function AdminGeoCoverageConsole() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [location, navigate] = useLocation();
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markerByFipsRef = useRef<Record<string, any>>({});
   const geocoderRef = useRef<any>(null);
 
-  const [location, navigate] = useLocation();
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  const [stateFilter, setStateFilter] = useState<string | "all">("all");
+  const [search, setSearch] = useState("");
+  const [stateFilter, setStateFilter] = useState("all");
   const [coverageFilter, setCoverageFilter] = useState<CoverageFilter>("all");
   const [notesFilter, setNotesFilter] = useState<NotesFilter>("any");
   const [territoryFilter, setTerritoryFilter] = useState<TerritoryFilter>("any");
-  const [selectedCountyFips, setSelectedCountyFips] = useState<string>("");
+  const [selectedCountyFips, setSelectedCountyFips] = useState("");
+
   const [assignCounty, setAssignCounty] = useState<CountyCoverageRow | null>(null);
   const [tmSearch, setTmSearch] = useState("");
-  const [selectedTmId, setSelectedTmId] = useState<string>("");
+  const [selectedTmId, setSelectedTmId] = useState("");
+
   const [assignAffiliateCounty, setAssignAffiliateCounty] = useState<CountyCoverageRow | null>(
     null
   );
   const [affiliateSearch, setAffiliateSearch] = useState("");
-  const [selectedAffiliateUserId, setSelectedAffiliateUserId] = useState<string>("");
-  const [affiliateEntityType, setAffiliateEntityType] = useState<AffiliateEntityType>("affiliate");
+  const [selectedAffiliateUserId, setSelectedAffiliateUserId] = useState("");
+  const [affiliateEntityType, setAffiliateEntityType] =
+    useState<AffiliateEntityType>("affiliate");
+
   const [mapsReady, setMapsReady] = useState(false);
   const [mapsError, setMapsError] = useState("");
   const [countyCentersByFips, setCountyCentersByFips] = useState<
     Record<string, { lat: number; lng: number }>
   >({});
 
-  const queryClient = useQueryClient() || globalQueryClient;
-  const { toast } = useToast();
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
+    setViewMode(params.get("view") === "map" ? "map" : "list");
     const fips = params.get("fips");
-    const view = params.get("view");
-
-    if (view === "map") {
-      setViewMode("map");
-    }
-
-    if (fips) {
-      setSelectedCountyFips(fips);
-    }
+    if (fips) setSelectedCountyFips(fips);
   }, [location]);
 
-  const { data, isLoading, error } = useQuery<CountyCoverageSummaryResponse>({
+  const coverageQuery = useQuery<CountyCoverageSummaryResponse>({
     queryKey: ["/api/admin/geo/coverage"],
-    queryFn: async () => {
-      return apiRequest("/api/admin/geo/coverage");
-    },
+    queryFn: () =>
+      apiRequest("GET", "/api/admin/geo/coverage") as Promise<CountyCoverageSummaryResponse>,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
-  const allRows = data?.rows || [];
-
-  const stateOptions = useMemo(() => {
-    const codes = new Set<string>();
-    for (const row of allRows) {
-      if (row.stateCode) codes.add(row.stateCode);
-    }
-    return Array.from(codes).sort();
-  }, [allRows]);
+  const allRows = coverageQuery.data?.rows || [];
+  const stateOptions = useMemo(
+    () => Array.from(new Set(allRows.map((row) => row.stateCode).filter(Boolean))).sort(),
+    [allRows]
+  );
 
   const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
     return allRows.filter((row) => {
       if (stateFilter !== "all" && row.stateCode !== stateFilter) return false;
-
       if (coverageFilter !== "all" && row.coverageStatus !== coverageFilter) return false;
-
       if (territoryFilter === "yes" && row.territoryManagerCount <= 0) return false;
       if (territoryFilter === "no" && row.territoryManagerCount > 0) return false;
-
       if (notesFilter === "ops" && !row.hasOpsNote) return false;
       if (notesFilter === "risk" && !row.hasRiskNote) return false;
       if (notesFilter === "partner" && !row.hasPartnerNote) return false;
-
+      if (
+        query &&
+        !`${row.countyName} ${row.stateCode} ${row.countyFips}`.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
       return true;
     });
-  }, [allRows, stateFilter, coverageFilter, notesFilter, territoryFilter]);
+  }, [allRows, coverageFilter, notesFilter, search, stateFilter, territoryFilter]);
 
   useEffect(() => {
     if (!filteredRows.length) {
@@ -281,32 +302,33 @@ export default function AdminGeoCoverageConsole() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const params = new URLSearchParams(window.location.search);
+    if (viewMode === "map") params.set("view", "map");
+    else params.delete("view");
+    if (selectedCountyFips) params.set("fips", selectedCountyFips);
+    else params.delete("fips");
 
-    if (viewMode === "map") {
-      params.set("view", "map");
-    } else {
-      params.delete("view");
-    }
-
-    if (selectedCountyFips) {
-      params.set("fips", selectedCountyFips);
-    } else {
-      params.delete("fips");
-    }
-
-    const next = params.toString();
-    const target = next ? `/admin/geo/counties?${next}` : "/admin/geo/counties";
-    if (location !== target) {
-      navigate(target, { replace: true });
-    }
+    const query = params.toString();
+    const target = query ? `/admin/geo/counties?${query}` : "/admin/geo/counties";
+    if (location !== target) navigate(target, { replace: true });
   }, [location, navigate, selectedCountyFips, viewMode]);
 
   const selectedCounty = useMemo(
-    () => filteredRows.find((row) => row.countyFips === selectedCountyFips) || null,
-    [filteredRows, selectedCountyFips]
+    () => allRows.find((row) => row.countyFips === selectedCountyFips) || null,
+    [allRows, selectedCountyFips]
   );
+
+  const folderQuery = useQuery<CountyFolderResponse>({
+    queryKey: ["/api/admin/geo/counties/folder", selectedCountyFips],
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/admin/geo/counties/${selectedCountyFips}/folder`
+      ) as Promise<CountyFolderResponse>,
+    enabled: Boolean(selectedCountyFips),
+    staleTime: 60_000,
+    retry: false,
+  });
 
   useEffect(() => {
     if (viewMode !== "map") return;
@@ -322,9 +344,8 @@ export default function AdminGeoCoverageConsole() {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : "Failed to initialize Google Maps";
-        setMapsError(message);
         setMapsReady(false);
+        setMapsError(error instanceof Error ? error.message : "Failed to initialize Google Maps");
       });
 
     return () => {
@@ -335,8 +356,10 @@ export default function AdminGeoCoverageConsole() {
   useEffect(() => {
     if (viewMode !== "map" || !mapsReady || !mapContainerRef.current) return;
     if (mapRef.current) return;
+    const google = window.google;
+    if (!google?.maps) return;
 
-    mapRef.current = new window.google.maps.Map(mapContainerRef.current, {
+    mapRef.current = new google.maps.Map(mapContainerRef.current, {
       center: { lat: 39.8283, lng: -98.5795 },
       zoom: 4,
       mapTypeControl: false,
@@ -345,53 +368,48 @@ export default function AdminGeoCoverageConsole() {
       clickableIcons: false,
       gestureHandling: "greedy",
     });
-    geocoderRef.current = new window.google.maps.Geocoder();
+    geocoderRef.current = new google.maps.Geocoder();
   }, [mapsReady, viewMode]);
 
   useEffect(() => {
     if (viewMode !== "map" || !mapsReady || !geocoderRef.current) return;
-
     const missing = filteredRows
       .slice(0, 180)
       .filter((row) => !countyCentersByFips[row.countyFips])
       .slice(0, 24);
-
-    if (missing.length === 0) return;
+    if (!missing.length) return;
 
     let cancelled = false;
-
-    const geocodeCounty = async (row: CountyCoverageRow) => {
-      return await new Promise<{ fips: string; lat: number; lng: number } | null>((resolve) => {
-        const query = `${row.countyName} County, ${row.stateCode}, USA`;
-        geocoderRef.current.geocode({ address: query }, (results: any[], status: string) => {
-          if (status !== "OK" || !Array.isArray(results) || !results[0]?.geometry?.location) {
-            resolve(null);
-            return;
+    const geocode = (row: CountyCoverageRow) =>
+      new Promise<{ fips: string; lat: number; lng: number } | null>((resolve) => {
+        geocoderRef.current.geocode(
+          { address: `${row.countyName} County, ${row.stateCode}, USA` },
+          (results: any[], status: string) => {
+            if (status !== "OK" || !results?.[0]?.geometry?.location) {
+              resolve(null);
+              return;
+            }
+            const point = results[0].geometry.location;
+            resolve({
+              fips: row.countyFips,
+              lat: Number(point.lat?.()),
+              lng: Number(point.lng?.()),
+            });
           }
-          const location = results[0].geometry.location;
-          resolve({
-            fips: row.countyFips,
-            lat: Number(location.lat?.()),
-            lng: Number(location.lng?.()),
-          });
-        });
+        );
       });
-    };
 
-    (async () => {
-      const resolved = await Promise.all(missing.map((row) => geocodeCounty(row)));
+    Promise.all(missing.map(geocode)).then((resolved) => {
       if (cancelled) return;
-
       const next: Record<string, { lat: number; lng: number }> = {};
       for (const item of resolved) {
-        if (!item) continue;
-        if (!Number.isFinite(item.lat) || !Number.isFinite(item.lng)) continue;
+        if (!item || !Number.isFinite(item.lat) || !Number.isFinite(item.lng)) continue;
         next[item.fips] = { lat: item.lat, lng: item.lng };
       }
-
-      if (Object.keys(next).length === 0) return;
-      setCountyCentersByFips((prev) => ({ ...prev, ...next }));
-    })();
+      if (Object.keys(next).length) {
+        setCountyCentersByFips((current) => ({ ...current, ...next }));
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -400,31 +418,28 @@ export default function AdminGeoCoverageConsole() {
 
   useEffect(() => {
     if (viewMode !== "map" || !mapsReady || !mapRef.current) return;
+    const google = window.google;
+    if (!google?.maps) return;
 
     Object.values(markerByFipsRef.current).forEach((marker) => marker.setMap(null));
     markerByFipsRef.current = {};
-
-    const bounds = new window.google.maps.LatLngBounds();
+    const bounds = new google.maps.LatLngBounds();
 
     for (const row of filteredRows.slice(0, 180)) {
       const center = countyCentersByFips[row.countyFips];
       if (!center) continue;
-
-      const marker = new window.google.maps.Marker({
+      const marker = new google.maps.Marker({
         map: mapRef.current,
         position: center,
         title: `${row.countyName}, ${row.stateCode}`,
-        icon: normalizeCoverageMarkerIcon(row.coverageStatus),
+        icon: markerIcon(row.coverageStatus),
       });
-
       marker.addListener("click", () => setSelectedCountyFips(row.countyFips));
       markerByFipsRef.current[row.countyFips] = marker;
       bounds.extend(center);
     }
 
-    if (!bounds.isEmpty()) {
-      mapRef.current.fitBounds(bounds, 36);
-    }
+    if (!bounds.isEmpty()) mapRef.current.fitBounds(bounds, 36);
   }, [countyCentersByFips, filteredRows, mapsReady, viewMode]);
 
   useEffect(() => {
@@ -437,120 +452,80 @@ export default function AdminGeoCoverageConsole() {
     }
   }, [countyCentersByFips, mapsReady, selectedCountyFips]);
 
-  const { data: countyFolder, isLoading: countyFolderLoading } = useQuery<CountyFolderResponse>({
-    queryKey: ["/api/admin/geo/counties/folder", selectedCountyFips],
-    queryFn: async () => apiRequest(`/api/admin/geo/counties/${selectedCountyFips}/folder`),
-    enabled: viewMode === "map" && Boolean(selectedCountyFips),
-    staleTime: 60_000,
-  });
-
-  const coverageRateLabel = `${data ? data.verifiedCoverageRatePercent.toFixed(1) : "0.0"}%`;
-
-  const seedCounties = useMutation({
-    mutationFn: async () => apiRequest("POST", "/api/admin/geo/seed-counties", {}),
+  const seedMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/geo/seed-counties", {}),
     onSuccess: (payload: any) => {
       toast({
-        title: "Seed complete",
+        title: "County seed complete",
         description: `Inserted ${payload?.insertedStates || 0} states and ${payload?.insertedCounties || 0} counties.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
       toast({
-        title: "Seed failed",
-        description: formatUserFacingErrorMessage(err, "Unable to seed counties."),
+        title: "County seed failed",
+        description: formatUserFacingErrorMessage(error, "Unable to seed counties."),
         variant: "destructive",
       });
     },
   });
 
-  const isAssignTmDialogOpen = !!assignCounty;
-  const isAssignAffiliateDialogOpen = !!assignAffiliateCounty;
-
-  const { data: allUsers = [], isLoading: usersLoading } = useQuery<AdminUserSummary[]>({
+  const assignmentDialogOpen = Boolean(assignCounty || assignAffiliateCounty);
+  const usersQuery = useQuery<AdminUserSummary[]>({
     queryKey: ["/api/admin/users"],
-    queryFn: async () => {
-      return apiRequest("/api/admin/users");
-    },
-    enabled: isAssignTmDialogOpen || isAssignAffiliateDialogOpen,
+    queryFn: () => apiRequest("GET", "/api/admin/users") as Promise<AdminUserSummary[]>,
+    enabled: assignmentDialogOpen,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const territoryManagers = useMemo(() => {
-    const usersArray = allUsers || [];
-    const lowerSearch = tmSearch.toLowerCase();
-    return usersArray
-      .filter((user) => {
-        const roles =
-          user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
-        const hasTmRole = roles.some((r) => r === "territory_manager");
-        if (!hasTmRole) return false;
+    const query = tmSearch.trim().toLowerCase();
+    return (usersQuery.data || [])
+      .filter((user) => userRoles(user).includes("territory_manager"))
+      .filter((user) => !query || `${userLabel(user)} ${user.email}`.toLowerCase().includes(query))
+      .sort((left, right) => userLabel(left).localeCompare(userLabel(right)));
+  }, [tmSearch, usersQuery.data]);
 
-        if (!lowerSearch) return true;
-        const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-        return (
-          user.email.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch)
-        );
-      })
-      .sort((a, b) => {
-        const nameA = `${a.firstName || ""} ${a.lastName || ""}`.trim().toLowerCase();
-        const nameB = `${b.firstName || ""} ${b.lastName || ""}`.trim().toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-  }, [allUsers, tmSearch]);
+  const affiliates = useMemo(() => {
+    const query = affiliateSearch.trim().toLowerCase();
+    return (usersQuery.data || [])
+      .filter((user) => userRoles(user).includes("affiliate"))
+      .filter((user) => !query || `${userLabel(user)} ${user.email}`.toLowerCase().includes(query))
+      .sort((left, right) => userLabel(left).localeCompare(userLabel(right)));
+  }, [affiliateSearch, usersQuery.data]);
 
   const assignTerritoryManager = useMutation({
-    mutationFn: async ({ countyFips, userId }: { countyFips: string; userId: string }) => {
-      return apiRequest("POST", `/api/admin/geo/counties/${countyFips}/entities`, {
+    mutationFn: ({ countyFips, userId }: { countyFips: string; userId: string }) =>
+      apiRequest("POST", `/api/admin/geo/counties/${countyFips}/entities`, {
         entityType: "territory_manager",
         entityId: userId,
         status: "active",
-      });
-    },
-    onSuccess: (_data, variables) => {
+      }),
+    onSuccess: (_payload, variables) => {
       toast({
         title: "Territory manager assigned",
-        description: `Assigned a territory manager to county ${variables.countyFips}.`,
+        description: `County ${variables.countyFips} now includes the selected territory manager.`,
       });
       setAssignCounty(null);
       setSelectedTmId("");
       setTmSearch("");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/geo/counties/folder", variables.countyFips],
+      });
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Assignment failed",
-        description: formatUserFacingErrorMessage(err, "Unable to assign territory manager."),
+        description: formatUserFacingErrorMessage(error, "Unable to assign territory manager."),
         variant: "destructive",
       });
     },
   });
 
-  const affiliateUsers = useMemo(() => {
-    const usersArray = allUsers || [];
-    const lowerSearch = affiliateSearch.toLowerCase();
-    return usersArray
-      .filter((user) => {
-        const roles =
-          user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
-        const hasAffiliateRole = roles.some((r) => r === "affiliate");
-        if (!hasAffiliateRole) return false;
-
-        if (!lowerSearch) return true;
-        const name = `${user.firstName || ""} ${user.lastName || ""}`.trim();
-        return (
-          user.email.toLowerCase().includes(lowerSearch) || name.toLowerCase().includes(lowerSearch)
-        );
-      })
-      .sort((a, b) => {
-        const nameA = `${a.firstName || ""} ${a.lastName || ""}`.trim().toLowerCase();
-        const nameB = `${b.firstName || ""} ${b.lastName || ""}`.trim().toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-  }, [allUsers, affiliateSearch]);
-
   const assignAffiliateOrPartner = useMutation({
-    mutationFn: async ({
+    mutationFn: ({
       countyFips,
       userId,
       entityType,
@@ -558,883 +533,921 @@ export default function AdminGeoCoverageConsole() {
       countyFips: string;
       userId: string;
       entityType: AffiliateEntityType;
-    }) => {
-      return apiRequest("POST", `/api/admin/geo/counties/${countyFips}/entities`, {
+    }) =>
+      apiRequest("POST", `/api/admin/geo/counties/${countyFips}/entities`, {
         entityType,
         entityId: userId,
         status: "active",
-      });
-    },
-    onSuccess: (_data, variables) => {
+      }),
+    onSuccess: (_payload, variables) => {
       toast({
-        title: "Coverage entity added",
-        description: `Assigned a ${variables.entityType} to county ${variables.countyFips}.`,
+        title: "Coverage entity assigned",
+        description: `County ${variables.countyFips} now includes the selected ${variables.entityType}.`,
       });
       setAssignAffiliateCounty(null);
       setSelectedAffiliateUserId("");
       setAffiliateSearch("");
       setAffiliateEntityType("affiliate");
       queryClient.invalidateQueries({ queryKey: ["/api/admin/geo/coverage"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/admin/geo/counties/folder", variables.countyFips],
+      });
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
       toast({
         title: "Assignment failed",
-        description: formatUserFacingErrorMessage(err, "Unable to assign affiliate or partner."),
+        description: formatUserFacingErrorMessage(
+          error,
+          "Unable to assign affiliate or partner."
+        ),
         variant: "destructive",
       });
     },
   });
 
+  const openMapCounty = (row: CountyCoverageRow) => {
+    setSelectedCountyFips(row.countyFips);
+    setViewMode("map");
+  };
+
+  const data = coverageQuery.data;
+
   return (
-    <div className="space-y-4 min-w-0">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-lg font-semibold text-white">County Coverage Console</h1>
-          <p className="text-xs text-white/60 max-w-xl">
-            Operational view of TradeScout coverage across U.S. counties. "Verified Coverage Rate"
-            reflects counties with both an active territory manager and an active affiliate or
-            partner mapped in the geographic storage layer.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-white/60">
-          <span>View:</span>
-          <Tabs
-            value={viewMode}
-            onValueChange={(v) => setViewMode(v as "list" | "map")}
-            className="h-8"
+    <AdminWorkspace data-testid="admin-county-coverage-v2">
+      <AdminSection
+        title="County coverage"
+        description="Operating coverage across U.S. counties. Full coverage requires an active territory manager and an active affiliate or partner in the geographic storage layer."
+        className="pt-0"
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => coverageQuery.refetch()}
+            disabled={coverageQuery.isFetching}
+            className="border-white/12 bg-transparent text-white/65"
           >
-            <TabsList className="h-8">
-              <TabsTrigger value="list" className="px-3 h-8 text-xs">
-                List
-              </TabsTrigger>
-              <TabsTrigger value="map" className="px-3 h-8 text-xs">
-                Map
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <Card className="bg-black/30 border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-white/70">Verified Coverage Rate</CardTitle>
-            <CardDescription className="text-[11px] text-white/60">
-              Fully covered counties ÷ total counties
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-white">{coverageRateLabel}</span>
-            <span className="text-[11px] text-white/60">full coverage</span>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-black/30 border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-white/70">Unassigned counties</CardTitle>
-            <CardDescription className="text-[11px] text-white/60">
-              No TM, no affiliate
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-white">
-              {data?.unassignedCounties ?? "-"}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-black/30 border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-white/70">Partially covered</CardTitle>
-            <CardDescription className="text-[11px] text-white/60">
-              Only TM or affiliate
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-semibold text-white">
-              {data?.partiallyCoveredCounties ?? "-"}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-black/30 border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-white/70">Fully covered</CardTitle>
-            <CardDescription className="text-[11px] text-white/60">
-              TM + affiliate present
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="flex items-baseline gap-2">
-              <div className="text-2xl font-semibold text-white">
-                {data?.fullyCoveredCounties ?? "-"}
-              </div>
-              <div className="text-[11px] text-emerald-400">
-                +{data?.fullCoverageNewLast30 ?? 0} in last 30 days
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {data && data.totalCounties < 3000 && (
-        <Card className="bg-black/30 border-white/10">
-          <CardContent className="p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="text-xs text-white/70">
-              County table looks incomplete (<span className="font-mono">{data.totalCounties}</span>
-              ). Seed the full built-in county dataset so coverage tooling can represent every
-              county.
-            </div>
-            <Button
-              size="sm"
-              className="text-xs"
-              onClick={() => seedCounties.mutate()}
-              disabled={seedCounties.isPending}
-            >
-              {seedCounties.isPending ? "Seeding…" : "Seed counties"}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card className="bg-black/30 border-white/10">
-        <CardHeader className="pb-2 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-          <div>
-            <CardTitle className="text-sm text-white">Coverage by county</CardTitle>
-            <CardDescription className="text-[11px] text-white/60">
-              Filters apply to both list and map views.
-            </CardDescription>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 text-[11px] w-full md:w-auto">
-            <div className="flex flex-col gap-1 min-w-0">
-              <span className="text-white/60">State</span>
-              <Select value={stateFilter} onValueChange={(v) => setStateFilter(v as any)}>
-                <SelectTrigger className="h-8 w-full sm:w-[110px] text-[11px]">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  {stateOptions.map((code) => (
-                    <SelectItem key={code} value={code}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1 min-w-0">
-              <span className="text-white/60">Coverage</span>
-              <Select
-                value={coverageFilter}
-                onValueChange={(v) => setCoverageFilter(v as CoverageFilter)}
-              >
-                <SelectTrigger className="h-8 w-full sm:w-[130px] text-[11px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  <SelectItem value="partial">Partial</SelectItem>
-                  <SelectItem value="full">Full</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1 min-w-0">
-              <span className="text-white/60">Notes</span>
-              <Select value={notesFilter} onValueChange={(v) => setNotesFilter(v as NotesFilter)}>
-                <SelectTrigger className="h-8 w-full sm:w-[120px] text-[11px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  <SelectItem value="ops">Ops</SelectItem>
-                  <SelectItem value="risk">Risk</SelectItem>
-                  <SelectItem value="partner">Partner</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1 min-w-0">
-              <span className="text-white/60">TM assigned</span>
-              <Select
-                value={territoryFilter}
-                onValueChange={(v) => setTerritoryFilter(v as TerritoryFilter)}
-              >
-                <SelectTrigger className="h-8 w-full sm:w-[120px] text-[11px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any</SelectItem>
-                  <SelectItem value="yes">Yes</SelectItem>
-                  <SelectItem value="no">No</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {isLoading && <SkeletonTable rows={8} />}
-          {error && !isLoading && (
-            <ErrorState
-              icon={<AlertCircle />}
-              title="Failed to Load Coverage"
-              description="Unable to fetch county data. Please refresh the page."
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${coverageQuery.isFetching ? "animate-spin" : ""}`}
             />
-          )}
+            Refresh
+          </Button>
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Verified coverage",
+              value: coverageQuery.isError
+                ? "—"
+                : `${Number(data?.verifiedCoverageRatePercent || 0).toFixed(1)}%`,
+              detail: coverageQuery.isError
+                ? "Coverage source unavailable"
+                : `${data?.fullyCoveredCounties || 0} of ${data?.totalCounties || 0} counties`,
+              tone: coverageQuery.isError ? "warning" : "neutral",
+            },
+            {
+              label: "Unassigned",
+              value: coverageQuery.isError ? "—" : data?.unassignedCounties ?? 0,
+              detail: "No active territory manager or affiliate",
+              tone:
+                coverageQuery.isError || Number(data?.unassignedCounties || 0) > 0
+                  ? "warning"
+                  : "good",
+            },
+            {
+              label: "Partial coverage",
+              value: coverageQuery.isError ? "—" : data?.partiallyCoveredCounties ?? 0,
+              detail: "Only one required coverage side is present",
+              tone:
+                coverageQuery.isError || Number(data?.partiallyCoveredCounties || 0) > 0
+                  ? "warning"
+                  : "good",
+            },
+            {
+              label: "Full coverage",
+              value: coverageQuery.isError ? "—" : data?.fullyCoveredCounties ?? 0,
+              detail: `${data?.fullCoverageNewLast30 || 0} added in the last 30 days`,
+              tone: coverageQuery.isError ? "warning" : "good",
+            },
+          ]}
+        />
+      </AdminSection>
 
-          {!isLoading && !error && viewMode === "list" && (
-            <>
-              <div className="md:hidden space-y-2">
-                {filteredRows.map((row) => (
-                  <div
-                    key={row.countyFips}
-                    className="rounded-md border border-white/10 bg-black/30 p-3 space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-medium text-white">
-                          {row.countyName}, {row.stateCode}
-                        </div>
-                        <div className="text-[11px] text-white/60">FIPS {row.countyFips}</div>
-                      </div>
-                      <CoverageBadge status={row.coverageStatus} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <div className="rounded border border-white/10 bg-white/5 px-2 py-2">
-                        <div className="text-white/50">Territory managers</div>
-                        <div className="text-sm font-medium text-white">
-                          {row.territoryManagerCount}
-                        </div>
-                      </div>
-                      <div className="rounded border border-white/10 bg-white/5 px-2 py-2">
-                        <div className="text-white/50">Affiliates / partners</div>
-                        <div className="text-sm font-medium text-white">{row.affiliateCount}</div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {row.hasOpsNote && (
-                        <Badge
-                          variant="outline"
-                          className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]"
-                        >
-                          Ops
-                        </Badge>
-                      )}
-                      {row.hasRiskNote && (
-                        <Badge
-                          variant="outline"
-                          className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]"
-                        >
-                          Risk
-                        </Badge>
-                      )}
-                      {row.hasPartnerNote && (
-                        <Badge
-                          variant="outline"
-                          className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]"
-                        >
-                          Partner
-                        </Badge>
-                      )}
-                      {!row.hasNotes && <span className="text-[11px] text-white/60">No notes</span>}
-                    </div>
-                    <div className="text-[11px] text-white/60">
-                      Last change:{" "}
-                      {row.lastEntityChangeAt
-                        ? new Date(row.lastEntityChangeAt).toLocaleDateString()
-                        : "—"}
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2 text-[11px]"
-                        onClick={() => {
-                          setAssignCounty(row);
-                          setSelectedTmId("");
-                          setTmSearch("");
-                        }}
-                      >
-                        Assign TM
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2 text-[11px]"
-                        onClick={() => {
-                          setAssignAffiliateCounty(row);
-                          setSelectedAffiliateUserId("");
-                          setAffiliateSearch("");
-                          setAffiliateEntityType("affiliate");
-                        }}
-                      >
-                        Assign affiliate / partner
-                      </Button>
-                      <Link href={`/admin/geo/counties?view=map&fips=${row.countyFips}`}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-full px-2 text-[11px] text-white/70"
-                        >
-                          Open county detail
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
+      {data && data.totalCounties < 3000 ? (
+        <div className="flex flex-col gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-4 text-sm text-amber-100 md:flex-row md:items-center md:justify-between">
+          <div>
+            Only {data.totalCounties} counties are stored. Seed the built-in county dataset before
+            treating coverage as national.
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => seedMutation.mutate()}
+            disabled={seedMutation.isPending}
+            className="bg-amber-300 text-black hover:bg-amber-200"
+          >
+            {seedMutation.isPending ? "Seeding…" : "Seed counties"}
+          </Button>
+        </div>
+      ) : null}
+
+      <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "list" | "map")}>
+        <AdminWorkspaceSubnav>
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0">
+            <TabsTrigger
+              value="list"
+              className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white"
+            >
+              Coverage List
+            </TabsTrigger>
+            <TabsTrigger
+              value="map"
+              className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white"
+            >
+              County Map & Folder
+            </TabsTrigger>
+          </TabsList>
+        </AdminWorkspaceSubnav>
+
+        <AdminToolbar className="mt-6">
+          <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+            <div className="relative min-w-[15rem] flex-1 md:max-w-xl">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-white/28" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search county, state, or FIPS"
+                className="border-white/10 bg-black/20 pl-10 text-white placeholder:text-white/28"
+              />
+            </div>
+            <Select value={stateFilter} onValueChange={setStateFilter}>
+              <SelectTrigger className="w-[8rem] border-white/10 bg-black/20 text-white">
+                <SelectValue placeholder="State" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All states</SelectItem>
+                {stateOptions.map((state) => (
+                  <SelectItem key={state} value={state}>
+                    {state}
+                  </SelectItem>
                 ))}
-                {filteredRows.length === 0 && (
-                  <div className="rounded-md border border-white/10 bg-black/30 px-3 py-6 text-center text-[11px] text-white/60">
-                    No counties match the current filters.
-                  </div>
-                )}
-              </div>
+              </SelectContent>
+            </Select>
+            <Select
+              value={coverageFilter}
+              onValueChange={(value) => setCoverageFilter(value as CoverageFilter)}
+            >
+              <SelectTrigger className="w-[11rem] border-white/10 bg-black/20 text-white">
+                <SelectValue placeholder="Coverage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All coverage</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
+                <SelectItem value="full">Full</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={notesFilter}
+              onValueChange={(value) => setNotesFilter(value as NotesFilter)}
+            >
+              <SelectTrigger className="w-[10rem] border-white/10 bg-black/20 text-white">
+                <SelectValue placeholder="Notes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any notes</SelectItem>
+                <SelectItem value="ops">Ops note</SelectItem>
+                <SelectItem value="risk">Risk note</SelectItem>
+                <SelectItem value="partner">Partner note</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={territoryFilter}
+              onValueChange={(value) => setTerritoryFilter(value as TerritoryFilter)}
+            >
+              <SelectTrigger className="w-[11rem] border-white/10 bg-black/20 text-white">
+                <SelectValue placeholder="Territory manager" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any TM state</SelectItem>
+                <SelectItem value="yes">TM assigned</SelectItem>
+                <SelectItem value="no">No TM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-xs text-white/35">
+            {filteredRows.length} of {allRows.length} counties
+          </span>
+        </AdminToolbar>
 
-              <ScrollArea className="hidden md:block h-[480px] border border-white/10 rounded-md bg-black/30">
-                <table className="w-full text-xs">
-                  <thead className="bg-tsCard/95 text-white/60">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium">County</th>
-                      <th className="px-3 py-2 text-left font-medium">Coverage</th>
-                      <th className="px-3 py-2 text-left font-medium">Territory managers</th>
-                      <th className="px-3 py-2 text-left font-medium">Affiliates / partners</th>
-                      <th className="px-3 py-2 text-left font-medium">Notes</th>
-                      <th className="px-3 py-2 text-left font-medium">Last change</th>
-                      <th className="px-3 py-2 text-left font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRows.map((row) => (
-                      <tr
-                        key={row.countyFips}
-                        className="border-t border-white/10 hover:bg-tsCard/95"
-                      >
-                        <td className="px-3 py-2 align-top">
-                          <div className="font-medium text-white">
-                            {row.countyName}
-                            <span className="ml-1 text-[11px] text-white/60">
-                              ({row.stateCode})
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-white/60">FIPS {row.countyFips}</div>
-                        </td>
-                        <td className="px-3 py-2 align-top">
+        <TabsContent value="list" className="mt-4">
+          <AdminSection
+            title="Coverage by county"
+            description="Expand a county to assign coverage or open its complete operating folder."
+            className="pt-0"
+          >
+            {coverageQuery.isLoading ? (
+              <QueueLoading label="Loading county coverage…" />
+            ) : coverageQuery.isError ? (
+              <QueueUnavailable label="County coverage is unavailable. No coverage assignment was changed." />
+            ) : filteredRows.length ? (
+              <AdminList>
+                {filteredRows.map((row) => (
+                  <details key={row.countyFips} className="group">
+                    <summary
+                      onClick={() => setSelectedCountyFips(row.countyFips)}
+                      className="grid cursor-pointer list-none gap-4 px-3 py-4 transition-colors hover:bg-white/[0.025] sm:px-4 lg:grid-cols-[minmax(14rem,1.1fr)_minmax(9rem,0.45fr)_minmax(9rem,0.45fr)_minmax(9rem,0.45fr)_auto] lg:items-center [&::-webkit-details-marker]:hidden"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-white">
+                            {row.countyName}, {row.stateCode}
+                          </p>
                           <CoverageBadge status={row.coverageStatus} />
-                        </td>
-                        <td className="px-3 py-2 align-top">
-                          <div className="text-white">{row.territoryManagerCount}</div>
-                        </td>
-                        <td className="px-3 py-2 align-top">
-                          <div className="text-white">{row.affiliateCount}</div>
-                        </td>
-                        <td className="px-3 py-2 align-top space-y-1">
-                          {row.hasOpsNote && (
-                            <Badge
-                              variant="outline"
-                              className="border-amber-500/70 text-amber-400 px-1.5 py-0 text-[10px]"
-                            >
-                              Ops
+                        </div>
+                        <p className="mt-1 font-mono text-xs text-white/30">
+                          FIPS {row.countyFips}
+                        </p>
+                      </div>
+                      <MetricCell label="Territory managers" value={row.territoryManagerCount} />
+                      <MetricCell label="Affiliates / partners" value={row.affiliateCount} />
+                      <div className="text-sm text-white/52">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                          Last change
+                        </p>
+                        <p className="mt-1">{formatDate(row.lastEntityChangeAt)}</p>
+                      </div>
+                      <MapPinned className="h-4 w-4 text-white/30 transition-transform group-open:rotate-90" />
+                    </summary>
+                    <div className="border-t border-white/10 bg-white/[0.015] px-3 py-5 sm:px-4">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {row.hasOpsNote ? <NoteBadge label="Ops" tone="warning" /> : null}
+                          {row.hasRiskNote ? <NoteBadge label="Risk" tone="danger" /> : null}
+                          {row.hasPartnerNote ? <NoteBadge label="Partner" tone="good" /> : null}
+                          {!row.hasNotes ? (
+                            <Badge className="border-white/15 bg-white/5 text-white/45">
+                              No county notes
                             </Badge>
-                          )}
-                          {row.hasRiskNote && (
-                            <Badge
-                              variant="outline"
-                              className="border-red-500/70 text-red-400 px-1.5 py-0 text-[10px]"
-                            >
-                              Risk
-                            </Badge>
-                          )}
-                          {row.hasPartnerNote && (
-                            <Badge
-                              variant="outline"
-                              className="border-emerald-500/70 text-emerald-400 px-1.5 py-0 text-[10px]"
-                            >
-                              Partner
-                            </Badge>
-                          )}
-                          {!row.hasNotes && (
-                            <span className="text-[11px] text-white/60">No notes</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 align-top text-[11px] text-white/60">
-                          {row.lastEntityChangeAt
-                            ? new Date(row.lastEntityChangeAt).toLocaleDateString()
-                            : "—"}
-                        </td>
-                        <td className="px-3 py-2 align-top">
-                          <div className="flex flex-col gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 px-2 text-[11px]"
-                              onClick={() => {
-                                setAssignCounty(row);
-                                setSelectedTmId("");
-                                setTmSearch("");
-                              }}
-                            >
-                              Assign TM
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 px-2 text-[11px]"
-                              onClick={() => {
-                                setAssignAffiliateCounty(row);
-                                setSelectedAffiliateUserId("");
-                                setAffiliateSearch("");
-                                setAffiliateEntityType("affiliate");
-                              }}
-                            >
-                              Assign affiliate / partner
-                            </Button>
-                            <Link href={`/admin/geo/counties?view=map&fips=${row.countyFips}`}>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-[11px] text-white/70"
-                              >
-                                Open county detail
-                              </Button>
-                            </Link>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                    {filteredRows.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-[11px] text-white/60">
-                          No counties match the current filters.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </ScrollArea>
-            </>
-          )}
+                          ) : null}
+                          <Badge className="border-white/15 bg-white/5 text-white/45">
+                            Last note {formatDate(row.lastNoteAt)}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAssignCounty(row);
+                              setSelectedTmId("");
+                              setTmSearch("");
+                            }}
+                            className="border-white/12 bg-transparent text-white/65"
+                          >
+                            Assign territory manager
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAssignAffiliateCounty(row);
+                              setSelectedAffiliateUserId("");
+                              setAffiliateSearch("");
+                              setAffiliateEntityType("affiliate");
+                            }}
+                            className="border-white/12 bg-transparent text-white/65"
+                          >
+                            Assign affiliate / partner
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => openMapCounty(row)}
+                            className="bg-orange-500 text-black hover:bg-orange-400"
+                          >
+                            Open county folder
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+                ))}
+              </AdminList>
+            ) : (
+              <AdminEmptyState
+                title="No counties match these filters"
+                description="Change the county, state, coverage, notes, or territory-manager filter."
+              />
+            )}
+          </AdminSection>
+        </TabsContent>
 
-          {!isLoading && !error && viewMode === "map" && (
-            <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-3 py-2 min-w-0">
-              <div className="border border-white/10 rounded-md bg-black/30 md:h-[560px] max-h-[40vh] md:max-h-none overflow-auto">
-                <div className="px-3 py-2 border-b border-white/10 text-[11px] text-white/60">
-                  County blocks
-                </div>
-                {filteredRows.map((row) => {
-                  const isActive = row.countyFips === selectedCountyFips;
-                  return (
+        <TabsContent value="map" className="mt-4">
+          <AdminSection
+            title="County map and operating folder"
+            description="The map displays up to 180 filtered counties. Selecting a county opens its stored entities, notes, meetings, RSVPs, and interest records."
+            className="pt-0"
+          >
+            {coverageQuery.isLoading ? (
+              <QueueLoading label="Loading county map…" />
+            ) : coverageQuery.isError ? (
+              <QueueUnavailable label="County coverage is unavailable." />
+            ) : !filteredRows.length ? (
+              <AdminEmptyState
+                title="No counties match these filters"
+                description="Change the coverage filters before opening the map."
+              />
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
+                <div className="max-h-[42rem] overflow-auto border-y border-white/10">
+                  {filteredRows.map((row) => (
                     <button
                       key={row.countyFips}
                       type="button"
                       onClick={() => setSelectedCountyFips(row.countyFips)}
-                      className={`w-full text-left px-3 py-2 border-b border-white/5 text-xs transition ${
-                        isActive ? "bg-tsCard text-white" : "text-white/80 hover:bg-tsCard/70"
+                      className={`grid w-full gap-1 border-b border-white/10 px-3 py-3 text-left transition sm:px-4 ${
+                        row.countyFips === selectedCountyFips
+                          ? "bg-white/[0.07] text-white"
+                          : "text-white/58 hover:bg-white/[0.03]"
                       }`}
                     >
-                      <div className="font-medium">
+                      <span className="font-semibold">
                         {row.countyName}, {row.stateCode}
-                      </div>
-                      <div className="text-[10px] text-white/60">FIPS {row.countyFips}</div>
+                      </span>
+                      <span className="flex items-center justify-between gap-2 text-xs text-white/32">
+                        <span>FIPS {row.countyFips}</span>
+                        <CoverageBadge status={row.coverageStatus} />
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
-
-              <div className="border border-white/10 rounded-md bg-black/30 p-3 md:h-[560px] max-h-[70vh] md:max-h-none overflow-auto space-y-3 min-w-0">
-                <div className="rounded border border-white/10 bg-black/20 p-2">
-                  <div className="mb-2 text-[11px] text-white/60">
-                    Google Maps county coverage view
-                  </div>
-                  {mapsError ? (
-                    <div className="rounded border border-red-500/40 bg-red-950/30 px-3 py-2 text-xs text-red-200">
-                      {mapsError}
-                    </div>
-                  ) : (
-                    <div
-                      ref={mapContainerRef}
-                      className="h-[260px] w-full rounded border border-white/10"
-                    />
-                  )}
+                  ))}
                 </div>
 
-                {!selectedCounty ? (
-                  <div className="text-xs text-white/60">Choose a county to open its folder.</div>
-                ) : countyFolderLoading ? (
-                  <div className="text-xs text-white/60">Loading county folder...</div>
-                ) : !countyFolder ? (
-                  <div className="text-xs text-white/60">County folder data is unavailable.</div>
-                ) : (
-                  <>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-white">
-                          {countyFolder.county.countyName}, {countyFolder.county.stateCode}
-                        </div>
-                        <div className="text-[11px] text-white/60">
-                          FIPS {countyFolder.county.fips}
-                        </div>
+                <div className="min-w-0 space-y-5">
+                  <div className="border-y border-white/10 bg-black/20 p-3">
+                    <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                      Google Maps coverage view
+                    </p>
+                    {mapsError ? (
+                      <div className="flex items-start gap-3 border-y border-red-400/20 bg-red-400/5 px-4 py-5 text-sm text-red-100">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                        {mapsError}
                       </div>
-                      <Link href={`/admin/geo/counties?fips=${countyFolder.county.fips}`}>
-                        <Button size="sm" variant="outline" className="h-7 text-[11px]">
-                          Open county detail
-                        </Button>
-                      </Link>
-                    </div>
+                    ) : (
+                      <div ref={mapContainerRef} className="h-[22rem] w-full" />
+                    )}
+                  </div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-                      <MetricTile label="Notes" value={countyFolder.counts.notes} />
-                      <MetricTile label="Entities" value={countyFolder.counts.entities} />
-                      <MetricTile label="Meetings" value={countyFolder.counts.meetings} />
-                      <MetricTile label="RSVPs" value={countyFolder.counts.rsvps} />
-                      <MetricTile
-                        label="Interest"
-                        value={countyFolder.counts.interestSubmissions}
-                      />
-                    </div>
-
-                    <FolderSection title="On-site dates">
-                      {countyFolder.meetings.length === 0 ? (
-                        <div className="text-[11px] text-white/60">
-                          No meeting dates in this county yet.
-                        </div>
-                      ) : (
-                        countyFolder.meetings.slice(0, 10).map((meeting) => (
-                          <div
-                            key={`${meeting.partnerSlug}-${meeting.meetingId}`}
-                            className="text-[11px] text-white/80 border-b border-white/5 py-1"
-                          >
-                            <div className="font-medium">
-                              {meeting.meetingDate} {meeting.timeLabel || ""}
-                            </div>
-                            <div>{meeting.meetingCity || ""}</div>
-                            <div className="text-white/60">
-                              {meeting.addressLine1 || ""} {meeting.addressLine2 || ""}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </FolderSection>
-
-                    <FolderSection title="RSVP tracker">
-                      {countyFolder.rsvps.length === 0 ? (
-                        <div className="text-[11px] text-white/60">No RSVPs recorded.</div>
-                      ) : (
-                        countyFolder.rsvps.slice(0, 12).map((rsvp) => (
-                          <div
-                            key={String(rsvp.id)}
-                            className="text-[11px] text-white/80 border-b border-white/5 py-1"
-                          >
-                            <div className="font-medium">{rsvp.businessName}</div>
-                            <div>
-                              {rsvp.contactName} • {rsvp.contactEmail}
-                            </div>
-                            <div className="text-white/60">
-                              {rsvp.meetingDate || ""} {rsvp.timeLabel || ""} •{" "}
-                              {rsvp.attendanceStatus}
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </FolderSection>
-
-                    <FolderSection title="County notes">
-                      {countyFolder.notes.length === 0 ? (
-                        <div className="text-[11px] text-white/60">No county notes.</div>
-                      ) : (
-                        countyFolder.notes.slice(0, 8).map((note) => (
-                          <div
-                            key={note.id}
-                            className="text-[11px] text-white/80 border-b border-white/5 py-1"
-                          >
-                            <div className="uppercase tracking-wide text-[10px] text-white/60">
-                              {note.category}
-                            </div>
-                            <div className="whitespace-pre-wrap">{note.content}</div>
-                          </div>
-                        ))
-                      )}
-                    </FolderSection>
-                  </>
-                )}
+                  <CountyFolderPanel
+                    county={selectedCounty}
+                    query={folderQuery}
+                    onAssignTerritoryManager={(row) => {
+                      setAssignCounty(row);
+                      setSelectedTmId("");
+                      setTmSearch("");
+                    }}
+                    onAssignAffiliate={(row) => {
+                      setAssignAffiliateCounty(row);
+                      setSelectedAffiliateUserId("");
+                      setAffiliateSearch("");
+                      setAffiliateEntityType("affiliate");
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
+          </AdminSection>
+        </TabsContent>
+      </Tabs>
+
+      <TerritoryManagerDialog
+        county={assignCounty}
+        search={tmSearch}
+        onSearchChange={setTmSearch}
+        selectedUserId={selectedTmId}
+        onSelectedUserIdChange={setSelectedTmId}
+        users={territoryManagers}
+        usersLoading={usersQuery.isLoading}
+        pending={assignTerritoryManager.isPending}
+        onClose={() => {
+          setAssignCounty(null);
+          setSelectedTmId("");
+          setTmSearch("");
+        }}
+        onAssign={() => {
+          if (!assignCounty || !selectedTmId) return;
+          assignTerritoryManager.mutate({
+            countyFips: assignCounty.countyFips,
+            userId: selectedTmId,
+          });
+        }}
+      />
+
+      <AffiliateDialog
+        county={assignAffiliateCounty}
+        entityType={affiliateEntityType}
+        onEntityTypeChange={setAffiliateEntityType}
+        search={affiliateSearch}
+        onSearchChange={setAffiliateSearch}
+        selectedUserId={selectedAffiliateUserId}
+        onSelectedUserIdChange={setSelectedAffiliateUserId}
+        users={affiliates}
+        usersLoading={usersQuery.isLoading}
+        pending={assignAffiliateOrPartner.isPending}
+        onClose={() => {
+          setAssignAffiliateCounty(null);
+          setSelectedAffiliateUserId("");
+          setAffiliateSearch("");
+          setAffiliateEntityType("affiliate");
+        }}
+        onAssign={() => {
+          if (!assignAffiliateCounty || !selectedAffiliateUserId) return;
+          assignAffiliateOrPartner.mutate({
+            countyFips: assignAffiliateCounty.countyFips,
+            userId: selectedAffiliateUserId,
+            entityType: affiliateEntityType,
+          });
+        }}
+      />
+    </AdminWorkspace>
+  );
+}
+
+function CountyFolderPanel({
+  county,
+  query,
+  onAssignTerritoryManager,
+  onAssignAffiliate,
+}: {
+  county: CountyCoverageRow | null;
+  query: ReturnType<typeof useQuery<CountyFolderResponse>>;
+  onAssignTerritoryManager: (county: CountyCoverageRow) => void;
+  onAssignAffiliate: (county: CountyCoverageRow) => void;
+}) {
+  if (!county) {
+    return (
+      <AdminEmptyState
+        title="Choose a county"
+        description="Select a county from the map list to open its operating folder."
+      />
+    );
+  }
+  if (query.isLoading) return <QueueLoading label="Loading county folder…" />;
+  if (query.isError || !query.data) {
+    return <QueueUnavailable label="This county folder is unavailable." />;
+  }
+
+  const folder = query.data;
+  return (
+    <div className="space-y-6" data-testid="county-operating-folder">
+      <div className="flex flex-col gap-3 border-y border-white/10 px-3 py-4 sm:px-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-semibold text-white">
+              {folder.county.countyName}, {folder.county.stateCode}
+            </h3>
+            <CoverageBadge status={county.coverageStatus} />
+          </div>
+          <p className="mt-1 font-mono text-xs text-white/30">
+            FIPS {folder.county.fips} · {folder.county.countySlugs.join(", ") || "No slug"}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => onAssignTerritoryManager(county)}
+            className="border-white/12 bg-transparent text-white/65"
+          >
+            Assign territory manager
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => onAssignAffiliate(county)}
+            className="border-white/12 bg-transparent text-white/65"
+          >
+            Assign affiliate / partner
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid overflow-hidden border-y border-white/10 sm:grid-cols-2 xl:grid-cols-5">
+        <FolderMetric label="Notes" value={folder.counts.notes} />
+        <FolderMetric label="Entities" value={folder.counts.entities} />
+        <FolderMetric label="Meetings" value={folder.counts.meetings} />
+        <FolderMetric label="RSVPs" value={folder.counts.rsvps} />
+        <FolderMetric label="Interest" value={folder.counts.interestSubmissions} />
+      </div>
+
+      <div className="grid gap-7 xl:grid-cols-2">
+        <FolderSection title="Coverage entities">
+          {folder.entities.length ? (
+            <AdminList>
+              {folder.entities.map((entity) => (
+                <div
+                  key={entity.id}
+                  className="grid gap-2 px-3 py-3 text-sm sm:px-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+                >
+                  <div>
+                    <p className="font-semibold text-white">
+                      {entity.label || entity.id}
+                    </p>
+                    <p className="mt-1 text-xs text-white/35">
+                      {readable(entity.entityType)} · updated {formatDate(entity.updatedAt)}
+                    </p>
+                  </div>
+                  <Badge className="border-white/15 bg-white/5 text-white/55">
+                    {readable(entity.status)}
+                  </Badge>
+                </div>
+              ))}
+            </AdminList>
+          ) : (
+            <FolderEmpty>No coverage entities are stored.</FolderEmpty>
           )}
-        </CardContent>
-      </Card>
+        </FolderSection>
 
-      <Dialog
-        open={isAssignTmDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setAssignCounty(null);
-            setSelectedTmId("");
-            setTmSearch("");
-          }
-        }}
-      >
-        <DialogContent className="bg-tsBg border-white/10 max-w-md text-white">
-          <DialogHeader>
-            <DialogTitle className="text-sm text-white">Assign Territory Manager</DialogTitle>
-            <DialogDescription className="text-xs text-white/60">
-              Select a user with the Territory Manager role to map into the geographic storage layer
-              for this county.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {assignCounty && (
-              <div className="text-xs text-white/70">
-                <div className="font-medium">
-                  {assignCounty.countyName}{" "}
-                  <span className="text-white/60">({assignCounty.stateCode})</span>
+        <FolderSection title="County notes">
+          {folder.notes.length ? (
+            <AdminList>
+              {folder.notes.slice(0, 12).map((note) => (
+                <div key={note.id} className="px-3 py-3 sm:px-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+                    {readable(note.category)}
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white/58">
+                    {note.content}
+                  </p>
+                  <p className="mt-2 text-xs text-white/30">
+                    {formatDate(note.updatedAt || note.createdAt)}
+                  </p>
                 </div>
-                <div className="text-white/60">FIPS {assignCounty.countyFips}</div>
-              </div>
-            )}
+              ))}
+            </AdminList>
+          ) : (
+            <FolderEmpty>No county notes are stored.</FolderEmpty>
+          )}
+        </FolderSection>
 
-            <div className="space-y-1">
-              <span className="text-[11px] text-white/60">Search territory managers</span>
-              <Input
-                value={tmSearch}
-                onChange={(e) => setTmSearch(e.target.value)}
-                placeholder="Search by name or email"
-                className="h-8 text-xs bg-tsCard/95 border-white/10"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-[11px] text-white/60">Select territory manager</span>
-              <Select
-                value={selectedTmId}
-                onValueChange={(value) => setSelectedTmId(value)}
-                disabled={usersLoading || territoryManagers.length === 0}
-              >
-                <SelectTrigger className="h-8 text-xs bg-tsCard/95 border-white/10">
-                  <SelectValue
-                    placeholder={usersLoading ? "Loading users…" : "Choose a territory manager"}
-                  />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {territoryManagers.map((user) => {
-                    const name =
-                      `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
-                    return (
-                      <SelectItem key={user.id} value={user.id} className="text-xs">
-                        <div className="flex flex-col">
-                          <span>{name}</span>
-                          <span className="text-[10px] text-white/60">{user.email}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                  {territoryManagers.length === 0 && !usersLoading && (
-                    <div className="px-3 py-2 text-[11px] text-white/60">
-                      No users with the Territory Manager role were found.
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="mt-2 flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                setAssignCounty(null);
-                setSelectedTmId("");
-                setTmSearch("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              className="text-xs"
-              disabled={!assignCounty || !selectedTmId || assignTerritoryManager.isPending}
-              onClick={() => {
-                if (!assignCounty || !selectedTmId) return;
-                assignTerritoryManager.mutate({
-                  countyFips: assignCounty.countyFips,
-                  userId: selectedTmId,
-                });
-              }}
-            >
-              {assignTerritoryManager.isPending ? "Assigning…" : "Assign"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={isAssignAffiliateDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            setAssignAffiliateCounty(null);
-            setSelectedAffiliateUserId("");
-            setAffiliateSearch("");
-            setAffiliateEntityType("affiliate");
-          }
-        }}
-      >
-        <DialogContent className="bg-tsBg border-white/10 max-w-md text-white">
-          <DialogHeader>
-            <DialogTitle className="text-sm text-white">Assign Affiliate / Partner</DialogTitle>
-            <DialogDescription className="text-xs text-white/60">
-              Select a user with the Affiliate role to map into the geographic storage layer for
-              this county, as either an affiliate or a partner.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            {assignAffiliateCounty && (
-              <div className="text-xs text-white/70">
-                <div className="font-medium">
-                  {assignAffiliateCounty.countyName}{" "}
-                  <span className="text-white/60">({assignAffiliateCounty.stateCode})</span>
+        <FolderSection title="On-site dates">
+          {folder.meetings.length ? (
+            <AdminList>
+              {folder.meetings.slice(0, 12).map((meeting) => (
+                <div
+                  key={`${meeting.partnerSlug}-${meeting.meetingId}`}
+                  className="px-3 py-3 text-sm sm:px-4"
+                >
+                  <p className="font-semibold text-white">
+                    {meeting.eventLabel || meeting.partnerSlug}
+                  </p>
+                  <p className="mt-1 text-white/55">
+                    {meeting.meetingDate} {meeting.timeLabel || ""}
+                  </p>
+                  <p className="mt-1 text-xs text-white/35">
+                    {[meeting.meetingCity, meeting.addressLine1, meeting.addressLine2]
+                      .filter(Boolean)
+                      .join(" · ") || "Location not recorded"}
+                  </p>
                 </div>
-                <div className="text-white/60">FIPS {assignAffiliateCounty.countyFips}</div>
-              </div>
-            )}
+              ))}
+            </AdminList>
+          ) : (
+            <FolderEmpty>No on-site dates are stored.</FolderEmpty>
+          )}
+        </FolderSection>
 
-            <div className="space-y-1">
-              <span className="text-[11px] text-white/60">Entity type</span>
-              <Select
-                value={affiliateEntityType}
-                onValueChange={(value) => setAffiliateEntityType(value as AffiliateEntityType)}
-              >
-                <SelectTrigger className="h-8 text-xs bg-tsCard/95 border-white/10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="affiliate">Affiliate</SelectItem>
-                  <SelectItem value="partner">Partner</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <FolderSection title="RSVP tracker">
+          {folder.rsvps.length ? (
+            <AdminList>
+              {folder.rsvps.slice(0, 20).map((rsvp) => (
+                <div
+                  key={String(rsvp.id)}
+                  className="grid gap-2 px-3 py-3 text-sm sm:px-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+                >
+                  <div>
+                    <p className="font-semibold text-white">{rsvp.businessName}</p>
+                    <p className="mt-1 text-white/48">
+                      {rsvp.contactName} · {rsvp.contactEmail}
+                    </p>
+                    <p className="mt-1 text-xs text-white/32">
+                      {rsvp.meetingDate || "Date not recorded"} {rsvp.timeLabel || ""}
+                    </p>
+                  </div>
+                  <Badge className="border-white/15 bg-white/5 text-white/55">
+                    {readable(rsvp.attendanceStatus)}
+                  </Badge>
+                </div>
+              ))}
+            </AdminList>
+          ) : (
+            <FolderEmpty>No RSVPs are stored.</FolderEmpty>
+          )}
+        </FolderSection>
 
-            <div className="space-y-1">
-              <span className="text-[11px] text-white/60">Search affiliates</span>
-              <Input
-                value={affiliateSearch}
-                onChange={(e) => setAffiliateSearch(e.target.value)}
-                placeholder="Search by name or email"
-                className="h-8 text-xs bg-tsCard/95 border-white/10"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-[11px] text-white/60">Select affiliate</span>
-              <Select
-                value={selectedAffiliateUserId}
-                onValueChange={(value) => setSelectedAffiliateUserId(value)}
-                disabled={usersLoading || affiliateUsers.length === 0}
-              >
-                <SelectTrigger className="h-8 text-xs bg-tsCard/95 border-white/10">
-                  <SelectValue
-                    placeholder={usersLoading ? "Loading users…" : "Choose an affiliate user"}
-                  />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {affiliateUsers.map((user) => {
-                    const name =
-                      `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
-                    return (
-                      <SelectItem key={user.id} value={user.id} className="text-xs">
-                        <div className="flex flex-col">
-                          <span>{name}</span>
-                          <span className="text-[10px] text-white/60">{user.email}</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                  {affiliateUsers.length === 0 && !usersLoading && (
-                    <div className="px-3 py-2 text-[11px] text-white/60">
-                      No users with the Affiliate role were found.
-                    </div>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter className="mt-2 flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs"
-              onClick={() => {
-                setAssignAffiliateCounty(null);
-                setSelectedAffiliateUserId("");
-                setAffiliateSearch("");
-                setAffiliateEntityType("affiliate");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              className="text-xs"
-              disabled={
-                !assignAffiliateCounty ||
-                !selectedAffiliateUserId ||
-                assignAffiliateOrPartner.isPending
-              }
-              onClick={() => {
-                if (!assignAffiliateCounty || !selectedAffiliateUserId) return;
-                assignAffiliateOrPartner.mutate({
-                  countyFips: assignAffiliateCounty.countyFips,
-                  userId: selectedAffiliateUserId,
-                  entityType: affiliateEntityType,
-                });
-              }}
-            >
-              {assignAffiliateOrPartner.isPending ? "Assigning…" : "Assign"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <FolderSection title="Interest submissions">
+          {folder.interestSubmissions.length ? (
+            <AdminList>
+              {folder.interestSubmissions.slice(0, 20).map((submission) => (
+                <div key={String(submission.id)} className="px-3 py-3 text-sm sm:px-4">
+                  <p className="font-semibold text-white">{submission.businessName}</p>
+                  <p className="mt-1 text-white/48">{submission.contactName}</p>
+                  <p className="mt-1 text-xs text-white/32">
+                    {readable(submission.serviceCategory)} · {formatDate(submission.createdAt)}
+                  </p>
+                </div>
+              ))}
+            </AdminList>
+          ) : (
+            <FolderEmpty>No interest submissions are stored.</FolderEmpty>
+          )}
+        </FolderSection>
+      </div>
     </div>
   );
 }
 
-function MetricTile({ label, value }: { label: string; value: number }) {
+function TerritoryManagerDialog({
+  county,
+  search,
+  onSearchChange,
+  selectedUserId,
+  onSelectedUserIdChange,
+  users,
+  usersLoading,
+  pending,
+  onClose,
+  onAssign,
+}: {
+  county: CountyCoverageRow | null;
+  search: string;
+  onSearchChange: (value: string) => void;
+  selectedUserId: string;
+  onSelectedUserIdChange: (value: string) => void;
+  users: AdminUserSummary[];
+  usersLoading: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onAssign: () => void;
+}) {
   return (
-    <div className="rounded border border-white/10 bg-black/20 px-2 py-1">
-      <div className="text-[10px] uppercase tracking-wide text-white/60">{label}</div>
-      <div className="text-sm font-semibold text-white">{value}</div>
+    <Dialog open={Boolean(county)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md border-white/10 bg-[#090a0b] text-white">
+        <DialogHeader>
+          <DialogTitle>Assign territory manager</DialogTitle>
+          <DialogDescription className="text-white/48">
+            Add a user with the Territory Manager role to this county's geographic record.
+          </DialogDescription>
+        </DialogHeader>
+        <AssignmentCounty county={county} />
+        <Input
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="Search by name or email"
+          className="border-white/10 bg-black/20 text-white"
+        />
+        <Select
+          value={selectedUserId}
+          onValueChange={onSelectedUserIdChange}
+          disabled={usersLoading || !users.length}
+        >
+          <SelectTrigger className="border-white/10 bg-black/20 text-white">
+            <SelectValue
+              placeholder={usersLoading ? "Loading users…" : "Choose a territory manager"}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map((user) => (
+              <SelectItem key={user.id} value={user.id}>
+                {userLabel(user)} · {user.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!usersLoading && !users.length ? (
+          <p className="text-sm text-amber-100">
+            No user with the Territory Manager role matches this search.
+          </p>
+        ) : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={onAssign}
+            disabled={!county || !selectedUserId || pending}
+            className="bg-orange-500 text-black hover:bg-orange-400"
+          >
+            {pending ? "Assigning…" : "Assign"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AffiliateDialog({
+  county,
+  entityType,
+  onEntityTypeChange,
+  search,
+  onSearchChange,
+  selectedUserId,
+  onSelectedUserIdChange,
+  users,
+  usersLoading,
+  pending,
+  onClose,
+  onAssign,
+}: {
+  county: CountyCoverageRow | null;
+  entityType: AffiliateEntityType;
+  onEntityTypeChange: (value: AffiliateEntityType) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  selectedUserId: string;
+  onSelectedUserIdChange: (value: string) => void;
+  users: AdminUserSummary[];
+  usersLoading: boolean;
+  pending: boolean;
+  onClose: () => void;
+  onAssign: () => void;
+}) {
+  return (
+    <Dialog open={Boolean(county)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md border-white/10 bg-[#090a0b] text-white">
+        <DialogHeader>
+          <DialogTitle>Assign affiliate or partner</DialogTitle>
+          <DialogDescription className="text-white/48">
+            Add a user with the Affiliate role to this county as an affiliate or partner.
+          </DialogDescription>
+        </DialogHeader>
+        <AssignmentCounty county={county} />
+        <Select
+          value={entityType}
+          onValueChange={(value) => onEntityTypeChange(value as AffiliateEntityType)}
+        >
+          <SelectTrigger className="border-white/10 bg-black/20 text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="affiliate">Affiliate</SelectItem>
+            <SelectItem value="partner">Partner</SelectItem>
+          </SelectContent>
+        </Select>
+        <Input
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder="Search by name or email"
+          className="border-white/10 bg-black/20 text-white"
+        />
+        <Select
+          value={selectedUserId}
+          onValueChange={onSelectedUserIdChange}
+          disabled={usersLoading || !users.length}
+        >
+          <SelectTrigger className="border-white/10 bg-black/20 text-white">
+            <SelectValue placeholder={usersLoading ? "Loading users…" : "Choose an affiliate"} />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map((user) => (
+              <SelectItem key={user.id} value={user.id}>
+                {userLabel(user)} · {user.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!usersLoading && !users.length ? (
+          <p className="text-sm text-amber-100">
+            No user with the Affiliate role matches this search.
+          </p>
+        ) : null}
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={onAssign}
+            disabled={!county || !selectedUserId || pending}
+            className="bg-orange-500 text-black hover:bg-orange-400"
+          >
+            {pending ? "Assigning…" : "Assign"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssignmentCounty({ county }: { county: CountyCoverageRow | null }) {
+  if (!county) return null;
+  return (
+    <div className="border-y border-white/10 px-3 py-3 text-sm text-white/58">
+      <p className="font-semibold text-white">
+        {county.countyName}, {county.stateCode}
+      </p>
+      <p className="mt-1 font-mono text-xs text-white/30">FIPS {county.countyFips}</p>
+    </div>
+  );
+}
+
+function MetricCell({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+        {label}
+      </p>
+      <p className="mt-2 text-lg font-semibold text-white/72">{value}</p>
+    </div>
+  );
+}
+
+function FolderMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="border-b border-white/10 px-4 py-4 last:border-b-0 sm:border-r sm:last:border-r-0 xl:border-b-0">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+        {label}
+      </p>
+      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
     </div>
   );
 }
 
 function FolderSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded border border-white/10 bg-black/20 p-2">
-      <div className="text-[11px] font-semibold text-white mb-1">{title}</div>
-      <div className="space-y-1">{children}</div>
+    <section>
+      <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+        {title}
+      </p>
+      {children}
+    </section>
+  );
+}
+
+function FolderEmpty({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-y border-dashed border-white/12 px-3 py-6 text-sm text-white/38">
+      {children}
     </div>
   );
+}
+
+function NoteBadge({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "warning" | "danger" | "good";
+}) {
+  const classes =
+    tone === "danger"
+      ? "border-red-400/25 bg-red-400/10 text-red-100"
+      : tone === "good"
+        ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
+        : "border-amber-400/25 bg-amber-400/10 text-amber-100";
+  return <Badge className={classes}>{label}</Badge>;
 }
 
 function CoverageBadge({ status }: { status: CountyCoverageStatus }) {
   if (status === "full") {
     return (
-      <Badge className="bg-emerald-600/80 text-emerald-50 border-emerald-500/80 px-2 py-0.5 text-[11px]">
+      <Badge className="border-emerald-400/25 bg-emerald-400/10 text-emerald-200">
         Full
       </Badge>
     );
   }
   if (status === "partial") {
     return (
-      <Badge
-        variant="outline"
-        className="border-amber-500/80 text-amber-300 px-2 py-0.5 text-[11px]"
-      >
+      <Badge className="border-amber-400/25 bg-amber-400/10 text-amber-100">
         Partial
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="border-red-500/80 text-red-300 px-2 py-0.5 text-[11px]">
-      Unassigned
-    </Badge>
+    <Badge className="border-red-400/25 bg-red-400/10 text-red-100">Unassigned</Badge>
+  );
+}
+
+function QueueLoading({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-44 items-center justify-center border-y border-white/10 text-sm text-white/45">
+      <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+      {label}
+    </div>
+  );
+}
+
+function QueueUnavailable({ label }: { label: string }) {
+  return (
+    <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+      {label}
+    </div>
   );
 }
