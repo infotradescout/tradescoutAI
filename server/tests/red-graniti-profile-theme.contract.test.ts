@@ -10,17 +10,16 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("R.E.D. Graniti website-style TradeScout profile", () => {
-  it("routes the exact profile to its dedicated company experience", () => {
+  it("routes the exact profile to its dedicated website recreation", () => {
     const wrapper = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const adapter = read("client/src/data/profileSiteContentAdapters.ts");
 
     expect(wrapper).toContain(
-      'import RedGranitiProfileTheme from "./RedGranitiProfileTheme"'
+      'import RedGranitiWebsiteProfile from "./RedGranitiWebsiteProfile"'
     );
     expect(wrapper).toContain("normalizedSlug === RED_GRANITI_PROFILE_SLUG");
-    expect(wrapper).toContain("<RedGranitiProfileTheme");
-    expect(wrapper).toContain("profileShareDestination={props.profileShareDestination}");
-    expect(wrapper).toContain("trustActions={props.trustActions}");
+    expect(wrapper).toContain("<RedGranitiWebsiteProfile");
+    expect(wrapper).not.toContain("RedGranitiInteractionBoundary");
 
     expect(adapter).toContain("const redGranitiContentAdapter");
     expect(adapter).toContain('id: "wholesaler"');
@@ -28,19 +27,20 @@ describe("R.E.D. Graniti website-style TradeScout profile", () => {
   });
 
   it("recreates the official website structure instead of using generic profile cards", () => {
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
-    expect(theme).toContain('data-testid="red-graniti-profile-theme"');
-    expect(theme).toContain('data-presentation="official-website-recreation"');
-    expect(theme).toContain('data-testid="red-graniti-managed-contact-strip"');
-    expect(theme).toContain('data-testid="red-graniti-website-hero"');
-    expect(theme).toContain('data-testid="red-graniti-business-areas"');
-    expect(theme).toContain('data-testid="red-graniti-world-and-quarries"');
-    expect(theme).toContain('data-testid="red-graniti-home-actions"');
-    expect(theme).toContain('data-testid="red-graniti-projects"');
-    expect(theme).toContain('data-testid="red-graniti-contact-and-quotation"');
-    expect(theme).toContain('data-testid="red-graniti-managed-contact"');
-    expect(theme).toContain('data-testid="red-graniti-first-cut-relationship"');
+    expect(profile).toContain('data-testid="red-graniti-website-profile"');
+    expect(profile).toContain('data-presentation="official-website-recreation"');
+    expect(profile).toContain('data-testid="red-graniti-managed-contact-strip"');
+    expect(profile).toContain('data-testid="red-graniti-website-hero"');
+    expect(profile).toContain('data-testid="red-graniti-business-areas"');
+    expect(profile).toContain('data-testid="red-graniti-world-and-quarries"');
+    expect(profile).toContain('data-testid="red-graniti-home-actions"');
+    expect(profile).toContain('data-testid="red-graniti-projects"');
+    expect(profile).toContain('data-testid="red-graniti-contact-and-quotation"');
+    expect(profile).toContain('data-testid="red-graniti-managed-contact"');
+    expect(profile).toContain('data-testid="red-graniti-inline-quotation"');
+    expect(profile).toContain('data-testid="red-graniti-first-cut-relationship"');
 
     for (const websiteHeading of [
       "FOR OVER 50 YEARS",
@@ -54,37 +54,36 @@ describe("R.E.D. Graniti website-style TradeScout profile", () => {
       "HEADQUARTER",
       "REQUEST QUOTATION",
     ]) {
-      expect(theme).toContain(websiteHeading);
+      expect(profile).toContain(websiteHeading);
     }
 
-    expect(theme).toContain("home-hero.svg");
-    expect(theme).toContain("business-blocks.svg");
-    expect(theme).toContain("business-slabs.svg");
-    expect(theme).toContain("business-distribution.svg");
-    expect(theme).toContain("project-lincoln-memorial.svg");
+    expect(profile).toContain("home-hero.svg");
+    expect(profile).toContain("business-blocks.svg");
+    expect(profile).toContain("business-slabs.svg");
+    expect(profile).toContain("business-distribution.svg");
+    expect(profile).toContain("project-lincoln-memorial.svg");
 
-    expect(theme).not.toContain('data-testid="red-graniti-profile-identity"');
-    expect(theme).not.toContain("rounded-2xl border border-[var(--red-line)]");
-    expect(theme).not.toContain("About R.E.D. Graniti");
-    expect(theme).not.toContain("Italian offices, yards and warehouse");
-    expect(theme).not.toContain("Natural stone, controlled from quarry to market");
+    expect(profile).not.toContain('data-testid="red-graniti-profile-identity"');
+    expect(profile).not.toContain("About R.E.D. Graniti");
+    expect(profile).not.toContain("Italian offices, yards and warehouse");
+    expect(profile).not.toContain("Natural stone, controlled from quarry to market");
   });
 
   it("keeps plain Call and Start a Request actions throughout the recreated site", () => {
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
-    expect(theme).toContain('data-testid="red-graniti-primary-call"');
-    expect(theme).toContain('data-testid="red-graniti-primary-request"');
-    expect(theme).toContain('data-testid="red-graniti-mobile-call"');
-    expect(theme).toContain('data-testid="red-graniti-mobile-request"');
-    expect(theme).toContain("Call");
-    expect(theme).toContain("Start a Request");
-    expect(theme).toContain("Get a quotation now");
-    expect(theme).not.toContain("Call JW Stone");
+    expect(profile).toContain('data-testid="red-graniti-primary-call"');
+    expect(profile).toContain('data-testid="red-graniti-mobile-call"');
+    expect(profile).toContain('data-testid="red-graniti-submit-request"');
+    expect(profile).toContain("Call");
+    expect(profile).toContain("Start a Request");
+    expect(profile).toContain("Send request");
+    expect(profile).not.toContain("Call JW Stone");
+    expect(profile).not.toContain("Get a quotation now");
   });
 
   it("shows the TradeScout-managed phone and email instead of R.E.D. corporate contact", () => {
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
     expect(RED_GRANITI_MANAGED_CONTACT).toEqual({
       label: "TradeScout managed contact",
@@ -94,78 +93,64 @@ describe("R.E.D. Graniti website-style TradeScout profile", () => {
       email: "contact@thetradescout.com",
       description: "Calls and messages from this profile are handled through TradeScout.",
     });
-    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.label");
-    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.phone");
-    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.email");
-    expect(theme).toContain("RED_GRANITI_MANAGED_CONTACT.tel");
-    expect(theme).toContain("Massa headquarters");
-    expect(theme).not.toContain('href="tel:+39058588471"');
-    expect(theme).not.toContain("info@redgraniti.com");
-    expect(theme).not.toContain("identity.headquarters.phone");
-    expect(theme).not.toContain("identity.headquarters.email");
+    expect(profile).toContain("RED_GRANITI_MANAGED_CONTACT.label");
+    expect(profile).toContain("RED_GRANITI_MANAGED_CONTACT.phone");
+    expect(profile).toContain("RED_GRANITI_MANAGED_CONTACT.email");
+    expect(profile).toContain("RED_GRANITI_MANAGED_CONTACT.tel");
+    expect(profile).toContain("Massa headquarters");
+    expect(profile).not.toContain('href="tel:+39058588471"');
+    expect(profile).not.toContain("info@redgraniti.com");
     expect(JSON.stringify(RED_GRANITI_PUBLIC_IDENTITY.headquarters)).not.toMatch(
       /info@redgraniti\.com|0585 88471|0585 884848/
     );
   });
 
-  it("keeps the JW relationship secondary and out of R.E.D.'s main identity", () => {
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
-    const panel = read("client/src/pages/profile-sites/RedGranitiDirectConnectPanel.tsx");
-    const protectedContact = read(
-      "client/src/pages/profile-sites/redGranitiProtectedContact.ts"
-    );
+  it("keeps the JW relationship secondary and out of R.E.D.'s main navigation", () => {
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
-    expect(theme).toContain("identity.partnership.relationshipLabel");
-    expect(theme).toContain("identity.partnership.description");
-    expect(theme).toContain("View {JW_STONE_PUBLIC_IDENTITY.brandName}");
-    expect(theme.indexOf('data-testid="red-graniti-first-cut-relationship"')).toBeGreaterThan(
-      theme.indexOf('data-testid="red-graniti-contact-and-quotation"')
+    expect(profile).toContain("identity.partnership.relationshipLabel");
+    expect(profile).toContain("identity.partnership.description");
+    expect(profile).toContain("View {JW_STONE_PUBLIC_IDENTITY.brandName}");
+    expect(profile.indexOf('data-testid="red-graniti-first-cut-relationship"')).toBeGreaterThan(
+      profile.indexOf('data-testid="red-graniti-contact-and-quotation"')
     );
-
-    expect(protectedContact).toContain(
-      '`/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-contact/reveal`'
+    expect(profile.indexOf("View {JW_STONE_PUBLIC_IDENTITY.brandName}")).toBeGreaterThan(
+      profile.indexOf("REQUEST QUOTATION")
     );
-    expect(protectedContact).toContain('authorityGate: "profile_direct_connect"');
-    expect(protectedContact).toContain('decision: "call"');
-    expect(protectedContact).toContain("window.location.href = result.tel");
-
-    expect(panel).toContain(
-      'import { revealJwStoneProtectedCall } from "@/pages/profile-sites/redGranitiProtectedContact"'
-    );
-    expect(panel).toContain('initialView !== "call"');
-    expect(panel).toContain("const result = await revealJwStoneProtectedCall()");
-    expect(panel).toContain("window.location.href = result.tel");
-    expect(panel).toContain("First-cut calls and requests are handled by JW Stone");
-    expect(panel).not.toContain("Contact JW Stone");
+    expect(profile).not.toContain("Call JW Stone");
   });
 
-  it("uses a dedicated first-cut request that assigns the work to JW Stone", () => {
-    const panel = read("client/src/pages/profile-sites/RedGranitiDirectConnectPanel.tsx");
+  it("uses a dedicated inline first-cut request that assigns the work to JW Stone", () => {
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
-    expect(panel).toContain(
+    expect(profile).toContain(
       '`/api/tradepartner-profiles/${JW_STONE_PROFILE_SLUG}/express-request`'
     );
-    expect(panel).toContain('requestType: "request_material"');
-    expect(panel).toContain('serviceName: "R.E.D. Graniti first-cut distribution"');
-    expect(panel).toContain("Send Request");
-    expect(panel).toContain("R.E.D. material or stone need");
-    expect(panel).toContain("Needed format");
-    expect(panel).toContain("Quantity or dimensions");
-    expect(panel).toContain("Delivery destination");
-    expect(panel).toContain("Needed timing");
-    expect(panel).toContain("Project details");
-    expect(panel).not.toContain("schedule_showroom");
-    expect(panel).not.toContain("ask_about_bundle");
+    expect(profile).toContain('requestType: "request_material"');
+    expect(profile).toContain(
+      'serviceName: "R.E.D. Graniti first-cut distribution"'
+    );
+    expect(profile).toContain("Customer type");
+    expect(profile).toContain("Needed format");
+    expect(profile).toContain("Quantity or dimensions");
+    expect(profile).toContain("Delivery destination");
+    expect(profile).toContain("Needed timing");
+    expect(profile).toContain("Project details");
+    expect(profile).toContain("Request sent.");
+    expect(profile).not.toContain("schedule_showroom");
+    expect(profile).not.toContain("ask_about_bundle");
+    expect(profile).not.toContain("requestWorkspacePath");
+    expect(profile).not.toContain("/direct-connect?");
   });
 
   it("uses company language grounded in R.E.D. Graniti's real public position", () => {
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
     const serialized = JSON.stringify(RED_GRANITI_PUBLIC_IDENTITY);
 
-    expect(theme).toContain("checked, controlled, and cataloged");
-    expect(theme).toContain("major luxury-stone markets around the world");
-    expect(theme).toContain("Europe, Africa, Asia, and the Americas");
-    expect(theme).toContain("South Africa, Namibia, Zimbabwe, Madagascar, Brazil");
+    expect(profile).toContain("checked, controlled, and cataloged");
+    expect(profile).toContain("natural-stone markets around the world");
+    expect(profile).toContain("Europe, Africa, Asia, and the Americas");
+    expect(profile).toContain("South Africa, Namibia, Zimbabwe, Madagascar, Brazil");
     expect(RED_GRANITI_PUBLIC_IDENTITY.summary).toContain("more than 50 years");
     expect(RED_GRANITI_PUBLIC_IDENTITY.qualityStatement).toContain(
       "Every block is checked, controlled, and cataloged"
@@ -175,15 +160,16 @@ describe("R.E.D. Graniti website-style TradeScout profile", () => {
     );
   });
 
-  it("keeps the company website recreation separate from JW inventory", () => {
-    const theme = read("client/src/pages/profile-sites/RedGranitiProfileTheme.tsx");
-    const panel = read("client/src/pages/profile-sites/RedGranitiDirectConnectPanel.tsx");
+  it("keeps the company website recreation separate from inventory and generic TradeScout UI", () => {
+    const profile = read("client/src/pages/profile-sites/RedGranitiWebsiteProfile.tsx");
 
-    expect(theme).not.toContain("JW_STONE_CATALOG");
-    expect(theme).not.toContain("inventoryCatalog");
-    expect(theme).not.toContain("slab count");
-    expect(theme).not.toContain("bundle count");
-    expect(panel).not.toContain("JW_STONE_CATALOG");
-    expect(panel).not.toContain("inventoryCatalog");
+    expect(profile).not.toContain("JW_STONE_CATALOG");
+    expect(profile).not.toContain("inventoryCatalog");
+    expect(profile).not.toContain("slab count");
+    expect(profile).not.toContain("bundle count");
+    expect(profile).not.toContain("trustActions");
+    expect(profile).not.toContain("ShareButton");
+    expect(profile).not.toContain("TradeScoutProfileHandoff");
+    expect(profile).not.toContain("Direct Connect");
   });
 });
