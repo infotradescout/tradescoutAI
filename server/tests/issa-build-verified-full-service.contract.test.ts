@@ -7,20 +7,23 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("ISSA Build verified full-service profile", () => {
-  it("records ISSA Build as fully verified without weakening the TradeScout inquiry funnel", () => {
+  it("records ISSA Build as 100% verified without weakening the TradeScout inquiry funnel", () => {
     const normalizer = read("server/services/issaBuildVerifiedProfileNormalization.ts");
 
     expect(normalizer).toContain('ISSA_BUILD_VERIFICATION_STATUS = "fully_verified"');
+    expect(normalizer).toContain('verification_percent: 100');
+    expect(normalizer).toContain('verification_label: "100% Verified by TradeScout"');
     expect(normalizer).toContain('"business_identity", "full_service_capability"');
     expect(normalizer).toContain('request_routing: "tradescout_managed_inquiry_funnel"');
     expect(normalizer).toContain('service_delivery: "issa_build"');
     expect(normalizer).toContain('label: "Start a Request"');
-    expect(normalizer).toContain("Verified by TradeScout");
+    expect(normalizer).toContain("100% Verified by TradeScout");
   });
 
-  it("publishes the complete ISSA Build operating scope", () => {
+  it("publishes and discovers the complete ISSA Build operating scope", () => {
     const normalizer = read("server/services/issaBuildVerifiedProfileNormalization.ts");
 
+    expect(normalizer).toContain("publicDiscoveryEnabled: true");
     for (const fact of [
       "Material selection",
       "Custom onyx fabrication",
@@ -33,7 +36,7 @@ describe("ISSA Build verified full-service profile", () => {
     }
 
     expect(normalizer).toContain(
-      "TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation."
+      "TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation"
     );
   });
 
