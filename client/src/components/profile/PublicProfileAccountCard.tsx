@@ -18,10 +18,12 @@ type ProfileAccountRecord = Readonly<{
   id: string;
   profileSlug: string;
   profileName: string;
-  businessProfileId: string;
-  businessName: string;
+  identityKind: "user" | "business";
+  businessProfileId: string | null;
+  businessName: string | null;
+  priorityKey: string;
   status: "active" | "suspended" | "closed";
-  verificationStatus: "pending" | "approved" | "rejected";
+  verificationStatus: "not_required" | "pending" | "approved" | "rejected";
   resumePath: string;
   lastSeenAt: string | null;
   bidRockIncluded: boolean;
@@ -115,18 +117,24 @@ export function PublicProfileAccountCard({
     };
   }, [profileSlug]);
 
-  const continueThroughBusinessSetup = () => {
+  const continueThroughAccountSetup = () => {
     if (typeof window === "undefined") return;
     const destination = new URL("/pre-scout-setup", getCanonicalAppOrigin());
     destination.searchParams.set("mode", "create");
-    destination.searchParams.set("presence", "business");
+    if (data?.policy.requiredIdentity === "business") {
+      destination.searchParams.set("presence", "business");
+    }
     destination.searchParams.set("next", buildProfileAccountReturnPath(profileSlug));
     window.location.assign(destination.toString());
   };
 
   const createAccount = async () => {
-    if (!hasViewerSession || data?.requiresBusinessSetup) {
-      continueThroughBusinessSetup();
+    if (!hasViewerSession) {
+      continueThroughAccountSetup();
+      return;
+    }
+    if (data?.policy.requiredIdentity === "business" && data.requiresBusinessSetup) {
+      continueThroughAccountSetup();
       return;
     }
     if (submitting) return;
@@ -146,7 +154,7 @@ export function PublicProfileAccountCard({
       });
       const payload = await readJson(response);
       if (response.status === 401 || payload.requiresBusinessSetup === true) {
-        continueThroughBusinessSetup();
+        continueThroughAccountSetup();
         return;
       }
       if (!response.ok) {
@@ -179,13 +187,19 @@ export function PublicProfileAccountCard({
       clearResumeQuery();
       return;
     }
-    if (data.viewerBusiness && !data.requiresBusinessSetup) {
+    if (data.policy.requiredIdentity === "user" || !data.requiresBusinessSetup) {
       void createAccount();
     }
   }, [data, hasViewerSession]);
 
   const connected = data?.account?.status === "active";
-  const pendingVerification = data?.account?.verificationStatus === "pending";
+  const pendingVerification =
+    data?.account?.identityKind === "business" &&
+    data.account.verificationStatus === "pending";
+  const connectedDescription =
+    data?.account?.identityKind === "business"
+      ? `${data.account.businessName || "Your business"} is connected to ${profileName}.`
+      : `Your TradeScout account is connected to ${profileName}.`;
 
   return (
     <section
@@ -247,9 +261,7 @@ export function PublicProfileAccountCard({
       ) : data ? (
         <>
           <p className={cn("mt-4 text-sm leading-6", isDark ? "text-white/70" : "text-stone-600")}>
-            {connected
-              ? `${data.account?.businessName || "Your business"} is connected to ${profileName}.`
-              : `Businesses can create an account with ${profileName} using their TradeScout business identity.`}
+            {connected ? connectedDescription : data.policy.description}
           </p>
 
           {connected ? (
