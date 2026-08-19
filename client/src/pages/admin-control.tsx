@@ -1,14 +1,31 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Shield, TestTube2, ToggleLeft, Mail } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Mail,
+  RefreshCw,
+  Shield,
+  TestTube2,
+  ToggleLeft,
+} from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminList,
+  AdminSection,
+  AdminSummaryStrip,
+  AdminWorkspace,
+  AdminWorkspaceSubnav,
+} from "@/admin/AdminWorkspace";
 import { AuthorityOperations } from "@/components/admin/AuthorityOperations";
 import FeatureTogglePanel from "@/components/admin/FeatureTogglePanel";
-import AdminTestingControls from "@/pages/admin-testing-controls";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { isSuperAdminLike } from "@/lib/roleChecks";
+import AdminTestingControls from "@/pages/admin-testing-controls";
 
 type DecisionCardMetrics = {
   available?: boolean;
@@ -35,22 +52,10 @@ type EmailDiagnostics = {
 };
 
 type ProgressiveExposureSummary = {
-  window: {
-    from: string;
-    to: string;
-  };
+  window: { from: string; to: string };
   totalEvents: number;
-  tiers: {
-    0: number;
-    1: number;
-    2: number;
-    3: number;
-    unknown: number;
-  };
-  topReasons: Array<{
-    reason: string;
-    count: number;
-  }>;
+  tiers: { 0: number; 1: number; 2: number; 3: number; unknown: number };
+  topReasons: Array<{ reason: string; count: number }>;
   signals: {
     avgAccountAgeDays: number;
     avgMeaningfulActivityCount: number;
@@ -83,405 +88,386 @@ type ProgressiveExposureSummary = {
 };
 
 type ProgressiveExposureTimeline = {
-  window: {
-    from: string;
-    to: string;
-  };
+  window: { from: string; to: string };
   points: Array<{
     day: string;
-    tiers: {
-      0: number;
-      1: number;
-      2: number;
-      3: number;
-      unknown: number;
-    };
+    tiers: { 0: number; 1: number; 2: number; 3: number; unknown: number };
     total: number;
   }>;
 };
 
+function formatDate(value: unknown): string {
+  if (!value) return "Not recorded";
+  const date = new Date(value as string | number | Date);
+  return Number.isFinite(date.getTime()) ? date.toLocaleDateString() : "Invalid date";
+}
+
+function PassState({ pass, label }: { pass: boolean; label: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-3 py-3 text-sm sm:px-4">
+      <span className="text-white/55">{label}</span>
+      <span className={pass ? "inline-flex items-center gap-2 text-emerald-200" : "inline-flex items-center gap-2 text-amber-100"}>
+        {pass ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+        {pass ? "Pass" : "Not ready"}
+      </span>
+    </div>
+  );
+}
+
 export default function AdminControl() {
   const { user } = useAuth();
-  const isSuperAdmin = !!user && isSuperAdminLike(user.role || "");
+  const isSuperAdmin = Boolean(user && isSuperAdminLike(user.role || ""));
 
-  const {
-    data: authorityMetrics,
-    isError: authorityMetricsFailed,
-    error: authorityMetricsError,
-  } = useQuery<DecisionCardMetrics>({
+  const authorityQuery = useQuery<DecisionCardMetrics>({
     queryKey: ["/api/admin/authority/decision-card-metrics"],
-    queryFn: async () => apiRequest("GET", "/api/admin/authority/decision-card-metrics"),
+    queryFn: () => apiRequest("GET", "/api/admin/authority/decision-card-metrics"),
     enabled: isSuperAdmin,
     retry: false,
   });
-
-  const { data: testingSettings, isError: testingSettingsFailed } = useQuery<TestingSettings>({
+  const testingQuery = useQuery<TestingSettings>({
     queryKey: ["/api/admin/testing-settings"],
-    queryFn: async () => apiRequest("GET", "/api/admin/testing-settings"),
+    queryFn: () => apiRequest("GET", "/api/admin/testing-settings"),
     enabled: isSuperAdmin,
     retry: false,
   });
-
-  const { data: featureFlags, isError: featureFlagsFailed } = useQuery<any[]>({
+  const flagsQuery = useQuery<any[]>({
     queryKey: ["/api/admin/feature-flags"],
-    queryFn: async () => apiRequest("GET", "/api/admin/feature-flags"),
+    queryFn: () => apiRequest("GET", "/api/admin/feature-flags"),
     enabled: isSuperAdmin,
     retry: false,
   });
-
-  const { data: emailDiagnostics, isError: emailDiagnosticsFailed } = useQuery<EmailDiagnostics>({
+  const emailQuery = useQuery<EmailDiagnostics>({
     queryKey: ["/api/admin/email/diagnostics"],
-    queryFn: async () => apiRequest("GET", "/api/admin/email/diagnostics"),
+    queryFn: () => apiRequest("GET", "/api/admin/email/diagnostics"),
     enabled: isSuperAdmin,
     retry: false,
   });
-
-  const { data: progressiveExposureSummary, isError: progressiveExposureFailed } =
-    useQuery<ProgressiveExposureSummary>({
-      queryKey: ["/api/analytics/progressive-exposure/summary"],
-      queryFn: async () => apiRequest("GET", "/api/analytics/progressive-exposure/summary"),
-      enabled: isSuperAdmin,
-      retry: false,
-    });
-
-  const { data: progressiveExposureTimeline, isError: progressiveExposureTimelineFailed } =
-    useQuery<ProgressiveExposureTimeline>({
-      queryKey: ["/api/analytics/progressive-exposure/timeline"],
-      queryFn: async () => apiRequest("GET", "/api/analytics/progressive-exposure/timeline"),
-      enabled: isSuperAdmin,
-      retry: false,
-    });
+  const exposureQuery = useQuery<ProgressiveExposureSummary>({
+    queryKey: ["/api/analytics/progressive-exposure/summary"],
+    queryFn: () => apiRequest("GET", "/api/analytics/progressive-exposure/summary"),
+    enabled: isSuperAdmin,
+    retry: false,
+  });
+  const timelineQuery = useQuery<ProgressiveExposureTimeline>({
+    queryKey: ["/api/analytics/progressive-exposure/timeline"],
+    queryFn: () => apiRequest("GET", "/api/analytics/progressive-exposure/timeline"),
+    enabled: isSuperAdmin,
+    retry: false,
+  });
 
   const enabledFlags = useMemo(
-    () => (Array.isArray(featureFlags) ? featureFlags.filter((f) => f?.enabled).length : 0),
-    [featureFlags]
+    () => (Array.isArray(flagsQuery.data) ? flagsQuery.data.filter((flag) => flag?.enabled).length : null),
+    [flagsQuery.data]
+  );
+  const recentTimeline = useMemo(
+    () => (timelineQuery.data?.points || []).slice(-7),
+    [timelineQuery.data?.points]
+  );
+  const maxTimelineTotal = useMemo(
+    () => recentTimeline.reduce((maximum, point) => Math.max(maximum, Number(point.total || 0)), 0),
+    [recentTimeline]
   );
 
-  const progressiveExposureRecentPoints = useMemo(() => {
-    if (!progressiveExposureTimeline?.points?.length) return [];
-    return progressiveExposureTimeline.points.slice(-7);
-  }, [progressiveExposureTimeline]);
-
-  const progressiveExposureMaxDailyTotal = useMemo(() => {
-    return progressiveExposureRecentPoints.reduce(
-      (max, point) => Math.max(max, point.total || 0),
-      0
-    );
-  }, [progressiveExposureRecentPoints]);
-
-  const authorityUnavailable = authorityMetricsFailed || authorityMetrics?.available === false;
-  const authorityMessage = authorityMetricsFailed
-    ? "Decision analytics endpoint is currently unavailable"
-    : authorityMetrics?.message || "Decision analytics unavailable";
+  const refreshAll = () => {
+    authorityQuery.refetch();
+    testingQuery.refetch();
+    flagsQuery.refetch();
+    emailQuery.refetch();
+    exposureQuery.refetch();
+    timelineQuery.refetch();
+  };
+  const anyFetching =
+    authorityQuery.isFetching ||
+    testingQuery.isFetching ||
+    flagsQuery.isFetching ||
+    emailQuery.isFetching ||
+    exposureQuery.isFetching ||
+    timelineQuery.isFetching;
 
   if (!isSuperAdmin) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-destructive font-semibold">Super admin access required</p>
-      </div>
+      <AdminWorkspace>
+        <AdminEmptyState
+          title="Platform Controls require Super Admin access"
+          description="The current session cannot read or change authority, testing, or rollout controls."
+        />
+      </AdminWorkspace>
     );
   }
 
+  const authorityUnavailable = authorityQuery.isError || authorityQuery.data?.available === false;
+  const summary = exposureQuery.data;
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-tsCard border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-blue-400" />
-              Authority Cards
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-white">
-              {authorityUnavailable ? "N/A" : (authorityMetrics?.totalShown ?? 0)}
-            </p>
-            <p className="text-xs text-white/60 mt-1">
-              {authorityUnavailable ? authorityMessage : "Decision cards shown"}
-            </p>
-            {authorityMetricsFailed ? (
-              <p className="text-[11px] text-red-300 mt-2">
-                {String((authorityMetricsError as any)?.message || "Request failed")}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
+    <AdminWorkspace data-testid="admin-platform-controls-v2">
+      <AdminSection
+        title="Platform control state"
+        description="Authority, feature, testing, email, and rollout signals. Unavailable sources remain unavailable instead of being displayed as zero."
+        className="pt-0"
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={refreshAll}
+            disabled={anyFetching}
+            className="border-white/12 bg-white/[0.025] text-white/65 hover:bg-white/[0.06] hover:text-white"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${anyFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        }
+      >
+        <AdminSummaryStrip
+          items={[
+            {
+              label: "Authority cards",
+              value: authorityUnavailable ? "—" : authorityQuery.data?.totalShown ?? 0,
+              detail: authorityUnavailable
+                ? authorityQuery.data?.message || "Decision analytics unavailable"
+                : "Decision cards shown",
+              tone: authorityUnavailable ? "warning" : "neutral",
+            },
+            {
+              label: "Enabled flags",
+              value: flagsQuery.isError || enabledFlags === null ? "—" : enabledFlags,
+              detail: flagsQuery.isError ? "Feature flag source unavailable" : "Current enabled rollout flags",
+              tone: flagsQuery.isError ? "warning" : "neutral",
+            },
+            {
+              label: "Testing mode",
+              value: testingQuery.isError
+                ? "—"
+                : testingQuery.data?.testingModeEnabled
+                  ? "On"
+                  : "Off",
+              detail: testingQuery.isError
+                ? "Testing settings unavailable"
+                : `Bug reporting ${testingQuery.data?.bugReportEnabled ? "on" : "off"}`,
+              tone: testingQuery.isError ? "warning" : testingQuery.data?.testingModeEnabled ? "warning" : "good",
+            },
+            {
+              label: "Email provider",
+              value: emailQuery.isError ? "—" : emailQuery.data?.provider || "none",
+              detail: emailQuery.isError
+                ? "Email diagnostics unavailable"
+                : emailQuery.data?.configured
+                  ? `${emailQuery.data.mode} · ${emailQuery.data.defaultFrom}`
+                  : "Email provider is not configured",
+              tone: emailQuery.isError || !emailQuery.data?.configured ? "warning" : "good",
+            },
+          ]}
+        />
+      </AdminSection>
 
-        <Card className="bg-tsCard border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-              <ToggleLeft className="h-4 w-4 text-emerald-400" />
-              Feature Flags
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold text-white">
-              {featureFlagsFailed ? "N/A" : enabledFlags}
-            </p>
-            <p className="text-xs text-white/60 mt-1">
-              {featureFlagsFailed ? "Feature flags endpoint unavailable" : "Flags enabled"}
-            </p>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="readiness" className="space-y-6">
+        <AdminWorkspaceSubnav>
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0">
+            {[
+              ["readiness", "Rollout readiness"],
+              ["authority", "Authority"],
+              ["testing", "Testing"],
+              ["flags", "Feature flags"],
+            ].map(([value, label]) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className="min-h-10 rounded-lg border border-transparent px-4 text-white/48 data-[state=active]:border-white/10 data-[state=active]:bg-white/[0.055] data-[state=active]:text-white"
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </AdminWorkspaceSubnav>
 
-        <Card className="bg-tsCard border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-              <TestTube2 className="h-4 w-4 text-amber-400" />
-              Testing State
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <Badge
-              variant={
-                !testingSettingsFailed && testingSettings?.testingModeEnabled
-                  ? "default"
-                  : "outline"
-              }
-            >
-              testing mode:{" "}
-              {testingSettingsFailed
-                ? "unknown"
-                : testingSettings?.testingModeEnabled
-                  ? "on"
-                  : "off"}
-            </Badge>
-            <Badge
-              variant={
-                !testingSettingsFailed && testingSettings?.bugReportEnabled ? "default" : "outline"
-              }
-              className="ml-2"
-            >
-              bug reports:{" "}
-              {testingSettingsFailed ? "unknown" : testingSettings?.bugReportEnabled ? "on" : "off"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-tsCard border-white/10">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-ts-orange" />
-              Email Status
-            </CardTitle>
-            <CardDescription className="text-xs text-white/60">
-              Confirms provider + mode on the backend.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Badge
-              variant={
-                !emailDiagnosticsFailed && emailDiagnostics?.configured ? "default" : "outline"
-              }
-            >
-              configured:{" "}
-              {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.configured ? "yes" : "no"}
-            </Badge>
-            <Badge variant="outline" className="ml-2">
-              provider:{" "}
-              {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.provider || "unknown"}
-            </Badge>
-            <div className="text-xs text-white/60">
-              mode: {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.mode || "unknown"} -
-              from:{" "}
-              {emailDiagnosticsFailed ? "unknown" : emailDiagnostics?.defaultFrom || "unknown"}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-tsCard border-white/10 md:col-span-3">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-white/70 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-violet-400" />
-              Progressive Exposure (Shadow)
-            </CardTitle>
-            <CardDescription className="text-xs text-white/60">
-              Read-only readiness distribution. No user-facing gating changes applied.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {progressiveExposureFailed || !progressiveExposureSummary ? (
-              <p className="text-xs text-white/60">Shadow analytics endpoint unavailable.</p>
+        <TabsContent value="readiness" className="mt-0 space-y-7">
+          <AdminSection
+            title="Progressive exposure readiness"
+            description="Read-only shadow evidence. This workspace does not change user-facing gating."
+            className="pt-0"
+          >
+            {exposureQuery.isLoading ? (
+              <div className="flex min-h-48 items-center justify-center border-y border-white/10 text-sm text-white/45">
+                <RefreshCw className="mr-3 h-4 w-4 animate-spin" />
+                Loading rollout evidence…
+              </div>
+            ) : exposureQuery.isError || !summary ? (
+              <div className="flex items-start gap-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm leading-6 text-amber-100">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                Progressive exposure evidence is unavailable. No rollout state was changed.
+              </div>
             ) : (
               <>
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">events: {progressiveExposureSummary.totalEvents}</Badge>
-                  <Badge variant="outline">tier0: {progressiveExposureSummary.tiers[0]}</Badge>
-                  <Badge variant="outline">tier1: {progressiveExposureSummary.tiers[1]}</Badge>
-                  <Badge variant="outline">tier2: {progressiveExposureSummary.tiers[2]}</Badge>
-                  <Badge variant="outline">tier3: {progressiveExposureSummary.tiers[3]}</Badge>
-                  {progressiveExposureSummary.tiers.unknown > 0 ? (
-                    <Badge variant="outline">
-                      unknown: {progressiveExposureSummary.tiers.unknown}
-                    </Badge>
-                  ) : null}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-white/70">
-                  <div>
-                    avg account age: {progressiveExposureSummary.signals.avgAccountAgeDays} days
-                  </div>
-                  <div>
-                    avg meaningful activity:{" "}
-                    {progressiveExposureSummary.signals.avgMeaningfulActivityCount}
-                  </div>
-                  <div>
-                    verified contact: {progressiveExposureSummary.signals.verifiedContactPct}%
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-white/70">
-                  <div>unique users: {progressiveExposureSummary.quality.uniqueUsers}</div>
-                  <div>unique sessions: {progressiveExposureSummary.quality.uniqueSessions}</div>
-                  <div>events/user: {progressiveExposureSummary.quality.eventsPerUser}</div>
-                  <div>events/session: {progressiveExposureSummary.quality.eventsPerSession}</div>
-                  <div>
-                    missing session key: {progressiveExposureSummary.quality.missingSessionKeyPct}%
-                  </div>
-                  <div>unknown tier: {progressiveExposureSummary.quality.unknownTierPct}%</div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
-                    Readiness thresholds (go/no-go)
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge
-                      variant={progressiveExposureSummary.readiness.isReady ? "default" : "outline"}
-                    >
-                      ready: {progressiveExposureSummary.readiness.isReady ? "yes" : "no"}
-                    </Badge>
-                    <Badge
-                      variant={
-                        progressiveExposureSummary.readiness.status.totalEventsOk
-                          ? "default"
-                          : "outline"
-                      }
-                    >
-                      events ≥ {progressiveExposureSummary.readiness.thresholds.minTotalEvents}:{" "}
-                      {progressiveExposureSummary.readiness.status.totalEventsOk ? "pass" : "fail"}
-                    </Badge>
-                    <Badge
-                      variant={
-                        progressiveExposureSummary.readiness.status.uniqueUsersOk
-                          ? "default"
-                          : "outline"
-                      }
-                    >
-                      users ≥ {progressiveExposureSummary.readiness.thresholds.minUniqueUsers}:{" "}
-                      {progressiveExposureSummary.readiness.status.uniqueUsersOk ? "pass" : "fail"}
-                    </Badge>
-                    <Badge
-                      variant={
-                        progressiveExposureSummary.readiness.status.unknownTierOk
-                          ? "default"
-                          : "outline"
-                      }
-                    >
-                      unknown ≤ {progressiveExposureSummary.readiness.thresholds.maxUnknownTierPct}
-                      %:{" "}
-                      {progressiveExposureSummary.readiness.status.unknownTierOk ? "pass" : "fail"}
-                    </Badge>
-                    <Badge
-                      variant={
-                        progressiveExposureSummary.readiness.status.verifiedContactOk
-                          ? "default"
-                          : "outline"
-                      }
-                    >
-                      verified ≥{" "}
-                      {progressiveExposureSummary.readiness.thresholds.minVerifiedContactPct}%:{" "}
-                      {progressiveExposureSummary.readiness.status.verifiedContactOk
-                        ? "pass"
-                        : "fail"}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-white/50 mb-1">Top reasons</p>
-                  {progressiveExposureSummary.topReasons.length === 0 ? (
-                    <p className="text-xs text-white/60">No reasons logged in this window.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {progressiveExposureSummary.topReasons.map((item) => (
-                        <Badge key={item.reason} variant="outline">
-                          {item.reason}: {item.count}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-white/50 mb-1">
-                    Daily tier trend (last 7 days with events)
-                  </p>
-                  {progressiveExposureTimelineFailed ? (
-                    <p className="text-xs text-white/60">Timeline endpoint unavailable.</p>
-                  ) : progressiveExposureRecentPoints.length === 0 ? (
-                    <p className="text-xs text-white/60">
-                      No timeline events logged in this window.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {progressiveExposureRecentPoints.map((point) => {
-                        const max = progressiveExposureMaxDailyTotal || 1;
-                        const t0 = (point.tiers[0] / max) * 100;
-                        const t1 = (point.tiers[1] / max) * 100;
-                        const t2 = (point.tiers[2] / max) * 100;
-                        const t3 = (point.tiers[3] / max) * 100;
-                        const unknown = (point.tiers.unknown / max) * 100;
+                <AdminSummaryStrip
+                  items={[
+                    {
+                      label: "Events",
+                      value: summary.totalEvents,
+                      detail: `${summary.quality.uniqueUsers} users · ${summary.quality.uniqueSessions} sessions`,
+                    },
+                    {
+                      label: "Verified contact",
+                      value: `${summary.signals.verifiedContactPct}%`,
+                      detail: `Minimum ${summary.readiness.thresholds.minVerifiedContactPct}%`,
+                      tone: summary.readiness.status.verifiedContactOk ? "good" : "warning",
+                    },
+                    {
+                      label: "Unknown tier",
+                      value: `${summary.quality.unknownTierPct}%`,
+                      detail: `Maximum ${summary.readiness.thresholds.maxUnknownTierPct}%`,
+                      tone: summary.readiness.status.unknownTierOk ? "good" : "warning",
+                    },
+                    {
+                      label: "Go / no-go",
+                      value: summary.readiness.isReady ? "Ready" : "Not ready",
+                      detail: `${formatDate(summary.window.from)} – ${formatDate(summary.window.to)}`,
+                      tone: summary.readiness.isReady ? "good" : "warning",
+                    },
+                  ]}
+                />
 
-                        return (
-                          <div key={point.day} className="text-xs text-white/70">
-                            <div className="flex items-center justify-between mb-1">
-                              <span>{point.day}</span>
-                              <span>total {point.total}</span>
-                            </div>
-                            <div className="h-2 w-full rounded bg-white/10 overflow-hidden flex">
-                              <div className="bg-blue-500" style={{ width: `${t0}%` }} />
-                              <div className="bg-emerald-500" style={{ width: `${t1}%` }} />
-                              <div className="bg-amber-500" style={{ width: `${t2}%` }} />
-                              <div className="bg-violet-500" style={{ width: `${t3}%` }} />
-                              <div className="bg-zinc-500" style={{ width: `${unknown}%` }} />
-                            </div>
-                          </div>
-                        );
-                      })}
+                <div className="mt-6 grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                      Tier distribution
+                    </p>
+                    <AdminList className="mt-3">
+                      {[
+                        ["Tier 0", summary.tiers[0]],
+                        ["Tier 1", summary.tiers[1]],
+                        ["Tier 2", summary.tiers[2]],
+                        ["Tier 3", summary.tiers[3]],
+                        ["Unknown", summary.tiers.unknown],
+                      ].map(([label, value]) => (
+                        <div key={String(label)} className="flex items-center justify-between gap-4 px-3 py-3 text-sm sm:px-4">
+                          <span className="text-white/55">{label}</span>
+                          <span className="font-mono text-white/70">{value}</span>
+                        </div>
+                      ))}
+                    </AdminList>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                      Readiness checks
+                    </p>
+                    <div className="mt-3 divide-y divide-white/10 border-y border-white/10">
+                      <PassState
+                        pass={summary.readiness.status.totalEventsOk}
+                        label={`Events ≥ ${summary.readiness.thresholds.minTotalEvents}`}
+                      />
+                      <PassState
+                        pass={summary.readiness.status.uniqueUsersOk}
+                        label={`Users ≥ ${summary.readiness.thresholds.minUniqueUsers}`}
+                      />
+                      <PassState
+                        pass={summary.readiness.status.unknownTierOk}
+                        label={`Unknown tier ≤ ${summary.readiness.thresholds.maxUnknownTierPct}%`}
+                      />
+                      <PassState
+                        pass={summary.readiness.status.verifiedContactOk}
+                        label={`Verified contact ≥ ${summary.readiness.thresholds.minVerifiedContactPct}%`}
+                      />
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                <div className="mt-7 grid gap-7 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.7fr)]">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                      Recent daily tier trend
+                    </p>
+                    {timelineQuery.isError ? (
+                      <div className="mt-3 border-y border-amber-400/20 bg-amber-400/5 px-4 py-5 text-sm text-amber-100">
+                        Timeline evidence is unavailable.
+                      </div>
+                    ) : recentTimeline.length ? (
+                      <div className="mt-3 space-y-3 border-y border-white/10 px-3 py-4 sm:px-4">
+                        {recentTimeline.map((point) => {
+                          const maximum = maxTimelineTotal || 1;
+                          return (
+                            <div key={point.day}>
+                              <div className="flex items-center justify-between gap-3 text-xs text-white/45">
+                                <span>{point.day}</span>
+                                <span>{point.total} events</span>
+                              </div>
+                              <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                                <span className="bg-sky-500" style={{ width: `${(point.tiers[0] / maximum) * 100}%` }} />
+                                <span className="bg-emerald-500" style={{ width: `${(point.tiers[1] / maximum) * 100}%` }} />
+                                <span className="bg-amber-500" style={{ width: `${(point.tiers[2] / maximum) * 100}%` }} />
+                                <span className="bg-violet-500" style={{ width: `${(point.tiers[3] / maximum) * 100}%` }} />
+                                <span className="bg-zinc-500" style={{ width: `${(point.tiers.unknown / maximum) * 100}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <AdminEmptyState
+                        title="No recent rollout events"
+                        description="The current timeline contains no daily points."
+                      />
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                      Top reasons
+                    </p>
+                    {summary.topReasons.length ? (
+                      <AdminList className="mt-3">
+                        {summary.topReasons.slice(0, 10).map((reason) => (
+                          <div key={reason.reason} className="flex items-center justify-between gap-4 px-3 py-3 text-sm sm:px-4">
+                            <span className="truncate text-white/55">{reason.reason}</span>
+                            <span className="font-mono text-white/70">{reason.count}</span>
+                          </div>
+                        ))}
+                      </AdminList>
+                    ) : (
+                      <AdminEmptyState title="No reasons recorded" description="No rollout reason is present in this evidence window." />
+                    )}
+                  </div>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </AdminSection>
+        </TabsContent>
 
-      <Card className="bg-tsCard border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Authority Governance</CardTitle>
-          <CardDescription>Canonical authority controls and diagnostics.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuthorityOperations />
-        </CardContent>
-      </Card>
+        <TabsContent value="authority" className="mt-0">
+          <AdminSection
+            title="Authority governance"
+            description="Canonical authority controls and diagnostics. Existing authority operations remain unchanged."
+            className="pt-0"
+          >
+            <div className="[&>div]:rounded-none [&>div]:border-x-0 [&>div]:bg-transparent [&>div]:shadow-none">
+              <AuthorityOperations />
+            </div>
+          </AdminSection>
+        </TabsContent>
 
-      <Card className="bg-tsCard border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Testing Controls</CardTitle>
-          <CardDescription>System diagnostics and test-mode controls.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AdminTestingControls />
-        </CardContent>
-      </Card>
+        <TabsContent value="testing" className="mt-0">
+          <AdminSection
+            title="Testing controls"
+            description="System diagnostics, banners, test-mode controls, and bug-report controls."
+            className="pt-0"
+          >
+            <div className="[&>div]:rounded-none [&>div]:border-x-0 [&>div]:bg-transparent [&>div]:shadow-none">
+              <AdminTestingControls />
+            </div>
+          </AdminSection>
+        </TabsContent>
 
-      <Card className="bg-tsCard border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Feature Flags</CardTitle>
-          <CardDescription>Platform capability toggles and rollout controls.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FeatureTogglePanel />
-        </CardContent>
-      </Card>
-    </div>
+        <TabsContent value="flags" className="mt-0">
+          <AdminSection
+            title="Feature flags"
+            description="Capability toggles and rollout controls. Existing flag mutations remain owned by the feature-flag panel."
+            className="pt-0"
+          >
+            <div className="[&>div]:rounded-none [&>div]:border-x-0 [&>div]:bg-transparent [&>div]:shadow-none">
+              <FeatureTogglePanel />
+            </div>
+          </AdminSection>
+        </TabsContent>
+      </Tabs>
+    </AdminWorkspace>
   );
 }
