@@ -24,7 +24,9 @@ describe("ISSA Build verified public renderer", () => {
     expect(renderer).toContain("Custom onyx installation");
     expect(renderer).toContain("Residential and commercial projects");
     expect(renderer).toContain("Project fulfillment");
-    expect(renderer).toContain("TradeScout manages every inquiry. ISSA Build handles the work.");
+    expect(renderer).toContain(
+      "TradeScout manages every inquiry. ISSA Build handles the work."
+    );
     expect(renderer).toContain("Start a Request");
     expect(renderer).toContain("<ExpressDirectConnectPanel");
     expect(renderer).toContain('initialView="request"');
@@ -32,7 +34,9 @@ describe("ISSA Build verified public renderer", () => {
   });
 
   it("does not reduce ISSA Build to a referral-only or material-only role", () => {
-    const renderer = read("client/src/pages/profile-sites/IssaBuildProfileTruthFrame.tsx").toLowerCase();
+    const renderer = read(
+      "client/src/pages/profile-sites/IssaBuildProfileTruthFrame.tsx"
+    ).toLowerCase();
 
     expect(renderer).not.toContain("referral-only");
     expect(renderer).not.toContain("material-only");
