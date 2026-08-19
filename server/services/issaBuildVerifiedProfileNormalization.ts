@@ -24,7 +24,7 @@ export const ISSA_BUILD_FULL_SERVICE_SCOPE = [
 const VERIFIED_HERO_COPY =
   "100% verified full-service Honey Onyx and Multi Green Onyx—from material sourcing, availability, and selection through custom fabrication, backlighting, installation, and project fulfillment.";
 const VERIFIED_ABOUT_COPY =
-  "ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material sourcing and availability, selection, custom fabrication, backlighting, installation, project-location review, and fulfillment for residential and commercial projects.";
+  "ISSA Build is 100% verified by TradeScout for its business identity and full-service onyx scope. TradeScout manages the inquiry; ISSA Build handles material selection, custom fabrication, backlighting, and installation. ISSA Build also handles material sourcing and availability, project-location review, and fulfillment for residential and commercial projects.";
 const VERIFIED_SEO_COPY =
   "100% verified full-service Honey Onyx and Multi Green Onyx for residential and commercial projects, including sourcing, availability, material selection, custom fabrication, backlighting, installation, and fulfillment.";
 
