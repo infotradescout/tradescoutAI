@@ -2,12 +2,17 @@ import {
   ArrowUpRight,
   Facebook,
   Instagram,
+  Mail,
   MapPin,
+  Phone,
   ShieldCheck,
   Youtube,
   type LucideIcon,
 } from "lucide-react";
-import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_MANAGED_CONTACT,
+  JW_STONE_PUBLIC_IDENTITY,
+} from "@shared/jwStonePresentation";
 import { useJwStoneProfileContext } from "./JwStoneProfileContext";
 import { jw } from "./brand";
 
@@ -123,7 +128,52 @@ export function JwStoneCompanySection() {
                 data-testid="jw-company-contact-card"
                 className={`overflow-hidden rounded-[1.5rem] border bg-[var(--jw-bg)] shadow-[0_18px_55px_rgba(42,39,36,0.07)] ${jw.border}`}
               >
-                <div id="jw-stone-location" className={`p-5 sm:p-6 ${jw.scrollTarget}`}>
+                <div
+                  id="jw-stone-managed-contact"
+                  data-testid="jw-managed-contact-card"
+                  className="p-5 sm:p-6"
+                >
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--jw-mark)]">
+                    {JW_STONE_MANAGED_CONTACT.label}
+                  </p>
+                  <h3 className="mt-2 font-editorial text-3xl leading-none text-[var(--jw-ink)]">
+                    {JW_STONE_MANAGED_CONTACT.heading}
+                  </h3>
+                  <p className="mt-4 text-sm leading-6 text-[var(--jw-muted)]">
+                    {JW_STONE_MANAGED_CONTACT.description}
+                  </p>
+                  <div className="mt-5 grid gap-2">
+                    <a
+                      href={`tel:${JW_STONE_MANAGED_CONTACT.tel}`}
+                      data-testid="jw-managed-contact-phone"
+                      className={`flex min-h-14 items-center gap-3 rounded-2xl border bg-[var(--jw-surface)] px-4 py-3 ${jw.border}`}
+                    >
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--jw-accent)]/25 text-[var(--jw-ink)]">
+                        <Phone className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="text-sm font-bold text-[var(--jw-ink)]">
+                        {JW_STONE_MANAGED_CONTACT.phone}
+                      </span>
+                    </a>
+                    <a
+                      href={`mailto:${JW_STONE_MANAGED_CONTACT.email}`}
+                      data-testid="jw-managed-contact-email"
+                      className={`flex min-h-14 items-center gap-3 rounded-2xl border bg-[var(--jw-surface)] px-4 py-3 ${jw.border}`}
+                    >
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--jw-accent)]/25 text-[var(--jw-ink)]">
+                        <Mail className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 truncate text-sm font-bold text-[var(--jw-ink)]">
+                        {JW_STONE_MANAGED_CONTACT.email}
+                      </span>
+                    </a>
+                  </div>
+                </div>
+
+                <div
+                  id="jw-stone-location"
+                  className={`border-t p-5 sm:p-6 ${jw.border} ${jw.scrollTarget}`}
+                >
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--jw-mark)]">
                     Pensacola, Florida
                   </p>

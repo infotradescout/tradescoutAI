@@ -8,6 +8,7 @@ import {
   STEEL_HOME_PACKAGES_PROFILE_PROVISIONING_SOURCE,
 } from "@shared/steelHomePackagesProfile";
 import { db } from "../db";
+import { provisionJwStoneManagedContact } from "./jwStoneManagedContactProvisioning";
 import { hasVerifiedTradeScoutAdminCustody } from "./ownerConfirmedDirectProfile";
 import { provisionRedGranitiProfile } from "./redGranitiProfileProvisioning";
 
@@ -226,17 +227,25 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
 
 /**
  * The server's final best-effort profile bootstrap invokes this function. Keep
- * the two records isolated so a failure in one is still reported without
- * preventing the other from being attempted during the same production boot.
+ * the records isolated so a failure in one is still reported without
+ * preventing the others from being attempted during the same production boot.
  */
 export async function provisionSteelHomePackagesProfile(): Promise<void> {
   let steelHomeFailure: unknown = null;
+  let jwStoneContactFailure: unknown = null;
   let redGranitiFailure: unknown = null;
 
   try {
     await provisionSteelHomePackagesProfileRecord();
   } catch (error) {
     steelHomeFailure = error;
+  }
+
+  try {
+    await provisionJwStoneManagedContact();
+  } catch (error) {
+    jwStoneContactFailure = error;
+    console.error("[profile-provisioning] JW Stone managed contact failed", error);
   }
 
   try {
@@ -247,5 +256,6 @@ export async function provisionSteelHomePackagesProfile(): Promise<void> {
   }
 
   if (steelHomeFailure) throw steelHomeFailure;
+  if (jwStoneContactFailure) throw jwStoneContactFailure;
   if (redGranitiFailure) throw redGranitiFailure;
 }

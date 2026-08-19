@@ -1,5 +1,8 @@
 import { SEOHelmet } from "@/components/SEOHelmet";
-import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_MANAGED_CONTACT,
+  JW_STONE_PUBLIC_IDENTITY,
+} from "@shared/jwStonePresentation";
 
 const JW_STONE_SOCIAL_IMAGE_URL =
   "https://www.thetradescout.com/images/businesses/jw-stone/logo-social-preview.png";
@@ -26,6 +29,14 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
     description: JW_STONE_PUBLIC_IDENTITY.about,
     foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
     url: canonicalUrl,
+    telephone: JW_STONE_MANAGED_CONTACT.phone,
+    email: JW_STONE_MANAGED_CONTACT.email,
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      telephone: JW_STONE_MANAGED_CONTACT.phone,
+      email: JW_STONE_MANAGED_CONTACT.email,
+    },
     hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
     address: {
       "@type": "PostalAddress",

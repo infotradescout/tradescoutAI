@@ -1,5 +1,8 @@
 import { useLayoutEffect, useMemo, useState } from "react";
-import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
+import {
+  JW_STONE_MANAGED_CONTACT,
+  JW_STONE_PUBLIC_IDENTITY,
+} from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
@@ -180,6 +183,14 @@ export default function JWStoneMarketplace() {
       description: JW_STONE_PUBLIC_IDENTITY.about,
       foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
       url: canonicalUrl,
+      telephone: JW_STONE_MANAGED_CONTACT.phone,
+      email: JW_STONE_MANAGED_CONTACT.email,
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer service",
+        telephone: JW_STONE_MANAGED_CONTACT.phone,
+        email: JW_STONE_MANAGED_CONTACT.email,
+      },
       hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
       address: {
         "@type": "PostalAddress",

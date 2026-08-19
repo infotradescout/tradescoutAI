@@ -2,6 +2,20 @@ export const JW_STONE_PROFILE_SLUG = "jw-stone";
 export const JW_STONE_PROFILE_SOCIAL_LOGO_URL = "/images/businesses/jw-stone/logo-social.svg";
 export const JW_STONE_YOUTUBE_URL = "https://www.youtube.com/@JWStoneLogistics";
 
+/**
+ * Customer calls and messages for the TradeScout-managed JW Stone profile use
+ * this contact. The owner account remains separate from the public response
+ * destination and its private email is never published by this contract.
+ */
+export const JW_STONE_MANAGED_CONTACT = {
+  label: "TradeScout managed contact",
+  heading: "JW Stone inquiries",
+  phone: "(850) 543-0748",
+  tel: "+18505430748",
+  email: "contact@thetradescout.com",
+  description: "Calls and messages from this profile are handled through TradeScout.",
+} as const;
+
 export type JwStoneInventoryNameStatus = "source" | "placeholder";
 
 export type JwStoneInventoryNamePresentation = {
