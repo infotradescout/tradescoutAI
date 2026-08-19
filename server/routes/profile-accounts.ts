@@ -2,10 +2,6 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import {
-  PROFILE_ACCOUNT_ROLES,
-  profileAccountRoleIncludesBidRock,
-} from "@shared/profileAccount";
-import {
   ensureProfileAccount,
   getProfileAccountState,
 } from "../services/profileAccountService";
@@ -17,7 +13,6 @@ import {
 
 const createProfileAccountSchema = z
   .object({
-    role: z.enum(PROFILE_ACCOUNT_ROLES),
     sourcePath: z
       .string()
       .trim()
@@ -68,21 +63,17 @@ export function registerProfileAccountRoutes(app: Express) {
         }
         const parsed = createProfileAccountSchema.safeParse(req.body);
         if (!parsed.success) {
-          res.status(400).json({ message: "Choose a valid account type." });
+          res.status(400).json({ message: "Profile account request is invalid." });
           return;
         }
 
         const created = await ensureProfileAccount({
           userId,
           profileSlug: String(req.params.slug || ""),
-          role: parsed.data.role,
           sourcePath: parsed.data.sourcePath,
         });
         let entitlements: readonly ProfileAccountEntitlement[];
-        if (
-          created.policy.kind === "stone_business" &&
-          profileAccountRoleIncludesBidRock(parsed.data.role)
-        ) {
+        if (created.policy.includesBidRock) {
           entitlements = [
             await ensureProfileAccountEntitlement({
               profileAccountId: created.account.id,
@@ -97,10 +88,15 @@ export function registerProfileAccountRoutes(app: Express) {
         res.setHeader("Cache-Control", "private, no-store");
         res.status(201).json({ ...created, entitlements });
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Profile account could not be created.";
+        const message =
+          error instanceof Error ? error.message : "Profile account could not be created.";
+        if (/business profile is required/i.test(message)) {
+          res.status(409).json({ message, requiresBusinessSetup: true });
+          return;
+        }
         const status = /not found/i.test(message)
           ? 404
-          : /not available|valid account type|choose/i.test(message)
+          : /not available|invalid/i.test(message)
             ? 400
             : /authentication|required|identity/i.test(message)
               ? 401
