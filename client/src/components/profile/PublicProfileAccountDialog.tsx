@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +15,8 @@ import {
   createProfileAccount,
   currentProfileAccountSourcePath,
   loadProfileAccountState,
-  rememberProfileAccountReturnPath,
   readResponseJson,
+  registerProfileAccount,
   type ProfileAccountMode,
   type ProfileAccountResponse,
 } from "./profileAccountClient";
@@ -57,8 +58,8 @@ function requestedAccountMode(fallback: AccountMode): AccountMode {
   }
 }
 
-async function submitAuth(path: "/api/auth/register" | "/api/auth/login", body: object) {
-  const response = await fetch(path, {
+async function submitLogin(body: object) {
+  const response = await fetch(buildApiUrl("/api/auth/login"), {
     method: "POST",
     credentials: "include",
     headers: {
@@ -69,7 +70,7 @@ async function submitAuth(path: "/api/auth/register" | "/api/auth/login", body: 
   });
   const payload = await readResponseJson(response);
   if (!response.ok) {
-    const error = new Error(String(payload.message || "Account access failed.")) as AuthError;
+    const error = new Error(String(payload.message || "Sign-in failed.")) as AuthError;
     error.status = response.status;
     error.code = typeof payload.code === "string" ? payload.code : undefined;
     throw error;
@@ -96,6 +97,7 @@ export function PublicProfileAccountDialog({
   const [loadError, setLoadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -117,6 +119,7 @@ export function PublicProfileAccountDialog({
     setLoading(true);
     setLoadError("");
     setError("");
+    setNotice("");
     loadProfileAccountState(profileSlug)
       .then((next) => {
         if (!current) return;
@@ -125,11 +128,10 @@ export function PublicProfileAccountDialog({
         if (next.viewerBusiness?.name) setBusinessName(next.viewerBusiness.name);
       })
       .catch((nextError) => {
-        if (current) {
-          setLoadError(
-            nextError instanceof Error ? nextError.message : "Account is temporarily unavailable."
-          );
-        }
+        if (!current) return;
+        setLoadError(
+          nextError instanceof Error ? nextError.message : "Account is temporarily unavailable."
+        );
       })
       .finally(() => {
         if (current) setLoading(false);
@@ -137,7 +139,7 @@ export function PublicProfileAccountDialog({
     return () => {
       current = false;
     };
-  }, [open, profileSlug, initialMode, loadAttempt]);
+  }, [open, profileSlug, initialMode, loadAttempt, onStateChange]);
 
   const requiresBusiness = data?.policy.requiredIdentity === "business";
   const connected = data?.account?.status === "active";
@@ -146,9 +148,7 @@ export function PublicProfileAccountDialog({
   const profileSigninReturnPath = buildProfileAccountResumePath(profileSlug, "signin");
 
   const description = useMemo(() => {
-    if (connected) {
-      return `Your account with ${profileName} is ready.`;
-    }
+    if (connected) return `Your account with ${profileName} is ready.`;
     if (requiresBusiness) {
       return `Any business can create an account directly with ${profileName}. Your business details stay private unless you later choose to publish them.`;
     }
@@ -161,48 +161,27 @@ export function PublicProfileAccountDialog({
   };
 
   const signIn = async () => {
-    if (!email.trim() || !password) {
-      throw new Error("Enter your email and password.");
-    }
-    await submitAuth("/api/auth/login", {
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    if (!email.trim() || !password) throw new Error("Enter your email and password.");
+    await submitLogin({ email: email.trim().toLowerCase(), password });
     await refetch().catch(() => undefined);
   };
 
-  const finishProfileAccount = async (allowLoginRetry: boolean) => {
-    let current = await loadProfileAccountState(profileSlug);
+  const finishExistingIdentity = async () => {
+    const current = await loadProfileAccountState(profileSlug);
     publishState(current);
-    if (current.account?.status === "active") return current;
+    if (current.account?.status === "active") return;
 
     const businessRequired = current.policy.requiredIdentity === "business";
     if (businessRequired && !current.viewerBusiness && normalizedBusinessName.length < 2) {
       throw new Error("Enter the name of your business.");
     }
 
-    try {
-      const created = await createProfileAccount({
-        profileSlug,
-        businessName: businessRequired ? normalizedBusinessName : null,
-        sourcePath: currentProfileAccountSourcePath(profileSlug),
-      });
-      publishState(created);
-      return created;
-    } catch (nextError) {
-      const authError = nextError as AuthError;
-      if (allowLoginRetry && authError.status === 401 && email.trim() && password) {
-        await signIn();
-        current = await createProfileAccount({
-          profileSlug,
-          businessName: businessRequired ? normalizedBusinessName : null,
-          sourcePath: currentProfileAccountSourcePath(profileSlug),
-        });
-        publishState(current);
-        return current;
-      }
-      throw nextError;
-    }
+    const created = await createProfileAccount({
+      profileSlug,
+      businessName: businessRequired ? normalizedBusinessName : null,
+      sourcePath: currentProfileAccountSourcePath(profileSlug),
+    });
+    publishState(created);
   };
 
   const createNewIdentityAndAccount = async () => {
@@ -219,21 +198,28 @@ export function PublicProfileAccountDialog({
     if (password !== confirmPassword) throw new Error("The passwords do not match.");
     if (!acceptTerms) throw new Error("Accept the Terms of Service and Privacy Policy.");
 
-    const returnPath = rememberProfileAccountReturnPath(profileSlug, "signin");
     try {
-      await submitAuth("/api/auth/register", {
+      const created = await registerProfileAccount({
+        profileSlug,
+        businessName: normalizedBusinessName,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password,
         acceptTerms: true,
-        allowPhoneCalls: false,
-        userTypes: [],
-        userIntent: "profile_account",
-        source: "profile_account",
-        next: returnPath,
+        sourcePath: currentProfileAccountSourcePath(profileSlug),
+        next: profileSigninReturnPath,
       });
+      publishState(created);
+      if (created.emailVerificationRequired) {
+        setNotice(
+          created.emailVerificationSent
+            ? `Check ${email.trim()} for the verification link. It returns directly to ${profileName}.`
+            : "Your account was created, but the verification email could not be sent. You can continue browsing and request another verification link later."
+        );
+      }
+      await refetch().catch(() => undefined);
     } catch (nextError) {
       const authError = nextError as AuthError;
       if (authError.status === 409 || authError.code === "AUTH_ACCOUNT_EXISTS") {
@@ -244,21 +230,19 @@ export function PublicProfileAccountDialog({
       }
       throw nextError;
     }
-
-    await refetch().catch(() => undefined);
-    await finishProfileAccount(true);
   };
 
   const submit = async () => {
     if (submitting || !data) return;
     setSubmitting(true);
     setError("");
+    setNotice("");
     try {
       if (hasViewerSession) {
-        await finishProfileAccount(false);
+        await finishExistingIdentity();
       } else if (mode === "signin") {
         await signIn();
-        await finishProfileAccount(false);
+        await finishExistingIdentity();
       } else {
         await createNewIdentityAndAccount();
       }
@@ -377,10 +361,11 @@ export function PublicProfileAccountDialog({
               </p>
               {data?.account?.verificationStatus === "pending" ? (
                 <p className={cn("mt-1", mutedClass)}>
-                  Your account is active. Protected business features remain limited until
-                  verification is complete.
+                  Your business review is queued. Protected pricing and business-only features remain
+                  limited until approval.
                 </p>
               ) : null}
+              {notice ? <p className={cn("mt-2 font-semibold", mutedClass)}>{notice}</p> : null}
             </div>
             <button
               type="button"
@@ -536,6 +521,18 @@ export function PublicProfileAccountDialog({
               </>
             ) : null}
 
+            {notice ? (
+              <p
+                className={cn(
+                  "rounded-xl px-3 py-2 text-sm font-bold",
+                  isDark ? "bg-emerald-400/10 text-emerald-100" : "bg-emerald-50 text-emerald-800"
+                )}
+                role="status"
+              >
+                {notice}
+              </p>
+            ) : null}
+
             {error ? (
               <p
                 data-testid="profile-account-error"
@@ -576,7 +573,6 @@ export function PublicProfileAccountDialog({
             {!hasViewerSession && mode === "signin" ? (
               <a
                 href={`/reset-password?next=${encodeURIComponent(profileSigninReturnPath)}`}
-                onClick={() => rememberProfileAccountReturnPath(profileSlug, "signin")}
                 className={cn(
                   "inline-flex min-h-11 w-full items-center justify-center border-t border-current/10 pt-4 text-sm font-bold underline-offset-4 hover:underline",
                   mutedClass
@@ -591,6 +587,7 @@ export function PublicProfileAccountDialog({
                 type="button"
                 onClick={() => {
                   setError("");
+                  setNotice("");
                   setMode((current) => (current === "create" ? "signin" : "create"));
                 }}
                 className={cn(
