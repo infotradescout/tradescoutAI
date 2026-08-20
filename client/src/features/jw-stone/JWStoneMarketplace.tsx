@@ -5,6 +5,7 @@ import {
 } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
+import type { ProfileAccountMode } from "@/components/profile/profileAccountClient";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -40,12 +41,43 @@ function marketplaceCanonicalUrl(): string {
   return "https://www.thetradescout.com/jw-stone";
 }
 
+function readProfileAccountRequest(): { open: boolean; mode: ProfileAccountMode } {
+  if (typeof window === "undefined") return { open: false, mode: "create" };
+  try {
+    const params = new URL(window.location.href).searchParams;
+    return {
+      open: params.get("profileAccount") === "1",
+      mode: params.get("profileAccountMode") === "signin" ? "signin" : "create",
+    };
+  } catch {
+    return { open: false, mode: "create" };
+  }
+}
+
+function clearProfileAccountRequest(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("profileAccount");
+    url.searchParams.delete("profileAccountMode");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  } catch {
+    // The dialog can still close if history replacement is unavailable.
+  }
+}
+
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
+  const [accountRequest] = useState(readProfileAccountRequest);
   const [wishlistOpen, setWishlistOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(accountRequest.open);
+  const [accountMode, setAccountMode] = useState<ProfileAccountMode>(accountRequest.mode);
   /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
   const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
@@ -118,6 +150,16 @@ export default function JWStoneMarketplace() {
 
   const askAboutStone = (stone: JwStoneCatalogItem) => {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
+  };
+
+  const openAccount = () => {
+    setAccountMode("create");
+    setAccountOpen(true);
+  };
+
+  const changeAccountOpen = (nextOpen: boolean) => {
+    setAccountOpen(nextOpen);
+    if (!nextOpen) clearProfileAccountRequest();
   };
 
   /** Browse by color — never invents or keeps a material refinement; results show in the color section. */
@@ -225,7 +267,7 @@ export default function JWStoneMarketplace() {
       <MarketplaceHeader
         wishlistCount={wishlist.count}
         onOpenWishlist={() => setWishlistOpen(true)}
-        onOpenAccount={() => setAccountOpen(true)}
+        onOpenAccount={openAccount}
         onStartRequest={() => startRequest([])}
       />
       <p className="sr-only" aria-live="polite">
@@ -277,10 +319,11 @@ export default function JWStoneMarketplace() {
 
       <PublicProfileAccountDialog
         open={accountOpen}
-        onOpenChange={setAccountOpen}
+        onOpenChange={changeAccountOpen}
         profileSlug="jw-stone"
         profileName={JW_STONE_PUBLIC_IDENTITY.brandName}
         tone="light"
+        initialMode={accountMode}
       />
 
       <StoneDetailDialog
