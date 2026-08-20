@@ -106,22 +106,27 @@ describe("in-profile account foundation", () => {
     expect(dialog).toContain('fetch(buildApiUrl("/api/auth/login")');
   });
 
-  it("puts the account entry in the sticky JW Stone header", () => {
+  it("puts the account entry in the sticky JW Stone header and resumes on the canonical marketplace", () => {
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
-    const resume = read("client/src/features/jw-stone/JwStoneProfileAccountResume.tsx");
+    const redirect = read("client/src/features/jw-stone/profileStorefrontRedirect.ts");
 
     expect(marketplace).toContain("import { PublicProfileAccountDialog }");
-    expect(marketplace).toContain("onOpenAccount={() => setAccountOpen(true)}");
+    expect(marketplace).toContain("function readProfileAccountRequest()");
+    expect(marketplace).toContain('params.get("profileAccount") === "1"');
+    expect(marketplace).toContain("useState(accountRequest.open)");
+    expect(marketplace).toContain("onOpenAccount={openAccount}");
     expect(marketplace).toContain('profileSlug="jw-stone"');
+    expect(marketplace).toContain("initialMode={accountMode}");
     expect(header).toContain("sticky top-0");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
     expect(header).toContain("Create an account with JW Stone");
     expect(header).toContain("<span>Create account</span>");
     expect(theme).toContain("<JWStoneMarketplace />");
-    expect(theme).toContain("<JwStoneProfileAccountResume />");
-    expect(resume).toContain('params.get("profileAccount") === "1"');
+    expect(theme).not.toContain("JwStoneProfileAccountResume");
+    expect(redirect).toContain('params.get("profileAccount") === "1"');
+    expect(redirect).toContain("return `/jw-stone?${accountParams.toString()}${hash}`;");
   });
 
   it("carries verification and password reset return paths across devices", () => {
