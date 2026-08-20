@@ -86,7 +86,8 @@ try {
     "Stone yard or dealer",
     "How do you plan to use TradeScout",
   ]) {
-    if (dialogText.includes(phrase)) throw new Error(`Forbidden signup language present: ${phrase}`);
+    if (dialogText.includes(phrase))
+      throw new Error(`Forbidden signup language present: ${phrase}`);
   }
   if (!dialogText.includes("Create an account with JW Stone")) {
     throw new Error(`JW account heading missing: ${dialogText.slice(0, 500)}`);
@@ -126,7 +127,9 @@ try {
   await page.getByRole("button", { name: "Continue browsing", exact: true }).click();
   await page.reload({ waitUntil: "networkidle" });
   await page.locator('[data-testid="jw-marketplace-account-button"]').click();
-  await page.locator('[data-testid="profile-account-dialog-connected"]').waitFor({ state: "visible" });
+  await page
+    .locator('[data-testid="profile-account-dialog-connected"]')
+    .waitFor({ state: "visible" });
   const reusedText = await page
     .locator('[data-testid="profile-account-dialog-connected"]')
     .innerText();
@@ -173,7 +176,10 @@ try {
     documentWidth: document.documentElement.scrollWidth,
     bodyWidth: document.body.scrollWidth,
   }));
-  if (overflow.documentWidth > overflow.viewport + 2 || overflow.bodyWidth > overflow.viewport + 2) {
+  if (
+    overflow.documentWidth > overflow.viewport + 2 ||
+    overflow.bodyWidth > overflow.viewport + 2
+  ) {
     throw new Error(`Mobile overflow: ${JSON.stringify(overflow)}`);
   }
   await mobile.screenshot({
