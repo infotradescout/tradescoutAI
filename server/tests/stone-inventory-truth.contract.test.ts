@@ -94,8 +94,8 @@ describe("stone inventory truth and freshness", () => {
     const routes = read("server/routes/profiles.ts");
 
     expect(currentInventory).toContain("Physically confirmed stock");
-    expect(currentInventory).toContain("active recheck window");
-    expect(currentInventory).toContain("The Material Library below is broader");
+    expect(currentInventory).toMatch(/active\s+recheck\s+window/);
+    expect(currentInventory).toMatch(/The Material Library\s+below is broader/);
     expect(currentInventory).toContain("Ask about this stock");
     expect(manager).toContain("Confirm current stock");
     expect(manager).toContain("confirmationExpiresAt");
@@ -113,7 +113,9 @@ describe("stone inventory truth and freshness", () => {
     const architecture = read("docs/architecture/STONE_CORE.md");
 
     expect(redProvisioner).not.toContain("INSERT INTO stone_inventory_positions");
-    expect(stoneCoreProvisioner).toContain("Intentionally no physical passport/position insert here");
+    expect(redProvisioner).not.toContain("INSERT INTO stone_asset_passports");
+    expect(stoneCoreProvisioner).not.toContain("INSERT INTO stone_inventory_positions");
+    expect(stoneCoreProvisioner).not.toContain("INSERT INTO stone_asset_passports");
     expect(architecture).toContain("JW Stone's photo catalog is a **Material Library**");
     expect(architecture).toContain("R.E.D. Graniti source materials never become JW Stone inventory");
   });
