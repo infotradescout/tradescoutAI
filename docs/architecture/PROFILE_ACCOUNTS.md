@@ -1,127 +1,158 @@
-# TradeScout in-profile accounts
+# In-profile accounts
 
 ## Product decision
 
-Every published TradeScout profile has the same user-facing action:
+Every published profile may present the same clear action:
 
 **Create an account**
 
-The action is universal. The account policy is not.
+The visitor creates the account with the business or profile they are currently using. They are not required to visit TradeScout first, complete general onboarding, publish a business listing, or understand the shared account infrastructure underneath.
 
-It is not “Create a fabricator account,” “Create a builder account,” or another role-specific signup. It is also not a JW Stone-only or BidRock-owned feature.
+The first completed business example is JW Stone:
 
-Each profile decides what kind of TradeScout identity may use its account and what that account is meant to unlock.
-
-## Current account priorities
-
-### Existing stone profiles
-
-The completed stone-profile lane is business-only.
-
-- JW Stone
-- R.E.D. Graniti
-- ISSA Build
-- Future published profiles whose inventory is identified as stone
-
-Those accounts require an existing TradeScout business identity because they can lead to verified-business stone access and BidRock. A personal or homeowner-only identity cannot create one.
-
-### Other public profiles
-
-Other profiles are not automatically business-only.
-
-Their account priority may be customer continuity, membership, bookings, project access, dealer access, property-owner tools, business access, or another profile-specific job. The profile policy determines whether a normal TradeScout identity or a TradeScout business identity is required.
-
-Until a non-stone profile defines a stricter policy, it uses the normal signed-in TradeScout identity. It does not receive BidRock merely because the universal account action is present.
+`Visit JW Stone → Create an account → enter normal business details → continue inside JW Stone`
 
 ## Governing relationship
 
-`one TradeScout identity → one account with a public profile → profile-specific priority → optional product access`
+`one private shared identity → one account relationship with a profile → profile-specific tools and history`
 
-When a profile requires business access, the relationship also carries the user's existing TradeScout business profile and its verification state.
+The private shared identity prevents duplicate passwords across connected products. It does not make the visitor create a public TradeScout presence.
 
-A profile account is not a second password, a duplicate TradeScout user, a copied business profile, or a separate product identity.
+An in-profile account is not:
 
-## User jobs
+- a second password
+- a role-specific account
+- an automatically published TradeScout profile
+- a copied public business listing
+- a separate BidRock identity
+- a forced general onboarding session
 
-Examples:
+## JW Stone rule
 
-1. A fabricator visits JW Stone and selects **Create an account**. The stone policy requires a TradeScout business profile and may add BidRock access.
-2. A homeowner visits a service profile and selects **Create an account**. That profile may prioritize customer continuity without requiring a business identity.
-3. A contractor visits a wholesale supplier whose profile policy requires businesses. The same generic action routes through business setup.
-4. A future community or membership profile uses the same action but defines its own purpose and allowed identity.
+Any business can create an account with JW Stone.
 
-The profile never asks the visitor to choose Fabricator, Builder, Designer, Supplier, Customer, or another account role during this flow. Those facts belong to the user's existing TradeScout identity, business profile, project, or later profile-specific setup.
+JW Stone does not ask the business to classify itself as a fabricator, builder, contractor, designer, dealer, supplier, or another account role. Those may describe how a company operates, but they are not account types and do not belong in signup.
+
+A new JW Stone visitor provides:
+
+- business name
+- contact name
+- email
+- phone
+- password
+- acceptance of the terms and privacy policy
+
+The system then creates:
+
+1. one private shared identity
+2. one private business identity record
+3. one account relationship with JW Stone
+4. an optional downstream BidRock entitlement under the same relationship
+
+The private business identity is not a public business page. No business directory record or published profile is created during this flow.
+
+## Existing customers
+
+A person who already has a shared identity can sign in from JW Stone and continue without leaving the JW Stone experience.
+
+If that identity already has a private business record, the existing record is reused. If it does not, the person supplies the business name and the system creates a private business record in the same flow.
+
+The account relationship remains idempotent: one private identity has at most one account relationship with the target profile.
+
+## Other profiles
+
+Other profiles use the same visible action but keep their own account policy.
+
+A profile may support:
+
+- a normal customer account
+- a business account
+- membership continuity
+- booking history
+- saved projects
+- property-owner tools
+- dealer access
+- another profile-specific job
+
+The profile policy decides whether a normal private identity or private business identity backs the relationship. The visitor still creates the account directly with the profile rather than being diverted into general platform onboarding.
 
 ## Canonical ownership
 
 | Concern | Authority |
 | --- | --- |
-| Sign-in, email, password, social login | Existing TradeScout user identity |
-| Business identity and verification when required | Existing private `user_profiles` business profile |
-| Public presentation and account priority | Existing TradeScout profile |
-| User-to-profile account relationship | `profile_accounts` |
+| Email, password, and session | Private shared identity |
+| Private business identity and verification | Private business identity record |
+| Public presentation and account priority | Target public profile |
+| User-to-profile relationship | `profile_accounts` |
 | Product-specific access | `profile_account_entitlements` |
-| Saved items | The applicable product's saved-state authority |
+| Saved items | Applicable product saved-state authority |
 | Private pricing | Seller and pricing authority |
 | Messages and requests | Direct Connect and conversation authority |
 | Orders and payments | Commerce, procurement, and payment authority |
 
-## Universal public-profile rule
+## Privacy boundary
 
-- Every published profile receives the same **Create an account** action through the shared public-profile layer.
-- No profile gets a separate credential system merely because it has a custom design or mapped domain.
-- Custom profiles may choose where the shared action is placed, but they may not replace it with a role-specific or product-owned account universe.
-- The visible CTA remains generic even when the profile requires a business identity.
+Account creation stores only the information needed to establish the private relationship.
 
-## Profile-priority rule
+The profile-account record does not store:
 
-A profile account policy carries:
+- passwords
+- message or request text
+- phone numbers
+- addresses
+- private notes
+- uploaded content
+- payment information
 
-- required identity: normal TradeScout user or TradeScout business
-- internal priority key
-- safe description
-- optional downstream product access
+The supporting private business record remains private by default. Publishing a TradeScout business profile requires a later deliberate action.
 
-Stone detection always wins over a weaker configuration. A stone profile cannot downgrade itself to a personal account because business verification protects private pricing and BidRock access.
+## Verification boundary
 
-Non-stone profiles may define their own account policy in the profile's private configuration. They are not forced into the stone-business model.
+Creating an account and verifying a business are separate actions.
+
+A business can create and use its JW Stone account immediately. Verification controls protected features such as private business pricing or qualified marketplace access. Verification does not decide whether a business is allowed to have an account.
+
+The supported verification states are:
+
+- pending
+- approved
+- rejected
+
+The profile relationship also supports active, suspended, and closed states.
 
 ## Concurrent BidRock access
 
-BidRock is downstream product access, not the account owner.
+BidRock remains downstream product access, not the account owner.
 
-When a business creates an account with an eligible stone profile:
+For an eligible stone profile:
 
-1. The business-backed profile account is created.
-2. A `bidrock` product entitlement is added to that same account.
+1. The business-backed profile account is created or reused.
+2. A `bidrock` entitlement is attached to that same relationship.
 3. The entitlement remains pending until business verification is approved.
 
-A non-stone profile does not receive BidRock. A normal user-backed profile account does not receive BidRock.
+No second password, separate BidRock business identity, or role-specific registration is created.
 
 ## Routes
 
-- `GET /api/u/:slug/account` — profile policy, required identity, current relationship, and business-setup requirement when applicable
-- `POST /api/u/:slug/account` — authenticated, idempotent account creation under that profile's policy
+- `GET /api/u/:slug/account` — reads the profile policy and current relationship
+- `POST /api/u/:slug/account` — creates or reuses the relationship and may create the required private business identity
 
-Unsigned visitors return through:
+Authentication itself continues to use the existing shared session endpoints, but the profile owns the visible signup and sign-in experience.
 
-`/u/:slug?profileAccount=1`
-
-The profile completes the relationship after the required TradeScout identity exists. Business setup is requested only when the target profile policy requires it.
-
-## Privacy and trust
-
-- No second password or credential record.
-- No request text, message text, phone number, address, private note, or uploaded content is stored in the profile-account record.
-- Business verification is required only where the profile policy calls for business access.
-- Account creation does not claim that a business is verified.
-- Suspended relationships and suspended product entitlements remain suspended during repeat entry.
-- Product entitlements do not bypass pricing, commerce, account verification, or contact rules.
+Source paths may come from the normal public profile route or a branded product surface such as `/jw-stone`. They must remain safe same-origin relative paths.
 
 ## Current lane
 
-This lane establishes one reusable account contract, exposes **Create an account** across published profiles, and enforces the first completed policy:
+This lane establishes the profile-native account path and removes the general onboarding dependency.
 
-**stone profiles are business-only; other profiles keep their own priorities.**
+It does not yet claim that these later product layers are complete:
 
-It does not redesign individual profiles, add Stone Core promotion to JW Stone, launch BidRock checkout, or claim that saved-state, private pricing, orders, and conversations are already connected.
+- cross-device saved-state sync
+- private pricing presentation
+- quote history
+- order history
+- payment processing
+- conversation history
+- full My JW Stone workspace
+
+Those layers must attach to the same account relationship rather than creating another identity system.
