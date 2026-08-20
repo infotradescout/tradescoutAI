@@ -160,10 +160,11 @@ export function getPostLandingRoute(user: unknown): string {
 }
 
 function isPublicProfileAccountPath(path: string): boolean {
-  const normalized = String(path || "/")
-    .trim()
-    .toLowerCase()
-    .replace(/\/+$/, "") || "/";
+  const normalized =
+    String(path || "/")
+      .trim()
+      .toLowerCase()
+      .replace(/\/+$/, "") || "/";
   if (normalized === "/jw-stone") return true;
   return /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized);
 }
