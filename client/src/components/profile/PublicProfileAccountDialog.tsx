@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Building2, CheckCircle2, Loader2, LogIn, UserPlus } from "lucide-react";
+import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
+import { SiFacebook, SiGoogle } from "react-icons/si";
 import { useAuth } from "@/hooks/useAuth";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 import {
   Dialog,
   DialogContent,
@@ -10,14 +12,17 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
+  buildProfileAccountResumePath,
   createProfileAccount,
   currentProfileAccountSourcePath,
   loadProfileAccountState,
+  rememberProfileAccountReturnPath,
   readResponseJson,
+  type ProfileAccountMode,
   type ProfileAccountResponse,
 } from "./profileAccountClient";
 
-type AccountMode = "create" | "signin";
+type AccountMode = ProfileAccountMode;
 
 type PublicProfileAccountDialogProps = {
   open: boolean;
@@ -25,6 +30,7 @@ type PublicProfileAccountDialogProps = {
   profileSlug: string;
   profileName: string;
   tone?: "light" | "dark";
+  initialMode?: AccountMode;
   initialState?: ProfileAccountResponse | null;
   onStateChange?: (state: ProfileAccountResponse) => void;
 };
@@ -40,6 +46,17 @@ function passwordProblem(password: string): string | null {
   if (!/[a-z]/.test(password)) return "Add at least one lowercase letter.";
   if (!/[0-9]/.test(password)) return "Add at least one number.";
   return null;
+}
+
+function requestedAccountMode(fallback: AccountMode): AccountMode {
+  if (typeof window === "undefined") return fallback;
+  try {
+    return new URL(window.location.href).searchParams.get("profileAccountMode") === "signin"
+      ? "signin"
+      : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 async function submitAuth(path: "/api/auth/register" | "/api/auth/login", body: object) {
@@ -68,14 +85,17 @@ export function PublicProfileAccountDialog({
   profileSlug,
   profileName,
   tone = "light",
+  initialMode = "create",
   initialState = null,
   onStateChange,
 }: PublicProfileAccountDialogProps) {
   const { user, isAuthenticated, refetch } = useAuth();
   const hasViewerSession = isAuthenticated || Boolean((user as { id?: string } | null)?.id);
   const [data, setData] = useState<ProfileAccountResponse | null>(initialState);
-  const [mode, setMode] = useState<AccountMode>("create");
+  const [mode, setMode] = useState<AccountMode>(initialMode);
   const [loading, setLoading] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loadError, setLoadError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -89,13 +109,15 @@ export function PublicProfileAccountDialog({
   const isDark = tone === "dark";
 
   useEffect(() => {
-    if (initialState) setData(initialState);
-  }, [initialState]);
+    setData(initialState);
+  }, [initialState, profileSlug]);
 
   useEffect(() => {
     if (!open) return;
+    setMode(requestedAccountMode(initialMode));
     let current = true;
     setLoading(true);
+    setLoadError("");
     setError("");
     loadProfileAccountState(profileSlug)
       .then((next) => {
@@ -106,7 +128,9 @@ export function PublicProfileAccountDialog({
       })
       .catch((nextError) => {
         if (current) {
-          setError(nextError instanceof Error ? nextError.message : "Account is unavailable.");
+          setLoadError(
+            nextError instanceof Error ? nextError.message : "Account is temporarily unavailable."
+          );
         }
       })
       .finally(() => {
@@ -115,12 +139,13 @@ export function PublicProfileAccountDialog({
     return () => {
       current = false;
     };
-  }, [open, profileSlug]);
+  }, [open, profileSlug, initialMode, loadAttempt]);
 
   const requiresBusiness = data?.policy.requiredIdentity === "business";
   const connected = data?.account?.status === "active";
   const needsBusinessName = requiresBusiness && !data?.viewerBusiness;
   const normalizedBusinessName = businessName.trim();
+  const profileSigninReturnPath = buildProfileAccountResumePath(profileSlug, "signin");
 
   const description = useMemo(() => {
     if (connected) {
@@ -183,6 +208,7 @@ export function PublicProfileAccountDialog({
   };
 
   const createNewIdentityAndAccount = async () => {
+    if (!data) throw new Error("Account details must load before registration can continue.");
     if (!firstName.trim()) throw new Error("Enter your first name.");
     if (!lastName.trim()) throw new Error("Enter your last name.");
     if (!email.trim() || !email.includes("@")) throw new Error("Enter a valid email address.");
@@ -195,6 +221,7 @@ export function PublicProfileAccountDialog({
     if (password !== confirmPassword) throw new Error("The passwords do not match.");
     if (!acceptTerms) throw new Error("Accept the Terms of Service and Privacy Policy.");
 
+    const returnPath = rememberProfileAccountReturnPath(profileSlug, "signin");
     try {
       await submitAuth("/api/auth/register", {
         firstName: firstName.trim(),
@@ -204,9 +231,10 @@ export function PublicProfileAccountDialog({
         password,
         acceptTerms: true,
         allowPhoneCalls: false,
-        userTypes: requiresBusiness ? ["business_owner"] : [],
-        role: requiresBusiness ? "business_owner" : undefined,
-        userIntent: requiresBusiness ? "business" : "profile_account",
+        userTypes: [],
+        userIntent: "profile_account",
+        source: "profile_account",
+        next: returnPath,
       });
     } catch (nextError) {
       const authError = nextError as AuthError;
@@ -224,7 +252,7 @@ export function PublicProfileAccountDialog({
   };
 
   const submit = async () => {
-    if (submitting) return;
+    if (submitting || !data) return;
     setSubmitting(true);
     setError("");
     try {
@@ -237,10 +265,23 @@ export function PublicProfileAccountDialog({
         await createNewIdentityAndAccount();
       }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
+      const authError = nextError as AuthError;
+      if (authError.code === "AUTH_SOCIAL_ONLY") {
+        setMode("signin");
+        setError("This account uses Google or Facebook sign-in. Use the matching option below.");
+      } else {
+        setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
+      }
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const beginSocialSignIn = (provider: "google" | "facebook") => {
+    const returnPath = rememberProfileAccountReturnPath(profileSlug, "signin");
+    window.location.assign(
+      buildApiUrl(`/api/auth/${provider}?next=${encodeURIComponent(returnPath)}`)
+    );
   };
 
   const inputClass = cn(
@@ -254,6 +295,9 @@ export function PublicProfileAccountDialog({
   const primaryClass = isDark
     ? "bg-amber-500 text-stone-950 hover:bg-amber-400"
     : "bg-stone-950 text-white hover:bg-stone-800";
+  const secondaryClass = isDark
+    ? "border-white/15 bg-white/5 text-white hover:bg-white/10"
+    : "border-stone-300 bg-white text-stone-900 hover:bg-stone-50";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -297,10 +341,33 @@ export function PublicProfileAccountDialog({
           <DialogDescription className={mutedClass}>{description}</DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {loading && !data ? (
           <div className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}>
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Opening your account…
+          </div>
+        ) : loadError && !data ? (
+          <div className="space-y-4" data-testid="profile-account-load-error">
+            <p
+              className={cn(
+                "rounded-xl px-3 py-3 text-sm font-bold",
+                isDark ? "bg-red-400/10 text-red-200" : "bg-red-50 text-red-800"
+              )}
+              role="alert"
+            >
+              {loadError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setLoadAttempt((current) => current + 1)}
+              className={cn(
+                "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition",
+                secondaryClass
+              )}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              Try again
+            </button>
           </div>
         ) : connected ? (
           <div className="space-y-4" data-testid="profile-account-dialog-connected">
@@ -330,7 +397,7 @@ export function PublicProfileAccountDialog({
               Continue browsing
             </button>
           </div>
-        ) : (
+        ) : data ? (
           <div className="space-y-4">
             {requiresBusiness && (needsBusinessName || !hasViewerSession) ? (
               <label className={labelClass}>
@@ -344,7 +411,7 @@ export function PublicProfileAccountDialog({
                   placeholder="Your business name"
                 />
               </label>
-            ) : requiresBusiness && data?.viewerBusiness ? (
+            ) : requiresBusiness && data.viewerBusiness ? (
               <div
                 className={cn(
                   "rounded-2xl border p-4 text-sm",
@@ -480,7 +547,7 @@ export function PublicProfileAccountDialog({
               type="button"
               data-testid="profile-account-submit"
               onClick={() => void submit()}
-              disabled={submitting}
+              disabled={submitting || !data}
               className={cn(
                 "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition disabled:cursor-wait disabled:opacity-60",
                 primaryClass
@@ -496,9 +563,53 @@ export function PublicProfileAccountDialog({
               {hasViewerSession
                 ? `Create account with ${profileName}`
                 : mode === "signin"
-                  ? `Sign in and continue`
+                  ? "Sign in and continue"
                   : `Create account with ${profileName}`}
             </button>
+
+            {!hasViewerSession && mode === "signin" ? (
+              <div className="space-y-3 border-t border-current/10 pt-4">
+                <p className={cn("text-center text-xs font-black uppercase tracking-[0.15em]", mutedClass)}>
+                  Or use your existing sign-in
+                </p>
+                <button
+                  type="button"
+                  data-testid="profile-account-google-signin"
+                  onClick={() => beginSocialSignIn("google")}
+                  className={cn(
+                    "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition",
+                    secondaryClass
+                  )}
+                >
+                  <SiGoogle className="h-4 w-4" aria-hidden="true" />
+                  Sign in with Google
+                </button>
+                {import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true" ? (
+                  <button
+                    type="button"
+                    data-testid="profile-account-facebook-signin"
+                    onClick={() => beginSocialSignIn("facebook")}
+                    className={cn(
+                      "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition",
+                      secondaryClass
+                    )}
+                  >
+                    <SiFacebook className="h-4 w-4" aria-hidden="true" />
+                    Sign in with Facebook
+                  </button>
+                ) : null}
+                <a
+                  href={`/reset-password?next=${encodeURIComponent(profileSigninReturnPath)}`}
+                  onClick={() => rememberProfileAccountReturnPath(profileSlug, "signin")}
+                  className={cn(
+                    "inline-flex min-h-11 w-full items-center justify-center text-sm font-bold underline-offset-4 hover:underline",
+                    mutedClass
+                  )}
+                >
+                  Forgot or need to set your password?
+                </a>
+              </div>
+            ) : null}
 
             {!hasViewerSession ? (
               <button
@@ -516,7 +627,7 @@ export function PublicProfileAccountDialog({
               </button>
             ) : null}
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );
