@@ -23,35 +23,42 @@ const STRIPS = [
   {
     id: "01-white",
     alt: "White stone face",
-    // Face-true Alabama White lead — Rhino White crops read as blank / mushy white.
+    // Alabama White face with visible gray veining; crop stays left of the clamp.
     src: "client/public/images/businesses/jw-stone/inventory-source/1pRla8GWSa3dSbWTtgTsrytcJMb8D0Qso.webp",
-    box: { left: 0.28, top: 0.18, width: 0.44, height: 0.62 },
+    box: { left: 0.05, top: 0.18, width: 0.3, height: 0.65 },
   },
   {
     id: "02-warm",
-    alt: "Warm stone face",
-    src: "client/public/images/businesses/jw-stone/inventory-source/1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b.webp",
-    box: { left: 0.25, top: 0.2, width: 0.5, height: 0.6 },
+    alt: "Beige stone face",
+    // Cristallo face reads unmistakably cream/beige; side crop avoids the clamp.
+    src: "client/public/images/businesses/jw-stone/inventory-source/1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ.webp",
+    box: { left: 0.08, top: 0.18, width: 0.32, height: 0.68 },
   },
   {
     id: "03-gray",
     alt: "Gray stone face",
-    src: "client/public/images/businesses/jw-stone/inventory-source/1DhruW-z_cS08qBpTZ4Fw4yVivYEVRu6C.webp",
-    box: { left: 0.34, top: 0.28, width: 0.32, height: 0.55 },
+    // Steel Gray edge crop stays clear of the hand while remaining distinct from Black.
+    src: "client/public/images/businesses/jw-stone/inventory-source/1UDe57h8Vq_IpmDKm9JvV-1jEdrc7TMKW.webp",
+    box: { left: 0.02, top: 0.1, width: 0.18, height: 0.75 },
   },
   {
     id: "04-black",
     alt: "Black stone face",
-    // Fantasy Black #2 — close face, no photographer reflection (Black Pearl reflects camera person).
-    src: "client/public/images/businesses/jw-stone/inventory-source/1ModDlYlHq4jdhNo5pyp7s90IR8YnQggI.webp",
-    box: { left: 0.2, top: 0.12, width: 0.6, height: 0.55 },
+    // Preto Sao Gabriel — near-solid black surface, below the clamp.
+    src: "client/public/images/businesses/jw-stone/inventory-source/1uJRgq-Ds5tUtASBGdpn5YHKQ-R0H0gLh.webp",
+    box: { left: 0.18, top: 0.28, width: 0.64, height: 0.58 },
   },
   {
     id: "05-brown",
-    alt: "Brown gold stone face",
-    src: "client/public/images/businesses/jw-stone/inventory-source/1pKdJmj7VT9o37TogtLJrQU7D9MynlVq_.webp",
-    // Keep well above the fingertip at the bottom-left of the source photo.
-    box: { left: 0.28, top: 0.1, width: 0.48, height: 0.4 },
+    alt: "Brown stone face",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1UkwxC3a6LWlHkaUPZLKppFJT18s9f6oQ.webp",
+    box: { left: 0.08, top: 0.3, width: 0.32, height: 0.52 },
+  },
+  {
+    id: "09-gold",
+    alt: "Gold stone face",
+    src: "client/public/images/businesses/jw-stone/inventory-source/1AanF14cJoQLShcrHgHAIMAWX21qpfZUn.webp",
+    box: { left: 0.08, top: 0.06, width: 0.84, height: 0.88 },
   },
   {
     id: "06-green",
@@ -64,12 +71,6 @@ const STRIPS = [
     alt: "Blue stone face",
     src: "client/public/images/businesses/jw-stone/inventory-source/19PB3hiee2ils34FffQnjFS0SvcR9fX16.webp",
     box: { left: 0.15, top: 0.1, width: 0.7, height: 0.8 },
-  },
-  {
-    id: "08-red",
-    alt: "Red burgundy stone face",
-    src: "client/public/images/businesses/jw-stone/first-cut/02.jpg",
-    box: { left: 0.05, top: 0.28, width: 0.55, height: 0.6 },
   },
 ];
 

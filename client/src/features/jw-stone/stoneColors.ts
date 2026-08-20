@@ -60,6 +60,11 @@ export const JW_STONE_FACE_TRUE_COLOR_OVERRIDES: Readonly<Record<string, readonl
     "pinta-verde": Object.freeze(["green", "white"] as const),
     "blue-bahia": Object.freeze(["blue", "gray"] as const),
     "emerald-pearl": Object.freeze(["green", "black"] as const),
+    // Dark faces misread as light gray/white or blue from outdoor glare.
+    "preto-sao-gabriel": Object.freeze(["black", "gray"] as const),
+    "venta-black": Object.freeze(["black", "blue"] as const),
+    // Emperor Brown's photographed face is brown; clamp/sky sampling returned gold/white.
+    "emperor-brown": Object.freeze(["brown", "beige"] as const),
     "fusion-yellow": Object.freeze(["yellow", "gold", "black"] as const),
     // Soft white faces misread as blue from yard/sky wash or hand-close chrome.
     "alabama-white": Object.freeze(["white", "gray"] as const),

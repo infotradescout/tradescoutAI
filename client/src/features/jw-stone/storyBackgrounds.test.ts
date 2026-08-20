@@ -15,7 +15,8 @@ describe("JW story backgrounds", () => {
     const colorJoined = COLOR_COLLAGE_STRIPS.map((strip) => strip.src).join(" ");
     expect(colorJoined).toContain("04-black.webp");
     expect(colorJoined).toContain("07-blue.webp");
-    expect(colorJoined).toContain("08-red.webp");
+    expect(colorJoined).toContain("09-gold.webp");
+    expect(colorJoined).not.toContain("08-red.webp");
     expect(colorJoined).not.toContain("/inventory/");
     expect(colorJoined).not.toContain("/inventory-source/");
     expect(colorJoined).not.toContain("/black-pearl/");

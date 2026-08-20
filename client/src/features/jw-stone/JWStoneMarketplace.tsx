@@ -1,8 +1,5 @@
 import { useLayoutEffect, useMemo, useState } from "react";
-import {
-  JW_STONE_MANAGED_CONTACT,
-  JW_STONE_PUBLIC_IDENTITY,
-} from "@shared/jwStonePresentation";
+import { JW_STONE_MANAGED_CONTACT, JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
@@ -10,7 +7,7 @@ import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnec
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
-import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
+import { ColorPaletteRail, MoodPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
@@ -118,7 +115,7 @@ export default function JWStoneMarketplace() {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
 
-  /** Browse by color — never invents or keeps a material refinement; results show in the color section. */
+  /** Color and mood browsing stay distinct and never keep a material refinement. */
   const selectPalette = (next: ColorSwatchSelection) => {
     commit({
       ...state,
@@ -128,9 +125,10 @@ export default function JWStoneMarketplace() {
       stone: null,
     });
     if (!next.aesthetic && !next.color) return;
+    const resultsTestId = next.aesthetic ? "jw-mood-results" : "jw-palette-results";
     requestAnimationFrame(() => {
       document
-        .querySelector('[data-testid="jw-palette-results"]')
+        .querySelector(`[data-testid="${resultsTestId}"]`)
         ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   };
@@ -245,6 +243,16 @@ export default function JWStoneMarketplace() {
       <ColorPaletteRail
         aesthetic={state.aesthetic}
         color={state.color}
+        material={null}
+        origin={state.origin}
+        onSelect={selectPalette}
+        isSaved={wishlist.isSaved}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
+      />
+      <MoodPaletteRail
+        aesthetic={state.aesthetic}
         material={null}
         origin={state.origin}
         onSelect={selectPalette}
