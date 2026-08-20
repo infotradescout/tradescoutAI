@@ -2,6 +2,10 @@ import { and, eq, ne, or, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
+  OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY,
+  WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE,
+} from "@shared/businessDiscoveryAuthority";
+import {
   RED_GRANITI_BUSINESS_NAME,
   RED_GRANITI_LOGO_URL,
   RED_GRANITI_OFFICIAL_SOURCES,
@@ -16,13 +20,9 @@ import {
   ADMIN_MANAGED_PROFILE_SOURCE,
   hasVerifiedTradeScoutAdminCustody,
 } from "./ownerConfirmedDirectProfile";
-import {
-  ensureStoneCoreTables,
-  provisionRedGranitiStoneCore,
-} from "./stoneCoreProvisioning";
+import { ensureStoneCoreTables, provisionRedGranitiStoneCore } from "./stoneCoreProvisioning";
 
-export const RED_GRANITI_PROFILE_PROVISIONING_SOURCE =
-  "operator_confirmed_company_profile";
+export const RED_GRANITI_PROFILE_PROVISIONING_SOURCE = "operator_confirmed_company_profile";
 
 const TRADE_SCOUT_DIRECT_CONNECT_INBOX = "contact@thetradescout.com";
 // The R.E.D. company record never publishes a phone. Its dedicated profile
@@ -37,9 +37,7 @@ function recordValue(value: unknown): Record<string, any> {
 
 function stringList(value: unknown): string[] {
   return Array.isArray(value)
-    ? value
-        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-        .filter(Boolean)
+    ? value.map((entry) => (typeof entry === "string" ? entry.trim() : "")).filter(Boolean)
     : [];
 }
 
@@ -91,7 +89,9 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       !jwProfileOwnerUserId ||
       jwBusinessOwnerUserId !== jwProfileOwnerUserId
     ) {
-      throw new Error("JW Stone business and profile ownership must match before rights are recorded");
+      throw new Error(
+        "JW Stone business and profile ownership must match before rights are recorded"
+      );
     }
 
     const [jwOwner] = await tx
@@ -159,12 +159,12 @@ export async function provisionRedGranitiProfile(): Promise<void> {
       : [];
     const existingOwnerIsAdmin = Boolean(
       existingOwner &&
-        hasVerifiedTradeScoutAdminCustody({
-          ownerRole: existingOwner.role,
-          ownerRoles: existingOwner.roles,
-          ownerVerifiedBadge: existingOwner.verifiedBadge,
-          ownerVerificationStatus: existingOwner.verificationStatus,
-        })
+      hasVerifiedTradeScoutAdminCustody({
+        ownerRole: existingOwner.role,
+        ownerRoles: existingOwner.roles,
+        ownerVerifiedBadge: existingOwner.verifiedBadge,
+        ownerVerificationStatus: existingOwner.verificationStatus,
+      })
     );
     const existingOwnerIsCorrectableJwSeed = existingOwnerUserId === jwOwner.id;
     if (existingOwnerUserId && !existingOwnerIsAdmin && !existingOwnerIsCorrectableJwSeed) {
@@ -188,9 +188,10 @@ export async function provisionRedGranitiProfile(): Promise<void> {
             )
             .limit(1)
         : [];
-    const [fallbackAdmin] = existingOwnerIsAdmin || configuredAdmin
-      ? []
-      : await tx.select(adminSelection).from(users).where(verifiedAdminPredicate).limit(1);
+    const [fallbackAdmin] =
+      existingOwnerIsAdmin || configuredAdmin
+        ? []
+        : await tx.select(adminSelection).from(users).where(verifiedAdminPredicate).limit(1);
     const adminOwner = existingOwnerIsAdmin ? existingOwner : configuredAdmin || fallbackAdmin;
 
     if (
@@ -256,6 +257,10 @@ export async function provisionRedGranitiProfile(): Promise<void> {
           profile_steward: "tradescout_verified_admin",
           stone_core_source_profile: "true",
           official_company_source: RED_GRANITI_OFFICIAL_WEBSITE,
+          public_discovery_authority: OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY,
+          public_discovery_source: RED_GRANITI_OFFICIAL_WEBSITE,
+          service_area_mode: WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE,
+          service_area_resolution: "official_worldwide_source_company",
         },
         brandColors: {
           primary: "#241f20",

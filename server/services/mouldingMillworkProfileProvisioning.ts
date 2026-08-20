@@ -1,5 +1,12 @@
 import { and, eq, sql } from "drizzle-orm";
-import { businesses, contractors, profiles, users } from "@shared/schema";
+import {
+  businessCounties,
+  businesses,
+  contractors,
+  counties,
+  profiles,
+  users,
+} from "@shared/schema";
 import {
   MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS,
   MOULDING_MILLWORK_PROFILE_SLUG,
@@ -131,6 +138,8 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           contact_role: "authorized_contact",
           contact_confirmation: "operator_confirmed_2026-07-20",
           legal_ownership_claim: "not_asserted",
+          county_fips: "22051",
+          county_name: "Jefferson Parish",
         },
         tradePartner: true,
         brandColors: {
@@ -160,6 +169,19 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
           .values(businessValues as any)
           .returning();
     if (!business) throw new Error("Moulding & Millwork business provisioning failed");
+
+    const [jeffersonParish] = await tx
+      .select({ id: counties.id })
+      .from(counties)
+      .where(eq(counties.fips, "22051"))
+      .limit(1);
+    if (!jeffersonParish?.id) {
+      throw new Error("Moulding & Millwork requires the Jefferson Parish county record");
+    }
+    await tx
+      .insert(businessCounties)
+      .values({ businessId: business.id, countyId: jeffersonParish.id } as any)
+      .onConflictDoNothing();
 
     // Recommendations still reference a legacy contractor ID. A newly created
     // compatibility row starts inactive and unverified. If an exact record
@@ -227,14 +249,15 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       contentBlocks: MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
-          label: "Direct Connect",
+          label: "Start a Request",
           kind: "message" as const,
           value: "/direct-connect",
         },
       },
       seoMeta: {
         title: "Moulding & Millwork Supply | Harahan, Louisiana",
-        description: "See moulding, doors, windows, and millwork from Moulding & Millwork Supply.",
+        description:
+          "Request moulding, doors, windows, plan review, and millwork supply from Moulding & Millwork Supply in Harahan, Louisiana.",
       },
       status: "published" as const,
       updatedAt: now,

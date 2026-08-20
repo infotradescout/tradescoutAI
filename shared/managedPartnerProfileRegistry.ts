@@ -75,6 +75,7 @@ export const MANAGED_PARTNER_PROFILE_DEFINITIONS = [
     exposureMode: "public",
     requestMode: "profile_request_flow",
     requestRecipientSlug: JW_STONE_PROFILE_SLUG,
+    expectedPrimaryCta: "Start a Request",
     expectedPhone: TRADESCOUT_MANAGED_CONTACT.phone,
     expectedEmail: TRADESCOUT_MANAGED_CONTACT.email,
     expectedNotificationEmail: TRADESCOUT_MANAGED_CONTACT.email,

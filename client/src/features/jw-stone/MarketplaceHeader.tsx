@@ -133,7 +133,7 @@ export function MarketplaceHeader({
                     onClick={() => closeAnd(onStartRequest)}
                     className="px-3 py-2.5 text-left font-semibold text-[var(--jw-accent)] hover:bg-[var(--jw-bg)]"
                   >
-                    Connect
+                    Start a Request
                   </button>
                 </nav>
               </div>

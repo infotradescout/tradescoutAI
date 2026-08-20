@@ -4,6 +4,8 @@ import {
   FULLY_VERIFIED_BUSINESS_PERCENT,
   FULLY_VERIFIED_BUSINESS_STATUS,
   LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE,
+  OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY,
+  WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE,
 } from "@shared/businessDiscoveryAuthority";
 import { db } from "../db";
 import { getPublicationRules, invalidatePublicationRulesCache } from "../publicationRules";
@@ -93,7 +95,25 @@ export async function runSeoPublicationPruneJob(): Promise<SeoPublicationPruneRe
               ''
             )
           ) = ${LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE}
-            as location_confirmed_per_request
+            as location_confirmed_per_request,
+          (
+            lower(
+              coalesce(
+                b.profile_data->'importExtras'->>'public_discovery_authority',
+                ''
+              )
+            ) = ${OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY}
+            and lower(
+              coalesce(
+                b.profile_data->'importExtras'->>'service_area_mode',
+                ''
+              )
+            ) = ${WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE}
+            and coalesce(b.sources, '[]'::jsonb) ? coalesce(
+              b.profile_data->'importExtras'->>'public_discovery_source',
+              ''
+            )
+          ) as official_source_company_authority
         from businesses b
         left join users u on u.id = b.owner_user_id
         where b.status = 'active'
@@ -102,7 +122,15 @@ export async function runSeoPublicationPruneJob(): Promise<SeoPublicationPruneRe
       classified as (
         select
           *,
-          (owner_verified or business_level_verified) as publication_verified
+          (
+            owner_verified
+            or business_level_verified
+            or official_source_company_authority
+          ) as publication_verified,
+          (
+            (business_level_verified and location_confirmed_per_request)
+            or official_source_company_authority
+          ) as non_county_discovery_authority
         from candidates
       ),
       stale as (
@@ -111,7 +139,7 @@ export async function runSeoPublicationPruneJob(): Promise<SeoPublicationPruneRe
         where
           (
             not has_fixed_county
-            and not (business_level_verified and location_confirmed_per_request)
+            and not non_county_discovery_authority
           )
           or
           (

@@ -2,6 +2,9 @@
 export const PRECISION_AERIAL_PROFILE_SLUG = "precision-aerial-services";
 export const PRECISION_AERIAL_BUSINESS_NAME = "Precision Aerial Services";
 export const PRECISION_AERIAL_STEWARD_PROVIDER = "admin_provisioned_profile_steward";
+export const PRECISION_AERIAL_PUBLIC_HEADLINE = "Aerial photo, video, and FPV in Pensacola.";
+export const PRECISION_AERIAL_PUBLIC_SEO_DESCRIPTION =
+  "Aerial media for real estate, construction progress, land and property, and FPV projects. Start a request through TradeScout.";
 
 /** First-party public accounts supplied by the operator through TradeScout. */
 export const PRECISION_AERIAL_PUBLIC_SOURCES = [
@@ -179,10 +182,10 @@ export const PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS =
   );
 
 /**
- * Current source-backed profile. Cameron's public TikTok identifies him as a
- * Pensacola FAA Part 107 licensed drone pilot and lists real estate,
- * construction, and land work. Thomas confirmed on 2026-07-29 that FPV is
- * currently available and thermal imaging is upcoming.
+ * Current source-backed profile. Cameron's public accounts show real estate,
+ * construction, land, aerial-photo, video, and FPV work. Thomas confirmed on
+ * 2026-07-29 that FPV is currently available and thermal imaging is upcoming.
+ * Credential wording remains excluded until an authoritative record is confirmed.
  */
 export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
   PRECISION_AERIAL_V3_PROFILE_CONTENT_BLOCKS.map((block) => {
@@ -191,7 +194,7 @@ export const PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS =
         ...block,
         data: {
           ...block.data,
-          text: "Cameron is a Pensacola-based FAA Part 107 licensed drone pilot creating aerial photo, traditional drone video, and FPV work for real estate, construction progress, and land or site documentation.",
+          text: "Cameron creates aerial photo, traditional drone video, and FPV work for real estate, construction progress, and land or site documentation in the Pensacola area.",
         },
       };
     }

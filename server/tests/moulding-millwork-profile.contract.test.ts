@@ -23,6 +23,9 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     expect(provisioner).toContain('status: "published"');
     expect(provisioner).toContain("publicDiscoveryEnabled: true");
     expect(provisioner).toContain("tradePartner: true");
+    expect(provisioner).toContain('eq(counties.fips, "22051")');
+    expect(provisioner).toContain(".insert(businessCounties)");
+    expect(provisioner).toContain('label: "Start a Request"');
     expect(entry).toContain(
       'import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";'
     );
