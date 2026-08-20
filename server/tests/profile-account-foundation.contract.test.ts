@@ -75,11 +75,11 @@ describe("in-profile account foundation", () => {
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
 
-    expect(marketplace).toContain('import { PublicProfileAccountDialog }');
+    expect(marketplace).toContain("import { PublicProfileAccountDialog }");
     expect(marketplace).toContain("const [accountOpen, setAccountOpen] = useState(false)");
     expect(marketplace).toContain("onOpenAccount={() => setAccountOpen(true)}");
     expect(marketplace).toContain('profileSlug="jw-stone"');
-    expect(marketplace).toContain('profileName={JW_STONE_PUBLIC_IDENTITY.brandName}');
+    expect(marketplace).toContain("profileName={JW_STONE_PUBLIC_IDENTITY.brandName}");
     expect(header).toContain("onOpenAccount: () => void");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
     expect(header).toContain("Create an account with JW Stone");
@@ -106,7 +106,7 @@ describe("in-profile account foundation", () => {
     const combined = `${accountCard}\n${dialog}\n${trustActions}\n${shared}`;
 
     expect(profileSite).toContain("renderProfileTrustActions");
-    expect(trustActions).toContain('import { PublicProfileAccountCard }');
+    expect(trustActions).toContain("import { PublicProfileAccountCard }");
     expect(trustActions).toContain("<PublicProfileAccountCard");
     expect(trustActions).toContain('profileSlug !== "jw-stone"');
     expect(accountCard).toContain('"Create an account"');
@@ -124,6 +124,8 @@ describe("in-profile account foundation", () => {
     const combined = `${card}\n${dialog}\n${service}`;
 
     expect(combined).not.toMatch(/saved stones are synced|conversation history restored/i);
-    expect(service).not.toMatch(/INSERT INTO conversations|INSERT INTO messages|INSERT INTO stone_saved/i);
+    expect(service).not.toMatch(
+      /INSERT INTO conversations|INSERT INTO messages|INSERT INTO stone_saved/i
+    );
   });
 });
