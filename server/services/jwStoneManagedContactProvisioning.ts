@@ -6,6 +6,7 @@ import { TRADESCOUT_MANAGED_CONTACT } from "@shared/tradeScoutManagedContact";
 import { db } from "../db";
 import { normalizeIssaBuildVerifiedFullServiceProfile } from "./issaBuildVerifiedProfileNormalization";
 import { getRuntimeManagedPartnerProfileDefinitions } from "./managedPartnerIntake";
+import { normalizeRemainingPublicProfileTruth } from "./remainingPublicProfileTruthNormalization";
 
 export const JW_STONE_MANAGED_CONTACT_SOURCE = "tradescout_managed_contact";
 export const TRADESCOUT_MANAGED_CONTACT_SOURCE = JW_STONE_MANAGED_CONTACT_SOURCE;
@@ -113,6 +114,17 @@ export async function provisionTradeScoutManagedPartnerContacts(): Promise<void>
     const message = error instanceof Error ? error.message : String(error);
     failures.push(`issa-build: ${message}`);
     console.error("[profile-provisioning] ISSA Build verification normalization failed", error);
+  }
+
+  try {
+    await normalizeRemainingPublicProfileTruth();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    failures.push(`remaining-public-profile-truth: ${message}`);
+    console.error(
+      "[profile-provisioning] Remaining public profile truth normalization failed",
+      error
+    );
   }
 
   if (failures.length > 0) {

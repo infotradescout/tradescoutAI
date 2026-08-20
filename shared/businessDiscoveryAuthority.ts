@@ -2,6 +2,8 @@ export const FULLY_VERIFIED_BUSINESS_STATUS = "fully_verified";
 export const FULLY_VERIFIED_BUSINESS_PERCENT = 100;
 export const BUSINESS_IDENTITY_VERIFICATION_SCOPE = "business_identity";
 export const LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE = "location_confirmed_per_request";
+export const OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY = "official_source_company";
+export const WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE = "worldwide_source_company";
 
 export type BusinessDiscoveryAuthorityCandidate = {
   profileData: unknown;
@@ -62,6 +64,26 @@ export function hasLocationConfirmedPerRequestServiceArea(profileData: unknown):
   );
 }
 
+export function hasOfficialSourceCompanyDiscoveryAuthority(
+  candidate: BusinessDiscoveryAuthorityCandidate
+): boolean {
+  const importExtras = recordValue(recordValue(candidate.profileData).importExtras);
+  const discoverySource = String(importExtras.public_discovery_source || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    String(importExtras.public_discovery_authority || "")
+      .trim()
+      .toLowerCase() === OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY &&
+    String(importExtras.service_area_mode || "")
+      .trim()
+      .toLowerCase() === WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE &&
+    Boolean(discoverySource) &&
+    stringList(candidate.sources).includes(discoverySource)
+  );
+}
+
 /**
  * A business may legitimately review each project location through its request
  * flow instead of advertising one fixed county. This only authorizes the
@@ -73,5 +95,14 @@ export function hasLocationFlexibleDiscoveryAuthority(
   return (
     hasExactBusinessLevelVerification(candidate) &&
     hasLocationConfirmedPerRequestServiceArea(candidate.profileData)
+  );
+}
+
+export function hasNonCountyDiscoveryAuthority(
+  candidate: BusinessDiscoveryAuthorityCandidate
+): boolean {
+  return (
+    hasLocationFlexibleDiscoveryAuthority(candidate) ||
+    hasOfficialSourceCompanyDiscoveryAuthority(candidate)
   );
 }

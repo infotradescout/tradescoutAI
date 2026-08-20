@@ -83,6 +83,8 @@ describe("Precision Aerial production profile contract", () => {
       "lidar",
       "fleet",
       "insurance",
+      "faa part 107",
+      "licensed drone pilot",
     ]) {
       expect(publicCopy).not.toContain(unsupported);
     }
@@ -271,7 +273,7 @@ describe("Precision Aerial production profile contract", () => {
   it("fills missing Cameron palette defaults without overwriting profile data or color edits", () => {
     const freshProfile = resolvePrecisionAerialProfileSeedFields(null, {});
     expect(freshProfile.contentBlocks).toEqual(PRECISION_AERIAL_PROFILE_CONTENT_BLOCKS);
-    expect(freshProfile.headline).toBe("FAA Part 107 aerial photo and video in Pensacola.");
+    expect(freshProfile.headline).toBe("Aerial photo, video, and FPV in Pensacola.");
 
     const freshBusiness = mergePrecisionAerialBusinessProfileData(null);
     expect(freshBusiness).toMatchObject({

@@ -44,7 +44,7 @@ export function JwStoneRequestBand({ onStartRequest }: JwStoneRequestBandProps) 
     <section
       id="jw-request"
       data-testid="jw-marketplace-request"
-      aria-label="Contact"
+      aria-label="Start a Request"
       className={`fixed inset-x-0 bottom-0 z-40 bg-[var(--jw-surface)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-[2px] transition-transform duration-300 ease-out ${
         visible ? "translate-y-0" : "translate-y-full"
       }`}
@@ -54,11 +54,11 @@ export function JwStoneRequestBand({ onStartRequest }: JwStoneRequestBandProps) 
           type="button"
           onClick={onStartRequest}
           data-testid="jw-marketplace-connect-cta"
-          aria-label="Contact"
+          aria-label="Start a Request"
           className={`inline-flex min-h-12 w-full items-center justify-center gap-2 px-4 text-sm sm:w-auto sm:min-w-[11rem] sm:shrink-0 sm:px-5 ${jw.accentCta}`}
         >
           <MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-          Contact
+          Start a Request
         </button>
       </div>
     </section>

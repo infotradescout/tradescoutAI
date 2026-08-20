@@ -6,8 +6,11 @@ import {
   FULLY_VERIFIED_BUSINESS_PERCENT,
   FULLY_VERIFIED_BUSINESS_STATUS,
   LOCATION_CONFIRMED_PER_REQUEST_SERVICE_AREA_MODE,
+  OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY,
+  WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE,
   hasExactBusinessLevelVerification,
   hasLocationFlexibleDiscoveryAuthority,
+  hasOfficialSourceCompanyDiscoveryAuthority,
 } from "@shared/businessDiscoveryAuthority";
 
 const read = (relativePath: string) =>
@@ -84,6 +87,34 @@ describe("business discovery authority", () => {
     ).toBe(false);
   });
 
+  it("allows an official source company to operate without a fabricated local county", () => {
+    const source = "https://example-source-company.test/";
+    expect(
+      hasOfficialSourceCompanyDiscoveryAuthority({
+        profileData: {
+          importExtras: {
+            public_discovery_authority: OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY,
+            public_discovery_source: source,
+            service_area_mode: WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE,
+          },
+        },
+        sources: [source],
+      })
+    ).toBe(true);
+    expect(
+      hasOfficialSourceCompanyDiscoveryAuthority({
+        profileData: {
+          importExtras: {
+            public_discovery_authority: OFFICIAL_SOURCE_COMPANY_DISCOVERY_AUTHORITY,
+            public_discovery_source: source,
+            service_area_mode: WORLDWIDE_SOURCE_COMPANY_SERVICE_AREA_MODE,
+          },
+        },
+        sources: [],
+      })
+    ).toBe(false);
+  });
+
   it("keeps the prune rule generic and retains verified freshness expiration", () => {
     const pruneJob = read("server/services/seoPublicationPruneJob.ts");
 
@@ -92,9 +123,9 @@ describe("business discovery authority", () => {
     expect(pruneJob).toContain("business_level_verified");
     expect(pruneJob).toContain("publication_verified");
     expect(pruneJob).toContain("location_confirmed_per_request");
-    expect(pruneJob).toMatch(
-      /not\s+\(business_level_verified and location_confirmed_per_request\)/
-    );
+    expect(pruneJob).toContain("official_source_company_authority");
+    expect(pruneJob).toContain("non_county_discovery_authority");
+    expect(pruneJob).toContain("and not non_county_discovery_authority");
     expect(pruneJob).toMatch(
       /publication_verified\s+and updated_at < \(now\(\) - \(\$\{staleVerifiedDays\}/
     );
