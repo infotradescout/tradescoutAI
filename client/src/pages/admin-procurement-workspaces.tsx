@@ -21,7 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -50,6 +49,11 @@ type ProcurementWorkspace = {
     supportEmail?: string | null;
     supportPhone?: string | null;
   } | null;
+  public_name?: string | null;
+  tagline?: string | null;
+  primary_color?: string | null;
+  support_email?: string | null;
+  support_phone?: string | null;
   memberCount?: number | null;
   orderCount?: number | null;
   createdAt?: string | null;
@@ -97,6 +101,16 @@ function formatDate(value: unknown): string {
 
 function workspaceType(workspace: ProcurementWorkspace): string {
   return String(workspace.workspaceType || workspace.workspace_type || "not_recorded");
+}
+
+function workspaceBranding(workspace: ProcurementWorkspace) {
+  return {
+    publicName: workspace.branding?.publicName || workspace.public_name || "",
+    tagline: workspace.branding?.tagline || workspace.tagline || "",
+    primaryColor: workspace.branding?.primaryColor || workspace.primary_color || "",
+    supportEmail: workspace.branding?.supportEmail || workspace.support_email || "",
+    supportPhone: workspace.branding?.supportPhone || workspace.support_phone || "",
+  };
 }
 
 function statusBadge(status?: string | null) {
@@ -173,6 +187,7 @@ export default function ProcurementWorkspacesPage() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return workspaces.filter((workspace) => {
+      const branding = workspaceBranding(workspace);
       if (typeFilter !== "all" && workspaceType(workspace) !== typeFilter) return false;
       const normalizedStatus = String(workspace.status || "active");
       if (statusFilter !== "all" && normalizedStatus !== statusFilter) return false;
@@ -180,9 +195,9 @@ export default function ProcurementWorkspacesPage() {
       return [
         workspace.name,
         workspace.slug,
-        workspace.branding?.publicName,
-        workspace.branding?.tagline,
-        workspace.branding?.supportEmail,
+        branding.publicName,
+        branding.tagline,
+        branding.supportEmail,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(term));
@@ -197,9 +212,10 @@ export default function ProcurementWorkspacesPage() {
         (workspace) => workspaceType(workspace) === "fulfillment_partner"
       ).length,
       supplier: workspaces.filter((workspace) => workspaceType(workspace) === "supplier").length,
-      supportConfigured: workspaces.filter(
-        (workspace) => workspace.branding?.supportEmail || workspace.branding?.supportPhone
-      ).length,
+      supportConfigured: workspaces.filter((workspace) => {
+        const branding = workspaceBranding(workspace);
+        return Boolean(branding.supportEmail || branding.supportPhone);
+      }).length,
     }),
     [workspaces]
   );
@@ -330,80 +346,80 @@ export default function ProcurementWorkspacesPage() {
           <QueueUnavailable label="Procurement workspaces are unavailable. No workspace was changed." />
         ) : filtered.length ? (
           <AdminList className="mt-4">
-            {filtered.map((workspace) => (
-              <details key={workspace.id} className="group">
-                <summary className="grid cursor-pointer list-none gap-4 px-3 py-4 transition-colors hover:bg-white/[0.025] sm:px-4 lg:grid-cols-[minmax(15rem,1fr)_minmax(11rem,0.55fr)_minmax(10rem,0.5fr)_auto] lg:items-center [&::-webkit-details-marker]:hidden">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-white">{workspace.name}</p>
-                      {statusBadge(workspace.status)}
+            {filtered.map((workspace) => {
+              const branding = workspaceBranding(workspace);
+              return (
+                <details key={workspace.id} className="group">
+                  <summary className="grid cursor-pointer list-none gap-4 px-3 py-4 transition-colors hover:bg-white/[0.025] sm:px-4 lg:grid-cols-[minmax(15rem,1fr)_minmax(11rem,0.55fr)_minmax(10rem,0.5fr)_auto] lg:items-center [&::-webkit-details-marker]:hidden">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-white">{workspace.name}</p>
+                        {statusBadge(workspace.status)}
+                      </div>
+                      <p className="mt-1 font-mono text-xs text-white/30">/{workspace.slug}</p>
                     </div>
-                    <p className="mt-1 font-mono text-xs text-white/30">/{workspace.slug}</p>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                        Type
+                      </p>
+                      <p className="mt-2 text-sm text-white/62">{readable(workspaceType(workspace))}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
+                        Public name
+                      </p>
+                      <p className="mt-2 truncate text-sm text-white/62">
+                        {branding.publicName || workspace.name}
+                      </p>
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-white/30 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="border-t border-white/10 bg-white/[0.015] px-3 py-5 sm:px-4">
+                    <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                      <DetailBlock label="Tagline" value={branding.tagline || "Not recorded"} />
+                      <DetailBlock
+                        label="Support email"
+                        value={branding.supportEmail || "Not recorded"}
+                      />
+                      <DetailBlock
+                        label="Support phone"
+                        value={branding.supportPhone || "Not recorded"}
+                      />
+                      <DetailBlock
+                        label="Primary color"
+                        value={branding.primaryColor || "Not recorded"}
+                      />
+                      <DetailBlock
+                        label="Members"
+                        value={workspace.memberCount == null ? "Not reported" : String(workspace.memberCount)}
+                      />
+                      <DetailBlock
+                        label="Orders"
+                        value={workspace.orderCount == null ? "Not reported" : String(workspace.orderCount)}
+                      />
+                      <DetailBlock
+                        label="Created"
+                        value={formatDate(workspace.createdAt || workspace.created_at)}
+                      />
+                      <DetailBlock
+                        label="Updated"
+                        value={formatDate(workspace.updatedAt || workspace.updated_at)}
+                      />
+                    </div>
+                    <div className="mt-5 flex justify-end">
+                      <Link href={`/admin/procurement/workspaces/${workspace.id}`}>
+                        <Button
+                          type="button"
+                          className="bg-orange-500 text-black hover:bg-orange-400"
+                        >
+                          Open workspace
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-                      Type
-                    </p>
-                    <p className="mt-2 text-sm text-white/62">{readable(workspaceType(workspace))}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/28">
-                      Public name
-                    </p>
-                    <p className="mt-2 truncate text-sm text-white/62">
-                      {workspace.branding?.publicName || workspace.name}
-                    </p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-white/30 transition-transform group-open:rotate-180" />
-                </summary>
-                <div className="border-t border-white/10 bg-white/[0.015] px-3 py-5 sm:px-4">
-                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                    <DetailBlock
-                      label="Tagline"
-                      value={workspace.branding?.tagline || "Not recorded"}
-                    />
-                    <DetailBlock
-                      label="Support email"
-                      value={workspace.branding?.supportEmail || "Not recorded"}
-                    />
-                    <DetailBlock
-                      label="Support phone"
-                      value={workspace.branding?.supportPhone || "Not recorded"}
-                    />
-                    <DetailBlock
-                      label="Primary color"
-                      value={workspace.branding?.primaryColor || "Not recorded"}
-                    />
-                    <DetailBlock
-                      label="Members"
-                      value={workspace.memberCount == null ? "Not reported" : String(workspace.memberCount)}
-                    />
-                    <DetailBlock
-                      label="Orders"
-                      value={workspace.orderCount == null ? "Not reported" : String(workspace.orderCount)}
-                    />
-                    <DetailBlock
-                      label="Created"
-                      value={formatDate(workspace.createdAt || workspace.created_at)}
-                    />
-                    <DetailBlock
-                      label="Updated"
-                      value={formatDate(workspace.updatedAt || workspace.updated_at)}
-                    />
-                  </div>
-                  <div className="mt-5 flex justify-end">
-                    <Link href={`/admin/procurement/workspaces/${workspace.id}`}>
-                      <Button
-                        type="button"
-                        className="bg-orange-500 text-black hover:bg-orange-400"
-                      >
-                        Open workspace
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </details>
-            ))}
+                </details>
+              );
+            })}
           </AdminList>
         ) : (
           <AdminEmptyState
