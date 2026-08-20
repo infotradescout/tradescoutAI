@@ -1,0 +1,6 @@
+server/services/adminProductionAcceptance.ts
+server/routes/professional-partnerships.ts
+server/tests/admin-production-acceptance.contract.test.ts
+server/tests/admin-production-acceptance-route.contract.test.ts
+docs/architecture/ADMIN_PRODUCTION_ACCEPTANCE.md
+docs/runbooks/ADMIN_PRODUCTION_ACCEPTANCE.md
