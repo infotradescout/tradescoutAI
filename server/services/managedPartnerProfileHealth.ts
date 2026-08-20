@@ -118,7 +118,9 @@ function resolveStatus(issues: ManagedPartnerProfileIssue[]): ManagedPartnerProf
 }
 
 export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerProfileHealthReport> {
-  const definitions = [...MANAGED_PARTNER_PROFILE_DEFINITIONS];
+  const definitions: ManagedPartnerProfileDefinition[] = [
+    ...MANAGED_PARTNER_PROFILE_DEFINITIONS,
+  ];
   const slugs = definitions.map((definition) => definition.slug);
 
   const [businessRows, profileRows] = await Promise.all([

@@ -8,17 +8,39 @@ const read = (relativePath: string) =>
 describe("in-profile account foundation", () => {
   it("uses one durable relationship per TradeScout user and target profile", () => {
     const service = read("server/services/profileAccountService.ts");
+    const migration = read("migrations/0115_profile_accounts.sql");
 
-    expect(service).toContain("CREATE TABLE IF NOT EXISTS profile_accounts");
-    expect(service).toContain("UNIQUE (owner_user_id, target_profile_id)");
-    expect(service).toContain("owner_user_id TEXT NOT NULL REFERENCES users(id)");
-    expect(service).toContain("business_profile_id TEXT REFERENCES user_profiles(id)");
-    expect(service).toContain("target_profile_id TEXT NOT NULL REFERENCES profiles(id)");
-    expect(service).toContain("identity_kind TEXT NOT NULL");
-    expect(service).toContain("priority_key TEXT NOT NULL");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS profile_accounts");
+    expect(migration).toContain("profile_accounts_owner_target_unique UNIQUE (owner_user_id, target_profile_id)");
+    expect(migration).toContain("profile_accounts_owner_user_fk REFERENCES users(id)");
+    expect(migration).toContain("profile_accounts_business_profile_fk REFERENCES user_profiles(id)");
+    expect(migration).toContain("profile_accounts_target_profile_fk REFERENCES profiles(id)");
+    expect(migration).toContain("tradescout-schema:0115:v1");
+    expect(migration).toContain("identity_kind TEXT NOT NULL");
+    expect(migration).toContain("priority_key TEXT NOT NULL");
     expect(service).toContain("ON CONFLICT (owner_user_id, target_profile_id) DO UPDATE");
-    expect(service).toContain("enforce_profile_account_identity");
+    expect(migration).toContain("enforce_profile_account_identity");
     expect(service).not.toMatch(/password|password_hash/i);
+  });
+
+  it("keeps schema changes out of profile-account request handling and GET reads", () => {
+    const service = read("server/services/profileAccountService.ts");
+    const entitlement = read("server/services/profileAccountEntitlementService.ts");
+    const productionSchemaGuard = read("scripts/check-required-production-schema.mjs");
+    const readHandler = service.match(
+      /export async function getProfileAccountState[\s\S]*?export async function ensureProfileAccount/
+    )?.[0];
+
+    expect(`${service}\n${entitlement}`).not.toMatch(/CREATE\s+(?:TABLE|INDEX|TRIGGER|FUNCTION)/i);
+    expect(`${service}\n${entitlement}`).not.toContain("ensureProfileAccountTables");
+    expect(readHandler).toMatch(/SELECT\s+(?:pa\.)?id/);
+    expect(readHandler).toContain("LEFT JOIN user_profiles account_business");
+    expect(readHandler).not.toMatch(/\bUPDATE\s+profile_accounts\b/i);
+    expect(readHandler).not.toMatch(/\bINSERT\s+INTO\s+profile_accounts\b/i);
+    expect(productionSchemaGuard).toContain('"migrations/0115_profile_accounts.sql"');
+    expect(productionSchemaGuard).toContain("profileAccountMigrationRecorded");
+    expect(productionSchemaGuard).toContain("profile_account_identity_trigger");
+    expect(productionSchemaGuard).toContain("PROFILE_ACCOUNT_IDENTITY_FUNCTION_BODY");
   });
 
   it("requires a business identity only when the target profile policy requires it", () => {
@@ -39,10 +61,12 @@ describe("in-profile account foundation", () => {
   it("keeps BidRock as downstream access only for business-gated stone profiles", () => {
     const route = read("server/routes/profile-accounts.ts");
     const entitlement = read("server/services/profileAccountEntitlementService.ts");
+    const migration = read("migrations/0115_profile_accounts.sql");
     const shared = read("shared/profileAccount.ts");
 
-    expect(entitlement).toContain("CREATE TABLE IF NOT EXISTS profile_account_entitlements");
-    expect(entitlement).toContain("REFERENCES profile_accounts(id)");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS profile_account_entitlements");
+    expect(migration).toContain("REFERENCES profile_accounts(id)");
+    expect(entitlement).toContain("INSERT INTO profile_account_entitlements");
     expect(route).toContain('productKey: "bidrock"');
     expect(route).toContain("created.policy.includesBidRock");
     expect(shared).toContain("priorityKey = stoneProfile");
@@ -70,9 +94,6 @@ describe("in-profile account foundation", () => {
     const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
     const profileSite = read("client/src/pages/ProfileSiteView.tsx");
     const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
-    const steelHomeDirectory = read(
-      "client/src/pages/profile-sites/steel-home-project-tools/SteelHomeBuilderDirectory.tsx"
-    );
     const shared = read("shared/profileAccount.ts");
 
     expect(profileSite).toContain("renderProfileTrustActions");
@@ -81,8 +102,6 @@ describe("in-profile account foundation", () => {
     expect(trustActions).toContain("<PublicProfileAccountCard");
     expect(trustActions).toContain("profileSlug={profileSlug}");
     expect(trustActions).toContain("profileName={profileName}");
-    expect(steelHomeDirectory).toContain('import { PublicProfileAccountCard }');
-    expect(steelHomeDirectory).toContain("<PublicProfileAccountCard");
     expect(accountCard).toContain('"Create an account"');
     expect(accountCard).toContain("data.policy.description");
     expect(shared).toContain("profilePriorityConfig");

@@ -329,8 +329,8 @@ export default function HomeIdWorkspace() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const detailRef = useRef<HTMLTextAreaElement | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const detailRef = useRef<HTMLTextAreaElement>(null);
 
   const [homeId, setHomeId] = useState<string | null>(() => initial("homeId"));
   const [projectId] = useState<string | null>(() => initial("projectId"));
@@ -1065,7 +1065,7 @@ function Property({
   review: HomeIdPropertyDetail[];
   detail: { category: string; note: string; status: "known" | "needs_review" };
   setDetail: React.Dispatch<React.SetStateAction<typeof detail>>;
-  detailRef: React.RefObject<HTMLTextAreaElement | null>;
+  detailRef: React.RefObject<HTMLTextAreaElement>;
   save: () => void;
   pending: boolean;
 }) {
@@ -1354,7 +1354,7 @@ function Documents({
 }: {
   documents: HomeDocument[];
   evidence: Evidence[];
-  fileRef: React.RefObject<HTMLInputElement | null>;
+  fileRef: React.RefObject<HTMLInputElement>;
   docType: string;
   setDocType: (value: string) => void;
   docFile: File | null;

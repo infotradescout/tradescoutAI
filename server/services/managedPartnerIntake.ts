@@ -26,7 +26,6 @@ import {
 } from "@shared/managedPartnerIntake";
 import { TRADESCOUT_MANAGED_CONTACT } from "@shared/tradeScoutManagedContact";
 import { pool } from "../db";
-import { ensureManagedPartnerOpsTables } from "../db/ensureManagedPartnerOpsTables";
 
 type ManagedPartnerIntakeRow = {
   id: string;
@@ -352,7 +351,6 @@ async function assertLiveProfileReady(slug: string): Promise<void> {
 }
 
 async function getIntakeById(id: string): Promise<ManagedPartnerIntakeRecord | null> {
-  await ensureManagedPartnerOpsTables();
   const result = await pool.query<ManagedPartnerIntakeRow>(
     `SELECT * FROM managed_partner_intakes WHERE id = $1 LIMIT 1`,
     [id]
@@ -363,7 +361,6 @@ async function getIntakeById(id: string): Promise<ManagedPartnerIntakeRecord | n
 export async function listManagedPartnerIntakes(options?: {
   includeArchived?: boolean;
 }): Promise<ManagedPartnerIntakeReport> {
-  await ensureManagedPartnerOpsTables();
   const includeArchived = options?.includeArchived === true;
   const result = await pool.query<ManagedPartnerIntakeRow>(
     `SELECT *
@@ -410,7 +407,6 @@ export async function createManagedPartnerIntake(args: {
   input: ManagedPartnerIntakeCreateInput;
   actorUserId: string;
 }): Promise<ManagedPartnerIntakeRecord> {
-  await ensureManagedPartnerOpsTables();
   const actorUserId = text(args.actorUserId, 200);
   if (!actorUserId) throw new Error("A verified admin actor is required");
 
@@ -489,7 +485,6 @@ export async function updateManagedPartnerIntake(args: {
   input: ManagedPartnerIntakeUpdateInput;
   actorUserId: string;
 }): Promise<ManagedPartnerIntakeRecord> {
-  await ensureManagedPartnerOpsTables();
   const id = text(args.id, 100);
   const actorUserId = text(args.actorUserId, 200);
   if (!id) throw new Error("Intake ID is required");
@@ -571,7 +566,6 @@ export async function updateManagedPartnerIntake(args: {
 export async function getRuntimeManagedPartnerProfileDefinitions(): Promise<
   ManagedPartnerProfileDefinition[]
 > {
-  await ensureManagedPartnerOpsTables();
   const result = await pool.query<ManagedPartnerIntakeRow>(
     `SELECT *
        FROM managed_partner_intakes

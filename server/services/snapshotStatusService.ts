@@ -1,8 +1,4 @@
 import { pool } from "../db";
-import { ensureLiveStreamSnapshotTables } from "./liveStreamSnapshotService";
-import { ensurePartnerIntelligenceBriefSnapshotsTable } from "./partnerIntelligenceBriefSnapshotService";
-import { ensureTradepartnerCountyObservationSnapshotsTable } from "./partnerCountyObservationSnapshotService";
-import { ensureSeoDirectoryScopeSnapshotTables } from "./seoDirectoryScopeSnapshotJob";
 import { MetricKey } from "./metricRegistry";
 
 type SnapshotStatusRow = {
@@ -167,17 +163,6 @@ async function queryCountyPriceSignalStatus(args: {
 }
 
 export async function getSnapshotStatusSummary(): Promise<SnapshotStatusSummary> {
-  try {
-    await Promise.all([
-      ensureTradepartnerCountyObservationSnapshotsTable(),
-      ensurePartnerIntelligenceBriefSnapshotsTable(),
-      ensureLiveStreamSnapshotTables(),
-      ensureSeoDirectoryScopeSnapshotTables(),
-    ]);
-  } catch (error) {
-    console.warn("[snapshot-status] ensure degraded:", error);
-  }
-
   const statuses = await Promise.all([
     querySnapshotStatus({
       table: "tradepartner_county_observation_snapshots",

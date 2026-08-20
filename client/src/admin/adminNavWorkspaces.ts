@@ -101,6 +101,11 @@ const ADMIN_NAV_WORKSPACES: AdminNavWorkspaceDefinition[] = [
     section: "Platform",
     tools: [
       {
+        id: "production-acceptance",
+        label: "Production Acceptance",
+        description: "Review current production truth across every operating lane.",
+      },
+      {
         id: "live-stream",
         label: "System Status",
       },

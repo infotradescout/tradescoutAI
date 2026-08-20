@@ -130,7 +130,7 @@ export const MANAGED_PARTNER_PROFILE_DEFINITIONS = [
   },
 ] as const satisfies readonly ManagedPartnerProfileDefinition[];
 
-const definitionBySlug = new Map(
+const definitionBySlug = new Map<string, ManagedPartnerProfileDefinition>(
   MANAGED_PARTNER_PROFILE_DEFINITIONS.map((definition) => [definition.slug, definition])
 );
 

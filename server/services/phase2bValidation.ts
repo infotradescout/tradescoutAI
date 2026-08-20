@@ -132,7 +132,9 @@ export async function smokeTestTradeDealsAggregation(): Promise<void> {
     console.info("✅ TradeDeals job ran successfully:", result);
 
     const validation = await validateTradeDealsAggregationMetrics(3);
-    if (!validation.isValid) {
+    if (validation.availability === "unsupported") {
+      console.warn(`⚠️  ${validation.unavailableReason}`);
+    } else if (!validation.isValid) {
       console.warn("⚠️  Some sampled counties had mismatched counts:", validation.mismatched);
     } else {
       console.info("✅ TradeDeals validation passed");

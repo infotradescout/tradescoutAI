@@ -201,11 +201,13 @@ function priorityBadge(priority: SignalPriority) {
 }
 
 function truthBadge(value: unknown) {
-  const current = String(value || "current") === "current";
-  return current ? (
+  const truthState = String(value || "unknown");
+  return truthState === "current" ? (
     <Badge className="border-emerald-400/25 bg-emerald-400/8 text-emerald-100">Current</Badge>
-  ) : (
+  ) : truthState === "stale" ? (
     <Badge className="border-amber-400/25 bg-amber-400/8 text-amber-100">Stale</Badge>
+  ) : (
+    <Badge className="border-white/15 bg-white/5 text-white/55">Unknown</Badge>
   );
 }
 
@@ -218,7 +220,7 @@ function signalLocation(item: LiveStreamItem): string {
 }
 
 function signalDetailRows(item: LiveStreamItem): Array<[string, string]> {
-  return [
+  const rows: Array<[string, string]> = [
     ["Observed basis", item.whyNow || item.narrative],
     ["Operator step", item.recommendedPlay || "No direct action recorded"],
     ["Target market", item.targetMarket || "Not recorded"],
@@ -228,7 +230,8 @@ function signalDetailRows(item: LiveStreamItem): Array<[string, string]> {
     ["Inventory context", item.inventorySummary || "Not recorded"],
     ["Market gap", item.marketGapSummary || "Not recorded"],
     ["Audience", item.prospectSummary || "Not recorded"],
-  ].filter(([, value]) => value !== "Not recorded");
+  ];
+  return rows.filter(([, value]) => value !== "Not recorded");
 }
 
 export default function AdminLiveStreamPage() {
@@ -319,7 +322,12 @@ export default function AdminLiveStreamPage() {
 
   const refreshMutation = useMutation({
     mutationFn: () =>
-      apiRequest("POST", "/api/admin/observability/live-stream/refresh", {}),
+      apiRequest("POST", "/api/admin/observability/live-stream/refresh", {
+        source: source === "all" ? "" : source,
+        stateCode: stateCode === "all" ? "" : stateCode,
+        county: county === "all" ? "" : county,
+        limit: Number.parseInt(limit || "50", 10),
+      }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/admin/observability/live-stream"] }),
@@ -371,7 +379,7 @@ export default function AdminLiveStreamPage() {
   const stream = useMemo(
     () =>
       (liveQuery.data?.stream || [])
-        .filter((item) => truth === "all" || (item.truthStatus || "current") === truth)
+        .filter((item) => truth === "all" || (item.truthStatus || "unknown") === truth)
         .sort((a, b) => {
           const priorityDifference = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
           if (priorityDifference !== 0) return priorityDifference;
@@ -397,6 +405,9 @@ export default function AdminLiveStreamPage() {
 
   const staleSnapshots = snapshotQuery.data?.statuses.filter((item) => item.isStale) || [];
   const degradedSources = liveQuery.data?.summary.degradedSources || [];
+  const liveReady = Boolean(liveQuery.data) && !liveQuery.isError;
+  const crawlerReady = Boolean(crawlerQuery.data) && !crawlerQuery.isError;
+  const snapshotReady = Boolean(snapshotQuery.data) && !snapshotQuery.isError;
   const currentLead = [
     liveQuery.data?.summary.currentLeadCounty,
     liveQuery.data?.summary.currentLeadState,
@@ -490,46 +501,44 @@ export default function AdminLiveStreamPage() {
           items={[
             {
               label: "Current signals",
-              value: liveQuery.isError ? "—" : stream.length,
-              detail: liveQuery.isError
-                ? "Live stream unavailable"
+              value: liveReady ? stream.length : "—",
+              detail: !liveReady
+                ? liveQuery.isError ? "Live stream unavailable" : "Checking live stream"
                 : `Generated ${formatDate(liveQuery.data?.generatedAt)}`,
-              tone: liveQuery.isError ? "warning" : "neutral",
+              tone: liveReady ? "neutral" : "warning",
             },
             {
               label: "Active alerts",
-              value: liveQuery.isError
-                ? "—"
-                : numberOrDash(liveQuery.data?.summary.activeAlerts),
-              detail: currentLead ? `Lead county: ${currentLead}` : "No lead county recorded",
+              value: liveReady ? numberOrDash(liveQuery.data?.summary.activeAlerts) : "—",
+              detail: !liveReady
+                ? liveQuery.isError ? "Alert evidence unavailable" : "Checking alert evidence"
+                : currentLead ? `Lead county: ${currentLead}` : "No lead county recorded",
               tone:
-                liveQuery.isError || Number(liveQuery.data?.summary.activeAlerts || 0) > 0
+                !liveReady || Number(liveQuery.data?.summary.activeAlerts || 0) > 0
                   ? "warning"
                   : "good",
             },
             {
               label: "Crawler requests 24h",
-              value: crawlerQuery.isError
-                ? "—"
-                : numberOrDash(crawlerQuery.data?.totals24h.total),
-              detail: crawlerQuery.isError
-                ? "Crawler telemetry unavailable"
+              value: crawlerReady ? numberOrDash(crawlerQuery.data?.totals24h.total) : "—",
+              detail: !crawlerReady
+                ? crawlerQuery.isError ? "Crawler telemetry unavailable" : "Checking crawler telemetry"
                 : `${crawlerQuery.data?.totals24h.serverError || 0} server errors`,
               tone:
-                crawlerQuery.isError || Number(crawlerQuery.data?.totals24h.serverError || 0) > 0
+                !crawlerReady || Number(crawlerQuery.data?.totals24h.serverError || 0) > 0
                   ? "warning"
                   : "good",
             },
             {
               label: "Stale snapshots",
-              value: snapshotQuery.isError ? "—" : staleSnapshots.length,
-              detail: snapshotQuery.isError
-                ? "Snapshot status unavailable"
+              value: snapshotReady ? staleSnapshots.length : "—",
+              detail: !snapshotReady
+                ? snapshotQuery.isError ? "Snapshot status unavailable" : "Checking snapshot status"
                 : snapshotQuery.data?.schedulerEnabled
                   ? "Snapshot scheduler enabled"
                   : "Snapshot scheduler disabled",
               tone:
-                snapshotQuery.isError || staleSnapshots.length > 0 ? "warning" : "good",
+                !snapshotReady || staleSnapshots.length > 0 ? "warning" : "good",
             },
           ]}
         />
@@ -585,6 +594,7 @@ export default function AdminLiveStreamPage() {
                     <SelectItem value="all">All truth states</SelectItem>
                     <SelectItem value="current">Current</SelectItem>
                     <SelectItem value="stale">Stale</SelectItem>
+                    <SelectItem value="unknown">Unknown</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={stateCode} onValueChange={setStateCode}>

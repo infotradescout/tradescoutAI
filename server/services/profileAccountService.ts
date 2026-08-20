@@ -6,103 +6,6 @@ import {
 } from "@shared/profileAccount";
 import { pool } from "../db";
 
-const PROFILE_ACCOUNT_DDL = `
-CREATE TABLE IF NOT EXISTS profile_accounts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  business_profile_id TEXT REFERENCES user_profiles(id) ON DELETE CASCADE,
-  target_profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  target_business_id TEXT REFERENCES businesses(id) ON DELETE SET NULL,
-  identity_kind TEXT NOT NULL,
-  priority_key TEXT NOT NULL DEFAULT 'profile_account',
-  status TEXT NOT NULL DEFAULT 'active',
-  verification_status TEXT NOT NULL DEFAULT 'not_required',
-  source_path TEXT,
-  resume_path TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (owner_user_id, target_profile_id),
-  CHECK (identity_kind IN ('user', 'business')),
-  CHECK (priority_key ~ '^[a-z0-9_]{2,80}$'),
-  CHECK (status IN ('active', 'suspended', 'closed')),
-  CHECK (verification_status IN ('not_required', 'pending', 'approved', 'rejected')),
-  CHECK (
-    (identity_kind = 'user' AND business_profile_id IS NULL AND verification_status = 'not_required')
-    OR
-    (identity_kind = 'business' AND business_profile_id IS NOT NULL AND verification_status <> 'not_required')
-  ),
-  CHECK (source_path IS NULL OR (source_path ~ '^/u/' AND source_path NOT LIKE '%\\%')),
-  CHECK (resume_path IS NULL OR (resume_path ~ '^/u/' AND resume_path NOT LIKE '%\\%'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_profile_accounts_target
-  ON profile_accounts(target_profile_id, status, updated_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_profile_accounts_owner
-  ON profile_accounts(owner_user_id, status, updated_at DESC);
-
-CREATE INDEX IF NOT EXISTS idx_profile_accounts_business
-  ON profile_accounts(business_profile_id, status, updated_at DESC)
-  WHERE business_profile_id IS NOT NULL;
-
-CREATE OR REPLACE FUNCTION enforce_profile_account_identity()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  profile_owner_user_id TEXT;
-  profile_intent TEXT;
-BEGIN
-  IF NEW.identity_kind = 'user' THEN
-    IF NEW.business_profile_id IS NOT NULL OR NEW.verification_status <> 'not_required' THEN
-      RAISE EXCEPTION 'User profile accounts cannot carry a business identity';
-    END IF;
-    RETURN NEW;
-  END IF;
-
-  SELECT user_id, user_intent::text
-    INTO profile_owner_user_id, profile_intent
-    FROM user_profiles
-   WHERE id = NEW.business_profile_id;
-
-  IF NOT FOUND OR profile_intent <> 'business' THEN
-    RAISE EXCEPTION 'This profile account requires a TradeScout business profile';
-  END IF;
-
-  IF profile_owner_user_id <> NEW.owner_user_id THEN
-    RAISE EXCEPTION 'Profile account business ownership does not match the signed-in user';
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS profile_accounts_identity_trigger
-  ON profile_accounts;
-
-CREATE TRIGGER profile_accounts_identity_trigger
-BEFORE INSERT OR UPDATE OF identity_kind, business_profile_id, owner_user_id, verification_status
-ON profile_accounts
-FOR EACH ROW
-EXECUTE FUNCTION enforce_profile_account_identity();
-`;
-
-let ensurePromise: Promise<void> | null = null;
-
-export async function ensureProfileAccountTables(): Promise<void> {
-  if (!ensurePromise) {
-    ensurePromise = pool
-      .query(PROFILE_ACCOUNT_DDL)
-      .then(() => undefined)
-      .catch((error) => {
-        ensurePromise = null;
-        throw error;
-      });
-  }
-  return ensurePromise;
-}
-
 type ProfileAccountTarget = {
   profileId: string;
   profileSlug: string;
@@ -289,7 +192,6 @@ export async function getProfileAccountState(args: {
   profileSlug: string;
   userId?: string | null;
 }): Promise<ProfileAccountState | null> {
-  await ensureProfileAccountTables();
   const target = await loadProfileAccountTarget(args.profileSlug);
   if (!target) return null;
   const policy = policyForTarget(target);
@@ -306,30 +208,27 @@ export async function getProfileAccountState(args: {
   const viewerBusiness =
     policy.requiredIdentity === "business" ? await loadViewerBusinessProfile(userId) : null;
   const result = await pool.query(
-    `UPDATE profile_accounts
-        SET verification_status = CASE
-              WHEN identity_kind = 'business' THEN $1
+    `SELECT pa.id,
+            pa.identity_kind,
+            pa.business_profile_id,
+            pa.priority_key,
+            pa.status,
+            CASE
+              WHEN pa.identity_kind = 'business' THEN
+                COALESCE(account_business.verification_status::text, 'pending')
               ELSE 'not_required'
-            END,
-            last_seen_at = NOW(),
-            updated_at = NOW()
-      WHERE owner_user_id = $2
-        AND target_profile_id = $3
-        AND identity_kind = $4
-      RETURNING id,
-                identity_kind,
-                business_profile_id,
-                priority_key,
-                status,
-                verification_status,
-                resume_path,
-                last_seen_at`,
-    [
-      viewerBusiness?.verificationStatus || "pending",
-      userId,
-      target.profileId,
-      policy.requiredIdentity,
-    ]
+            END AS verification_status,
+            pa.resume_path,
+            pa.last_seen_at,
+            account_business.display_name AS business_name
+       FROM profile_accounts pa
+       LEFT JOIN user_profiles account_business
+         ON account_business.id = pa.business_profile_id
+      WHERE pa.owner_user_id = $1
+        AND pa.target_profile_id = $2
+        AND pa.identity_kind = $3
+      LIMIT 1`,
+    [userId, target.profileId, policy.requiredIdentity]
   );
 
   return Object.freeze({
@@ -357,7 +256,6 @@ export async function ensureProfileAccount(args: {
   requiresBusinessSetup: false;
   account: ProfileAccountRecord;
 }> {
-  await ensureProfileAccountTables();
   const userId = String(args.userId || "").trim();
   if (!userId) throw new Error("Authentication required");
 

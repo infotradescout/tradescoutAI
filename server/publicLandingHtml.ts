@@ -30,7 +30,7 @@ function upsertTag(html: string, regex: RegExp, tag: string) {
 function injectSummary(html: string, summaryHtml: string) {
   const withRootSummary = html.replace(
     /<div\b([^>]*\bid=["']root["'][^>]*)>\s*<\/div>/i,
-    `<div$1>${summaryHtml}</div>`
+    (_match, rootAttributes: string) => `<div${rootAttributes}>${summaryHtml}</div>`
   );
   if (withRootSummary !== html) return withRootSummary;
   return html.replace(/<\/body>/i, `${summaryHtml}\n</body>`);
