@@ -60,6 +60,11 @@ describe("JW Stone photographed color palettes", () => {
     expect(getColorsForStone("pinta-verde")).toEqual(expect.arrayContaining(["green"]));
     expect(getColorsForStone("blue-bahia")).toEqual(expect.arrayContaining(["blue"]));
     expect(getColorsForStone("emerald-pearl")).toEqual(expect.arrayContaining(["green"]));
+    expect(getColorsForStone("preto-sao-gabriel")).toEqual(
+      expect.arrayContaining(["black"])
+    );
+    expect(getColorsForStone("venta-black")).toEqual(expect.arrayContaining(["black"]));
+    expect(getColorsForStone("emperor-brown")).toEqual(expect.arrayContaining(["brown"]));
     expect(getColorsForStone("fusion-yellow")).toEqual(expect.arrayContaining(["yellow", "gold"]));
   });
 
