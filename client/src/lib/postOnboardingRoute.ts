@@ -159,9 +159,19 @@ export function getPostLandingRoute(user: unknown): string {
   return resolveDirectConnectLandingRoute({ entry: "auth" });
 }
 
+function isPublicProfileAccountPath(path: string): boolean {
+  const normalized = String(path || "/")
+    .trim()
+    .toLowerCase()
+    .replace(/\/+$/, "") || "/";
+  if (normalized === "/jw-stone") return true;
+  return /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized);
+}
+
 export function isOnboardingExemptPath(path: string): boolean {
   const normalized = String(path || "/").replace(/\/+$/, "") || "/";
   return (
+    isPublicProfileAccountPath(normalized) ||
     normalized === "/pre-scout-setup" ||
     normalized === "/onboarding" ||
     normalized === "/onboarding/profile" ||
