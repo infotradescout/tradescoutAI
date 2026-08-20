@@ -3,7 +3,6 @@ import { ISSA_BUILD_PROFILE_SLUG } from "@shared/issaBuildProfile";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import { RED_GRANITI_PROFILE_SLUG } from "@shared/redGranitiProfile";
 import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace";
-import { JwStoneProfileAccountResume } from "@/features/jw-stone/JwStoneProfileAccountResume";
 import { JwStoneProfileProvider } from "@/features/jw-stone/JwStoneProfileContext";
 import { JwStoneProfileSeo } from "@/features/jw-stone/JwStoneProfileSeo";
 import IssaBuildProfileTruthFrame from "./IssaBuildProfileTruthFrame";
@@ -42,7 +41,6 @@ export default function WholesalerProfileTheme(props: WholesalerProfileThemeProp
         profileCanonicalUrl={props.profileShareDestination}
       >
         <JWStoneMarketplace />
-        <JwStoneProfileAccountResume />
         <JwStoneProfileSeo canonical={props.profileShareDestination} />
       </JwStoneProfileProvider>
     );
