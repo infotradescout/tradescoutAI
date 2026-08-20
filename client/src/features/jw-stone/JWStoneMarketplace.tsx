@@ -4,6 +4,7 @@ import {
   JW_STONE_PUBLIC_IDENTITY,
 } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -44,6 +45,7 @@ export default function JWStoneMarketplace() {
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
   const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
@@ -223,6 +225,7 @@ export default function JWStoneMarketplace() {
       <MarketplaceHeader
         wishlistCount={wishlist.count}
         onOpenWishlist={() => setWishlistOpen(true)}
+        onOpenAccount={() => setAccountOpen(true)}
         onStartRequest={() => startRequest([])}
       />
       <p className="sr-only" aria-live="polite">
@@ -271,6 +274,14 @@ export default function JWStoneMarketplace() {
       <MarketplaceFooter />
 
       <JwStoneRequestBand onStartRequest={() => startRequest([])} />
+
+      <PublicProfileAccountDialog
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        profileSlug="jw-stone"
+        profileName={JW_STONE_PUBLIC_IDENTITY.brandName}
+        tone="light"
+      />
 
       <StoneDetailDialog
         stone={activeStone}
