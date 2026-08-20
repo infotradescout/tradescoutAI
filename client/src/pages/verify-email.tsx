@@ -5,8 +5,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  clearRememberedProfileAccountReturnPath,
+  isProfileAccountResumePath,
+  readRememberedProfileAccountReturnPath,
+} from "@/components/profile/profileAccountClient";
 
 type VerifyState = "loading" | "success" | "error";
+
+function safeInternalPath(value: unknown): string {
+  const candidate = String(value || "").trim();
+  return candidate.startsWith("/") && !candidate.startsWith("//") && !candidate.includes("\\")
+    ? candidate
+    : "";
+}
+
+function resolveVerificationNext(params: URLSearchParams): string {
+  const requested = safeInternalPath(params.get("next"));
+  const remembered = readRememberedProfileAccountReturnPath();
+  if (remembered && (!requested || requested === "/pre-scout-setup")) return remembered;
+  return requested;
+}
+
+function signInDestination(email: string, safeNext: string): string {
+  const params = new URLSearchParams({ mode: "signin" });
+  if (email) params.set("email", email);
+  if (safeNext) params.set("next", safeNext);
+  return `/pre-scout-setup?${params.toString()}`;
+}
 
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
@@ -15,12 +41,13 @@ export default function VerifyEmail() {
   const [state, setState] = useState<VerifyState>("loading");
   const [message, setMessage] = useState("Verifying...");
   const [verifiedEmail, setVerifiedEmail] = useState<string>("");
+  const [resolvedNext, setResolvedNext] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || "";
-    const nextParam = (params.get("next") || "").trim();
-    const safeNext = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
+    const safeNext = resolveVerificationNext(params);
+    setResolvedNext(safeNext);
 
     if (!token) {
       setState("error");
@@ -35,8 +62,6 @@ export default function VerifyEmail() {
         setState("success");
         setMessage(resp?.message || "Email verified.");
         setVerifiedEmail(typeof resp?.email === "string" ? resp.email : "");
-        // If the server auto-logged us in, refresh the auth cache so isAuthenticated
-        // reflects the new session before the redirect effect fires.
         if (resp?.autoLoggedIn) {
           queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
           queryClient.refetchQueries({ queryKey: ["/api/auth/user"] });
@@ -46,7 +71,6 @@ export default function VerifyEmail() {
           description: "Verified. Routing now...",
         });
 
-        // Persist `next` in the URL so the follow-up effect + Continue button share the same value.
         try {
           if (safeNext) {
             const url = new URL(window.location.href);
@@ -70,22 +94,25 @@ export default function VerifyEmail() {
 
   useEffect(() => {
     if (state !== "success") return;
-    const params = new URLSearchParams(window.location.search);
-    const nextParam = (params.get("next") || "").trim();
-    const safeNext = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
     const t = window.setTimeout(() => {
-      if (isAuthenticated) {
-        setLocation(safeNext || "/pre-scout-setup");
+      if (resolvedNext && (isAuthenticated || isProfileAccountResumePath(resolvedNext))) {
+        clearRememberedProfileAccountReturnPath();
+        setLocation(resolvedNext);
         return;
       }
-      const emailParam = verifiedEmail ? `?email=${encodeURIComponent(verifiedEmail)}` : "";
-      const nextQ = safeNext ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}` : "";
-      setLocation(
-        `/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}${nextQ ? `&${nextQ.slice(1)}` : ""}`
-      );
+      setLocation(signInDestination(verifiedEmail, resolvedNext));
     }, 900);
     return () => window.clearTimeout(t);
-  }, [state, isAuthenticated, setLocation, verifiedEmail]);
+  }, [state, isAuthenticated, setLocation, verifiedEmail, resolvedNext]);
+
+  const continueAfterVerification = () => {
+    if (resolvedNext && (isAuthenticated || isProfileAccountResumePath(resolvedNext))) {
+      clearRememberedProfileAccountReturnPath();
+      setLocation(resolvedNext);
+      return;
+    }
+    setLocation(signInDestination(verifiedEmail, resolvedNext));
+  };
 
   return (
     <div className="flex items-center justify-center px-4 py-10 text-white">
@@ -95,44 +122,25 @@ export default function VerifyEmail() {
           <p className="text-sm text-white/60">{message}</p>
         </CardHeader>
         <CardContent className="space-y-3">
-          {state === "success" && (
-            <Button
-              className="w-full"
-              onClick={() => {
-                if (isAuthenticated) {
-                  const params = new URLSearchParams(window.location.search);
-                  const nextParam = (params.get("next") || "").trim();
-                  const safeNext =
-                    nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
-                  setLocation(safeNext || "/pre-scout-setup");
-                  return;
-                }
-                const emailParam = verifiedEmail
-                  ? `?email=${encodeURIComponent(verifiedEmail)}`
-                  : "";
-                const params = new URLSearchParams(window.location.search);
-                const nextParam = (params.get("next") || "").trim();
-                const safeNext =
-                  nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
-                const nextQ = safeNext
-                  ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}`
-                  : "";
-                setLocation(
-                  `/pre-scout-setup?mode=signin${emailParam ? `&${emailParam.slice(1)}` : ""}${nextQ ? `&${nextQ.slice(1)}` : ""}`
-                );
-              }}
-            >
+          {state === "success" ? (
+            <Button className="w-full" onClick={continueAfterVerification}>
               Continue
             </Button>
-          )}
-          {state === "error" && (
+          ) : null}
+          {state === "error" ? (
             <>
-              <Button
-                className="w-full"
-                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
-              >
-                Sign in
-              </Button>
+              {isProfileAccountResumePath(resolvedNext) ? (
+                <Button className="w-full" onClick={() => setLocation(resolvedNext)}>
+                  Return to the business account
+                </Button>
+              ) : (
+                <Button
+                  className="w-full"
+                  onClick={() => setLocation("/pre-scout-setup?mode=signin")}
+                >
+                  Sign in
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="w-full"
@@ -141,7 +149,7 @@ export default function VerifyEmail() {
                 Create account
               </Button>
             </>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>
