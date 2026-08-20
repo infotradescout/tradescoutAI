@@ -21,25 +21,37 @@ describe("in-profile account foundation", () => {
     expect(service).not.toMatch(/password|password_hash/i);
   });
 
-  it("creates a private business identity with an approvable verification requirement", () => {
+  it("creates a private business identity and queues a real manual review", () => {
     const service = read("server/services/profileAccountService.ts");
     const route = read("server/routes/profile-accounts.ts");
+    const admin = read("client/src/pages/admin-profile-verifications.tsx");
 
-    expect(route).toContain("businessName: z.string().trim().min(2).max(160).optional()");
+    expect(route).toContain("businessName: z.string().trim().min(2).max(160)");
     expect(route).toContain("businessName: parsed.data.businessName");
     expect(service).toContain("async function createPrivateBusinessProfile");
-    expect(service).toContain("async function ensureBusinessVerificationRequirements");
+    expect(service).toContain("async function ensureBusinessVerificationReview");
     expect(service).toContain("INSERT INTO user_profiles");
     expect(service).toContain("verification_requirements");
-    expect(service).toContain("business_registration");
-    expect(service).toContain("'business'");
+    expect(service).toContain("verification_submissions");
+    expect(service).toContain("businessRegistrationReviewRequestedAt");
+    expect(service).toContain("businessRegistrationReviewSource");
     expect(service).toContain("'business_owner'");
     expect(service).toContain("'private'");
-    expect(service).toContain("display_name");
-    expect(service).toContain("Business name is required to create an account with this profile");
+    expect(admin).toContain("Manual business review requested from a profile account");
+    expect(admin).toContain("decisionMutation.mutate");
     expect(service).not.toMatch(/INSERT INTO businesses/i);
     expect(service).not.toMatch(/INSERT INTO profiles/i);
     expect(service).not.toContain("A TradeScout business profile is required");
+  });
+
+  it("synchronizes profile and BidRock verification after an admin decision", () => {
+    const service = read("server/services/profileAccountService.ts");
+
+    expect(service).toContain("sync_profile_account_business_verification");
+    expect(service).toContain("AFTER UPDATE OF verification_status");
+    expect(service).toContain("UPDATE profile_accounts");
+    expect(service).toContain("UPDATE profile_account_entitlements entitlement");
+    expect(service).toContain("WHEN NEW.verification_status::text = 'approved' THEN 'active'");
   });
 
   it("keeps BidRock as downstream access only for business-gated stone profiles", () => {
@@ -50,32 +62,29 @@ describe("in-profile account foundation", () => {
     expect(entitlement).toContain("CREATE TABLE IF NOT EXISTS profile_account_entitlements");
     expect(entitlement).toContain("REFERENCES profile_accounts(id)");
     expect(route).toContain('productKey: "bidrock"');
-    expect(route).toContain("created.policy.includesBidRock");
+    expect(route).toContain("includesBidRock: created.policy.includesBidRock");
     expect(shared).toContain("priorityKey = stoneProfile");
     expect(shared).toContain('"stone_business_access"');
     expect(route).not.toContain("bidrock_profile_accounts");
   });
 
-  it("creates and signs in without granting a global business-owner role", () => {
-    const card = read("client/src/components/profile/PublicProfileAccountCard.tsx");
+  it("uses a dedicated profile-native registration endpoint without global business authority", () => {
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const client = read("client/src/components/profile/profileAccountClient.ts");
+    const route = read("server/routes/profile-accounts.ts");
 
-    expect(card).toContain("<PublicProfileAccountDialog");
-    expect(dialog).toContain('"/api/auth/register"');
-    expect(dialog).toContain('"/api/auth/login"');
-    expect(dialog).toContain("createProfileAccount");
-    expect(dialog).toContain("userTypes: []");
-    expect(dialog).not.toContain('userTypes: requiresBusiness ? ["business_owner"] : []');
-    expect(dialog).not.toContain('role: requiresBusiness ? "business_owner"');
+    expect(dialog).toContain("registerProfileAccount");
+    expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
+    expect(route).toContain('"/api/profile-accounts/register"');
+    expect(route).toContain('role: "homeowner" as any');
+    expect(route).toContain('profileVisibility: "private"');
+    expect(route).toContain('onboardingCompleted: false');
+    expect(`${dialog}\n${route}`).not.toContain('userTypes: ["business_owner"]');
+    expect(`${dialog}\n${route}`).not.toContain('role: "business_owner"');
     expect(dialog).toContain("Any business can create an account directly with");
     expect(dialog).toContain("Your business details stay private");
-    expect(dialog).toContain("Forgot or need to set your password?");
-    expect(client).toContain("currentProfileAccountSourcePath");
-    expect(client).toContain("rememberProfileAccountReturnPath");
-    expect(`${card}\n${dialog}`).not.toContain("/pre-scout-setup");
-    expect(`${card}\n${dialog}`).not.toContain('presence", "business"');
-    expect(`${card}\n${dialog}`).not.toContain("How do you plan to use TradeScout");
+    expect(dialog).not.toContain("/pre-scout-setup");
+    expect(dialog).not.toContain("How do you plan to use TradeScout");
   });
 
   it("blocks registration until the target profile policy loads", () => {
@@ -85,6 +94,16 @@ describe("in-profile account foundation", () => {
     expect(dialog).toContain("Account details must load before registration can continue");
     expect(dialog).toContain("if (submitting || !data) return");
     expect(dialog).toContain("Try again");
+  });
+
+  it("uses the configured API origin for profile account and sign-in requests", () => {
+    const client = read("client/src/components/profile/profileAccountClient.ts");
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
+
+    expect(client).toContain('import { buildApiUrl } from "@/lib/apiBaseUrl"');
+    expect(client).toContain("buildApiUrl(`/api/u/${encodeURIComponent(profileSlug)}/account`)");
+    expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
+    expect(dialog).toContain('fetch(buildApiUrl("/api/auth/login")');
   });
 
   it("puts the account entry in the sticky JW Stone header", () => {
@@ -105,25 +124,42 @@ describe("in-profile account foundation", () => {
     expect(resume).toContain('params.get("profileAccount") === "1"');
   });
 
-  it("returns verification and password recovery to the profile-native account", () => {
+  it("carries verification and password reset return paths across devices", () => {
     const client = read("client/src/components/profile/profileAccountClient.ts");
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
+    const route = read("server/routes/profile-accounts.ts");
     const verifyEmail = read("client/src/pages/verify-email.tsx");
     const resetPassword = read("client/src/pages/reset-password.tsx");
 
-    expect(client).toContain('PROFILE_ACCOUNT_RETURN_STORAGE_KEY = "ts.profile-account.return.v1"');
     expect(client).toContain('params.set("profileAccountMode", "signin")');
-    expect(verifyEmail).toContain("readRememberedProfileAccountReturnPath");
+    expect(client).not.toContain("localStorage");
+    expect(dialog).toContain("next: profileSigninReturnPath");
+    expect(route).toContain("&next=${encodeURIComponent(parsed.data.next)}");
+    expect(route).toContain('"/api/profile-accounts/request-password-reset"');
+    expect(route).toContain("&next=${encodeURIComponent(parsed.data.next)}");
     expect(verifyEmail).toContain("isProfileAccountResumePath(resolvedNext)");
-    expect(resetPassword).toContain("readRememberedProfileAccountReturnPath");
+    expect(verifyEmail).not.toContain("readRememberedProfileAccountReturnPath");
+    expect(resetPassword).toContain("requestProfileAccountPasswordReset");
     expect(resetPassword).toContain("isProfileAccountResumePath(safeNext)");
+    expect(resetPassword).not.toContain("readRememberedProfileAccountReturnPath");
   });
 
-  it("supports a safe JW Stone marketplace source path rather than only /u routes", () => {
+  it("keeps the profile-account state GET path read-only", () => {
+    const service = read("server/services/profileAccountService.ts");
+    const stateReader = service
+      .split("export async function getProfileAccountState")[1]
+      .split("export async function ensureProfileAccount")[0];
+
+    expect(stateReader).toContain("SELECT id,");
+    expect(stateReader).not.toContain("UPDATE profile_accounts");
+    expect(stateReader).not.toContain("ensureBusinessVerificationReview");
+  });
+
+  it("supports safe source paths beyond only /u routes", () => {
     const route = read("server/routes/profile-accounts.ts");
     const service = read("server/services/profileAccountService.ts");
 
     expect(route).toContain("isSafeSourcePath");
-    expect(route).not.toContain("regex(/^\\/u\\/");
     expect(service).toContain("function normalizeSourcePath");
     expect(service).toContain("source_path = '/'");
     expect(service).toContain("source_path ~ '^/[^/]'");
@@ -133,11 +169,9 @@ describe("in-profile account foundation", () => {
     const accountCard = read("client/src/components/profile/PublicProfileAccountCard.tsx");
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
-    const profileSite = read("client/src/pages/ProfileSiteView.tsx");
     const shared = read("shared/profileAccount.ts");
     const combined = `${accountCard}\n${dialog}\n${trustActions}\n${shared}`;
 
-    expect(profileSite).toContain("renderProfileTrustActions");
     expect(trustActions).toContain("import { PublicProfileAccountCard }");
     expect(trustActions).toContain("<PublicProfileAccountCard");
     expect(trustActions).toContain('profileSlug !== "jw-stone"');
