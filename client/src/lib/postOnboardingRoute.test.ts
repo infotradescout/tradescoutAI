@@ -67,7 +67,17 @@ describe("universal onboarding continuity", () => {
     expect(DEFAULT_AUTH_COMPLETION_ROUTE).toBe("/onboarding");
   });
 
-  it("recognizes only the supported universal onboarding compatibility URLs as exempt", () => {
+  it("keeps profile-native account users on the public profile while TradeScout onboarding remains separate", () => {
+    expect(isOnboardingExemptPath("/jw-stone")).toBe(true);
+    expect(isOnboardingExemptPath("/jw-stone/")).toBe(true);
+    expect(isOnboardingExemptPath("/u/jw-stone")).toBe(true);
+    expect(isOnboardingExemptPath("/u/north-shore-repair")).toBe(true);
+    expect(isOnboardingExemptPath("/u")).toBe(false);
+    expect(isOnboardingExemptPath("/u/")).toBe(false);
+    expect(isOnboardingExemptPath("/u/INVALID_SLUG")).toBe(false);
+  });
+
+  it("recognizes the supported universal onboarding compatibility URLs as exempt", () => {
     expect(isOnboardingExemptPath("/onboarding")).toBe(true);
     expect(isOnboardingExemptPath("/onboarding/profile")).toBe(true);
     expect(isOnboardingExemptPath("/onboarding/intent")).toBe(true);
