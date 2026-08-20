@@ -22,7 +22,11 @@ function clearResumeRequest(): void {
     const url = new URL(window.location.href);
     url.searchParams.delete("profileAccount");
     url.searchParams.delete("profileAccountMode");
-    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
   } catch {
     // ignore
   }
