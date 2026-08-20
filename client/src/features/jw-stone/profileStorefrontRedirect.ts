@@ -47,6 +47,14 @@ export function resolveJwStonePublicStorefrontRedirect(pathWithSearch: string): 
 
   // Bare profile home (and unknown leftovers under the profile) → marketplace home.
   if (!remainder || remainder === "/") {
+    if (params.get("profileAccount") === "1") {
+      const accountParams = new URLSearchParams({ profileAccount: "1" });
+      if (params.get("profileAccountMode") === "signin") {
+        accountParams.set("profileAccountMode", "signin");
+      }
+      return `/jw-stone?${accountParams.toString()}${hash}`;
+    }
+
     const legacyStone = params.get("stone")?.trim().toLowerCase() || "";
     if (legacyStone) {
       const photo = params.get("photo");
