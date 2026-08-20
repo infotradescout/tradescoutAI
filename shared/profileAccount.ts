@@ -132,8 +132,8 @@ export function resolveProfileAccountPolicy(args: {
     : normalizePriorityKey(configured.priorityKey, "profile_account");
   const defaultDescription =
     requiredIdentity === "business"
-      ? `Businesses can create an account with ${profileName} using their TradeScout business identity.`
-      : `Create an account with ${profileName} using your TradeScout identity.`;
+      ? `Businesses can create an account directly with ${profileName}.`
+      : `Create an account directly with ${profileName}.`;
 
   return Object.freeze({
     enabled: true,
