@@ -82,7 +82,8 @@ describe("in-profile account foundation", () => {
     expect(marketplace).toContain('profileName={JW_STONE_PUBLIC_IDENTITY.brandName}');
     expect(header).toContain("onOpenAccount: () => void");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
-    expect(header).toContain("Open your JW Stone account");
+    expect(header).toContain("Create an account with JW Stone");
+    expect(header).toContain("<span>Create account</span>");
   });
 
   it("supports a safe JW Stone marketplace source path rather than only /u routes", () => {
@@ -107,6 +108,7 @@ describe("in-profile account foundation", () => {
     expect(profileSite).toContain("renderProfileTrustActions");
     expect(trustActions).toContain('import { PublicProfileAccountCard }');
     expect(trustActions).toContain("<PublicProfileAccountCard");
+    expect(trustActions).toContain('profileSlug !== "jw-stone"');
     expect(accountCard).toContain('"Create an account"');
     expect(shared).toContain("profilePriorityConfig");
     expect(combined).not.toMatch(/Create a fabricator account/i);
