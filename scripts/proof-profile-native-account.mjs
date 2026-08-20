@@ -6,6 +6,7 @@ const proofEmail = process.env.PROOF_EMAIL;
 const proofPassword = process.env.PROOF_PASSWORD;
 const proofBusiness = process.env.PROOF_BUSINESS;
 const proofPhone = process.env.PROOF_PHONE;
+const profilePath = "/u/jw-stone";
 
 if (!base || !proofEmail || !proofPassword || !proofBusiness || !proofPhone) {
   throw new Error("Proof environment is incomplete.");
@@ -15,7 +16,7 @@ async function waitForPreview() {
   let last = "";
   for (let attempt = 0; attempt < 90; attempt += 1) {
     try {
-      const response = await fetch(`${base}/jw-stone`, { redirect: "manual" });
+      const response = await fetch(`${base}${profilePath}`, { redirect: "manual" });
       last = `${response.status} ${response.headers.get("location") || ""}`;
       if (response.status === 200) return;
     } catch (error) {
@@ -30,6 +31,7 @@ fs.mkdirSync("profile-account-browser-proof", { recursive: true });
 const report = {
   checkedAt: new Date().toISOString(),
   base,
+  profilePath,
   proofEmail,
   proofBusiness,
   desktop: {},
@@ -56,7 +58,7 @@ try {
     }
   });
 
-  const response = await page.goto(`${base}/jw-stone`, {
+  const response = await page.goto(`${base}${profilePath}`, {
     waitUntil: "networkidle",
     timeout: 120000,
   });
@@ -64,7 +66,13 @@ try {
 
   const accountButton = page.locator('[data-testid="jw-marketplace-account-button"]');
   await accountButton.waitFor({ state: "visible" });
-  if (new URL(page.url()).pathname !== "/jw-stone") {
+  if ((await accountButton.innerText()).trim() !== "Create account") {
+    throw new Error(`JW Stone header account CTA is wrong: ${await accountButton.innerText()}`);
+  }
+  if (await page.locator('[data-testid="public-profile-account-card"]').count()) {
+    throw new Error("A buried JW Stone account card is still rendered below the profile.");
+  }
+  if (new URL(page.url()).pathname !== profilePath) {
     throw new Error(`Unexpected initial route: ${page.url()}`);
   }
   await accountButton.click();
@@ -86,8 +94,8 @@ try {
   if (!dialogText.includes("Any business can create an account directly with JW Stone")) {
     throw new Error("Any-business copy is missing.");
   }
-  if (new URL(page.url()).pathname !== "/jw-stone") {
-    throw new Error("Dialog navigated away from JW Stone.");
+  if (new URL(page.url()).pathname !== profilePath) {
+    throw new Error("Dialog navigated away from the JW Stone profile.");
   }
 
   await page.locator('[data-testid="profile-account-business-name"]').fill(proofBusiness);
@@ -106,7 +114,9 @@ try {
   if (!connectedText.includes(`${proofBusiness} is connected to JW Stone`)) {
     throw new Error(`Connected state is wrong: ${connectedText}`);
   }
-  if (new URL(page.url()).pathname !== "/jw-stone") throw new Error("Signup left JW Stone.");
+  if (new URL(page.url()).pathname !== profilePath) {
+    throw new Error("Signup left the JW Stone profile.");
+  }
   await page.screenshot({
     path: "profile-account-browser-proof/desktop-created.png",
     fullPage: true,
@@ -126,7 +136,9 @@ try {
 
   report.desktop = {
     httpStatus: response.status(),
-    stayedOnJwStone: true,
+    canonicalProfileRoute: true,
+    headerAccountVisible: true,
+    buriedAccountCardAbsent: true,
     anyBusinessCopy: true,
     forbiddenRoleCopyAbsent: true,
     accountCreated: true,
@@ -143,9 +155,13 @@ try {
   const mobile = await mobileContext.newPage();
   const mobileErrors = [];
   mobile.on("pageerror", (error) => mobileErrors.push(error.message));
-  await mobile.goto(`${base}/jw-stone`, { waitUntil: "networkidle", timeout: 120000 });
-  await mobile.locator('[data-testid="jw-marketplace-account-button"]').click();
-  await mobile.locator('[data-testid="profile-account-dialog-connected"]').waitFor({ state: "visible" });
+  await mobile.goto(`${base}${profilePath}`, { waitUntil: "networkidle", timeout: 120000 });
+  const mobileAccountButton = mobile.locator('[data-testid="jw-marketplace-account-button"]');
+  await mobileAccountButton.waitFor({ state: "visible" });
+  await mobileAccountButton.click();
+  await mobile.locator('[data-testid="profile-account-dialog-connected"]').waitFor({
+    state: "visible",
+  });
   const mobileText = await mobile
     .locator('[data-testid="profile-account-dialog-connected"]')
     .innerText();
@@ -165,7 +181,8 @@ try {
     fullPage: true,
   });
   report.mobile = {
-    stayedOnJwStone: new URL(mobile.url()).pathname === "/jw-stone",
+    canonicalProfileRoute: new URL(mobile.url()).pathname === profilePath,
+    headerAccountVisible: true,
     existingAccountOpened: true,
     noHorizontalOverflow: true,
     pageErrors: mobileErrors,
