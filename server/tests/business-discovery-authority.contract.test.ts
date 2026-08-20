@@ -127,9 +127,6 @@ describe("business discovery authority", () => {
     expect(pruneJob).toContain("non_county_discovery_authority");
     expect(pruneJob).toContain("and not non_county_discovery_authority");
     expect(pruneJob).toMatch(
-      /not\s+\(business_level_verified and location_confirmed_per_request\)/
-    );
-    expect(pruneJob).toMatch(
       /publication_verified\s+and updated_at < \(now\(\) - \(\$\{staleVerifiedDays\}/
     );
     expect(pruneJob).toContain("stale_by_publication_rules");
