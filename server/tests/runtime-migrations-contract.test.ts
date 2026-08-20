@@ -43,7 +43,9 @@ describe("runtime migration contracts", () => {
     expect(source).toContain(
       "await recordMigration(migration.hash, recordedMigration?.createdAt ?? Date.now())"
     );
-    expect(source).toContain("(await migrationLedgerCount()) > 0 || (await schemaLooksInitialized())");
+    expect(source).toContain(
+      "(await migrationLedgerCount()) > 0 || (await schemaLooksInitialized())"
+    );
     expect(source).toContain("Refusing to replay repaired historical migration");
     expect(Object.keys(aliases).length).toBeGreaterThan(0);
 
@@ -70,5 +72,29 @@ describe("runtime migration contracts", () => {
     expect(runtimeSource).toContain("class HistoricalMigrationReplayRefusedError");
     expect(startupSource).toContain("err instanceof HistoricalMigrationReplayRefusedError");
     expect(startupSource).toContain("throw err;");
+  });
+
+  it("keeps the PR 399 ledger recovery exact, atomic, and explicitly gated", () => {
+    const runtimeSource = read("server/runtimeMigrations.ts");
+    const startupSource = read("server/index.ts");
+
+    expect(startupSource).toContain('runtimeMigrationMode === "repair-release-399"');
+    expect(startupSource).toContain("runRelease399MigrationLedgerRecovery");
+    expect(runtimeSource).toContain("RELEASE_399_RECOVERY_REMOVE_FILENAMES");
+    expect(runtimeSource).toContain("RELEASE_399_RECOVERY_APPLY_FILENAMES");
+    expect(runtimeSource).toContain("expectedInterruptedCount");
+    expect(runtimeSource).toContain("expected exactly one surviving original ledger row");
+    expect(runtimeSource).toContain("pg_advisory_xact_lock");
+    expect(runtimeSource).toContain("set local lock_timeout = '15s'");
+    expect(runtimeSource).toContain("set local statement_timeout = '120s'");
+    expect(runtimeSource).toContain("the accepted 0072 health hash would be removed");
+    expect(runtimeSource).toContain(
+      "delete from drizzle.__drizzle_migrations where hash = any($1::text[])"
+    );
+    expect(runtimeSource).toContain("PR #399 ledger recovery ended at");
+    expect(runtimeSource).toContain("PR #399 required schema proof failed");
+    expect(runtimeSource).toContain("profile_accounts_identity_trigger");
+    expect(runtimeSource).toContain("profiles_la_plumbing_public_copy");
+    expect(runtimeSource).toContain("PR #399 ledger recovery is already complete");
   });
 });

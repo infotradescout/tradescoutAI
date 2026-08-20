@@ -27,7 +27,11 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
-import { HistoricalMigrationReplayRefusedError, runRuntimeMigrations } from "./runtimeMigrations";
+import {
+  HistoricalMigrationReplayRefusedError,
+  runRelease399MigrationLedgerRecovery,
+  runRuntimeMigrations,
+} from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
@@ -1075,8 +1079,13 @@ app.use(landingContractHeaders);
       .trim()
       .toLowerCase();
     const shouldRunBootMigrations = runtimeMigrationMode === "boot";
+    const shouldRunRelease399Recovery = runtimeMigrationMode === "repair-release-399";
 
-    if (shouldRunBootMigrations) {
+    if (shouldRunRelease399Recovery) {
+      await runRelease399MigrationLedgerRecovery({
+        log: (msg) => log(msg, "RuntimeMigrations"),
+      });
+    } else if (shouldRunBootMigrations) {
       try {
         await runRuntimeMigrations({
           log: (msg) => log(msg, "RuntimeMigrations"),
