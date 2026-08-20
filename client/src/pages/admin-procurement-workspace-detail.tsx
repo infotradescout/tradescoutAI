@@ -40,6 +40,11 @@ type ProcurementWorkspace = {
     supportEmail?: string | null;
     supportPhone?: string | null;
   } | null;
+  public_name?: string | null;
+  tagline?: string | null;
+  primary_color?: string | null;
+  support_email?: string | null;
+  support_phone?: string | null;
   memberCount?: number | null;
   orderCount?: number | null;
   createdAt?: string | null;
@@ -91,17 +96,28 @@ function workspaceType(workspace: ProcurementWorkspace): ProcurementWorkspaceTyp
     : "admin";
 }
 
+function workspaceBranding(workspace: ProcurementWorkspace) {
+  return {
+    publicName: workspace.branding?.publicName || workspace.public_name || "",
+    tagline: workspace.branding?.tagline || workspace.tagline || "",
+    primaryColor: workspace.branding?.primaryColor || workspace.primary_color || "",
+    supportEmail: workspace.branding?.supportEmail || workspace.support_email || "",
+    supportPhone: workspace.branding?.supportPhone || workspace.support_phone || "",
+  };
+}
+
 function formFromWorkspace(workspace: ProcurementWorkspace): WorkspaceForm {
+  const branding = workspaceBranding(workspace);
   return {
     slug: String(workspace.slug || ""),
     name: String(workspace.name || ""),
     workspaceType: workspaceType(workspace),
     status: String(workspace.status || "active"),
-    publicName: String(workspace.branding?.publicName || ""),
-    tagline: String(workspace.branding?.tagline || ""),
-    primaryColor: String(workspace.branding?.primaryColor || ""),
-    supportEmail: String(workspace.branding?.supportEmail || ""),
-    supportPhone: String(workspace.branding?.supportPhone || ""),
+    publicName: branding.publicName,
+    tagline: branding.tagline,
+    primaryColor: branding.primaryColor,
+    supportEmail: branding.supportEmail,
+    supportPhone: branding.supportPhone,
   };
 }
 
