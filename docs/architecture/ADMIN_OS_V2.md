@@ -114,11 +114,19 @@ A native v2 tool uses the shared workspace primitives:
 
 Native pages do not recreate the app shell, page header, or nested dashboard container.
 
+The Procurement parent tool also keeps its three operator detail routes inside this grammar:
+
+- `/admin/procurement/:id`
+- `/admin/procurement/workspaces`
+- `/admin/procurement/workspaces/:id`
+
+These routes share the `procurement` tool identity and permission boundary rather than appearing as separate navigation tools.
+
 ### Adapted surface
 
 An adapted tool retains its current functional component while Admin OS v2 removes the legacy outer page constraints and normalizes visual treatment.
 
-After primary completion, the adapted surface is reserved for hidden detail routes, compatibility aliases, diagnostic laboratories, and other non-primary tools. Examples include individual procurement orders, procurement fulfillment workspaces, commercial-business management, Vault Contributions, protected redirects, and hidden legacy compatibility paths.
+After primary completion, the adapted surface is reserved for compatibility aliases, diagnostic laboratories, and non-primary routes that have not yet received their own native operating redesign. Current examples include commercial-business management, Vault Contributions, protected redirects, and hidden legacy or laboratory routes.
 
 A hidden or detail route being adapted does not make it a primary Admin OS navigation workspace.
 
@@ -141,7 +149,7 @@ It does not duplicate the navigation tool catalog.
 
 ## Workspace grammar
 
-Primary workspaces share these rules:
+Primary workspaces and migrated operator detail routes share these rules:
 
 - One page title comes from the integrated shell toolbar.
 - A tool does not render another page shell inside the workspace.
@@ -178,7 +186,9 @@ The primary workspace sequence completed in this order:
 19. Sales Pipeline
 20. Finance
 
-The order was not used as a gate. Company-specific work, HomeID work, partner work, and other production corrections continued concurrently.
+The first native detail-route continuation then migrated the procurement order and procurement workspace routes without adding new navigation entries.
+
+The order was not used as a gate. Company-specific work, HomeID work, partner work, planner work, and other production corrections continued concurrently.
 
 ## Non-negotiable boundaries
 
@@ -203,7 +213,8 @@ Primary completion means:
 - The 21 outcome-based navigation tools are native v2 surfaces.
 - Their canonical routes and permissions remain authoritative.
 - Their page-specific operating work no longer depends on the temporary adapted-v1 presentation layer.
-- Hidden detail and compatibility routes can continue using the adapter until their own production demand justifies a native redesign.
+- The procurement order and workspace detail routes also remain inside the native Admin OS grammar.
+- Other hidden detail and compatibility routes can continue using the adapter until their own production demand justifies a native redesign.
 
 Primary completion does not by itself claim that every production pixel, every empty state, or every authenticated write has been visually approved on every device. That claim requires the release proof below.
 
