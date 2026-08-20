@@ -35,7 +35,7 @@ describe("remaining public profile truth", () => {
     expect(requestBand).toContain("Start a Request");
     expect(requestBand).not.toContain('aria-label="Contact"');
     expect(registry).toContain('expectedPrimaryCta: "Start a Request"');
-    expect(normalizer).toContain("iprofiles.slug, JW_STONE_PROFILE_SLUG)");
+    expect(normalizer).toContain("eq(profiles.slug, JW_STONE_PROFILE_SLUG)");
     expect(normalizer).not.toContain("Request Trade Pricing");
     expect(normalizer).not.toContain("Start Direct Connect");
   });
