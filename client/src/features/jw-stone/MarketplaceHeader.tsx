@@ -11,7 +11,7 @@ type MarketplaceHeaderProps = {
 };
 
 /**
- * Light site chrome: logo · Saved · Account · Menu.
+ * Light site chrome: logo · Saved · Create account · Menu.
  * Social destinations stay together in the company section near the bottom.
  */
 export function MarketplaceHeader({
@@ -59,7 +59,7 @@ export function MarketplaceHeader({
           <img
             src={JW_STONE_LOGO_URL}
             alt="JW Stone"
-            className="h-auto w-[132px] object-contain object-left sm:w-[180px] md:w-[200px]"
+            className="h-auto w-[112px] object-contain object-left sm:w-[180px] md:w-[200px]"
             data-testid="jw-marketplace-logo"
           />
         </a>
@@ -87,11 +87,11 @@ export function MarketplaceHeader({
             type="button"
             data-testid="jw-marketplace-account-button"
             onClick={onOpenAccount}
-            className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
-            aria-label="Open your JW Stone account"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--jw-accent)] px-2.5 text-xs font-black text-[var(--jw-on-accent)] transition hover:opacity-90 sm:px-3 sm:text-sm"
+            aria-label="Create an account with JW Stone"
           >
             <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Account</span>
+            <span>Create account</span>
           </button>
 
           <div className="relative" ref={menuRef}>
@@ -124,7 +124,7 @@ export function MarketplaceHeader({
                     onClick={() => closeAnd(onOpenAccount)}
                     className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
                   >
-                    Account
+                    Create account
                   </button>
                   <a
                     href="#about-jw-stone"
