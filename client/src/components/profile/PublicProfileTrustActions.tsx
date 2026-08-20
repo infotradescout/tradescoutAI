@@ -390,10 +390,7 @@ export function PublicProfileTrustActions({
 
         {publicIdentity ? (
           <div
-            className={cn(
-              "mt-2 border-t pt-2",
-              isLight ? "border-stone-200" : "border-white/10"
-            )}
+            className={cn("mt-2 border-t pt-2", isLight ? "border-stone-200" : "border-white/10")}
             data-testid="public-profile-identity"
           >
             {publicIdentity.address ? (
