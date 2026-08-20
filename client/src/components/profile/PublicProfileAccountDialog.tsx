@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
-import { SiFacebook, SiGoogle } from "react-icons/si";
 import { useAuth } from "@/hooks/useAuth";
-import { buildApiUrl } from "@/lib/apiBaseUrl";
 import {
   Dialog,
   DialogContent,
@@ -268,20 +266,13 @@ export function PublicProfileAccountDialog({
       const authError = nextError as AuthError;
       if (authError.code === "AUTH_SOCIAL_ONLY") {
         setMode("signin");
-        setError("This account uses Google or Facebook sign-in. Use the matching option below.");
+        setError("Set a password for this email below, then sign in here.");
       } else {
         setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
       }
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const beginSocialSignIn = (provider: "google" | "facebook") => {
-    const returnPath = rememberProfileAccountReturnPath(profileSlug, "signin");
-    window.location.assign(
-      buildApiUrl(`/api/auth/${provider}?next=${encodeURIComponent(returnPath)}`)
-    );
   };
 
   const inputClass = cn(
@@ -342,7 +333,9 @@ export function PublicProfileAccountDialog({
         </DialogHeader>
 
         {loading && !data ? (
-          <div className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}>
+          <div
+            className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}
+          >
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Opening your account…
           </div>
@@ -374,7 +367,9 @@ export function PublicProfileAccountDialog({
             <div
               className={cn(
                 "rounded-2xl border p-4 text-sm leading-6",
-                isDark ? "border-emerald-400/20 bg-emerald-400/10" : "border-emerald-200 bg-emerald-50"
+                isDark
+                  ? "border-emerald-400/20 bg-emerald-400/10"
+                  : "border-emerald-200 bg-emerald-50"
               )}
             >
               <p className="font-black">
@@ -382,7 +377,8 @@ export function PublicProfileAccountDialog({
               </p>
               {data?.account?.verificationStatus === "pending" ? (
                 <p className={cn("mt-1", mutedClass)}>
-                  Your account is active. Protected business features remain limited until verification is complete.
+                  Your account is active. Protected business features remain limited until
+                  verification is complete.
                 </p>
               ) : null}
             </div>
@@ -515,11 +511,21 @@ export function PublicProfileAccountDialog({
                       />
                       <span>
                         I agree to the{" "}
-                        <a className="font-bold underline" href="/terms" target="_blank" rel="noreferrer">
+                        <a
+                          className="font-bold underline"
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           Terms of Service
                         </a>{" "}
                         and acknowledge the{" "}
-                        <a className="font-bold underline" href="/privacy" target="_blank" rel="noreferrer">
+                        <a
+                          className="font-bold underline"
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           Privacy Policy
                         </a>
                         .
@@ -568,47 +574,16 @@ export function PublicProfileAccountDialog({
             </button>
 
             {!hasViewerSession && mode === "signin" ? (
-              <div className="space-y-3 border-t border-current/10 pt-4">
-                <p className={cn("text-center text-xs font-black uppercase tracking-[0.15em]", mutedClass)}>
-                  Or use your existing sign-in
-                </p>
-                <button
-                  type="button"
-                  data-testid="profile-account-google-signin"
-                  onClick={() => beginSocialSignIn("google")}
-                  className={cn(
-                    "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition",
-                    secondaryClass
-                  )}
-                >
-                  <SiGoogle className="h-4 w-4" aria-hidden="true" />
-                  Sign in with Google
-                </button>
-                {import.meta.env.VITE_DISABLE_FACEBOOK_AUTH !== "true" ? (
-                  <button
-                    type="button"
-                    data-testid="profile-account-facebook-signin"
-                    onClick={() => beginSocialSignIn("facebook")}
-                    className={cn(
-                      "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-5 text-sm font-black transition",
-                      secondaryClass
-                    )}
-                  >
-                    <SiFacebook className="h-4 w-4" aria-hidden="true" />
-                    Sign in with Facebook
-                  </button>
-                ) : null}
-                <a
-                  href={`/reset-password?next=${encodeURIComponent(profileSigninReturnPath)}`}
-                  onClick={() => rememberProfileAccountReturnPath(profileSlug, "signin")}
-                  className={cn(
-                    "inline-flex min-h-11 w-full items-center justify-center text-sm font-bold underline-offset-4 hover:underline",
-                    mutedClass
-                  )}
-                >
-                  Forgot or need to set your password?
-                </a>
-              </div>
+              <a
+                href={`/reset-password?next=${encodeURIComponent(profileSigninReturnPath)}`}
+                onClick={() => rememberProfileAccountReturnPath(profileSlug, "signin")}
+                className={cn(
+                  "inline-flex min-h-11 w-full items-center justify-center border-t border-current/10 pt-4 text-sm font-bold underline-offset-4 hover:underline",
+                  mutedClass
+                )}
+              >
+                Forgot or need to set your password?
+              </a>
             ) : null}
 
             {!hasViewerSession ? (
@@ -623,7 +598,9 @@ export function PublicProfileAccountDialog({
                   mutedClass
                 )}
               >
-                {mode === "create" ? "Already have an account? Sign in" : "New here? Create an account"}
+                {mode === "create"
+                  ? "Already have an account? Sign in"
+                  : "New here? Create an account"}
               </button>
             ) : null}
           </div>
