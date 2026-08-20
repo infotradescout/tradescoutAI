@@ -33,8 +33,8 @@ replace_once(
 
 replace_once(
     "server/publicJwStoneMarketplaceHtml.ts",
-    'const title = String(context.profile.headline || "Current stone selection").trim();',
-    'const title = String(context.profile.headline || "Stone selection").trim();',
+    'itemShare.hasPublicName ? itemShare.itemName : "Current stone selection"',
+    'itemShare.hasPublicName ? itemShare.itemName : "Stone selection"',
 )
 replace_once(
     "server/publicJwStoneMarketplaceHtml.ts",
@@ -43,7 +43,7 @@ replace_once(
 )
 replace_once(
     "server/publicJwStoneMarketplaceHtml.ts",
-    '<p>Browse named slabs, dimensions, finishes, and current availability from the live JW Stone profile.</p>',
+    '<p>Browse current selections by photo. Filter by aesthetic or color, then ask JW Stone to confirm what is on hand for your project.</p>',
     '<p>Browse named materials and photo references. Ask JW Stone to confirm the exact physical item, quantity, dimensions, finish, location, and current availability.</p>',
 )
 
