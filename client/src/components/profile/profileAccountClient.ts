@@ -1,9 +1,11 @@
 import type { ProfileAccountPolicy } from "@shared/profileAccount";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 
 export type ViewerBusinessProfile = Readonly<{
   id: string;
   name: string;
   verificationStatus: "pending" | "approved" | "rejected";
+  verificationReviewRequested?: boolean;
 }>;
 
 export type ProfileAccountRecord = Readonly<{
@@ -35,10 +37,14 @@ export type ProfileAccountResponse = Readonly<{
   message?: string;
 }>;
 
-export type ProfileAccountMode = "create" | "signin";
+export type ProfileAccountRegistrationResponse = ProfileAccountResponse &
+  Readonly<{
+    emailVerificationRequired?: boolean;
+    emailVerificationSent?: boolean;
+    verificationToken?: string;
+  }>;
 
-export const PROFILE_ACCOUNT_RETURN_STORAGE_KEY = "ts.profile-account.return.v1";
-const PROFILE_ACCOUNT_RETURN_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+export type ProfileAccountMode = "create" | "signin";
 
 function safeInternalPath(value: unknown): string {
   const candidate = String(value || "").trim();
@@ -67,56 +73,6 @@ export function buildProfileAccountResumePath(
   return `/u/${encodeURIComponent(normalizedSlug)}?${params.toString()}`;
 }
 
-export function rememberProfileAccountReturnPath(
-  profileSlug: string,
-  mode: ProfileAccountMode = "signin"
-): string {
-  const path = buildProfileAccountResumePath(profileSlug, mode);
-  if (typeof window === "undefined") return path;
-  try {
-    window.localStorage.setItem(
-      PROFILE_ACCOUNT_RETURN_STORAGE_KEY,
-      JSON.stringify({ path, savedAt: Date.now() })
-    );
-  } catch {
-    // Browser storage is an optional return-path aid. Account creation must still work without it.
-  }
-  return path;
-}
-
-export function readRememberedProfileAccountReturnPath(): string {
-  if (typeof window === "undefined") return "";
-  try {
-    const raw = window.localStorage.getItem(PROFILE_ACCOUNT_RETURN_STORAGE_KEY);
-    if (!raw) return "";
-    const parsed = JSON.parse(raw) as { path?: unknown; savedAt?: unknown };
-    const savedAt = Number(parsed.savedAt || 0);
-    if (!Number.isFinite(savedAt) || Date.now() - savedAt > PROFILE_ACCOUNT_RETURN_MAX_AGE_MS) {
-      window.localStorage.removeItem(PROFILE_ACCOUNT_RETURN_STORAGE_KEY);
-      return "";
-    }
-    const path = safeInternalPath(parsed.path);
-    if (!path) window.localStorage.removeItem(PROFILE_ACCOUNT_RETURN_STORAGE_KEY);
-    return path;
-  } catch {
-    try {
-      window.localStorage.removeItem(PROFILE_ACCOUNT_RETURN_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-    return "";
-  }
-}
-
-export function clearRememberedProfileAccountReturnPath(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(PROFILE_ACCOUNT_RETURN_STORAGE_KEY);
-  } catch {
-    // ignore
-  }
-}
-
 export function isProfileAccountResumePath(value: unknown): boolean {
   const path = safeInternalPath(value);
   if (!path) return false;
@@ -133,16 +89,32 @@ export async function readResponseJson(response: Response): Promise<Record<strin
   return response.json().catch(() => ({}));
 }
 
+function responseError(
+  response: Response,
+  payload: Record<string, unknown>,
+  fallback: string
+): Error & { status?: number; code?: string; requiresBusinessSetup?: boolean } {
+  const error = new Error(String(payload.message || fallback)) as Error & {
+    status?: number;
+    code?: string;
+    requiresBusinessSetup?: boolean;
+  };
+  error.status = response.status;
+  error.code = typeof payload.code === "string" ? payload.code : undefined;
+  error.requiresBusinessSetup = payload.requiresBusinessSetup === true;
+  return error;
+}
+
 export async function loadProfileAccountState(
   profileSlug: string
 ): Promise<ProfileAccountResponse> {
-  const response = await fetch(`/api/u/${encodeURIComponent(profileSlug)}/account`, {
+  const response = await fetch(buildApiUrl(`/api/u/${encodeURIComponent(profileSlug)}/account`), {
     credentials: "include",
     headers: { Accept: "application/json" },
   });
   const payload = await readResponseJson(response);
   if (!response.ok) {
-    throw new Error(String(payload.message || "Account is temporarily unavailable."));
+    throw responseError(response, payload, "Account is temporarily unavailable.");
   }
   return payload as ProfileAccountResponse;
 }
@@ -152,31 +124,74 @@ export async function createProfileAccount(args: {
   businessName?: string | null;
   sourcePath?: string | null;
 }): Promise<ProfileAccountResponse> {
-  const response = await fetch(`/api/u/${encodeURIComponent(args.profileSlug)}/account`, {
+  const response = await fetch(
+    buildApiUrl(`/api/u/${encodeURIComponent(args.profileSlug)}/account`),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...(args.businessName ? { businessName: args.businessName } : {}),
+        ...(args.sourcePath ? { sourcePath: args.sourcePath } : {}),
+      }),
+    }
+  );
+  const payload = await readResponseJson(response);
+  if (!response.ok) {
+    throw responseError(response, payload, "Account could not be created.");
+  }
+  return payload as ProfileAccountResponse;
+}
+
+export async function registerProfileAccount(args: {
+  profileSlug: string;
+  businessName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  acceptTerms: true;
+  sourcePath: string;
+  next: string;
+}): Promise<ProfileAccountRegistrationResponse> {
+  const response = await fetch(buildApiUrl("/api/profile-accounts/register"), {
     method: "POST",
     credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      ...(args.businessName ? { businessName: args.businessName } : {}),
-      ...(args.sourcePath ? { sourcePath: args.sourcePath } : {}),
-    }),
+    body: JSON.stringify(args),
   });
   const payload = await readResponseJson(response);
   if (!response.ok) {
-    const error = new Error(String(payload.message || "Account could not be created.")) as Error & {
-      status?: number;
-      code?: string;
-      requiresBusinessSetup?: boolean;
-    };
-    error.status = response.status;
-    error.code = typeof payload.code === "string" ? payload.code : undefined;
-    error.requiresBusinessSetup = payload.requiresBusinessSetup === true;
-    throw error;
+    throw responseError(response, payload, "Account could not be created.");
   }
-  return payload as ProfileAccountResponse;
+  return payload as ProfileAccountRegistrationResponse;
+}
+
+export async function requestProfileAccountPasswordReset(args: {
+  email: string;
+  next: string;
+}): Promise<{ message: string }> {
+  const response = await fetch(buildApiUrl("/api/profile-accounts/request-password-reset"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(args),
+  });
+  const payload = await readResponseJson(response);
+  if (!response.ok) {
+    throw responseError(response, payload, "Password reset could not be requested.");
+  }
+  return { message: String(payload.message || "Check your email for a password reset link.") };
 }
 
 export function currentProfileAccountSourcePath(profileSlug: string): string {
