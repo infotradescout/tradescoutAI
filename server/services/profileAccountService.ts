@@ -284,6 +284,22 @@ async function loadViewerBusinessProfile(
   });
 }
 
+async function ensureBusinessVerificationRequirements(
+  businessProfileId: string,
+  client: Pick<typeof pool, "query">
+): Promise<void> {
+  await client.query(
+    `UPDATE user_profiles
+        SET verification_requirements = COALESCE(verification_requirements, '{}'::jsonb)
+              || '{"business_registration": true}'::jsonb,
+            updated_at = NOW()
+      WHERE id = $1
+        AND user_intent = 'business'
+        AND verification_status = 'pending'`,
+    [businessProfileId]
+  );
+}
+
 async function createPrivateBusinessProfile(
   userId: string,
   businessName: unknown,
@@ -302,6 +318,7 @@ async function createPrivateBusinessProfile(
        roles,
        profile_visibility,
        verification_status,
+       verification_requirements,
        is_primary,
        display_name,
        created_at,
@@ -314,6 +331,7 @@ async function createPrivateBusinessProfile(
        ARRAY['business_owner']::text[],
        'private',
        'pending',
+       '{"business_registration": true}'::jsonb,
        NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1),
        $2,
        NOW(),
@@ -387,6 +405,9 @@ export async function getProfileAccountState(args: {
 
   const viewerBusiness =
     policy.requiredIdentity === "business" ? await loadViewerBusinessProfile(userId) : null;
+  if (viewerBusiness?.verificationStatus === "pending") {
+    await ensureBusinessVerificationRequirements(viewerBusiness.id, pool);
+  }
   const result = await pool.query(
     `UPDATE profile_accounts
         SET verification_status = CASE
@@ -461,6 +482,9 @@ export async function ensureProfileAccount(args: {
         : null;
     if (policy.requiredIdentity === "business" && !viewerBusiness) {
       viewerBusiness = await createPrivateBusinessProfile(userId, args.businessName, client);
+    }
+    if (viewerBusiness?.verificationStatus === "pending") {
+      await ensureBusinessVerificationRequirements(viewerBusiness.id, client);
     }
 
     const identityKind = policy.requiredIdentity;
