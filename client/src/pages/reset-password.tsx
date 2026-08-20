@@ -9,6 +9,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { KeyRound } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  clearRememberedProfileAccountReturnPath,
+  isProfileAccountResumePath,
+  readRememberedProfileAccountReturnPath,
+} from "@/components/profile/profileAccountClient";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
@@ -34,12 +39,16 @@ export default function ResetPasswordPage() {
   const safeNext = useMemo(() => {
     try {
       const idx = location.indexOf("?");
-      if (idx === -1) return "";
-      const params = new URLSearchParams(location.slice(idx + 1));
+      const params = new URLSearchParams(idx === -1 ? "" : location.slice(idx + 1));
       const requested = String(params.get("next") || "").trim();
-      return requested.startsWith("/") && !requested.startsWith("//") ? requested : "";
+      const safeRequested =
+        requested.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")
+          ? requested
+          : "";
+      const remembered = readRememberedProfileAccountReturnPath();
+      return safeRequested || remembered;
     } catch {
-      return "";
+      return readRememberedProfileAccountReturnPath();
     }
   }, [location]);
 
@@ -115,6 +124,11 @@ export default function ResetPasswordPage() {
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
+      if (isProfileAccountResumePath(safeNext)) {
+        clearRememberedProfileAccountReturnPath();
+        navigate(safeNext);
+        return;
+      }
       const signinPath = safeNext
         ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeNext)}`
         : "/pre-scout-setup?mode=signin";
