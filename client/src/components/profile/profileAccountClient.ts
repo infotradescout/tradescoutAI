@@ -59,7 +59,9 @@ export function buildProfileAccountResumePath(
   profileSlug: string,
   mode: ProfileAccountMode = "create"
 ): string {
-  const normalizedSlug = String(profileSlug || "").trim().toLowerCase();
+  const normalizedSlug = String(profileSlug || "")
+    .trim()
+    .toLowerCase();
   const params = new URLSearchParams({ profileAccount: "1" });
   if (mode === "signin") params.set("profileAccountMode", "signin");
   return `/u/${encodeURIComponent(normalizedSlug)}?${params.toString()}`;
@@ -119,7 +121,9 @@ export function isProfileAccountResumePath(value: unknown): boolean {
   const path = safeInternalPath(value);
   if (!path) return false;
   try {
-    return new URL(path, "https://profile-account.local").searchParams.get("profileAccount") === "1";
+    return (
+      new URL(path, "https://profile-account.local").searchParams.get("profileAccount") === "1"
+    );
   } catch {
     return false;
   }
