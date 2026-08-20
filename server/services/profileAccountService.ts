@@ -354,7 +354,8 @@ function toAccountRecord(args: {
   viewerBusiness: ViewerBusinessProfile | null;
   row: any;
 }): ProfileAccountRecord {
-  const identityKind = String(args.row.identity_kind || "user") === "business" ? "business" : "user";
+  const identityKind =
+    String(args.row.identity_kind || "user") === "business" ? "business" : "user";
   const businessProfileId = args.row.business_profile_id
     ? String(args.row.business_profile_id)
     : null;
@@ -378,9 +379,7 @@ function toAccountRecord(args: {
       args.row.resume_path,
       buildProfileAccountReturnPath(args.target.profileSlug)
     ),
-    lastSeenAt: args.row.last_seen_at
-      ? new Date(args.row.last_seen_at).toISOString()
-      : null,
+    lastSeenAt: args.row.last_seen_at ? new Date(args.row.last_seen_at).toISOString() : null,
     bidRockIncluded: args.policy.includesBidRock,
   });
 }
@@ -473,7 +472,9 @@ export async function ensureProfileAccount(args: {
     const policy = policyForTarget(target);
     if (!policy.enabled) throw new Error("Accounts are not available for this profile");
 
-    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [userId]);
+    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [
+      userId,
+    ]);
     if (!userResult.rows[0]) throw new Error("Private identity not found");
 
     let viewerBusiness =
