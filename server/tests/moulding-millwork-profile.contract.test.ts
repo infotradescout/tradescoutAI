@@ -87,7 +87,7 @@ describe("Moulding & Millwork Supply public profile contract", () => {
 
   it("publishes only sourced facts: no fabricated ratings, reviews, or guaranteed pricing/inventory", () => {
     const publicCopy = JSON.stringify(MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS).toLowerCase();
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileThemeLegacy.tsx");
 
     expect(publicCopy).not.toContain("star rating");
     expect(publicCopy).not.toMatch(/customer review/);
