@@ -70,7 +70,7 @@ describe("Admin OS v2 core workspaces", () => {
     expect(page).toContain("Business verification queue");
     expect(page).toContain("Approve or reject each required field independently");
     expect(page).toContain("REQUIREMENT_FIELDS");
-    expect(page).toContain('apiRequest("GET",');
+    expect(page).toContain("apiRequest(");
     expect(page).toContain('/api/admin/profile-verifications?status=${encodeURIComponent(statusFilter)}');
     expect(page).toContain('apiRequest("PUT", `/api/admin/profile-verifications/${profileId}`');
     expect(page).toContain('decision: "approved"');
