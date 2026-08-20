@@ -99,6 +99,47 @@ BEFORE INSERT OR UPDATE OF identity_kind, business_profile_id, owner_user_id, ve
 ON profile_accounts
 FOR EACH ROW
 EXECUTE FUNCTION enforce_profile_account_identity();
+
+CREATE OR REPLACE FUNCTION sync_profile_account_business_verification()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE profile_accounts
+     SET verification_status = CASE
+           WHEN NEW.verification_status::text = 'approved' THEN 'approved'
+           WHEN NEW.verification_status::text = 'rejected' THEN 'rejected'
+           ELSE 'pending'
+         END,
+         updated_at = NOW()
+   WHERE business_profile_id = NEW.id
+     AND identity_kind = 'business';
+
+  UPDATE profile_account_entitlements entitlement
+     SET status = CASE
+           WHEN entitlement.status = 'suspended' THEN 'suspended'
+           WHEN NEW.verification_status::text = 'approved' THEN 'active'
+           WHEN NEW.verification_status::text = 'rejected' THEN 'revoked'
+           ELSE 'pending_verification'
+         END,
+         updated_at = NOW()
+    FROM profile_accounts account
+   WHERE account.business_profile_id = NEW.id
+     AND account.id = entitlement.profile_account_id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS profile_account_business_verification_sync
+  ON user_profiles;
+
+CREATE TRIGGER profile_account_business_verification_sync
+AFTER UPDATE OF verification_status
+ON user_profiles
+FOR EACH ROW
+WHEN (OLD.verification_status IS DISTINCT FROM NEW.verification_status)
+EXECUTE FUNCTION sync_profile_account_business_verification();
 `;
 
 let ensurePromise: Promise<void> | null = null;
@@ -129,6 +170,7 @@ export type ViewerBusinessProfile = Readonly<{
   id: string;
   name: string;
   verificationStatus: "pending" | "approved" | "rejected";
+  verificationReviewRequested: boolean;
 }>;
 
 export type ProfileAccountRecord = Readonly<{
@@ -264,7 +306,11 @@ async function loadViewerBusinessProfile(
   const result = await client.query(
     `SELECT id,
             COALESCE(NULLIF(trim(display_name), ''), 'Your business') AS display_name,
-            verification_status
+            verification_status,
+            COALESCE(
+              verification_submissions ? 'businessRegistrationReviewRequestedAt',
+              false
+            ) AS verification_review_requested
        FROM user_profiles
       WHERE user_id = $1
         AND user_intent = 'business'
@@ -281,10 +327,11 @@ async function loadViewerBusinessProfile(
     id: String(row.id),
     name: String(row.display_name || "Your business"),
     verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
+    verificationReviewRequested: row.verification_review_requested === true,
   });
 }
 
-async function ensureBusinessVerificationRequirements(
+async function ensureBusinessVerificationReview(
   businessProfileId: string,
   client: Pick<typeof pool, "query">
 ): Promise<void> {
@@ -292,6 +339,16 @@ async function ensureBusinessVerificationRequirements(
     `UPDATE user_profiles
         SET verification_requirements = COALESCE(verification_requirements, '{}'::jsonb)
               || '{"business_registration": true}'::jsonb,
+            verification_submissions = COALESCE(verification_submissions, '{}'::jsonb)
+              || jsonb_build_object(
+                   'businessRegistrationReviewRequestedAt',
+                   COALESCE(
+                     verification_submissions ->> 'businessRegistrationReviewRequestedAt',
+                     NOW()::text
+                   ),
+                   'businessRegistrationReviewSource',
+                   'profile_account'
+                 ),
             updated_at = NOW()
       WHERE id = $1
         AND user_intent = 'business'
@@ -319,6 +376,7 @@ async function createPrivateBusinessProfile(
        profile_visibility,
        verification_status,
        verification_requirements,
+       verification_submissions,
        is_primary,
        display_name,
        created_at,
@@ -332,6 +390,10 @@ async function createPrivateBusinessProfile(
        'private',
        'pending',
        '{"business_registration": true}'::jsonb,
+       jsonb_build_object(
+         'businessRegistrationReviewRequestedAt', NOW()::text,
+         'businessRegistrationReviewSource', 'profile_account'
+       ),
        NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1),
        $2,
        NOW(),
@@ -345,6 +407,7 @@ async function createPrivateBusinessProfile(
     id: String(row.id),
     name: String(row.display_name || name),
     verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
+    verificationReviewRequested: true,
   });
 }
 
@@ -404,28 +467,23 @@ export async function getProfileAccountState(args: {
 
   const viewerBusiness =
     policy.requiredIdentity === "business" ? await loadViewerBusinessProfile(userId) : null;
-  if (viewerBusiness?.verificationStatus === "pending") {
-    await ensureBusinessVerificationRequirements(viewerBusiness.id, pool);
-  }
   const result = await pool.query(
-    `UPDATE profile_accounts
-        SET verification_status = CASE
+    `SELECT id,
+            identity_kind,
+            business_profile_id,
+            priority_key,
+            status,
+            CASE
               WHEN identity_kind = 'business' THEN $1
               ELSE 'not_required'
-            END,
-            last_seen_at = NOW(),
-            updated_at = NOW()
+            END AS verification_status,
+            resume_path,
+            last_seen_at
+       FROM profile_accounts
       WHERE owner_user_id = $2
         AND target_profile_id = $3
         AND identity_kind = $4
-      RETURNING id,
-                identity_kind,
-                business_profile_id,
-                priority_key,
-                status,
-                verification_status,
-                resume_path,
-                last_seen_at`,
+      LIMIT 1`,
     [
       viewerBusiness?.verificationStatus || "pending",
       userId,
@@ -485,7 +543,11 @@ export async function ensureProfileAccount(args: {
       viewerBusiness = await createPrivateBusinessProfile(userId, args.businessName, client);
     }
     if (viewerBusiness?.verificationStatus === "pending") {
-      await ensureBusinessVerificationRequirements(viewerBusiness.id, client);
+      await ensureBusinessVerificationReview(viewerBusiness.id, client);
+      viewerBusiness = Object.freeze({
+        ...viewerBusiness,
+        verificationReviewRequested: true,
+      });
     }
 
     const identityKind = policy.requiredIdentity;
