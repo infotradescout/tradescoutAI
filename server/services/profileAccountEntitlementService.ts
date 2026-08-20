@@ -1,37 +1,4 @@
 import { pool } from "../db";
-import { ensureProfileAccountTables } from "./profileAccountService";
-
-const PROFILE_ACCOUNT_ENTITLEMENT_DDL = `
-CREATE TABLE IF NOT EXISTS profile_account_entitlements (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_account_id UUID NOT NULL REFERENCES profile_accounts(id) ON DELETE CASCADE,
-  product_key TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending_verification',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (profile_account_id, product_key),
-  CHECK (product_key ~ '^[a-z0-9_]{2,80}$'),
-  CHECK (status IN ('pending_verification', 'active', 'suspended', 'revoked'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_profile_account_entitlements_product_status
-  ON profile_account_entitlements(product_key, status, updated_at DESC);
-`;
-
-let ensurePromise: Promise<void> | null = null;
-
-export async function ensureProfileAccountEntitlementTables(): Promise<void> {
-  if (!ensurePromise) {
-    ensurePromise = (async () => {
-      await ensureProfileAccountTables();
-      await pool.query(PROFILE_ACCOUNT_ENTITLEMENT_DDL);
-    })().catch((error) => {
-      ensurePromise = null;
-      throw error;
-    });
-  }
-  return ensurePromise;
-}
 
 export type ProfileAccountEntitlement = Readonly<{
   productKey: string;
@@ -43,7 +10,6 @@ export async function ensureProfileAccountEntitlement(args: {
   productKey: string;
   verificationStatus: "not_required" | "pending" | "approved" | "rejected";
 }): Promise<ProfileAccountEntitlement> {
-  await ensureProfileAccountEntitlementTables();
   const productKey = String(args.productKey || "")
     .trim()
     .toLowerCase();
@@ -80,7 +46,6 @@ export async function ensureProfileAccountEntitlement(args: {
 export async function listProfileAccountEntitlements(
   profileAccountId: string
 ): Promise<readonly ProfileAccountEntitlement[]> {
-  await ensureProfileAccountEntitlementTables();
   const result = await pool.query(
     `SELECT product_key, status
        FROM profile_account_entitlements

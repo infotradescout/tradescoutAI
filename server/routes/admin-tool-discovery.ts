@@ -1,5 +1,5 @@
 import { Router, type Request, Response } from "express";
-import { isAuthenticated } from "../auth";
+import { isAuthenticated, isSuperAdmin } from "../auth";
 import {
   getToolBlueprintQueue,
   getProposalById,
@@ -13,14 +13,7 @@ import { runProductionAcceptanceReport } from "../services/adminProductionAccept
 
 const router = Router();
 
-router.use(isAuthenticated);
-router.use((req: Request, res: Response, next) => {
-  const role = (req as any).user?.role;
-  if (role === "super_admin" || role === "head_admin" || role === "owner") {
-    return next();
-  }
-  return res.status(403).json({ error: "Super admin access required" });
-});
+router.use(isAuthenticated, isSuperAdmin);
 
 const getAdminUserId = (req: Request): string => {
   const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
@@ -76,6 +69,19 @@ router.get("/production-acceptance", async (_req: Request, res: Response) => {
     console.error("[Admin] Production acceptance failed:", error);
     return res.status(500).json({
       error: "Production acceptance failed",
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.post("/production-acceptance/write-canary", async (_req: Request, res: Response) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    return res.json(await runProductionAcceptanceReport({ runWriteCanary: true }));
+  } catch (error) {
+    console.error("[Admin] Production write canary failed:", error);
+    return res.status(500).json({
+      error: "Production write canary failed",
       detail: error instanceof Error ? error.message : String(error),
     });
   }

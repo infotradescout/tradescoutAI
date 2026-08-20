@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Database, RefreshCw } from "lucide-react";
 import {
   AdminEmptyState,
@@ -31,7 +31,7 @@ type AcceptanceReport = {
     checkedAt: string;
   };
   controlledWriteCanary: {
-    status: "passed" | "failed";
+    status: "not_run" | "passed" | "failed";
     detail: string;
   };
   summary: Record<AcceptanceStatus, number>;
@@ -87,6 +87,7 @@ function formatValue(value: number | string | null): string {
 }
 
 export default function AdminProductionAcceptancePage() {
+  const queryClient = useQueryClient();
   const reportQuery = useQuery<AcceptanceReport>({
     queryKey: ["/api/admin/production-acceptance"],
     queryFn: () =>
@@ -94,10 +95,28 @@ export default function AdminProductionAcceptancePage() {
     staleTime: 0,
     retry: false,
   });
+  const writeCanaryMutation = useMutation<AcceptanceReport, Error>({
+    mutationFn: () =>
+      apiRequest(
+        "POST",
+        "/api/admin/production-acceptance/write-canary",
+        {}
+      ) as Promise<AcceptanceReport>,
+    onSuccess: (nextReport) => {
+      queryClient.setQueryData(["/api/admin/production-acceptance"], nextReport);
+    },
+  });
 
   const report = reportQuery.data;
-  const allAccepted =
-    report && report.summary.blocked === 0 && report.summary.unavailable === 0;
+  const reportReady = Boolean(report) && !reportQuery.isError;
+  const writeCanaryNeedsAttention =
+    report?.controlledWriteCanary.status === "failed" || writeCanaryMutation.isError;
+  const allAccepted = Boolean(
+    report &&
+      report.summary.blocked === 0 &&
+      report.summary.unavailable === 0 &&
+      !writeCanaryNeedsAttention
+  );
 
   return (
     <AdminWorkspace data-testid="admin-production-acceptance">
@@ -109,14 +128,17 @@ export default function AdminProductionAcceptancePage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => reportQuery.refetch()}
+            onClick={() => {
+              writeCanaryMutation.reset();
+              reportQuery.refetch();
+            }}
             disabled={reportQuery.isFetching}
             className="border-white/12 bg-transparent text-white/65"
           >
             <RefreshCw
               className={`mr-2 h-4 w-4 ${reportQuery.isFetching ? "animate-spin" : ""}`}
             />
-            Run acceptance
+            Refresh read-only report
           </Button>
         }
       >
@@ -124,31 +146,31 @@ export default function AdminProductionAcceptancePage() {
           items={[
             {
               label: "Working",
-              value: reportQuery.isError ? "—" : report?.summary.working ?? 0,
-              detail: "Sources and operating rules passed",
-              tone: reportQuery.isError ? "warning" : "good",
+              value: reportReady ? report?.summary.working ?? 0 : "—",
+              detail: reportReady ? "Sources and operating rules passed" : "Checking sources",
+              tone: reportReady ? "good" : "warning",
             },
             {
               label: "Genuinely empty",
-              value: reportQuery.isError ? "—" : report?.summary.genuinely_empty ?? 0,
-              detail: "Source works; no real records exist",
-              tone: reportQuery.isError ? "warning" : "neutral",
+              value: reportReady ? report?.summary.genuinely_empty ?? 0 : "—",
+              detail: reportReady ? "Source works; no real records exist" : "Checking sources",
+              tone: reportReady ? "neutral" : "warning",
             },
             {
               label: "Unavailable",
-              value: reportQuery.isError ? "—" : report?.summary.unavailable ?? 0,
-              detail: "Required source could not be read",
+              value: reportReady ? report?.summary.unavailable ?? 0 : "—",
+              detail: reportReady ? "Required source could not be read" : "Checking sources",
               tone:
-                reportQuery.isError || Number(report?.summary.unavailable || 0) > 0
+                !reportReady || Number(report?.summary.unavailable || 0) > 0
                   ? "warning"
                   : "good",
             },
             {
               label: "Blocked",
-              value: reportQuery.isError ? "—" : report?.summary.blocked ?? 0,
-              detail: "Hard data or operating failure",
+              value: reportReady ? report?.summary.blocked ?? 0 : "—",
+              detail: reportReady ? "Hard data or operating failure" : "Checking sources",
               tone:
-                reportQuery.isError || Number(report?.summary.blocked || 0) > 0
+                !reportReady || Number(report?.summary.blocked || 0) > 0
                   ? "danger"
                   : "good",
             },
@@ -187,9 +209,11 @@ export default function AdminProductionAcceptancePage() {
             )}
             <div>
               <p className="font-semibold">
-                {allAccepted
-                  ? "No blocked or unavailable operating lane"
-                  : "Production attention is required"}
+                {writeCanaryNeedsAttention
+                  ? "Controlled write canary failed"
+                  : allAccepted
+                    ? "No blocked or unavailable operating lane"
+                    : "Production attention is required"}
               </p>
               <p className="mt-1 opacity-75">
                 Generated {new Date(report.generatedAt).toLocaleString()}
@@ -200,22 +224,53 @@ export default function AdminProductionAcceptancePage() {
 
           <AdminSection
             title="Controlled write canary"
-            description="This proves database transaction write and rollback without retaining a customer, partner, request, finance, inventory, or profile record."
+            description="Refreshing the report above is read-only. Run this separate check to insert, read back, and roll back a temporary transaction without retaining a customer, partner, request, finance, inventory, or profile record."
             className="pt-0"
+            actions={
+              <Button
+                type="button"
+                variant="outline"
+                disabled={writeCanaryMutation.isPending}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Run a temporary database write that will be read back and rolled back immediately?"
+                    )
+                  ) {
+                    writeCanaryMutation.mutate();
+                  }
+                }}
+                className="border-white/12 bg-transparent text-white/65"
+              >
+                <Database className="mr-2 h-4 w-4" />
+                {writeCanaryMutation.isPending ? "Running canary…" : "Run write canary"}
+              </Button>
+            }
           >
             <div
               className={`flex items-start gap-3 border-y px-4 py-4 text-sm leading-6 ${
                 report.controlledWriteCanary.status === "passed"
                   ? "border-emerald-400/20 bg-emerald-400/5 text-emerald-100"
-                  : "border-red-400/20 bg-red-400/5 text-red-100"
+                  : report.controlledWriteCanary.status === "failed"
+                    ? "border-red-400/20 bg-red-400/5 text-red-100"
+                    : "border-white/10 bg-white/[0.02] text-white/65"
               }`}
             >
               <Database className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
                 <p className="font-semibold">
-                  {report.controlledWriteCanary.status === "passed" ? "Passed" : "Failed"}
+                  {report.controlledWriteCanary.status === "passed"
+                    ? "Passed"
+                    : report.controlledWriteCanary.status === "failed"
+                      ? "Failed"
+                      : "Not run"}
                 </p>
                 <p className="mt-1 opacity-75">{report.controlledWriteCanary.detail}</p>
+                {writeCanaryMutation.isError ? (
+                  <p className="mt-2 text-red-200">
+                    {writeCanaryMutation.error?.message || "The write canary request failed."}
+                  </p>
+                ) : null}
               </div>
             </div>
           </AdminSection>

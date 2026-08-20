@@ -1,7 +1,6 @@
 import React from "react";
-import { ClipboardCheck } from "lucide-react";
 import { useLocation } from "wouter";
-import { findActiveAdminTool, type AdminRole, type AdminTool } from "./adminTools";
+import { findActiveAdminTool, type AdminRole } from "./adminTools";
 import {
   getAdminNavWorkspacesForRole,
   getAdminToolPresentation,
@@ -18,18 +17,6 @@ interface SuperAdminOSLayoutProps {
 
 const RAIL_KEY = "admin:ui:railCollapsed:v2";
 
-const PRODUCTION_ACCEPTANCE_TOOL: AdminTool = {
-  id: "production-acceptance",
-  label: "Production Acceptance",
-  path: "/admin/production-acceptance",
-  icon: ClipboardCheck,
-  description: "Current production truth across the operating lanes.",
-  keywords: ["acceptance", "production", "readiness", "operations"],
-  visibleIf: { superOnly: true },
-  navHidden: true,
-  render: () => null,
-};
-
 export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminOSLayoutProps) {
   const [location] = useLocation();
   const { user } = useAuth();
@@ -41,20 +28,14 @@ export function SuperAdminOSLayout({ children, role, isSuperAdmin }: SuperAdminO
   );
   const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
   const activeItem = React.useMemo(() => {
-    if (pathname === "/admin/acceptance" || pathname === "/admin/production-acceptance") {
-      return PRODUCTION_ACCEPTANCE_TOOL;
-    }
     const matchedItem = findActiveAdminTool(pathname);
     if (!matchedItem) return null;
     if (matchedItem.path === "/admin" && pathname !== "/admin") return null;
     return getAdminToolPresentation(matchedItem);
   }, [pathname]);
   const activeSection =
-    activeItem?.id === "production-acceptance"
-      ? "Platform"
-      : navSections.find((section) =>
-          section.items.some((item) => item.id === activeItem?.id)
-        )?.section || "Operations";
+    navSections.find((section) => section.items.some((item) => item.id === activeItem?.id))
+      ?.section || "Operations";
 
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const [railCollapsed, setRailCollapsed] = React.useState(false);

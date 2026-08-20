@@ -52,4 +52,39 @@ describe("admin live stream contracts", () => {
     expect(source).toContain("Failed to refresh live stream");
     expect(source).toContain("Failed to export live stream");
   });
+
+  it("keeps polled snapshot reads free of schema and snapshot writes", () => {
+    const service = read("server/services/liveStreamSnapshotService.ts");
+    const getSnapshot = service.slice(
+      service.indexOf("export async function getLiveStreamSnapshot("),
+      service.indexOf("export async function getLiveStreamSnapshotHistory(")
+    );
+    expect(getSnapshot).not.toContain("CREATE TABLE");
+    expect(getSnapshot).not.toContain("refreshLiveStreamSnapshot(");
+    expect(getSnapshot).not.toContain("pruneLiveStreamSnapshotHistoryIfNeeded(");
+    expect(getSnapshot).toContain("explicit refresh action");
+
+    const statusService = read("server/services/snapshotStatusService.ts");
+    expect(statusService).not.toContain("ensureLiveStreamSnapshotTables");
+    expect(statusService).not.toContain("ensurePartnerIntelligenceBriefSnapshotsTable");
+    expect(statusService).not.toContain("ensureTradepartnerCountyObservationSnapshotsTable");
+    expect(statusService).not.toContain("ensureSeoDirectoryScopeSnapshotTables");
+  });
+
+  it("refreshes the exact snapshot key currently being polled", () => {
+    const client = read("client/src/pages/admin-live-stream.tsx");
+    expect(client).toContain('source: source === "all" ? "" : source');
+    expect(client).toContain('stateCode: stateCode === "all" ? "" : stateCode');
+    expect(client).toContain('county: county === "all" ? "" : county');
+    expect(client).toContain('limit: Number.parseInt(limit || "50", 10)');
+  });
+
+  it("never presents missing evidence as current or a healthy zero", () => {
+    const client = read("client/src/pages/admin-live-stream.tsx");
+    expect(client).toContain('const truthState = String(value || "unknown")');
+    expect(client).toContain('(item.truthStatus || "unknown") === truth');
+    expect(client).toContain('value: liveReady ? stream.length : "—"');
+    expect(client).toContain('value: crawlerReady ? numberOrDash');
+    expect(client).toContain('value: snapshotReady ? staleSnapshots.length : "—"');
+  });
 });

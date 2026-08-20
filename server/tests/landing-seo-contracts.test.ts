@@ -67,6 +67,11 @@ describe("landing SEO contracts", () => {
     expect(html).toContain(">Claim my business</a>");
     expect(html).toContain("Made you look");
     expect(html).toContain("free forever");
+    expect(html).toContain("$1 TradeScout fee");
+    expect(html).toContain("$1 purchase fee");
+    expect(html).toMatch(/<div id="root">\s*<main/);
+    expect(html).not.toContain('flat id="root" TradeScout fee');
+    expect(html).not.toContain('id="root" purchase fee');
     expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
     expect(html).toContain('href="/claim-my-business?source=landing_business"');
     expect(html).toContain("Direct Connect");
