@@ -10,10 +10,24 @@ import { KeyRound } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
-  clearRememberedProfileAccountReturnPath,
   isProfileAccountResumePath,
-  readRememberedProfileAccountReturnPath,
+  requestProfileAccountPasswordReset,
 } from "@/components/profile/profileAccountClient";
+
+function safeInternalPath(value: unknown): string {
+  const candidate = String(value || "").trim();
+  if (!candidate.startsWith("/") || candidate.startsWith("//") || candidate.includes("\\")) {
+    return "";
+  }
+  try {
+    const parsed = new URL(candidate, "https://reset-password.local");
+    if (parsed.origin !== "https://reset-password.local") return "";
+    if (decodeURIComponent(parsed.pathname).split("/").includes("..")) return "";
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return "";
+  }
+}
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
@@ -25,52 +39,40 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [codeStepVisible, setCodeStepVisible] = useState(false);
 
-  const token = useMemo(() => {
+  const params = useMemo(() => {
     try {
-      const idx = location.indexOf("?");
-      if (idx === -1) return "";
-      const params = new URLSearchParams(location.slice(idx + 1));
-      return String(params.get("token") || "").trim();
+      const index = location.indexOf("?");
+      return new URLSearchParams(index === -1 ? "" : location.slice(index + 1));
     } catch {
-      return "";
+      return new URLSearchParams();
     }
   }, [location]);
+  const token = String(params.get("token") || "").trim();
+  const safeNext = safeInternalPath(params.get("next"));
   const effectiveToken = token || verifiedToken;
-  const safeNext = useMemo(() => {
-    try {
-      const idx = location.indexOf("?");
-      const params = new URLSearchParams(idx === -1 ? "" : location.slice(idx + 1));
-      const requested = String(params.get("next") || "").trim();
-      const safeRequested =
-        requested.startsWith("/") && !requested.startsWith("//") && !requested.includes("\\")
-          ? requested
-          : "";
-      const remembered = readRememberedProfileAccountReturnPath();
-      return safeRequested || remembered;
-    } catch {
-      return readRememberedProfileAccountReturnPath();
-    }
-  }, [location]);
 
   const requestResetMutation = useMutation({
     mutationFn: async () => {
       const normalizedEmail = email.trim().toLowerCase();
       if (!normalizedEmail) throw new Error("Email is required");
+      if (isProfileAccountResumePath(safeNext)) {
+        return requestProfileAccountPasswordReset({
+          email: normalizedEmail,
+          next: safeNext,
+        });
+      }
       return apiRequest("POST", "/api/auth/request-password-reset", { email: normalizedEmail });
     },
     onSuccess: (data: any) => {
       setCodeStepVisible(true);
       toast({
         title: "Check your email",
-        description:
-          "We sent a reset link and verification code if the account exists for that email.",
+        description: isProfileAccountResumePath(safeNext)
+          ? "The reset link returns directly to the business account you were opening."
+          : "We sent a reset link and verification code if the account exists for that email.",
       });
-
       if (data?.debugCode) {
-        toast({
-          title: "Dev code",
-          description: `Verification code: ${String(data.debugCode)}`,
-        });
+        toast({ title: "Dev code", description: `Verification code: ${String(data.debugCode)}` });
       }
     },
     onError: (error: any) => {
@@ -120,19 +122,22 @@ export default function ResetPasswordPage() {
       if (!effectiveToken) throw new Error("Missing reset token");
       if (newPassword.length < 8) throw new Error("Password must be at least 8 characters");
       if (newPassword !== confirm) throw new Error("Passwords do not match");
-      return apiRequest("POST", "/api/auth/reset-password", { token: effectiveToken, newPassword });
+      return apiRequest("POST", "/api/auth/reset-password", {
+        token: effectiveToken,
+        newPassword,
+      });
     },
     onSuccess: () => {
-      toast({ title: "Password set", description: "You can now sign in." });
+      toast({ title: "Password set", description: "Sign in to continue." });
       if (isProfileAccountResumePath(safeNext)) {
-        clearRememberedProfileAccountReturnPath();
         navigate(safeNext);
         return;
       }
-      const signinPath = safeNext
-        ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeNext)}`
-        : "/pre-scout-setup?mode=signin";
-      navigate(signinPath);
+      navigate(
+        safeNext
+          ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeNext)}`
+          : "/pre-scout-setup?mode=signin"
+      );
     },
     onError: (error: any) => {
       toast({
@@ -144,7 +149,7 @@ export default function ResetPasswordPage() {
   });
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8">
+    <div className="mx-auto max-w-xl px-4 py-8">
       <SEOHelmet
         title="Reset Password | TradeScout"
         description="Reset your TradeScout password securely."
@@ -158,7 +163,9 @@ export default function ResetPasswordPage() {
             Reset Your Password
           </CardTitle>
           <CardDescription className="text-[color:var(--text-secondary)]">
-            Use a reset link from email, or request a code and verify it first.
+            {isProfileAccountResumePath(safeNext)
+              ? "Set a password, then return directly to the business account you were opening."
+              : "Use a reset link from email, or request a code and verify it first."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -169,14 +176,14 @@ export default function ResetPasswordPage() {
                 <Input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-black/30 border-[color:var(--border-subtle)]"
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="border-[color:var(--border-subtle)] bg-black/30"
                   placeholder="you@example.com"
                 />
               </div>
 
               <Button
-                className="bg-ts-orange hover:bg-ts-orange-dark w-full"
+                className="w-full bg-ts-orange hover:bg-ts-orange-dark"
                 onClick={() => requestResetMutation.mutate()}
                 disabled={requestResetMutation.isPending}
               >
@@ -189,8 +196,8 @@ export default function ResetPasswordPage() {
                     <label className="text-xs text-white/60">Verification code</label>
                     <Input
                       value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      className="bg-black/30 border-[color:var(--border-subtle)]"
+                      onChange={(event) => setCode(event.target.value)}
+                      className="border-[color:var(--border-subtle)] bg-black/30"
                       placeholder="6-digit code"
                     />
                   </div>
@@ -212,8 +219,8 @@ export default function ResetPasswordPage() {
                 <Input
                   type="password"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="bg-black/30 border-[color:var(--border-subtle)]"
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  className="border-[color:var(--border-subtle)] bg-black/30"
                 />
               </div>
 
@@ -222,13 +229,13 @@ export default function ResetPasswordPage() {
                 <Input
                   type="password"
                   value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  className="bg-black/30 border-[color:var(--border-subtle)]"
+                  onChange={(event) => setConfirm(event.target.value)}
+                  className="border-[color:var(--border-subtle)] bg-black/30"
                 />
               </div>
 
               <Button
-                className="bg-ts-orange hover:bg-ts-orange-dark w-full"
+                className="w-full bg-ts-orange hover:bg-ts-orange-dark"
                 onClick={() => resetMutation.mutate()}
                 disabled={resetMutation.isPending}
               >
