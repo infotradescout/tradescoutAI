@@ -9,6 +9,7 @@ import {
   mergeBlueprints,
 } from "../scout/toolDiscoveryObserver";
 import { toolProposalStatusEnum } from "../../shared/schema";
+import { runProductionAcceptanceReport } from "../services/adminProductionAcceptance";
 
 const router = Router();
 
@@ -62,11 +63,23 @@ function parseToolBlueprintQueueQuery(req: Request) {
 }
 
 /**
- * ADMIN ONLY - Tool Discovery Routes
+ * ADMIN ONLY - Tool Discovery and production acceptance routes.
  *
- * These routes provide admin access to Scout's observational intelligence.
- * Tool discovery runs OFFLINE and NEVER affects live user interactions.
+ * These routes are restricted to the existing Super Admin authority.
  */
+
+router.get("/production-acceptance", async (_req: Request, res: Response) => {
+  try {
+    res.setHeader("Cache-Control", "no-store");
+    return res.json(await runProductionAcceptanceReport());
+  } catch (error) {
+    console.error("[Admin] Production acceptance failed:", error);
+    return res.status(500).json({
+      error: "Production acceptance failed",
+      detail: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 /**
  * Get all tool blueprints
