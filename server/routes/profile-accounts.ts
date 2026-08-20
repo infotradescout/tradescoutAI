@@ -11,14 +11,22 @@ import {
   type ProfileAccountEntitlement,
 } from "../services/profileAccountEntitlementService";
 
+function isSafeSourcePath(value: string): boolean {
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return false;
+  try {
+    const parsed = new URL(value, "https://profile-account.local");
+    if (parsed.origin !== "https://profile-account.local") return false;
+    const decodedPath = decodeURIComponent(parsed.pathname);
+    return !decodedPath.split("/").includes("..");
+  } catch {
+    return false;
+  }
+}
+
 const createProfileAccountSchema = z
   .object({
-    sourcePath: z
-      .string()
-      .trim()
-      .max(500)
-      .regex(/^\/u\/[a-z0-9-]+(?:[/?#].*)?$/)
-      .optional(),
+    businessName: z.string().trim().min(2).max(160).optional(),
+    sourcePath: z.string().trim().max(500).refine(isSafeSourcePath).optional(),
   })
   .strict();
 
@@ -70,6 +78,7 @@ export function registerProfileAccountRoutes(app: Express) {
         const created = await ensureProfileAccount({
           userId,
           profileSlug: String(req.params.slug || ""),
+          businessName: parsed.data.businessName,
           sourcePath: parsed.data.sourcePath,
         });
         let entitlements: readonly ProfileAccountEntitlement[];
@@ -90,7 +99,7 @@ export function registerProfileAccountRoutes(app: Express) {
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Profile account could not be created.";
-        if (/business profile is required/i.test(message)) {
+        if (/business name is required/i.test(message)) {
           res.status(409).json({ message, requiresBusinessSetup: true });
           return;
         }
