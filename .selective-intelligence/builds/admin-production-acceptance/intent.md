@@ -1,0 +1,1 @@
+The Admin OS rebuild is not complete merely because its routes compile. Production acceptance must classify real operating sources, expose honest empty and unavailable states, preserve current authority, and use no real customer or partner record as test material.
