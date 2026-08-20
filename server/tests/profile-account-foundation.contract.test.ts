@@ -21,14 +21,17 @@ describe("in-profile account foundation", () => {
     expect(service).not.toMatch(/password|password_hash/i);
   });
 
-  it("creates a private business identity inside a business profile account flow", () => {
+  it("creates a private business identity with an approvable verification requirement", () => {
     const service = read("server/services/profileAccountService.ts");
     const route = read("server/routes/profile-accounts.ts");
 
     expect(route).toContain("businessName: z.string().trim().min(2).max(160).optional()");
     expect(route).toContain("businessName: parsed.data.businessName");
     expect(service).toContain("async function createPrivateBusinessProfile");
+    expect(service).toContain("async function ensureBusinessVerificationRequirements");
     expect(service).toContain("INSERT INTO user_profiles");
+    expect(service).toContain("verification_requirements");
+    expect(service).toContain("business_registration");
     expect(service).toContain("'business'");
     expect(service).toContain("'business_owner'");
     expect(service).toContain("'private'");
@@ -53,7 +56,7 @@ describe("in-profile account foundation", () => {
     expect(route).not.toContain("bidrock_profile_accounts");
   });
 
-  it("creates and signs in without leaving the profile for general onboarding", () => {
+  it("creates and signs in without granting a global business-owner role", () => {
     const card = read("client/src/components/profile/PublicProfileAccountCard.tsx");
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const client = read("client/src/components/profile/profileAccountClient.ts");
@@ -62,28 +65,57 @@ describe("in-profile account foundation", () => {
     expect(dialog).toContain('"/api/auth/register"');
     expect(dialog).toContain('"/api/auth/login"');
     expect(dialog).toContain("createProfileAccount");
-    expect(dialog).toContain('userTypes: requiresBusiness ? ["business_owner"] : []');
+    expect(dialog).toContain("userTypes: []");
+    expect(dialog).not.toContain('userTypes: requiresBusiness ? ["business_owner"] : []');
+    expect(dialog).not.toContain('role: requiresBusiness ? "business_owner"');
     expect(dialog).toContain("Any business can create an account directly with");
     expect(dialog).toContain("Your business details stay private");
+    expect(dialog).toContain("Forgot or need to set your password?");
     expect(client).toContain("currentProfileAccountSourcePath");
+    expect(client).toContain("rememberProfileAccountReturnPath");
     expect(`${card}\n${dialog}`).not.toContain("/pre-scout-setup");
     expect(`${card}\n${dialog}`).not.toContain('presence", "business"');
     expect(`${card}\n${dialog}`).not.toContain("How do you plan to use TradeScout");
   });
 
-  it("puts the same direct account entry inside the JW Stone shopping surface", () => {
+  it("blocks registration until the target profile policy loads", () => {
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
+
+    expect(dialog).toContain('data-testid="profile-account-load-error"');
+    expect(dialog).toContain("Account details must load before registration can continue");
+    expect(dialog).toContain("if (submitting || !data) return");
+    expect(dialog).toContain("Try again");
+  });
+
+  it("puts the account entry in the sticky JW Stone header", () => {
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const resume = read("client/src/features/jw-stone/JwStoneProfileAccountResume.tsx");
 
     expect(marketplace).toContain("import { PublicProfileAccountDialog }");
-    expect(marketplace).toContain("const [accountOpen, setAccountOpen] = useState(false)");
     expect(marketplace).toContain("onOpenAccount={() => setAccountOpen(true)}");
     expect(marketplace).toContain('profileSlug="jw-stone"');
-    expect(marketplace).toContain("profileName={JW_STONE_PUBLIC_IDENTITY.brandName}");
-    expect(header).toContain("onOpenAccount: () => void");
+    expect(header).toContain("sticky top-0");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
     expect(header).toContain("Create an account with JW Stone");
     expect(header).toContain("<span>Create account</span>");
+    expect(theme).toContain("<JWStoneMarketplace />");
+    expect(theme).toContain("<JwStoneProfileAccountResume />");
+    expect(resume).toContain('params.get("profileAccount") === "1"');
+  });
+
+  it("returns verification and password recovery to the profile-native account", () => {
+    const client = read("client/src/components/profile/profileAccountClient.ts");
+    const verifyEmail = read("client/src/pages/verify-email.tsx");
+    const resetPassword = read("client/src/pages/reset-password.tsx");
+
+    expect(client).toContain('PROFILE_ACCOUNT_RETURN_STORAGE_KEY = "ts.profile-account.return.v1"');
+    expect(client).toContain('params.set("profileAccountMode", "signin")');
+    expect(verifyEmail).toContain("readRememberedProfileAccountReturnPath");
+    expect(verifyEmail).toContain("isProfileAccountResumePath(resolvedNext)");
+    expect(resetPassword).toContain("readRememberedProfileAccountReturnPath");
+    expect(resetPassword).toContain("isProfileAccountResumePath(safeNext)");
   });
 
   it("supports a safe JW Stone marketplace source path rather than only /u routes", () => {
