@@ -25,15 +25,18 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       videoUrl: "/images/businesses/jw-stone/video/hero.mp4",
       posterUrl: "/images/businesses/jw-stone/video/hero-poster.jpg",
       inventoryItemSlug: "amazonic-green",
-      eyebrow: "Amazonic Green · current inventory",
+      eyebrow: "Amazonic Green · collection highlight",
       headline: "Natural stone, selected at the source.",
-      teaser: "Search the full collection or ask JW Stone about your project.",
+      teaser:
+        "Browse material references, then ask JW Stone to confirm what is physically available now.",
       preserveMedia: true,
       align: "left",
       zoomVideo: true,
     },
     copy: {
-      inventoryTitle: "Current Inventory",
+      inventoryTitle: "Stone Collection",
+      inventoryTruth:
+        "Collection photos and named materials are references, not automatic claims of current physical stock. Current inventory requires a confirmed physical item, quantity, dimensions, finish, location, and recent availability check.",
       ctaHeading: "Tell JW Stone what you need",
     },
     media: {
@@ -47,9 +50,11 @@ export const JW_STONE_PROFILE_PRESENTATION_BLOCK = {
       pageStep: 12,
       stickyControls: true,
       sourceRequests: true,
+      publicClassification: "material_collection",
+      currentInventoryAuthority: "stone_asset_passports_and_inventory_positions",
       browseCtaImage:
         "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-      browseCtaEyebrow: "White Rhino · current inventory",
+      browseCtaEyebrow: "White Rhino · collection example",
       featuredCollection: {
         label: "JW Stone Picks",
         slugs: ["blue-dunes", "cristallo", "gold-macaubas", "rhino-white", "taj-mahal", "titanium"],
@@ -116,13 +121,17 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
       inventory: "stones",
       categories: "materials",
     },
+    publicClassification: "material_collection",
+    currentInventoryAuthority: "stone_asset_passports_and_inventory_positions",
+    availabilityRule:
+      "A published material or photo is not current inventory until a physical item and inventory position have been confirmed.",
     categories: [
       {
         sourceSlug: "granite",
         publicSlug: "granite",
         title: "Granite",
         summary:
-          "Explore JW Stone's current Granite inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+          "Explore named Granite materials and photographs from the JW Stone collection, then ask JW Stone to confirm current physical stock, quantity, dimensions, finish, and availability.",
         leadItemSlug: "arizona-gold",
         indexable: true,
       },
@@ -131,7 +140,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "marble",
         title: "Marble",
         summary:
-          "Explore JW Stone's current Marble inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+          "Explore named Marble materials and photographs from the JW Stone collection, then ask JW Stone to confirm current physical stock, quantity, dimensions, finish, and availability.",
         leadItemSlug: "alabama-rose",
         indexable: true,
       },
@@ -140,7 +149,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "quartzite",
         title: "Quartzite",
         summary:
-          "Explore JW Stone's current Quartzite inventory, compare named slabs and photographs, and request current pricing or availability for a selected material.",
+          "Explore named Quartzite materials and photographs from the JW Stone collection, then ask JW Stone to confirm current physical stock, quantity, dimensions, finish, and availability.",
         leadItemSlug: "atlantic",
         indexable: true,
       },
@@ -149,7 +158,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "engineered-quartz",
         title: "Engineered Quartz",
         summary:
-          "Explore JW Stone's current Engineered Quartz inventory, compare named selections and photographs, and request current pricing or availability for a selected material.",
+          "Explore named Engineered Quartz materials and photographs from the JW Stone collection, then ask JW Stone to confirm current physical stock, quantity, dimensions, finish, and availability.",
         leadItemSlug: "aj-quartz",
         indexable: true,
       },
@@ -158,7 +167,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "onyx",
         title: "Onyx",
         summary:
-          "Explore the Onyx currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+          "Explore Onyx material references and photographs, then ask JW Stone to confirm sourcing options and current physical availability for the project.",
         leadItemSlug: "honey-onyx",
         indexable: true,
       },
@@ -167,7 +176,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "soapstone",
         title: "Soapstone",
         summary:
-          "Explore the Soapstone currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+          "Explore Soapstone material references and photographs, then ask JW Stone to confirm sourcing options and current physical availability for the project.",
         leadItemSlug: "marina-black-soapstone",
         indexable: true,
       },
@@ -176,7 +185,7 @@ export const JW_STONE_PUBLIC_DISCOVERY_BLOCK = {
         publicSlug: "basalt",
         title: "Basalt",
         summary:
-          "Explore the Basalt currently published in JW Stone's inventory, review the exact material photographs, and request current pricing or availability.",
+          "Explore Basalt material references and photographs, then ask JW Stone to confirm sourcing options and current physical availability for the project.",
         leadItemSlug: "matrix-basalt",
         indexable: true,
       },
