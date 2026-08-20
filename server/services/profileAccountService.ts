@@ -32,9 +32,22 @@ CREATE TABLE IF NOT EXISTS profile_accounts (
     OR
     (identity_kind = 'business' AND business_profile_id IS NOT NULL AND verification_status <> 'not_required')
   ),
-  CHECK (source_path IS NULL OR (source_path ~ '^/u/' AND source_path NOT LIKE '%\\%')),
+  CHECK (
+    source_path IS NULL
+    OR ((source_path = '/' OR source_path ~ '^/[^/]') AND source_path NOT LIKE '%\\%')
+  ),
   CHECK (resume_path IS NULL OR (resume_path ~ '^/u/' AND resume_path NOT LIKE '%\\%'))
 );
+
+ALTER TABLE profile_accounts
+  DROP CONSTRAINT IF EXISTS profile_accounts_source_path_check;
+
+ALTER TABLE profile_accounts
+  ADD CONSTRAINT profile_accounts_source_path_check
+  CHECK (
+    source_path IS NULL
+    OR ((source_path = '/' OR source_path ~ '^/[^/]') AND source_path NOT LIKE '%\\%')
+  );
 
 CREATE INDEX IF NOT EXISTS idx_profile_accounts_target
   ON profile_accounts(target_profile_id, status, updated_at DESC);
@@ -67,7 +80,7 @@ BEGIN
    WHERE id = NEW.business_profile_id;
 
   IF NOT FOUND OR profile_intent <> 'business' THEN
-    RAISE EXCEPTION 'This profile account requires a TradeScout business profile';
+    RAISE EXCEPTION 'This profile account requires a private business identity';
   END IF;
 
   IF profile_owner_user_id <> NEW.owner_user_id THEN
@@ -149,12 +162,35 @@ function normalizeSlug(value: unknown): string {
     .slice(0, 120);
 }
 
-function normalizeProfilePath(value: unknown, fallback: string): string {
+function normalizeResumePath(value: unknown, fallback: string): string {
   const path = String(value || "").trim();
   if (!path.startsWith("/u/") || path.startsWith("//") || path.includes("\\")) {
     return fallback;
   }
   return path.slice(0, 500);
+}
+
+function normalizeSourcePath(value: unknown, fallback: string): string {
+  const path = String(value || "").trim();
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
+    return fallback;
+  }
+  try {
+    const parsed = new URL(path, "https://profile-account.local");
+    if (parsed.origin !== "https://profile-account.local") return fallback;
+    const decodedPath = decodeURIComponent(parsed.pathname);
+    if (decodedPath.split("/").includes("..")) return fallback;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`.slice(0, 500);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeBusinessName(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 160);
 }
 
 function normalizeBusinessVerificationStatus(
@@ -227,7 +263,7 @@ async function loadViewerBusinessProfile(
 ): Promise<ViewerBusinessProfile | null> {
   const result = await client.query(
     `SELECT id,
-            COALESCE(NULLIF(trim(display_name), ''), 'TradeScout business') AS display_name,
+            COALESCE(NULLIF(trim(display_name), ''), 'Your business') AS display_name,
             verification_status
        FROM user_profiles
       WHERE user_id = $1
@@ -243,7 +279,53 @@ async function loadViewerBusinessProfile(
   if (!row) return null;
   return Object.freeze({
     id: String(row.id),
-    name: String(row.display_name || "TradeScout business"),
+    name: String(row.display_name || "Your business"),
+    verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
+  });
+}
+
+async function createPrivateBusinessProfile(
+  userId: string,
+  businessName: unknown,
+  client: Pick<typeof pool, "query">
+): Promise<ViewerBusinessProfile> {
+  const name = normalizeBusinessName(businessName);
+  if (name.length < 2) {
+    throw new Error("Business name is required to create an account with this profile");
+  }
+
+  const result = await client.query(
+    `INSERT INTO user_profiles (
+       user_id,
+       user_intent,
+       role,
+       roles,
+       profile_visibility,
+       verification_status,
+       is_primary,
+       display_name,
+       created_at,
+       updated_at
+     )
+     SELECT
+       $1,
+       'business',
+       'business_owner',
+       ARRAY['business_owner']::text[],
+       'private',
+       'pending',
+       NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1),
+       $2,
+       NOW(),
+       NOW()
+     RETURNING id, display_name, verification_status`,
+    [userId, name]
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("Private business identity could not be created");
+  return Object.freeze({
+    id: String(row.id),
+    name: String(row.display_name || name),
     verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
   });
 }
@@ -274,7 +356,7 @@ function toAccountRecord(args: {
     priorityKey: String(args.row.priority_key || args.policy.priorityKey),
     status: String(args.row.status || "active") as ProfileAccountRecord["status"],
     verificationStatus: normalizeAccountVerificationStatus(args.row.verification_status),
-    resumePath: normalizeProfilePath(
+    resumePath: normalizeResumePath(
       args.row.resume_path,
       buildProfileAccountReturnPath(args.target.profileSlug)
     ),
@@ -350,6 +432,7 @@ export async function getProfileAccountState(args: {
 export async function ensureProfileAccount(args: {
   userId: string;
   profileSlug: string;
+  businessName?: string | null;
   sourcePath?: string | null;
 }): Promise<{
   policy: ProfileAccountPolicy;
@@ -369,21 +452,21 @@ export async function ensureProfileAccount(args: {
     const policy = policyForTarget(target);
     if (!policy.enabled) throw new Error("Accounts are not available for this profile");
 
-    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 LIMIT 1`, [userId]);
-    if (!userResult.rows[0]) throw new Error("TradeScout identity not found");
+    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [userId]);
+    if (!userResult.rows[0]) throw new Error("Private identity not found");
 
-    const viewerBusiness =
+    let viewerBusiness =
       policy.requiredIdentity === "business"
         ? await loadViewerBusinessProfile(userId, client, true)
         : null;
     if (policy.requiredIdentity === "business" && !viewerBusiness) {
-      throw new Error("A TradeScout business profile is required to create this account");
+      viewerBusiness = await createPrivateBusinessProfile(userId, args.businessName, client);
     }
 
     const identityKind = policy.requiredIdentity;
     const verificationStatus = viewerBusiness?.verificationStatus || "not_required";
     const resumePath = buildProfileAccountReturnPath(target.profileSlug);
-    const sourcePath = normalizeProfilePath(args.sourcePath, `/u/${target.profileSlug}`);
+    const sourcePath = normalizeSourcePath(args.sourcePath, `/u/${target.profileSlug}`);
 
     const result = await client.query(
       `INSERT INTO profile_accounts (
