@@ -1,4 +1,8 @@
 import { and, eq } from "drizzle-orm";
+import {
+  JW_STONE_PROFILE_PRESENTATION_BLOCK,
+  JW_STONE_PUBLIC_DISCOVERY_BLOCK,
+} from "../../client/src/data/jwStoneProfilePresentation";
 import { JW_STONE_PROFILE_SLUG } from "@shared/jwStonePresentation";
 import {
   PRECISION_AERIAL_BUSINESS_NAME,
@@ -16,6 +20,21 @@ function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, any>)
     : {};
+}
+
+function replaceProfileBlock(
+  existingBlocks: unknown,
+  replacement: Readonly<{ type: string; data: unknown }>
+): unknown[] {
+  const blocks = Array.isArray(existingBlocks) ? existingBlocks : [];
+  let replaced = false;
+  const next = blocks.map((block) => {
+    if (recordValue(block).type !== replacement.type) return block;
+    replaced = true;
+    return replacement;
+  });
+  if (!replaced) next.push(replacement);
+  return next;
 }
 
 async function normalizePrecisionAerialPublicTruth(): Promise<void> {
@@ -94,7 +113,7 @@ async function normalizePrecisionAerialPublicTruth(): Promise<void> {
   });
 }
 
-async function normalizeJwStoneRequestLanguage(): Promise<void> {
+async function normalizeJwStonePublicTruth(): Promise<void> {
   await db.transaction(async (tx) => {
     const [business] = await tx
       .select({ id: businesses.id, status: businesses.status })
@@ -102,12 +121,18 @@ async function normalizeJwStoneRequestLanguage(): Promise<void> {
       .where(eq(businesses.slug, JW_STONE_PROFILE_SLUG))
       .limit(1);
     const [profile] = await tx
-      .select({ id: profiles.id, businessId: profiles.businessId, status: profiles.status })
+      .select({
+        id: profiles.id,
+        businessId: profiles.businessId,
+        status: profiles.status,
+        contentBlocks: profiles.contentBlocks,
+      })
       .from(profiles)
       .where(eq(profiles.slug, JW_STONE_PROFILE_SLUG))
       .limit(1);
-    if (!business || !profile)
-      throw new Error("JW Stone request normalization requires its records");
+    if (!business || !profile) {
+      throw new Error("JW Stone truth normalization requires its records");
+    }
     if (business.status !== "active" || profile.status !== "published") {
       throw new Error("JW Stone must remain active and published");
     }
@@ -115,9 +140,16 @@ async function normalizeJwStoneRequestLanguage(): Promise<void> {
       throw new Error("JW Stone profile is linked to another business");
     }
 
+    const withPresentation = replaceProfileBlock(
+      profile.contentBlocks,
+      JW_STONE_PROFILE_PRESENTATION_BLOCK
+    );
+    const contentBlocks = replaceProfileBlock(withPresentation, JW_STONE_PUBLIC_DISCOVERY_BLOCK);
+
     await tx
       .update(profiles)
       .set({
+        contentBlocks: contentBlocks as any,
         ctaConfig: {
           primary: {
             label: "Start a Request",
@@ -133,5 +165,5 @@ async function normalizeJwStoneRequestLanguage(): Promise<void> {
 
 export async function normalizeRemainingPublicProfileTruth(): Promise<void> {
   await normalizePrecisionAerialPublicTruth();
-  await normalizeJwStoneRequestLanguage();
+  await normalizeJwStonePublicTruth();
 }
