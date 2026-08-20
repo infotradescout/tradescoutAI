@@ -42,7 +42,9 @@ async function normalizePrecisionAerialPublicTruth(): Promise<void> {
       );
     }
     if (String(profile.businessId || "") !== String(business.id)) {
-      throw new Error(`${PRECISION_AERIAL_BUSINESS_NAME} profile is linked to another business );
+      throw new Error(
+        `${PRECISION_AERIAL_BUSINESS_NAME} profile is linked to another business`
+      );
     }
     if (String(profile.ownerUserId || "") !== String(business.ownerUserId || "")) {
       throw new Error(`${PRECISION_AERIAL_BUSINESS_NAME} ownership records disagree`);
@@ -106,8 +108,9 @@ async function normalizeJwStoneRequestLanguage(): Promise<void> {
       .from(profiles)
       .where(eq(profiles.slug, JW_STONE_PROFILE_SLUG))
       .limit(1);
-    if (!business || !profile)
+    if (!business || !profile) {
       throw new Error("JW Stone request normalization requires its records");
+    }
     if (business.status !== "active" || profile.status !== "published") {
       throw new Error("JW Stone must remain active and published");
     }
