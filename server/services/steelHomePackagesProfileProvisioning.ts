@@ -149,9 +149,9 @@ async function provisionSteelHomePackagesProfileRecord(): Promise<void> {
         description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body,
         category: "Steel-home planning tools",
         services: [
-          "Countertop planner and area estimates",
-          "Cabinet planner and early price estimates",
-          "Metal building planner and early price estimates",
+          "Countertop measured planner and stone reference review",
+          "Cabinet measured room planner and quote review",
+          "Metal building measured planner and quote review",
         ],
         publicContactEnabled: false,
         publicLocationEnabled: false,

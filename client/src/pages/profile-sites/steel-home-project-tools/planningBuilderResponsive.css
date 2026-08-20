@@ -1,0 +1,68 @@
+[data-testid="steel-home-builder-workbench"],
+[data-testid="steel-home-builder-workbench"] > *,
+[data-testid="steel-home-countertop-designer"],
+[data-testid="steel-home-countertop-designer"] > *,
+[data-testid="steel-home-cabinet-designer"],
+[data-testid="steel-home-building-designer"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-testid="steel-home-countertop-designer"] img,
+[data-testid="steel-home-countertop-designer"] canvas,
+[data-testid="steel-home-countertop-designer"] svg,
+[data-testid="steel-home-cabinet-designer"] canvas,
+[data-testid="steel-home-cabinet-designer"] svg,
+[data-testid="steel-home-building-designer"] canvas,
+[data-testid="steel-home-building-designer"] svg {
+  max-width: 100%;
+}
+
+/* The model already exposes accessible names. Make the same actions readable on screen. */
+[data-testid="steel-home-countertop-3d-visualizer"] [aria-label="3D view controls"] button {
+  font-size: 0;
+  min-height: 2.5rem;
+}
+
+[data-testid="steel-home-countertop-3d-visualizer"] [aria-label="3D view controls"] button::after {
+  font-size: 0.7rem;
+  line-height: 1rem;
+}
+
+[data-testid="steel-home-countertop-3d-visualizer"] button[aria-label="Orbit view left"]::after {
+  content: "Orbit left";
+}
+
+[data-testid="steel-home-countertop-3d-visualizer"] button[aria-label="Orbit view right"]::after {
+  content: "Orbit right";
+}
+
+[data-testid="steel-home-countertop-3d-visualizer"] button[aria-label="Zoom in"]::after {
+  content: "Zoom in";
+}
+
+[data-testid="steel-home-countertop-3d-visualizer"] button[aria-label="Zoom out"]::after {
+  content: "Zoom out";
+}
+
+@media (max-width: 1279px) {
+  [data-testid="steel-home-countertop-designer"] > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  [data-testid="steel-home-builder-workbench"] {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 639px) {
+  [data-testid="steel-home-countertop-3d-visualizer"] [aria-label="3D view controls"] {
+    right: 0.75rem;
+  }
+
+  [data-testid="steel-home-countertop-3d-visualizer"] [aria-label="3D view controls"] button {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+}

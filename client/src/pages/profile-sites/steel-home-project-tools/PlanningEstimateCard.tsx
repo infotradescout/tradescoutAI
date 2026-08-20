@@ -1,5 +1,5 @@
-import { ChevronDown, CircleDollarSign, ShieldCheck } from "lucide-react";
-import { formatPlanningRange, type SteelHomePlanningEstimate } from "./projectModel";
+import { ChevronDown, FileSearch, ShieldCheck } from "lucide-react";
+import type { SteelHomePlanningEstimate } from "./projectModel";
 
 type Props = {
   estimate: SteelHomePlanningEstimate;
@@ -32,11 +32,11 @@ export default function PlanningEstimateCard({
               dark ? "text-[#f0b392]" : "text-[#a94f2e]"
             }`}
           >
-            <CircleDollarSign className="h-4 w-4" aria-hidden="true" />
-            Early price estimate
+            <FileSearch className="h-4 w-4" aria-hidden="true" />
+            Planning scope
           </span>
           <p className="mt-3 font-editorial text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
-            {formatPlanningRange(estimate.range)}
+            Quote required
           </p>
           <p className={`mt-2 text-sm ${dark ? "text-white/[0.62]" : "text-[#68736f]"}`}>
             {estimate.label}
@@ -82,13 +82,14 @@ export default function PlanningEstimateCard({
                 {line.detail}
               </p>
             </div>
-            <p className="shrink-0 text-sm font-bold">{formatPlanningRange(line.range)}</p>
+            <p className="shrink-0 text-sm font-bold">Professional review</p>
           </div>
         ))}
       </div>
 
       <p className={`mt-5 text-xs leading-5 ${dark ? "text-white/[0.52]" : "text-[#68736f]"}`}>
-        {estimate.disclaimer}
+        Measurements and selections are planning inputs only. Availability, engineering, field
+        conditions, and pricing require a qualified professional review.
       </p>
     </details>
   );

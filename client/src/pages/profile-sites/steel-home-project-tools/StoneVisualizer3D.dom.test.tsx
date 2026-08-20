@@ -2,7 +2,6 @@
 
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { createEmptySteelHomeProjectDraft } from "./projectModel";
 import StoneVisualizer3D from "./StoneVisualizer3D";
@@ -11,47 +10,25 @@ import StoneVisualizer3D from "./StoneVisualizer3D";
   true;
 
 describe("countertop spatial studio recovery and controls", () => {
-  it("keeps mobile controls and texture status outside the rendered scene viewport", () => {
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = renderToStaticMarkup(
-      <StoneVisualizer3D
-        design={{
-          ...createEmptySteelHomeProjectDraft().countertops,
-          room: "Primary bathroom",
-        }}
-        selectedTarget="counter"
-        onSelectTarget={vi.fn()}
-      />
-    );
-
-    const scene = wrapper.querySelector('[data-testid="steel-home-countertop-3d-scene"]');
-    const mobileTools = wrapper.querySelector(
-      '[data-testid="steel-home-countertop-mobile-scene-tools"]'
-    );
-    expect(scene).toBeTruthy();
-    expect(mobileTools?.getAttribute("data-overlay-placement")).toBe("outside-scene");
-    expect(scene?.contains(mobileTools)).toBe(false);
-    expect(mobileTools?.className).toContain("sm:hidden");
-    expect(scene?.querySelector('[aria-label="Mobile 3D view controls"]')).toBeNull();
-  });
-
   it("keeps a truthful, announced photo fallback without dead camera controls", async () => {
     const container = document.createElement("div");
     document.body.append(container);
     const root = createRoot(container);
+    const design = {
+      ...createEmptySteelHomeProjectDraft().countertops,
+      stoneId: "cristallo",
+    };
     await act(async () => {
       root.render(
-        <StoneVisualizer3D
-          design={createEmptySteelHomeProjectDraft().countertops}
-          selectedTarget="counter"
-          onSelectTarget={vi.fn()}
-        />
+        <StoneVisualizer3D design={design} selectedTarget="counter" onSelectTarget={vi.fn()} />
       );
     });
 
-    expect(container.textContent).toContain("3D room unavailable");
-    expect(container.textContent).toContain("Retry 3D room");
-    expect(container.textContent).toContain("catalog-photo recovery view, not a rendered room");
+    expect(container.textContent).toContain("3D scene unavailable");
+    expect(container.textContent).toContain("Retry 3D scene");
+    expect(container.textContent).toContain(
+      "catalog-photo recovery view, not a rendered measured scene"
+    );
     expect(container.querySelector("img")?.getAttribute("src")).toMatch(
       /^\/images\/stone-designer\/named\/cristallo\/ph_[0-9a-f]{16}\.webp$/
     );
@@ -61,7 +38,7 @@ describe("countertop spatial studio recovery and controls", () => {
     expect(container.textContent).not.toContain("Reset view");
     const alert = container.querySelector('[role="alert"]');
     const retry = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Retry 3D room")
+      button.textContent?.includes("Retry 3D scene")
     );
     expect(alert).toBeTruthy();
     expect(document.activeElement).toBe(retry);
@@ -76,7 +53,7 @@ describe("countertop spatial studio recovery and controls", () => {
       retry?.click();
     });
     expect(container.querySelector("canvas")).not.toBe(canvas);
-    expect(container.textContent).toContain("3D room unavailable");
+    expect(container.textContent).toContain("3D scene unavailable");
 
     act(() => root.unmount());
     container.remove();

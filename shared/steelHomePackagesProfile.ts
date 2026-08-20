@@ -15,8 +15,8 @@ export const STEEL_HOME_PACKAGES_REQUEST_SOURCE = "steel_home_planning_tools" as
 export const STEEL_HOME_PACKAGES_LABOR_REQUEST_SOURCE = "steel_home_planning_tools_labor" as const;
 
 const STEEL_HOME_PROJECT_REQUEST_FALLBACK = [
-  "Steel Home Builder Request",
-  "Builder:",
+  "Steel Home Planner Request",
+  "Planner:",
   "Project location:",
   "Contracting setup:",
   "Desired timing:",
@@ -33,15 +33,15 @@ const STEEL_HOME_LABOR_REQUEST_FALLBACK = [
 ].join("\n");
 
 /**
- * Canonical TradeScout-owned builder handoff. The active builder replaces the
- * fallback title and description with only that builder's saved design.
+ * Canonical TradeScout-owned planner handoff. The active planner replaces the
+ * fallback title and description with only that planner's saved design.
  */
 export const STEEL_HOME_PACKAGES_START_REQUEST_PATH =
   `/direct-connect?profile=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug)}` +
   `&profileName=${encodeURIComponent(STEEL_HOME_PACKAGES_PROFILE_IDENTITY.displayLabel)}` +
   `&source=${STEEL_HOME_PACKAGES_REQUEST_SOURCE}` +
   "&subject=product" +
-  `&title=${encodeURIComponent("Steel home builder request")}` +
+  `&title=${encodeURIComponent("Steel home planner request")}` +
   `&description=${encodeURIComponent(STEEL_HOME_PROJECT_REQUEST_FALLBACK)}`;
 
 /**
@@ -58,34 +58,34 @@ const STEEL_HOME_PROJECT_TOOL_CARDS = [
   {
     key: "countertops",
     label: "Countertops",
-    title: "Countertop Builder",
-    body: "Choose real Quartzite, Engineered Quartz, Granite, and other surfaces, then plan the runs and gross countertop layout footprint. Backsplash and range-gap deductions are excluded until field measurement. Stone ordering and countertop fabrication are separate.",
+    title: "Countertop Planner",
+    body: "Start with a measured top-down plan, place fabrication openings, and keep the exact JW Stone inventory photo beside the model as a truthful reference. Only a verified stone-only crop may be projected in 3D. Stone ordering and countertop fabrication stay separate.",
     image: "/images/stone-designer/cristallo/1.webp",
     imageAlt: "Cristallo quartzite surface",
-    action: "Open Countertop Builder",
+    action: "Open Countertop Planner",
   },
   {
     key: "cabinets",
     label: "Cabinets",
-    title: "Cabinet Builder",
-    body: "Fit the room, appliances, storage, island, door style, and finish into one working cabinet layout.",
+    title: "Cabinet Planner",
+    body: "Measure the room, place cabinets and appliance openings, check clearances, and review the same plan in measured elevations and an orbitable room.",
     image: "/images/businesses/steel-home-packages/cabinet-kitchen.webp",
     imageAlt: "Warm kitchen cabinet design inspiration with an island",
-    action: "Open Cabinet Builder",
+    action: "Open Cabinet Planner",
   },
   {
     key: "building",
     label: "Metal Buildings",
-    title: "Metal Building Builder",
-    body: "Set the footprint, height, roof, openings, porch, and colors while the building and early estimate update.",
+    title: "Metal Building Planner",
+    body: "Choose a sellable building direction, enter measured geometry, and place openings, attachments, colors, and accessories for professional review and quote.",
     image: "/images/businesses/steel-home-packages/steel-home-hero.webp",
     imageAlt: "Metal building exterior preview with a dark metal roof",
-    action: "Open Metal Building Builder",
+    action: "Open Metal Building Planner",
   },
 ] as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
-  version: 14,
+  version: 15,
   header: {
     label: "Steel Home Planning Tools",
     navigation: [
@@ -96,8 +96,8 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
   },
   hero: {
     eyebrow: "For self-contracted homeowners, builders, and contractors",
-    headline: "Choose the builder you need.",
-    body: "Countertops, Cabinets, and Metal Buildings are three stand-alone builders. Open any one without starting or completing another.",
+    headline: "Choose the planner you need.",
+    body: "Countertops, Cabinets, and Metal Buildings are three stand-alone planners. Open any one without starting or completing another.",
     primaryAction: "Start a Request",
     visuals: STEEL_HOME_PROJECT_TOOL_CARDS.map((tool) => ({
       key: tool.key,
@@ -110,23 +110,23 @@ export const STEEL_HOME_PACKAGES_PROFILE_CONTENT = {
   tools: {
     cards: STEEL_HOME_PROJECT_TOOL_CARDS,
     countertops: {
-      eyebrow: "Countertop Builder",
-      title: "Build the layout and estimate its gross countertop footprint.",
-      body: "Choose Quartzite, Engineered Quartz, or another catalog surface from real photos and plan the approximate area. Stone selection and ordering cover material supply only. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator.",
+      eyebrow: "Countertop Planner",
+      title: "Measure the layout before opening the 3D preview.",
+      body: "Choose Quartzite, Engineered Quartz, or another catalog surface from real inventory photos and plan the approximate area. Raw inventory photos remain reference evidence unless a verified stone-only crop exists. Stone selection and ordering cover material supply only. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator.",
     },
     cabinets: {
-      eyebrow: "Cabinet Builder",
-      title: "Fit the cabinets and see an early estimate.",
-      body: "Every room, layout, size, storage, island, door, finish, and hardware choice updates the live cabinet result.",
+      eyebrow: "Cabinet Planner",
+      title: "Fit the room and prepare a cabinet scope for quote.",
+      body: "Room measurements, fixed features, placed modules, islands, and appearance preferences update one measured cabinet scene. Final products and price require a quote.",
     },
     building: {
-      eyebrow: "Metal Building Builder",
-      title: "Shape the building and see an early estimate.",
-      body: "Every size, use, roof, opening, porch, and color choice updates the building or its early estimate.",
+      eyebrow: "Metal Building Planner",
+      title: "Shape a sellable building concept for professional review.",
+      body: "Use, structure, roof, measurements, placed openings, attachments, colors, and accessories update one measured planning scene. Engineering, availability, and price require a quote.",
     },
   },
   disclosure:
-    "Countertop-top area is approximate, excludes backsplash, and is not a price or final template. Stone ordering and countertop fabrication are separate. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator. Cabinet and metal-building early price estimates are not quotes and exclude tax, site work, foundations, and installation unless stated otherwise.",
+    "Countertop area remains a planning measurement, not a final field template. Raw stone inventory photos are reference evidence unless a verified stone-only crop exists. Stone ordering and countertop fabrication are separate. TradeScout and the stone supplier do not template, fabricate, finish, or install countertops; those services require a separate independent fabricator. Cabinet and metal-building products, engineering, availability, delivery, installation, and price require professional review and a quote.",
 } as const;
 
 export const STEEL_HOME_PACKAGES_PROFILE_CONTENT_BLOCKS = [

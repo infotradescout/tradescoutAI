@@ -159,17 +159,14 @@ export function parseCountertopStudioShareUrl(href: string): SteelHomeCountertop
     if (typeof snapshot.s !== "string") return null;
     const stone = getNamedCatalogItemByShareSlug(snapshot.s);
     if (!stone) return null;
-    let textureImageIndex = 0;
+    let textureImageIndex: number;
     let texturePhotoKey = "";
     if (version === 2) {
       const photoKey = (value as Partial<CountertopStudioSnapshotV2>).pk;
-      if (isStoneDesignerPhotoKey(photoKey)) {
-        const resolvedImageIndex = resolveStoneDesignerPhotoIndex(stone.images, photoKey);
-        if (resolvedImageIndex >= 0) {
-          textureImageIndex = resolvedImageIndex;
-          texturePhotoKey = photoKey;
-        }
-      }
+      if (!isStoneDesignerPhotoKey(photoKey)) return null;
+      textureImageIndex = resolveStoneDesignerPhotoIndex(stone.images, photoKey);
+      if (textureImageIndex < 0) return null;
+      texturePhotoKey = photoKey;
     } else {
       const legacyIndex = (value as Partial<CountertopStudioSnapshotV1>).im;
       if (typeof legacyIndex !== "number" || !Number.isFinite(legacyIndex)) return null;

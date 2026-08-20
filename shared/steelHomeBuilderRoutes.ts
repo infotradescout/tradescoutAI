@@ -21,7 +21,7 @@ function capBuilderDescription(description: string): string {
 function builderPageMetadata(builder: SteelHomeBuilderKey) {
   const card = builderCardByKey.get(builder);
   return {
-    title: `${card?.title || "Steel Home Builder"} | TradeScout`,
+    title: `${card?.title || "Steel Home Planner"} | TradeScout`,
     description: capBuilderDescription(card?.body || STEEL_HOME_PACKAGES_PROFILE_CONTENT.hero.body),
   };
 }

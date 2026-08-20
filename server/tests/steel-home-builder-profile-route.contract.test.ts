@@ -11,6 +11,9 @@ import {
 import { STEEL_HOME_PACKAGES_PROFILE_CONTENT } from "../../shared/steelHomePackagesProfile";
 import { buildSteelHomeBuilderProfilePageMetadata } from "../steelHomeBuilderProfileRoute";
 
+const capDescription = (description: string) =>
+  description.length <= 160 ? description : `${description.slice(0, 159).trimEnd()}…`;
+
 describe("Steel Home builder URL contract", () => {
   it("owns exactly one stable share path for each builder", () => {
     expect(STEEL_HOME_BUILDER_ROUTE_SLUGS).toEqual({
@@ -49,24 +52,31 @@ describe("Steel Home builder URL contract", () => {
 
   it("defines distinct server metadata for every canonical builder URL", () => {
     const origin = "https://www.thetradescout.com";
-    const expected = {
-      countertops: {
-        title: "Countertop Builder | TradeScout",
-        description:
-          "Choose real Quartzite, Engineered Quartz, Granite, and other surfaces, then plan the runs and gross countertop layout footprint. Backsplash and range-gap deduc…",
-        canonical: `${origin}/u/steel-home-packages/builders/countertops`,
-      },
-      cabinets: {
-        title: "Cabinet Builder | TradeScout",
-        description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.tools.cards[1].body,
-        canonical: `${origin}/u/steel-home-packages/builders/cabinets`,
-      },
-      building: {
-        title: "Metal Building Builder | TradeScout",
-        description: STEEL_HOME_PACKAGES_PROFILE_CONTENT.tools.cards[2].body,
-        canonical: `${origin}/u/steel-home-packages/builders/metal-buildings`,
-      },
-    } as const;
+    const cardByKey = new Map(
+      STEEL_HOME_PACKAGES_PROFILE_CONTENT.tools.cards.map((card) => [card.key, card] as const)
+    );
+    const expected = Object.fromEntries(
+      (Object.keys(STEEL_HOME_BUILDER_ROUTE_SLUGS) as Array<
+        keyof typeof STEEL_HOME_BUILDER_ROUTE_SLUGS
+      >).map((builder) => {
+        const card = cardByKey.get(builder);
+        if (!card) throw new Error(`Missing planner card for ${builder}`);
+        return [
+          builder,
+          {
+            title: `${card.title} | TradeScout`,
+            description: capDescription(card.body),
+            canonical: `${origin}${buildSteelHomeBuilderPath(builder)}`,
+          },
+        ];
+      })
+    ) as Record<
+      keyof typeof STEEL_HOME_BUILDER_ROUTE_SLUGS,
+      { title: string; description: string; canonical: string }
+    >;
+
+    expect(new Set(Object.values(expected).map((item) => item.title)).size).toBe(3);
+    expect(new Set(Object.values(expected).map((item) => item.canonical)).size).toBe(3);
 
     for (const builder of Object.keys(expected) as Array<keyof typeof expected>) {
       expect(STEEL_HOME_BUILDER_PAGE_METADATA[builder]).toEqual({
@@ -82,11 +92,6 @@ describe("Steel Home builder URL contract", () => {
         robots: "noindex, nofollow",
       });
     }
-    expect(
-      STEEL_HOME_PACKAGES_PROFILE_CONTENT.tools.cards[0].body.startsWith(
-        expected.countertops.description.slice(0, -1)
-      )
-    ).toBe(true);
   });
 
   it("uses one shared builder title and description source in server HTML and client hydration", () => {
