@@ -70,7 +70,11 @@ export function buildProfileAccountResumePath(
     .toLowerCase();
   const params = new URLSearchParams({ profileAccount: "1" });
   if (mode === "signin") params.set("profileAccountMode", "signin");
-  return `/u/${encodeURIComponent(normalizedSlug)}?${params.toString()}`;
+  const basePath =
+    normalizedSlug === "jw-stone"
+      ? "/jw-stone"
+      : `/u/${encodeURIComponent(normalizedSlug)}`;
+  return `${basePath}?${params.toString()}`;
 }
 
 export function isProfileAccountResumePath(value: unknown): boolean {
@@ -206,5 +210,5 @@ export function currentProfileAccountSourcePath(profileSlug: string): string {
   } catch {
     // Fall through to the canonical public profile path.
   }
-  return `/u/${profileSlug}`;
+  return profileSlug === "jw-stone" ? "/jw-stone" : `/u/${profileSlug}`;
 }
