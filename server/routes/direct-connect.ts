@@ -7487,11 +7487,11 @@ export function registerDirectConnectRoutes(app: Express) {
           activationLinkIncluded = shouldSendActivation;
           verifyLinkIncluded = shouldSendVerification;
           if (shouldSendActivation) {
-            const reset = passwordResetService.createToken(String(targetUser.id));
+            const reset = await passwordResetService.createToken(String(targetUser.id));
             activationLink = `${publicBase}/reset-password?token=${reset.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
           }
           if (shouldSendVerification) {
-            const verify = emailVerificationService.createToken(String(targetUser.id));
+            const verify = await emailVerificationService.createToken(String(targetUser.id));
             verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
           }
           const canSendEmail = emailService.isConfigured();

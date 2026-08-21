@@ -1,41 +1,65 @@
-import { randomBytes, createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
+import { pool } from "../db";
 
-interface TokenRecord {
-  userId: string;
-  expiresAt: number;
+interface TokenQueryResult {
+  rows: Array<{ user_id?: string }>;
 }
 
-class EmailVerificationService {
-  private tokens = new Map<string, TokenRecord>();
-  private ttlMs: number;
+interface TokenDatabase {
+  query(sql: string, values?: unknown[]): Promise<TokenQueryResult>;
+}
 
-  constructor() {
-    const minutes = Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES) || 60 * 24;
-    this.ttlMs = minutes * 60 * 1000;
+export class EmailVerificationService {
+  private readonly ttlMs: number;
+
+  constructor(
+    private readonly tokenDatabase: TokenDatabase = pool as unknown as TokenDatabase,
+    ttlMs = (Number(process.env.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES) || 60 * 24) * 60 * 1000
+  ) {
+    this.ttlMs = ttlMs;
   }
 
   private hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
   }
 
-  createToken(userId: string): { token: string; expiresAt: number } {
+  async createToken(userId: string): Promise<{ token: string; expiresAt: number }> {
     const token = randomBytes(32).toString("hex");
-    const hashed = this.hashToken(token);
     const expiresAt = Date.now() + this.ttlMs;
-    this.tokens.set(hashed, { userId, expiresAt });
+
+    await this.tokenDatabase.query(
+      `WITH expired AS (
+         DELETE FROM public.auth_action_tokens WHERE expires_at <= NOW()
+       )
+       INSERT INTO public.auth_action_tokens (user_id, purpose, token_hash, expires_at)
+       VALUES ($1, 'email_verification', $2, $3)`,
+      [userId, this.hashToken(token), new Date(expiresAt)]
+    );
+
     return { token, expiresAt };
   }
 
-  consumeToken(token: string): string | null {
-    const hashed = this.hashToken(token);
-    const record = this.tokens.get(hashed);
-    if (!record) return null;
-    if (Date.now() > record.expiresAt) {
-      this.tokens.delete(hashed);
-      return null;
-    }
-    this.tokens.delete(hashed);
-    return record.userId;
+  async consumeToken(token: string): Promise<string | null> {
+    const result = await this.tokenDatabase.query(
+      `WITH selected AS (
+         SELECT id
+           FROM public.auth_action_tokens
+          WHERE purpose = $1
+            AND token_hash = $2
+            AND expires_at > NOW()
+          ORDER BY created_at DESC, id DESC
+          LIMIT 1
+          FOR UPDATE SKIP LOCKED
+       )
+       DELETE FROM public.auth_action_tokens token
+       USING selected
+       WHERE token.id = selected.id
+       RETURNING token.user_id`,
+      ["email_verification", this.hashToken(token)]
+    );
+
+    const userId = result.rows[0]?.user_id;
+    return typeof userId === "string" && userId.length > 0 ? userId : null;
   }
 }
 

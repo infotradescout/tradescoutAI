@@ -2825,12 +2825,12 @@ export function registerWorkerTasksRoutes(app: Express): void {
 
       // Only include a set-password link if this account has no password set.
       if (!user.password) {
-        const { token } = passwordResetService.createToken(user.id);
+        const { token } = await passwordResetService.createToken(user.id);
         resetLink = `${publicBase}/reset-password?token=${token}`;
       }
 
       if (emailVerificationRequired && user.emailVerified !== true) {
-        const verify = emailVerificationService.createToken(user.id);
+        const verify = await emailVerificationService.createToken(user.id);
         verifyLink = `${publicBase}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
       }
 

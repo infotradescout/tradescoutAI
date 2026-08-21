@@ -1208,7 +1208,7 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
     // Mark before sending to prevent rapid re-sends if the provider is slow/failing.
     sessionAny[key] = now;
 
-    const { token, expiresAt } = emailVerificationService.createToken(userId);
+    const { token, expiresAt } = await emailVerificationService.createToken(userId);
     const verifyBase = getPublicBaseUrlFromRequest(req);
     const next = sanitizeNextPath((req.session as any)?.oauthNext) || "/pre-scout-setup";
     const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -2918,7 +2918,7 @@ export async function registerRoutes(app: any) {
       let verificationToken: string | undefined;
 
       if (emailVerificationRequired) {
-        const { token, expiresAt } = emailVerificationService.createToken(created.user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(created.user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const next = "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -3436,7 +3436,7 @@ export async function registerRoutes(app: any) {
       let emailVerificationSent = false;
       let verificationToken: string | undefined;
       if (emailVerificationRequired && !user.emailVerified) {
-        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const next = "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -3991,7 +3991,7 @@ export async function registerRoutes(app: any) {
           return res.json({ message: "Email already verified." });
         }
 
-        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const requestedNext = sanitizeNextPath((req.body as any)?.next);
         const next = requestedNext || "/pre-scout-setup";
@@ -4031,7 +4031,7 @@ export async function registerRoutes(app: any) {
       const token = typeof body.token === "string" ? body.token.trim() : "";
       if (!token) return res.status(400).json({ message: "Token is required" });
 
-      const userId = emailVerificationService.consumeToken(token);
+      const userId = await emailVerificationService.consumeToken(token);
       if (!userId) {
         return res.status(400).json({ message: "Invalid or expired verification token" });
       }
@@ -8610,7 +8610,7 @@ export async function registerRoutes(app: any) {
         const user = await storage.getUserByEmail(String(email).toLowerCase());
 
         if (user) {
-          const { token, code, expiresAt } = passwordResetService.createToken(user.id);
+          const { token, code, expiresAt } = await passwordResetService.createToken(user.id);
           const resetBase =
             process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
           const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
@@ -8665,12 +8665,12 @@ export async function registerRoutes(app: any) {
           return res.status(400).json({ message: "Invalid or expired verification code" });
         }
 
-        const valid = passwordResetService.consumeCodeForUser(user.id, normalizedCode);
+        const valid = await passwordResetService.consumeCodeForUser(user.id, normalizedCode);
         if (!valid) {
           return res.status(400).json({ message: "Invalid or expired verification code" });
         }
 
-        const { token } = passwordResetService.createToken(user.id);
+        const { token } = await passwordResetService.createToken(user.id);
         return res.json({ token });
       } catch (error: any) {
         return sendAutoClassifiedError(res, error, "Failed to verify reset code");
@@ -8697,7 +8697,7 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
 
-      const userId = passwordResetService.consumeToken(token);
+      const userId = await passwordResetService.consumeToken(token);
 
       if (!userId) {
         return res.status(400).json({ message: "Invalid or expired token" });
@@ -16317,7 +16317,7 @@ export async function registerRoutes(app: any) {
             // Activation: generate password reset token and optionally email it (only when a user exists)
             let activationLink: string | undefined;
             if (!dryRun && userId && userId !== "__dry_run__") {
-              const { token, expiresAt } = passwordResetService.createToken(userId);
+              const { token, expiresAt } = await passwordResetService.createToken(userId);
               activationPrepared++;
               const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
@@ -16328,7 +16328,7 @@ export async function registerRoutes(app: any) {
                 );
                 let verifyLink: string | null = null;
                 if (emailVerificationRequired) {
-                  const verify = emailVerificationService.createToken(userId);
+                  const verify = await emailVerificationService.createToken(userId);
                   const verifyBase = getPublicBaseUrlFromRequest(req as any);
                   verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
                 }
