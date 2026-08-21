@@ -989,7 +989,7 @@ export async function setBidRockListingSaleReady(args: {
       `UPDATE stone_inventory_positions
           SET public_availability_status = $2,
               publication_evidence = CASE WHEN $5::boolean
-                THEN jsonb_build_object('type', 'bidrock_seller_publication', 'actorUserId', $6, 'recordedAt', NOW())
+                THEN jsonb_build_object('type', 'bidrock_seller_publication', 'actorUserId', $6::text, 'recordedAt', NOW())
                 ELSE '{}'::jsonb
               END,
               published_at = CASE WHEN $5::boolean THEN NOW() ELSE NULL END,

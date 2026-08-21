@@ -75,6 +75,7 @@ describe("BidRock final bounded correction contracts", () => {
     );
     expect(publication).toContain("AND version = $7");
     expect(publication).toContain("AND version = $4");
+    expect(publication).toContain("'actorUserId', $6::text");
     expect(publication).toContain("listingUpdate.rowCount !== 1");
   });
 
