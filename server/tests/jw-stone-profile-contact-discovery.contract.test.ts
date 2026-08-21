@@ -30,8 +30,12 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(routes).not.toContain("ProfileSiteOrJwMarketplaceRedirect");
     expect(routes).toContain('<Route path="/u/:slug">');
     expect(profileView).toContain("<WholesalerProfileTheme");
-    expect(profileWrapper).toContain('import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace"');
-    expect(profileWrapper).toContain("props.profileSlug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG");
+    expect(profileWrapper).toContain(
+      'import JWStoneMarketplace from "@/features/jw-stone/JWStoneMarketplace"'
+    );
+    expect(profileWrapper).toContain(
+      "props.profileSlug.trim().toLowerCase() === JW_STONE_PROFILE_SLUG"
+    );
     expect(profileWrapper).toContain("<JWStoneMarketplace />");
     expect(profileWrapper).toContain("<LegacyWholesalerProfileTheme {...props} />");
     expect(legacyTheme).toContain("export default function WholesalerProfileTheme");
@@ -55,17 +59,13 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(serverIndex).not.toContain("serveJwStoneMarketplaceCustomDomainPath");
   });
 
-  it("shows one TradeScout-managed contact with the company address and social identity", () => {
+  it("keeps address and social identity without a public phone or email bypass", () => {
     expect(identity).toContain('streetAddress: "2103 W Herman Ave"');
     expect(identity).toContain('addressLocality: "Pensacola"');
     expect(identity).toContain('postalCode: "32505"');
     expect(identity).toContain('publicHandle: "@jwstonellc"');
     expect(identity).toContain('publicHandle: "JW Stone Logistics"');
     expect(identity).toContain('publicHandle: "@JWStoneLogistics"');
-    expect(identity).toContain('label: "TradeScout managed contact"');
-    expect(identity).toContain('heading: "JW Stone inquiries"');
-    expect(identity).toContain('phone: "(850) 543-0748"');
-    expect(identity).toContain('email: "contact@thetradescout.com"');
     expect(identity).not.toContain("wagner@jwstonellc.com");
 
     expect(profileWrapper).toContain("profileActions={props.trustActions}");
@@ -73,12 +73,8 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(company).toContain('data-testid="jw-company-editorial-layout"');
     expect(company).toContain('data-testid="jw-tradescout-profile-actions"');
     expect(company).toContain('data-testid="jw-company-contact-card"');
-    expect(company).toContain('data-testid="jw-managed-contact-card"');
-    expect(company).toContain('data-testid="jw-managed-contact-phone"');
-    expect(company).toContain('data-testid="jw-managed-contact-email"');
-    expect(company).toContain("JW_STONE_MANAGED_CONTACT.phone");
-    expect(company).toContain("JW_STONE_MANAGED_CONTACT.email");
     expect(company).toContain("[&_[data-testid=public-profile-identity]]:hidden");
+    expect(company).toContain("[&_[data-testid=public-profile-account-card]]:hidden");
     expect(company).toContain("[&>div>p:first-child]:hidden");
     expect(company).toContain("xl:sticky");
     expect(company).toContain("Founded 2017 · Pensacola, Florida");
@@ -86,7 +82,24 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(company).toContain("Our Journey to Excellence");
     expect(company).toContain("Visit JW Stone");
     expect(company).toContain("Follow JW Stone");
+    expect(company).not.toContain("JW_STONE_MANAGED_CONTACT");
+    expect(company).not.toContain('data-testid="jw-managed-contact-card"');
+    expect(company).not.toContain('data-testid="jw-managed-contact-phone"');
+    expect(company).not.toContain('data-testid="jw-managed-contact-email"');
+    expect(company).not.toContain("href={`tel:");
+    expect(company).not.toContain("href={`mailto:");
     expect(company).not.toContain("wagner@jwstonellc.com");
+  });
+
+  it("puts Create account in the sticky JW Stone header instead of the company sidebar", () => {
+    expect(header).toContain("sticky top-0");
+    expect(header).toContain('data-testid="jw-marketplace-account-button"');
+    expect(header).toContain("Create account");
+    expect(header).toContain("<PublicProfileAccountCard");
+    expect(header).toContain('profileSlug="jw-stone"');
+    expect(header).toContain('profileName="JW Stone"');
+    expect(header).toContain("<Dialog");
+    expect(company).toContain("[&_[data-testid=public-profile-account-card]]:hidden");
   });
 
   it("keeps YouTube with the bottom social identity and out of the header", () => {
@@ -97,7 +110,7 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(header).not.toContain("Watch JW Stone on YouTube");
   });
 
-  it("keeps Call protected while publishing the same managed contact", () => {
+  it("keeps Call protected inside Express Direct Connect", () => {
     expect(marketplace).toContain('profileSlug="jw-stone"');
     expect(marketplace).toContain("businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}");
     expect(marketplace).toContain("allowCall");
@@ -108,19 +121,16 @@ describe("JW Stone 2.0 profile contact and discovery contract", () => {
     expect(expressRoute).toContain('authorityGate: z.literal("profile_direct_connect")');
     expect(expressRoute).toContain('decision: z.literal("call")');
     expect(expressRoute).toContain("normalizeDirectConnectPhone(target.phone)");
-    expect(profileSeo).toContain("telephone: JW_STONE_MANAGED_CONTACT.phone");
-    expect(profileSeo).toContain("email: JW_STONE_MANAGED_CONTACT.email");
-    expect(marketplace).toContain("telephone: JW_STONE_MANAGED_CONTACT.phone");
-    expect(marketplace).toContain("email: JW_STONE_MANAGED_CONTACT.email");
+    expect(profileSeo).not.toContain("JW_STONE_MANAGED_CONTACT");
+    expect(profileSeo).not.toContain("telephone:");
+    expect(profileSeo).not.toContain("contactPoint:");
   });
 
   it("persists the managed pair through the runtime partner normalizer without transferring ownership", () => {
     expect(contactProvisioner).toContain(
       "export async function provisionTradeScoutManagedPartnerContacts"
     );
-    expect(contactProvisioner).toContain(
-      "export async function provisionJwStoneManagedContact"
-    );
+    expect(contactProvisioner).toContain("export async function provisionJwStoneManagedContact");
     expect(contactProvisioner).toContain("getRuntimeManagedPartnerProfileDefinitions");
     expect(contactProvisioner).toContain("const runtimeDefinitions = await");
     expect(contactProvisioner).toContain('definition.contactMode === "tradescout_managed"');
