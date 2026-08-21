@@ -107,9 +107,9 @@ Canonical app/repo identity:
 ## Deployment / Runtime Assumptions
 
 - Node.js 20 is the expected runtime.
-- Production start command is `npm start`, which runs `node dist/index.js`.
+- Production starts from Docker `CMD ["node", "dist/index.js"]`; `npm start` is the equivalent native command.
 - Production build command is `npm run build`, which generates sitemaps, builds the Vite client, and bundles the server.
-- Intended: Render Node runtime runs `npm run db:migrate && npm run db:verify:required` in preDeploy; `RUNTIME_MIGRATIONS_MODE=off` in production. Live Docker ignores preDeploy — see `docs/DEPLOYMENT_TARGET.md`.
+- Render Docker runs `npm run db:migrate && npm run db:verify:required` in pre-deploy; `RUNTIME_MIGRATIONS_MODE=off` remains production law. The image must retain the migration runner/config/dependency set — see `docs/DEPLOYMENT_TARGET.md`.
 - `DATABASE_URL` and `SESSION_SECRET` are required in production startup.
 - `server/index.ts` sets `trust proxy`, Helmet, CORS, compression, request IDs, bot read-only guard, landing headers, and canonical host redirects.
 - Scheduler is controlled by `SCHEDULER_ENABLED`, `SCHEDULER_LEADER_ONLY`, and `SCHEDULER_LEADER_LOCK_ID`.

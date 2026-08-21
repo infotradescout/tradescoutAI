@@ -24,9 +24,16 @@ Repo `render.yaml` declares:
 
 ```text
 preDeployCommand: npm run db:migrate && npm run db:verify:required
-runtime: node
+runtime: docker
+healthCheckPath: /api/health
 ```
 
-If the **live** Render web service is Docker (`CMD node dist/index.js`) with `RUNTIME_MIGRATIONS_MODE=off`, Render **does not** run that `preDeployCommand`. New code can serve traffic without migrate/verify.
+The paid production Docker service runs that command in the newly built image
+before traffic moves. The image must retain `scripts/`, `drizzle.config.ts`,
+`shared/`, `migrations/`, and production `drizzle-kit` so both commands exist
+after development dependencies are pruned.
 
-See `docs/DEPLOYMENT_TARGET.md` and `RELEASE_CONTROL.md` for the owner GO steps to align the live service with the Node + preDeploy contract (preferred) without silently skipping migrations again.
+See `docs/DEPLOYMENT_TARGET.md` and `RELEASE_CONTROL.md` for the dashboard and
+proof contract. Do not remove pre-deploy or weaken verification to recover a
+failed deploy; the previous healthy instance should remain live while the
+image or migration problem is corrected.
