@@ -159,6 +159,7 @@ describe("universal outcome-first onboarding", () => {
     expect(container.querySelector('[data-testid="onboarding-goal"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="business-switch"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="business-name"]')).toBeNull();
+    expect(container.textContent).toContain("Scout will help complete the profile.");
 
     act(() => {
       container.querySelector<HTMLButtonElement>('[data-testid="complete-onboarding"]')?.click();
@@ -173,8 +174,11 @@ describe("universal outcome-first onboarding", () => {
     });
 
     expect(container.querySelector('[data-testid="business-name"]')).not.toBeNull();
+    expect(container.textContent).toContain("Share what you already have");
     expect(container.textContent).toContain("Every field below is optional.");
     expect(container.textContent).toContain("Contact remains protected through Direct Connect");
+    expect(container.textContent).toContain("Scout uses only the material you provide");
+    expect(container.textContent).not.toContain("Selective Intelligence");
     expect(container.textContent).not.toContain("What should TradeScout remember for you?");
   });
 

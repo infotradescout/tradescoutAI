@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { cn } from "@/lib/utils";
@@ -124,6 +130,12 @@ export function PublicProfileAccountDialog({
   const requiresBusiness = state?.policy.requiredIdentity === "business";
   const normalizedBusinessName = businessName.trim();
   const resumePath = buildProfileAccountResumePath(profileSlug, "signin");
+  const emailVerificationPath = useMemo(() => {
+    const params = new URLSearchParams({ next: resumePath });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail) params.set("email", normalizedEmail);
+    return `/check-email?${params.toString()}`;
+  }, [email, resumePath]);
   const passwordResetPath = useMemo(() => {
     const params = new URLSearchParams({ next: resumePath });
     const normalizedEmail = email.trim().toLowerCase();
@@ -152,8 +164,7 @@ export function PublicProfileAccountDialog({
     }
     const created = await createProfileAccount({
       profileSlug,
-      businessName:
-        current.policy.requiredIdentity === "business" ? normalizedBusinessName : null,
+      businessName: current.policy.requiredIdentity === "business" ? normalizedBusinessName : null,
       sourcePath: currentProfileAccountSourcePath(profileSlug),
     });
     setState(created);
@@ -225,7 +236,9 @@ export function PublicProfileAccountDialog({
       const requestError = nextError as RequestError;
       if (requestError.code === "AUTH_SOCIAL_ONLY") {
         setMode("signin");
-        setError("Use the password link below to set a password for this email, then sign in here.");
+        setError(
+          "Use the password link below to set a password for this email, then sign in here."
+        );
       } else {
         setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
       }
@@ -287,13 +300,18 @@ export function PublicProfileAccountDialog({
         </DialogHeader>
 
         {loading && !state ? (
-          <div className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}>
+          <div
+            className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}
+          >
             <Loader2 className="h-4 w-4 animate-spin" />
             Opening your account…
           </div>
         ) : loadError && !state ? (
           <div className="space-y-4" data-testid="profile-account-load-error">
-            <p className="rounded-xl bg-red-50 px-3 py-3 text-sm font-bold text-red-800" role="alert">
+            <p
+              className="rounded-xl bg-red-50 px-3 py-3 text-sm font-bold text-red-800"
+              role="alert"
+            >
               {loadError}
             </p>
             <button
@@ -313,7 +331,8 @@ export function PublicProfileAccountDialog({
               </p>
               {state?.account?.verificationStatus === "pending" ? (
                 <p className="mt-1 text-stone-600">
-                  Business verification is pending. Protected pricing and business-only features remain locked until approval.
+                  Business verification is pending. Protected pricing and business-only features
+                  remain locked until approval.
                 </p>
               ) : null}
               {notice ? <p className="mt-2 font-semibold text-stone-600">{notice}</p> : null}
@@ -428,7 +447,25 @@ export function PublicProfileAccountDialog({
                         className="mt-1 h-4 w-4 shrink-0"
                       />
                       <span>
-                        I agree to the <a className="font-bold underline" href="/terms" target="_blank" rel="noreferrer">Terms of Service</a> and acknowledge the <a className="font-bold underline" href="/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.
+                        I agree to the{" "}
+                        <a
+                          className="font-bold underline"
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Terms of Service
+                        </a>{" "}
+                        and acknowledge the{" "}
+                        <a
+                          className="font-bold underline"
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Privacy Policy
+                        </a>
+                        .
                       </span>
                     </label>
                   </>
@@ -437,7 +474,11 @@ export function PublicProfileAccountDialog({
             ) : null}
 
             {error ? (
-              <p data-testid="profile-account-error" className="rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-800" role="alert">
+              <p
+                data-testid="profile-account-error"
+                className="rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-800"
+                role="alert"
+              >
                 {error}
               </p>
             ) : null}
@@ -459,19 +500,26 @@ export function PublicProfileAccountDialog({
               ) : (
                 <UserPlus className="h-4 w-4" />
               )}
-              {mode === "signin" && !hasSession ? "Sign in and continue" : `Create account with ${profileName}`}
+              {mode === "signin" && !hasSession
+                ? "Sign in and continue"
+                : `Create account with ${profileName}`}
             </button>
 
             {!hasSession && mode === "signin" ? (
-              <a
-                href={passwordResetPath}
-                className={cn(
-                  "inline-flex min-h-11 w-full items-center justify-center border-t border-current/10 pt-4 text-sm font-bold underline-offset-4 hover:underline",
-                  mutedClass
-                )}
-              >
-                Forgot or need to set your password?
-              </a>
+              <div className={cn("space-y-1 border-t border-current/10 pt-3", mutedClass)}>
+                <a
+                  href={emailVerificationPath}
+                  className="inline-flex min-h-10 w-full items-center justify-center text-sm font-bold underline-offset-4 hover:underline"
+                >
+                  Lost the verification email?
+                </a>
+                <a
+                  href={passwordResetPath}
+                  className="inline-flex min-h-10 w-full items-center justify-center text-sm font-bold underline-offset-4 hover:underline"
+                >
+                  Forgot or need to set your password?
+                </a>
+              </div>
             ) : null}
 
             {!hasSession ? (
@@ -486,7 +534,9 @@ export function PublicProfileAccountDialog({
                   mutedClass
                 )}
               >
-                {mode === "create" ? "Already have an account? Sign in" : "New here? Create an account"}
+                {mode === "create"
+                  ? "Already have an account? Sign in"
+                  : "New here? Create an account"}
               </button>
             ) : null}
           </div>

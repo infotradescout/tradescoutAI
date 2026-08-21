@@ -44,6 +44,24 @@ if (!hasTestDb) {
         expect(registerRes.body).toHaveProperty("user");
         expect(registerRes.body.user.email).toBe(email);
 
+        const verificationResponseMessage =
+          "If an account exists, a verification link has been sent.";
+        const existingVerificationRes = await request(app)
+          .post("/api/auth/request-email-verification")
+          .set("Content-Type", "application/json")
+          .send({ email, next: "/pre-scout-setup" });
+        const missingVerificationRes = await request(app)
+          .post("/api/auth/request-email-verification")
+          .set("Content-Type", "application/json")
+          .send({
+            email: `missing+${crypto.randomUUID()}@tradescout.test`,
+            next: "/pre-scout-setup",
+          });
+        expect(existingVerificationRes.status).toBe(200);
+        expect(missingVerificationRes.status).toBe(200);
+        expect(existingVerificationRes.body.message).toBe(verificationResponseMessage);
+        expect(missingVerificationRes.body.message).toBe(verificationResponseMessage);
+
         const userRes = await agent.get("/api/auth/user");
         expect(userRes.status).toBe(200);
         if (userRes.body.authenticated === true) {
@@ -61,7 +79,8 @@ if (!hasTestDb) {
           expect(userResAfterLogin.body.user.email).toBe(email);
         }
 
-        const token = registerRes.body.verificationToken;
+        const token =
+          existingVerificationRes.body.verificationToken || registerRes.body.verificationToken;
         const verificationRequired = registerRes.body.emailVerificationRequired === true;
 
         if (verificationRequired && typeof token === "string" && token.length > 10) {
@@ -75,6 +94,13 @@ if (!hasTestDb) {
           expect(userResAfter.status).toBe(200);
           expect(userResAfter.body.authenticated).toBe(true);
           expect(userResAfter.body.user.emailVerified).toBe(true);
+
+          const verifiedVerificationRes = await request(app)
+            .post("/api/auth/request-email-verification")
+            .set("Content-Type", "application/json")
+            .send({ email, next: "/pre-scout-setup" });
+          expect(verifiedVerificationRes.status).toBe(200);
+          expect(verifiedVerificationRes.body.message).toBe(verificationResponseMessage);
         }
       },
       authFlowTimeoutMs

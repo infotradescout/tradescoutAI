@@ -10,7 +10,7 @@ import { KeyRound } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
-  isProfileAccountResumePath,
+  normalizeProfileAccountResumePath,
   requestProfileAccountPasswordReset,
 } from "@/components/profile/profileAccountClient";
 import { isSafeNextPath } from "@/lib/postOnboardingRoute";
@@ -34,13 +34,17 @@ export default function ResetPasswordPage() {
     const requested = readResetPasswordParam("next");
     return isSafeNextPath(requested) ? requested : "";
   }, [location]);
+  const profileAccountNext = useMemo(() => normalizeProfileAccountResumePath(safeNext), [safeNext]);
 
   const requestResetMutation = useMutation({
     mutationFn: async () => {
       const normalizedEmail = email.trim().toLowerCase();
       if (!normalizedEmail) throw new Error("Email is required");
-      if (isProfileAccountResumePath(safeNext)) {
-        return requestProfileAccountPasswordReset({ email: normalizedEmail, next: safeNext });
+      if (profileAccountNext) {
+        return requestProfileAccountPasswordReset({
+          email: normalizedEmail,
+          next: profileAccountNext,
+        });
       }
       return apiRequest("POST", "/api/auth/request-password-reset", { email: normalizedEmail });
     },
@@ -110,8 +114,8 @@ export default function ResetPasswordPage() {
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
-      if (isProfileAccountResumePath(safeNext)) {
-        navigate(safeNext);
+      if (profileAccountNext) {
+        navigate(profileAccountNext);
         return;
       }
       const signinPath = safeNext

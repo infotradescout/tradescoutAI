@@ -28,7 +28,7 @@ const DICTIONARY: Record<AppLanguage, Record<string, TranslationValue>> = {
       outcome: {
         title: "What are you here to accomplish?",
         subtitle:
-          "Tell Scout the outcome. If it involves a business you own or manage, share whatever material you already have and Selective Intelligence will populate the profile.",
+          "Tell Scout the outcome. If it involves a business you own or manage, share whatever material you already have and Scout will help complete the profile.",
         goalLabel: "What result are you looking for?",
         goalPlaceholder:
           "For example: find a licensed electrician nearby, or build my landscaping business profile from our website and photos.",
@@ -36,7 +36,7 @@ const DICTIONARY: Record<AppLanguage, Record<string, TranslationValue>> = {
         goalRequired: "Tell us the result you want so Scout knows where to take you.",
         businessSwitch: "This is for a business I own or manage",
         businessSwitchHint: "Use the same flow and add only the business material you have.",
-        businessTitle: "Give Selective Intelligence something to work from",
+        businessTitle: "Share what you already have",
         businessEvidenceHint:
           "Every field below is optional. Sparse input is valid, and you can improve the profile later.",
         businessNameLabel: "Business name (if you have it)",
@@ -71,7 +71,7 @@ const DICTIONARY: Record<AppLanguage, Record<string, TranslationValue>> = {
         photoError: "Upload failed",
         photoLimit: "You can add up to 12 photos here.",
         groundingNotice:
-          "Selective Intelligence organizes only the material you provide. It will not invent licenses, reviews, verification, pricing, or trust claims, and onboarding will not change verification status.",
+          "Scout uses only the material you provide to complete the profile. It will not invent licenses, reviews, verification, pricing, or trust claims, and onboarding will not change verification status.",
         businessCompletionHint:
           "Your populated profile opens next. Existing verification and discovery rules still apply.",
         expressCompletionHint: "Scout will take you directly to the result you came for.",
@@ -181,7 +181,7 @@ const DICTIONARY: Record<AppLanguage, Record<string, TranslationValue>> = {
       outcome: {
         title: "¿Qué quieres lograr hoy?",
         subtitle:
-          "Cuéntale a Scout el resultado. Si se trata de un negocio que administras o del que eres dueño, comparte el material que ya tengas y Selective Intelligence completará el perfil.",
+          "Cuéntale a Scout el resultado. Si se trata de un negocio que administras o del que eres dueño, comparte el material que ya tengas y Scout te ayudará a completar el perfil.",
         goalLabel: "¿Qué resultado buscas?",
         goalPlaceholder:
           "Por ejemplo: encontrar un electricista con licencia cerca, o crear el perfil de mi negocio de jardinería con nuestro sitio web y fotos.",
@@ -191,7 +191,7 @@ const DICTIONARY: Record<AppLanguage, Record<string, TranslationValue>> = {
         businessSwitch: "Esto es para un negocio que administro o del que soy dueño",
         businessSwitchHint:
           "Usa el mismo proceso y agrega solo el material del negocio que tengas.",
-        businessTitle: "Dale a Selective Intelligence un punto de partida",
+        businessTitle: "Comparte lo que ya tienes",
         businessEvidenceHint:
           "Todos los campos siguientes son opcionales. Puedes dar poca información y mejorar el perfil después.",
         businessNameLabel: "Nombre del negocio (si lo tienes)",
@@ -226,7 +226,7 @@ const DICTIONARY: Record<AppLanguage, Record<string, TranslationValue>> = {
         photoError: "Falló la carga",
         photoLimit: "Puedes agregar hasta 12 fotos aquí.",
         groundingNotice:
-          "Selective Intelligence solo organiza el material que proporcionas. No inventará licencias, reseñas, verificación, precios ni señales de confianza, y este proceso no cambiará la verificación.",
+          "Scout solo usa el material que proporcionas para completar el perfil. No inventará licencias, reseñas, verificación, precios ni señales de confianza, y este proceso no cambiará la verificación.",
         businessCompletionHint:
           "A continuación se abrirá tu perfil completo. Las reglas actuales de verificación y visibilidad siguen vigentes.",
         expressCompletionHint: "Scout te llevará directamente al resultado que viniste a buscar.",

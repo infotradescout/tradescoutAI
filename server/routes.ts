@@ -434,6 +434,7 @@ import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes"
 import { shouldIndexPublicProfileSlug } from "../shared/publicProfileIndexing";
 import { storage } from "./storage";
 import {
+  applyRequestSessionCookieScope,
   setupAuth,
   isAuthenticated,
   isAdmin,
@@ -2675,6 +2676,7 @@ export async function registerRoutes(app: any) {
         // Ensure session persistence before responding to avoid
         // immediate logged-out state on the next auth check request.
         if (req.session) {
+          applyRequestSessionCookieScope(req);
           return req.session.save((saveErr: any) => {
             if (saveErr) return next(saveErr);
             return completeLogin();
@@ -3976,6 +3978,7 @@ export async function registerRoutes(app: any) {
     emailVerificationLimiter,
     async (req: Request, res: Response) => {
       try {
+        const genericMessage = "If an account exists, a verification link has been sent.";
         const body = (req.body || {}) as any;
         const email = typeof body.email === "string" ? body.email.trim() : "";
         if (!email) {
@@ -3983,12 +3986,8 @@ export async function registerRoutes(app: any) {
         }
 
         const user = await storage.getUserByEmail(email);
-        if (!user) {
-          return res.json({ message: "If an account exists, a verification link has been sent." });
-        }
-
-        if (user.emailVerified) {
-          return res.json({ message: "Email already verified." });
+        if (!user || user.emailVerified) {
+          return res.json({ message: genericMessage });
         }
 
         const { token, expiresAt } = await emailVerificationService.createToken(user.id);
@@ -4015,7 +4014,7 @@ export async function registerRoutes(app: any) {
             : {};
 
         return res.json({
-          message: "If an account exists, a verification link has been sent.",
+          message: genericMessage,
           ...debug,
         });
       } catch (error: any) {
@@ -4050,6 +4049,12 @@ export async function registerRoutes(app: any) {
             else resolve();
           });
         });
+        applyRequestSessionCookieScope(req);
+        if (req.session) {
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => (err ? reject(err) : resolve()));
+          });
+        }
       } catch (loginErr) {
         // Non-fatal: verification succeeded; session establishment failed.
         // The client will fall back to the normal sign-in path.

@@ -93,8 +93,14 @@ function readProfilePriorityConfig(value: unknown): Readonly<{
     record.requiredIdentity === "business" || record.requiredIdentity === "user"
       ? record.requiredIdentity
       : null;
-  const priorityKey = String(record.priorityKey || "").trim().slice(0, 80) || null;
-  const description = String(record.description || "").trim().slice(0, 280) || null;
+  const priorityKey =
+    String(record.priorityKey || "")
+      .trim()
+      .slice(0, 80) || null;
+  const description =
+    String(record.description || "")
+      .trim()
+      .slice(0, 280) || null;
   return Object.freeze({ requiredIdentity, priorityKey, description });
 }
 
@@ -149,7 +155,6 @@ export function resolveProfileAccountPolicy(args: {
 export function buildProfileAccountReturnPath(profileSlug: string): string {
   const normalized = normalizeSlug(profileSlug);
   const params = new URLSearchParams({ profileAccount: "1" });
-  const profilePath =
-    normalized === "jw-stone" ? "/jw-stone" : `/u/${encodeURIComponent(normalized)}`;
+  const profilePath = `/u/${encodeURIComponent(normalized)}`;
   return `${profilePath}?${params.toString()}`;
 }
