@@ -471,9 +471,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [isStartGuideOpen, setIsStartGuideOpen] = useState(false);
   const [isMobileUnlockablesOpen, setIsMobileUnlockablesOpen] = useState(false);
-  const RIGHT_TOOLS_COLLAPSED_KEY = "ts:rightToolsCollapsed";
-  const RIGHT_TOOLS_COLLAPSED_W = "56px";
-  const [isRightToolsCollapsed, setIsRightToolsCollapsed] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const { canPromptInstall, promptInstall } = useInstallPrompt();
@@ -483,13 +480,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   useLocationUpgrade();
 
   const isScoutSurface = location === "/" || location.startsWith("/scout");
-  const isSettingsSurface =
-    location.startsWith("/settings") ||
-    location.startsWith("/profile-settings") ||
-    location.startsWith("/dashboard-settings") ||
-    location.startsWith("/notifications") ||
-    location.startsWith("/privacy") ||
-    location.startsWith("/privacy-request");
   const showMobileScoutHero = location === "/";
   const isAuthSurface =
     location.startsWith("/create-account") ||
@@ -497,11 +487,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/register");
   const isSetupSurface =
     location.startsWith("/pre-scout-setup") || isOnboardingSurfacePath(location);
-  const isPortalSurface =
-    location === "/homescout-listings" ||
-    location.startsWith("/homescout/") ||
-    location.startsWith("/tradepartners/") ||
-    location.startsWith("/collections/");
   const isAdminSurface = location.startsWith("/admin");
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
   const role =
@@ -561,19 +546,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     () => buildMobileFlowNav(featureNav, contactRequestCount),
     [featureNav, contactRequestCount]
   );
-
-  const desktopPrimaryNav = useMemo(() => {
-    const primaryHrefs = new Set([
-      "/scout",
-      "/direct-connect",
-      ROUTES.CONTRACTORS ?? "/contractors",
-      "/direct-connect/opportunities",
-      ROUTES.COMMUNITY ?? "/community",
-      "/share",
-    ]);
-
-    return featureNav.filter((item) => primaryHrefs.has(item.href));
-  }, [featureNav]);
 
   const topRightUnlockableItems = useMemo(() => {
     const unlockableHrefs = new Set<string>([
@@ -665,24 +637,24 @@ export function AppShell({ children, footer }: AppShellProps) {
     </button>
   );
 
-  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
-  const showSurfaceOrientation = true;
-  const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const currentPath = location.split("?")[0].split("#")[0];
+  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
+  const appOwnsSurfaceOrientation =
+    currentPath === "/scout" ||
+    currentPath.startsWith("/scout/") ||
+    currentPath === "/community" ||
+    currentPath.startsWith("/community/") ||
+    currentPath === "/community-feed" ||
+    currentPath.startsWith("/community-feed/") ||
+    currentPath.startsWith("/community-post/") ||
+    currentPath.startsWith("/direct-connect/opportunities") ||
+    currentPath.startsWith("/direct-connect/employment");
+  const showSurfaceOrientation = !appOwnsSurfaceOrientation;
+  const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const publicProfileContinuation = useMemo(
     () => parsePublicProfileContinuation(location),
     [location]
   );
-  const pinRightToolsEnabled =
-    String(import.meta.env.VITE_PIN_RIGHT_TOOLS_V1 ?? "false") === "true";
-  const shouldPinRightTools =
-    pinRightToolsEnabled &&
-    !isMobile &&
-    !isAdminSurface &&
-    !isAuthOrSetupSurface &&
-    !isScoutSurface &&
-    !isSettingsSurface &&
-    !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
@@ -751,17 +723,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     };
   }, [isAuthenticated, isAuthOrSetupSurface]);
 
-  // Desktop preference: allow collapsing the right tools panel to reclaim space.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isMobile) return;
-    try {
-      setIsRightToolsCollapsed(window.localStorage.getItem(RIGHT_TOOLS_COLLAPSED_KEY) === "1");
-    } catch {
-      // ignore
-    }
-  }, [isMobile]);
-
   // Never keep stale tool overlays open across navigation changes.
   // This prevents transparent/full-height drawers from blocking clicks
   // when the user moves between settings/profile surfaces.
@@ -805,18 +766,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const navigateFromStartGuide = (href: string) => {
     closeStartGuide();
     navigate(href);
-  };
-
-  const toggleRightToolsCollapsed = () => {
-    setIsRightToolsCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem(RIGHT_TOOLS_COLLAPSED_KEY, next ? "1" : "0");
-      } catch {
-        // ignore
-      }
-      return next;
-    });
   };
 
   // Mobile hero content for context/messaging/CTAs
@@ -970,16 +919,17 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setIsStartGuideOpen(true)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border"
                 style={{
                   borderColor: "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
-                  backgroundColor: "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                  backgroundColor:
+                    "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
                   color: "var(--theme-accent-primary)",
                 }}
                 aria-label="Open Start here guide"
+                title="Start here"
               >
                 <Compass className="h-4 w-4" />
-                Start
               </button>
             )}
             {!isMobileSimplified && !isLoggedIn && !isAuthOrSetupSurface && (
@@ -1091,43 +1041,6 @@ export function AppShell({ children, footer }: AppShellProps) {
             </div>
           </Link>
 
-          {showFeatureNav && desktopPrimaryNav.length > 0 && (
-            <nav
-              aria-label="Primary"
-              className="ts-desktop-primary-nav hidden min-w-0 flex-1 items-center justify-center gap-1 px-3 lg:flex"
-            >
-              {desktopPrimaryNav.map((item) => {
-                const hrefPath = item.href.split("?")[0].split("#")[0];
-                const isActive = currentPath === hrefPath || currentPath.startsWith(hrefPath + "/");
-
-                return (
-                  <Link
-                    key={`desktop-nav-${item.href}`}
-                    href={item.href}
-                    data-active={isActive ? "true" : "false"}
-                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 items-center gap-2 whitespace-nowrap rounded-md border px-3 text-xs font-medium no-underline transition-colors"
-                    style={{
-                      borderColor: isActive
-                        ? "color-mix(in oklab, var(--theme-accent-primary) 44%, transparent)"
-                        : "transparent",
-                      backgroundColor: isActive
-                        ? "color-mix(in oklab, var(--theme-accent-primary) 12%, var(--charcoal-950))"
-                        : "transparent",
-                      color: isActive ? "var(--theme-accent-primary)" : "var(--text-secondary)",
-                    }}
-                  >
-                    {item.icon ? (
-                      <span className="ts-desktop-nav-icon inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                        {item.icon}
-                      </span>
-                    ) : null}
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          )}
-
           {/* Right side: auth CTA + icons */}
           <div className="flex items-center gap-2 shrink-0">
             {!isLoggedIn && !isAuthOrSetupSurface && (
@@ -1159,7 +1072,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => setIsStartGuideOpen(true)}
-                  className="hidden h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors xl:inline-flex"
+                  className="hidden h-8 w-8 items-center justify-center rounded-full border transition-colors lg:inline-flex"
                   style={{
                     borderColor:
                       "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
@@ -1167,9 +1080,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                       "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
                     color: "var(--theme-accent-primary)",
                   }}
+                  aria-label="Open Start here guide"
+                  title="Start here"
                 >
                   <CircleHelp className="h-4 w-4" />
-                  What can I do?
                 </button>
                 {showInstallAction && (
                   <button
@@ -1266,11 +1180,6 @@ export function AppShell({ children, footer }: AppShellProps) {
         style={{
           top: isAdminSurface ? 0 : "var(--top-nav-h)",
           bottom: showFeatureNav && isMobile ? "var(--bottom-nav-h)" : 0,
-          paddingRight: shouldPinRightTools
-            ? isRightToolsCollapsed
-              ? RIGHT_TOOLS_COLLAPSED_W
-              : "var(--right-nav-w)"
-            : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
           color: "var(--text-primary)",
@@ -1355,27 +1264,6 @@ export function AppShell({ children, footer }: AppShellProps) {
           {children}
         </div>
       </main>
-
-      {/* Optional desktop tools rail; disabled by default to preserve page width. */}
-      {shouldPinRightTools && (
-        <aside
-          className="fixed z-40"
-          style={{
-            top: isAdminSurface ? 0 : "var(--top-nav-h)",
-            bottom: 0,
-            right: 0,
-            width: isRightToolsCollapsed ? RIGHT_TOOLS_COLLAPSED_W : "var(--right-nav-w)",
-            background: "var(--surface-intermediate)",
-            color: "var(--text-primary)",
-          }}
-        >
-          <RightToolsPanel
-            contactRequestCount={contactRequestCount}
-            collapsed={isRightToolsCollapsed}
-            onToggleCollapsed={toggleRightToolsCollapsed}
-          />
-        </aside>
-      )}
 
       {/* Desktop tools stay on demand so pages keep their full working width. */}
       {!isMobile && isToolsOpen && !isAuthOrSetupSurface && (
@@ -1478,7 +1366,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                       style={{ color: "var(--theme-accent-primary)" }}
                     />
                   </span>
-                  <span className="mt-1 text-xs leading-5" style={{ color: "var(--text-secondary)" }}>
+                  <span
+                    className="mt-1 text-xs leading-5"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {item.description}
                   </span>
                 </button>

@@ -1491,7 +1491,7 @@ const CommunityFeed = memo(function CommunityFeed() {
               </div>
             </header>
             <nav
-              className="ts-community-viewbar mb-5 flex items-center gap-2 overflow-x-auto border-b border-white/[0.07] pb-3"
+              className="ts-community-viewbar mb-5 flex flex-wrap items-center gap-2 border-b border-white/[0.07] pb-3"
               aria-label="Community feed views"
             >
               <button
@@ -1512,7 +1512,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 <Globe className="h-3.5 w-3.5" />
                 Explore
               </button>
-              <span className="ts-community-viewbar__divider mx-1 h-5 w-px shrink-0 bg-white/[0.08]" />
+              <span className="ts-community-viewbar__divider mx-1 hidden h-5 w-px shrink-0 bg-white/[0.08] sm:block" />
               <button
                 type="button"
                 onClick={() => handleCommunityView(isGlobalView ? "global" : "local", "forYou")}
@@ -1546,8 +1546,8 @@ const CommunityFeed = memo(function CommunityFeed() {
               aria-labelledby="community-action-title"
               data-testid="community-action-panel"
             >
-              <div className="flex flex-col gap-3 px-3 py-3.5 sm:px-4 lg:flex-row lg:items-center">
-                <div className="min-w-0 lg:w-[210px] lg:shrink-0">
+              <div className="flex flex-col gap-3 px-3 py-3.5 sm:px-4 xl:flex-row xl:items-center">
+                <div className="min-w-0 xl:w-[210px] xl:shrink-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
                     Get it done
                   </p>
@@ -1561,7 +1561,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     Ask, recommend, alert people, find help, or sell something.
                   </p>
                 </div>
-                <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
+                <div className="grid min-w-0 flex-1 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                   {[
                     {
                       key: "request",
@@ -1598,7 +1598,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                       key={key}
                       type="button"
                       onClick={() => startCommunityRoute(key)}
-                      className="group flex min-w-[142px] items-center gap-2.5 rounded-xl border border-white/[0.07] bg-black/20 px-3 py-2.5 text-left transition hover:border-ts-orange/45 hover:bg-ts-orange/[0.08] lg:min-w-0"
+                      className="group flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent bg-transparent px-2.5 py-2 text-left transition hover:border-ts-orange/30 hover:bg-ts-orange/[0.07]"
                       data-testid={`community-route-${key}`}
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.055] text-ts-orange transition group-hover:bg-ts-orange/15">
@@ -1606,7 +1606,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                       </span>
                       <span className="min-w-0">
                         <span className="block text-xs font-semibold text-white">{label}</span>
-                        <span className="mt-0.5 block whitespace-nowrap text-[10px] text-white/38">
+                        <span className="mt-0.5 block text-[10px] leading-4 text-white/38">
                           {detail}
                         </span>
                       </span>
@@ -1619,7 +1619,7 @@ const CommunityFeed = memo(function CommunityFeed() {
               </div>
             </section>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8">
               {/* Main Feed */}
               <div className="min-w-0 space-y-3 md:space-y-4">
                 <div className="flex items-end justify-between gap-3 px-1">
@@ -2031,7 +2031,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         {connectionActivityData?.activeNowCount ?? activeConnections.length}
                       </span>
                     </div>
-                    <div className="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
+                    <div className="flex gap-3 overflow-x-auto pb-1 xl:flex-wrap xl:overflow-visible">
                       {activeConnections.slice(0, 8).map((neighbor) => {
                         const name =
                           [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||

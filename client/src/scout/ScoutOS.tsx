@@ -3864,6 +3864,15 @@ export default function ScoutOS() {
   // Scout is one control surface. Dashboard state lives in the main column;
   // search and quick starts stay in the single dock instead of a second rail.
   const showDiscoveryRail = false;
+  const handleScoutTyping = useCallback(() => {
+    setHasGuestInteracted(true);
+    recordActivity({
+      type: "ask_scout",
+      ts: new Date().toISOString(),
+      path: location,
+      label: "typing",
+    });
+  }, [location]);
   const clearScoutLaunchContext = useCallback(() => {
     navigate("/scout", { replace: true });
     setScoutBrowserLocation("/scout");
@@ -3880,9 +3889,13 @@ export default function ScoutOS() {
             isMobile ? "px-3 pt-2.5 pb-12" : "max-w-7xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
-            paddingBottom: isMobile
-              ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
-              : "calc(var(--scout-search-dock-h, 92px) + 1rem)",
+            paddingBottom: hasUserMessages
+              ? isMobile
+                ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
+                : "calc(var(--scout-search-dock-h, 92px) + 1rem)"
+              : isMobile
+                ? "1.5rem"
+                : "2rem",
           }}
         >
           {/* Main conversation layout: used for all users, including first-time guests. */}
@@ -3900,9 +3913,11 @@ export default function ScoutOS() {
                 isMobile ? "" : showDiscoveryRail ? "flex-1" : "flex-1 max-w-4xl mx-auto"
               }`}
               style={{
-                paddingBottom: isMobile
-                  ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
-                  : "calc(var(--scout-search-dock-h, 92px) + 0.75rem)",
+                paddingBottom: hasUserMessages
+                  ? isMobile
+                    ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
+                    : "calc(var(--scout-search-dock-h, 92px) + 0.75rem)"
+                  : 0,
               }}
             >
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
@@ -3963,6 +3978,21 @@ export default function ScoutOS() {
 
               {!hasUserMessages && (
                 <ScoutHome
+                  primaryOutcomeInput={
+                    <ScoutSearchDock
+                      isMobile={isMobile}
+                      placement="inline"
+                      isBusy={isBusy}
+                      prefillKey={prefillKey}
+                      forcedPrefill={scoutLaunch.prompt}
+                      hasMessages={hasMessages}
+                      quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
+                      autoDemoText=""
+                      enableAutoDemo={shouldPlayIntroDemo}
+                      onSend={(value) => handleSend(value)}
+                      onTyping={handleScoutTyping}
+                    />
+                  }
                   onPromptSelect={(text) => {
                     setHasGuestInteracted(true);
                     handleSend(text);
@@ -4656,7 +4686,8 @@ export default function ScoutOS() {
                           Findings and recommended paths
                         </p>
                         <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                          This conversation stays here while you work. Choose Save to keep it for later.
+                          This conversation stays here while you work. Choose Save to keep it for
+                          later.
                         </p>
                       </span>
                       <span className="flex shrink-0 flex-wrap justify-end gap-1.5">
@@ -4857,28 +4888,23 @@ export default function ScoutOS() {
               </div>
             </div>
 
-            <div className="scout-input-bottom-pin order-3">
-              <ScoutSearchDock
-                isMobile={isMobile}
-                isBusy={isBusy}
-                prefillKey={prefillKey}
-                forcedPrefill={scoutLaunch.prompt}
-                hasMessages={hasMessages}
-                quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
-                autoDemoText=""
-                enableAutoDemo={shouldPlayIntroDemo}
-                onSend={(value) => handleSend(value)}
-                onTyping={() => {
-                  setHasGuestInteracted(true);
-                  recordActivity({
-                    type: "ask_scout",
-                    ts: new Date().toISOString(),
-                    path: location,
-                    label: "typing",
-                  });
-                }}
-              />
-            </div>
+            {hasUserMessages ? (
+              <div className="scout-input-bottom-pin order-3">
+                <ScoutSearchDock
+                  isMobile={isMobile}
+                  placement="fixed"
+                  isBusy={isBusy}
+                  prefillKey={prefillKey}
+                  forcedPrefill={scoutLaunch.prompt}
+                  hasMessages={hasMessages}
+                  quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
+                  autoDemoText=""
+                  enableAutoDemo={shouldPlayIntroDemo}
+                  onSend={(value) => handleSend(value)}
+                  onTyping={handleScoutTyping}
+                />
+              </div>
+            ) : null}
 
             {showDiscoveryRail && (
               <aside className="scout-v2-command-rail">

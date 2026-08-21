@@ -110,6 +110,20 @@ describe("Community app surface UX contract", () => {
     expect(routes).not.toContain("furnace|ac|air\\s+conditioner");
   });
 
+  it("keeps local views and outcome actions visible without horizontally clipped control rows", () => {
+    const feed = read("client/src/pages/community-feed.tsx");
+
+    expect(feed).toContain(
+      'className="ts-community-viewbar mb-5 flex flex-wrap items-center gap-2'
+    );
+    expect(feed).toContain(
+      'className="grid min-w-0 flex-1 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"'
+    );
+    expect(feed).toContain("xl:grid-cols-[minmax(0,1fr)_300px]");
+    expect(feed).not.toContain("lg:grid-cols-[minmax(0,1fr)_300px]");
+    expect(feed).not.toContain("min-w-[142px]");
+  });
+
   it("deletes displaced Community snapshot, recommendation, and duplicate empty-state sources", () => {
     const removedFiles = [
       "client/src/components/community/CommunitySnapshotRail.tsx",

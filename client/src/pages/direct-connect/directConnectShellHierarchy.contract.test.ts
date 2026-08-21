@@ -25,4 +25,13 @@ describe("Direct Connect shell hierarchy", () => {
     expect(source).not.toContain(">Notifications</span>");
     expect(source).not.toContain(">Messages</span>");
   });
+
+  it("keeps the Jobs sibling surface within the workspace and gives every tab a mobile label", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+
+    expect(source).toContain('className="w-full max-w-full overflow-x-hidden"');
+    expect(source).toContain('className="grid grid-cols-3 gap-1 md:flex');
+    expect(source).toContain("min-w-0 items-center justify-center");
+    expect(source).toContain("SECTION_SHORT_LABELS[section]");
+  });
 });

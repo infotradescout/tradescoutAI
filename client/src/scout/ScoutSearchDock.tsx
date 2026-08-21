@@ -3,6 +3,7 @@ import { ScoutInputRow } from "./ScoutInputRow";
 
 type ScoutSearchDockProps = {
   isMobile: boolean;
+  placement?: "inline" | "fixed";
   isBusy: boolean;
   prefillKey: number;
   forcedPrefill?: string;
@@ -16,6 +17,7 @@ type ScoutSearchDockProps = {
 
 export function ScoutSearchDock({
   isMobile,
+  placement = "fixed",
   isBusy,
   prefillKey,
   forcedPrefill,
@@ -27,7 +29,10 @@ export function ScoutSearchDock({
   onTyping,
 }: ScoutSearchDockProps) {
   return (
-    <div className="scout-search-dock-fixed">
+    <div
+      className={placement === "inline" ? "scout-search-dock-inline" : "scout-search-dock-fixed"}
+      data-testid="scout-primary-outcome-input"
+    >
       <div
         className={
           isMobile

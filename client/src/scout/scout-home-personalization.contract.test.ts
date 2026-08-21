@@ -14,7 +14,11 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain('data-testid="scout-control-snapshot"');
     expect(source).toContain("if (items.length === 0) return null;");
     expect(renderedHome).toContain("<ScoutHero");
+    expect(renderedHome).toContain("{primaryOutcomeInput}");
     expect(renderedHome).toContain("<ScoutControlSnapshot");
+    expect(renderedHome.indexOf("{primaryOutcomeInput}")).toBeLessThan(
+      renderedHome.indexOf("<ScoutControlSnapshot")
+    );
     expect(renderedHome).not.toContain("<LocalCommandCenter");
     expect(renderedHome).not.toContain("<CommunitySnapshot");
     expect(renderedHome).not.toContain("<LocalSnapshot");

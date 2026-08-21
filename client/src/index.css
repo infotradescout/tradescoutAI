@@ -3493,6 +3493,12 @@ body.ts-scout-active .scout-content {
   isolation: isolate;
 }
 
+.scout-search-dock-inline {
+  position: relative;
+  width: 100%;
+  padding: 0.5rem 0 0.75rem;
+}
+
 .scout-search-dock-fixed::before {
   content: "";
   position: absolute;
@@ -4027,37 +4033,6 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 
 .ts-authenticated-app .app-page [class*="shadow-"] {
   box-shadow: var(--surface-card-shadow) !important;
-}
-
-.ts-desktop-primary-nav {
-  max-width: min(720px, calc(100vw - 520px));
-}
-
-.ts-desktop-nav-item:hover {
-  border-color: color-mix(in oklab, var(--border-primary) 78%, transparent) !important;
-  background: color-mix(in oklab, var(--surface-intermediate) 72%, transparent) !important;
-  color: var(--text-primary) !important;
-}
-
-.ts-desktop-nav-icon svg {
-  width: 1rem !important;
-  height: 1rem !important;
-}
-
-.ts-desktop-nav-item[data-active="false"] .ts-desktop-nav-icon svg {
-  color: var(--text-secondary) !important;
-}
-
-@media (max-width: 1180px) {
-  .ts-desktop-primary-nav {
-    max-width: min(580px, calc(100vw - 460px));
-  }
-
-  .ts-desktop-nav-item {
-    max-width: 124px;
-    padding-right: 0.625rem;
-    padding-left: 0.625rem;
-  }
 }
 
 .ts-landing nav,
