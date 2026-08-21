@@ -55,7 +55,7 @@ describe("profile-native account foundation", () => {
     expect(header).toContain("sticky top-0");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
     expect(header).toContain("onOpenAccount");
-    expect(header).toContain("Account");
+    expect(header).toContain("Create account");
     expect(marketplace).toContain("<PublicProfileAccountDialog");
     expect(marketplace).toContain('profileSlug="jw-stone"');
     expect(dialog).toContain("Any business can create an account directly with");
@@ -65,6 +65,28 @@ describe("profile-native account foundation", () => {
     expect(client).toContain('if (slug === "jw-stone") return "/jw-stone";');
     expect(onboarding).toContain('normalized === "/jw-stone"');
     expect(onboarding).toContain("/^\\/u\\/[a-z0-9]");
+  });
+
+  it("keeps verification and password recovery on the originating profile account", () => {
+    const route = read("server/routes/profile-accounts.ts");
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
+    const client = read("client/src/components/profile/profileAccountClient.ts");
+    const verify = read("client/src/pages/verify-email.tsx");
+    const reset = read("client/src/pages/reset-password.tsx");
+
+    expect(route).toContain('"/api/profile-accounts/request-password-reset"');
+    expect(route).toContain("refine(isProfileAccountReturnPath)");
+    expect(route).toContain('purpose: "password_reset"');
+    expect(route).toContain("next=${encodeURIComponent(parsed.data.next)}");
+    expect(route).toContain("emailVerificationSent = !sendResult.skipped");
+    expect(route).not.toContain("debugCode");
+    expect(dialog).toContain("Forgot or need to set your password?");
+    expect(dialog).toContain('requestError.code === "AUTH_SOCIAL_ONLY"');
+    expect(client).toContain("isProfileAccountResumePath");
+    expect(client).toContain('buildApiUrl("/api/profile-accounts/request-password-reset")');
+    expect(verify).toContain("isProfileAccountResumePath(safeNext)");
+    expect(reset).toContain("requestProfileAccountPasswordReset");
+    expect(reset).toContain("navigate(safeNext)");
   });
 
   it("does not ask users to choose a business role", () => {

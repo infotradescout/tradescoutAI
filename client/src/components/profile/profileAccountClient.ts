@@ -1,5 +1,6 @@
 import type { ProfileAccountPolicy } from "@shared/profileAccount";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { isSafeNextPath } from "@/lib/postOnboardingRoute";
 
 export type ViewerBusinessProfile = Readonly<{
   id: string;
@@ -58,6 +59,17 @@ function canonicalProfilePath(profileSlug: string): string {
   return `/u/${encodeURIComponent(slug)}`;
 }
 
+function safeInternalPath(value: unknown): string {
+  const candidate = String(value || "").trim();
+  if (!isSafeNextPath(candidate)) return "";
+  try {
+    const parsed = new URL(candidate, "https://profile-account.local");
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`.slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
 export function buildProfileAccountResumePath(
   profileSlug: string,
   mode: ProfileAccountMode = "create"
@@ -67,16 +79,27 @@ export function buildProfileAccountResumePath(
   return `${canonicalProfilePath(profileSlug)}?${params.toString()}`;
 }
 
+export function isProfileAccountResumePath(value: unknown): boolean {
+  const path = safeInternalPath(value);
+  if (!path) return false;
+  try {
+    const parsed = new URL(path, "https://profile-account.local");
+    if (parsed.searchParams.get("profileAccount") !== "1") return false;
+    const pathname = parsed.pathname.toLowerCase().replace(/\/+$/, "") || "/";
+    return pathname === "/jw-stone" || /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 export function currentProfileAccountSourcePath(profileSlug: string): string {
   if (typeof window === "undefined") return canonicalProfilePath(profileSlug);
   try {
     const url = new URL(window.location.href);
     url.searchParams.delete("profileAccount");
     url.searchParams.delete("profileAccountMode");
-    const path = `${url.pathname}${url.search}${url.hash}`;
-    if (path.startsWith("/") && !path.startsWith("//") && !path.includes("\\")) {
-      return path.slice(0, 500);
-    }
+    const path = safeInternalPath(`${url.pathname}${url.search}${url.hash}`);
+    if (path) return path;
   } catch {
     // Use the canonical public profile route below.
   }
@@ -160,4 +183,29 @@ export async function registerProfileAccount(args: {
   const payload = await readProfileAccountJson(response);
   if (!response.ok) throw toError(response, payload, "Account could not be created.");
   return payload as ProfileAccountRegistrationResponse;
+}
+
+export async function requestProfileAccountPasswordReset(args: {
+  email: string;
+  next: string;
+}): Promise<{ message: string }> {
+  if (!isProfileAccountResumePath(args.next)) {
+    throw new Error("The account return path is invalid.");
+  }
+  const response = await fetch(buildApiUrl("/api/profile-accounts/request-password-reset"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email: args.email, next: args.next }),
+  });
+  const payload = await readProfileAccountJson(response);
+  if (!response.ok) {
+    throw toError(response, payload, "Password reset could not be requested.");
+  }
+  return {
+    message: String(payload.message || "Check your email for a password reset link."),
+  };
 }

@@ -225,7 +225,7 @@ async function createPrivateBusinessProfile(
        updated_at
      )
      SELECT
-       $1,
+       $1::varchar,
        'business',
        'business_owner',
        ARRAY['business_owner']::text[],
@@ -236,7 +236,7 @@ async function createPrivateBusinessProfile(
          'businessRegistrationReviewRequestedAt', NOW()::text,
          'businessRegistrationReviewSource', 'profile_account'
        ),
-       NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1),
+       NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1::varchar),
        $2,
        NOW(),
        NOW()

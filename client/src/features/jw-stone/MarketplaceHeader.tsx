@@ -91,7 +91,7 @@ export function MarketplaceHeader({
             aria-label="Open your account with JW Stone"
           >
             <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Account</span>
+            <span className="text-xs font-semibold sm:text-sm">Create account</span>
           </button>
 
           <div className="relative" ref={menuRef}>
@@ -124,7 +124,7 @@ export function MarketplaceHeader({
                     onClick={() => closeAnd(onOpenAccount)}
                     className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
                   >
-                    Account
+                    Create account
                   </button>
                   <a
                     href="#about-jw-stone"
