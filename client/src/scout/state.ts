@@ -204,7 +204,7 @@ function createMessage(role: ScoutRole, content: string): ScoutMessage {
   };
 }
 
-function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
+export function scoutReducer(state: ScoutState, event: ScoutEvent): ScoutState {
   switch (event.type) {
     case "USER_MESSAGE": {
       const msg = createMessage("user", event.content);
@@ -213,6 +213,7 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
         messages: [...state.messages, msg],
         status: "resolving_context",
         error: null,
+        lastActions: [],
       };
     }
 
@@ -236,6 +237,7 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
         messages: [...state.messages, errorMessage],
         status: "error",
         error: event.error,
+        lastActions: [],
       };
     }
 
@@ -265,7 +267,7 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
 }
 
 export function useScoutState(initialMessages?: ScoutMessage[]) {
-  const [state, dispatch] = useReducer(reducer, {
+  const [state, dispatch] = useReducer(scoutReducer, {
     ...initialState,
     messages: initialMessages ?? [],
   });

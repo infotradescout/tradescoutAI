@@ -116,12 +116,19 @@ function looksLikeRealDisplayTitle(value?: string | null): boolean {
   return specificTokenCount >= 1 && tokens.length >= 2;
 }
 
-function getMeaningfulContinuations(threads: ContinuityThread[]): ContinuityThread[] {
+export function getMeaningfulContinuations(threads: ContinuityThread[]): ContinuityThread[] {
   return threads
     .filter((thread) => {
       if (!thread.id) return false;
-      const objectTitle = thread.relatedLabel || thread.title || thread.preview || thread.summary;
-      if (!looksLikeRealDisplayTitle(objectTitle)) return false;
+      const identityCandidates = [
+        thread.relatedLabel,
+        thread.title,
+        thread.preview,
+        thread.summary,
+      ];
+      if (!identityCandidates.some((candidate) => looksLikeRealDisplayTitle(candidate))) {
+        return false;
+      }
       const detail = thread.preview || thread.summary;
       return detail ? !isGenericContinuityLabel(detail) : true;
     })

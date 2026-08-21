@@ -1,7 +1,7 @@
 import React from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import ScoutThread, { EvidenceSourceList } from "./ScoutThread";
+import ScoutThread, { EvidenceSourceList, scrollOpenScoutTaskHistoryToLatest } from "./ScoutThread";
 import type { ScoutMessage } from "./state";
 
 function renderThread(
@@ -203,5 +203,37 @@ describe("ScoutThread evidence strip", () => {
     expect(html).not.toContain("Request context");
     expect(html).not.toContain("Add location");
     expect(html).not.toContain("Add timing");
+  });
+});
+
+describe("Scout task history scrolling", () => {
+  it("scrolls the internal thread to its latest message after open layout", () => {
+    const scrollTo = vi.fn();
+    const thread = { scrollHeight: 642, scrollTo };
+    const querySelector = vi.fn(() => thread);
+    const history = { open: true, querySelector } as unknown as HTMLDetailsElement;
+    const scheduleFrame = vi.fn((callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+
+    scrollOpenScoutTaskHistoryToLatest(history, scheduleFrame);
+
+    expect(scheduleFrame).toHaveBeenCalledOnce();
+    expect(querySelector).toHaveBeenCalledWith(".scout-thread");
+    expect(scrollTo).toHaveBeenCalledWith({ top: 642, behavior: "auto" });
+  });
+
+  it("does not schedule a scroll when the history closes", () => {
+    const history = {
+      open: false,
+      querySelector: vi.fn(),
+    } as unknown as HTMLDetailsElement;
+    const scheduleFrame = vi.fn();
+
+    scrollOpenScoutTaskHistoryToLatest(history, scheduleFrame);
+
+    expect(scheduleFrame).not.toHaveBeenCalled();
+    expect(history.querySelector).not.toHaveBeenCalled();
   });
 });
