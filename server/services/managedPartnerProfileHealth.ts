@@ -121,7 +121,7 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
   const definitions: ManagedPartnerProfileDefinition[] = [
     ...MANAGED_PARTNER_PROFILE_DEFINITIONS,
   ];
-  const slugs = definitions.map((definition) => definition.slug);
+  const slugs: string[] = definitions.map((definition) => definition.slug);
 
   const [businessRows, profileRows] = await Promise.all([
     db
@@ -173,9 +173,15 @@ export async function getManagedPartnerProfileHealth(): Promise<ManagedPartnerPr
         .where(inArray(users.id, ownerIds))
     : [];
 
-  const businessBySlug = new Map(businessRows.map((row) => [row.slug, row]));
-  const profileBySlug = new Map(profileRows.map((row) => [row.slug, row]));
-  const ownerById = new Map(ownerRows.map((row) => [String(row.id), row]));
+  const businessBySlug = new Map<string, (typeof businessRows)[number]>(
+    businessRows.map((row) => [String(row.slug), row] as const)
+  );
+  const profileBySlug = new Map<string, (typeof profileRows)[number]>(
+    profileRows.map((row) => [String(row.slug), row] as const)
+  );
+  const ownerById = new Map<string, (typeof ownerRows)[number]>(
+    ownerRows.map((row) => [String(row.id), row] as const)
+  );
 
   const items: ManagedPartnerProfileHealthItem[] = definitions.map((definition) => {
     const business = businessBySlug.get(definition.slug);
