@@ -149,5 +149,7 @@ export function resolveProfileAccountPolicy(args: {
 export function buildProfileAccountReturnPath(profileSlug: string): string {
   const normalized = normalizeSlug(profileSlug);
   const params = new URLSearchParams({ profileAccount: "1" });
-  return `/u/${encodeURIComponent(normalized)}?${params.toString()}`;
+  const profilePath =
+    normalized === "jw-stone" ? "/jw-stone" : `/u/${encodeURIComponent(normalized)}`;
+  return `${profilePath}?${params.toString()}`;
 }
