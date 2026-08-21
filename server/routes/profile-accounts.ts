@@ -3,6 +3,8 @@ import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { hashPassword, isAuthenticated } from "../auth";
 import { pool } from "../db";
+import { emailService } from "../services/emailService";
+import { emailVerificationService } from "../services/emailVerificationService";
 import { storage } from "../storage";
 import {
   ensureProfileAccount,
@@ -78,6 +80,28 @@ function getUserId(req: Request): string | null {
   return normalized || null;
 }
 
+const getPublicBaseUrlFromRequest = (req: Request): string => {
+  const configured = process.env.PUBLIC_WEB_URL || process.env.APP_BASE_URL || process.env.APP_URL;
+  if (configured) return configured;
+  const host = req.get("host") || "localhost:5000";
+  const protocol = req.get("x-forwarded-proto") || req.protocol || "http";
+  return `${protocol}://${host}`;
+};
+
+const getGeneralSetting = async <T>(key: string, fallback: T): Promise<T> => {
+  try {
+    const settings = await storage.getSiteSettings("general");
+    const match = settings.find(
+      (setting: any) => setting.key === key && setting.isActive !== false
+    );
+    return (
+      match && typeof (match as any).value !== "undefined" ? (match as any).value : fallback
+    ) as T;
+  } catch {
+    return fallback;
+  }
+};
+
 async function entitlementsForAccount(args: {
   account: ProfileAccountRecord;
   includesBidRock: boolean;
@@ -125,7 +149,7 @@ export function registerProfileAccountRoutes(app: Express) {
             cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 600_000),
           }),
         })
-      : ((_req: Request, _res: Response, next: () => void) => next());
+      : (_req: Request, _res: Response, next: () => void) => next();
 
   app.get("/api/u/:slug/account", async (req: Request, res: Response): Promise<void> => {
     try {
@@ -162,6 +186,17 @@ export function registerProfileAccountRoutes(app: Express) {
 
       let createdUserId = "";
       try {
+        const registrationEnabled = await getGeneralSetting<boolean>("registration_enabled", true);
+        if (!registrationEnabled) {
+          res.status(403).json({ message: "Registration is currently disabled" });
+          return;
+        }
+
+        const emailVerificationRequired = await getGeneralSetting<boolean>(
+          "email_verification_required",
+          true
+        );
+
         const targetState = await getProfileAccountState({
           profileSlug: parsed.data.profileSlug,
         });
@@ -195,7 +230,7 @@ export function registerProfileAccountRoutes(app: Express) {
           roles: ["homeowner"],
           activeRole: "homeowner",
           provider: "local",
-          emailVerified: false,
+          emailVerified: emailVerificationRequired ? false : true,
           addressVerified: false,
           verificationStatus: "pending",
           onboardingCompleted: false,
@@ -229,9 +264,48 @@ export function registerProfileAccountRoutes(app: Express) {
           includesBidRock: created.policy.includesBidRock,
         });
 
+        let emailVerificationSent = false;
+        let verificationToken: string | undefined;
+        if (emailVerificationRequired) {
+          const { token, expiresAt } = emailVerificationService.createToken(user.id);
+          const verifyBase = getPublicBaseUrlFromRequest(req);
+          const verifyLink = `${verifyBase.replace(
+            /\/$/,
+            ""
+          )}/verify-email?token=${token}&next=${encodeURIComponent(parsed.data.next)}`;
+
+          const verificationMinutes = Math.max(
+            1,
+            Math.round((Number(expiresAt) - Date.now()) / 60000)
+          );
+          try {
+            await emailService.sendEmail({
+              to: email,
+              subject: "Verify your TradeScout email",
+              html: `<p>Thanks for joining TradeScout.</p>
+                 <p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${verificationMinutes} minutes.</p>`,
+              text: `Verify your TradeScout email: ${verifyLink}`,
+              purpose: "account_creation",
+            });
+            emailVerificationSent = true;
+          } catch (emailError) {
+            console.error("[email-verification] Failed to send verification email:", emailError);
+          }
+
+          if (!emailService.isConfigured() && process.env.NODE_ENV !== "production") {
+            verificationToken = token;
+          }
+        }
+
         await establishSession(req, user);
         res.setHeader("Cache-Control", "private, no-store");
-        res.status(201).json({ ...created, entitlements });
+        res.status(201).json({
+          ...created,
+          entitlements,
+          emailVerificationRequired,
+          emailVerificationSent,
+          ...(verificationToken ? { verificationToken } : {}),
+        });
       } catch (error: any) {
         if (createdUserId) await deleteIncompleteIdentity(createdUserId);
         if (String(error?.code || "") === "23505") {

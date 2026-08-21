@@ -62,7 +62,7 @@ describe("profile-native account foundation", () => {
     expect(dialog).toContain("registerProfileAccount");
     expect(dialog).not.toContain("/pre-scout-setup");
     expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
-    expect(client).toContain("return `/u/${encodeURIComponent(slug)}`");
+    expect(client).toContain('if (slug === "jw-stone") return "/jw-stone";');
     expect(onboarding).toContain('normalized === "/jw-stone"');
     expect(onboarding).toContain("/^\\/u\\/[a-z0-9]");
   });

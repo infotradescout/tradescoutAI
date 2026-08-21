@@ -54,7 +54,8 @@ function canonicalProfilePath(profileSlug: string): string {
   const slug = String(profileSlug || "")
     .trim()
     .toLowerCase();
-  return slug === "jw-stone" ? "/jw-stone" : `/u/${encodeURIComponent(slug)}`;
+  if (slug === "jw-stone") return "/jw-stone";
+  return `/u/${encodeURIComponent(slug)}`;
 }
 
 export function buildProfileAccountResumePath(
@@ -82,9 +83,7 @@ export function currentProfileAccountSourcePath(profileSlug: string): string {
   return canonicalProfilePath(profileSlug);
 }
 
-export async function readProfileAccountJson(
-  response: Response
-): Promise<Record<string, unknown>> {
+export async function readProfileAccountJson(response: Response): Promise<Record<string, unknown>> {
   return response.json().catch(() => ({}));
 }
 
