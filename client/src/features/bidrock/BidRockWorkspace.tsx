@@ -461,7 +461,9 @@ export default function BidRockWorkspace() {
             />
             <main className="min-w-0 border-r border-stone-200 bg-[var(--bidrock-auction-workspace)]">
               <div className="flex min-h-11 items-center justify-between gap-3 border-b border-stone-200 bg-white/70 px-4 text-xs text-stone-600">
-                <span>{filteredListings.length} timed lots</span>
+                <span>
+                  {filteredListings.length} timed {filteredListings.length === 1 ? "lot" : "lots"}
+                </span>
                 {compareIds.length ? (
                   <Button
                     type="button"

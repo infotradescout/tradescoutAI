@@ -205,6 +205,8 @@ describe("BidRock auction-first routed workspace", () => {
     expect(container.textContent).toContain("Live stone auctions");
     expect(container.textContent).toContain("Closing soon");
     expect(container.textContent).toContain("BR-000101");
+    expect(container.textContent).toContain("1 timed lot");
+    expect(container.textContent).not.toContain("1 timed lots");
     expect(container.textContent).toContain("3 bids");
     expect(container.textContent).toContain("30m 00s");
     expect(container.textContent).not.toContain("Inventory workspace");
