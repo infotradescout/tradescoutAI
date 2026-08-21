@@ -62,7 +62,8 @@ describe("profile-native account foundation", () => {
     expect(dialog).toContain("registerProfileAccount");
     expect(dialog).not.toContain("/pre-scout-setup");
     expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
-    expect(client).toContain('if (slug === "jw-stone") return "/jw-stone";');
+    expect(client).toContain("return `/u/${encodeURIComponent(slug)}`;");
+    expect(client).not.toContain('if (slug === "jw-stone")');
     expect(onboarding).toContain('normalized === "/jw-stone"');
     expect(onboarding).toContain("/^\\/u\\/[a-z0-9]");
   });
@@ -73,6 +74,8 @@ describe("profile-native account foundation", () => {
     const client = read("client/src/components/profile/profileAccountClient.ts");
     const verify = read("client/src/pages/verify-email.tsx");
     const reset = read("client/src/pages/reset-password.tsx");
+    const auth = read("server/auth.ts");
+    const mainRoutes = read("server/routes.ts");
 
     expect(route).toContain('"/api/profile-accounts/request-password-reset"');
     expect(route).toContain("refine(isProfileAccountReturnPath)");
@@ -81,12 +84,22 @@ describe("profile-native account foundation", () => {
     expect(route).toContain("emailVerificationSent = !sendResult.skipped");
     expect(route).not.toContain("debugCode");
     expect(dialog).toContain("Forgot or need to set your password?");
+    expect(dialog).toContain("Lost the verification email?");
+    expect(dialog).toContain("emailVerificationPath");
     expect(dialog).toContain('requestError.code === "AUTH_SOCIAL_ONLY"');
     expect(client).toContain("isProfileAccountResumePath");
+    expect(client).toContain("normalizeProfileAccountResumePath");
     expect(client).toContain('buildApiUrl("/api/profile-accounts/request-password-reset")');
     expect(verify).toContain("isProfileAccountResumePath(safeNext)");
+    expect(verify).toContain("Request a new verification link");
     expect(reset).toContain("requestProfileAccountPasswordReset");
-    expect(reset).toContain("navigate(safeNext)");
+    expect(reset).toContain("navigate(profileAccountNext)");
+    expect(auth).toContain("export function applyRequestSessionCookieScope");
+    expect(route).toContain("applyRequestSessionCookieScope(req);");
+    expect(
+      mainRoutes.match(/applyRequestSessionCookieScope\(req\)/g)?.length
+    ).toBeGreaterThanOrEqual(2);
+    expect(mainRoutes).not.toContain('message: "Email already verified."');
   });
 
   it("does not ask users to choose a business role", () => {

@@ -55,7 +55,6 @@ function canonicalProfilePath(profileSlug: string): string {
   const slug = String(profileSlug || "")
     .trim()
     .toLowerCase();
-  if (slug === "jw-stone") return "/jw-stone";
   return `/u/${encodeURIComponent(slug)}`;
 }
 
@@ -90,6 +89,12 @@ export function isProfileAccountResumePath(value: unknown): boolean {
   } catch {
     return false;
   }
+}
+
+export function normalizeProfileAccountResumePath(value: unknown): string {
+  const path = safeInternalPath(value);
+  if (!path || !isProfileAccountResumePath(path)) return "";
+  return path.replace(/^\/jw-stone\/?(?=[?#]|$)/i, "/u/jw-stone");
 }
 
 export function currentProfileAccountSourcePath(profileSlug: string): string {

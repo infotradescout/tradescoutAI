@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildProfileAccountResumePath, isProfileAccountResumePath } from "./profileAccountClient";
+import {
+  buildProfileAccountResumePath,
+  isProfileAccountResumePath,
+  normalizeProfileAccountResumePath,
+} from "./profileAccountClient";
 
 describe("profile account continuation paths", () => {
   it("recognizes only safe account-return paths on public profile surfaces", () => {
@@ -11,9 +15,19 @@ describe("profile account continuation paths", () => {
     expect(isProfileAccountResumePath("/%252F%252Fevil.example/?profileAccount=1")).toBe(false);
   });
 
-  it("keeps JW Stone sign-in on the canonical marketplace route", () => {
+  it("keeps JW Stone sign-in on the portable canonical profile route", () => {
     expect(buildProfileAccountResumePath("jw-stone", "signin")).toBe(
-      "/jw-stone?profileAccount=1&profileAccountMode=signin"
+      "/u/jw-stone?profileAccount=1&profileAccountMode=signin"
     );
+  });
+
+  it("normalizes already-issued legacy JW Stone continuations", () => {
+    expect(normalizeProfileAccountResumePath("/jw-stone?profileAccount=1")).toBe(
+      "/u/jw-stone?profileAccount=1"
+    );
+    expect(normalizeProfileAccountResumePath("/jw-stone/?profileAccount=1#account")).toBe(
+      "/u/jw-stone?profileAccount=1#account"
+    );
+    expect(normalizeProfileAccountResumePath("/scout?profileAccount=1")).toBe("");
   });
 });

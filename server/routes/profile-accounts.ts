@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
-import { hashPassword, isAuthenticated } from "../auth";
+import { applyRequestSessionCookieScope, hashPassword, isAuthenticated } from "../auth";
 import { pool } from "../db";
 import { emailService } from "../services/emailService";
 import { emailVerificationService } from "../services/emailVerificationService";
@@ -166,6 +166,7 @@ async function establishSession(req: Request, user: any): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     req.login(user, (error) => (error ? reject(error) : resolve()));
   });
+  applyRequestSessionCookieScope(req);
   await new Promise<void>((resolve, reject) => {
     req.session.save((error) => (error ? reject(error) : resolve()));
   });

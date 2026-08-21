@@ -15,6 +15,11 @@ function readSafeNext(): string {
   return isSafeNextPath(requested) ? requested : "";
 }
 
+function verificationRecoveryPath(): string {
+  const safeNext = readSafeNext();
+  return safeNext ? `/check-email?next=${encodeURIComponent(safeNext)}` : "/check-email";
+}
+
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -126,18 +131,15 @@ export default function VerifyEmail() {
           )}
           {state === "error" && (
             <>
-              <Button
-                className="w-full"
-                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
-              >
-                Sign in
+              <Button className="w-full" onClick={() => setLocation(verificationRecoveryPath())}>
+                Request a new verification link
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => setLocation("/pre-scout-setup?mode=create")}
+                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
               >
-                Create account
+                Sign in
               </Button>
             </>
           )}
