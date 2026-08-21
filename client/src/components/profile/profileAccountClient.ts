@@ -54,7 +54,7 @@ function canonicalProfilePath(profileSlug: string): string {
   const slug = String(profileSlug || "")
     .trim()
     .toLowerCase();
-  return `/u/${encodeURIComponent(slug)}`;
+  return slug === "jw-stone" ? "/jw-stone" : `/u/${encodeURIComponent(slug)}`;
 }
 
 export function buildProfileAccountResumePath(
