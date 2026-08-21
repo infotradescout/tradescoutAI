@@ -5,6 +5,7 @@ import { hashPassword, isAuthenticated } from "../auth";
 import { pool } from "../db";
 import { emailService } from "../services/emailService";
 import { emailVerificationService } from "../services/emailVerificationService";
+import { passwordResetService } from "../services/passwordResetService";
 import { storage } from "../storage";
 import {
   ensureProfileAccount,
@@ -29,10 +30,31 @@ function isSafeInternalPath(value: string): boolean {
   }
 }
 
+function isProfileAccountReturnPath(value: string): boolean {
+  if (!isSafeInternalPath(value)) return false;
+  try {
+    const parsed = new URL(value, "https://profile-account.local");
+    if (parsed.searchParams.get("profileAccount") !== "1") return false;
+    const pathname = parsed.pathname.toLowerCase().replace(/\/+$/, "") || "/";
+    return pathname === "/jw-stone" || /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
 function normalizeEmail(value: unknown): string {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 const createProfileAccountSchema = z
@@ -73,6 +95,13 @@ const registerProfileAccountSchema = z
   })
   .strict();
 
+const profileAccountPasswordResetSchema = z
+  .object({
+    email: z.string().trim().email().max(320),
+    next: z.string().trim().max(500).refine(isProfileAccountReturnPath),
+  })
+  .strict();
+
 function getUserId(req: Request): string | null {
   const user = req.user as any;
   const userId = user?.id || user?.claims?.sub;
@@ -81,10 +110,25 @@ function getUserId(req: Request): string | null {
 }
 
 const getPublicBaseUrlFromRequest = (req: Request): string => {
-  const configured = process.env.PUBLIC_WEB_URL || process.env.APP_BASE_URL || process.env.APP_URL;
-  if (configured) return configured;
-  const host = req.get("host") || "localhost:5000";
-  const protocol = req.get("x-forwarded-proto") || req.protocol || "http";
+  const configured = String(
+    process.env.PUBLIC_WEB_URL || process.env.APP_URL || process.env.APP_BASE_URL || ""
+  )
+    .trim()
+    .replace(/\/+$/, "");
+  if (configured) {
+    try {
+      return new URL(configured).origin;
+    } catch {
+      // Use the request-derived origin outside production.
+    }
+  }
+  if (process.env.NODE_ENV === "production") return "https://www.thetradescout.com";
+  const protocol = String(req.get("x-forwarded-proto") || req.protocol || "http")
+    .split(",")[0]
+    .trim();
+  const host = String(req.get("x-forwarded-host") || req.get("host") || "localhost:5000")
+    .split(",")[0]
+    .trim();
   return `${protocol}://${host}`;
 };
 
@@ -146,6 +190,20 @@ export function registerProfileAccountRoutes(app: Express) {
           store: createPostgresRateLimitStore({
             pool,
             prefix: "profile_account_register",
+            cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 600_000),
+          }),
+        })
+      : (_req: Request, _res: Response, next: () => void) => next();
+  const passwordResetLimiter =
+    process.env.NODE_ENV === "production"
+      ? rateLimit({
+          windowMs: 60 * 60 * 1000,
+          max: 5,
+          standardHeaders: true,
+          legacyHeaders: false,
+          store: createPostgresRateLimitStore({
+            pool,
+            prefix: "profile_account_password_reset",
             cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 600_000),
           }),
         })
@@ -269,25 +327,24 @@ export function registerProfileAccountRoutes(app: Express) {
         if (emailVerificationRequired) {
           const { token, expiresAt } = emailVerificationService.createToken(user.id);
           const verifyBase = getPublicBaseUrlFromRequest(req);
-          const verifyLink = `${verifyBase.replace(
-            /\/$/,
-            ""
-          )}/verify-email?token=${token}&next=${encodeURIComponent(parsed.data.next)}`;
+          const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${encodeURIComponent(
+            token
+          )}&next=${encodeURIComponent(parsed.data.next)}`;
 
           const verificationMinutes = Math.max(
             1,
             Math.round((Number(expiresAt) - Date.now()) / 60000)
           );
           try {
-            await emailService.sendEmail({
+            const sendResult = await emailService.sendEmail({
               to: email,
               subject: "Verify your TradeScout email",
               html: `<p>Thanks for joining TradeScout.</p>
-                 <p><a href="${verifyLink}">Verify your email address</a>. This link expires in ${verificationMinutes} minutes.</p>`,
+                 <p><a href="${escapeHtml(verifyLink)}">Verify your email address</a>. This link expires in ${verificationMinutes} minutes.</p>`,
               text: `Verify your TradeScout email: ${verifyLink}`,
               purpose: "account_creation",
             });
-            emailVerificationSent = true;
+            emailVerificationSent = !sendResult.skipped;
           } catch (emailError) {
             console.error("[email-verification] Failed to send verification email:", emailError);
           }
@@ -317,6 +374,55 @@ export function registerProfileAccountRoutes(app: Express) {
         }
         console.error("[profile-accounts] registration failed", error);
         res.status(500).json({ message: "Account could not be created. Please try again." });
+      }
+    }
+  );
+
+  app.post(
+    "/api/profile-accounts/request-password-reset",
+    passwordResetLimiter,
+    async (req: Request, res: Response): Promise<void> => {
+      const genericMessage = "If an account exists for that email, a reset link has been sent.";
+      const parsed = profileAccountPasswordResetSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ message: "Enter a valid email address." });
+        return;
+      }
+      try {
+        const email = normalizeEmail(parsed.data.email);
+        const user = await storage.getUserByEmail(email);
+        if (user) {
+          const { token, code, expiresAt } = passwordResetService.createToken(user.id);
+          const resetBase = String(
+            process.env.PASSWORD_RESET_URL || getPublicBaseUrlFromRequest(req)
+          )
+            .trim()
+            .replace(/\/+$/, "");
+          const resetLink = `${resetBase}/reset-password?token=${encodeURIComponent(
+            token
+          )}&next=${encodeURIComponent(parsed.data.next)}`;
+          try {
+            await emailService.sendEmail({
+              to: email,
+              subject: "Reset your TradeScout password",
+              html: `<p>We received a request to reset your TradeScout password.</p>
+                 <p><a href="${escapeHtml(resetLink)}">Reset your password</a>. This link expires in ${Math.max(
+                   1,
+                   Math.round((expiresAt - Date.now()) / 60000)
+                 )} minutes.</p>
+                 <p>Or enter this verification code: <strong>${escapeHtml(code)}</strong></p>
+                 <p>If you did not request this, you can ignore this email.</p>`,
+              text: `Reset your password: ${resetLink}\nVerification code: ${code}`,
+              purpose: "password_reset",
+            });
+          } catch (emailError) {
+            console.error("[profile-accounts] password reset email failed", emailError);
+          }
+        }
+        res.json({ message: genericMessage });
+      } catch (error) {
+        console.error("[profile-accounts] password reset request failed", error);
+        res.json({ message: genericMessage });
       }
     }
   );

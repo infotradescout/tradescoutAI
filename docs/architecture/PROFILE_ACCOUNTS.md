@@ -101,11 +101,19 @@ A non-stone profile does not receive BidRock. A normal user-backed profile accou
 ## Routes
 
 - `GET /api/u/:slug/account` — profile policy, required identity, current relationship, and business-setup requirement when applicable
+- `POST /api/profile-accounts/register` — claims-first creation of a private TradeScout identity and its business-backed profile account
+- `POST /api/profile-accounts/request-password-reset` — rate-limited password recovery whose delivered link carries a validated profile-account return path
 - `POST /api/u/:slug/account` — authenticated, idempotent account creation under that profile's policy
 
 Unsigned visitors return through:
 
 `/u/:slug?profileAccount=1`
+
+JW Stone uses its canonical marketplace route:
+
+`/jw-stone?profileAccount=1`
+
+Email-verification and password-reset links carry that validated `next` value in the delivered URL so the return works across browsers and devices. A remembered browser value is not the authority for the return destination.
 
 The profile completes the relationship after the required TradeScout identity exists. Business setup is requested only when the target profile policy requires it.
 
@@ -117,6 +125,7 @@ The profile completes the relationship after the required TradeScout identity ex
 - Account creation does not claim that a business is verified.
 - Suspended relationships and suspended product entitlements remain suspended during repeat entry.
 - Product entitlements do not bypass pricing, commerce, account verification, or contact rules.
+- Password recovery and email verification restore account continuity only; they do not approve the business, publish it, or activate gated entitlements.
 
 ## Current lane
 

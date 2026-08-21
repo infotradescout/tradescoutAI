@@ -124,6 +124,12 @@ export function PublicProfileAccountDialog({
   const requiresBusiness = state?.policy.requiredIdentity === "business";
   const normalizedBusinessName = businessName.trim();
   const resumePath = buildProfileAccountResumePath(profileSlug, "signin");
+  const passwordResetPath = useMemo(() => {
+    const params = new URLSearchParams({ next: resumePath });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail) params.set("email", normalizedEmail);
+    return `/reset-password?${params.toString()}`;
+  }, [email, resumePath]);
 
   const description = useMemo(() => {
     if (connected) return `Your account with ${profileName} is ready.`;
@@ -216,7 +222,13 @@ export function PublicProfileAccountDialog({
         await createNewAccount();
       }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
+      const requestError = nextError as RequestError;
+      if (requestError.code === "AUTH_SOCIAL_ONLY") {
+        setMode("signin");
+        setError("Use the password link below to set a password for this email, then sign in here.");
+      } else {
+        setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -449,6 +461,18 @@ export function PublicProfileAccountDialog({
               )}
               {mode === "signin" && !hasSession ? "Sign in and continue" : `Create account with ${profileName}`}
             </button>
+
+            {!hasSession && mode === "signin" ? (
+              <a
+                href={passwordResetPath}
+                className={cn(
+                  "inline-flex min-h-11 w-full items-center justify-center border-t border-current/10 pt-4 text-sm font-bold underline-offset-4 hover:underline",
+                  mutedClass
+                )}
+              >
+                Forgot or need to set your password?
+              </a>
+            ) : null}
 
             {!hasSession ? (
               <button

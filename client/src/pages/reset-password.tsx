@@ -9,11 +9,26 @@ import { apiRequest } from "@/lib/queryClient";
 import { KeyRound } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  isProfileAccountResumePath,
+  requestProfileAccountPasswordReset,
+} from "@/components/profile/profileAccountClient";
+import { isSafeNextPath } from "@/lib/postOnboardingRoute";
+
+function readLocationParam(location: string, key: string): string {
+  try {
+    const idx = location.indexOf("?");
+    if (idx === -1) return "";
+    return String(new URLSearchParams(location.slice(idx + 1)).get(key) || "").trim();
+  } catch {
+    return "";
+  }
+}
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [location, navigate] = useLocation();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => readLocationParam(location, "email"));
   const [code, setCode] = useState("");
   const [verifiedToken, setVerifiedToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -21,32 +36,21 @@ export default function ResetPasswordPage() {
   const [codeStepVisible, setCodeStepVisible] = useState(false);
 
   const token = useMemo(() => {
-    try {
-      const idx = location.indexOf("?");
-      if (idx === -1) return "";
-      const params = new URLSearchParams(location.slice(idx + 1));
-      return String(params.get("token") || "").trim();
-    } catch {
-      return "";
-    }
+    return readLocationParam(location, "token");
   }, [location]);
   const effectiveToken = token || verifiedToken;
   const safeNext = useMemo(() => {
-    try {
-      const idx = location.indexOf("?");
-      if (idx === -1) return "";
-      const params = new URLSearchParams(location.slice(idx + 1));
-      const requested = String(params.get("next") || "").trim();
-      return requested.startsWith("/") && !requested.startsWith("//") ? requested : "";
-    } catch {
-      return "";
-    }
+    const requested = readLocationParam(location, "next");
+    return isSafeNextPath(requested) ? requested : "";
   }, [location]);
 
   const requestResetMutation = useMutation({
     mutationFn: async () => {
       const normalizedEmail = email.trim().toLowerCase();
       if (!normalizedEmail) throw new Error("Email is required");
+      if (isProfileAccountResumePath(safeNext)) {
+        return requestProfileAccountPasswordReset({ email: normalizedEmail, next: safeNext });
+      }
       return apiRequest("POST", "/api/auth/request-password-reset", { email: normalizedEmail });
     },
     onSuccess: (data: any) => {
@@ -115,6 +119,10 @@ export default function ResetPasswordPage() {
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
+      if (isProfileAccountResumePath(safeNext)) {
+        navigate(safeNext);
+        return;
+      }
       const signinPath = safeNext
         ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeNext)}`
         : "/pre-scout-setup?mode=signin";
