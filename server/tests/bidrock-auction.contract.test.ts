@@ -327,4 +327,36 @@ describe("BidRock auction persistence contract", () => {
     expect(service).toContain("bidderDelegatedBusinessIds");
     expect(workspace).toContain("Relist timed auction");
   });
+
+  it("allows only exact repeat setup calls while a timed auction owns the lot", () => {
+    const service = read("server/services/bidrockService.ts");
+    const priceBody = service.slice(
+      service.indexOf("export async function setBidRockListingPrice"),
+      service.indexOf("export async function clearBidRockListingPrice")
+    );
+    const clearPriceBody = service.slice(
+      service.indexOf("export async function clearBidRockListingPrice"),
+      service.indexOf("export async function setBidRockListingSaleReady")
+    );
+    const publicationBody = service.slice(
+      service.indexOf("export async function setBidRockListingSaleReady"),
+      service.indexOf("export async function setBidRockSavedListing")
+    );
+
+    expect(priceBody).toContain("forceDraft: false");
+    expect(priceBody).toContain(
+      "row.price_unit === args.unit && Number(row.price_cents) === args.amountCents"
+    );
+    expect(priceBody).toContain("assertBidRockInventoryHasNoCurrentAuction");
+    expect(priceBody.indexOf("viewerCanManageListing")).toBeLessThan(
+      priceBody.indexOf("row.price_unit === args.unit")
+    );
+    expect(clearPriceBody).toContain("forceDraft: true");
+    expect(publicationBody).toContain("forceDraft: false");
+    expect(publicationBody).toContain("alreadyInRequestedState");
+    expect(publicationBody).toContain("assertBidRockInventoryHasNoCurrentAuction");
+    expect(publicationBody.indexOf("viewerCanManageListing")).toBeLessThan(
+      publicationBody.indexOf("alreadyInRequestedState")
+    );
+  });
 });

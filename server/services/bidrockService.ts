@@ -1260,7 +1260,7 @@ export async function setBidRockListingPrice(args: {
     if (!identity.rows[0]) throw new Error("BidRock listing not found");
     const projection = await refreshBidRockListingProjection(client, {
       inventoryPositionId: String(identity.rows[0].inventory_position_id),
-      forceDraft: true,
+      forceDraft: false,
     });
     const row = projection.listing
       ? {
@@ -1276,6 +1276,17 @@ export async function setBidRockListingPrice(args: {
     if (new Set(["reserved", "sold", "archived"]).has(String(row.status))) {
       throw new Error("Reserved, archived, or sold inventory cannot be repriced");
     }
+    if (row.price_unit === args.unit && Number(row.price_cents) === args.amountCents) {
+      await client.query("COMMIT");
+      return {
+        id: String(row.public_id),
+        price: { unit: args.unit, amountCents: args.amountCents, currency: BIDROCK_CURRENCY },
+      };
+    }
+    await assertBidRockInventoryHasNoCurrentAuction(
+      client,
+      String(row.locked_inventory_position_id)
+    );
     await client.query(
       `INSERT INTO bidrock_price_history (
          listing_id, actor_user_id, previous_price_unit, previous_price_cents,
@@ -1419,7 +1430,7 @@ export async function setBidRockListingSaleReady(args: {
     if (!identity.rows[0]) throw new Error("BidRock listing not found");
     const projection = await refreshBidRockListingProjection(client, {
       inventoryPositionId: String(identity.rows[0].inventory_position_id),
-      forceDraft: true,
+      forceDraft: false,
     });
     const row = projection.listing
       ? {
@@ -1431,6 +1442,7 @@ export async function setBidRockListingSaleReady(args: {
           held_quantity: projection.canonical?.held_quantity,
           inventory_version: projection.canonical?.inventory_version,
           confirmation_fresh: projection.canonical?.confirmation_fresh,
+          inventory_public_availability_status: projection.canonical?.public_availability_status,
         }
       : null;
     if (!row || String(row.public_id) !== args.listingId) {
@@ -1455,19 +1467,19 @@ export async function setBidRockListingSaleReady(args: {
     ) {
       throw new Error("Only available physical stock can be sale-ready");
     }
-    if (!args.saleReady) {
-      const currentAuction = await client.query(
-        `SELECT 1
-           FROM bidrock_auctions
-          WHERE listing_id = $1::uuid
-            AND status IN ('scheduled', 'live', 'extended', 'ended')
-          FOR UPDATE`,
-        [row.id]
-      );
-      if (currentAuction.rows[0]) {
-        throw new Error("Close the current auction before returning this lot to private inventory");
-      }
+    const alreadyInRequestedState = args.saleReady
+      ? row.status === "active" &&
+        row.inventory_public_availability_status === STONE_CURRENT_INVENTORY_PUBLIC_STATUS
+      : row.status === "draft" &&
+        row.inventory_public_availability_status === STONE_CURRENT_INVENTORY_PRIVATE_STATUS;
+    if (alreadyInRequestedState) {
+      await client.query("COMMIT");
+      return { id: String(row.public_id), status, saleReady: args.saleReady };
     }
+    await assertBidRockInventoryHasNoCurrentAuction(
+      client,
+      String(row.locked_inventory_position_id)
+    );
     const inventoryUpdate = await client.query(
       `UPDATE stone_inventory_positions
           SET public_availability_status = $2,
