@@ -116,6 +116,7 @@ export function BidRockListingRow({
           type="button"
           size="icon"
           variant="ghost"
+          className="text-stone-700 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-[var(--bidrock-auction)]"
           onClick={onSelect}
           aria-label={`Manage ${listing.title}`}
         >
@@ -231,7 +232,10 @@ export function BidRockListingRow({
         <Button
           type="button"
           variant="ghost"
-          className={cn("rounded-none border-r border-stone-200", compared && "bg-stone-100")}
+          className={cn(
+            "rounded-none border-r border-stone-200 text-stone-700 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-[var(--bidrock-auction)]",
+            compared && "bg-stone-100 text-stone-950"
+          )}
           onClick={onCompare}
           aria-pressed={compared}
         >
@@ -241,7 +245,11 @@ export function BidRockListingRow({
         <Button
           type="button"
           variant="ghost"
-          className={cn("rounded-none", saved && "text-[var(--bidrock-auction)]")}
+          className={cn(
+            "rounded-none text-stone-700 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-[var(--bidrock-auction)]",
+            saved &&
+              "bg-stone-100 text-[var(--bidrock-auction)] hover:text-[var(--bidrock-auction)]"
+          )}
           onClick={onSave}
           aria-pressed={saved}
         >

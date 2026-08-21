@@ -468,7 +468,7 @@ export default function BidRockWorkspace() {
                     size="sm"
                     variant="ghost"
                     onClick={() => setCompareOpen(true)}
-                    className="h-8"
+                    className="h-8 text-stone-700 hover:bg-stone-100 hover:text-stone-950 focus-visible:ring-[var(--bidrock-auction)]"
                   >
                     <GitCompareArrows aria-hidden="true" /> Compare {compareIds.length}
                   </Button>
@@ -1368,7 +1368,7 @@ function BidRockCompareDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-4xl overflow-auto border-stone-200 bg-white text-stone-950">
         <DialogHeader>
-          <DialogTitle>Compare auction lots</DialogTitle>
+          <DialogTitle className="text-stone-950">Compare auction lots</DialogTitle>
           <DialogDescription className="text-stone-500">
             Compare physical facts, fulfillment terms, activity, reserve state, and time remaining.
           </DialogDescription>
@@ -1408,10 +1408,10 @@ function BidRockCompareDialog({
                 />
                 <CompareRow
                   label="Activity"
-                  values={listings.map(
-                    (listing) =>
-                      `${listing.auction?.bidCount ?? 0} bids · ${listing.auction?.reserveState.replace(/_/g, " ") ?? "Unknown"}`
-                  )}
+                  values={listings.map((listing) => {
+                    const bidCount = listing.auction?.bidCount ?? 0;
+                    return `${bidCount} ${bidCount === 1 ? "bid" : "bids"} · ${listing.auction?.reserveState.replace(/_/g, " ") ?? "Unknown"}`;
+                  })}
                 />
                 <CompareRow
                   label="Pickup"

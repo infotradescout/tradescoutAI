@@ -219,6 +219,54 @@ describe("BidRock auction-first routed workspace", () => {
     expect(container.textContent).not.toContain("$");
   });
 
+  it("keeps the comparison title readable and uses singular bid grammar", () => {
+    const secondAuction = baseListing.auction;
+    if (!secondAuction) throw new Error("Expected auction fixture");
+    mocks.catalog = {
+      ...guestCatalog(),
+      listings: [
+        baseListing,
+        {
+          ...baseListing,
+          id: "listing-2",
+          materialSlug: "cristallo",
+          title: "Cristallo",
+          auction: {
+            ...secondAuction,
+            id: "bra_1234567890abcdefghijklmnox",
+            lotNumber: "BR-000102",
+            bidCount: 1,
+          },
+        },
+      ],
+    };
+    render();
+    const cards = [
+      container.querySelector('[data-testid="bidrock-listing-listing-1"]'),
+      container.querySelector('[data-testid="bidrock-listing-listing-2"]'),
+    ];
+    const compareButtons = cards.map((card) => buttonContaining(card ?? container, "Compare"));
+    const saveButtons = cards.map((card) => buttonContaining(card ?? container, "Save lot"));
+    for (const button of [...compareButtons, ...saveButtons]) {
+      expect(button?.className).toContain("text-stone-700");
+      expect(button?.className).not.toMatch(/(?:^|\s)text-white(?:\/\d+)?(?:\s|$)/);
+    }
+    click(compareButtons[0] ?? null);
+    click(compareButtons[1] ?? null);
+    const selectedCompare = buttonContaining(container, "Compared");
+    expect(selectedCompare?.className).toContain("text-stone-950");
+    expect(selectedCompare?.className).not.toMatch(/(?:^|\s)text-white(?:\/\d+)?(?:\s|$)/);
+    const compareCount = buttonContaining(container, "Compare 2");
+    expect(compareCount?.className).toContain("text-stone-700");
+    expect(compareCount?.className).not.toMatch(/(?:^|\s)text-white(?:\/\d+)?(?:\s|$)/);
+    click(compareCount);
+    const dialog = document.body.querySelector('[role="dialog"]');
+    expect(dialog?.querySelector("h2")?.className).toContain("text-stone-950");
+    expect(dialog?.textContent).toContain("3 bids · not met");
+    expect(dialog?.textContent).toContain("1 bid · not met");
+    expect(dialog?.textContent).not.toContain("1 bids");
+  });
+
   it("opens the selected auction in a mobile sheet without losing lot context", () => {
     render();
     expect(container.querySelector('[aria-label="Auction filters"]')?.className).toContain(
