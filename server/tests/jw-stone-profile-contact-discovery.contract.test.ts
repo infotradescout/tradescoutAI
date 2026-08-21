@@ -10,6 +10,7 @@ const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
 const profileSeo = read("client/src/features/jw-stone/JwStoneProfileSeo.tsx");
 const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
 const company = read("client/src/features/jw-stone/JwStoneCompanySection.tsx");
+const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
 const publicHtml = read("server/publicJwStoneMarketplaceHtml.ts");
 const identity = read("shared/jwStonePresentation.ts");
 const expressPanel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
@@ -59,13 +60,13 @@ describe("JW Stone profile contact and account contract", () => {
     expect(expressRoute).toContain("normalizeDirectConnectPhone(target.phone)");
   });
 
-  it("puts the account utility in the sticky header and nowhere visible below", () => {
+  it("puts the only JW Stone account utility in the sticky header", () => {
     expect(header).toContain("sticky top-0");
     expect(header).toContain('data-testid="jw-marketplace-account-button"');
     expect(header).toContain("onOpenAccount");
     expect(header).toContain("Account");
     expect(marketplace).toContain("<PublicProfileAccountDialog");
-    expect(company).toContain("[&_[data-testid=public-profile-account-card]]:hidden");
+    expect(trustActions).toContain('profileSlug !== "jw-stone"');
     expect(company).not.toContain("<PublicProfileAccountCard");
   });
 
