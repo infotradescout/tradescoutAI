@@ -14,21 +14,12 @@ import {
   requestProfileAccountPasswordReset,
 } from "@/components/profile/profileAccountClient";
 import { isSafeNextPath } from "@/lib/postOnboardingRoute";
-
-function readLocationParam(location: string, key: string): string {
-  try {
-    const idx = location.indexOf("?");
-    if (idx === -1) return "";
-    return String(new URLSearchParams(location.slice(idx + 1)).get(key) || "").trim();
-  } catch {
-    return "";
-  }
-}
+import { readResetPasswordParam } from "./resetPasswordLocation";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [location, navigate] = useLocation();
-  const [email, setEmail] = useState(() => readLocationParam(location, "email"));
+  const [email, setEmail] = useState(() => readResetPasswordParam("email"));
   const [code, setCode] = useState("");
   const [verifiedToken, setVerifiedToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -36,11 +27,11 @@ export default function ResetPasswordPage() {
   const [codeStepVisible, setCodeStepVisible] = useState(false);
 
   const token = useMemo(() => {
-    return readLocationParam(location, "token");
+    return readResetPasswordParam("token");
   }, [location]);
   const effectiveToken = token || verifiedToken;
   const safeNext = useMemo(() => {
-    const requested = readLocationParam(location, "next");
+    const requested = readResetPasswordParam("next");
     return isSafeNextPath(requested) ? requested : "";
   }, [location]);
 
@@ -159,8 +150,11 @@ export default function ResetPasswordPage() {
           {!effectiveToken ? (
             <>
               <div className="space-y-2">
-                <label className="text-xs text-white/60">Email</label>
+                <label htmlFor="reset-password-email" className="text-xs text-white/60">
+                  Email
+                </label>
                 <Input
+                  id="reset-password-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -180,8 +174,11 @@ export default function ResetPasswordPage() {
               {codeStepVisible ? (
                 <>
                   <div className="space-y-2 pt-2">
-                    <label className="text-xs text-white/60">Verification code</label>
+                    <label htmlFor="reset-password-code" className="text-xs text-white/60">
+                      Verification code
+                    </label>
                     <Input
+                      id="reset-password-code"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       className="bg-black/30 border-[color:var(--border-subtle)]"
@@ -202,8 +199,11 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <div className="space-y-2">
-                <label className="text-xs text-white/60">New password</label>
+                <label htmlFor="reset-password-new" className="text-xs text-white/60">
+                  New password
+                </label>
                 <Input
+                  id="reset-password-new"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -212,8 +212,11 @@ export default function ResetPasswordPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-white/60">Confirm password</label>
+                <label htmlFor="reset-password-confirm" className="text-xs text-white/60">
+                  Confirm password
+                </label>
                 <Input
+                  id="reset-password-confirm"
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
