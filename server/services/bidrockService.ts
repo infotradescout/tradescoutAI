@@ -1113,7 +1113,16 @@ function mapListing(
   return listing;
 }
 
-async function listingRows(userId: string | null, where: string, parameters: unknown[]) {
+async function listingRows(
+  userId: string | null,
+  where: string,
+  parameters: unknown[],
+  sort: "auction" | "inventory" = "auction"
+) {
+  const orderBy =
+    sort === "inventory"
+      ? "listing.source_profile_name ASC, listing.material_family ASC NULLS LAST, listing.title ASC"
+      : "auction.ends_at ASC NULLS LAST, listing.source_profile_name ASC, listing.material_family ASC NULLS LAST, listing.title ASC";
   return pool.query(
     `SELECT listing.*,
             clock_timestamp() AS database_now,
@@ -1180,8 +1189,7 @@ async function listingRows(userId: string | null, where: string, parameters: unk
            ) latest
        ) bid_stats ON TRUE
       WHERE ${where}
-      ORDER BY auction.ends_at ASC NULLS LAST, listing.source_profile_name ASC,
-               listing.material_family ASC NULLS LAST, listing.title ASC`,
+      ORDER BY ${orderBy}`,
     [userId, ...parameters]
   );
 }
@@ -1229,7 +1237,8 @@ export async function listBidRockSellerInventory(
   const rows = await listingRows(
     viewer.userId,
     viewer.admin ? "TRUE" : "listing.seller_business_id = ANY($2::text[])",
-    viewer.admin ? [] : [[...managedBusinessIds]]
+    viewer.admin ? [] : [[...managedBusinessIds]],
+    "inventory"
   );
   return rows.rows
     .map((row) => mapListing(row, viewer, { includeLegacyPrice: true }))

@@ -330,6 +330,10 @@ describe("BidRock auction persistence contract", () => {
 
   it("allows only exact repeat setup calls while a timed auction owns the lot", () => {
     const service = read("server/services/bidrockService.ts");
+    const sellerInventoryBody = service.slice(
+      service.indexOf("export async function listBidRockSellerInventory"),
+      service.indexOf("export async function setBidRockListingPrice")
+    );
     const priceBody = service.slice(
       service.indexOf("export async function setBidRockListingPrice"),
       service.indexOf("export async function clearBidRockListingPrice")
@@ -344,6 +348,8 @@ describe("BidRock auction persistence contract", () => {
     );
 
     expect(priceBody).toContain("forceDraft: false");
+    expect(service).toContain('sort: "auction" | "inventory" = "auction"');
+    expect(sellerInventoryBody).toContain('"inventory"');
     expect(priceBody).toContain(
       "row.price_unit === args.unit && Number(row.price_cents) === args.amountCents"
     );
