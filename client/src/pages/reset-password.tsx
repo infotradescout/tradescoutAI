@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
       if (profileAccountNext) {
-        navigate(profileAccountNext);
+        window.location.assign(profileAccountNext);
         return;
       }
       const signinPath = safeNext

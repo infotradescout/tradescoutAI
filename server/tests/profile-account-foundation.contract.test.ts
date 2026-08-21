@@ -93,9 +93,15 @@ describe("profile-native account foundation", () => {
     expect(verify).toContain("isProfileAccountResumePath(safeNext)");
     expect(verify).toContain("Request a new verification link");
     expect(reset).toContain("requestProfileAccountPasswordReset");
-    expect(reset).toContain("navigate(profileAccountNext)");
+    expect(reset).toContain("window.location.assign(profileAccountNext)");
     expect(auth).toContain("export function applyRequestSessionCookieScope");
     expect(route).toContain("applyRequestSessionCookieScope(req);");
+    expect(mainRoutes).toContain("const establishAuthenticatedSession");
+    expect(mainRoutes).toContain("await establishAuthenticatedSession(req, updatedUser);");
+    expect(mainRoutes).toContain("user: sanitizeUserForResponse(req.user)");
+    expect(dialog).toContain("autoContinueAttemptedRef");
+    expect(dialog).toContain('mode === "create" || (hasSession && !state.viewerBusiness)');
+    expect(dialog).toContain("Sign in with TradeScout");
     expect(
       mainRoutes.match(/applyRequestSessionCookieScope\(req\)/g)?.length
     ).toBeGreaterThanOrEqual(2);

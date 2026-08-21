@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
 import {
   Dialog,
@@ -86,6 +86,7 @@ export function PublicProfileAccountDialog({
   const [loadError, setLoadError] = useState("");
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const autoContinueAttemptedRef = useRef<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [businessName, setBusinessName] = useState("");
@@ -145,13 +146,16 @@ export function PublicProfileAccountDialog({
 
   const description = useMemo(() => {
     if (connected) return `Your account with ${profileName} is ready.`;
+    if (!hasSession && mode === "signin") {
+      return `Use your existing TradeScout account to continue. No separate ${profileName} signup is required.`;
+    }
     if (requiresBusiness) {
       return `Any business can create an account directly with ${profileName}. Your business details remain private unless you choose to publish them later.`;
     }
     return `Create an account directly with ${profileName}.`;
-  }, [connected, profileName, requiresBusiness]);
+  }, [connected, hasSession, mode, profileName, requiresBusiness]);
 
-  const finishExistingSession = async () => {
+  const finishExistingSession = useCallback(async () => {
     const current = await loadProfileAccountState(profileSlug);
     setState(current);
     if (current.account?.status === "active") return;
@@ -168,7 +172,41 @@ export function PublicProfileAccountDialog({
       sourcePath: currentProfileAccountSourcePath(profileSlug),
     });
     setState(created);
-  };
+  }, [normalizedBusinessName, profileSlug]);
+
+  useEffect(() => {
+    if (!open) {
+      autoContinueAttemptedRef.current = null;
+      return;
+    }
+
+    if (
+      !hasSession ||
+      !state ||
+      submitting ||
+      state.account?.status === "active" ||
+      state.requiresBusinessSetup ||
+      (state.policy.requiredIdentity === "business" && !state.viewerBusiness)
+    ) {
+      return;
+    }
+
+    const attemptKey = `${profileSlug}:${state.viewerBusiness?.id || "user"}`;
+    if (autoContinueAttemptedRef.current === attemptKey) return;
+    autoContinueAttemptedRef.current = attemptKey;
+
+    setError("");
+    setSubmitting(true);
+    void finishExistingSession()
+      .catch((nextError: unknown) => {
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Your TradeScout account could not be connected. Please try again."
+        );
+      })
+      .finally(() => setSubmitting(false));
+  }, [finishExistingSession, hasSession, open, profileSlug, state, submitting]);
 
   const createNewAccount = async () => {
     if (!state) throw new Error("Account details have not finished loading.");
@@ -291,9 +329,9 @@ export function PublicProfileAccountDialog({
             {connected
               ? `Your ${profileName} account`
               : hasSession
-                ? `Create your account with ${profileName}`
+                ? `Continue with ${profileName}`
                 : mode === "signin"
-                  ? `Sign in to ${profileName}`
+                  ? "Sign in with TradeScout"
                   : `Create an account with ${profileName}`}
           </DialogTitle>
           <DialogDescription className={mutedClass}>{description}</DialogDescription>
@@ -350,7 +388,7 @@ export function PublicProfileAccountDialog({
           </div>
         ) : state ? (
           <div className="space-y-4">
-            {requiresBusiness && (!state.viewerBusiness || !hasSession) ? (
+            {requiresBusiness && (mode === "create" || (hasSession && !state.viewerBusiness)) ? (
               <label className={labelClass}>
                 <span>Business name</span>
                 <input
@@ -502,7 +540,9 @@ export function PublicProfileAccountDialog({
               )}
               {mode === "signin" && !hasSession
                 ? "Sign in and continue"
-                : `Create account with ${profileName}`}
+                : hasSession
+                  ? "Continue with TradeScout"
+                  : `Create account with ${profileName}`}
             </button>
 
             {!hasSession && mode === "signin" ? (
