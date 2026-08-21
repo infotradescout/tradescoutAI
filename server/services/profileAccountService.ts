@@ -52,12 +52,34 @@ function normalizeSlug(value: unknown): string {
     .slice(0, 120);
 }
 
-function normalizeProfilePath(value: unknown, fallback: string): string {
+function normalizeSourcePath(value: unknown, fallback: string): string {
   const path = String(value || "").trim();
-  if (!path.startsWith("/u/") || path.startsWith("//") || path.includes("\\")) {
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
+    return fallback;
+  }
+  try {
+    const parsed = new URL(path, "https://profile-account.local");
+    if (parsed.origin !== "https://profile-account.local") return fallback;
+    if (decodeURIComponent(parsed.pathname).split("/").includes("..")) return fallback;
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`.slice(0, 500);
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeResumePath(value: unknown, fallback: string): string {
+  const path = String(value || "").trim();
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
     return fallback;
   }
   return path.slice(0, 500);
+}
+
+function normalizeBusinessName(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 160);
 }
 
 function normalizeBusinessVerificationStatus(
@@ -130,7 +152,7 @@ async function loadViewerBusinessProfile(
 ): Promise<ViewerBusinessProfile | null> {
   const result = await client.query(
     `SELECT id,
-            COALESCE(NULLIF(trim(display_name), ''), 'TradeScout business') AS display_name,
+            COALESCE(NULLIF(trim(display_name), ''), 'Your business') AS display_name,
             verification_status
        FROM user_profiles
       WHERE user_id = $1
@@ -146,7 +168,86 @@ async function loadViewerBusinessProfile(
   if (!row) return null;
   return Object.freeze({
     id: String(row.id),
-    name: String(row.display_name || "TradeScout business"),
+    name: String(row.display_name || "Your business"),
+    verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
+  });
+}
+
+async function queueBusinessVerificationReview(
+  businessProfileId: string,
+  client: Pick<typeof pool, "query">
+): Promise<void> {
+  await client.query(
+    `UPDATE user_profiles
+        SET verification_requirements = COALESCE(verification_requirements, '{}'::jsonb)
+              || '{"business_registration": true}'::jsonb,
+            verification_submissions = COALESCE(verification_submissions, '{}'::jsonb)
+              || jsonb_build_object(
+                   'businessRegistrationReviewRequestedAt',
+                   COALESCE(
+                     verification_submissions ->> 'businessRegistrationReviewRequestedAt',
+                     NOW()::text
+                   ),
+                   'businessRegistrationReviewSource',
+                   'profile_account'
+                 ),
+            updated_at = NOW()
+      WHERE id = $1
+        AND user_intent = 'business'
+        AND verification_status = 'pending'`,
+    [businessProfileId]
+  );
+}
+
+async function createPrivateBusinessProfile(
+  userId: string,
+  businessName: unknown,
+  client: Pick<typeof pool, "query">
+): Promise<ViewerBusinessProfile> {
+  const name = normalizeBusinessName(businessName);
+  if (name.length < 2) {
+    throw new Error("Business name is required to create this account");
+  }
+
+  const result = await client.query(
+    `INSERT INTO user_profiles (
+       user_id,
+       user_intent,
+       role,
+       roles,
+       profile_visibility,
+       verification_status,
+       verification_requirements,
+       verification_submissions,
+       is_primary,
+       display_name,
+       created_at,
+       updated_at
+     )
+     SELECT
+       $1,
+       'business',
+       'business_owner',
+       ARRAY['business_owner']::text[],
+       'private',
+       'pending',
+       '{"business_registration": true}'::jsonb,
+       jsonb_build_object(
+         'businessRegistrationReviewRequestedAt', NOW()::text,
+         'businessRegistrationReviewSource', 'profile_account'
+       ),
+       NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1),
+       $2,
+       NOW(),
+       NOW()
+     RETURNING id, display_name, verification_status`,
+    [userId, name]
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("Private business identity could not be created");
+  return Object.freeze({
+    id: String(row.id),
+    name: String(row.display_name || name),
     verificationStatus: normalizeBusinessVerificationStatus(row.verification_status),
   });
 }
@@ -157,7 +258,8 @@ function toAccountRecord(args: {
   viewerBusiness: ViewerBusinessProfile | null;
   row: any;
 }): ProfileAccountRecord {
-  const identityKind = String(args.row.identity_kind || "user") === "business" ? "business" : "user";
+  const identityKind =
+    String(args.row.identity_kind || "user") === "business" ? "business" : "user";
   const businessProfileId = args.row.business_profile_id
     ? String(args.row.business_profile_id)
     : null;
@@ -177,13 +279,11 @@ function toAccountRecord(args: {
     priorityKey: String(args.row.priority_key || args.policy.priorityKey),
     status: String(args.row.status || "active") as ProfileAccountRecord["status"],
     verificationStatus: normalizeAccountVerificationStatus(args.row.verification_status),
-    resumePath: normalizeProfilePath(
+    resumePath: normalizeResumePath(
       args.row.resume_path,
       buildProfileAccountReturnPath(args.target.profileSlug)
     ),
-    lastSeenAt: args.row.last_seen_at
-      ? new Date(args.row.last_seen_at).toISOString()
-      : null,
+    lastSeenAt: args.row.last_seen_at ? new Date(args.row.last_seen_at).toISOString() : null,
     bidRockIncluded: args.policy.includesBidRock,
   });
 }
@@ -236,12 +336,7 @@ export async function getProfileAccountState(args: {
     viewerBusiness,
     requiresBusinessSetup: policy.requiredIdentity === "business" && !viewerBusiness,
     account: result.rows[0]
-      ? toAccountRecord({
-          target,
-          policy,
-          viewerBusiness,
-          row: result.rows[0],
-        })
+      ? toAccountRecord({ target, policy, viewerBusiness, row: result.rows[0] })
       : null,
   });
 }
@@ -249,6 +344,7 @@ export async function getProfileAccountState(args: {
 export async function ensureProfileAccount(args: {
   userId: string;
   profileSlug: string;
+  businessName?: string | null;
   sourcePath?: string | null;
 }): Promise<{
   policy: ProfileAccountPolicy;
@@ -267,21 +363,26 @@ export async function ensureProfileAccount(args: {
     const policy = policyForTarget(target);
     if (!policy.enabled) throw new Error("Accounts are not available for this profile");
 
-    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 LIMIT 1`, [userId]);
-    if (!userResult.rows[0]) throw new Error("TradeScout identity not found");
+    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [
+      userId,
+    ]);
+    if (!userResult.rows[0]) throw new Error("Private identity not found");
 
-    const viewerBusiness =
+    let viewerBusiness =
       policy.requiredIdentity === "business"
         ? await loadViewerBusinessProfile(userId, client, true)
         : null;
     if (policy.requiredIdentity === "business" && !viewerBusiness) {
-      throw new Error("A TradeScout business profile is required to create this account");
+      viewerBusiness = await createPrivateBusinessProfile(userId, args.businessName, client);
+    }
+    if (viewerBusiness?.verificationStatus === "pending") {
+      await queueBusinessVerificationReview(viewerBusiness.id, client);
     }
 
     const identityKind = policy.requiredIdentity;
     const verificationStatus = viewerBusiness?.verificationStatus || "not_required";
     const resumePath = buildProfileAccountReturnPath(target.profileSlug);
-    const sourcePath = normalizeProfilePath(args.sourcePath, `/u/${target.profileSlug}`);
+    const sourcePath = normalizeSourcePath(args.sourcePath, `/u/${target.profileSlug}`);
 
     const result = await client.query(
       `INSERT INTO profile_accounts (
@@ -344,12 +445,7 @@ export async function ensureProfileAccount(args: {
       policy,
       viewerBusiness,
       requiresBusinessSetup: false,
-      account: toAccountRecord({
-        target,
-        policy,
-        viewerBusiness,
-        row: result.rows[0],
-      }),
+      account: toAccountRecord({ target, policy, viewerBusiness, row: result.rows[0] }),
     };
   } catch (error) {
     await client.query("ROLLBACK");

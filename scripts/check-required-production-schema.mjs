@@ -244,8 +244,8 @@ export async function verifyRequiredProductionSchema(client) {
         ('profile_accounts', 'profile_accounts_status_check', 'c', null, null, null, null, 'tradescout-schema:0115:v1'),
         ('profile_accounts', 'profile_accounts_verification_status_check', 'c', null, null, null, null, 'tradescout-schema:0115:v1'),
         ('profile_accounts', 'profile_accounts_identity_consistency_check', 'c', null, null, null, null, 'tradescout-schema:0115:v1'),
-        ('profile_accounts', 'profile_accounts_source_path_check', 'c', null, null, null, null, 'tradescout-schema:0115:v1'),
-        ('profile_accounts', 'profile_accounts_resume_path_check', 'c', null, null, null, null, 'tradescout-schema:0115:v1'),
+        ('profile_accounts', 'profile_accounts_source_path_check', 'c', null, null, null, null, 'tradescout-schema:0118:v1'),
+        ('profile_accounts', 'profile_accounts_resume_path_check', 'c', null, null, null, null, 'tradescout-schema:0118:v1'),
 
         ('profile_account_entitlements', 'profile_account_entitlements_pkey', 'p', array['id']::text[], null, null, null, null),
         ('profile_account_entitlements', 'profile_account_entitlements_account_fk', 'f', array['profile_account_id']::text[], 'profile_accounts', array['id']::text[], 'c', 'tradescout-schema:0115:v1'),
