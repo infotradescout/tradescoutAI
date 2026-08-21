@@ -1,22 +1,25 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Bookmark, Menu, X } from "lucide-react";
+import { Bookmark, Menu, UserRound, X } from "lucide-react";
 import { JW_STONE_LOGO_URL, jw } from "./brand";
 import { marketplaceBasePath } from "./marketplaceRoutes";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
   onOpenWishlist: () => void;
+  onOpenAccount: () => void;
+  accountLabel: string;
   onStartRequest: () => void;
 };
 
 /**
- * Light site chrome: logo · Saved · Menu.
+ * Light site chrome: logo · Saved · Create account · Menu.
  * Social destinations stay together in the company section near the bottom.
- * Connect lives only on the persistent bottom bar and menu.
  */
 export function MarketplaceHeader({
   wishlistCount,
   onOpenWishlist,
+  onOpenAccount,
+  accountLabel,
   onStartRequest,
 }: MarketplaceHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -49,7 +52,7 @@ export function MarketplaceHeader({
       data-testid="jw-marketplace-header"
       className={`sticky top-0 z-40 border-b ${jw.border} ${jw.surface}`}
     >
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-5 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
+      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-2 px-4 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
         <a
           href={marketplaceBasePath() || "/"}
           aria-label="JW Stone marketplace home"
@@ -58,16 +61,16 @@ export function MarketplaceHeader({
           <img
             src={JW_STONE_LOGO_URL}
             alt="JW Stone"
-            className="h-auto w-[148px] object-contain object-left sm:w-[180px] md:w-[200px]"
+            className="h-auto w-[112px] object-contain object-left sm:w-[180px] md:w-[200px]"
             data-testid="jw-marketplace-logo"
           />
         </a>
 
-        <nav aria-label="JW Stone actions" className="flex items-center gap-1 sm:gap-1.5">
+        <nav aria-label="JW Stone actions" className="flex items-center gap-0.5 sm:gap-1.5">
           <button
             type="button"
             onClick={onOpenWishlist}
-            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
+            className={`relative inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
             aria-label={`Open saved stones, ${wishlistCount} saved`}
           >
             <Bookmark className="h-4 w-4" aria-hidden="true" />
@@ -82,6 +85,17 @@ export function MarketplaceHeader({
             ) : null}
           </button>
 
+          <button
+            type="button"
+            data-testid="jw-marketplace-account-button"
+            onClick={onOpenAccount}
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--jw-accent)] px-2.5 text-xs font-black text-[var(--jw-on-accent)] transition hover:opacity-90 sm:px-3 sm:text-sm"
+            aria-label={`${accountLabel} with JW Stone`}
+          >
+            <UserRound className="h-4 w-4" aria-hidden="true" />
+            <span>{accountLabel}</span>
+          </button>
+
           <div className="relative" ref={menuRef}>
             <button
               type="button"
@@ -90,7 +104,7 @@ export function MarketplaceHeader({
               aria-controls={menuId}
               aria-label={menuOpen ? "Close page menu" : "Open page menu"}
               onClick={() => setMenuOpen((open) => !open)}
-              className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2.5 text-sm sm:px-3 ${jw.ghostOnLight}`}
+              className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
             >
               {menuOpen ? (
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -107,6 +121,13 @@ export function MarketplaceHeader({
                 className={`absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[13rem] border p-1.5 ${jw.border} ${jw.surface}`}
               >
                 <nav aria-label="JW Stone menu" className="flex flex-col gap-0.5 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => closeAnd(onOpenAccount)}
+                    className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
+                  >
+                    {accountLabel}
+                  </button>
                   <a
                     href="#about-jw-stone"
                     onClick={() => closeAnd()}

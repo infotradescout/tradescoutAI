@@ -23,7 +23,7 @@ type StoneCollectionProps = {
   state: MarketplaceUrlState;
   isSaved: (id: string) => boolean;
   onUpdateFilters: (filters: CollectionFilters) => void;
-  /** Called when Full inventory opens — parent clears browse-rail URL tags. */
+  /** Called when the Material Library opens — parent clears browse-rail URL tags. */
   onEnterFullInventory?: () => void;
   onToggleSaved: (stone: JwStoneCatalogItem) => void;
   onOpen: (stone: JwStoneCatalogItem) => void;
@@ -191,7 +191,7 @@ export function StoneCollection({
     if (availability === "with-count") {
       next.push({
         key: "availability",
-        label: "Slab count known",
+        label: "Source count recorded",
         onClear: () => setAvailability("any"),
       });
     }
@@ -234,10 +234,10 @@ export function StoneCollection({
   return (
     <>
       <JwCollapsibleSection
-        id="current-inventory"
+        id="material-library"
         testId="jw-inventory"
         headingId="jw-inventory-heading"
-        title="Full inventory"
+        title="Material Library"
         onExpandedChange={(expanded) => {
           if (!expanded) return;
           // Local sheet-only refinements reset with URL tags so inventory starts clean.
@@ -433,14 +433,14 @@ export function StoneCollection({
               </FilterSelect>
 
               <FilterSelect
-                label="Availability"
+                label="Source evidence"
                 value={draftAvailability}
                 onChange={(value) =>
                   setDraftAvailability(value === "with-count" ? "with-count" : "any")
                 }
               >
-                <option value="any">Availability</option>
-                <option value="with-count">Slab count known</option>
+                <option value="any">Source evidence</option>
+                <option value="with-count">Source count recorded</option>
               </FilterSelect>
 
               <button

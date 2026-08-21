@@ -9429,6 +9429,8 @@ export const marketplaceTransactions = pgTable("marketplace_transactions", {
   status: transactionStatusEnum("status").notNull().default("pending"),
   notes: text("notes"),
   internalNotes: text("internal_notes"), // Admin notes
+  marketplaceReference: varchar("marketplace_reference", { length: 240 }),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
 
   // Communication preferences
   buyerPreferredContact: varchar("buyer_preferred_contact", {

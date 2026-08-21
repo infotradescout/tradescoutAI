@@ -820,6 +820,41 @@
       "when": 1785635100000,
       "tag": "0113_jw_stone_recommendation_compatibility_target",
       "breakpoints": true
+    },
+    {
+      "idx": 117,
+      "version": "7",
+      "when": 1787104842000,
+      "tag": "0114_la_plumbing_public_copy_invariant",
+      "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1787255302000,
+      "tag": "0115_jw_stone_inventory_truth",
+      "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1787265462000,
+      "tag": "0116_stone_core_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1787265474000,
+      "tag": "0117_profile_accounts_and_entitlements",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1787265534000,
+      "tag": "0118_bidrock_marketplace",
+      "breakpoints": true
     }
   ]
 }

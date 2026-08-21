@@ -140,7 +140,7 @@ describe("public profile item HTML", () => {
 
     expect(html).toContain('property="og:title" content="Blue Dunes Granite | JW Stone Logistics"');
     expect(html).toContain(
-      'property="og:description" content="View Blue Dunes Granite photos and request current pricing or availability from JW Stone Logistics through TradeScout Direct Connect."'
+      'property="og:description" content="View Blue Dunes (Granite) in JW Stone LLC&#39;s material library. See this photo."'
     );
     expect(html).toMatch(
       /property="og:image" content="https:\/\/www\.thetradescout\.com\/images\/social\/profile\/jw-stone\/inventory\/blue-dunes\.png\?photo=2&amp;v=4-[a-z0-9]+"/
@@ -675,7 +675,7 @@ describe("public profile item HTML", () => {
       expect(html).not.toBeNull();
       expect(html).toContain(`property="og:title" content="${category.name} | JW Stone Logistics"`);
       expect(html).toContain(
-        `property="og:description" content="Browse current ${category.name} selections from JW Stone Logistics, then request pricing or availability through TradeScout Direct Connect."`
+        `property="og:description" content="${category.summary.replace(/'/g, "&#39;")}"`
       );
       expect(html).toContain(`property="og:url" content="${canonical}"`);
       expect(html).toContain(`link rel="canonical" href="${canonical}"`);
@@ -690,7 +690,9 @@ describe("public profile item HTML", () => {
       );
       expect(html).toContain(`data-seo-profile-category="${category.slug}"`);
       expect(html).toContain(`<h2>${category.name}</h2>`);
-      expect(html).toContain(`${category.itemCount} current`);
+      expect(html).toContain(
+        `${category.itemCount} published ${category.itemCount === 1 ? "material" : "materials"}`
+      );
       expect(html).toContain('"@type":"CollectionPage"');
       expect(html).toContain(`"@id":"${canonical}#collection"`);
       expect(html).toContain(`"url":"${canonical}"`);

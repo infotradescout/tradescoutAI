@@ -6,113 +6,133 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("in-profile account foundation", () => {
-  it("uses one durable relationship per TradeScout user and target profile", () => {
+  it("uses one durable relationship per private identity and target profile", () => {
     const service = read("server/services/profileAccountService.ts");
+    const migration = read("migrations/0117_profile_accounts_and_entitlements.sql");
 
-    expect(service).toContain("CREATE TABLE IF NOT EXISTS profile_accounts");
-    expect(service).toContain("UNIQUE (owner_user_id, target_profile_id)");
-    expect(service).toContain("owner_user_id TEXT NOT NULL REFERENCES users(id)");
-    expect(service).toContain("business_profile_id TEXT REFERENCES user_profiles(id)");
-    expect(service).toContain("target_profile_id TEXT NOT NULL REFERENCES profiles(id)");
-    expect(service).toContain("identity_kind TEXT NOT NULL");
-    expect(service).toContain("priority_key TEXT NOT NULL");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS profile_accounts");
+    expect(migration).toContain("UNIQUE (owner_user_id, target_profile_id)");
+    expect(migration).toContain("owner_user_id TEXT NOT NULL REFERENCES users(id)");
+    expect(migration).toContain("business_profile_id TEXT REFERENCES user_profiles(id)");
+    expect(migration).toContain("target_profile_id TEXT NOT NULL REFERENCES profiles(id)");
+    expect(migration).toContain("identity_kind TEXT NOT NULL");
+    expect(migration).toContain("priority_key TEXT NOT NULL");
     expect(service).toContain("ON CONFLICT (owner_user_id, target_profile_id) DO UPDATE");
-    expect(service).toContain("enforce_profile_account_identity");
+    expect(migration).toContain("enforce_profile_account_identity");
+    expect(service).not.toMatch(/CREATE TABLE|ALTER TABLE/);
     expect(service).not.toMatch(/password|password_hash/i);
   });
 
-  it("requires a business identity only when the target profile policy requires it", () => {
+  it("creates a private business identity inside a business profile account flow", () => {
     const service = read("server/services/profileAccountService.ts");
-    const shared = read("shared/profileAccount.ts");
+    const route = read("server/routes/profile-accounts.ts");
 
-    expect(shared).toContain("requiredIdentity: ProfileAccountIdentityRequirement");
-    expect(shared).toContain("const requiredIdentity: ProfileAccountIdentityRequirement");
-    expect(shared).toContain('? "business"');
-    expect(shared).toContain('configured.requiredIdentity || "user"');
-    expect(service).toContain('policy.requiredIdentity === "business"');
-    expect(service).toContain("A TradeScout business profile is required to create this account");
-    expect(service).toContain("identityKind = policy.requiredIdentity");
-    expect(service).toContain('viewerBusiness?.verificationStatus || "not_required"');
-    expect(service).not.toContain("roles TEXT[]");
+    expect(route).toContain("businessName: z.string().trim().min(2).max(160).optional()");
+    expect(route).toContain("businessName: parsed.data.businessName");
+    expect(service).toContain("async function createPrivateBusinessProfile");
+    expect(service).toContain("INSERT INTO user_profiles");
+    expect(service).toContain("'business'");
+    expect(service).toContain("'business_owner'");
+    expect(service).toContain("'private'");
+    expect(service).toContain("display_name");
+    expect(service).toContain("Business name is required to create an account with this profile");
+    expect(service).not.toMatch(/INSERT INTO businesses/i);
+    expect(service).not.toMatch(/INSERT INTO profiles/i);
+    expect(service).not.toContain("A TradeScout business profile is required");
   });
 
   it("keeps BidRock as downstream access only for business-gated stone profiles", () => {
     const route = read("server/routes/profile-accounts.ts");
     const entitlement = read("server/services/profileAccountEntitlementService.ts");
+    const migration = read("migrations/0117_profile_accounts_and_entitlements.sql");
     const shared = read("shared/profileAccount.ts");
 
-    expect(entitlement).toContain("CREATE TABLE IF NOT EXISTS profile_account_entitlements");
-    expect(entitlement).toContain("REFERENCES profile_accounts(id)");
-    expect(route).toContain('productKey: "bidrock"');
-    expect(route).toContain("created.policy.includesBidRock");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS profile_account_entitlements");
+    expect(migration).toContain("REFERENCES profile_accounts(id)");
+    expect(entitlement).not.toMatch(/CREATE TABLE|ALTER TABLE/);
+    expect(entitlement).toContain('productKey: string');
+    expect(entitlement).toContain("client?: Queryable");
+    expect(read("server/services/profileAccountService.ts")).toContain("policy.includesBidRock");
     expect(shared).toContain("priorityKey = stoneProfile");
     expect(shared).toContain('"stone_business_access"');
     expect(route).not.toContain("bidrock_profile_accounts");
   });
 
-  it("resumes through ordinary account setup or business setup according to profile policy", () => {
-    const route = read("server/routes/profile-accounts.ts");
+  it("creates and signs in without leaving the profile for general onboarding", () => {
     const card = read("client/src/components/profile/PublicProfileAccountCard.tsx");
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
+    const client = read("client/src/components/profile/profileAccountClient.ts");
 
-    expect(route).toContain('app.get("/api/u/:slug/account"');
-    expect(route).toContain('"/api/u/:slug/account"');
-    expect(route).toContain("isAuthenticated");
-    expect(card).toContain("profileAccount");
-    expect(card).toContain("/pre-scout-setup");
-    expect(card).toContain('data?.policy.requiredIdentity === "business"');
-    expect(card).toContain('destination.searchParams.set("presence", "business")');
-    expect(card).toContain("buildProfileAccountReturnPath");
-    expect(card).toContain("sourcePath");
+    expect(card).toContain("<PublicProfileAccountDialog");
+    expect(dialog).toContain('"/api/auth/register"');
+    expect(dialog).toContain('"/api/auth/login"');
+    expect(dialog).toContain("createProfileAccount");
+    expect(dialog).toContain('userTypes: requiresBusiness ? ["business_owner"] : []');
+    expect(dialog).toContain("Any business can create an account directly with");
+    expect(dialog).toContain("Your business details stay private");
+    expect(client).toContain("currentProfileAccountSourcePath");
+    expect(`${card}\n${dialog}`).not.toContain("/pre-scout-setup");
+    expect(`${card}\n${dialog}`).not.toContain('presence", "business"');
+    expect(`${card}\n${dialog}`).not.toContain("How do you plan to use TradeScout");
   });
 
-  it("exposes the same generic Create an account action while each profile keeps its own policy", () => {
+  it("puts the same direct account entry inside the JW Stone shopping surface", () => {
+    const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
+    const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
+
+    expect(marketplace).toContain("import { PublicProfileAccountDialog }");
+    expect(marketplace).toContain("const [accountOpen, setAccountOpen] = useState(false)");
+    expect(marketplace).toContain("onOpenAccount={() => setAccountOpen(true)}");
+    expect(marketplace).toContain('profileSlug="jw-stone"');
+    expect(marketplace).toContain("profileName={JW_STONE_PUBLIC_IDENTITY.brandName}");
+    expect(header).toContain("onOpenAccount: () => void");
+    expect(header).toContain('data-testid="jw-marketplace-account-button"');
+    expect(marketplace).toContain("profileAccountActionLabel(accountState)");
+    expect(header).toContain("accountLabel: string");
+    expect(header).toContain("<span>{accountLabel}</span>");
+  });
+
+  it("supports a safe JW Stone marketplace source path rather than only /u routes", () => {
+    const route = read("server/routes/profile-accounts.ts");
+    const service = read("server/services/profileAccountService.ts");
+    const migration = read("migrations/0117_profile_accounts_and_entitlements.sql");
+
+    expect(route).toContain("isSafeSourcePath");
+    expect(route).not.toContain("regex(/^\\/u\\/");
+    expect(service).toContain("function normalizeSourcePath");
+    expect(migration).toContain("source_path = '/'");
+    expect(migration).toContain("source_path ~ '^/[^/]'");
+  });
+
+  it("exposes one generic account action and never asks for a business role", () => {
     const accountCard = read("client/src/components/profile/PublicProfileAccountCard.tsx");
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const trustActions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
     const profileSite = read("client/src/pages/ProfileSiteView.tsx");
-    const wholesalerTheme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
-    const steelHomeDirectory = read(
-      "client/src/pages/profile-sites/steel-home-project-tools/SteelHomeBuilderDirectory.tsx"
-    );
     const shared = read("shared/profileAccount.ts");
+    const combined = `${accountCard}\n${dialog}\n${trustActions}\n${shared}`;
 
     expect(profileSite).toContain("renderProfileTrustActions");
-    expect(profileSite).toContain("PublicProfileTrustActions");
-    expect(trustActions).toContain('import { PublicProfileAccountCard }');
+    expect(trustActions).toContain("import { PublicProfileAccountCard }");
     expect(trustActions).toContain("<PublicProfileAccountCard");
-    expect(trustActions).toContain("profileSlug={profileSlug}");
-    expect(trustActions).toContain("profileName={profileName}");
-    expect(steelHomeDirectory).toContain('import { PublicProfileAccountCard }');
-    expect(steelHomeDirectory).toContain("<PublicProfileAccountCard");
+    expect(trustActions).toContain('profileSlug !== "jw-stone"');
     expect(accountCard).toContain('"Create an account"');
-    expect(accountCard).toContain("data.policy.description");
     expect(shared).toContain("profilePriorityConfig");
-    expect(wholesalerTheme).not.toContain("PublicProfileAccountCard");
-    expect(wholesalerTheme).not.toContain('profileName="JW Stone"');
-    expect(`${accountCard}\n${trustActions}\n${wholesalerTheme}\n${shared}`).not.toMatch(
-      /Create a fabricator account/i
-    );
-    expect(`${accountCard}\n${trustActions}\n${wholesalerTheme}\n${shared}`).not.toContain(
-      "preferredRole"
-    );
-    expect(`${accountCard}\n${trustActions}\n${wholesalerTheme}\n${shared}`).not.toContain(
-      "PROFILE_ACCOUNT_ROLES"
-    );
-  });
-
-  it("mounts platform profile-account routes independently from BidRock routes", () => {
-    const mount = read("server/routes/jw-stone-saved-stones-email.ts");
-
-    expect(mount).toContain('import { registerProfileAccountRoutes } from "./profile-accounts"');
-    expect(mount).toContain("registerProfileAccountRoutes(app)");
-    expect(mount).not.toContain("registerBidRockRoutes(app)");
+    expect(combined).not.toMatch(/Create a fabricator account/i);
+    expect(combined).not.toContain("preferredRole");
+    expect(combined).not.toContain("PROFILE_ACCOUNT_ROLES");
+    expect(combined).not.toMatch(/Fabricator|Builder or contractor|Designer|Stone yard or dealer/);
   });
 
   it("does not claim profile accounts already own saved items, pricing, or conversations", () => {
     const card = read("client/src/components/profile/PublicProfileAccountCard.tsx");
+    const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
     const service = read("server/services/profileAccountService.ts");
-    const combined = `${card}\n${service}`;
+    const combined = `${card}\n${dialog}\n${service}`;
 
-    expect(combined).not.toMatch(/unlock pricing|saved stones are synced|conversation history restored/i);
-    expect(service).not.toMatch(/INSERT INTO conversations|INSERT INTO messages|INSERT INTO stone_saved/i);
+    expect(combined).not.toMatch(/saved stones are synced|conversation history restored/i);
+    expect(service).not.toMatch(
+      /INSERT INTO conversations|INSERT INTO messages|INSERT INTO stone_saved/i
+    );
   });
 });

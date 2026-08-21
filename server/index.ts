@@ -1169,7 +1169,8 @@ app.use(landingContractHeaders);
     await provisionProfile("Precision Aerial", provisionPrecisionAerialProfile);
     await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile);
     await provisionProfile("Steel Home Project Tools", provisionSteelHomePackagesProfile);
-    // Best-effort, read-only schema drift check: logs but never blocks startup.
+    // Read-only integrity preflight. A failed check leaves only its Stone/profile/BidRock
+    // route scope fail-closed; unrelated application surfaces may still start.
     try {
       await runSchemaPreflight();
     } catch (err) {

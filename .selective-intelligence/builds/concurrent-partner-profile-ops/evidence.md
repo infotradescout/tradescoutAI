@@ -55,7 +55,7 @@ The admin portal reads the registry and current production records together. It 
 - Primary action wording
 - Request recipient readiness
 
-Each profile is classified as Ready, Needs Attention, or Blocked. One unresolved profile does not stop another profile from remaining live or being corrected.
+Each profile is classified as Ready, Needs Attention, or Blocked. One pending profile does not stop another profile from remaining live or being corrected.
 
 ### Final normalization lane
 
@@ -82,7 +82,7 @@ The final production bootstrap pass normalizes managed contact only after indivi
 - A distributor relationship never becomes ownership of the source company.
 - A source material never becomes physical inventory without an asset and inventory position.
 - Public and direct-only exposure remain different states.
-- An unresolved contact remains visible as an operations gap rather than being filled with invented data.
+- A pending contact remains visible as an operations gap rather than being filled with invented data.
 - Company-specific presentation is preserved. The registry governs operating truth, not visual sameness.
 - Existing partners stay live while new partners are added and shared tools improve.
 

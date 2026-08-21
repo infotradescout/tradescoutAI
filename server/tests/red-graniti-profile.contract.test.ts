@@ -89,14 +89,16 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
 
   it("stores materials, physical assets, inventory, publications, and rights separately", () => {
     const stoneCore = read("server/services/stoneCoreProvisioning.ts");
+    const migration = read("migrations/0116_stone_core_schema.sql");
     const provisioner = read("server/services/redGranitiProfileProvisioning.ts");
 
-    expect(stoneCore).toContain("CREATE TABLE IF NOT EXISTS stone_materials");
-    expect(stoneCore).toContain("CREATE TABLE IF NOT EXISTS stone_asset_passports");
-    expect(stoneCore).toContain("CREATE TABLE IF NOT EXISTS stone_inventory_positions");
-    expect(stoneCore).toContain("CREATE TABLE IF NOT EXISTS stone_distribution_rights");
-    expect(stoneCore).toContain("CREATE TABLE IF NOT EXISTS stone_publications");
-    expect(stoneCore).toContain("CREATE OR REPLACE VIEW stone_core_material_map");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS stone_materials");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS stone_asset_passports");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS stone_inventory_positions");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS stone_distribution_rights");
+    expect(migration).toContain("CREATE TABLE IF NOT EXISTS stone_publications");
+    expect(migration).toContain("CREATE OR REPLACE VIEW stone_core_material_map");
+    expect(stoneCore).not.toMatch(/CREATE TABLE|ALTER TABLE/);
     expect(provisioner).toContain("await ensureStoneCoreTables();");
     expect(provisioner).toContain("await provisionRedGranitiStoneCore({");
     expect(stoneCore).not.toMatch(/INSERT INTO stone_asset_passports/);

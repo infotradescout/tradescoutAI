@@ -1,16 +1,24 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   JW_STONE_MANAGED_CONTACT,
   JW_STONE_PUBLIC_IDENTITY,
 } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
+import {
+  loadProfileAccountState,
+  profileAccountActionLabel,
+  type ProfileAccountResponse,
+} from "@/components/profile/profileAccountClient";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directConnectMaterial";
+import type { PublicStoneInventoryItem } from "@shared/stoneInventory";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
 import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
+import { CurrentInventorySection } from "./CurrentInventorySection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
 import { JwStoneRequestBand } from "./JwStoneRequestBand";
@@ -44,6 +52,8 @@ export default function JWStoneMarketplace() {
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountState, setAccountState] = useState<ProfileAccountResponse | null>(null);
   /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
   const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
@@ -59,6 +69,18 @@ export default function JWStoneMarketplace() {
       body.style.overflow = "";
     }
   }, []);
+
+  useEffect(() => {
+    let current = true;
+    loadProfileAccountState("jw-stone", isAuthenticated)
+      .then((next) => {
+        if (current) setAccountState(next);
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [isAuthenticated]);
 
   // Capture landing attribution before useMarketplaceUrlState canonicalizes the URL
   // (filter params only — utm_* is not in marketplace state and would be stripped).
@@ -118,6 +140,11 @@ export default function JWStoneMarketplace() {
     startRequest(stone.wishlistEligible && !stone.anonymous ? [stone] : []);
   };
 
+  const askAboutCurrentStock = (item: PublicStoneInventoryItem) => {
+    const catalogStone = getNamedCatalogItemByShareSlug(item.materialSlug);
+    startRequest(catalogStone ? [catalogStone] : []);
+  };
+
   /** Browse by color — never invents or keeps a material refinement; results show in the color section. */
   const selectPalette = (next: ColorSwatchSelection) => {
     commit({
@@ -153,7 +180,7 @@ export default function JWStoneMarketplace() {
     });
   };
 
-  /** Full inventory is a clean slate — rail tags do not carry over. */
+  /** The Material Library is a clean slate — browse-rail tags do not carry over. */
   const enterFullInventory = () => {
     if (!state.aesthetic && !state.color && !state.material && !state.origin) return;
     commit(
@@ -223,6 +250,8 @@ export default function JWStoneMarketplace() {
       <MarketplaceHeader
         wishlistCount={wishlist.count}
         onOpenWishlist={() => setWishlistOpen(true)}
+        onOpenAccount={() => setAccountOpen(true)}
+        accountLabel={profileAccountActionLabel(accountState)}
         onStartRequest={() => startRequest([])}
       />
       <p className="sr-only" aria-live="polite">
@@ -231,6 +260,10 @@ export default function JWStoneMarketplace() {
 
       <MarketplaceIntroduction />
       <FirstCutSection onOpen={openStone} />
+      <CurrentInventorySection
+        onAsk={askAboutCurrentStock}
+        onStartRequest={() => startRequest([])}
+      />
       <StoneCollection
         state={state}
         isSaved={wishlist.isSaved}
@@ -271,6 +304,16 @@ export default function JWStoneMarketplace() {
       <MarketplaceFooter />
 
       <JwStoneRequestBand onStartRequest={() => startRequest([])} />
+
+      <PublicProfileAccountDialog
+        open={accountOpen}
+        onOpenChange={setAccountOpen}
+        profileSlug="jw-stone"
+        profileName={JW_STONE_PUBLIC_IDENTITY.brandName}
+        initialState={accountState}
+        onStateChange={setAccountState}
+        tone="light"
+      />
 
       <StoneDetailDialog
         stone={activeStone}

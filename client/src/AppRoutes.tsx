@@ -333,6 +333,7 @@ const ExchangeSellerDashboard = React.lazy(
   () => import("./pages/exchange/ExchangeSellerDashboard")
 );
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
+const BidRockWorkspace = React.lazy(() => import("./features/bidrock/BidRockWorkspace"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const HandmadeProductDetail = React.lazy(() => import("./pages/handmade-product-detail"));
 const ProfileServiceOfferDetail = React.lazy(() => import("./pages/profile-service-offer-detail"));
@@ -587,6 +588,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute,
   isPublicRootLanding,
   isShareRoute,
+  isBidRockRoute,
   isStandaloneProfileRoute,
   isCustomDomainProfileRoute,
 }: {
@@ -595,6 +597,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute: boolean;
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
+  isBidRockRoute: boolean;
   isStandaloneProfileRoute: boolean;
   isCustomDomainProfileRoute: boolean;
 }) {
@@ -625,6 +628,18 @@ export const AppRoutes = memo(function AppRoutes({
         <Switch>
           <Route path="/r/:shareToken">
             <LazyPage Component={DirectConnectSharePage} />
+          </Route>
+          <Route path=":rest*">
+            <LazyPage Component={NotFound} />
+          </Route>
+        </Switch>
+      ) : isBidRockRoute ? (
+        <Switch>
+          <Route path="/bidrock">
+            <LazyPage
+              Component={BidRockWorkspace}
+              fallback={<PageLoadingSpinner message="Loading BidRock…" />}
+            />
           </Route>
           <Route path=":rest*">
             <LazyPage Component={NotFound} />

@@ -390,10 +390,7 @@ export function PublicProfileTrustActions({
 
         {publicIdentity ? (
           <div
-            className={cn(
-              "mt-2 border-t pt-2",
-              isLight ? "border-stone-200" : "border-white/10"
-            )}
+            className={cn("mt-2 border-t pt-2", isLight ? "border-stone-200" : "border-white/10")}
             data-testid="public-profile-identity"
           >
             {publicIdentity.address ? (
@@ -457,13 +454,15 @@ export function PublicProfileTrustActions({
         {loading && !state ? <span className="sr-only">Loading saved actions.</span> : null}
       </div>
 
-      <PublicProfileAccountCard
-        profileSlug={profileSlug}
-        profileName={profileName}
-        tone={tone}
-        compact={isCompact}
-        className={isCompact ? "mt-2" : "mt-3"}
-      />
+      {profileSlug !== "jw-stone" ? (
+        <PublicProfileAccountCard
+          profileSlug={profileSlug}
+          profileName={profileName}
+          tone={tone}
+          compact={isCompact}
+          className={isCompact ? "mt-2" : "mt-3"}
+        />
+      ) : null}
 
       <Dialog open={recommendationOpen} onOpenChange={setRecommendationOpen}>
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto p-0">

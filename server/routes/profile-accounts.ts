@@ -4,21 +4,27 @@ import { isAuthenticated } from "../auth";
 import {
   ensureProfileAccount,
   getProfileAccountState,
+  reconcileProfileAccountState,
 } from "../services/profileAccountService";
-import {
-  ensureProfileAccountEntitlement,
-  listProfileAccountEntitlements,
-  type ProfileAccountEntitlement,
-} from "../services/profileAccountEntitlementService";
+import { listProfileAccountEntitlements } from "../services/profileAccountEntitlementService";
+import { requireCriticalSchema } from "../schemaPreflight";
+
+function isSafeSourcePath(value: string): boolean {
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return false;
+  try {
+    const parsed = new URL(value, "https://profile-account.local");
+    if (parsed.origin !== "https://profile-account.local") return false;
+    const decodedPath = decodeURIComponent(parsed.pathname);
+    return !decodedPath.split("/").includes("..");
+  } catch {
+    return false;
+  }
+}
 
 const createProfileAccountSchema = z
   .object({
-    sourcePath: z
-      .string()
-      .trim()
-      .max(500)
-      .regex(/^\/u\/[a-z0-9-]+(?:[/?#].*)?$/)
-      .optional(),
+    businessName: z.string().trim().min(2).max(160).optional(),
+    sourcePath: z.string().trim().max(500).refine(isSafeSourcePath).optional(),
   })
   .strict();
 
@@ -30,6 +36,7 @@ function getUserId(req: Request): string | null {
 }
 
 export function registerProfileAccountRoutes(app: Express) {
+  app.use("/api/u/:slug/account", requireCriticalSchema("profile_accounts"));
   app.get("/api/u/:slug/account", async (req: Request, res: Response): Promise<void> => {
     try {
       const state = await getProfileAccountState({
@@ -70,27 +77,15 @@ export function registerProfileAccountRoutes(app: Express) {
         const created = await ensureProfileAccount({
           userId,
           profileSlug: String(req.params.slug || ""),
+          businessName: parsed.data.businessName,
           sourcePath: parsed.data.sourcePath,
         });
-        let entitlements: readonly ProfileAccountEntitlement[];
-        if (created.policy.includesBidRock) {
-          entitlements = [
-            await ensureProfileAccountEntitlement({
-              profileAccountId: created.account.id,
-              productKey: "bidrock",
-              verificationStatus: created.account.verificationStatus,
-            }),
-          ];
-        } else {
-          entitlements = await listProfileAccountEntitlements(created.account.id);
-        }
-
         res.setHeader("Cache-Control", "private, no-store");
-        res.status(201).json({ ...created, entitlements });
+        res.status(201).json(created);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Profile account could not be created.";
-        if (/business profile is required/i.test(message)) {
+        if (/business name is required/i.test(message)) {
           res.status(409).json({ message, requiresBusinessSetup: true });
           return;
         }
@@ -102,6 +97,32 @@ export function registerProfileAccountRoutes(app: Express) {
               ? 401
               : 500;
         if (status === 500) console.error("[profile-accounts] create failed", error);
+        res.status(status).json({ message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/u/:slug/account/reconcile",
+    isAuthenticated,
+    async (req: Request, res: Response): Promise<void> => {
+      try {
+        const userId = getUserId(req);
+        if (!userId) {
+          res.status(401).json({ message: "Authentication required" });
+          return;
+        }
+        const reconciled = await reconcileProfileAccountState({
+          userId,
+          profileSlug: String(req.params.slug || ""),
+        });
+        res.setHeader("Cache-Control", "private, no-store");
+        res.json(reconciled);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Profile account could not be reconciled.";
+        const status = /not found/i.test(message) ? 404 : 500;
+        if (status === 500) console.error("[profile-accounts] reconcile failed", error);
         res.status(status).json({ message });
       }
     }

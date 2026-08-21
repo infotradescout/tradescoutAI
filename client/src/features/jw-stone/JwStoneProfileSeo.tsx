@@ -67,8 +67,8 @@ export function JwStoneProfileSeo({ canonical }: { canonical: string }) {
         mainEntity: businessIdentity,
         hasPart: {
           "@type": "CollectionPage",
-          name: "JW Stone current inventory",
-          url: `${canonicalUrl}#current-inventory`,
+          name: "JW Stone material library",
+          url: `${canonicalUrl}#material-library`,
         },
       }}
     />

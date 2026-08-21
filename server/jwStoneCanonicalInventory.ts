@@ -39,6 +39,7 @@ type JwStoneShareStone = {
   slug: string;
   images: string[];
   shareImageOrder?: number[];
+  publicKind: "offering";
 };
 
 const reconciledStones: JwStoneShareStone[] = reconcileJwStoneGeneratedInventory(
@@ -52,6 +53,7 @@ const reconciledStones: JwStoneShareStone[] = reconcileJwStoneGeneratedInventory
     slug: stone.slug,
     images: stone.images,
     shareImageOrder: stone.shareImageOrder,
+    publicKind: "offering",
   };
 });
 

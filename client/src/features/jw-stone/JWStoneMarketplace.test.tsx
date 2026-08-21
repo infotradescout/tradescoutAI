@@ -16,6 +16,15 @@ vi.mock("@/components/SEOHelmet", () => ({
   SEOHelmet: () => null,
 }));
 
+vi.mock("./CurrentInventorySection", () => ({
+  CurrentInventorySection: () => (
+    <section id="current-inventory" data-testid="jw-current-inventory" className="scroll-mt-16">
+      <h2>Current Inventory</h2>
+      <p>Only seller-published physical lots appear here.</p>
+    </section>
+  ),
+}));
+
 type DirectConnectMockProps = {
   open: boolean;
   initialStoneSelections?: Array<{ itemName: string }>;
@@ -57,7 +66,7 @@ describe("JW Stone marketplace luxury layout", () => {
   let root: Root;
 
   beforeEach(() => {
-    window.history.replaceState(null, "", "/jw-stone");
+    window.history.replaceState(null, "", "/u/jw-stone");
     window.localStorage.clear();
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -95,7 +104,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(footer?.querySelector('a[href="#jw-palette-rail"]')).toBeNull();
     expect(footer?.querySelector('a[href="#jw-material-rail"]')).toBeNull();
     expect(footer?.querySelector('a[href="#current-inventory"]')).toBeNull();
-    expect(footer?.querySelector('a[href="/u/jw-stone"]')).toBeNull();
+    expect(footer?.querySelector('a[href="/u/jw-stone"]')).not.toBeNull();
     expect(footer?.querySelector('nav[aria-label="JW Stone sections"]')).toBeNull();
     expect(container.textContent).toContain("Natural stone, selected at the source.");
     const companyIdentity = container.querySelector<HTMLElement>(
@@ -130,9 +139,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.textContent).toContain("First Cut");
     expect(container.textContent).toContain("Browse by color");
     expect(container.textContent).toContain("Browse by material");
-    expect(container.textContent).toContain("Full inventory");
+    expect(container.textContent).toContain("Material Library");
     expect(container.textContent).toContain(
-      "JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated delivery."
+      "JW Stone sources and supplies natural stone through direct quarry relationships and coordinates delivery."
     );
     expect(container.textContent).toContain(
       "JW Stone does not template, fabricate, finish, or install countertops; those services require a separate independent fabricator."
@@ -160,12 +169,12 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="jw-material-stack"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-inventory-grid"]')).toBeNull();
     expect(container.querySelectorAll("[data-stone-card]").length).toBe(0);
-    expect(container.textContent).toContain("Contact");
+    expect(container.textContent).toContain("Start a Request");
     expect(container.textContent).not.toContain("Tell JW Stone what you need");
     expect(container.textContent).toContain("From source to finished space");
     expect(container.textContent).not.toContain("Trending");
     expect(container.textContent).not.toContain("JW Stone Picks");
-    expect(container.textContent).not.toContain("Current Inventory");
+    expect(container.textContent).toContain("Current Inventory");
     expect(container.textContent).not.toContain("Explore the collection");
     expect(container.querySelector('[data-testid="jw-marketplace-story"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid="jw-marketplace-story"]')).toHaveLength(1);
@@ -250,7 +259,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(story?.textContent).toContain("From source to finished space");
     expect(story?.textContent).toContain("Stone selected with the final room in mind");
     expect(story?.textContent).toContain(
-      "JW Stone sources and supplies natural stone with quarry-direct pricing and coordinated delivery."
+      "JW Stone sources and supplies natural stone through direct quarry relationships and coordinates delivery."
     );
     expect(story?.textContent).toContain(
       "JW Stone does not template, fabricate, finish, or install countertops; those services require a separate independent fabricator."
@@ -338,10 +347,10 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(panel.querySelector('a[href="#about-jw-stone"]')?.textContent).toContain("About");
     expect(panel.querySelector('a[href="#jw-stone-location"]')?.textContent).toContain("Visit");
     expect(panel.querySelector('a[href="#jw-stone-socials"]')?.textContent).toContain("Socials");
-    expect(buttonContaining(panel, "Connect")).not.toBeNull();
+    expect(buttonContaining(panel, "Start a Request")).not.toBeNull();
     expect(header.querySelector('[data-testid="jw-marketplace-connect"]')).toBeNull();
 
-    click(buttonContaining(panel, "Connect"));
+    click(buttonContaining(panel, "Start a Request"));
     expect(container.querySelector('[data-testid="jw-marketplace-menu-panel"]')).toBeNull();
     expect(container.querySelector('[data-testid="direct-connect-panel"]')).not.toBeNull();
   });
@@ -353,7 +362,7 @@ describe("JW Stone marketplace luxury layout", () => {
   });
 
   it("shows editorial collection chrome: search + Filter sheet, Save/Ask/View on cards", () => {
-    expect(container.textContent).toContain("Full inventory");
+    expect(container.textContent).toContain("Material Library");
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
     expect(container.querySelector('[data-testid="jw-material-rail"]')).not.toBeNull();
     expect(container.querySelectorAll("[data-stone-card]").length).toBe(0);
@@ -440,7 +449,7 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("true");
     expect(
-      container.querySelectorAll("#current-inventory [data-stone-card]").length
+      container.querySelectorAll("#material-library [data-stone-card]").length
     ).toBeGreaterThan(0);
 
     click(container.querySelector('[data-testid="jw-material-granite"]'));
@@ -450,7 +459,7 @@ describe("JW Stone marketplace luxury layout", () => {
 
   it("ignores legacy buyer and finish query params", () => {
     act(() => root.unmount());
-    window.history.replaceState(null, "", "/jw-stone?buyer=homeowner&finish=polished");
+    window.history.replaceState(null, "", "/u/jw-stone?buyer=homeowner&finish=polished");
     root = createRoot(container);
     act(() => root.render(<JWStoneMarketplace />));
 
@@ -491,7 +500,7 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("false");
   });
 
-  it("clears browse refinements when Full inventory opens", () => {
+  it("clears browse refinements when the Material Library opens", () => {
     click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-palette-green"]'));
     expect(window.location.search).toContain("color=green");
@@ -542,14 +551,14 @@ describe("JW Stone marketplace luxury layout", () => {
       container.querySelector('[data-testid="jw-material-stone-status"]')?.textContent
     ).toMatch(/^Green · \d+ of \d+$/);
     expect(container.textContent).not.toMatch(/\d+ green selections/i);
-    // Color browse must not require opening Full inventory.
+    // Color browse must not require opening the Material Library.
     expect(
       container.querySelector('[data-testid="jw-inventory"]')?.getAttribute("data-expanded")
     ).toBe("false");
   });
 
-  it("starts with Browse by color and material collapsed and unselected on /jw-stone", () => {
-    expect(window.location.pathname).toBe("/jw-stone");
+  it("starts with Browse by color and material collapsed and unselected on /u/jw-stone", () => {
+    expect(window.location.pathname).toBe("/u/jw-stone");
     expect(window.location.pathname).not.toMatch(/\/materials\//);
     expect(window.location.search).not.toContain("color=");
     expect(window.location.search).not.toContain("aesthetic=");
@@ -569,7 +578,7 @@ describe("JW Stone marketplace luxury layout", () => {
 
   it("keeps Browse by material collapsed on material deep-link until the shopper opens it", () => {
     act(() => root.unmount());
-    window.history.replaceState(null, "", "/jw-stone/materials/granite");
+    window.history.replaceState(null, "", "/u/jw-stone/materials/granite");
     root = createRoot(container);
     act(() => root.render(<JWStoneMarketplace />));
 
@@ -615,7 +624,7 @@ describe("JW Stone marketplace luxury layout", () => {
 
   it("keeps Browse by color collapsed on color deep-link until the shopper opens it", () => {
     act(() => root.unmount());
-    window.history.replaceState(null, "", "/jw-stone?color=green");
+    window.history.replaceState(null, "", "/u/jw-stone?color=green");
     root = createRoot(container);
     act(() => root.render(<JWStoneMarketplace />));
 
@@ -824,7 +833,7 @@ describe("JW Stone marketplace luxury layout", () => {
     );
   });
 
-  it("keeps Full inventory collapsed after a color swatch; expand is a clean slate", () => {
+  it("keeps the Material Library collapsed after a color swatch; expand is a clean slate", () => {
     click(container.querySelector('[data-testid="jw-palette-rail-toggle"]'));
     click(container.querySelector('[data-testid="jw-palette-green"]'));
     expect(window.location.search).toContain("color=green");
@@ -842,7 +851,7 @@ describe("JW Stone marketplace luxury layout", () => {
     ).toBe("Open Browse by material");
     expect(
       container.querySelector('[data-testid="jw-inventory-toggle"]')?.getAttribute("aria-label")
-    ).toBe("Open Full inventory");
+    ).toBe("Open Material Library");
     expect(
       container.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
     ).toMatch(/^Close$/);
@@ -864,12 +873,12 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(window.location.pathname).not.toMatch(/\/materials\//);
     expect(container.querySelector('[aria-label="Active filters"]')).toBeNull();
     expect(
-      container.querySelectorAll("#current-inventory [data-stone-card]").length
+      container.querySelectorAll("#material-library [data-stone-card]").length
     ).toBeGreaterThan(20);
     // Expanded inventory keeps a sticky photo title band so header toggle stays reachable.
     expect(inventoryToggle?.className).toMatch(/\bsticky\b/);
     expect(inventoryToggle?.className).toMatch(/top-14/);
-    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Close Full inventory");
+    expect(inventoryToggle?.getAttribute("aria-label")).toBe("Close Material Library");
 
     click(inventoryToggle);
     expect(

@@ -39,6 +39,8 @@ import { registerBusinessProfileRoutes } from "./routes/business-profile";
 import { registerBusinessContactRoutes } from "./routes/business-contact";
 import { registerTradePartnerExpressRoutes } from "./routes/tradepartner-express";
 import { registerJwStoneSavedStonesEmailRoutes } from "./routes/jw-stone-saved-stones-email";
+import { registerStoneInventoryRoutes } from "./routes/stone-inventory";
+import { registerBidRockRoutes } from "./routes/bidrock";
 import { registerStoneDesignerImageRoutes } from "./routes/stone-designer-images";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
@@ -25664,6 +25666,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   registerBusinessContactRoutes(app);
   registerTradePartnerExpressRoutes(app);
   registerJwStoneSavedStonesEmailRoutes(app);
+  registerStoneInventoryRoutes(app);
+  registerBidRockRoutes(app);
   registerBusinessClaimRoutes(app);
   registerAdminBusinessCountyEnrichmentRoutes(app);
   registerContractorPromoRoutes(app);

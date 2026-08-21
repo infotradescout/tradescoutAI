@@ -6,7 +6,7 @@ import {
 } from "@shared/profileAccount";
 
 describe("profile account policy", () => {
-  it("keeps the same generic CTA while stone profiles remain business-only", () => {
+  it("keeps the same generic CTA while stone profiles accept any business", () => {
     const jwPolicy = resolveProfileAccountPolicy({
       profileSlug: "jw-stone",
       profileName: "JW Stone",
@@ -25,13 +25,15 @@ describe("profile account policy", () => {
       expect(policy.priorityKey).toBe("stone_business_access");
       expect(policy.label).toBe("Account");
       expect(policy.heading).toBe("Create an account");
-      expect(policy.description).toContain("Businesses can create an account");
+      expect(policy.description).toBe(
+        `Businesses can create an account directly with ${policy.profileSlug === "jw-stone" ? "JW Stone" : "ISSA Build"}.`
+      );
       expect(policy).not.toHaveProperty("roles");
       expect(policy).not.toHaveProperty("defaultRole");
     }
   });
 
-  it("leaves ordinary public profiles on their own account priority", () => {
+  it("lets ordinary public profiles create a direct profile account", () => {
     const policy = resolveProfileAccountPolicy({
       profileSlug: "local-electrician",
       profileName: "Local Electrician",
@@ -41,7 +43,7 @@ describe("profile account policy", () => {
     expect(policy.requiredIdentity).toBe("user");
     expect(policy.includesBidRock).toBe(false);
     expect(policy.priorityKey).toBe("profile_account");
-    expect(policy.description).toContain("using your TradeScout identity");
+    expect(policy.description).toBe("Create an account directly with Local Electrician.");
   });
 
   it("lets a non-stone profile set its own identity requirement and priority", () => {
@@ -52,7 +54,7 @@ describe("profile account policy", () => {
       profilePriorityConfig: {
         requiredIdentity: "business",
         priorityKey: "dealer_access",
-        description: "Approved businesses can continue through this supplier account.",
+        description: "Businesses can create an account directly with Wholesale Supply.",
       },
     });
 
@@ -60,7 +62,7 @@ describe("profile account policy", () => {
     expect(policy.includesBidRock).toBe(false);
     expect(policy.priorityKey).toBe("dealer_access");
     expect(policy.description).toBe(
-      "Approved businesses can continue through this supplier account."
+      "Businesses can create an account directly with Wholesale Supply."
     );
   });
 

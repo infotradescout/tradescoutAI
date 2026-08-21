@@ -93,8 +93,14 @@ function readProfilePriorityConfig(value: unknown): Readonly<{
     record.requiredIdentity === "business" || record.requiredIdentity === "user"
       ? record.requiredIdentity
       : null;
-  const priorityKey = String(record.priorityKey || "").trim().slice(0, 80) || null;
-  const description = String(record.description || "").trim().slice(0, 280) || null;
+  const priorityKey =
+    String(record.priorityKey || "")
+      .trim()
+      .slice(0, 80) || null;
+  const description =
+    String(record.description || "")
+      .trim()
+      .slice(0, 280) || null;
   return Object.freeze({ requiredIdentity, priorityKey, description });
 }
 
@@ -132,8 +138,8 @@ export function resolveProfileAccountPolicy(args: {
     : normalizePriorityKey(configured.priorityKey, "profile_account");
   const defaultDescription =
     requiredIdentity === "business"
-      ? `Businesses can create an account with ${profileName} using their TradeScout business identity.`
-      : `Create an account with ${profileName} using your TradeScout identity.`;
+      ? `Businesses can create an account directly with ${profileName}.`
+      : `Create an account directly with ${profileName}.`;
 
   return Object.freeze({
     enabled: true,
