@@ -71,8 +71,9 @@ describe("BidRock final bounded correction contracts", () => {
     expect(stoneEdit).toContain("Material identity is immutable");
     expect(stoneEdit).not.toContain("SET material_id =");
     expect(publication.indexOf("FOR UPDATE OF listing, inventory")).toBeLessThan(
-      publication.indexOf("Set the verified-business price")
+      publication.indexOf("Current stock must be re-confirmed")
     );
+    expect(publication).not.toContain("Set the verified-business price");
     expect(publication).toContain("AND version = $7");
     expect(publication).toContain("AND version = $4");
     expect(publication).toContain("'actorUserId', $6::text");

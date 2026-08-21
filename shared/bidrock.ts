@@ -3,6 +3,7 @@ export const BIDROCK_DEFAULT_PROFILE_SLUG = "jw-stone";
 export const BIDROCK_PAYMENT_METHOD = "ach" as const;
 export const BIDROCK_PRICE_VISIBILITY = "verified_business" as const;
 export const BIDROCK_CURRENCY = "USD" as const;
+export const BIDROCK_SOFT_CLOSE_SECONDS = 120 as const;
 
 export const BIDROCK_PRICE_UNITS = ["sqft", "slab"] as const;
 export type BidRockPriceUnit = (typeof BIDROCK_PRICE_UNITS)[number];
@@ -15,6 +16,22 @@ export const BIDROCK_LISTING_STATUSES = [
   "archived",
 ] as const;
 export type BidRockListingStatus = (typeof BIDROCK_LISTING_STATUSES)[number];
+
+export const BIDROCK_AUCTION_STATUSES = [
+  "scheduled",
+  "live",
+  "extended",
+  "ended",
+  "no_sale",
+  "sold",
+] as const;
+export type BidRockAuctionStatus = (typeof BIDROCK_AUCTION_STATUSES)[number];
+
+export const BIDROCK_RESERVE_STATES = ["none", "not_met", "met"] as const;
+export type BidRockReserveState = (typeof BIDROCK_RESERVE_STATES)[number];
+
+export const BIDROCK_BIDDER_STATUSES = ["none", "leading", "outbid", "won", "lost"] as const;
+export type BidRockBidderStatus = (typeof BIDROCK_BIDDER_STATUSES)[number];
 
 export const BIDROCK_OFFER_STATUSES = [
   "submitted",
@@ -62,6 +79,46 @@ export type BidRockPrice = Readonly<{
   currency: typeof BIDROCK_CURRENCY;
 }>;
 
+export type BidRockMoney = Readonly<{
+  amountCents: number;
+  currency: typeof BIDROCK_CURRENCY;
+}>;
+
+export type BidRockAuctionConfiguration = Readonly<{
+  openingBid: BidRockMoney;
+  reserveBid?: BidRockMoney;
+  minimumIncrement: BidRockMoney;
+  startsAt: string;
+  endsAt: string;
+  pickupTerms: string;
+  freightTerms: string;
+}>;
+
+export type BidRockAuction = Readonly<{
+  id: string;
+  lotNumber: string;
+  status: BidRockAuctionStatus;
+  startsAt: string;
+  endsAt: string;
+  originalEndsAt: string;
+  serverTime: string;
+  bidCount: number;
+  reserveState: BidRockReserveState;
+  pickupTerms: string;
+  freightTerms: string;
+  softCloseSeconds: typeof BIDROCK_SOFT_CLOSE_SECONDS;
+  extended: boolean;
+  canBid: boolean;
+  bidderStatus: BidRockBidderStatus;
+  currentBid?: BidRockMoney;
+  minimumNextBid?: BidRockMoney;
+  openingBid?: BidRockMoney;
+  minimumIncrement?: BidRockMoney;
+  ownMaximumBid?: BidRockMoney;
+  configuration?: BidRockAuctionConfiguration;
+  orderId?: string;
+}>;
+
 export type BidRockListing = Readonly<{
   id: string;
   sourceProfileSlug: string;
@@ -88,6 +145,7 @@ export type BidRockListing = Readonly<{
   }>;
   canOffer: boolean;
   privatePrice?: BidRockPrice;
+  auction?: BidRockAuction;
 }>;
 
 export type BidRockViewer = Readonly<{
@@ -122,6 +180,15 @@ export function formatBidRockPrice(price: BidRockPrice): string {
     maximumFractionDigits: 2,
   });
   return price.unit === "sqft" ? `${amount} / sq ft` : `${amount} / slab`;
+}
+
+export function formatBidRockMoney(money: BidRockMoney): string {
+  return (money.amountCents / 100).toLocaleString("en-US", {
+    style: "currency",
+    currency: money.currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 export function canViewBidRockPrivatePrice(args: {

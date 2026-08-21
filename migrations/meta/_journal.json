@@ -855,6 +855,13 @@
       "when": 1787265534000,
       "tag": "0118_bidrock_marketplace",
       "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1787347287000,
+      "tag": "0119_bidrock_timed_auctions",
+      "breakpoints": true
     }
   ]
 }

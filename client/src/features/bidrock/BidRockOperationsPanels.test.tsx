@@ -229,6 +229,7 @@ describe("BidRock actor-capability controls", () => {
           busy={false}
           onProjectInventory={project}
           onExpireHolds={vi.fn().mockResolvedValue(true)}
+          onCloseAuctions={vi.fn().mockResolvedValue(true)}
           onImportConfirmedStock={vi.fn().mockResolvedValue(true)}
           onDelegation={vi.fn().mockResolvedValue(true)}
         />

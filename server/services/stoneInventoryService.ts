@@ -13,7 +13,10 @@ import {
   type StoneInventoryDimensions,
 } from "@shared/stoneInventory";
 import { pool } from "../db";
-import { refreshBidRockListingProjection } from "./bidrockService";
+import {
+  assertBidRockInventoryHasNoCurrentAuction,
+  refreshBidRockListingProjection,
+} from "./bidrockService";
 import { ensureStoneCoreTables } from "./stoneCoreProvisioning";
 
 export type StoneInventoryProfileTarget = Readonly<{
@@ -318,6 +321,7 @@ export async function upsertCurrentStoneInventory(
       if (new Set(["sold", "archived"]).has(String(existingRow.listing_status))) {
         throw new Error("Sold or archived inventory must be retired and recreated as a new asset");
       }
+      await assertBidRockInventoryHasNoCurrentAuction(client, String(existingRow.position_id));
     }
     const materialResult = existingRow
       ? await client.query(
@@ -533,6 +537,9 @@ export async function setStoneInventorySaleReady(args: {
           [inventoryRow.position_id]
         )
       : null;
+    if (inventoryRow) {
+      await assertBidRockInventoryHasNoCurrentAuction(client, String(inventoryRow.position_id));
+    }
     const projection = inventoryRow
       ? await refreshBidRockListingProjection(client, {
           inventoryPositionId: String(inventoryRow.position_id),
@@ -570,9 +577,8 @@ export async function setStoneInventorySaleReady(args: {
     if (args.saleReady && Number(row.held_quantity || 0) > 0) {
       throw new Error("Reserved inventory cannot be published until its hold is released");
     }
-    if (args.saleReady && (!row.listing_id || !row.price_unit || Number(row.price_cents) <= 0)) {
-      throw new Error("Set the verified-business price before publishing this lot");
-    }
+    if (args.saleReady && !row.listing_id)
+      throw new Error("BidRock listing projection is required");
     if (
       args.saleReady &&
       new Set(["reserved", "sold", "archived"]).has(String(row.listing_status))
@@ -597,11 +603,8 @@ export async function setStoneInventorySaleReady(args: {
     }
     const listingUpdate = await client.query(
       `UPDATE bidrock_listings
-          SET status = CASE
-                WHEN $2::boolean AND price_cents IS NOT NULL THEN 'active'
-                ELSE 'draft'
-              END,
-              published_at = CASE WHEN $2::boolean AND price_cents IS NOT NULL THEN NOW() ELSE NULL END,
+          SET status = CASE WHEN $2::boolean THEN 'active' ELSE 'draft' END,
+              published_at = CASE WHEN $2::boolean THEN NOW() ELSE NULL END,
               version = version + 1,
               updated_at = NOW()
         WHERE inventory_position_id = $1::uuid
@@ -633,25 +636,37 @@ export async function retireStoneInventory(args: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const locked = await client.query(
+      `SELECT ip.id, ip.version
+         FROM stone_inventory_positions ip
+         INNER JOIN stone_asset_passports ap ON ap.id = ip.asset_passport_id
+        WHERE ap.public_id = $1
+          AND ip.holder_business_id = $2
+        FOR UPDATE OF ap, ip`,
+      [args.publicId, args.target.businessId]
+    );
+    if (!locked.rows[0]) {
+      await client.query("COMMIT");
+      return false;
+    }
+    await assertBidRockInventoryHasNoCurrentAuction(client, String(locked.rows[0].id));
     const result = await client.query(
-      `UPDATE stone_inventory_positions ip
+      `UPDATE stone_inventory_positions
           SET lifecycle_status = 'released',
               public_availability_status = $3,
               publication_evidence = '{}'::jsonb,
               published_at = NULL,
               released_at = NOW(),
-              version = ip.version + 1,
+              version = version + 1,
               updated_at = NOW()
-         FROM stone_asset_passports ap
-        WHERE ap.id = ip.asset_passport_id
-          AND ap.public_id = $1
-          AND ip.holder_business_id = $2
-          AND ip.lifecycle_status = $4
-          AND ip.held_quantity = 0
-        RETURNING ip.id`,
+        WHERE id = $1::uuid
+          AND version = $2
+          AND lifecycle_status = $4
+          AND held_quantity = 0
+        RETURNING id`,
       [
-        args.publicId,
-        args.target.businessId,
+        locked.rows[0].id,
+        locked.rows[0].version,
         STONE_CURRENT_INVENTORY_PRIVATE_STATUS,
         STONE_CURRENT_INVENTORY_AVAILABLE_STATUS,
       ]

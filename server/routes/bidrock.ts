@@ -14,8 +14,11 @@ import {
   acceptBidRockOffer,
   cancelBidRockOrder,
   clearBidRockListingPrice,
+  closeExpiredBidRockAuctions,
   completeBidRockOrder,
+  configureBidRockAuction,
   createBidRockOffer,
+  getBidRockAuction,
   getBidRockViewerContext,
   getBidRockOrderWorkspace,
   linkBidRockOrderSystems,
@@ -25,6 +28,7 @@ import {
   listBidRockProviderAssignments,
   listBidRockSellerInventory,
   markBidRockOrderPaymentReady,
+  placeBidRockMaximumBid,
   recordBidRockHandoff,
   recordBidRockPaymentSettlement,
   releaseExpiredBidRockReservations,
@@ -38,6 +42,7 @@ import {
 
 const uuidSchema = z.string().uuid();
 const publicListingIdSchema = z.string().regex(/^brl_[a-z0-9]{20,80}$/);
+const publicAuctionIdSchema = z.string().regex(/^bra_[a-z0-9]{20,80}$/);
 const publicOrderIdSchema = z.string().regex(/^bro_[a-z0-9]{20,80}$/);
 const priceSchema = z
   .object({
@@ -50,6 +55,26 @@ const offerSchema = z
     quantity: z.number().int().positive().max(100_000),
     totalAmount: z.union([z.number(), z.string().trim().min(1)]),
     message: z.string().trim().max(1_000).nullable().optional(),
+    idempotencyKey: z.string().trim().min(8).max(160).optional(),
+  })
+  .strict();
+const auctionConfigurationSchema = z
+  .object({
+    openingBid: z.union([z.number(), z.string().trim().min(1)]),
+    reserveBid: z
+      .union([z.number(), z.string().trim().min(1)])
+      .nullable()
+      .optional(),
+    minimumIncrement: z.union([z.number(), z.string().trim().min(1)]),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    pickupTerms: z.string().trim().min(1).max(2_000),
+    freightTerms: z.string().trim().min(1).max(2_000),
+  })
+  .strict();
+const bidSchema = z
+  .object({
+    maximumBid: z.union([z.number(), z.string().trim().min(1)]),
     idempotencyKey: z.string().trim().min(8).max(160).optional(),
   })
   .strict();
@@ -70,13 +95,13 @@ function respondError(res: Response, error: unknown, fallback: string): void {
   const message = error instanceof Error ? error.message : fallback;
   const status = /authentication|buyer access/i.test(message)
     ? 401
-    : /verified business|seller access|publication access|handoff provider access|order access|offer .* access|admin access|own inventory/i.test(
+    : /verified business|seller access|publication access|auction configuration access|handoff provider access|order access|offer .* access|admin access|administrative accounts|cannot bid|own inventory|owned by their business/i.test(
           message
         )
       ? 403
       : /not found/i.test(message)
         ? 404
-        : /cannot|can no longer|not sale-ready|requires|required|exceeds|does not match|not ready|not settled|in progress|refused|expired|changed|allocated|collision|immutable|duplicated|move backward/i.test(
+        : /cannot|can no longer|not sale-ready|requires|required|must be at least|has not started|has ended|does not match|not ready|not settled|in progress|refused|expired|changed|allocated|collision|immutable|duplicated|move backward/i.test(
               message
             )
           ? 409
@@ -102,6 +127,103 @@ export function registerBidRockRoutes(app: Express): void {
       res.status(500).json({ message: "BidRock is temporarily unavailable" });
     }
   });
+
+  app.get("/api/bidrock/auctions/:id", async (req: Request, res: Response) => {
+    const auctionId = publicAuctionIdSchema.safeParse(req.params.id);
+    if (!auctionId.success) {
+      res.status(400).json({ message: "A valid auction is required" });
+      return;
+    }
+    try {
+      res.setHeader("Cache-Control", getUserId(req) ? "private, no-store" : "public, max-age=5");
+      res.json(await getBidRockAuction(auctionId.data, getUserId(req)));
+    } catch (error) {
+      respondError(res, error, "Auction is temporarily unavailable");
+    }
+  });
+
+  app.post(
+    "/api/bidrock/listings/:id/auction",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = requireUser(req, res);
+      const listingId = publicListingIdSchema.safeParse(req.params.id);
+      const body = auctionConfigurationSchema.safeParse(req.body);
+      if (!userId) return;
+      if (!listingId.success || !body.success) {
+        res.status(400).json({
+          message: body.success
+            ? "A valid listing is required"
+            : body.error.issues[0]?.message || "Valid auction details are required",
+        });
+        return;
+      }
+      const openingBidCents = normalizeBidRockAmountToCents(body.data.openingBid);
+      const minimumIncrementCents = normalizeBidRockAmountToCents(body.data.minimumIncrement);
+      const reserveBidCents =
+        body.data.reserveBid === null || body.data.reserveBid === undefined
+          ? null
+          : normalizeBidRockAmountToCents(body.data.reserveBid);
+      if (
+        !openingBidCents ||
+        !minimumIncrementCents ||
+        (body.data.reserveBid != null && !reserveBidCents)
+      ) {
+        res.status(400).json({ message: "Auction dollar values must be positive" });
+        return;
+      }
+      try {
+        res.status(201).json(
+          await configureBidRockAuction({
+            userId,
+            listingId: listingId.data,
+            openingBidCents,
+            reserveBidCents,
+            minimumIncrementCents,
+            startsAt: body.data.startsAt,
+            endsAt: body.data.endsAt,
+            pickupTerms: body.data.pickupTerms,
+            freightTerms: body.data.freightTerms,
+          })
+        );
+      } catch (error) {
+        respondError(res, error, "Auction could not be scheduled");
+      }
+    }
+  );
+
+  app.post(
+    "/api/bidrock/auctions/:id/bids",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = requireUser(req, res);
+      const auctionId = publicAuctionIdSchema.safeParse(req.params.id);
+      const body = bidSchema.safeParse(req.body);
+      if (!userId) return;
+      if (!auctionId.success || !body.success) {
+        res.status(400).json({ message: "A valid auction and maximum bid are required" });
+        return;
+      }
+      const maxAmountCents = normalizeBidRockAmountToCents(body.data.maximumBid);
+      const key = idempotencyKey(req, body.data.idempotencyKey);
+      if (!maxAmountCents || !key) {
+        res.status(400).json({ message: "Maximum bid and idempotency key are required" });
+        return;
+      }
+      try {
+        res.status(201).json(
+          await placeBidRockMaximumBid({
+            userId,
+            auctionId: auctionId.data,
+            maxAmountCents,
+            idempotencyKey: key,
+          })
+        );
+      } catch (error) {
+        respondError(res, error, "Maximum bid could not be placed");
+      }
+    }
+  );
 
   app.post(
     "/api/admin/bidrock/maintenance/project-inventory",
@@ -137,6 +259,21 @@ export function registerBidRockRoutes(app: Express): void {
         res.json({ expiredReservations: await releaseExpiredBidRockReservations() });
       } catch (error) {
         respondError(res, error, "BidRock hold expiry failed");
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/bidrock/maintenance/close-auctions",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      const userId = requireUser(req, res);
+      if (!userId) return;
+      try {
+        const outcomes = await closeExpiredBidRockAuctions(userId);
+        res.json({ closedAuctions: outcomes.length, outcomes });
+      } catch (error) {
+        respondError(res, error, "Auction closure maintenance failed");
       }
     }
   );

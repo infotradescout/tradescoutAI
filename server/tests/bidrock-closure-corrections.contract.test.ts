@@ -19,7 +19,7 @@ describe("BidRock closure migration and readiness contracts", () => {
     const migrateScript = read("scripts/db-migrate-safe.mjs");
     const journal = JSON.parse(read("migrations/meta/_journal.json"));
     const entries = journal.entries as Array<{ idx: number; when: number; tag: string }>;
-    const recoveryEntries = entries.filter((entry) => /^011[5-8]_/.test(entry.tag));
+    const recoveryEntries = entries.filter((entry) => /^011[5-9]_/.test(entry.tag));
 
     expect(packageJson.scripts["db:migrate"]).toBe("node scripts/db-migrate-safe.mjs");
     expect(migrateScript).toContain('run("npx drizzle-kit migrate")');
@@ -28,8 +28,9 @@ describe("BidRock closure migration and readiness contracts", () => {
       "0116_stone_core_schema",
       "0117_profile_accounts_and_entitlements",
       "0118_bidrock_marketplace",
+      "0119_bidrock_timed_auctions",
     ]);
-    expect(recoveryEntries.map((entry) => entry.idx)).toEqual([118, 119, 120, 121]);
+    expect(recoveryEntries.map((entry) => entry.idx)).toEqual([118, 119, 120, 121, 122]);
     expect(
       recoveryEntries.every(
         (entry, index) => index === 0 || entry.when > recoveryEntries[index - 1]!.when

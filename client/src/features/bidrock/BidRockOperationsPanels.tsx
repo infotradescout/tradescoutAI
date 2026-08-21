@@ -249,6 +249,7 @@ type AdminProps = {
   busy: boolean;
   onProjectInventory: () => Promise<boolean>;
   onExpireHolds: () => Promise<boolean>;
+  onCloseAuctions: () => Promise<boolean>;
   onImportConfirmedStock: () => Promise<boolean>;
   onDelegation: (args: {
     orderId: string;
@@ -271,6 +272,7 @@ export function BidRockAdminPanel({
   busy,
   onProjectInventory,
   onExpireHolds,
+  onCloseAuctions,
   onImportConfirmedStock,
   onDelegation,
 }: AdminProps) {
@@ -308,6 +310,13 @@ export function BidRockAdminPanel({
             onClick={() => void runAdmin("Hold expiry", onExpireHolds)}
           >
             Expire due holds
+          </Button>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => void runAdmin("Auction closure", onCloseAuctions)}
+          >
+            Close ended auctions
           </Button>
           <Button
             variant="outline"

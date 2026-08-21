@@ -31,7 +31,7 @@ describe("BidRock marketplace recovery contract", () => {
     expect(canTransitionBidRockOrder("reservation_active", "paid")).toBe(false);
   });
 
-  it("routes BidRock through JSON services and a real client workspace", () => {
+  it("routes timed auctions through the canonical BidRock service and routed workspace", () => {
     const routes = read("server/routes/bidrock.ts");
     const service = read("server/services/bidrockService.ts");
     const app = read("client/src/App.tsx");
@@ -39,23 +39,26 @@ describe("BidRock marketplace recovery contract", () => {
     const workspace = read("client/src/features/bidrock/BidRockWorkspace.tsx");
 
     expect(routes).toContain('app.get("/api/bidrock/catalog"');
-    expect(routes).toContain('"/api/bidrock/listings/:id/offers"');
+    expect(routes).toContain('"/api/bidrock/listings/:id/auction"');
+    expect(routes).toContain('"/api/bidrock/auctions/:id/bids"');
     expect(routes).toContain('"/api/bidrock/orders/:id/handoffs"');
     expect(service).toContain("Photo-library records never enter BidRock here");
     expect(service).toContain("viewerCanManageListing");
     expect(service).toContain("releaseExpiredBidRockReservations");
     expect(app).toContain('pathOnly === "/bidrock"');
     expect(appRoutes).toContain('import("./features/bidrock/BidRockWorkspace")');
-    expect(workspace).toContain("Search inventory");
-    expect(workspace).toContain("Compare physical lots");
-    expect(workspace).toContain("Seller inventory");
-    expect(workspace).toContain("Transactions");
+    expect(workspace).toContain("Search auctions");
+    expect(workspace).toContain("Compare auction lots");
+    expect(workspace).toContain("Seller controls");
+    expect(workspace).toContain("Live stone auctions");
+    expect(workspace).not.toContain("submitBidRockOffer");
   });
 
   it("keeps schema changes in ordered migrations and public GET services read-only", () => {
     const stoneMigration = read("migrations/0116_stone_core_schema.sql");
     const accountMigration = read("migrations/0117_profile_accounts_and_entitlements.sql");
     const bidrockMigration = read("migrations/0118_bidrock_marketplace.sql");
+    const auctionMigration = read("migrations/0119_bidrock_timed_auctions.sql");
     const stoneProvisioning = read("server/services/stoneCoreProvisioning.ts");
     const profileAccounts = read("server/services/profileAccountService.ts");
     const bidrock = read("server/services/bidrockService.ts");
@@ -65,6 +68,8 @@ describe("BidRock marketplace recovery contract", () => {
     expect(accountMigration).toContain("profile_account_entitlements");
     expect(bidrockMigration).toContain("bidrock_inventory_allocations");
     expect(bidrockMigration).toContain("enforce_bidrock_immutable_links");
+    expect(auctionMigration).toContain("bidrock_auctions");
+    expect(auctionMigration).toContain("bidrock_bids");
     expect(`${stoneProvisioning}\n${profileAccounts}\n${bidrock}`).not.toMatch(
       /CREATE TABLE|ALTER TABLE/
     );
@@ -95,7 +100,7 @@ describe("BidRock marketplace recovery contract", () => {
     expect(service).toContain('status === "active"');
     expect(service).toContain("STONE_CURRENT_INVENTORY_PUBLIC_STATUS");
     expect(service).toContain(
-      "filter((listing): listing is BidRockListing => Boolean(listing?.saleReady))"
+      "filter((listing): listing is BidRockListing => Boolean(listing?.auction))"
     );
     expect(service).toContain("canViewBidRockPrivatePrice({");
     expect(service).toContain("canManage: canRead || canManage");
@@ -104,7 +109,7 @@ describe("BidRock marketplace recovery contract", () => {
     );
     expect(listingMapper).not.toContain("inventoryPositionId:");
     expect(listingMapper).not.toContain("sellerBusinessId:");
-    expect(detail).toContain("{verifiedBusiness ? (");
+    expect(detail).toContain("!canSeeBidValues ? (");
     expect(workspace).toContain("{verifiedBusiness ? (");
   });
 

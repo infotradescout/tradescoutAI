@@ -5,8 +5,11 @@ import {
   BIDROCK_HANDOFF_TYPES,
   BIDROCK_PAYMENT_METHOD,
   BIDROCK_PRICE_VISIBILITY,
+  BIDROCK_SOFT_CLOSE_SECONDS,
   canViewBidRockPrivatePrice,
   canTransitionBidRockOrder,
+  type BidRockAuction,
+  type BidRockAuctionStatus,
   type BidRockCatalogResponse,
   type BidRockHandoffActionCapability,
   type BidRockHandoffType,
@@ -53,8 +56,157 @@ function isExplicitZero(value: unknown): boolean {
   );
 }
 
+export type BidRockMaxBidInput = Readonly<{
+  id: string;
+  bidderUserId: string;
+  maxAmountCents: number;
+  acceptedSequence: number;
+}>;
+
+export type BidRockProxyOutcome = Readonly<{
+  leader: BidRockMaxBidInput | null;
+  runnerUp: BidRockMaxBidInput | null;
+  currentPriceCents: number;
+  distinctBidderCount: number;
+}>;
+
+/**
+ * Resolve the public proxy price from immutable maximum-bid submissions.
+ * Only each bidder's latest submission participates, so raising a maximum never bids
+ * against that bidder's earlier maximum. Exact maximum ties keep the earlier submission ahead.
+ */
+export function calculateBidRockProxyPrice(args: {
+  openingBidCents: number;
+  minimumIncrementCents: number;
+  bids: readonly BidRockMaxBidInput[];
+}): BidRockProxyOutcome {
+  const openingBidCents = Math.trunc(args.openingBidCents);
+  const minimumIncrementCents = Math.trunc(args.minimumIncrementCents);
+  if (openingBidCents <= 0 || minimumIncrementCents <= 0) {
+    throw new Error("BidRock auction prices must be positive integer cents");
+  }
+  const latestByBidder = new Map<string, BidRockMaxBidInput>();
+  for (const bid of args.bids) {
+    if (!bid.bidderUserId || !Number.isInteger(bid.maxAmountCents)) continue;
+    if (bid.maxAmountCents < openingBidCents || !Number.isFinite(bid.acceptedSequence)) continue;
+    const existing = latestByBidder.get(bid.bidderUserId);
+    if (!existing || bid.acceptedSequence > existing.acceptedSequence) {
+      latestByBidder.set(bid.bidderUserId, bid);
+    }
+  }
+  const ranked = [...latestByBidder.values()].sort(
+    (left, right) =>
+      right.maxAmountCents - left.maxAmountCents ||
+      left.acceptedSequence - right.acceptedSequence ||
+      left.id.localeCompare(right.id)
+  );
+  const leader = ranked[0] ?? null;
+  const runnerUp = ranked[1] ?? null;
+  const currentPriceCents = !leader
+    ? openingBidCents
+    : !runnerUp
+      ? openingBidCents
+      : Math.min(leader.maxAmountCents, runnerUp.maxAmountCents + minimumIncrementCents);
+  return {
+    leader,
+    runnerUp,
+    currentPriceCents,
+    distinctBidderCount: ranked.length,
+  };
+}
+
+export function minimumBidRockMaximumForViewer(args: {
+  outcome: BidRockProxyOutcome;
+  openingBidCents: number;
+  minimumIncrementCents: number;
+  reserveBidCents?: number | null;
+  viewerUserId?: string | null;
+  viewerMaximumCents?: number | null;
+}): number {
+  if (!args.outcome.leader) return args.openingBidCents;
+  if (
+    args.viewerUserId &&
+    args.outcome.leader.bidderUserId === args.viewerUserId &&
+    Number(args.viewerMaximumCents) > 0
+  ) {
+    return Number(args.viewerMaximumCents) + args.minimumIncrementCents;
+  }
+  const pricing = resolveBidRockAuctionPricing({
+    outcome: args.outcome,
+    reserveBidCents: args.reserveBidCents ?? null,
+  });
+  return pricing.currentPriceCents + args.minimumIncrementCents;
+}
+
+export function shouldExtendBidRockAuction(args: {
+  databaseNow: Date;
+  endsAt: Date;
+  softCloseSeconds?: number;
+}): boolean {
+  const remainingMilliseconds = args.endsAt.getTime() - args.databaseNow.getTime();
+  return (
+    remainingMilliseconds > 0 &&
+    remainingMilliseconds <= (args.softCloseSeconds ?? BIDROCK_SOFT_CLOSE_SECONDS) * 1_000
+  );
+}
+
+export function assertBidRockBidderIsNotSeller(args: {
+  sellerBusinessId: string;
+  bidderOwnedBusinessIds: ReadonlySet<string>;
+  bidderDelegatedBusinessIds?: ReadonlySet<string>;
+}): void {
+  if (
+    args.bidderOwnedBusinessIds.has(args.sellerBusinessId) ||
+    args.bidderDelegatedBusinessIds?.has(args.sellerBusinessId)
+  ) {
+    throw new Error("A seller cannot bid on a lot owned by their business");
+  }
+}
+
+export function resolveBidRockCloseOutcome(args: {
+  outcome: BidRockProxyOutcome;
+  reserveBidCents: number | null;
+}): Readonly<{
+  status: "no_sale" | "sold";
+  winner: BidRockMaxBidInput | null;
+  winningPriceCents: number | null;
+}> {
+  const pricing = resolveBidRockAuctionPricing(args);
+  if (!args.outcome.leader || pricing.reserveState === "not_met") {
+    return { status: "no_sale", winner: null, winningPriceCents: null };
+  }
+  return {
+    status: "sold",
+    winner: args.outcome.leader,
+    winningPriceCents: pricing.currentPriceCents,
+  };
+}
+
+function resolveBidRockAuctionPricing(args: {
+  outcome: BidRockProxyOutcome;
+  reserveBidCents: number | null;
+}): Readonly<{
+  currentPriceCents: number;
+  reserveState: "none" | "not_met" | "met";
+}> {
+  if (args.reserveBidCents === null) {
+    return { currentPriceCents: args.outcome.currentPriceCents, reserveState: "none" };
+  }
+  const reserveMet = Boolean(
+    args.outcome.leader && args.outcome.leader.maxAmountCents >= args.reserveBidCents
+  );
+  return {
+    currentPriceCents: reserveMet
+      ? Math.max(args.outcome.currentPriceCents, args.reserveBidCents)
+      : args.outcome.currentPriceCents,
+    reserveState: reserveMet ? "met" : "not_met",
+  };
+}
+
 const BIDROCK_REQUIRED_TABLES = [
   "bidrock_listings",
+  "bidrock_auctions",
+  "bidrock_bids",
   "bidrock_offers",
   "bidrock_reservations",
   "bidrock_orders",
@@ -231,8 +383,10 @@ function effectiveAccountStatus(rows: any[]): BidRockViewerContext["accountStatu
   return "none";
 }
 
-export async function getBidRockViewerContext(
-  userId?: string | null
+async function loadBidRockViewerContext(
+  queryable: Queryable,
+  userId?: string | null,
+  lockRows = false
 ): Promise<BidRockViewerContext> {
   const normalizedUserId = normalizeText(userId, 160);
   if (!normalizedUserId) {
@@ -248,12 +402,18 @@ export async function getBidRockViewerContext(
       publishableInventoryBusinessIds: new Set(),
     };
   }
+  const lockUserRows = lockRows ? "FOR SHARE" : "";
+  const lockEntitlementRows = lockRows ? "FOR SHARE OF pae, pa, up" : "";
+  const lockDelegationRows = lockRows ? "FOR SHARE OF delegation" : "";
   const [userResult, businessResult, entitlementResult, delegationResult] = await Promise.all([
-    pool.query(`SELECT role, active_role, roles FROM users WHERE id = $1 LIMIT 1`, [
+    queryable.query(
+      `SELECT role, active_role, roles FROM users WHERE id = $1 LIMIT 1 ${lockUserRows}`,
+      [normalizedUserId]
+    ),
+    queryable.query(`SELECT id FROM businesses WHERE owner_user_id = $1 ${lockUserRows}`, [
       normalizedUserId,
     ]),
-    pool.query(`SELECT id FROM businesses WHERE owner_user_id = $1`, [normalizedUserId]),
-    pool.query(
+    queryable.query(
       `SELECT pae.status AS entitlement_status,
               pa.status AS account_status,
               pa.business_profile_id,
@@ -264,11 +424,12 @@ export async function getBidRockViewerContext(
         WHERE pa.owner_user_id = $1
           AND pa.identity_kind = 'business'
           AND pae.product_key = 'bidrock'
-        ORDER BY (up.verification_status = 'approved') DESC, pa.updated_at DESC`,
+        ORDER BY (up.verification_status = 'approved') DESC, pa.updated_at DESC
+        ${lockEntitlementRows}`,
       [normalizedUserId]
     ),
-    pool.query(
-      `SELECT DISTINCT delegation.holder_business_id, scope.value AS capability
+    queryable.query(
+      `SELECT delegation.holder_business_id, scope.value AS capability
          FROM stone_inventory_delegations delegation
          CROSS JOIN LATERAL unnest(delegation.scopes) AS scope(value)
         WHERE delegation.status = 'active'
@@ -279,7 +440,8 @@ export async function getBidRockViewerContext(
             OR delegation.delegate_business_id IN (
               SELECT business.id FROM businesses business WHERE business.owner_user_id = $1
             )
-          )`,
+          )
+        ${lockDelegationRows}`,
       [normalizedUserId]
     ),
   ]);
@@ -316,6 +478,12 @@ export async function getBidRockViewerContext(
       ...delegatedFor("inventory_publish"),
     ]),
   };
+}
+
+export async function getBidRockViewerContext(
+  userId?: string | null
+): Promise<BidRockViewerContext> {
+  return loadBidRockViewerContext(pool, userId);
 }
 
 export function canBidRockViewerMutateStoneInventory(
@@ -359,6 +527,235 @@ function viewerIsListingSellerAgent(viewer: BidRockViewerContext, row: any): boo
       viewer.writableInventoryBusinessIds.has(sellerBusinessId) ||
       viewer.publishableInventoryBusinessIds.has(sellerBusinessId))
   );
+}
+
+async function bidRockInventoryHasCurrentAuction(
+  queryable: Queryable,
+  inventoryPositionId: string
+): Promise<boolean> {
+  const result = await queryable.query(
+    `SELECT EXISTS (
+       SELECT 1
+         FROM bidrock_listings listing
+         INNER JOIN bidrock_auctions auction ON auction.listing_id = listing.id
+        WHERE listing.inventory_position_id = $1::uuid
+          AND auction.status IN ('scheduled', 'live', 'extended', 'ended')
+     ) AS has_current_auction`,
+    [inventoryPositionId]
+  );
+  return result.rows[0]?.has_current_auction === true;
+}
+
+async function bidRockListingHasCurrentAuction(
+  queryable: Queryable,
+  listingId: string
+): Promise<boolean> {
+  const result = await queryable.query(
+    `SELECT EXISTS (
+       SELECT 1
+         FROM bidrock_auctions auction
+        WHERE auction.listing_id = $1::uuid
+          AND auction.status IN ('scheduled', 'live', 'extended', 'ended')
+     ) AS has_current_auction`,
+    [listingId]
+  );
+  return result.rows[0]?.has_current_auction === true;
+}
+
+export async function assertBidRockInventoryHasNoCurrentAuction(
+  queryable: Queryable,
+  inventoryPositionId: string
+): Promise<void> {
+  if (await bidRockInventoryHasCurrentAuction(queryable, inventoryPositionId)) {
+    throw new Error("Close the current BidRock auction before changing its physical stock");
+  }
+}
+
+type BidRockAuctionShapeInput = Readonly<{
+  id: string;
+  lotNumber: string;
+  storedStatus: BidRockAuctionStatus;
+  openingBidCents: number;
+  reserveBidCents: number | null;
+  minimumIncrementCents: number;
+  startsAt: string | Date;
+  endsAt: string | Date;
+  originalEndsAt: string | Date;
+  serverTime: string | Date;
+  pickupTerms: string;
+  freightTerms: string;
+  bidCount: number;
+  bids: readonly BidRockMaxBidInput[];
+  orderId: string | null;
+}>;
+
+function effectiveBidRockAuctionStatus(auction: BidRockAuctionShapeInput): BidRockAuctionStatus {
+  if (auction.storedStatus === "sold" || auction.storedStatus === "no_sale") {
+    return auction.storedStatus;
+  }
+  const now = new Date(auction.serverTime).getTime();
+  const startsAt = new Date(auction.startsAt).getTime();
+  const endsAt = new Date(auction.endsAt).getTime();
+  if (now < startsAt) return "scheduled";
+  if (now >= endsAt) return "ended";
+  return auction.storedStatus === "extended" ? "extended" : "live";
+}
+
+/** Privacy boundary for every auction DTO returned by BidRock reads and mutations. */
+export function shapeBidRockAuctionForViewer(args: {
+  auction: BidRockAuctionShapeInput;
+  viewer: Readonly<{
+    userId: string | null;
+    verifiedBusiness: boolean;
+    canManage: boolean;
+    canBid: boolean;
+  }>;
+}): BidRockAuction {
+  const status = effectiveBidRockAuctionStatus(args.auction);
+  const outcome = calculateBidRockProxyPrice({
+    openingBidCents: args.auction.openingBidCents,
+    minimumIncrementCents: args.auction.minimumIncrementCents,
+    bids: args.auction.bids,
+  });
+  const ownLatest = args.viewer.userId
+    ? [...args.auction.bids]
+        .filter((bid) => bid.bidderUserId === args.viewer.userId)
+        .sort((left, right) => right.acceptedSequence - left.acceptedSequence)[0]
+    : undefined;
+  const ownsLead = Boolean(
+    ownLatest && outcome.leader && ownLatest.bidderUserId === outcome.leader.bidderUserId
+  );
+  const bidderStatus = !ownLatest
+    ? "none"
+    : status === "sold"
+      ? ownsLead
+        ? "won"
+        : "lost"
+      : status === "no_sale"
+        ? "lost"
+        : ownsLead
+          ? "leading"
+          : "outbid";
+  const pricing = resolveBidRockAuctionPricing({
+    outcome,
+    reserveBidCents: args.auction.reserveBidCents,
+  });
+  const money = (amountCents: number) => ({ amountCents, currency: BIDROCK_CURRENCY }) as const;
+  const maySeeAuctionMoney = args.viewer.verifiedBusiness || args.viewer.canManage;
+  const canBid =
+    args.viewer.canBid &&
+    (status === "live" || status === "extended") &&
+    new Date(args.auction.endsAt).getTime() > new Date(args.auction.serverTime).getTime();
+  const base: BidRockAuction = {
+    id: args.auction.id,
+    lotNumber: args.auction.lotNumber,
+    status,
+    startsAt: new Date(args.auction.startsAt).toISOString(),
+    endsAt: new Date(args.auction.endsAt).toISOString(),
+    originalEndsAt: new Date(args.auction.originalEndsAt).toISOString(),
+    serverTime: new Date(args.auction.serverTime).toISOString(),
+    bidCount: args.auction.bidCount,
+    reserveState: pricing.reserveState,
+    pickupTerms: args.auction.pickupTerms,
+    freightTerms: args.auction.freightTerms,
+    softCloseSeconds: BIDROCK_SOFT_CLOSE_SECONDS,
+    extended:
+      status === "extended" ||
+      new Date(args.auction.endsAt).getTime() > new Date(args.auction.originalEndsAt).getTime(),
+    canBid,
+    bidderStatus,
+  };
+  if (!maySeeAuctionMoney) return base;
+  const minimumNextBidCents = minimumBidRockMaximumForViewer({
+    outcome,
+    openingBidCents: args.auction.openingBidCents,
+    minimumIncrementCents: args.auction.minimumIncrementCents,
+    reserveBidCents: args.auction.reserveBidCents,
+    viewerUserId: args.viewer.userId,
+    viewerMaximumCents: ownLatest?.maxAmountCents,
+  });
+  return {
+    ...base,
+    openingBid: money(args.auction.openingBidCents),
+    currentBid: money(pricing.currentPriceCents),
+    minimumNextBid: money(minimumNextBidCents),
+    minimumIncrement: money(args.auction.minimumIncrementCents),
+    ...(ownLatest ? { ownMaximumBid: money(ownLatest.maxAmountCents) } : {}),
+    ...(args.viewer.canManage
+      ? {
+          configuration: {
+            openingBid: money(args.auction.openingBidCents),
+            ...(args.auction.reserveBidCents === null
+              ? {}
+              : { reserveBid: money(args.auction.reserveBidCents) }),
+            minimumIncrement: money(args.auction.minimumIncrementCents),
+            startsAt: new Date(args.auction.startsAt).toISOString(),
+            endsAt: new Date(args.auction.endsAt).toISOString(),
+            pickupTerms: args.auction.pickupTerms,
+            freightTerms: args.auction.freightTerms,
+          },
+        }
+      : {}),
+    ...(args.auction.orderId && (args.viewer.canManage || bidderStatus === "won")
+      ? { orderId: args.auction.orderId }
+      : {}),
+  };
+}
+
+function auctionBidInputs(value: unknown): readonly BidRockMaxBidInput[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((bid) => recordValue(bid))
+    .map((bid) => ({
+      id: String(bid.id || ""),
+      bidderUserId: String(bid.bidderUserId || ""),
+      maxAmountCents: Number(bid.maxAmountCents),
+      acceptedSequence: Number(bid.acceptedSequence),
+    }))
+    .filter(
+      (bid) =>
+        Boolean(bid.id && bid.bidderUserId) &&
+        Number.isInteger(bid.maxAmountCents) &&
+        Number.isFinite(bid.acceptedSequence)
+    );
+}
+
+function mapAuction(
+  row: any,
+  viewer: BidRockViewerContext,
+  canManage: boolean
+): BidRockAuction | undefined {
+  if (!row.auction_public_id) return undefined;
+  return shapeBidRockAuctionForViewer({
+    auction: {
+      id: String(row.auction_public_id),
+      lotNumber: String(row.auction_lot_number),
+      storedStatus: String(row.auction_status) as BidRockAuctionStatus,
+      openingBidCents: Number(row.auction_opening_bid_cents),
+      reserveBidCents:
+        row.auction_reserve_bid_cents === null ? null : Number(row.auction_reserve_bid_cents),
+      minimumIncrementCents: Number(row.auction_minimum_increment_cents),
+      startsAt: row.auction_starts_at,
+      endsAt: row.auction_ends_at,
+      originalEndsAt: row.auction_original_ends_at,
+      serverTime: row.database_now,
+      pickupTerms: normalizeText(row.auction_pickup_terms, 2_000),
+      freightTerms: normalizeText(row.auction_freight_terms, 2_000),
+      bidCount: Number(row.auction_bid_count || 0),
+      bids: auctionBidInputs(row.auction_bidder_maxima),
+      orderId: row.auction_order_public_id ? String(row.auction_order_public_id) : null,
+    },
+    viewer: {
+      userId: viewer.userId,
+      verifiedBusiness: viewer.verifiedBusiness,
+      canManage,
+      canBid:
+        viewer.verifiedBusiness &&
+        !viewer.admin &&
+        auctionListingIsCommittedAndAvailable(row) &&
+        !viewerIsListingSellerAgent(viewer, row),
+    },
+  });
 }
 
 async function lockBidRockProjectionRows(client: Queryable, inventoryPositionId: string) {
@@ -430,6 +827,9 @@ export async function refreshBidRockListingProjection(
 ): Promise<{ listing: any | null; eligible: boolean; canonical: any | null }> {
   const { canonical, listing } = await lockBidRockProjectionRows(client, args.inventoryPositionId);
   if (!canonical) return { listing: null, eligible: false, canonical: null };
+  const hasCurrentAuction = listing
+    ? await bidRockInventoryHasCurrentAuction(client, args.inventoryPositionId)
+    : false;
 
   const condition = recordValue(canonical.condition_json);
   const lastConfirmedAt = normalizeIso(condition.lastConfirmedAt);
@@ -442,6 +842,9 @@ export async function refreshBidRockListingProjection(
     confirmationExpiresAt
   );
   if (!eligible || !lastConfirmedAt || !confirmationExpiresAt) {
+    if (hasCurrentAuction) {
+      throw new Error("Close the current BidRock auction before changing its physical stock");
+    }
     if (listing && !new Set(["reserved", "sold", "archived"]).has(String(listing.status))) {
       const archived = await client.query(
         `UPDATE bidrock_listings
@@ -511,6 +914,9 @@ export async function refreshBidRockListingProjection(
   ) {
     throw new Error("BidRock listing canonical identity does not match its Stone Core position");
   }
+  if (hasCurrentAuction && args.forceDraft) {
+    throw new Error("Close the current BidRock auction before changing its physical stock");
+  }
   const authoritativePublication = Boolean(
     canonical.public_availability_status === STONE_CURRENT_INVENTORY_PUBLIC_STATUS &&
     canonical.inventory_published_at &&
@@ -522,7 +928,7 @@ export async function refreshBidRockListingProjection(
     ? String(listing.status)
     : args.forceDraft
       ? "draft"
-      : authoritativePublication && Number(listing.price_cents) > 0
+      : authoritativePublication
         ? "active"
         : "draft";
   const updated = await client.query(
@@ -636,7 +1042,11 @@ export async function syncBidRockStoneInventory(): Promise<number> {
   return projected;
 }
 
-function mapListing(row: any, viewer: BidRockViewerContext): BidRockListing | null {
+function mapListing(
+  row: any,
+  viewer: BidRockViewerContext,
+  options: Readonly<{ includeLegacyPrice?: boolean }> = {}
+): BidRockListing | null {
   const lastConfirmedAt = normalizeIso(row.last_confirmed_at);
   const confirmationExpiresAt = normalizeIso(row.confirmation_expires_at);
   if (!lastConfirmedAt || !confirmationExpiresAt) return null;
@@ -653,6 +1063,7 @@ function mapListing(row: any, viewer: BidRockViewerContext): BidRockListing | nu
     row.public_availability_status === STONE_CURRENT_INVENTORY_PUBLIC_STATUS &&
     Boolean(row.inventory_published_at) &&
     Object.keys(recordValue(row.publication_evidence)).length > 0;
+  const auction = mapAuction(row, viewer, canManage);
   const listing: BidRockListing = {
     id: String(row.public_id),
     sourceProfileSlug: normalizeText(row.source_profile_slug, 120),
@@ -677,9 +1088,12 @@ function mapListing(row: any, viewer: BidRockViewerContext): BidRockListing | nu
     confirmationExpiresAt,
     canManage,
     sellerCapabilities: { read: canRead, write: canWrite, publish: canPublish },
-    canOffer: viewer.verifiedBusiness && saleReady && !viewerIsListingSellerAgent(viewer, row),
+    canOffer:
+      !auction && viewer.verifiedBusiness && saleReady && !viewerIsListingSellerAgent(viewer, row),
+    ...(auction ? { auction } : {}),
   };
   if (
+    options.includeLegacyPrice &&
     canViewBidRockPrivatePrice({
       verifiedBusiness: viewer.verifiedBusiness,
       canManage: canRead || canManage,
@@ -702,27 +1116,86 @@ function mapListing(row: any, viewer: BidRockViewerContext): BidRockListing | nu
 async function listingRows(userId: string | null, where: string, parameters: unknown[]) {
   return pool.query(
     `SELECT listing.*,
+            clock_timestamp() AS database_now,
+            ip.lifecycle_status AS inventory_lifecycle_status,
+            ip.quantity AS inventory_quantity,
+            ip.held_quantity,
             ip.public_availability_status,
             ip.publication_evidence,
             ip.published_at AS inventory_published_at,
+            auction.public_id AS auction_public_id,
+            auction.lot_number AS auction_lot_number,
+            auction.status AS auction_status,
+            auction.opening_bid_cents AS auction_opening_bid_cents,
+            auction.reserve_bid_cents AS auction_reserve_bid_cents,
+            auction.minimum_increment_cents AS auction_minimum_increment_cents,
+            auction.starts_at AS auction_starts_at,
+            auction.ends_at AS auction_ends_at,
+            auction.original_ends_at AS auction_original_ends_at,
+            auction.pickup_terms AS auction_pickup_terms,
+            auction.freight_terms AS auction_freight_terms,
+            auction_order.public_id AS auction_order_public_id,
+            COALESCE(bid_stats.bid_count, 0) AS auction_bid_count,
+            COALESCE(bid_stats.bidder_maxima, '[]'::jsonb) AS auction_bidder_maxima,
             EXISTS (
               SELECT 1 FROM bidrock_saved_listings saved
                WHERE saved.listing_id = listing.id AND saved.user_id = $1
             ) AS saved
        FROM bidrock_listings listing
        INNER JOIN stone_inventory_positions ip ON ip.id = listing.inventory_position_id
+       LEFT JOIN LATERAL (
+         SELECT candidate.*
+           FROM bidrock_auctions candidate
+          WHERE candidate.listing_id = listing.id
+          ORDER BY
+            CASE WHEN candidate.status IN ('scheduled', 'live', 'extended', 'ended') THEN 0 ELSE 1 END,
+            candidate.created_at DESC,
+            candidate.id DESC
+          LIMIT 1
+       ) auction ON TRUE
+       LEFT JOIN bidrock_orders auction_order ON auction_order.id = auction.order_id
+       LEFT JOIN LATERAL (
+         SELECT (
+                  SELECT count(*)::integer
+                    FROM bidrock_bids accepted_bid
+                   WHERE accepted_bid.auction_id = auction.id
+                ) AS bid_count,
+                COALESCE(
+                  jsonb_agg(
+                    jsonb_build_object(
+                      'id', latest.id,
+                      'bidderUserId', latest.bidder_user_id,
+                      'maxAmountCents', latest.max_amount_cents,
+                      'acceptedSequence', latest.accepted_sequence
+                    ) ORDER BY latest.accepted_sequence
+                  ),
+                  '[]'::jsonb
+                ) AS bidder_maxima
+           FROM (
+             SELECT DISTINCT ON (bid.bidder_user_id)
+                    bid.id, bid.bidder_user_id, bid.max_amount_cents, bid.accepted_sequence
+               FROM bidrock_bids bid
+              WHERE bid.auction_id = auction.id
+              ORDER BY bid.bidder_user_id, bid.accepted_sequence DESC
+           ) latest
+       ) bid_stats ON TRUE
       WHERE ${where}
-      ORDER BY listing.source_profile_name ASC, listing.material_family ASC NULLS LAST, listing.title ASC`,
+      ORDER BY auction.ends_at ASC NULLS LAST, listing.source_profile_name ASC,
+               listing.material_family ASC NULLS LAST, listing.title ASC`,
     [userId, ...parameters]
   );
 }
 
 export async function listBidRockCatalog(userId?: string | null): Promise<BidRockCatalogResponse> {
   const viewer = await getBidRockViewerContext(userId);
-  const rows = await listingRows(viewer.userId, "listing.status = 'active'", []);
+  const rows = await listingRows(
+    viewer.userId,
+    "listing.status IN ('active', 'reserved', 'sold')",
+    []
+  );
   const listings = rows.rows
     .map((row) => mapListing(row, viewer))
-    .filter((listing): listing is BidRockListing => Boolean(listing?.saleReady));
+    .filter((listing): listing is BidRockListing => Boolean(listing?.auction));
   return {
     generatedAt: new Date().toISOString(),
     listings,
@@ -759,7 +1232,7 @@ export async function listBidRockSellerInventory(
     viewer.admin ? [] : [[...managedBusinessIds]]
   );
   return rows.rows
-    .map((row) => mapListing(row, viewer))
+    .map((row) => mapListing(row, viewer, { includeLegacyPrice: true }))
     .filter((listing): listing is BidRockListing => Boolean(listing));
 }
 
@@ -972,9 +1445,6 @@ export async function setBidRockListingSaleReady(args: {
     if (args.saleReady && Number(row.held_quantity || 0) > 0) {
       throw new Error("Reserved inventory cannot be published until its hold is released");
     }
-    if (args.saleReady && (!row.price_unit || Number(row.price_cents) <= 0)) {
-      throw new Error("Set the verified-business price before publishing this lot");
-    }
     if (args.saleReady && row.confirmation_fresh !== true) {
       throw new Error("Current stock must be re-confirmed before it can be sale-ready");
     }
@@ -984,6 +1454,19 @@ export async function setBidRockListingSaleReady(args: {
         Number(row.inventory_quantity) <= 0)
     ) {
       throw new Error("Only available physical stock can be sale-ready");
+    }
+    if (!args.saleReady) {
+      const currentAuction = await client.query(
+        `SELECT 1
+           FROM bidrock_auctions
+          WHERE listing_id = $1::uuid
+            AND status IN ('scheduled', 'live', 'extended', 'ended')
+          FOR UPDATE`,
+        [row.id]
+      );
+      if (currentAuction.rows[0]) {
+        throw new Error("Close the current auction before returning this lot to private inventory");
+      }
     }
     const inventoryUpdate = await client.query(
       `UPDATE stone_inventory_positions
@@ -1058,6 +1541,627 @@ export async function setBidRockSavedListing(args: {
     );
   }
   return { id: String(exists.rows[0].public_id), saved: args.saved };
+}
+
+async function loadBidRockAuctionBidState(
+  queryable: Queryable,
+  auctionId: string,
+  lockRows = false
+): Promise<{ bids: readonly BidRockMaxBidInput[]; bidCount: number }> {
+  if (lockRows) {
+    await queryable.query(`SELECT id FROM bidrock_bids WHERE auction_id = $1::uuid FOR UPDATE`, [
+      auctionId,
+    ]);
+  }
+  const [latest, count] = await Promise.all([
+    queryable.query(
+      `SELECT DISTINCT ON (bidder_user_id)
+              id, bidder_user_id, max_amount_cents, accepted_sequence
+         FROM bidrock_bids
+        WHERE auction_id = $1::uuid
+        ORDER BY bidder_user_id, accepted_sequence DESC`,
+      [auctionId]
+    ),
+    queryable.query(
+      `SELECT count(*)::integer AS bid_count FROM bidrock_bids WHERE auction_id = $1::uuid`,
+      [auctionId]
+    ),
+  ]);
+  return {
+    bids: latest.rows.map((bid) => ({
+      id: String(bid.id),
+      bidderUserId: String(bid.bidder_user_id),
+      maxAmountCents: Number(bid.max_amount_cents),
+      acceptedSequence: Number(bid.accepted_sequence),
+    })),
+    bidCount: Number(count.rows[0]?.bid_count || 0),
+  };
+}
+
+function auctionListingIsSaleReady(row: any): boolean {
+  return Boolean(
+    auctionListingIsCommittedAndAvailable(row) &&
+    isStoneInventoryConfirmationFresh({
+      lastConfirmedAt: row.last_confirmed_at,
+      confirmationExpiresAt: row.confirmation_expires_at,
+    })
+  );
+}
+
+function auctionListingIsCommittedAndAvailable(row: any): boolean {
+  return Boolean(
+    row.listing_status === "active" &&
+    row.inventory_lifecycle_status === STONE_CURRENT_INVENTORY_AVAILABLE_STATUS &&
+    row.public_availability_status === STONE_CURRENT_INVENTORY_PUBLIC_STATUS &&
+    row.inventory_published_at &&
+    Object.keys(recordValue(row.publication_evidence)).length > 0 &&
+    Number(row.inventory_quantity) - Number(row.held_quantity || 0) >= Number(row.quantity)
+  );
+}
+
+function auctionListingHasAllocatableStock(row: any): boolean {
+  // Freshness gates publication and scheduling. Once the timed auction commits the lot, its
+  // mutation lock preserves that stock through soft-close bidding and deterministic closure;
+  // discovery freshness expiring during an extension does not revoke a valid response window.
+  return Boolean(
+    row.listing_status === "active" &&
+    row.inventory_lifecycle_status === STONE_CURRENT_INVENTORY_AVAILABLE_STATUS &&
+    Number(row.inventory_quantity) - Number(row.held_quantity || 0) >= Number(row.quantity)
+  );
+}
+
+async function readBidRockAuctionRow(
+  queryable: Queryable,
+  publicAuctionId: string,
+  lockRows = false
+) {
+  return queryable.query(
+    `SELECT auction.*,
+            auction.public_id AS auction_public_id,
+            auction.lot_number AS auction_lot_number,
+            auction.status AS auction_status,
+            auction.opening_bid_cents AS auction_opening_bid_cents,
+            auction.reserve_bid_cents AS auction_reserve_bid_cents,
+            auction.minimum_increment_cents AS auction_minimum_increment_cents,
+            auction.starts_at AS auction_starts_at,
+            auction.ends_at AS auction_ends_at,
+            auction.original_ends_at AS auction_original_ends_at,
+            auction.pickup_terms AS auction_pickup_terms,
+            auction.freight_terms AS auction_freight_terms,
+            listing.public_id AS listing_public_id,
+            listing.seller_business_id,
+            listing.status AS listing_status,
+            listing.quantity,
+            listing.last_confirmed_at,
+            listing.confirmation_expires_at,
+            inventory.lifecycle_status AS inventory_lifecycle_status,
+            inventory.quantity AS inventory_quantity,
+            inventory.held_quantity,
+            inventory.public_availability_status,
+            inventory.publication_evidence,
+            inventory.published_at AS inventory_published_at,
+            orders.public_id AS auction_order_public_id,
+            clock_timestamp() AS database_now
+       FROM bidrock_auctions auction
+       INNER JOIN bidrock_listings listing ON listing.id = auction.listing_id
+       INNER JOIN stone_inventory_positions inventory ON inventory.id = listing.inventory_position_id
+       LEFT JOIN bidrock_orders orders ON orders.id = auction.order_id
+      WHERE auction.public_id = $1
+      ${lockRows ? "FOR UPDATE OF auction, listing, inventory" : ""}`,
+    [publicAuctionId]
+  );
+}
+
+export async function getBidRockAuction(
+  publicAuctionId: string,
+  userId?: string | null
+): Promise<BidRockAuction> {
+  await ensureBidRockTables();
+  const viewer = await getBidRockViewerContext(userId);
+  const result = await readBidRockAuctionRow(pool, publicAuctionId);
+  const row = result.rows[0];
+  if (!row) throw new Error("BidRock auction not found");
+  const canManage =
+    viewerCanManageListing(viewer, row, "inventory_read") ||
+    viewerCanManageListing(viewer, row, "inventory_write") ||
+    viewerCanManageListing(viewer, row, "inventory_publish");
+  const bidState = await loadBidRockAuctionBidState(pool, String(row.id));
+  return shapeBidRockAuctionForViewer({
+    auction: {
+      id: String(row.public_id),
+      lotNumber: String(row.lot_number),
+      storedStatus: String(row.status) as BidRockAuctionStatus,
+      openingBidCents: Number(row.opening_bid_cents),
+      reserveBidCents: row.reserve_bid_cents === null ? null : Number(row.reserve_bid_cents),
+      minimumIncrementCents: Number(row.minimum_increment_cents),
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+      originalEndsAt: row.original_ends_at,
+      serverTime: row.database_now,
+      pickupTerms: normalizeText(row.pickup_terms, 2_000),
+      freightTerms: normalizeText(row.freight_terms, 2_000),
+      bidCount: bidState.bidCount,
+      bids: bidState.bids,
+      orderId: row.auction_order_public_id ? String(row.auction_order_public_id) : null,
+    },
+    viewer: {
+      userId: viewer.userId,
+      verifiedBusiness: viewer.verifiedBusiness,
+      canManage,
+      canBid:
+        viewer.verifiedBusiness &&
+        !viewer.admin &&
+        auctionListingIsCommittedAndAvailable(row) &&
+        !viewerIsListingSellerAgent(viewer, row),
+    },
+  });
+}
+
+export async function configureBidRockAuction(args: {
+  userId: string;
+  listingId: string;
+  openingBidCents: number;
+  reserveBidCents?: number | null;
+  minimumIncrementCents: number;
+  startsAt: string;
+  endsAt: string;
+  pickupTerms: string;
+  freightTerms: string;
+}): Promise<BidRockAuction> {
+  await ensureBidRockTables();
+  const openingBidCents = Math.trunc(args.openingBidCents);
+  const reserveBidCents =
+    args.reserveBidCents === null || args.reserveBidCents === undefined
+      ? null
+      : Math.trunc(args.reserveBidCents);
+  const minimumIncrementCents = Math.trunc(args.minimumIncrementCents);
+  if (openingBidCents <= 0 || minimumIncrementCents <= 0) {
+    throw new Error("Opening bid and minimum increment must be positive");
+  }
+  if (reserveBidCents !== null && reserveBidCents < openingBidCents) {
+    throw new Error("Reserve must be at least the opening bid");
+  }
+  const pickupTerms = normalizeText(args.pickupTerms, 2_000);
+  const freightTerms = normalizeText(args.freightTerms, 2_000);
+  if (!pickupTerms || !freightTerms) {
+    throw new Error("Pickup and freight terms are required");
+  }
+  const startsAt = new Date(args.startsAt);
+  const endsAt = new Date(args.endsAt);
+  if (
+    Number.isNaN(startsAt.getTime()) ||
+    Number.isNaN(endsAt.getTime()) ||
+    startsAt.getTime() >= endsAt.getTime()
+  ) {
+    throw new Error("Auction start and end times must be coherent");
+  }
+  const client = await pool.connect();
+  let publicAuctionId = "";
+  try {
+    await client.query("BEGIN");
+    const viewer = await loadBidRockViewerContext(client, args.userId, true);
+    const listingResult = await client.query(
+      `SELECT listing.*,
+              listing.status AS listing_status,
+              inventory.lifecycle_status AS inventory_lifecycle_status,
+              inventory.quantity AS inventory_quantity,
+              inventory.held_quantity,
+              inventory.public_availability_status,
+              inventory.publication_evidence,
+              inventory.published_at AS inventory_published_at,
+              clock_timestamp() AS database_now
+         FROM bidrock_listings listing
+         INNER JOIN stone_inventory_positions inventory ON inventory.id = listing.inventory_position_id
+        WHERE listing.public_id = $1
+        FOR UPDATE OF listing, inventory`,
+      [args.listingId]
+    );
+    const listing = listingResult.rows[0];
+    if (!listing) throw new Error("BidRock listing not found");
+    if (!viewerCanManageListing(viewer, listing, "inventory_publish")) {
+      throw new Error("BidRock auction configuration access required");
+    }
+    if (!auctionListingIsSaleReady(listing)) {
+      throw new Error("This lot must be current and sale-ready before auction scheduling");
+    }
+    const databaseNow = new Date(listing.database_now);
+    const confirmationExpiresAt = new Date(listing.confirmation_expires_at);
+    if (endsAt.getTime() <= databaseNow.getTime()) {
+      throw new Error("Auction end time must be in the future");
+    }
+    if (
+      Number.isNaN(confirmationExpiresAt.getTime()) ||
+      endsAt.getTime() > confirmationExpiresAt.getTime()
+    ) {
+      throw new Error("Auction end time cannot exceed the current stock confirmation window");
+    }
+    const current = await client.query(
+      `SELECT public_id, status, ends_at
+         FROM bidrock_auctions
+        WHERE listing_id = $1::uuid
+          AND status IN ('scheduled', 'live', 'extended', 'ended')
+        FOR UPDATE`,
+      [listing.id]
+    );
+    if (current.rows[0]) {
+      throw new Error(
+        new Date(current.rows[0].ends_at).getTime() <= databaseNow.getTime()
+          ? "The ended auction must be closed before this lot can be relisted"
+          : "This lot already has a current auction"
+      );
+    }
+    const inserted = await client.query(
+      `INSERT INTO bidrock_auctions (
+         listing_id, status, opening_bid_cents, reserve_bid_cents,
+         minimum_increment_cents, currency, starts_at, ends_at, original_ends_at,
+         soft_close_seconds, pickup_terms, freight_terms, configured_by_user_id, updated_at
+       ) VALUES (
+         $1::uuid,
+         CASE WHEN $5::timestamptz <= clock_timestamp() THEN 'live' ELSE 'scheduled' END,
+         $2, $3, $4, $9, $5::timestamptz, $6::timestamptz, $6::timestamptz,
+         $10, $7, $8, $11, NOW()
+       ) RETURNING public_id`,
+      [
+        listing.id,
+        openingBidCents,
+        reserveBidCents,
+        minimumIncrementCents,
+        startsAt.toISOString(),
+        endsAt.toISOString(),
+        pickupTerms,
+        freightTerms,
+        BIDROCK_CURRENCY,
+        BIDROCK_SOFT_CLOSE_SECONDS,
+        args.userId,
+      ]
+    );
+    publicAuctionId = String(inserted.rows[0].public_id);
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+  return getBidRockAuction(publicAuctionId, args.userId);
+}
+
+export async function placeBidRockMaximumBid(args: {
+  userId: string;
+  auctionId: string;
+  maxAmountCents: number;
+  idempotencyKey: string;
+}): Promise<BidRockAuction> {
+  await ensureBidRockTables();
+  if (!Number.isInteger(args.maxAmountCents) || args.maxAmountCents <= 0) {
+    throw new Error("A positive maximum bid is required");
+  }
+  const key = normalizeText(args.idempotencyKey, 160);
+  if (key.length < 8) throw new Error("An idempotency key is required");
+  const fingerprint = requestFingerprint({
+    auctionId: args.auctionId,
+    bidderUserId: args.userId,
+    maxAmountCents: args.maxAmountCents,
+  });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const viewer = await loadBidRockViewerContext(client, args.userId, true);
+    if (
+      !viewer.verifiedBusiness ||
+      viewer.accountStatus !== "active" ||
+      !viewer.businessProfileId
+    ) {
+      throw new Error("Verified business bidding access required");
+    }
+    if (viewer.admin) throw new Error("Administrative accounts cannot place bids");
+    const result = await readBidRockAuctionRow(client, args.auctionId, true);
+    const auction = result.rows[0];
+    if (!auction) throw new Error("BidRock auction not found");
+    const replay = await client.query(
+      `SELECT request_fingerprint
+         FROM bidrock_bids
+        WHERE auction_id = $1::uuid AND bidder_user_id = $2 AND idempotency_key = $3
+        FOR UPDATE`,
+      [auction.id, args.userId, key]
+    );
+    if (replay.rows[0]) {
+      if (String(replay.rows[0].request_fingerprint) !== fingerprint) {
+        throw new Error("Idempotency key was already used for a different maximum bid");
+      }
+      await client.query("COMMIT");
+      return getBidRockAuction(args.auctionId, args.userId);
+    }
+    assertBidRockBidderIsNotSeller({
+      sellerBusinessId: String(auction.seller_business_id),
+      bidderOwnedBusinessIds: viewer.ownedBusinessIds,
+      bidderDelegatedBusinessIds: new Set([
+        ...viewer.readableInventoryBusinessIds,
+        ...viewer.writableInventoryBusinessIds,
+        ...viewer.publishableInventoryBusinessIds,
+      ]),
+    });
+    if (!auctionListingIsCommittedAndAvailable(auction)) {
+      throw new Error("This auction lot is no longer committed and available");
+    }
+    const databaseNow = new Date(auction.database_now);
+    const startsAt = new Date(auction.starts_at);
+    const endsAt = new Date(auction.ends_at);
+    if (
+      !new Set(["scheduled", "live", "extended"]).has(String(auction.status)) ||
+      databaseNow.getTime() < startsAt.getTime()
+    ) {
+      throw new Error("This auction has not started");
+    }
+    if (databaseNow.getTime() >= endsAt.getTime()) {
+      throw new Error("This auction has ended");
+    }
+    const bidState = await loadBidRockAuctionBidState(client, String(auction.id), true);
+    const outcome = calculateBidRockProxyPrice({
+      openingBidCents: Number(auction.opening_bid_cents),
+      minimumIncrementCents: Number(auction.minimum_increment_cents),
+      bids: bidState.bids,
+    });
+    const ownLatest = [...bidState.bids]
+      .filter((bid) => bid.bidderUserId === args.userId)
+      .sort((left, right) => right.acceptedSequence - left.acceptedSequence)[0];
+    const minimumMaximum = minimumBidRockMaximumForViewer({
+      outcome,
+      openingBidCents: Number(auction.opening_bid_cents),
+      minimumIncrementCents: Number(auction.minimum_increment_cents),
+      reserveBidCents:
+        auction.reserve_bid_cents === null ? null : Number(auction.reserve_bid_cents),
+      viewerUserId: args.userId,
+      viewerMaximumCents: ownLatest?.maxAmountCents,
+    });
+    if (args.maxAmountCents < minimumMaximum) {
+      throw new Error(`Maximum bid must be at least ${minimumMaximum} cents`);
+    }
+    await client.query(
+      `INSERT INTO bidrock_bids (
+         auction_id, bidder_user_id, bidder_business_profile_id, max_amount_cents,
+         currency, idempotency_key, request_fingerprint
+       ) VALUES ($1::uuid, $2, $3, $4, $5, $6, $7)`,
+      [
+        auction.id,
+        args.userId,
+        viewer.businessProfileId,
+        args.maxAmountCents,
+        BIDROCK_CURRENCY,
+        key,
+        fingerprint,
+      ]
+    );
+    const changed = await client.query(
+      `WITH timing AS MATERIALIZED (SELECT clock_timestamp() AS database_now)
+       UPDATE bidrock_auctions
+          SET status = CASE
+                WHEN ends_at - timing.database_now <= INTERVAL '2 minutes' THEN 'extended'
+                ELSE 'live'
+              END,
+              ends_at = CASE
+                WHEN ends_at - timing.database_now <= INTERVAL '2 minutes'
+                  THEN ends_at + INTERVAL '2 minutes'
+                ELSE ends_at
+              END,
+              version = version + 1,
+              updated_at = NOW()
+         FROM timing
+        WHERE id = $1::uuid AND version = $2
+          AND status IN ('scheduled', 'live', 'extended')
+          AND starts_at <= timing.database_now AND ends_at > timing.database_now
+        RETURNING id`,
+      [auction.id, auction.version]
+    );
+    if (!changed.rows[0]) throw new Error("Auction changed while the bid was being placed");
+    await client.query("COMMIT");
+    return getBidRockAuction(args.auctionId, args.userId);
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export type BidRockAuctionCloseResult = Readonly<{
+  auctionId: string;
+  status: "no_sale" | "sold";
+  orderId: string | null;
+}>;
+
+async function closeBidRockAuctionByInternalId(
+  internalAuctionId: string
+): Promise<BidRockAuctionCloseResult> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const result = await client.query(
+      `SELECT auction.*,
+              listing.public_id AS listing_public_id,
+              listing.seller_business_id,
+              listing.status AS listing_status,
+              listing.quantity,
+              listing.last_confirmed_at,
+              listing.confirmation_expires_at,
+              listing.inventory_position_id,
+              inventory.lifecycle_status AS inventory_lifecycle_status,
+              inventory.quantity AS inventory_quantity,
+              inventory.held_quantity,
+              inventory.public_availability_status,
+              inventory.publication_evidence,
+              inventory.published_at AS inventory_published_at,
+              orders.public_id AS existing_order_public_id,
+              clock_timestamp() AS database_now
+         FROM bidrock_auctions auction
+         INNER JOIN bidrock_listings listing ON listing.id = auction.listing_id
+         INNER JOIN stone_inventory_positions inventory ON inventory.id = listing.inventory_position_id
+         LEFT JOIN bidrock_orders orders ON orders.id = auction.order_id
+        WHERE auction.id = $1::uuid
+        FOR UPDATE OF auction, listing, inventory`,
+      [internalAuctionId]
+    );
+    const auction = result.rows[0];
+    if (!auction) throw new Error("BidRock auction not found");
+    if (auction.status === "sold" || auction.status === "no_sale") {
+      await client.query("COMMIT");
+      return {
+        auctionId: String(auction.public_id),
+        status: String(auction.status) as "sold" | "no_sale",
+        orderId: auction.existing_order_public_id ? String(auction.existing_order_public_id) : null,
+      };
+    }
+    if (new Date(auction.ends_at).getTime() > new Date(auction.database_now).getTime()) {
+      throw new Error("This auction has not ended");
+    }
+    const bidState = await loadBidRockAuctionBidState(client, String(auction.id), true);
+    const proxy = calculateBidRockProxyPrice({
+      openingBidCents: Number(auction.opening_bid_cents),
+      minimumIncrementCents: Number(auction.minimum_increment_cents),
+      bids: bidState.bids,
+    });
+    const closeOutcome = resolveBidRockCloseOutcome({
+      outcome: proxy,
+      reserveBidCents:
+        auction.reserve_bid_cents === null ? null : Number(auction.reserve_bid_cents),
+    });
+    if (closeOutcome.status === "no_sale" || !closeOutcome.winner) {
+      await client.query(
+        `UPDATE bidrock_auctions
+            SET status = 'no_sale', closed_at = NOW(), version = version + 1, updated_at = NOW()
+          WHERE id = $1::uuid AND status IN ('scheduled', 'live', 'extended', 'ended')`,
+        [auction.id]
+      );
+      await client.query("COMMIT");
+      return { auctionId: String(auction.public_id), status: "no_sale", orderId: null };
+    }
+    if (!auctionListingHasAllocatableStock(auction)) {
+      throw new Error("Reserve was met, but confirmed stock is no longer available for closure");
+    }
+    const winningBid = await client.query(
+      `SELECT bidder_user_id, bidder_business_profile_id
+         FROM bidrock_bids WHERE id = $1::uuid`,
+      [closeOutcome.winner.id]
+    );
+    if (!winningBid.rows[0]) throw new Error("Winning bid is unavailable");
+    const quantity = Number(auction.quantity);
+    const held = await client.query(
+      `UPDATE stone_inventory_positions
+          SET held_quantity = held_quantity + $2,
+              public_availability_status = $3,
+              publication_evidence = '{}'::jsonb,
+              published_at = NULL,
+              version = version + 1,
+              updated_at = NOW()
+        WHERE id = $1::uuid
+          AND lifecycle_status = $4
+          AND quantity - held_quantity >= $2
+        RETURNING id`,
+      [
+        auction.inventory_position_id,
+        quantity,
+        STONE_CURRENT_INVENTORY_PRIVATE_STATUS,
+        STONE_CURRENT_INVENTORY_AVAILABLE_STATUS,
+      ]
+    );
+    if (!held.rows[0]) throw new Error("Confirmed stock was allocated before auction closure");
+    const reservation = await client.query(
+      `INSERT INTO bidrock_reservations (
+         listing_id, accepted_offer_id, auction_id, winning_bid_id, buyer_user_id,
+         seller_business_id, quantity, status, expires_at, updated_at
+       ) VALUES (
+         $1::uuid, NULL, $2::uuid, $3::uuid, $4, $5, $6, 'active',
+         NOW() + INTERVAL '48 hours', NOW()
+       ) RETURNING id, expires_at`,
+      [
+        auction.listing_id,
+        auction.id,
+        closeOutcome.winner.id,
+        winningBid.rows[0].bidder_user_id,
+        auction.seller_business_id,
+        quantity,
+      ]
+    );
+    const order = await client.query(
+      `INSERT INTO bidrock_orders (
+         listing_id, listing_public_id, accepted_offer_id, auction_id, winning_bid_id,
+         reservation_id, buyer_user_id, buyer_business_profile_id, seller_business_id,
+         quantity, subtotal_cents, currency, status, payment_method,
+         reservation_expires_at, updated_at
+       ) VALUES (
+         $1::uuid, $2, NULL, $3::uuid, $4::uuid, $5::uuid, $6, $7, $8,
+         $9, $10, $11, 'reservation_active', $12, $13::timestamptz, NOW()
+       ) RETURNING id, public_id`,
+      [
+        auction.listing_id,
+        auction.listing_public_id,
+        auction.id,
+        closeOutcome.winner.id,
+        reservation.rows[0].id,
+        winningBid.rows[0].bidder_user_id,
+        winningBid.rows[0].bidder_business_profile_id,
+        auction.seller_business_id,
+        quantity,
+        closeOutcome.winningPriceCents,
+        BIDROCK_CURRENCY,
+        BIDROCK_PAYMENT_METHOD,
+        reservation.rows[0].expires_at,
+      ]
+    );
+    await client.query(
+      `INSERT INTO bidrock_inventory_allocations (
+         inventory_position_id, reservation_id, order_id, quantity, status, held_at, updated_at
+       ) VALUES ($1::uuid, $2::uuid, $3::uuid, $4, 'held', NOW(), NOW())`,
+      [auction.inventory_position_id, reservation.rows[0].id, order.rows[0].id, quantity]
+    );
+    await client.query(
+      `UPDATE bidrock_listings
+          SET status = 'reserved', published_at = NULL, version = version + 1, updated_at = NOW()
+        WHERE id = $1::uuid`,
+      [auction.listing_id]
+    );
+    const closed = await client.query(
+      `UPDATE bidrock_auctions
+          SET status = 'sold', winner_bid_id = $2::uuid, reservation_id = $3::uuid,
+              order_id = $4::uuid, closed_at = NOW(), version = version + 1, updated_at = NOW()
+        WHERE id = $1::uuid AND status IN ('scheduled', 'live', 'extended', 'ended')
+        RETURNING public_id`,
+      [auction.id, closeOutcome.winner.id, reservation.rows[0].id, order.rows[0].id]
+    );
+    if (!closed.rows[0]) throw new Error("Auction changed while its outcome was being closed");
+    await client.query("COMMIT");
+    return {
+      auctionId: String(closed.rows[0].public_id),
+      status: "sold",
+      orderId: String(order.rows[0].public_id),
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function closeExpiredBidRockAuctions(
+  userId: string
+): Promise<readonly BidRockAuctionCloseResult[]> {
+  await ensureBidRockTables();
+  const viewer = await getBidRockViewerContext(userId);
+  if (!viewer.admin) throw new Error("BidRock admin access required");
+  const candidates = await pool.query(
+    `SELECT id
+       FROM bidrock_auctions
+      WHERE status IN ('scheduled', 'live', 'extended', 'ended')
+        AND ends_at <= clock_timestamp()
+      ORDER BY ends_at, id
+      LIMIT 100`
+  );
+  const outcomes: BidRockAuctionCloseResult[] = [];
+  for (const candidate of candidates.rows) {
+    outcomes.push(await closeBidRockAuctionByInternalId(String(candidate.id)));
+  }
+  return outcomes;
 }
 
 export type BidRockOfferRecord = Readonly<{
@@ -1166,6 +2270,12 @@ export async function createBidRockOffer(args: {
     if (!listing) throw new Error("BidRock listing not found");
     if (viewerIsListingSellerAgent(viewer, listing)) {
       throw new Error("A seller cannot submit an offer on their own inventory");
+    }
+    if (await bidRockListingHasCurrentAuction(client, String(listing.id))) {
+      throw new Error("A negotiated offer cannot be created while this lot has a current auction");
+    }
+    if (!listing.price_unit || Number(listing.price_cents) <= 0) {
+      throw new Error("A negotiated offer requires retained legacy listing terms");
     }
     if (listing.public_availability_status !== STONE_CURRENT_INVENTORY_PUBLIC_STATUS) {
       throw new Error("This lot is not sale-ready");
@@ -1314,6 +2424,12 @@ export async function respondToBidRockOffer(args: {
         message: counterMessage,
         fingerprint: counterFingerprint,
       };
+    }
+    if (
+      args.action === "counter" &&
+      (await bidRockListingHasCurrentAuction(client, String(offer.listing_id)))
+    ) {
+      throw new Error("A counteroffer cannot be created while this lot has a current auction");
     }
     if (args.action === "reject" && offer.status === "rejected") {
       await client.query("COMMIT");
@@ -1525,6 +2641,9 @@ export async function acceptBidRockOffer(args: {
     if (existingOrder.rows[0]) {
       await client.query("COMMIT");
       return mapOrder(existingOrder.rows[0]);
+    }
+    if (await bidRockListingHasCurrentAuction(client, String(offer.listing_id))) {
+      throw new Error("A negotiated offer cannot be accepted while this lot has a current auction");
     }
     if (!new Set(["submitted", "countered"]).has(String(offer.status))) {
       throw new Error("This offer can no longer be accepted");

@@ -1,4 +1,5 @@
 import type {
+  BidRockAuction,
   BidRockCatalogResponse,
   BidRockHandoffActionCapability,
   BidRockHandoffType,
@@ -129,6 +130,38 @@ export async function setBidRockSaved(listingId: string, saved: boolean): Promis
   });
 }
 
+export async function configureBidRockAuction(args: {
+  listingId: string;
+  openingBid: string;
+  reserveBid?: string;
+  minimumIncrement: string;
+  startsAt: string;
+  endsAt: string;
+  pickupTerms: string;
+  freightTerms: string;
+}): Promise<BidRockAuction> {
+  return apiRequest("POST", `/api/bidrock/listings/${encodeURIComponent(args.listingId)}/auction`, {
+    openingBid: args.openingBid,
+    reserveBid: args.reserveBid || null,
+    minimumIncrement: args.minimumIncrement,
+    startsAt: args.startsAt,
+    endsAt: args.endsAt,
+    pickupTerms: args.pickupTerms,
+    freightTerms: args.freightTerms,
+  }) as Promise<BidRockAuction>;
+}
+
+export async function placeBidRockMaximum(args: {
+  auctionId: string;
+  maximumBid: string;
+  idempotencyKey: string;
+}): Promise<BidRockAuction> {
+  return apiRequest("POST", `/api/bidrock/auctions/${encodeURIComponent(args.auctionId)}/bids`, {
+    maximumBid: args.maximumBid,
+    idempotencyKey: args.idempotencyKey,
+  }) as Promise<BidRockAuction>;
+}
+
 export async function submitBidRockOffer(args: {
   listingId: string;
   quantity: number;
@@ -239,6 +272,24 @@ export async function projectBidRockInventory(): Promise<{ projectedListings: nu
 export async function expireBidRockHolds(): Promise<{ expiredReservations: number }> {
   return apiRequest("POST", "/api/admin/bidrock/maintenance/expire-holds", {}) as Promise<{
     expiredReservations: number;
+  }>;
+}
+
+export async function closeExpiredBidRockAuctions(): Promise<{
+  closedAuctions: number;
+  outcomes: readonly Readonly<{
+    auctionId: string;
+    status: "no_sale" | "sold";
+    orderId: string | null;
+  }>[];
+}> {
+  return apiRequest("POST", "/api/admin/bidrock/maintenance/close-auctions", {}) as Promise<{
+    closedAuctions: number;
+    outcomes: readonly Readonly<{
+      auctionId: string;
+      status: "no_sale" | "sold";
+      orderId: string | null;
+    }>[];
   }>;
 }
 

@@ -1,19 +1,20 @@
 # Build Contract: bidrock-marketplace-recovery
 
-Status: active correction Worker slice; release blocked pending reconciliation
+Status: auction realignment reconciled; isolated database proof passed; temporary preview/browser proof pending
 Base revision: `5e6c44a49fcb0eae0cf720fadd898c477d8d8293`
 Branch: `jw-stone/bidrock-marketplace-recovery`
-Lock binding: Thomas's approved BidRock recovery checkpoint supplied on 2026-08-20
+Lock binding: Thomas's approved BidRock recovery checkpoint supplied on 2026-08-20 plus the auction-first replacement checkpoint approved on 2026-08-21
 
 ## Authorized semantic history
 
 - The 2026-08-20 recovery checkpoint authorizes the business-only BidRock marketplace, shared profile-native identity, confirmed-stock projection, private verified-business pricing, seller controls, ACH-only commerce lifecycle, and routed client workspace described below.
 - The owner-authoritative confirmed-stock statement records Gold Macaubas as 6 slabs with 2 polished slabs. That current statement supersedes the older 1.5-polished filename evidence without changing the broader photo catalog or erasing its provenance.
 - The product-owner `REPLACE` amendment approved at `2026-08-20T19:23:32Z` removes the prior BidRock revenue decision. BidRock adds no marketplace fee. Canonical transaction and procurement records must carry zero in every fee field, while the data model remains open to a separately authorized future revenue model.
+- The product-owner `REFRAME` amendment approved on 2026-08-21 rejects the inventory-workspace and negotiated-offer model as BidRock's primary buyer experience. BidRock is an auction-first marketplace: independent timed stone lots, verified-business max/proxy bidding, reserve outcomes, truthful bid activity, a two-minute soft close, and winner-to-order conversion. Browse, save, filter, and compare remain supporting capabilities.
 
 ## Outcome
 
-Build BidRock as a business-only stone marketplace Powered by TradeScout and seed it from JW Stone's seven confirmed physical-stock lots without relabeling the broader JW photo catalog as current or sale-ready.
+Build BidRock as a business-only timed stone auction Powered by TradeScout and seed the isolated temporary proof from JW Stone's seven confirmed physical-stock lots without relabeling the broader JW photo catalog as current or sale-ready.
 
 ## Included behavior
 
@@ -23,8 +24,12 @@ Build BidRock as a business-only stone marketplace Powered by TradeScout and see
 - Confirmed physical stock enters seller inventory as not published. Buyer exposure requires an explicit seller/admin sale-ready transition and a still-current physical position.
 - Public and unverified callers receive no price value. Verified linked businesses may receive the seller's private per-slab or per-square-foot price.
 - Inventory, publication, and price mutations require holder-business ownership, an administrator, or the exact durable delegation scope; profile ownership alone grants no Stone/BidRock write authority. Non-admin seller commerce also requires an active verified BidRock entitlement.
-- The routed `/bidrock` client workspace supports compact browse/search/filter, compare, detail, saved selections, seller controls, and truthful transaction state.
-- The commerce contract covers inquiry, offer/counteroffer, reservation, order, ACH readiness, custody/freight/fabrication, installation/HomeID handoff, cancellation, and completion. External payment-provider actions remain inactive until separately authorized and configured.
+- Each sale-ready lot can have one independent timed auction with an opening bid, optional reserve, minimum increment, start/end time, two-minute soft-close window, pickup/freight terms, and an explicit scheduled/live/ended/no-sale/sold outcome.
+- Verified businesses may submit a private maximum bid. Database-clock, row-locked proxy bidding exposes only the amount needed to lead, resolves equal maximums in favor of the earlier valid maximum, prevents seller self-bidding, and never creates fabricated bidders or activity.
+- Public and unverified viewers may see lot facts, time remaining, bid count, and non-price auction state but no dollar value. Verified businesses may see the current bid and minimum next bid. Private bidder maximums remain visible only to their owner and authorized administrators.
+- Bids inside the final two minutes extend the auction end by two minutes. A successful close creates exactly one winner, reservation, allocation, and ACH-only order when the reserve is met. An unmet reserve closes as no sale and can be explicitly relisted.
+- The routed `/bidrock` client is an auction house, not an inventory dashboard: live and closing-soon lots, large truthful imagery, lot number, slab facts, countdown, bid activity, reserve state, fulfillment terms, and a dominant Place bid action. Search, filters, saved lots, compare, seller controls, and order state remain supporting tools.
+- The commerce contract retains reservation, order, ACH readiness, custody/freight/fabrication, installation/HomeID handoff, cancellation, and completion. Negotiated offer/counteroffer and fixed-price/Buy It Now are outside this auction proof. External payment-provider actions remain inactive until separately authorized and configured.
 - BidRock uses ACH only. BidRock fee values are zero throughout canonical linkage and settlement; no BidRock fee policy or calculation exists.
 
 ## Correction invariants
@@ -44,7 +49,8 @@ Build BidRock as a business-only stone marketplace Powered by TradeScout and see
 - Existing Stone Core material/passport/position/publication boundaries remain canonical.
 - Existing profile-account, payment, procurement, accounting, Direct Connect, HomeID, trust/CVS, privacy, and contact gates remain authorities; BidRock does not create parallel identity or payments systems.
 - Public users never see price values or copy advertising that prices are available.
-- No push, PR, merge, deployment, production database mutation, production payment activation, or GitHub Actions workflow is authorized by this build.
+- No marketplace fee is added or advertised.
+- The 2026-08-21 approval authorizes local implementation, an isolated temporary database migration/seed, push to `jw-stone/bidrock-marketplace-recovery`, redeployment of the existing temporary preview, and browser proof there. It does not authorize a PR, merge, production deployment, production database mutation, production payment activation, or GitHub Actions workflow.
 
 ## Canonical reuse decisions
 
@@ -55,9 +61,10 @@ Build BidRock as a business-only stone marketplace Powered by TradeScout and see
 | Confirmed JW stock fixture/import | Create bounded owner | `shared/stoneInventory.ts`, `server/services/jwStoneConfirmedStock.ts` |
 | Stone inventory API | Create bounded route/service | profile-scoped Stone Core inventory route/service |
 | BidRock domain and state | Reconcile/extend | foundation `shared/bidrock.ts` and `server/services/bidrockService.ts` |
-| BidRock UI | Create routed feature composition | canonical React route plus existing UI primitives |
+| Timed auction and bid ledger | Extend canonical BidRock domain | ordered migration plus `shared/bidrock.ts`, `server/services/bidrockService.ts`, and `server/routes/bidrock.ts` |
+| BidRock UI | Consolidate and reframe routed feature composition | existing BidRock React feature and canonical UI primitives |
 | Payments/accounting | Reuse canonical records | `marketplace_transactions`, `procurement_orders`, and accounting authorities; `server/payment-service.ts` remains unchanged |
 
 ## Acceptance evidence
 
-Focused domain/service/route/component tests must prove exact seven-lot values, idempotent identities, draft-before-sale-ready behavior, price redaction, seller ownership, one shared account, ACH-only payment readiness, routed workspace interactions, and protected contact/trust boundaries. Type/build/browser checks are recorded independently and only at the state actually observed.
+Focused domain/service/route/component tests must prove exact seven-lot values, idempotent identities, draft-before-sale-ready behavior, guest dollar redaction, verified-business bidding, proxy advancement, tie ordering, seller self-bid rejection, concurrent bid safety, two-minute extension, reserve met/no-sale close, exactly-once winner/order creation, ACH-only payment readiness, auction-first routed interactions, and protected contact/trust boundaries. Database, type, build, desktop/mobile browser, and temporary deployment checks are recorded independently and only at the state actually observed.
