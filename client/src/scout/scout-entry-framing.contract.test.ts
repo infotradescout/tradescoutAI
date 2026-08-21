@@ -249,16 +249,64 @@ describe("Scout entry framing contracts", () => {
     expect(tilesSource).toContain('label: "Browse Exchange"');
   });
 
-  it("active Scout conversations use a focused result layout", () => {
+  it("active Scout conversations keep one resumable task loop in the first usable view", () => {
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+    const threadSource = read("client/src/scout/ScoutThread.tsx");
+    const actionTruthSource = read("client/src/scout/actionValidation.ts");
+    const stateSource = read("client/src/scout/state.ts");
+    const cssSource = read("client/src/index.css");
+    const activeMarkup = scoutOsSource.slice(
+      scoutOsSource.indexOf('data-testid="scout-current-task"')
+    );
+    const currentTaskIndex = activeMarkup.indexOf('data-testid="scout-current-task"');
+    const historyIndex = activeMarkup.indexOf('data-testid="scout-task-history"');
+    const composerIndex = activeMarkup.indexOf('data-testid="scout-task-composer"');
+    const userMessageReducerCase = stateSource
+      .split('case "USER_MESSAGE"')[1]
+      .split('case "SERVER_RESPONSE"')[0];
 
     expect(scoutOsSource).toContain("const showDiscoveryRail = false");
     expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
     expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");
     expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
-    expect(scoutOsSource).toContain("Findings and recommended paths");
-    expect(scoutOsSource).toContain("Choose Save to keep it for later.");
+    expect(scoutOsSource).toContain('data-testid="scout-current-task-title"');
+    expect(scoutOsSource).toContain('data-testid="scout-latest-meaningful-state"');
+    expect(scoutOsSource).toContain('data-testid="scout-primary-next-action"');
+    expect(scoutOsSource).toContain('data-testid="scout-task-history"');
+    expect(scoutOsSource).toContain('data-testid="scout-task-composer"');
+    expect(scoutOsSource).toContain("<details");
+    expect(scoutOsSource).toContain("scrollOpenScoutTaskHistoryToLatest(event.currentTarget)");
+    expect(threadSource).toContain("scheduleFrame(() =>");
+    expect(threadSource).toContain('querySelector<HTMLElement>(".scout-thread")');
+    expect(threadSource).toContain(
+      'thread.scrollTo({ top: thread.scrollHeight, behavior: "auto" })'
+    );
+    expect(currentTaskIndex).toBe(0);
+    expect(historyIndex).toBeGreaterThan(currentTaskIndex);
+    expect(composerIndex).toBeGreaterThan(historyIndex);
+    expect(scoutOsSource).not.toContain("Findings and recommended paths");
+    expect(scoutOsSource).not.toContain("Choose Save to keep it for later.");
+    expect(scoutOsSource).toContain("resolveLatestScoutTurnActionTruth");
+    expect(scoutOsSource).toContain(
+      "const primaryNextAction = latestTurnActionTruth.dominantAction"
+    );
+    expect(scoutOsSource).not.toContain("controllerActions[0]");
+    expect(userMessageReducerCase).toMatch(/lastActions:\s*\[\]/);
+    expect(actionTruthSource).toContain('resultContract?.contract_version === "scout_result.v1"');
+    expect(actionTruthSource).toContain("newestTurnIndex <= newestUserIndex");
+    expect(actionTruthSource).toContain("allowedActions.flatMap");
+    expect(actionTruthSource).toContain("resultContract.ambiguity_options.length > 0");
+    expect(actionTruthSource).toContain("primaryActions.length === 1");
+    expect(actionTruthSource).toContain("validateActions(actions)");
+    expect(actionTruthSource).toContain('action.type === "NOOP"');
+    expect(threadSource).toContain("scout-thread--task-loop");
+    expect(cssSource).toMatch(
+      /\.scout-thread--task-loop\s*>\s*\[data-scout-message-id\][^{]*\{[^}]*width:\s*min\(100%,\s*78ch\);/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-thread--task-loop\s+\.scout-user-bubble\s*\{[^}]*align-items:\s*flex-start;/s
+    );
     expect(scoutOsSource).toContain("Server-provided actions appear with each answer");
     expect(scoutOsSource).toContain("Search saved conversations");
     expect(scoutOsSource).toContain("SAVED_SCOUT_SURFACE_FILTERS");

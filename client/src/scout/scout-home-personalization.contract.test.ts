@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
+import { getMeaningfulContinuations } from "./ScoutHome";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
@@ -53,8 +54,43 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("local request");
     expect(source).toContain("client work");
     expect(source).toContain("local help");
-    expect(source).toContain("if (!looksLikeRealDisplayTitle(objectTitle)) return false;");
+    expect(source).toContain(
+      "identityCandidates.some((candidate) => looksLikeRealDisplayTitle(candidate))"
+    );
     expect(source).toContain("getMeaningfulContinuations(continuationThreads)");
+  });
+
+  it("keeps a specific saved conversation resumable when its related label is one word", () => {
+    const thread = {
+      id: "flooring-thread-v2",
+      relatedLabel: "Materials",
+      title: "I need help planning a flooring and tile project in Escambia County.",
+      preview: null,
+      summary: null,
+    };
+
+    expect(getMeaningfulContinuations([thread])).toEqual([thread]);
+  });
+
+  it("keeps generic-only continuations and generic detail placeholders hidden", () => {
+    expect(
+      getMeaningfulContinuations([
+        {
+          id: "generic-only",
+          relatedLabel: "Project",
+          title: "Saved search",
+          preview: "Local request",
+          summary: "Local help",
+        },
+        {
+          id: "generic-detail",
+          relatedLabel: "Materials and supplies",
+          title: "Flooring and tile plan",
+          preview: "Local request",
+          summary: null,
+        },
+      ])
+    ).toEqual([]);
   });
 
   it("exposes real work, conversations, HomeID, activity, and Community as direct actions", () => {
