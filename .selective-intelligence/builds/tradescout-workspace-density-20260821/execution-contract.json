@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-workspace-density-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-workspace-density-20260821",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "next_evidenced_slice",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout remains a multi-app local operating system. This slice refines one resumable Scout-to-Community work loop without claiming whole-product completion.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": false,
+      "outcome": "The signed-in OS shell uses the bottom taskbar for primary navigation and compact top-right system controls without universal dashboard rails.",
+      "status": "released",
+      "evidenceRef": "../tradescout-os-shell-20260821/evidence.md"
+    },
+    {
+      "id": "D2",
+      "active": true,
+      "outcome": "A person can recognize and resume one existing Scout task, see its latest meaningful state and next action beside the composer, and open a feed-first Community surface without repeating intent or crossing contact and county gates.",
+      "entry": "Open an authenticated saved Scout thread for a local flooring-project request, or open the local Community feed.",
+      "ending": "Resume the existing Scout thread, take its existing next action, move to Community, and return with the same thread, county, and entered work intact.",
+      "journeySteps": [
+        "Open Scout and see existing thread identity, latest meaningful state, one dominant existing action, and the single composer together in the first viewport.",
+        "Save the thread, start a new thread, then reopen the saved thread and recover the same messages, action state, and composer.",
+        "Open Community and reach create, compact view controls, and real feed content before a tall generic-action wall.",
+        "Reach all five existing Community action modes through compact progressive disclosure.",
+        "Return to Scout without losing the existing thread or county context."
+      ],
+      "constraints": [
+        "Derive task identity, latest state, and next action only from existing Scout thread, message, and controller state; add no persistence, route, API, or data owner.",
+        "Keep full Scout history reachable and preserve exactly one fixed composer after a thread starts.",
+        "Keep every existing Community action route and preserve global browse-only, county, Trust/CVS, and Intent to Decision Card to Contact behavior.",
+        "Reuse canonical client/src and server/tests owners; do not edit mirrored exports/workspaces trees or add parallel Scout, Community, shell, taskbar, or feed components.",
+        "Keep primary navigation in the bottom taskbar, tools at the top right, accessible targets, and zero page-level horizontal overflow.",
+        "Do not copy Windows branding or literal window chrome, and do not describe this slice as whole-product completion."
+      ],
+      "proofRequired": [
+        "Focused contract tests for task-workspace framing, saved-thread resume behavior, non-wrapping Community controls, all five Community routes, and global browse-only gates.",
+        "Typecheck and production build against the exact implementation commit.",
+        "Authenticated browser proof at 1440x1000 and 390x844 using the same saved flooring-project state, including Scout resume and feed-first geometry.",
+        "Exact minimum-release gate and post-deploy build-identity proof before any release completion claim."
+      ],
+      "completionScope": "active_deliverable",
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout application already owns the authenticated shell, Scout controller and threads, Community routes, platform gates, tests, and release contract needed for this repair."
+  },
+  "manualUnverified": {
+    "reason": "The project index was refreshed at exact baseline ae840aa89b75c0eb93eaa2390b7cfcfe861d6ada. Doctor remains blocked by 1104 pre-existing duplicate and owner-ambiguity findings dominated by mirrored export trees, so the generated 6.6 MB index churn was restored.",
+    "reuseDecision": "Use existing canonical client/src and server/tests owners only and create no new UI primitive or parallel owner."
+  },
+  "alignment": {
+    "intentObjector": "pass",
+    "aligner": "aligned",
+    "approvedToResume": true,
+    "openFindings": [
+      "Low non-blocking: a pre-existing stale initialHomeIdFromUrl source assertion fails against untouched homes.tsx.",
+      "Low non-blocking: direct unit coverage for the valid explicit-primary lastActions fallback remains optional.",
+      "Release boundary: exact commit gate, PR merge, and post-deploy build identity are still required."
+    ]
+  }
+}

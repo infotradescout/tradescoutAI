@@ -26,9 +26,8 @@ import type {
   ScoutMessage,
   ScoutStatus,
 } from "./state";
-import type { ScoutAllowedActionV1 } from "@shared/types/scout";
 import type { ScoutContextCard } from "./scoutContextCards";
-import { isSafeLinkTarget, validateAction } from "./actionValidation";
+import { isSafeLinkTarget, scoutAllowedActionToAction, validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
 import { OnboardingPrompt } from "./OnboardingPrompt";
 import { safeScoutSourceUrl } from "./provenance";
@@ -53,6 +52,21 @@ type ScoutThreadProps = {
   pendingContextCards?: ScoutContextCard[];
   locality?: ScoutLocality;
 };
+
+type ScoutFrameScheduler = (callback: FrameRequestCallback) => number;
+
+export function scrollOpenScoutTaskHistoryToLatest(
+  history: HTMLDetailsElement,
+  scheduleFrame: ScoutFrameScheduler = requestAnimationFrame
+): void {
+  if (!history.open) return;
+
+  scheduleFrame(() => {
+    const thread = history.querySelector<HTMLElement>(".scout-thread");
+    if (!thread) return;
+    thread.scrollTo({ top: thread.scrollHeight, behavior: "auto" });
+  });
+}
 
 const SUMMARY_MAX_CHARS = 150;
 
@@ -192,23 +206,6 @@ function normalizeActionText(value: string): string {
 
 function actionTarget(action: ScoutAction): string {
   return String(action.to || action.path || action.prompt || action.payload?.route || action.type);
-}
-
-function contractActionToScoutAction(action: ScoutAllowedActionV1): ScoutAction | null {
-  const target = typeof action.target === "string" ? action.target : undefined;
-  const payload = {
-    ...(action.payload || {}),
-    ...(action.requires_confirmation ? { requiresApproval: true } : {}),
-  };
-
-  return validateAction({
-    type: action.type as ScoutAction["type"],
-    label: action.label,
-    ...(target ? { to: target, path: target } : {}),
-    ...(action.prompt ? { prompt: action.prompt } : {}),
-    ...(Object.keys(payload).length > 0 ? { payload } : {}),
-    primary: action.primary,
-  });
 }
 
 function clusterKindMeta(kind: ScoutCluster["kind"]) {
@@ -600,7 +597,7 @@ function MessageExtras({
   const contractActionEntries = React.useMemo(
     () =>
       (msg.resultContract?.allowed_actions || []).flatMap((source) => {
-        const action = contractActionToScoutAction(source);
+        const action = scoutAllowedActionToAction(source);
         return action ? [{ source, action }] : [];
       }),
     [msg.resultContract?.allowed_actions]
@@ -1080,7 +1077,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   return (
     <div
       ref={containerRef}
-      className="scout-thread space-y-4 flex-1 min-h-0 overflow-y-auto"
+      className="scout-thread scout-thread--task-loop space-y-4 flex-1 min-h-0 overflow-y-auto"
       role="log"
       aria-live="polite"
       aria-relevant="additions text"

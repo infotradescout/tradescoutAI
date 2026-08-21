@@ -6,7 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useScoutController } from "./useScoutController";
-import ScoutThread from "./ScoutThread";
+import ScoutThread, { scrollOpenScoutTaskHistoryToLatest } from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -23,6 +23,7 @@ import {
 import ScoutToolsDrawer from "./ScoutToolsDrawer";
 import { apiBase, sendToScout, logScoutInsight, type ScoutLocality, type ScoutMode } from "./api";
 import { executeScoutActions } from "./ScoutActionRouter";
+import { resolveLatestScoutTurnActionTruth, scoutAllowedActionToAction } from "./actionValidation";
 import { ROUTES } from "@/lib/routes";
 import type { ScoutAction, ScoutMessage } from "./state";
 import { useSession } from "../contexts/SessionContext";
@@ -1656,8 +1657,6 @@ export default function ScoutOS() {
     budgetMax?: number;
   }>(null);
   const [dcBusy, setDcBusy] = useState(false);
-  const [controllerRailOpen, setControllerRailOpen] = useState(true);
-  const [controllerShowAll, setControllerShowAll] = useState(false);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
@@ -2168,49 +2167,13 @@ export default function ScoutOS() {
   // First-time guest state: controls the calm intro + auto-demo gating.
   const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
 
-  const controllerActions = useMemo(() => {
-    const actions = Array.isArray(state.lastActions) ? state.lastActions : [];
-    const filtered = actions.filter(
-      (a) =>
-        a &&
-        a.type !== "NOOP" &&
-        (typeof a.label === "string" || typeof a.to === "string" || typeof a.path === "string")
-    );
-
-    const deduped: ScoutAction[] = [];
-    const seen = new Set<string>();
-
-    const rankAction = (action: ScoutAction) => {
-      if (action.primary) return 0;
-      if (action.type === "NAVIGATE") return 1;
-      if (action.type === "CALL_TOOL") return 2;
-      return 3;
-    };
-
-    const prioritized = [...filtered].sort((a, b) => {
-      const rankDiff = rankAction(a) - rankAction(b);
-      if (rankDiff !== 0) return rankDiff;
-      const aHasPath = typeof a.to === "string" || typeof a.path === "string";
-      const bHasPath = typeof b.to === "string" || typeof b.path === "string";
-      if (aHasPath !== bHasPath) return aHasPath ? -1 : 1;
-      return 0;
+  const latestTurnActionTruth = useMemo(() => {
+    return resolveLatestScoutTurnActionTruth({
+      messages: state.messages,
+      lastActions: state.lastActions,
+      status: state.status,
     });
-
-    for (const action of prioritized) {
-      const key = [action.type, action.label || "", action.to || "", action.path || ""].join("|");
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(action);
-      if (deduped.length >= 5) break;
-    }
-
-    return deduped;
-  }, [state.lastActions]);
-
-  const visibleControllerActions = useMemo(() => {
-    if (controllerShowAll) return controllerActions;
-    return controllerActions.slice(0, 2);
-  }, [controllerActions, controllerShowAll]);
+  }, [state.lastActions, state.messages, state.status]);
 
   const latestUserQuery = useMemo(() => {
     for (let i = state.messages.length - 1; i >= 0; i -= 1) {
@@ -2219,6 +2182,36 @@ export default function ScoutOS() {
     }
     return "";
   }, [state.messages]);
+
+  const activeSavedThread = useMemo(
+    () =>
+      activeSavedThreadId
+        ? savedScoutThreads.find((thread) => thread.id === activeSavedThreadId) || null
+        : null,
+    [activeSavedThreadId, savedScoutThreads]
+  );
+  const currentTaskTitle = useMemo(() => {
+    const firstUserMessage = firstThreadUserMessage(state.messages);
+    return (
+      activeSavedThread?.title ||
+      summarizeThreadText(firstUserMessage?.content || latestUserQuery, "Current Scout task")
+    );
+  }, [activeSavedThread?.title, latestUserQuery, state.messages]);
+  const currentTaskState = useMemo(() => {
+    if (state.status === "resolving_context") return "Understanding what you need.";
+    if (state.status === "checking_documents") return "Checking the useful local details.";
+    if (state.status === "executing_action") return "Completing the step you chose.";
+    if (state.status === "error") return "That step needs another try.";
+
+    const latestAssistant = [...state.messages]
+      .reverse()
+      .find((message) => message.role === "assistant" && message.content.trim().length > 0);
+    return summarizeThreadText(
+      latestAssistant?.content || latestUserQuery,
+      "Add the next detail below."
+    );
+  }, [latestUserQuery, state.messages, state.status]);
+  const primaryNextAction = latestTurnActionTruth.dominantAction;
 
   const setViewMode = useCallback((nextMode: "chat_only" | "chat_plus_controller") => {
     setScoutViewMode(nextMode);
@@ -2230,10 +2223,6 @@ export default function ScoutOS() {
       // ignore persistence errors
     }
   }, []);
-
-  const effectiveViewMode: "chat_only" | "chat_plus_controller" = isMobile
-    ? "chat_only"
-    : scoutViewMode;
 
   // Keep the Scout surface feeling like a modern chat: shortcuts are available,
   // but they shouldn't crowd the thread once a conversation has started.
@@ -2560,17 +2549,10 @@ export default function ScoutOS() {
         setStatus("ready");
 
         const contractActions = dedupeScoutActions(
-          res.allowed_actions.map((action) => ({
-            type: action.type as ScoutAction["type"],
-            label: action.label,
-            ...(action.target ? { to: action.target, path: action.target } : {}),
-            ...(action.prompt ? { prompt: action.prompt } : {}),
-            payload: {
-              ...(action.payload || {}),
-              ...(action.requires_confirmation ? { requiresApproval: true } : {}),
-            },
-            primary: action.primary,
-          }))
+          res.allowed_actions.flatMap((action) => {
+            const validated = scoutAllowedActionToAction(action);
+            return validated ? [validated] : [];
+          })
         );
 
         const resolvedContent = sanitizeScoutMessage(res.answer || res.message);
@@ -3891,8 +3873,8 @@ export default function ScoutOS() {
           style={{
             paddingBottom: hasUserMessages
               ? isMobile
-                ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
-                : "calc(var(--scout-search-dock-h, 92px) + 1rem)"
+                ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 1rem)"
+                : "calc(var(--scout-search-dock-h, 92px) + 58px + 1.25rem)"
               : isMobile
                 ? "1.5rem"
                 : "2rem",
@@ -3912,13 +3894,6 @@ export default function ScoutOS() {
               className={`w-full flex flex-col min-h-0 relative ${
                 isMobile ? "" : showDiscoveryRail ? "flex-1" : "flex-1 max-w-4xl mx-auto"
               }`}
-              style={{
-                paddingBottom: hasUserMessages
-                  ? isMobile
-                    ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
-                    : "calc(var(--scout-search-dock-h, 92px) + 0.75rem)"
-                  : 0,
-              }}
             >
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
               {!isMobile && (
@@ -4404,71 +4379,6 @@ export default function ScoutOS() {
                       </div>
                     </div>
                   )}
-
-                  {/* Avoid duplicated action lists: in action view, actions render per-message. */}
-                  {false && effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
-                    <div className="mt-3">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p
-                          className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          Actions
-                        </p>
-                        <button
-                          type="button"
-                          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
-                          style={{
-                            borderColor: "var(--border-subtle)",
-                            color: "var(--text-secondary)",
-                            backgroundColor: "transparent",
-                          }}
-                          onClick={() => setControllerRailOpen((v) => !v)}
-                          aria-expanded={controllerRailOpen}
-                        >
-                          {controllerRailOpen ? "Hide" : `Show (${controllerActions.length})`}
-                        </button>
-                      </div>
-
-                      {controllerRailOpen && (
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2">
-                            {visibleControllerActions.map((action, index) => (
-                              <button
-                                key={`controller-rail-${index}-${action.type}-${action.label || "action"}`}
-                                type="button"
-                                onClick={() => {
-                                  setHasGuestInteracted(true);
-                                  void handleClusterAction(action);
-                                }}
-                                className="scout-action-button"
-                              >
-                                {action.label ||
-                                  (action.type === "NAVIGATE" ? "Open" : "Run action")}
-                              </button>
-                            ))}
-                          </div>
-
-                          {controllerActions.length > 2 && (
-                            <button
-                              type="button"
-                              onClick={() => setControllerShowAll((v) => !v)}
-                              className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
-                              style={{
-                                borderColor: "var(--border-subtle)",
-                                color: "var(--text-secondary)",
-                                backgroundColor: "transparent",
-                              }}
-                            >
-                              {controllerShowAll
-                                ? "Show fewer"
-                                : `More actions (${controllerActions.length - 2})`}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -4583,6 +4493,106 @@ export default function ScoutOS() {
                   </div>
                 )}
 
+                {hasUserMessages && (
+                  <section
+                    className="scout-current-task grid gap-2.5 rounded-xl border border-[color:var(--border-subtle)] p-3"
+                    data-testid="scout-current-task"
+                    aria-labelledby="scout-current-task-title"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase text-ts-orange">
+                          {activeSavedThread ? "Saved task" : "Current task"}
+                          {activeSavedThread?.relatedLabel
+                            ? ` · ${activeSavedThread.relatedLabel}`
+                            : ""}
+                        </p>
+                        <h1
+                          id="scout-current-task-title"
+                          className="mt-0.5 break-words text-base font-bold leading-tight text-[color:var(--text-primary)]"
+                          data-testid="scout-current-task-title"
+                        >
+                          {currentTaskTitle}
+                        </h1>
+                      </div>
+
+                      <div
+                        className="flex w-full items-center gap-1.5 sm:w-auto"
+                        aria-label="Thread controls"
+                      >
+                        <button
+                          type="button"
+                          className="min-h-11 flex-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] sm:flex-none"
+                          onClick={handleSaveScoutThreadNow}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="min-h-11 flex-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] sm:flex-none"
+                          onClick={handleStartNewScoutThread}
+                        >
+                          New
+                        </button>
+                        {activeSavedThreadId && (
+                          <details className="relative flex-1 sm:flex-none">
+                            <summary
+                              className="flex min-h-11 cursor-pointer list-none items-center justify-center rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden"
+                              aria-label="More thread options"
+                            >
+                              More
+                            </summary>
+                            <button
+                              type="button"
+                              className="absolute right-0 top-[calc(100%+0.35rem)] z-40 min-h-11 w-max max-w-[calc(100vw-2rem)] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 text-xs font-bold text-[color:var(--text-secondary)]"
+                              onClick={() => handleDeleteSavedThread(activeSavedThreadId)}
+                            >
+                              Delete saved thread
+                            </button>
+                          </details>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid min-w-0 gap-0.5">
+                      <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
+                        Latest
+                      </p>
+                      <p
+                        className="break-words text-sm leading-snug text-[color:var(--text-primary)]"
+                        data-testid="scout-latest-meaningful-state"
+                      >
+                        {currentTaskState}
+                      </p>
+                    </div>
+
+                    {primaryNextAction && (
+                      <button
+                        type="button"
+                        className="scout-current-task__primary flex min-h-[52px] w-full items-center justify-between gap-3 rounded-xl border border-ts-orange/50 bg-ts-orange/10 px-3 py-2 text-left text-[color:var(--text-primary)]"
+                        data-testid="scout-primary-next-action"
+                        onClick={() => {
+                          setHasGuestInteracted(true);
+                          void handleClusterAction(primaryNextAction);
+                        }}
+                      >
+                        <span className="grid gap-0.5">
+                          <span className="text-[10px] font-bold uppercase text-ts-orange">
+                            Next action
+                          </span>
+                          <strong>
+                            {primaryNextAction.label ||
+                              (primaryNextAction.type === "NAVIGATE"
+                                ? "Open next step"
+                                : "Continue")}
+                          </strong>
+                        </span>
+                        <Route className="h-4 w-4 shrink-0 text-ts-orange" aria-hidden="true" />
+                      </button>
+                    )}
+                  </section>
+                )}
+
                 {activeObjective && (
                   <ObjectiveChip
                     objective={activeObjective}
@@ -4671,156 +4681,111 @@ export default function ScoutOS() {
                   />
                 )}
 
-                {hasUserMessages && (
-                  <div
-                    className="rounded-xl border px-3 py-2"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor:
-                        "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                {showThreadRegion && (
+                  <details
+                    className="scout-task-history border-b border-[color:var(--border-subtle)]"
+                    data-testid="scout-task-history"
+                    onToggle={(event) => {
+                      scrollOpenScoutTaskHistoryToLatest(event.currentTarget);
                     }}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="min-w-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                          Findings and recommended paths
-                        </p>
-                        <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                          This conversation stays here while you work. Choose Save to keep it for
-                          later.
-                        </p>
+                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-0.5 py-2 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden">
+                      <span>Conversation history</span>
+                      <span className="text-[10px] font-semibold text-[color:var(--text-muted)]">
+                        {state.messages.length} {state.messages.length === 1 ? "update" : "updates"}
                       </span>
-                      <span className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={handleSaveScoutThreadNow}
-                          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                          style={{
-                            borderColor: "var(--border-subtle)",
-                            backgroundColor: "var(--surface-intermediate)",
-                            color: "var(--text-primary)",
-                          }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleStartNewScoutThread}
-                          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                          style={{
-                            borderColor: "var(--border-subtle)",
-                            backgroundColor: "transparent",
-                            color: "var(--text-secondary)",
-                          }}
-                        >
-                          New
-                        </button>
-                        {activeSavedThreadId && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteSavedThread(activeSavedThreadId)}
-                            className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                            style={{
-                              borderColor: "var(--border-subtle)",
-                              backgroundColor: "transparent",
-                              color: "var(--text-muted)",
-                            }}
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </span>
+                    </summary>
+                    <div className="scout-task-history__body">
+                      <ScoutThread
+                        messages={state.messages}
+                        status={state.status}
+                        mode={activeMode}
+                        showControllerExtras
+                        onAction={handleClusterAction}
+                        onOverride={handleOverride}
+                        overridePendingScope={overridePendingScope}
+                        onSendMessage={handleOnboardingMessage}
+                        onPrefill={prefillScoutMission}
+                        locality={locality}
+                        onQuickAction={(text) => {
+                          const trimmed = text.trim();
+                          setHasGuestInteracted(true);
+                          const localAction = resolveQuickActionIntent(trimmed);
+
+                          if (localAction?.kind === "direct_connect_request") {
+                            if (!isAuthenticated) {
+                              navigate("/pre-scout-setup?mode=signin");
+                              return;
+                            }
+
+                            const lastUserMsg = [...state.messages]
+                              .reverse()
+                              .find(
+                                (m) => m.role === "user" && typeof m.content === "string"
+                              )?.content;
+                            const raw = String(lastUserMsg || "")
+                              .replace(/\s+/g, " ")
+                              .trim();
+
+                            if (!raw) {
+                              navigate("/direct-connect");
+                              return;
+                            }
+
+                            const title = raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
+                            const countyFips =
+                              typeof (user as any)?.countyFips === "string"
+                                ? String((user as any).countyFips)
+                                : typeof (user as any)?.county_fips === "string"
+                                  ? String((user as any).county_fips)
+                                  : undefined;
+                            const stateCode =
+                              typeof (user as any)?.stateCode === "string"
+                                ? String((user as any).stateCode)
+                                : typeof (user as any)?.state_code === "string"
+                                  ? String((user as any).state_code)
+                                  : undefined;
+
+                            setDcDraft({
+                              title,
+                              description: raw,
+                              countyFips,
+                              stateCode,
+                            });
+                            setDcConfirmOpen(true);
+                            return;
+                          }
+
+                          if (localAction?.kind === "navigate") {
+                            recordActivity({
+                              type: "navigate",
+                              ts: new Date().toISOString(),
+                              path: location,
+                              to: localAction.to,
+                              label: trimmed,
+                            });
+                            if (!maybeOpenWorkAreaForRoute(localAction.to, trimmed)) {
+                              navigate(localAction.to);
+                            }
+                            return;
+                          }
+
+                          if (localAction?.kind === "open_note") {
+                            recordActivity({
+                              type: "open_note",
+                              ts: new Date().toISOString(),
+                              path: location,
+                              label: trimmed,
+                            });
+                            void openFloatingNote("quick");
+                            return;
+                          }
+
+                          handleSend(trimmed);
+                        }}
+                      />
                     </div>
-                  </div>
-                )}
-
-                {showThreadRegion && (
-                  <ScoutThread
-                    messages={state.messages}
-                    status={state.status}
-                    mode={activeMode}
-                    showControllerExtras
-                    onAction={handleClusterAction}
-                    onOverride={handleOverride}
-                    overridePendingScope={overridePendingScope}
-                    onSendMessage={handleOnboardingMessage}
-                    onPrefill={prefillScoutMission}
-                    locality={locality}
-                    onQuickAction={(text) => {
-                      const trimmed = text.trim();
-                      setHasGuestInteracted(true);
-                      const localAction = resolveQuickActionIntent(trimmed);
-
-                      if (localAction?.kind === "direct_connect_request") {
-                        if (!isAuthenticated) {
-                          navigate("/pre-scout-setup?mode=signin");
-                          return;
-                        }
-
-                        const lastUserMsg = [...state.messages]
-                          .reverse()
-                          .find((m) => m.role === "user" && typeof m.content === "string")?.content;
-                        const raw = String(lastUserMsg || "")
-                          .replace(/\s+/g, " ")
-                          .trim();
-
-                        if (!raw) {
-                          navigate("/direct-connect");
-                          return;
-                        }
-
-                        const title = raw.length > 180 ? `${raw.slice(0, 177)}...` : raw;
-                        const countyFips =
-                          typeof (user as any)?.countyFips === "string"
-                            ? String((user as any).countyFips)
-                            : typeof (user as any)?.county_fips === "string"
-                              ? String((user as any).county_fips)
-                              : undefined;
-                        const stateCode =
-                          typeof (user as any)?.stateCode === "string"
-                            ? String((user as any).stateCode)
-                            : typeof (user as any)?.state_code === "string"
-                              ? String((user as any).state_code)
-                              : undefined;
-
-                        setDcDraft({
-                          title,
-                          description: raw,
-                          countyFips,
-                          stateCode,
-                        });
-                        setDcConfirmOpen(true);
-                        return;
-                      }
-
-                      if (localAction?.kind === "navigate") {
-                        recordActivity({
-                          type: "navigate",
-                          ts: new Date().toISOString(),
-                          path: location,
-                          to: localAction.to,
-                          label: trimmed,
-                        });
-                        if (!maybeOpenWorkAreaForRoute(localAction.to, trimmed)) {
-                          navigate(localAction.to);
-                        }
-                        return;
-                      }
-
-                      if (localAction?.kind === "open_note") {
-                        recordActivity({
-                          type: "open_note",
-                          ts: new Date().toISOString(),
-                          path: location,
-                          label: trimmed,
-                        });
-                        void openFloatingNote("quick");
-                        return;
-                      }
-
-                      handleSend(trimmed);
-                    }}
-                  />
+                  </details>
                 )}
 
                 {autoRoutePending && (
@@ -4889,7 +4854,7 @@ export default function ScoutOS() {
             </div>
 
             {hasUserMessages ? (
-              <div className="scout-input-bottom-pin order-3">
+              <div className="scout-input-bottom-pin order-3" data-testid="scout-task-composer">
                 <ScoutSearchDock
                   isMobile={isMobile}
                   placement="fixed"
