@@ -97,8 +97,10 @@ describe("profile account policy", () => {
     ).toBe(true);
   });
 
-  it("returns JW Stone to its canonical profile without an account-role parameter", () => {
-    expect(buildProfileAccountReturnPath("JW Stone")).toBe("/jw-stone?profileAccount=1");
+  it("returns to the canonical public profile without an account-role parameter", () => {
+    expect(buildProfileAccountReturnPath("JW Stone")).toBe(
+      "/u/jw-stone?profileAccount=1"
+    );
     expect(buildProfileAccountReturnPath("Local Electrician")).toBe(
       "/u/local-electrician?profileAccount=1"
     );
