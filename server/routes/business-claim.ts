@@ -536,7 +536,7 @@ export function registerBusinessClaimRoutes(app: Express) {
         "email_verification_required",
         true
       );
-      const { token, expiresAt } = passwordResetService.createToken(user.id);
+      const { token, expiresAt } = await passwordResetService.createToken(user.id);
       const resetBase =
         process.env.PASSWORD_RESET_URL ||
         process.env.APP_BASE_URL ||
@@ -545,7 +545,7 @@ export function registerBusinessClaimRoutes(app: Express) {
 
       let verifyLink: string | null = null;
       if (emailVerificationRequired && user.emailVerified !== true) {
-        const verify = emailVerificationService.createToken(user.id);
+        const verify = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
       }

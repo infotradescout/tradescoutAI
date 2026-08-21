@@ -325,7 +325,7 @@ export function registerProfileAccountRoutes(app: Express) {
         let emailVerificationSent = false;
         let verificationToken: string | undefined;
         if (emailVerificationRequired) {
-          const { token, expiresAt } = emailVerificationService.createToken(user.id);
+          const { token, expiresAt } = await emailVerificationService.createToken(user.id);
           const verifyBase = getPublicBaseUrlFromRequest(req);
           const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${encodeURIComponent(
             token
@@ -392,7 +392,7 @@ export function registerProfileAccountRoutes(app: Express) {
         const email = normalizeEmail(parsed.data.email);
         const user = await storage.getUserByEmail(email);
         if (user) {
-          const { token, code, expiresAt } = passwordResetService.createToken(user.id);
+          const { token, code, expiresAt } = await passwordResetService.createToken(user.id);
           const resetBase = String(
             process.env.PASSWORD_RESET_URL || getPublicBaseUrlFromRequest(req)
           )
