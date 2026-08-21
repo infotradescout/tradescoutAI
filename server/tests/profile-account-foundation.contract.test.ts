@@ -45,7 +45,7 @@ describe("profile-native account foundation", () => {
     expect(route).not.toContain("bidrock_profile_accounts");
   });
 
-  it("keeps JW Stone account creation inside JW Stone", () => {
+  it("keeps JW Stone account creation inside the canonical JW Stone profile", () => {
     const marketplace = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const header = read("client/src/features/jw-stone/MarketplaceHeader.tsx");
     const dialog = read("client/src/components/profile/PublicProfileAccountDialog.tsx");
@@ -62,7 +62,7 @@ describe("profile-native account foundation", () => {
     expect(dialog).toContain("registerProfileAccount");
     expect(dialog).not.toContain("/pre-scout-setup");
     expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
-    expect(client).toContain('slug === "jw-stone" ? "/jw-stone"');
+    expect(client).toContain("return `/u/${encodeURIComponent(slug)}`");
     expect(onboarding).toContain('normalized === "/jw-stone"');
     expect(onboarding).toContain("/^\\/u\\/[a-z0-9]");
   });
