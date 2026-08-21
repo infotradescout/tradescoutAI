@@ -14971,10 +14971,17 @@ export async function registerRoutes(app: any) {
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
   const multer = (await import("multer")).default;
+  const configuredBusinessImportFileLimit = Number(
+    process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 10 * 1024 * 1024
+  );
+  const businessImportFileLimit =
+    Number.isFinite(configuredBusinessImportFileLimit) && configuredBusinessImportFileLimit > 0
+      ? Math.min(configuredBusinessImportFileLimit, 10 * 1024 * 1024)
+      : 10 * 1024 * 1024;
   const businessImportUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: Number(process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 25 * 1024 * 1024),
+      fileSize: businessImportFileLimit,
     },
   });
   const businessImportMaybeUploadFile = (req: any, res: any, next: any) => {
@@ -15349,7 +15356,7 @@ export async function registerRoutes(app: any) {
         let parseFile: any = null;
 
         if (isXlsxUpload) {
-          const parsedXlsx = parseXlsxImport(uploadedFile!.buffer as Buffer);
+          const parsedXlsx = await parseXlsxImport(uploadedFile!.buffer as Buffer);
           records = parsedXlsx.records;
           parseFile = parsedXlsx.meta;
           // Keep response delimiter stable for the existing client UI.
