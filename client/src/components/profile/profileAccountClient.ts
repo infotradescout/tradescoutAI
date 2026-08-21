@@ -50,23 +50,24 @@ type ProfileAccountError = Error & {
   requiresBusinessSetup?: boolean;
 };
 
+function canonicalProfilePath(profileSlug: string): string {
+  const slug = String(profileSlug || "")
+    .trim()
+    .toLowerCase();
+  return `/u/${encodeURIComponent(slug)}`;
+}
+
 export function buildProfileAccountResumePath(
   profileSlug: string,
   mode: ProfileAccountMode = "create"
 ): string {
-  const slug = String(profileSlug || "")
-    .trim()
-    .toLowerCase();
   const params = new URLSearchParams({ profileAccount: "1" });
   if (mode === "signin") params.set("profileAccountMode", "signin");
-  const path = slug === "jw-stone" ? "/jw-stone" : `/u/${encodeURIComponent(slug)}`;
-  return `${path}?${params.toString()}`;
+  return `${canonicalProfilePath(profileSlug)}?${params.toString()}`;
 }
 
 export function currentProfileAccountSourcePath(profileSlug: string): string {
-  if (typeof window === "undefined") {
-    return profileSlug === "jw-stone" ? "/jw-stone" : `/u/${profileSlug}`;
-  }
+  if (typeof window === "undefined") return canonicalProfilePath(profileSlug);
   try {
     const url = new URL(window.location.href);
     url.searchParams.delete("profileAccount");
@@ -76,9 +77,9 @@ export function currentProfileAccountSourcePath(profileSlug: string): string {
       return path.slice(0, 500);
     }
   } catch {
-    // Use the profile's canonical route below.
+    // Use the canonical public profile route below.
   }
-  return profileSlug === "jw-stone" ? "/jw-stone" : `/u/${profileSlug}`;
+  return canonicalProfilePath(profileSlug);
 }
 
 export async function readProfileAccountJson(
