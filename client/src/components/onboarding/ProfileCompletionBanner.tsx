@@ -196,7 +196,13 @@ export default function ProfileCompletionBanner() {
   };
 
   return (
-    <div className="fixed left-0 right-0 bottom-4 z-40 px-3 md:px-4 pointer-events-none">
+    <div
+      className="fixed left-0 right-0 z-40 px-3 md:px-4 pointer-events-none"
+      style={{
+        bottom: "calc(var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom, 0px) + 1rem)",
+      }}
+      data-testid="profile-completion-banner"
+    >
       <div className="mx-auto max-w-3xl pointer-events-auto">
         <Card className="border border-white/10 bg-tsCard/95 shadow-[0_18px_52px_rgba(0,0,0,0.45)]">
           <CardContent className="p-3 md:p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -1,22 +1,11 @@
 import { useEffect, useMemo, type ReactNode } from "react";
-import {
-  Building,
-  ClipboardList,
-  Compass,
-  Share2,
-  ShoppingBag,
-  Users,
-  Wrench,
-} from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Building, ClipboardList, Compass, Share2, ShoppingBag, Users, Wrench } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { apiRequest } from "@/lib/queryClient";
 import { ROUTES } from "@/lib/routes";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
-import { AuthenticatedSocialFrame } from "./AuthenticatedSocialFrame";
 import AppShellCore from "./AppShellCore";
 import type { NavItem } from "./AppShellCore";
 
@@ -41,23 +30,6 @@ function isPublicProfileLikePath(pathOnly: string): boolean {
   }
 
   return false;
-}
-
-function isFullWidthWorkspacePath(pathOnly: string): boolean {
-  return (
-    pathOnly === "/scout" ||
-    pathOnly.startsWith("/scout/") ||
-    pathOnly.startsWith("/maps") ||
-    pathOnly.startsWith("/geography-heatmap") ||
-    pathOnly.startsWith("/settings") ||
-    pathOnly.startsWith("/profile-settings") ||
-    pathOnly.startsWith("/dashboard-settings") ||
-    pathOnly.startsWith("/notifications") ||
-    pathOnly.startsWith("/privacy") ||
-    pathOnly.startsWith("/homescout/") ||
-    pathOnly.startsWith("/tradepartners/") ||
-    pathOnly.startsWith("/collections/")
-  );
 }
 
 function buildDesktopBottomNav(): NavItem[] {
@@ -110,9 +82,8 @@ function buildDesktopBottomNav(): NavItem[] {
 }
 
 /**
- * Keeps the current AppShell and navigation untouched while restoring the
- * familiar signed-in TradeScout page composition around its working surface.
- * Public/custom profiles stay completely outside this authenticated frame.
+ * Owns the stable TradeScout OS chrome. Signed-in apps keep their own full-width
+ * workspaces while primary navigation stays in the bottom taskbar.
  */
 export function AppShell({ children, footer }: AppShellProps) {
   const { isAuthenticated } = useAuth();
@@ -138,27 +109,12 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isPublicProfileSurface =
     Boolean(customDomainProfileSlug) || isPublicProfileLikePath(pathOnly);
 
-  const showAuthenticatedSocialFrame =
-    Boolean(isAuthenticated) &&
-    !isMobile &&
-    !isAuthOrSetupSurface &&
-    !isAdminSurface &&
-    !isPublicProfileSurface &&
-    !isFullWidthWorkspacePath(pathOnly);
-
   const showDesktopBottomNav =
     Boolean(isAuthenticated) &&
     !isMobile &&
     !isAuthOrSetupSurface &&
     !isAdminSurface &&
     !isPublicProfileSurface;
-
-  const incomingRequestsQuery = useQuery<{ requests: unknown[] }>({
-    queryKey: ["/api/social/conversations/requests/incoming"],
-    enabled: Boolean(isAuthenticated) && !isAuthOrSetupSurface && !isPublicProfileSurface,
-    queryFn: () => apiRequest("GET", "/api/social/conversations/requests/incoming"),
-  });
-  const contactRequestCount = incomingRequestsQuery.data?.requests?.length || 0;
 
   const desktopBottomNavItems = useMemo(() => buildDesktopBottomNav(), []);
 
@@ -171,14 +127,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     };
   }, [showDesktopBottomNav]);
 
-  const framedChildren = showAuthenticatedSocialFrame ? (
-    <AuthenticatedSocialFrame contactRequestCount={contactRequestCount}>
-      {children}
-    </AuthenticatedSocialFrame>
-  ) : (
-    children
-  );
-
   return (
     <>
       <style>{`
@@ -186,36 +134,18 @@ export function AppShell({ children, footer }: AppShellProps) {
           bottom: ${DESKTOP_BOTTOM_NAV_HEIGHT} !important;
         }
 
+        body.ts-desktop-bottom-nav-active [data-testid="profile-completion-banner"] {
+          bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 1rem) !important;
+        }
+
+        body.ts-desktop-bottom-nav-active .scout-search-dock-fixed {
+          bottom: calc(${DESKTOP_BOTTOM_NAV_HEIGHT} + 0.5rem) !important;
+        }
+
         body.ts-desktop-bottom-nav-active .ts-desktop-bottom-nav-host .ts-bottom-nav-inner {
           max-width: min(1440px, calc(100% - 24px));
           margin-inline: auto;
           margin-bottom: 4px;
-        }
-
-        @media (min-width: 1024px) {
-          [data-testid="authenticated-social-frame"] {
-            grid-template-columns: 220px minmax(0, 1fr) !important;
-          }
-
-          [data-testid="authenticated-social-frame"] > aside[aria-label="Account shortcuts"] {
-            display: block !important;
-          }
-        }
-
-        @media (min-width: 1280px) {
-          [data-testid="authenticated-social-frame"] {
-            grid-template-columns: 232px minmax(0, 1fr) 288px !important;
-          }
-
-          [data-testid="authenticated-social-frame"] > aside[aria-label="Activity and quick actions"] {
-            display: block !important;
-          }
-        }
-
-        @media (min-width: 1536px) {
-          [data-testid="authenticated-social-frame"] {
-            grid-template-columns: 244px minmax(0, 1fr) 304px !important;
-          }
         }
 
         @media (max-width: 767px) {
@@ -225,9 +155,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         }
       `}</style>
 
-      <AppShellCore footer={showDesktopBottomNav ? undefined : footer}>
-        {framedChildren}
-      </AppShellCore>
+      <AppShellCore footer={showDesktopBottomNav ? undefined : footer}>{children}</AppShellCore>
 
       {showDesktopBottomNav ? (
         <div

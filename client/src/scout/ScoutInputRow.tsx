@@ -4,8 +4,8 @@ import { Mic, Send, Sparkles } from "lucide-react";
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
    @reusable: scout-command-bar
-   This is the persistent input surface at the bottom of the Scout OS.
-   It can be dropped into any surface that needs a Scout command bar.
+   This is Scout's single command-bar owner. ScoutSearchDock places it in the
+   first-use workspace or pins it above the taskbar after work begins.
 
    Visual spec (matches screenshots):
    - Orange border glow on focus/active
