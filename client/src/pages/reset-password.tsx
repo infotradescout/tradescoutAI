@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ import {
 } from "@/components/profile/profileAccountClient";
 import { isSafeNextPath } from "@/lib/postOnboardingRoute";
 import { readResetPasswordParam } from "./resetPasswordLocation";
+import { prepareResetPasswordSubmission } from "./resetPasswordSubmission";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
@@ -22,6 +23,7 @@ export default function ResetPasswordPage() {
   const [email, setEmail] = useState(() => readResetPasswordParam("email"));
   const [code, setCode] = useState("");
   const [verifiedToken, setVerifiedToken] = useState("");
+  const verifiedTokenRef = useRef("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [codeStepVisible, setCodeStepVisible] = useState(false);
@@ -93,6 +95,7 @@ export default function ResetPasswordPage() {
         });
         return;
       }
+      verifiedTokenRef.current = nextToken;
       setVerifiedToken(nextToken);
       toast({ title: "Code verified", description: "Set your new password." });
     },
@@ -106,11 +109,17 @@ export default function ResetPasswordPage() {
   });
 
   const resetMutation = useMutation({
-    mutationFn: async () => {
-      if (!effectiveToken) throw new Error("Missing reset token");
-      if (newPassword.length < 8) throw new Error("Password must be at least 8 characters");
-      if (newPassword !== confirm) throw new Error("Passwords do not match");
-      return apiRequest("POST", "/api/auth/reset-password", { token: effectiveToken, newPassword });
+    mutationFn: async ({
+      token: resetToken,
+      newPassword: password,
+    }: {
+      token: string;
+      newPassword: string;
+    }) => {
+      return apiRequest("POST", "/api/auth/reset-password", {
+        token: resetToken,
+        newPassword: password,
+      });
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
@@ -131,6 +140,24 @@ export default function ResetPasswordPage() {
       });
     },
   });
+
+  const submitNewPassword = () => {
+    const submission = prepareResetPasswordSubmission({
+      urlToken: token,
+      verifiedToken: verifiedTokenRef.current,
+      newPassword,
+      confirmPassword: confirm,
+    });
+    if (!submission.ok) {
+      toast({
+        title: "Reset failed",
+        description: submission.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    resetMutation.mutate(submission.value);
+  };
 
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
@@ -230,7 +257,7 @@ export default function ResetPasswordPage() {
 
               <Button
                 className="bg-ts-orange hover:bg-ts-orange-dark w-full"
-                onClick={() => resetMutation.mutate()}
+                onClick={submitNewPassword}
                 disabled={resetMutation.isPending}
               >
                 {resetMutation.isPending ? "Saving..." : "Save Password"}
