@@ -1,18 +1,18 @@
 services:
   - type: web
-    name: tradescout-pro
-    # REQUIRED: live dashboard must stay Node. Docker ignores preDeployCommand and
-    # will serve new code without migrate/verify (RUNTIME_MIGRATIONS_MODE=off).
-    # Owner GO steps: docs/DEPLOYMENT_TARGET.md
-    runtime: node
+    name: tradescoutAI
+    # Production is the existing Git-backed Docker Starter service. The image
+    # includes the migration tooling required by this pre-deploy command.
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     branch: main
     # main is the release channel: Render auto-deploys on commit.
     # Do NOT use checksPass (deadlock risk with post-deploy observers).
     # GitHub Actions deploy workflow is optional backup only — not required for prod.
     autoDeployTrigger: commit
     preDeployCommand: npm run db:migrate && npm run db:verify:required
-    buildCommand: npm run build
-    startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
         value: "20"
