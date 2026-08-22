@@ -64,7 +64,10 @@ describe("signed-in TradeScout OS shell", () => {
     expect(wrapper).toContain("bottom: ${DESKTOP_BOTTOM_NAV_HEIGHT} !important;");
 
     expect(core).toContain("MOBILE FEATURE NAV");
-    expect(core).toContain("isMobileSimplified ? mobileFlowNav : mobileNav.ordered");
+    expect(core).toContain("items={mobileTaskbarNav}");
+    expect(core).toContain("primaryLimit={5}");
+    expect(core).toContain("stablePrimary");
+    expect(core).not.toContain("mobileFlowNav");
     expect(mobileBottomNav).toContain('className="ts-bottom-nav');
     expect(mobileBottomNav).toContain("primaryLimit");
   });

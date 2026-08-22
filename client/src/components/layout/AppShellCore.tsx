@@ -10,8 +10,6 @@ import {
   Heart,
   Compass,
   Map,
-  ChevronDown,
-  ChevronUp,
   Menu,
   UserPlus,
   LogIn,
@@ -51,6 +49,7 @@ import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
 import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
+import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 
 export type NavItem = {
   label: string;
@@ -290,10 +289,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
 // SITE FEATURES ONLY.
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (opts?: {
-  includeAdmin?: boolean;
-  includeAdvancedHrefs?: Set<string> | null;
-}): NavItem[] => {
+const buildFeatureNav = (opts?: { includeAdvancedHrefs?: Set<string> | null }): NavItem[] => {
   const coreNav: NavItem[] = [
     {
       label: "Scout",
@@ -325,15 +321,15 @@ const buildFeatureNav = (opts?: {
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "See nearby posts and updates.",
     },
+  ];
+
+  const advancedNav: NavItem[] = [
     {
       label: "Share",
       href: "/share",
       icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Copy and publish your best links.",
     },
-  ];
-
-  const advancedNav: NavItem[] = [
     {
       label: "TradeDeals",
       href: "/trade-deals",
@@ -386,80 +382,32 @@ const buildFeatureNav = (opts?: {
     description: "Get support and how-to guidance.",
   });
 
-  if (opts?.includeAdmin) {
-    baseNav.unshift({
-      label: "Admin",
-      href: "/admin",
-      icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    });
-  }
-
   return baseNav;
 };
 
-function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
-  const desiredPrimaryLabels = ["Direct Connect", "Community", "Scout"];
+export const MOBILE_TASKBAR_PRIMARY_LABELS = [
+  "Scout",
+  "Direct Connect",
+  "Businesses",
+  "Jobs",
+  "Community",
+] as const;
+
+export function buildMobileAppTaskbarNav(items: NavItem[]): NavItem[] {
   const byLabel = new globalThis.Map(items.map((item) => [item.label, item]));
-  const primary = desiredPrimaryLabels
-    .map((label) => byLabel.get(label))
-    .filter((item): item is NavItem => Boolean(item));
+  const primary = MOBILE_TASKBAR_PRIMARY_LABELS.map((label) => byLabel.get(label)).filter(
+    (item): item is NavItem => Boolean(item)
+  );
 
-  const primaryHrefs = new Set(primary.map((item) => item.href));
-  const overflow = items.filter((item) => !primaryHrefs.has(item.href));
+  const stablePrimary = primary.map((item) =>
+    item.label === "Direct Connect" ? { ...item, href: DIRECT_CONNECT_TASKBAR_RESUME_HREF } : item
+  );
+  const primaryLabels = new Set(MOBILE_TASKBAR_PRIMARY_LABELS);
+  const secondaryApps = items.filter(
+    (item) => !primaryLabels.has(item.label as (typeof MOBILE_TASKBAR_PRIMARY_LABELS)[number])
+  );
 
-  return {
-    ordered: [...primary, ...overflow],
-    primary,
-  };
-}
-
-function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[] {
-  const byHref = new globalThis.Map(items.map((item) => [item.href, item]));
-  const communityHref = ROUTES.COMMUNITY ?? "/community";
-  const scout = byHref.get("/scout");
-  const request = byHref.get("/direct-connect/active");
-  const community = byHref.get(communityHref);
-  const inboxHref = "/direct-connect/inbox";
-  const pinnedHrefs = new Set(["/direct-connect/active", inboxHref, communityHref, "/scout"]);
-
-  const primary: NavItem[] = [
-    request
-      ? {
-          ...request,
-          label: "Requests",
-          description: "Track requests, replies, and next actions.",
-        }
-      : {
-          label: "Requests",
-          href: "/direct-connect/active",
-          icon: (
-            <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
-          ),
-        },
-    {
-      label: "Inbox",
-      href: inboxHref,
-      icon: <MessageCircle className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      badge: contactRequestCount > 0 ? String(Math.min(contactRequestCount, 9)) : undefined,
-      description: "See replies, messages, and active coordination.",
-    },
-    community
-      ? { ...community, label: "Community", description: "See local activity and ask around." }
-      : {
-          label: "Community",
-          href: communityHref,
-          icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-        },
-    scout
-      ? { ...scout, label: "Start", description: "Tell Scout what you want to get done." }
-      : {
-          label: "Start",
-          href: "/scout",
-          icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-        },
-  ];
-
-  return [...primary, ...items.filter((item) => !pinnedHrefs.has(item.href))];
+  return [...stablePrimary, ...secondaryApps];
 }
 
 export function AppShell({ children, footer }: AppShellProps) {
@@ -470,7 +418,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [isStartGuideOpen, setIsStartGuideOpen] = useState(false);
-  const [isMobileUnlockablesOpen, setIsMobileUnlockablesOpen] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const { canPromptInstall, promptInstall } = useInstallPrompt();
@@ -530,35 +477,9 @@ export function AppShell({ children, footer }: AppShellProps) {
     mobileSimplificationEnabled && isMobile && !isAuthOrSetupSurface && !isAdminSurface;
 
   const featureNav = buildFeatureNav({
-    includeAdmin: shouldShowAdminNav,
     includeAdvancedHrefs: shouldGateAdvancedNav ? unlockedAdvancedHrefs : null,
   });
-  const mobileNav = useMemo(() => {
-    if (!isMobileSimplified) {
-      return {
-        ordered: featureNav,
-        primary: featureNav.slice(0, 4),
-      };
-    }
-    return buildMobileSimplifiedNav(featureNav);
-  }, [featureNav, isMobileSimplified]);
-  const mobileFlowNav = useMemo(
-    () => buildMobileFlowNav(featureNav, contactRequestCount),
-    [featureNav, contactRequestCount]
-  );
-
-  const topRightUnlockableItems = useMemo(() => {
-    const unlockableHrefs = new Set<string>([
-      "/trade-deals",
-      ROUTES.EXCHANGE ?? "/exchange",
-      "/homes",
-      "/maps",
-      "/leaderboard",
-      "/foundation",
-    ]);
-
-    return featureNav.filter((item) => unlockableHrefs.has(item.href));
-  }, [featureNav]);
+  const mobileTaskbarNav = buildMobileAppTaskbarNav(featureNav);
 
   const mobileSurfaceCardStyle = {
     border: "1px solid color-mix(in oklab, var(--border-primary) 82%, transparent)",
@@ -584,20 +505,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const navigateFromMobileTools = (href: string) => {
     setIsToolsOpen(false);
     navigate(href);
-  };
-
-  const handleMobileUnlockablesToggle = () => {
-    setIsMobileUnlockablesOpen((open) => {
-      const nextOpen = !open;
-      if (nextOpen && typeof window !== "undefined") {
-        window.setTimeout(() => {
-          document
-            .getElementById("mobile-unlockable-links")
-            ?.scrollIntoView({ block: "nearest", behavior: "auto" });
-        }, 0);
-      }
-      return nextOpen;
-    });
   };
 
   const renderMobileDrawerAction = ({
@@ -729,10 +636,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   useEffect(() => {
     setIsToolsOpen(false);
   }, [location]);
-
-  useEffect(() => {
-    if (!isToolsOpen) setIsMobileUnlockablesOpen(false);
-  }, [isToolsOpen]);
 
   useEffect(() => {
     if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
@@ -1412,10 +1315,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* MOBILE FEATURE NAV */}
       {showFeatureNav && isMobile && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-          <MobileAppBar
-            items={isMobileSimplified ? mobileFlowNav : mobileNav.ordered}
-            primaryLimit={isMobileSimplified ? 4 : 5}
-          />
+          <MobileAppBar items={mobileTaskbarNav} primaryLimit={5} stablePrimary />
         </div>
       )}
 
@@ -1483,6 +1383,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
 
+      {/* MOBILE ACCOUNT/SYSTEM DRAWER */}
       {isMobile && isToolsOpen && !isAuthOrSetupSurface && isMobileSimplified && (
         <div
           className="fixed inset-x-0 top-0 z-50"
@@ -1557,17 +1458,6 @@ export function AppShell({ children, footer }: AppShellProps) {
                   style={mobileSurfaceCardStyle}
                 >
                   {renderMobileDrawerAction({
-                    href:
-                      contactRequestCount > 0
-                        ? "/direct-connect/inbox?filter=requests"
-                        : "/direct-connect/inbox",
-                    icon: <MessageCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
-                    label: "Messages",
-                    ...(contactRequestCount > 0
-                      ? { badge: contactRequestCount > 9 ? "9+" : contactRequestCount }
-                      : {}),
-                  })}
-                  {renderMobileDrawerAction({
                     href: "/profile",
                     icon: <UserCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
                     label: "Profile",
@@ -1614,54 +1504,6 @@ export function AppShell({ children, footer }: AppShellProps) {
                     label: "Security",
                   })}
                 </div>
-              </div>
-            )}
-
-            {topRightUnlockableItems.length > 0 && (
-              <div className="mt-3 rounded-lg p-3" style={mobileSurfaceCardStyle}>
-                <button
-                  type="button"
-                  aria-expanded={isMobileUnlockablesOpen}
-                  onClick={handleMobileUnlockablesToggle}
-                  className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold"
-                  style={mobileActionButtonStyle}
-                >
-                  <span className="inline-flex min-w-0 items-center gap-2.5">
-                    <Sparkles className="h-4 w-4 shrink-0" style={mobileDrawerIconStyle} />
-                    <span className="truncate">Unlockable features</span>
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-2">
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                      style={{
-                        backgroundColor:
-                          "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                        color: "var(--theme-accent-primary)",
-                      }}
-                    >
-                      {topRightUnlockableItems.length}
-                    </span>
-                    {isMobileUnlockablesOpen ? (
-                      <ChevronUp className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
-                    )}
-                  </span>
-                </button>
-
-                {isMobileUnlockablesOpen && (
-                  <div id="mobile-unlockable-links" className="mt-2 grid grid-cols-1 gap-2">
-                    {topRightUnlockableItems.map((item) =>
-                      renderMobileDrawerAction({
-                        href: item.href,
-                        icon: item.icon ?? (
-                          <Sparkles className="h-4 w-4" style={mobileDrawerIconStyle} />
-                        ),
-                        label: item.label,
-                      })
-                    )}
-                  </div>
-                )}
               </div>
             )}
 
