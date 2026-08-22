@@ -1,23 +1,33 @@
 # Build Evidence: bidrock-marketplace-recovery
 
-Status: auction-first correction, isolated database proof, temporary preview, and desktop browser proof passed; native mobile live-viewport proof remains provisional
+Status: current branch correction validated locally; historical separate-preview proof superseded and deleted; real-browser proof blocked by the local process sandbox
 Started at: `2026-08-20T18:58:08Z`
 Base revision: `5e6c44a49fcb0eae0cf720fadd898c477d8d8293`
 Branch: `jw-stone/bidrock-marketplace-recovery`
 
+## 2026-08-22 recovery correction
+
+- The owner rejected the separate Render preview/service/database approach and explicitly required BidRock to stay inside the existing TradeScout application architecture. Every temporary service created by the prior approach has been deleted. No historical preview URL, temporary database, test bid, test price, or prior GO statement below is current release evidence.
+- The corrected product boundary is marketplace-wide B2B stone auctions. JW Stone's seven owner-confirmed lots are launch inventory, not a JW-only marketplace identity. Seller-authoritative opening bid, reserve, increment, schedule, pickup, and freight terms are required before a lot can become a truthful auction.
+- The routed auction floor now distinguishes natural and engineered stone plus slab, bundle, block, container, A-frame, and piece asset types. The seller inventory API, canonical Stone Core material row, public/seller inventory DTO, and BidRock catalog projection carry that class. A guest regression renders a non-JW engineered bundle and confirms that no dollar value appears.
+- The exact source tree passed 10 focused files and 68 tests, changed production-source lint with zero errors and two pre-existing warnings, broader changed TypeScript/TSX lint with zero errors and 11 pre-existing warnings, `git diff --check`, and the full production build. The repository-wide TypeScript check remains blocked only by the existing unrelated admin, HomeID, and managed-partner diagnostics listed later.
+- Real desktop/mobile browser execution was attempted locally with official Chromium, Chromium headless-shell, and Firefox runtimes. This workspace exposes neither `/proc` nor `/sys` to browser child processes, causing each local engine to terminate before a page can open; sandbox escalation is disabled. No screenshot or end-to-end browser pass is claimed, and no cloud or hosted workaround was used.
+- The approved branch push is separate from merge/deployment readiness. Current `origin/main` is six commits ahead and owns migration slots `0115`–`0117` that overlap this recovery branch's migration numbering and journal indices. The branch must reconcile and renumber those migrations against current main, then rerun database and browser proof, before any merge or deployment.
+
 ## Confirmed inputs
 
 - Seven physical lots and their exact dimensions/quantities are owner-approved in the Worker checkpoint.
-- The refreshed project index is bound to the base revision above.
+- The refreshed project index records the current GitHub source candidate at `a36b456d15f19d73a595adf34395743b5123d4dd`; the older base revision remains provenance for the recovery contract, not the indexed tree.
 - Historical source branches are reuse evidence only; their giant inline BidRock page and catalog-as-active-listing assumption are rejected.
 - Gold Macaubas is owner-confirmed as 6 slabs with 2 polished slabs. This current owner statement supersedes the older 1.5-polished filename evidence while preserving that historical source record.
-- The product-owner `REPLACE` amendment approved at `2026-08-20T19:23:32Z` removes the prior BidRock revenue decision. BidRock adds no marketplace fee and canonical fee fields must be zero.
+- The product-owner `REPLACE` amendment approved at `2026-08-20T19:23:32Z`, as corrected on 2026-08-22, postpones the prior BidRock revenue decision for this release. This release adds no marketplace fee and canonical fee fields must be zero; it does not establish a permanent zero-fee policy, and any later revenue model requires separate authorization.
 
 ## Governance correction checkpoint
 
 - The Aligner marked the release blocked and authorized only the bounded correction pass recorded in the active build contract.
 - The active build must remain `in_progress` until schema migration, authorization, concurrency, canonical-link, handoff, client-capability, and proportional proof findings are reconciled.
 - Historical JW marketplace and 3D build records remain preserved; their evidence is not rewritten as proof for this BidRock correction.
+- At `2026-08-22T07:34:10-05:00`, the independent Selective Intelligence Aligner returned `aligned` for the source tree at local revision `8cb8229ff74c8a0c98bbf1ecadb080a98fa56c1e` plus the pending four-file governance candidate. That exact source tree is now the GitHub source candidate at `a36b456d15f19d73a595adf34395743b5123d4dd`; the verdict is limited to a normal fast-forward push to `jw-stone/bidrock-marketplace-recovery`, while the global release, browser proof, migration reconciliation, pull request, merge, deployment, database, and payment actions remain blocked.
 
 ## Auction-first correction evidence (`2026-08-21`)
 
@@ -38,7 +48,7 @@ Branch: `jw-stone/bidrock-marketplace-recovery`
 - Whole-repository `./node_modules/.bin/tsc --noEmit --pretty false` exited 2 only in the pre-existing unrelated admin, HomeID, and managed-partner files listed later in this document; it reported no BidRock or Stone inventory diagnostic.
 - `npm run build` passed during this pass: 4,069 Vite modules, public-landing and built-URL verification, and the server bundle completed. Existing Browserslist, Tailwind ambiguity, dynamic-import, and chunk-size warnings remained. Generated fallback images were removed and the sitemap was restored after the build.
 - `git diff --check` passed. Routed auction UI searches returned no offer/counter/Buy It Now/private-price helper, no hardcoded numeric dollar literal, and no marketplace fee/commission/take-rate term. Generic canonical fee fields remain only in the existing explicit-zero validation path.
-- The project index refresh completed with 212 directories, 3,669 source files, 20,078 symbols, 1,499 components, and 11,171 functions/hooks. Doctor reports `stale: false`; its exit 1 consists of 1,108 pre-existing whole-repository duplicate/competing-owner errors and five raw-element warnings, not a clean whole-repository result.
+- The project index refresh completed with 212 directories, 3,669 source files, 20,083 symbols, 1,500 components, and 11,174 functions/hooks. Doctor reports `stale: false`; its exit 1 consists of 1,108 pre-existing whole-repository duplicate/competing-owner errors and five raw-element warnings, not a clean whole-repository result.
 
 ### Isolated auction database proof (`2026-08-21`)
 
@@ -48,7 +58,7 @@ Branch: `jw-stone/bidrock-marketplace-recovery`
 - A database-boundary soft-close scenario started with 119 seconds remaining, entered `extended`, and produced an exact 120-second `ends_at - original_ends_at` extension. The visible auction schedule was restored afterward; the accepted row remains clearly labeled preview test activity.
 - The preview state contains seven auctions, seven JW listings, and only isolated test bidder/activity identities. Production remains untouched. Database closure/conversion is covered by row-lock/source contracts and unique schema guards; deployed desktop proof is recorded below.
 
-### Temporary preview and live browser proof (`2026-08-21`)
+### Historical temporary preview and browser record (`2026-08-21`, superseded and deleted)
 
 - The approved branch was pushed without force to `infotradescout/tradescoutAI` and deployed only to the temporary Render service at `https://bidrock-browser-preview-0821.onrender.com/bidrock`. The final live revision is `73277a4c949b77b2ed6b654c2c4470ea7c5255ca`. Auto-deploy remains disabled; no PR, merge, `main`, production service, production database, or payment system was touched.
 - One Render deployment remained in `build_in_progress` for 30 minutes without emitting a clone or build line. Read-only diagnostics found no application/runtime error and the older preview remained healthy. One bounded retry against the same revision automatically canceled the stalled deploy, immediately cloned the branch, and completed normally. The final copy-only redeploy also completed normally.
@@ -121,5 +131,5 @@ Branch: `jw-stone/bidrock-marketplace-recovery`
 - Ordered migrations were applied and repeated only on the disposable PostgreSQL branch, which was deleted after proof. They were not applied to production, and the seven-lot production backfill remains separately authorization-gated.
 - No production payment intent, ACH mandate, capture, payout, or accounting mutation has been activated.
 - On-platform provider processing remains blocked until the canonical marketplace transaction authority persists an authoritative ACH rail and an approved BidRock adapter is configured. The implemented local path records readiness and reconciles only a canonical transaction explicitly identified as ACH.
-- The existing temporary Render preview was redeployed and desktop-browser verified at the exact final branch revision recorded above. It remains a temporary non-production service; native mobile live-viewport proof is not claimed.
+- The former temporary Render preview and database are deleted and may not be reused as proof. Current local desktop/mobile browser proof is blocked by the process sandbox described above.
 - No PR, merge, production deploy, production publication, or external payment action has occurred.

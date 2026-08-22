@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-21T00:42:23Z",
+  "generated_at": "2026-08-22T12:43:07Z",
   "source": {
     "kind": "git",
-    "revision": "650ce08cda6b47f13c6954d9bd541bc0ade022c6",
-    "dirty": false,
-    "inventory_sha256": "e423118dc30e899525034817eb4ff3875cb84b607cff599be7fe44d5c0f49f6c"
+    "revision": "a36b456d15f19d73a595adf34395743b5123d4dd",
+    "dirty": true,
+    "inventory_sha256": "c1caae0d577b993013fe62c2b6a2505779e2114db450a88a2f4bce7e54df181f"
   },
   "inventory": {
     "directories": [
@@ -192,7 +192,7 @@
       },
       {
         "path": "client/src/features/bidrock",
-        "source_file_count": 8
+        "source_file_count": 9
       },
       {
         "path": "client/src/features/jw-stone",
@@ -784,7 +784,7 @@
       },
       {
         "path": "server/tests",
-        "source_file_count": 463
+        "source_file_count": 464
       },
       {
         "path": "server/tests/helpers",
@@ -820,10 +820,6 @@
       },
       {
         "path": "src/db",
-        "source_file_count": 1
-      },
-      {
-        "path": "test-results/assets",
         "source_file_count": 1
       },
       {
@@ -2823,26 +2819,26 @@
       {
         "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
         "language": "tsx",
-        "sha256": "b55c7b25b2dfd9ebbc055354e506ace7d4a00fba8af6703da51cebfec0d8d244",
-        "bytes": 9123
+        "sha256": "18df57514549a8091c6906d86bc8a456e5f8e9ba0fa30649d75936452996ad0b",
+        "bytes": 13058
       },
       {
         "path": "client/src/features/bidrock/BidRockListingRow.tsx",
         "language": "tsx",
-        "sha256": "07da93249de557a371537e2918bc86c3879a9384237237e73f131aaa6d84ceb5",
-        "bytes": 4941
+        "sha256": "8a38259e528b3d264a349eb52c6c28ed7c3e3c8e79cc5a66c35e8915ce432f23",
+        "bytes": 11465
       },
       {
         "path": "client/src/features/bidrock/BidRockOperationsPanels.test.tsx",
         "language": "tsx",
-        "sha256": "7e30f0e78cdd21f5349bf5975645c3e363cedd3cc9ec19f44ef0a7d966717f32",
-        "bytes": 11643
+        "sha256": "dd6c79c9aa3574270586c86fc5eb0000d2a60f127633803e85827b5016fda4c8",
+        "bytes": 11758
       },
       {
         "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
         "language": "tsx",
-        "sha256": "1a0a4c9e2debed80f38d9960d1b4a92890dcae573d485fa1b369d63cc3c355ed",
-        "bytes": 23807
+        "sha256": "e7d71785c21848d1e279d4a3661369a8da241493c5e38209a691354e9c639827",
+        "bytes": 24088
       },
       {
         "path": "client/src/features/bidrock/BidRockOrderSheet.tsx",
@@ -2851,22 +2847,28 @@
         "bytes": 19419
       },
       {
+        "path": "client/src/features/bidrock/BidRockWorkspace.auth-cache.test.tsx",
+        "language": "tsx",
+        "sha256": "afdede0e9f67b5f18b40395215c595ea95af32fe53f72cc4c98177ae9b340851",
+        "bytes": 6138
+      },
+      {
         "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
         "language": "tsx",
-        "sha256": "f102ff98046ca106d490c90635aec881f91a3584fefec79ef3e288723757d01f",
-        "bytes": 4511
+        "sha256": "0dd99719983ded178c1f7acc873bf1c442027bc9027620fcfa817c9cd32109f7",
+        "bytes": 13497
       },
       {
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
         "language": "tsx",
-        "sha256": "84aa6ea5a4c7c51aa0d3561886beb0d241a1d0271b4e12b0a6b3f4c4da478b5c",
-        "bytes": 40299
+        "sha256": "d73c0443c5e22d9f34cee6345b35efec1a1059d18b90011cb90bb13b04b142f4",
+        "bytes": 57297
       },
       {
         "path": "client/src/features/bidrock/bidrockClient.ts",
         "language": "ts",
-        "sha256": "60e4d8a9a3fe1b6c64fd53e1fec62e984e77f6c64f758c5289b25e21ac0186e1",
-        "bytes": 9386
+        "sha256": "1863fb0e6332ce7f49deccefee210439a186c924767890060d505723ffcd2b8f",
+        "bytes": 10887
       },
       {
         "path": "client/src/features/jw-stone/CollageBand.tsx",
@@ -16875,8 +16877,8 @@
       {
         "path": "server/routes/bidrock.ts",
         "language": "ts",
-        "sha256": "2d16a9a7972907f7594bab208d27223be5370df911e41fc64ef3c2918c188f22",
-        "bytes": 20420
+        "sha256": "1e81a45b941fff3dfa857ec641ac83a882ac7ff797d7e8a931767b63ccfd7faa",
+        "bytes": 25300
       },
       {
         "path": "server/routes/boosts.ts",
@@ -17289,8 +17291,8 @@
       {
         "path": "server/routes/stone-inventory.ts",
         "language": "ts",
-        "sha256": "c94c73c22a5e914c8ff955a6b3d32328c962d929967c5873ca0becacea171af1",
-        "bytes": 12746
+        "sha256": "f9cd3d9b51214895d932a2f0993f3fd59a0012bbbd2497744ef193375bf2913c",
+        "bytes": 12812
       },
       {
         "path": "server/routes/stories.ts",
@@ -17367,8 +17369,8 @@
       {
         "path": "server/schemaPreflight.ts",
         "language": "ts",
-        "sha256": "6fc3b77da5a9350e34badbbeab46f6055410dd785bb738d2935637925d955349",
-        "bytes": 10940
+        "sha256": "1a8429914c67b76b265223e53de3e5869547b65c16c9b0d8c7e0de877e322182",
+        "bytes": 24081
       },
       {
         "path": "server/scout/brandGuard.ts",
@@ -17655,8 +17657,8 @@
       {
         "path": "server/services/bidrockService.ts",
         "language": "ts",
-        "sha256": "110dbbaadd027f033c0c997b90b129eb25881aa10c5fe8b3a8b0be3713665793",
-        "bytes": 118387
+        "sha256": "7c67b5fe999f3ed05271aff6a314c53c969b6f229618daa982df37f230a5d19a",
+        "bytes": 162243
       },
       {
         "path": "server/services/businessProfileEnrichmentService.ts",
@@ -18591,8 +18593,8 @@
       {
         "path": "server/services/stoneInventoryService.ts",
         "language": "ts",
-        "sha256": "1a488689fa378a6ccd4a026d65c43cc52c7d2a3b238d2251dd071cc4eeb0e554",
-        "bytes": 26225
+        "sha256": "ecea19507c38ad7ba993a34046c139977fba17f60e7ca55a3e4d27f9bf40d865",
+        "bytes": 27149
       },
       {
         "path": "server/services/supplierProductResolver.ts",
@@ -19015,10 +19017,16 @@
         "bytes": 2861
       },
       {
+        "path": "server/tests/bidrock-auction.contract.test.ts",
+        "language": "ts",
+        "sha256": "5a5eb07ae7806b0183e42ed7d357f5668604e381d26dcde41921a4d685bcffe4",
+        "bytes": 16057
+      },
+      {
         "path": "server/tests/bidrock-closure-corrections.contract.test.ts",
         "language": "ts",
-        "sha256": "ca21f240699342ff1d25eebf5eab1ffa6a2339266d322a0fbe167cb402b80dd4",
-        "bytes": 9417
+        "sha256": "cd329dea265038b21de0ca16b05ffa226bed8a68e75a5209235c0f05830b37b8",
+        "bytes": 9459
       },
       {
         "path": "server/tests/bidrock-correction-safety.contract.test.ts",
@@ -19029,8 +19037,8 @@
       {
         "path": "server/tests/bidrock-final-corrections.contract.test.ts",
         "language": "ts",
-        "sha256": "035cca3210ace5ae61b3621eb5e5b823e4999bd6dba09e04b6eb173e8c447998",
-        "bytes": 7403
+        "sha256": "4ccb1f713dc2c1f336cc32baa92f973ed4f191dc37630aa120aa9f94d341d031",
+        "bytes": 7542
       },
       {
         "path": "server/tests/bidrock-last-corrections.contract.test.ts",
@@ -19041,8 +19049,8 @@
       {
         "path": "server/tests/bidrock-marketplace-recovery.contract.test.ts",
         "language": "ts",
-        "sha256": "72134b682609be201066ba754fc9283d99f6cea62a5dc956b7e7fdb0d1964fe4",
-        "bytes": 7579
+        "sha256": "95f0bb5bf0bbee5f0a2c29ce6de9de12563c50eb102d794516f20cf2c33da068",
+        "bytes": 9170
       },
       {
         "path": "server/tests/bidrock-postgres.integration.test.ts",
@@ -21969,8 +21977,8 @@
       {
         "path": "shared/bidrock.ts",
         "language": "ts",
-        "sha256": "f85e0478a585416652c8a267103e7cb15277df619ad63409300ffdca03b0a937",
-        "bytes": 5103
+        "sha256": "dbb3706636ae14763b9f540a5e93732b7a8c2f27577fba1de9ab9fb6bbbcd7ad",
+        "bytes": 7079
       },
       {
         "path": "shared/brand.ts",
@@ -22425,8 +22433,8 @@
       {
         "path": "shared/stoneInventory.ts",
         "language": "ts",
-        "sha256": "02d8fc84d8cd53ba2997a83be7c8dd0763fd693032cbd4a5c7387eec51ec5e61",
-        "bytes": 7119
+        "sha256": "041af3e60ea540d763fe307ca536251bdc64641fe01c34959fbf6d94efa54720",
+        "bytes": 7478
       },
       {
         "path": "shared/supportInbox.ts",
@@ -22517,12 +22525,6 @@
         "language": "ts",
         "sha256": "d8a37b8db2dfb7904820add5e3ec28d8ed857e8a6f8009ca2a6f2a6e4d55fdb6",
         "bytes": 7240
-      },
-      {
-        "path": "test-results/assets/index-CLLxNdKA.js",
-        "language": "js",
-        "sha256": "0f0de16b54bea6f153d9d05115c9887ebdf0af2a40fee2c7f88b249da857a9cc",
-        "bytes": 703493
       },
       {
         "path": "test-runner.js",
@@ -32384,56 +32386,91 @@
         "name": "Props",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-        "line": 11,
+        "line": 23,
         "exported": false
       },
       {
         "name": "BidRockDetailPanel",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-        "line": 27,
+        "line": 35,
         "exported": true
       },
       {
         "name": "formatBidRockDimensions",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-        "line": 6,
+        "line": 8,
         "exported": true
+      },
+      {
+        "name": "formatBidRockAssetKind",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+        "line": 14,
+        "exported": true
+      },
+      {
+        "name": "formatBidRockMaterialClass",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+        "line": 18,
+        "exported": true
+      },
+      {
+        "name": "formatBidRockCountdown",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+        "line": 22,
+        "exported": true
+      },
+      {
+        "name": "BidRockCountdown",
+        "kind": "component",
+        "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+        "line": 34,
+        "exported": true
+      },
+      {
+        "name": "update",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+        "line": 51,
+        "exported": false
       },
       {
         "name": "Props",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-        "line": 12,
+        "line": 63,
         "exported": false
       },
       {
         "name": "BidRockListingRow",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-        "line": 23,
+        "line": 74,
         "exported": true
       },
       {
         "name": "click",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.test.tsx",
-        "line": 86,
+        "line": 88,
         "exported": false
       },
       {
         "name": "input",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.test.tsx",
-        "line": 91,
+        "line": 93,
         "exported": false
       },
       {
         "name": "buttonContaining",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.test.tsx",
-        "line": 101,
+        "line": 103,
         "exported": false
       },
       {
@@ -32468,35 +32505,35 @@
         "name": "BidRockAdminPanel",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-        "line": 268,
+        "line": 269,
         "exported": true
       },
       {
         "name": "runAdmin",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-        "line": 283,
+        "line": 285,
         "exported": false
       },
       {
         "name": "ActivityProps",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-        "line": 407,
+        "line": 416,
         "exported": false
       },
       {
         "name": "BidRockActivityPanel",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-        "line": 433,
+        "line": 442,
         "exported": true
       },
       {
         "name": "CounterOfferControl",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-        "line": 596,
+        "line": 605,
         "exported": false
       },
       {
@@ -32528,374 +32565,493 @@
         "exported": false
       },
       {
+        "name": "flushQueries",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.auth-cache.test.tsx",
+        "line": 136,
+        "exported": false
+      },
+      {
+        "name": "renderWorkspace",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.auth-cache.test.tsx",
+        "line": 170,
+        "exported": false
+      },
+      {
+        "name": "guestCatalog",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
+        "line": 58,
+        "exported": false
+      },
+      {
+        "name": "verifiedCatalog",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
+        "line": 72,
+        "exported": false
+      },
+      {
         "name": "click",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
-        "line": 82,
+        "line": 142,
+        "exported": false
+      },
+      {
+        "name": "setInput",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
+        "line": 147,
+        "exported": false
+      },
+      {
+        "name": "buttonContaining",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
+        "line": 155,
+        "exported": false
+      },
+      {
+        "name": "render",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.test.tsx",
+        "line": 199,
         "exported": false
       },
       {
         "name": "ProfileAccountResponse",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 20,
+        "line": 22,
         "exported": false
       },
       {
-        "name": "BidRockOffer",
+        "name": "BidRockOrder",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
         "line": 69,
         "exported": false
       },
       {
-        "name": "BidRockOrder",
+        "name": "BidRockProviderAssignment",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
         "line": 70,
         "exported": false
       },
       {
-        "name": "BidRockProviderAssignment",
-        "kind": "type",
-        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 71,
-        "exported": false
-      },
-      {
         "name": "WorkspaceTab",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 85,
+        "line": 86,
         "exported": false
       },
       {
         "name": "readGuestSaves",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 87,
+        "line": 88,
         "exported": false
       },
       {
         "name": "listingMatches",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 97,
+        "line": 98,
+        "exported": false
+      },
+      {
+        "name": "nextIdempotencyKey",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 123,
         "exported": false
       },
       {
         "name": "BidRockWorkspace",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 116,
+        "line": 127,
         "exported": true
       },
       {
         "name": "isSaved",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 215,
+        "line": 220,
         "exported": false
       },
       {
         "name": "reportFailure",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 236,
+        "line": 275,
         "exported": false
       },
       {
-        "name": "refreshMarketplace",
+        "name": "refreshBidRock",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 244,
+        "line": 283,
         "exported": false
       },
       {
         "name": "run",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 254,
+        "line": 293,
+        "exported": false
+      },
+      {
+        "name": "placeMaximumBid",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 308,
         "exported": false
       },
       {
         "name": "toggleCompare",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 269,
+        "line": 330,
         "exported": false
       },
       {
         "name": "toggleSaved",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 280,
+        "line": 341,
         "exported": false
       },
       {
         "name": "selectMarketListing",
         "kind": "function",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 298,
+        "line": 359,
+        "exported": false
+      },
+      {
+        "name": "AuctionHouseStat",
+        "kind": "component",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 791,
+        "exported": false
+      },
+      {
+        "name": "AuctionGroup",
+        "kind": "component",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 813,
+        "exported": false
+      },
+      {
+        "name": "SellerAuctionPanel",
+        "kind": "component",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 864,
+        "exported": false
+      },
+      {
+        "name": "toDateTimeLocal",
+        "kind": "function",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 961,
+        "exported": false
+      },
+      {
+        "name": "SellerAuctionEditor",
+        "kind": "component",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 969,
+        "exported": false
+      },
+      {
+        "name": "OrderQueue",
+        "kind": "component",
+        "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+        "line": 1188,
         "exported": false
       },
       {
         "name": "ProviderAssignmentQueue",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 801,
+        "line": 1246,
         "exported": false
       },
       {
         "name": "FilterProps",
         "kind": "type",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 869,
+        "line": 1300,
         "exported": false
       },
       {
         "name": "FilterControls",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 882,
+        "line": 1313,
         "exported": false
       },
       {
         "name": "FilterRail",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 952,
+        "line": 1383,
         "exported": false
       },
       {
         "name": "MobileFilters",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 968,
+        "line": 1399,
         "exported": false
       },
       {
         "name": "FilterChoice",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 984,
+        "line": 1415,
         "exported": false
       },
       {
         "name": "BidRockCompareDialog",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 1008,
+        "line": 1439,
         "exported": false
       },
       {
         "name": "CompareRow",
         "kind": "component",
         "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-        "line": 1080,
+        "line": 1530,
         "exported": false
       },
       {
         "name": "BidRockOrder",
         "kind": "type",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 10,
+        "line": 11,
         "exported": true
       },
       {
         "name": "BidRockOffer",
         "kind": "type",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 37,
+        "line": 38,
         "exported": true
       },
       {
         "name": "BidRockOrderWorkspace",
         "kind": "type",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 51,
+        "line": 52,
         "exported": true
       },
       {
         "name": "BidRockProviderHandoffWorkspace",
         "kind": "type",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 68,
+        "line": 69,
         "exported": true
       },
       {
         "name": "BidRockProviderAssignment",
         "kind": "type",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 86,
+        "line": 87,
         "exported": true
       },
       {
         "name": "loadBidRockCatalog",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 93,
+        "line": 94,
         "exported": true
       },
       {
         "name": "loadBidRockSellerInventory",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 97,
+        "line": 98,
         "exported": true
       },
       {
         "name": "saveBidRockPrice",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 104,
+        "line": 105,
         "exported": true
       },
       {
         "name": "clearBidRockPrice",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 115,
+        "line": 116,
         "exported": true
       },
       {
         "name": "setBidRockPublication",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 119,
+        "line": 120,
         "exported": true
       },
       {
         "name": "setBidRockSaved",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 125,
+        "line": 126,
         "exported": true
       },
       {
-        "name": "submitBidRockOffer",
+        "name": "configureBidRockAuction",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 131,
+        "line": 132,
         "exported": true
       },
       {
-        "name": "loadBidRockOffers",
-        "kind": "function",
-        "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 146,
-        "exported": true
-      },
-      {
-        "name": "acceptBidRockOffer",
+        "name": "placeBidRockMaximum",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
         "line": 153,
         "exported": true
       },
       {
+        "name": "submitBidRockOffer",
+        "kind": "function",
+        "path": "client/src/features/bidrock/bidrockClient.ts",
+        "line": 164,
+        "exported": true
+      },
+      {
+        "name": "loadBidRockOffers",
+        "kind": "function",
+        "path": "client/src/features/bidrock/bidrockClient.ts",
+        "line": 179,
+        "exported": true
+      },
+      {
+        "name": "acceptBidRockOffer",
+        "kind": "function",
+        "path": "client/src/features/bidrock/bidrockClient.ts",
+        "line": 186,
+        "exported": true
+      },
+      {
         "name": "rejectBidRockOffer",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 161,
+        "line": 194,
         "exported": true
       },
       {
         "name": "counterBidRockOffer",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 167,
+        "line": 200,
         "exported": true
       },
       {
         "name": "loadBidRockOrders",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 181,
+        "line": 214,
         "exported": true
       },
       {
         "name": "loadBidRockProviderAssignments",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 188,
+        "line": 221,
         "exported": true
       },
       {
         "name": "loadBidRockOrder",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 197,
+        "line": 230,
         "exported": true
       },
       {
         "name": "markBidRockPaymentReady",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 205,
+        "line": 238,
         "exported": true
       },
       {
         "name": "recordBidRockHandoff",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 213,
+        "line": 246,
         "exported": true
       },
       {
         "name": "projectBidRockInventory",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 232,
+        "line": 265,
         "exported": true
       },
       {
         "name": "expireBidRockHolds",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 238,
+        "line": 271,
+        "exported": true
+      },
+      {
+        "name": "closeExpiredBidRockAuctions",
+        "kind": "function",
+        "path": "client/src/features/bidrock/bidrockClient.ts",
+        "line": 277,
         "exported": true
       },
       {
         "name": "importBidRockConfirmedStock",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 244,
+        "line": 295,
         "exported": true
       },
       {
         "name": "setBidRockDelegation",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 250,
+        "line": 301,
         "exported": true
       },
       {
         "name": "cancelBidRockOrder",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 264,
+        "line": 315,
         "exported": true
       },
       {
         "name": "linkBidRockOrderSystems",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 268,
+        "line": 319,
         "exported": true
       },
       {
         "name": "settleBidRockAch",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 283,
+        "line": 334,
         "exported": true
       },
       {
         "name": "completeBidRockOrder",
         "kind": "function",
         "path": "client/src/features/bidrock/bidrockClient.ts",
-        "line": 291,
+        "line": 342,
         "exported": true
       },
       {
@@ -124217,35 +124373,35 @@
         "name": "getUserId",
         "kind": "function",
         "path": "server/routes/bidrock.ts",
-        "line": 56,
+        "line": 81,
         "exported": false
       },
       {
         "name": "idempotencyKey",
         "kind": "function",
         "path": "server/routes/bidrock.ts",
-        "line": 62,
+        "line": 87,
         "exported": false
       },
       {
         "name": "respondError",
         "kind": "function",
         "path": "server/routes/bidrock.ts",
-        "line": 68,
+        "line": 93,
         "exported": false
       },
       {
         "name": "requireUser",
         "kind": "function",
         "path": "server/routes/bidrock.ts",
-        "line": 87,
+        "line": 112,
         "exported": false
       },
       {
         "name": "registerBidRockRoutes",
         "kind": "function",
         "path": "server/routes/bidrock.ts",
-        "line": 93,
+        "line": 118,
         "exported": true
       },
       {
@@ -128326,49 +128482,49 @@
         "name": "userId",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 100,
+        "line": 101,
         "exported": false
       },
       {
         "name": "isSuperAdmin",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 105,
+        "line": 106,
         "exported": false
       },
       {
         "name": "canManageTarget",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 117,
+        "line": 118,
         "exported": false
       },
       {
         "name": "managedTarget",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 128,
+        "line": 129,
         "exported": false
       },
       {
         "name": "managedMutationTarget",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 145,
+        "line": 146,
         "exported": false
       },
       {
         "name": "inventoryResponse",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 167,
+        "line": 168,
         "exported": false
       },
       {
         "name": "registerStoneInventoryRoutes",
         "kind": "function",
         "path": "server/routes/stone-inventory.ts",
-        "line": 176,
+        "line": 177,
         "exported": true
       },
       {
@@ -128960,66 +129116,101 @@
         "exported": false
       },
       {
+        "name": "RequiredUniqueIndexShape",
+        "kind": "type",
+        "path": "server/schemaPreflight.ts",
+        "line": 138,
+        "exported": false
+      },
+      {
+        "name": "RequiredForeignKey",
+        "kind": "type",
+        "path": "server/schemaPreflight.ts",
+        "line": 193,
+        "exported": false
+      },
+      {
         "name": "CriticalSchemaScope",
         "kind": "type",
         "path": "server/schemaPreflight.ts",
-        "line": 81,
+        "line": 307,
         "exported": true
       },
       {
         "name": "isCriticalSchemaReady",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 89,
+        "line": 315,
         "exported": true
       },
       {
         "name": "requireCriticalSchema",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 93,
+        "line": 319,
         "exported": true
       },
       {
         "name": "tableHasColumn",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 111,
+        "line": 337,
         "exported": false
       },
       {
         "name": "tableHasConstraint",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 130,
+        "line": 356,
         "exported": false
       },
       {
         "name": "uniqueIndexIsReady",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 153,
+        "line": 379,
+        "exported": false
+      },
+      {
+        "name": "uniqueIndexMatchesShape",
+        "kind": "function",
+        "path": "server/schemaPreflight.ts",
+        "line": 402,
+        "exported": false
+      },
+      {
+        "name": "foreignKeyMatchesShape",
+        "kind": "function",
+        "path": "server/schemaPreflight.ts",
+        "line": 451,
+        "exported": false
+      },
+      {
+        "name": "columnAllowsNull",
+        "kind": "function",
+        "path": "server/schemaPreflight.ts",
+        "line": 500,
         "exported": false
       },
       {
         "name": "triggerIsEnabled",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 176,
+        "line": 524,
         "exported": false
       },
       {
         "name": "criticalScopeForTable",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 196,
+        "line": 544,
         "exported": false
       },
       {
         "name": "runSchemaPreflight",
         "kind": "function",
         "path": "server/schemaPreflight.ts",
-        "line": 204,
+        "line": 552,
         "exported": true
       },
       {
@@ -131613,500 +131804,717 @@
         "exported": true
       },
       {
-        "name": "BidRockCatalogResponse",
-        "kind": "type",
-        "path": "server/services/bidrockService.ts",
-        "line": 10,
-        "exported": false
-      },
-      {
-        "name": "BidRockHandoffActionCapability",
+        "name": "BidRockAuction",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 11,
         "exported": false
       },
       {
-        "name": "BidRockHandoffType",
+        "name": "BidRockAuctionStatus",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 12,
         "exported": false
       },
       {
-        "name": "BidRockListing",
+        "name": "BidRockCatalogResponse",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 13,
         "exported": false
       },
       {
-        "name": "BidRockListingStatus",
+        "name": "BidRockHandoffActionCapability",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 14,
         "exported": false
       },
       {
-        "name": "BidRockOfferStatus",
+        "name": "BidRockHandoffType",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 15,
         "exported": false
       },
       {
-        "name": "BidRockOrderStatus",
+        "name": "BidRockListing",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 16,
         "exported": false
       },
       {
-        "name": "BidRockPriceUnit",
+        "name": "BidRockListingStatus",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
         "line": 17,
         "exported": false
       },
       {
+        "name": "BidRockOfferStatus",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 18,
+        "exported": false
+      },
+      {
+        "name": "BidRockOrderStatus",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 19,
+        "exported": false
+      },
+      {
+        "name": "BidRockPriceUnit",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 20,
+        "exported": false
+      },
+      {
         "name": "BidRockQueryable",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 28,
+        "line": 32,
         "exported": true
       },
       {
         "name": "Queryable",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 30,
+        "line": 34,
         "exported": false
       },
       {
         "name": "canonicalJson",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 31,
+        "line": 35,
         "exported": false
       },
       {
         "name": "requestFingerprint",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 43,
+        "line": 47,
         "exported": false
       },
       {
         "name": "isExplicitZero",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 49,
+        "line": 53,
+        "exported": false
+      },
+      {
+        "name": "BidRockMaxBidInput",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 59,
+        "exported": true
+      },
+      {
+        "name": "BidRockProxyOutcome",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 66,
+        "exported": true
+      },
+      {
+        "name": "calculateBidRockProxyPrice",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 79,
+        "exported": true
+      },
+      {
+        "name": "minimumBidRockMaximumForViewer",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 118,
+        "exported": true
+      },
+      {
+        "name": "shouldExtendBidRockAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 141,
+        "exported": true
+      },
+      {
+        "name": "assertBidRockBidderIsNotSeller",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 153,
+        "exported": true
+      },
+      {
+        "name": "resolveBidRockCloseOutcome",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 166,
+        "exported": true
+      },
+      {
+        "name": "resolveBidRockAuctionPricing",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 185,
         "exported": false
       },
       {
         "name": "verifyBidRockSchema",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 67,
+        "line": 220,
         "exported": true
       },
       {
         "name": "releaseExpiredBidRockReservations",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 96,
+        "line": 249,
         "exported": true
       },
       {
         "name": "BidRockViewerContext",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 178,
+        "line": 331,
         "exported": true
       },
       {
         "name": "normalizeText",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 190,
+        "line": 343,
         "exported": false
       },
       {
         "name": "recordValue",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 197,
+        "line": 350,
         "exported": false
       },
       {
         "name": "normalizeIso",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 203,
+        "line": 356,
         "exported": false
       },
       {
         "name": "safeImage",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 208,
+        "line": 361,
         "exported": false
       },
       {
         "name": "normalizedRoleSet",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 212,
+        "line": 365,
         "exported": false
       },
       {
         "name": "effectiveAccountStatus",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 220,
+        "line": 373,
+        "exported": false
+      },
+      {
+        "name": "loadBidRockViewerContext",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 386,
+        "exported": false
+      },
+      {
+        "name": "delegatedFor",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 459,
         "exported": false
       },
       {
         "name": "getBidRockViewerContext",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 233,
+        "line": 483,
         "exported": true
-      },
-      {
-        "name": "delegatedFor",
-        "kind": "function",
-        "path": "server/services/bidrockService.ts",
-        "line": 296,
-        "exported": false
       },
       {
         "name": "canBidRockViewerMutateStoneInventory",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 320,
+        "line": 489,
         "exported": true
       },
       {
         "name": "viewerCanManageListing",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 334,
+        "line": 503,
         "exported": false
       },
       {
         "name": "viewerIsListingSellerAgent",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 351,
+        "line": 520,
+        "exported": false
+      },
+      {
+        "name": "bidRockInventoryHasCurrentAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 532,
+        "exported": false
+      },
+      {
+        "name": "bidRockListingHasCurrentAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 549,
+        "exported": false
+      },
+      {
+        "name": "assertBidRockInventoryHasNoCurrentAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 565,
+        "exported": true
+      },
+      {
+        "name": "BidRockAuctionShapeInput",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 574,
+        "exported": false
+      },
+      {
+        "name": "effectiveBidRockAuctionStatus",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 592,
+        "exported": false
+      },
+      {
+        "name": "shapeBidRockAuctionForViewer",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 606,
+        "exported": true
+      },
+      {
+        "name": "money",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 644,
+        "exported": false
+      },
+      {
+        "name": "auctionBidInputs",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 705,
+        "exported": false
+      },
+      {
+        "name": "mapAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 723,
         "exported": false
       },
       {
         "name": "lockBidRockProjectionRows",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 363,
+        "line": 761,
         "exported": false
       },
       {
         "name": "refreshBidRockListingProjection",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 423,
+        "line": 821,
         "exported": true
       },
       {
         "name": "syncBidRockStoneInventory",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 574,
+        "line": 981,
         "exported": true
       },
       {
         "name": "mapListing",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 638,
+        "line": 1045,
         "exported": false
       },
       {
         "name": "listingRows",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 701,
+        "line": 1119,
         "exported": false
       },
       {
         "name": "listBidRockCatalog",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 719,
+        "line": 1204,
         "exported": true
       },
       {
         "name": "listBidRockSellerInventory",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 743,
+        "line": 1232,
         "exported": true
       },
       {
         "name": "setBidRockListingPrice",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 765,
+        "line": 1255,
         "exported": true
       },
       {
         "name": "clearBidRockListingPrice",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 856,
+        "line": 1357,
         "exported": true
       },
       {
         "name": "setBidRockListingSaleReady",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 928,
+        "line": 1429,
         "exported": true
       },
       {
         "name": "setBidRockSavedListing",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1036,
+        "line": 1548,
+        "exported": true
+      },
+      {
+        "name": "loadBidRockAuctionBidState",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1574,
+        "exported": false
+      },
+      {
+        "name": "auctionListingIsSaleReady",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1609,
+        "exported": false
+      },
+      {
+        "name": "auctionListingIsCommittedAndAvailable",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1619,
+        "exported": false
+      },
+      {
+        "name": "auctionListingHasAllocatableStock",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1630,
+        "exported": false
+      },
+      {
+        "name": "readBidRockAuctionRow",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1641,
+        "exported": false
+      },
+      {
+        "name": "getBidRockAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1683,
+        "exported": true
+      },
+      {
+        "name": "configureBidRockAuction",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1728,
+        "exported": true
+      },
+      {
+        "name": "placeBidRockMaximumBid",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 1857,
+        "exported": true
+      },
+      {
+        "name": "BidRockAuctionCloseResult",
+        "kind": "type",
+        "path": "server/services/bidrockService.ts",
+        "line": 1995,
+        "exported": true
+      },
+      {
+        "name": "closeBidRockAuctionByInternalId",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 2001,
+        "exported": false
+      },
+      {
+        "name": "closeExpiredBidRockAuctions",
+        "kind": "function",
+        "path": "server/services/bidrockService.ts",
+        "line": 2174,
         "exported": true
       },
       {
         "name": "BidRockOfferRecord",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 1062,
+        "line": 2195,
         "exported": true
       },
       {
         "name": "mapOffer",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1080,
+        "line": 2213,
         "exported": false
       },
       {
         "name": "createBidRockOffer",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1109,
+        "line": 2242,
         "exported": true
       },
       {
         "name": "listBidRockOffers",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1218,
+        "line": 2357,
         "exported": true
       },
       {
         "name": "respondToBidRockOffer",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1245,
+        "line": 2384,
         "exported": true
       },
       {
         "name": "BidRockOrderRecord",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 1405,
+        "line": 2550,
         "exported": true
       },
       {
         "name": "mapOrder",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1432,
+        "line": 2577,
         "exported": false
       },
       {
         "name": "mayHandoff",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1445,
+        "line": 2590,
         "exported": false
       },
       {
         "name": "acceptBidRockOffer",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1490,
+        "line": 2635,
         "exported": true
       },
       {
         "name": "viewerCanAccessOrder",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1647,
+        "line": 2795,
         "exported": false
       },
       {
         "name": "viewerCanManageOrder",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1655,
+        "line": 2803,
         "exported": false
       },
       {
         "name": "BidRockHandoffRecord",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 1662,
+        "line": 2810,
         "exported": true
       },
       {
         "name": "mapHandoff",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1675,
+        "line": 2823,
         "exported": false
       },
       {
         "name": "BidRockOrderWorkspace",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 1692,
+        "line": 2840,
         "exported": true
       },
       {
         "name": "BidRockProviderHandoffWorkspace",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 1704,
+        "line": 2852,
         "exported": true
       },
       {
         "name": "getBidRockOrderWorkspace",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1722,
+        "line": 2870,
         "exported": true
       },
       {
         "name": "listBidRockOrders",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1839,
+        "line": 2987,
         "exported": true
       },
       {
         "name": "BidRockProviderAssignment",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 1859,
+        "line": 3007,
         "exported": true
       },
       {
         "name": "listBidRockProviderAssignments",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1868,
+        "line": 3016,
         "exported": true
       },
       {
         "name": "markBidRockOrderPaymentReady",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1928,
+        "line": 3076,
         "exported": true
       },
       {
         "name": "validateCanonicalMarketplaceTransaction",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 1983,
+        "line": 3131,
         "exported": false
       },
       {
         "name": "validateCanonicalProcurementOrder",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2065,
+        "line": 3213,
         "exported": false
       },
       {
         "name": "linkBidRockOrderSystems",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2131,
+        "line": 3279,
         "exported": true
       },
       {
         "name": "recordBidRockPaymentSettlement",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2213,
+        "line": 3361,
         "exported": true
       },
       {
         "name": "nextOrderStatusForHandoff",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2274,
+        "line": 3422,
         "exported": false
       },
       {
         "name": "buildBidRockProviderHandoffActionCapability",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2289,
+        "line": 3437,
         "exported": true
       },
       {
         "name": "viewerCanManageHandoff",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2354,
+        "line": 3502,
         "exported": false
       },
       {
         "name": "BidRockOrderDelegationRecord",
         "kind": "type",
         "path": "server/services/bidrockService.ts",
-        "line": 2382,
+        "line": 3530,
         "exported": true
       },
       {
         "name": "mapOrderDelegation",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2392,
+        "line": 3540,
         "exported": false
       },
       {
         "name": "setBidRockOrderDelegation",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2406,
+        "line": 3554,
         "exported": true
       },
       {
         "name": "recordBidRockHandoff",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2500,
+        "line": 3648,
         "exported": true
       },
       {
         "name": "completeBidRockOrder",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2789,
+        "line": 3937,
         "exported": true
       },
       {
         "name": "cancelBidRockOrder",
         "kind": "function",
         "path": "server/services/bidrockService.ts",
-        "line": 2915,
+        "line": 4063,
         "exported": true
       },
       {
@@ -142837,154 +143245,154 @@
         "name": "PublicStoneInventoryItem",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 10,
+        "line": 11,
         "exported": false
       },
       {
         "name": "SellerStoneInventoryItem",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 11,
+        "line": 12,
         "exported": false
       },
       {
         "name": "StoneInventoryCapability",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 12,
+        "line": 13,
         "exported": false
       },
       {
         "name": "StoneInventoryDimensions",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 13,
+        "line": 14,
         "exported": false
       },
       {
         "name": "StoneInventoryProfileTarget",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 18,
+        "line": 22,
         "exported": true
       },
       {
         "name": "StoneInventoryMutation",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 27,
+        "line": 31,
         "exported": true
       },
       {
         "name": "InventoryRow",
         "kind": "type",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 43,
+        "line": 48,
         "exported": false
       },
       {
         "name": "recordValue",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 45,
+        "line": 50,
         "exported": false
       },
       {
         "name": "normalizedPositiveNumber",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 51,
+        "line": 56,
         "exported": false
       },
       {
         "name": "normalizeIsoDate",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 56,
+        "line": 61,
         "exported": false
       },
       {
         "name": "normalizeDimensions",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 61,
+        "line": 66,
         "exported": false
       },
       {
         "name": "normalizeFinishQuantities",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 71,
+        "line": 76,
         "exported": false
       },
       {
         "name": "mapInventoryRow",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 85,
+        "line": 90,
         "exported": false
       },
       {
         "name": "getStoneInventoryProfileTarget",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 144,
+        "line": 152,
         "exported": true
       },
       {
         "name": "hasStoneInventoryCapability",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 175,
+        "line": 183,
         "exported": true
       },
       {
         "name": "inventoryRowsForBusiness",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 202,
+        "line": 210,
         "exported": false
       },
       {
         "name": "listSellerStoneInventory",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 235,
+        "line": 244,
         "exported": true
       },
       {
         "name": "listPublicCurrentStoneInventory",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 244,
+        "line": 253,
         "exported": true
       },
       {
         "name": "upsertCurrentStoneInventory",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 263,
+        "line": 272,
         "exported": true
       },
       {
         "name": "setStoneInventorySaleReady",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 496,
+        "line": 510,
         "exported": true
       },
       {
         "name": "retireStoneInventory",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 628,
+        "line": 641,
         "exported": true
       },
       {
         "name": "defaultStoneInventoryConfirmationWindow",
         "kind": "function",
         "path": "server/services/stoneInventoryService.ts",
-        "line": 678,
+        "line": 703,
         "exported": true
       },
       {
@@ -148368,6 +148776,20 @@
         "kind": "function",
         "path": "server/tests/batch-a-frontend-ux-copy.contract.test.ts",
         "line": 4,
+        "exported": false
+      },
+      {
+        "name": "BidRockMaxBidInput",
+        "kind": "type",
+        "path": "server/tests/bidrock-auction.contract.test.ts",
+        "line": 12,
+        "exported": false
+      },
+      {
+        "name": "read",
+        "kind": "function",
+        "path": "server/tests/bidrock-auction.contract.test.ts",
+        "line": 14,
         "exported": false
       },
       {
@@ -154072,112 +154494,161 @@
         "name": "BidRockPriceUnit",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 8,
+        "line": 11,
         "exported": true
       },
       {
         "name": "BidRockListingStatus",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 17,
+        "line": 20,
+        "exported": true
+      },
+      {
+        "name": "BidRockAuctionStatus",
+        "kind": "type",
+        "path": "shared/bidrock.ts",
+        "line": 30,
+        "exported": true
+      },
+      {
+        "name": "BidRockReserveState",
+        "kind": "type",
+        "path": "shared/bidrock.ts",
+        "line": 33,
+        "exported": true
+      },
+      {
+        "name": "BidRockBidderStatus",
+        "kind": "type",
+        "path": "shared/bidrock.ts",
+        "line": 36,
         "exported": true
       },
       {
         "name": "BidRockOfferStatus",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 27,
+        "line": 46,
         "exported": true
       },
       {
         "name": "BidRockOrderStatus",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 42,
+        "line": 61,
         "exported": true
       },
       {
         "name": "BidRockHandoffType",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 50,
+        "line": 69,
         "exported": true
       },
       {
         "name": "BidRockHandoffActionCapability",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 51,
+        "line": 70,
         "exported": true
       },
       {
         "name": "BidRockPrice",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 58,
+        "line": 77,
+        "exported": true
+      },
+      {
+        "name": "BidRockMoney",
+        "kind": "type",
+        "path": "shared/bidrock.ts",
+        "line": 83,
+        "exported": true
+      },
+      {
+        "name": "BidRockAuctionConfiguration",
+        "kind": "type",
+        "path": "shared/bidrock.ts",
+        "line": 88,
+        "exported": true
+      },
+      {
+        "name": "BidRockAuction",
+        "kind": "type",
+        "path": "shared/bidrock.ts",
+        "line": 98,
         "exported": true
       },
       {
         "name": "BidRockListing",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 64,
+        "line": 123,
         "exported": true
       },
       {
         "name": "BidRockViewer",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 92,
+        "line": 154,
         "exported": true
       },
       {
         "name": "BidRockCatalogResponse",
         "kind": "type",
         "path": "shared/bidrock.ts",
-        "line": 100,
+        "line": 162,
         "exported": true
       },
       {
         "name": "isBidRockPriceUnit",
         "kind": "function",
         "path": "shared/bidrock.ts",
-        "line": 106,
+        "line": 168,
         "exported": true
       },
       {
         "name": "normalizeBidRockAmountToCents",
         "kind": "function",
         "path": "shared/bidrock.ts",
-        "line": 110,
+        "line": 172,
         "exported": true
       },
       {
         "name": "formatBidRockPrice",
         "kind": "function",
         "path": "shared/bidrock.ts",
-        "line": 116,
+        "line": 178,
+        "exported": true
+      },
+      {
+        "name": "formatBidRockMoney",
+        "kind": "function",
+        "path": "shared/bidrock.ts",
+        "line": 188,
         "exported": true
       },
       {
         "name": "canViewBidRockPrivatePrice",
         "kind": "function",
         "path": "shared/bidrock.ts",
-        "line": 126,
+        "line": 197,
         "exported": true
       },
       {
         "name": "buildBidRockSourceProfileAccountPath",
         "kind": "function",
         "path": "shared/bidrock.ts",
-        "line": 133,
+        "line": 204,
         "exported": true
       },
       {
         "name": "canTransitionBidRockOrder",
         "kind": "function",
         "path": "shared/bidrock.ts",
-        "line": 144,
+        "line": 215,
         "exported": true
       },
       {
@@ -161531,66 +162002,80 @@
         "exported": true
       },
       {
+        "name": "StoneMaterialClass",
+        "kind": "type",
+        "path": "shared/stoneInventory.ts",
+        "line": 8,
+        "exported": true
+      },
+      {
         "name": "StoneInventoryDimensions",
         "kind": "type",
         "path": "shared/stoneInventory.ts",
-        "line": 12,
+        "line": 13,
         "exported": true
       },
       {
         "name": "ConfirmedStoneStockLot",
         "kind": "type",
         "path": "shared/stoneInventory.ts",
-        "line": 19,
+        "line": 20,
         "exported": true
       },
       {
         "name": "PublicStoneInventoryItem",
         "kind": "type",
         "path": "shared/stoneInventory.ts",
-        "line": 128,
+        "line": 129,
+        "exported": true
+      },
+      {
+        "name": "isStoneMaterialClass",
+        "kind": "function",
+        "path": "shared/stoneInventory.ts",
+        "line": 145,
         "exported": true
       },
       {
         "name": "SellerStoneInventoryItem",
         "kind": "type",
         "path": "shared/stoneInventory.ts",
-        "line": 143,
+        "line": 149,
         "exported": true
       },
       {
         "name": "StoneInventoryCapability",
         "kind": "type",
         "path": "shared/stoneInventory.ts",
-        "line": 153,
+        "line": 161,
         "exported": true
       },
       {
         "name": "PublicStoneInventoryResponse",
         "kind": "type",
         "path": "shared/stoneInventory.ts",
-        "line": 158,
+        "line": 163,
         "exported": true
       },
       {
         "name": "parseIsoDate",
         "kind": "function",
         "path": "shared/stoneInventory.ts",
-        "line": 165,
+        "line": 170,
         "exported": false
       },
       {
         "name": "isStoneInventoryConfirmationFresh",
         "kind": "function",
         "path": "shared/stoneInventory.ts",
-        "line": 176,
+        "line": 181,
         "exported": true
       },
       {
         "name": "normalizePublicStoneInventoryImageUrls",
         "kind": "function",
         "path": "shared/stoneInventory.ts",
-        "line": 200,
+        "line": 205,
         "exported": true
       },
       {
@@ -167475,62 +167960,67 @@
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 114
+          "line": 203
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 123
+          "line": 207
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
+          "line": 232
         },
         {
           "tag": "form",
           "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 153
+          "line": 251
         },
         {
           "tag": "input",
           "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 167
-        },
-        {
-          "tag": "input",
-          "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 176
-        },
-        {
-          "tag": "textarea",
-          "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 187
+          "line": 266
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 194
+          "line": 282
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockDetailPanel.tsx",
-          "line": 221
+          "line": 310
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-          "line": 44
+          "line": 98
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-          "line": 90
+          "line": 124
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-          "line": 102
+          "line": 158
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockListingRow.tsx",
-          "line": 118
+          "line": 253
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+          "line": 261
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockListingRow.tsx",
+          "line": 274
         },
         {
           "tag": "input",
@@ -167555,92 +168045,97 @@
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 299
+          "line": 301
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 305
+          "line": 307
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 312
+          "line": 314
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
+          "line": 321
         },
         {
           "tag": "select",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 327
+          "line": 336
         },
         {
           "tag": "input",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 339
+          "line": 348
         },
         {
           "tag": "select",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 345
+          "line": 354
         },
         {
           "tag": "select",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 357
+          "line": 366
         },
         {
           "tag": "select",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 372
+          "line": 381
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 384
+          "line": 393
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 483
+          "line": 492
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 497
+          "line": 506
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 556
+          "line": 565
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 567
+          "line": 576
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 577
+          "line": 586
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 611
+          "line": 620
         },
         {
           "tag": "input",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 624
+          "line": 633
         },
         {
           "tag": "input",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 631
+          "line": 640
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockOperationsPanels.tsx",
-          "line": 637
+          "line": 646
         },
         {
           "tag": "button",
@@ -167735,47 +168230,92 @@
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 337
+          "line": 419
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 345
+          "line": 427
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 437
+          "line": 505
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 462
+          "line": 530
         },
         {
-          "tag": "button",
+          "tag": "form",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 497
-        },
-        {
-          "tag": "button",
-          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 855
+          "line": 1076
         },
         {
           "tag": "input",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 893
+          "line": 1095
+        },
+        {
+          "tag": "input",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1105
+        },
+        {
+          "tag": "input",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1115
+        },
+        {
+          "tag": "input",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1125
+        },
+        {
+          "tag": "input",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1134
+        },
+        {
+          "tag": "textarea",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1144
+        },
+        {
+          "tag": "textarea",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1152
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 938
+          "line": 1158
         },
         {
           "tag": "button",
           "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
-          "line": 995
+          "line": 1231
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1287
+        },
+        {
+          "tag": "input",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1324
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1369
+        },
+        {
+          "tag": "button",
+          "path": "client/src/features/bidrock/BidRockWorkspace.tsx",
+          "line": 1426
         },
         {
           "tag": "button",
@@ -201382,8 +201922,7 @@
           "sha256": "0f0de16b54bea6f153d9d05115c9887ebdf0af2a40fee2c7f88b249da857a9cc",
           "paths": [
             "assets/index-CLLxNdKA.js",
-            "exports/workspaces/frontend/assets/index-CLLxNdKA.js",
-            "test-results/assets/index-CLLxNdKA.js"
+            "exports/workspaces/frontend/assets/index-CLLxNdKA.js"
           ]
         },
         {
@@ -213037,8 +213576,7 @@
       "message": "Exact duplicate source files require consolidation or an explicit exception.",
       "paths": [
         "assets/index-CLLxNdKA.js",
-        "exports/workspaces/frontend/assets/index-CLLxNdKA.js",
-        "test-results/assets/index-CLLxNdKA.js"
+        "exports/workspaces/frontend/assets/index-CLLxNdKA.js"
       ]
     },
     {
@@ -223652,7 +224190,7 @@
     {
       "severity": "warning",
       "code": "PI003",
-      "message": "Raw <form> markup is spread across 116 files; reuse or establish one canonical primitive before adding another variant.",
+      "message": "Raw <form> markup is spread across 117 files; reuse or establish one canonical primitive before adding another variant.",
       "paths": [
         "client/src/components/EmailPasswordAuth.tsx",
         "client/src/components/ErrorReportButton.tsx",
@@ -223677,6 +224215,7 @@
         "client/src/components/ui/notification-preferences.tsx",
         "client/src/components/ui/personal-events-manager.tsx",
         "client/src/features/bidrock/BidRockDetailPanel.tsx",
+        "client/src/features/bidrock/BidRockWorkspace.tsx",
         "client/src/pages/TradePartnerCountyLanding.tsx",
         "client/src/pages/TradePartnerCumulusLanding.tsx",
         "client/src/pages/address-verification.tsx",
@@ -224436,7 +224975,7 @@
         "client/src/components/ui/personal-events-manager.tsx",
         "client/src/components/ui/textarea.tsx",
         "client/src/experiments/scout-landing-lite.tsx",
-        "client/src/features/bidrock/BidRockDetailPanel.tsx",
+        "client/src/features/bidrock/BidRockWorkspace.tsx",
         "client/src/pages/BusinessProfileView.tsx",
         "client/src/pages/CrmDashboard.tsx",
         "client/src/pages/Dashboard.tsx",
@@ -224634,12 +225173,12 @@
     }
   ],
   "summary": {
-    "directories": 213,
-    "source_files": 3668,
-    "symbols": 20014,
-    "components": 1494,
-    "functions_and_hooks": 11126,
-    "raw_ui_elements": 7544,
+    "directories": 212,
+    "source_files": 3669,
+    "symbols": 20083,
+    "components": 1500,
+    "functions_and_hooks": 11174,
+    "raw_ui_elements": 7555,
     "errors": 1108,
     "warnings": 5
   }
