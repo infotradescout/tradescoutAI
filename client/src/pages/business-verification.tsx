@@ -13,16 +13,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  hasActionableBusinessVerificationFields,
+  normalizeBusinessVerificationReviewState as normalizeState,
+  resolveBusinessVerificationFieldState,
+  type BusinessVerificationField,
+  type BusinessVerificationFieldResolution,
+  type BusinessVerificationReviewState,
+} from "./businessVerificationState";
 
-type EvidenceKey = "businessRegistration" | "license" | "insurance" | "taxDocument";
-type ReviewState = "not_submitted" | "pending" | "approved" | "rejected";
+type ReviewState = BusinessVerificationReviewState;
 
 type FieldReview = Readonly<{
   required?: boolean;
   status?: string;
   reviewStatus?: string;
   rejectionReason?: string | null;
-  objectKey?: string | null;
+}>;
+
+type SanitizedVerificationSubmissions = Readonly<{
+  licenseNumber?: string | null;
+  taxIdLast4?: string | null;
+  evidence?: Readonly<{
+    licenseDocument?: boolean;
+    insuranceDocument?: boolean;
+    taxDocument?: boolean;
+    businessRegistrationDocument?: boolean;
+  }>;
 }>;
 
 type ProfileVerificationResponse = Readonly<{
@@ -32,13 +49,14 @@ type ProfileVerificationResponse = Readonly<{
   verificationStatus?: string;
   overallStatus?: string;
   status?: string | Record<string, boolean | string | undefined>;
-  fieldReview?: Partial<Record<EvidenceKey, FieldReview>>;
+  requirements?: Partial<Record<BusinessVerificationField | "email" | "address", boolean>>;
+  fieldReview?: Partial<Record<BusinessVerificationField | "email" | "address", FieldReview>>;
+  submissions?: SanitizedVerificationSubmissions;
   rejectionReason?: string | null;
-  rejectionReasons?: Partial<Record<EvidenceKey, string | null>>;
 }>;
 
 type EvidenceSpec = Readonly<{
-  key: EvidenceKey;
+  key: BusinessVerificationField;
   label: string;
   help: string;
   payloadKey: string;
@@ -46,7 +64,7 @@ type EvidenceSpec = Readonly<{
 
 const EVIDENCE: readonly EvidenceSpec[] = [
   {
-    key: "businessRegistration",
+    key: "business_registration",
     label: "Business registration",
     help: "Upload the current registration or formation document for the business.",
     payloadKey: "businessRegistrationDocObjectKey",
@@ -64,28 +82,12 @@ const EVIDENCE: readonly EvidenceSpec[] = [
     payloadKey: "insuranceDocObjectKey",
   },
   {
-    key: "taxDocument",
+    key: "tax_id",
     label: "Tax document",
     help: "Upload the requested tax document. Enter only the last four digits of the Tax ID.",
     payloadKey: "taxDocumentObjectKey",
   },
 ];
-
-function normalizeState(value: unknown): ReviewState {
-  const normalized = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (normalized === "approved" || normalized === "verified" || normalized === "complete") {
-    return "approved";
-  }
-  if (normalized === "rejected" || normalized === "denied" || normalized === "changes_required") {
-    return "rejected";
-  }
-  if (normalized === "pending" || normalized === "submitted" || normalized === "under_review") {
-    return "pending";
-  }
-  return "not_submitted";
-}
 
 function sanitizeLastFour(value: unknown): string {
   return String(value || "")
@@ -99,31 +101,50 @@ function parsePageQuery(location: string): URLSearchParams {
 }
 
 function requiredFor(data: ProfileVerificationResponse | undefined, spec: EvidenceSpec): boolean {
-  return data?.fieldReview?.[spec.key]?.required === true;
+  return data?.requirements?.[spec.key] === true;
 }
 
-function stateFor(data: ProfileVerificationResponse | undefined, spec: EvidenceSpec): ReviewState {
-  const field = data?.fieldReview?.[spec.key];
-  return normalizeState(field?.reviewStatus || field?.status);
+function hasEvidenceFor(
+  data: ProfileVerificationResponse | undefined,
+  spec: EvidenceSpec
+): boolean {
+  const submissions = data?.submissions;
+  if (spec.key === "license") {
+    return Boolean(submissions?.licenseNumber || submissions?.evidence?.licenseDocument);
+  }
+  if (spec.key === "insurance") return submissions?.evidence?.insuranceDocument === true;
+  if (spec.key === "tax_id") {
+    return Boolean(submissions?.taxIdLast4 || submissions?.evidence?.taxDocument);
+  }
+  return submissions?.evidence?.businessRegistrationDocument === true;
 }
 
-function reasonFor(data: ProfileVerificationResponse | undefined, spec: EvidenceSpec): string {
-  return String(
-    data?.fieldReview?.[spec.key]?.rejectionReason || data?.rejectionReasons?.[spec.key] || ""
-  ).trim();
+function resolutionFor(
+  data: ProfileVerificationResponse | undefined,
+  spec: EvidenceSpec
+): BusinessVerificationFieldResolution {
+  const review = data?.fieldReview?.[spec.key];
+  return resolveBusinessVerificationFieldState({
+    required: requiredFor(data, spec),
+    status: review?.reviewStatus || review?.status,
+    hasEvidence: hasEvidenceFor(data, spec),
+    rejectionReason: review?.rejectionReason,
+  });
 }
 
 function stateLabel(state: ReviewState): string {
   if (state === "approved") return "Approved";
   if (state === "rejected") return "Changes needed";
-  if (state === "pending") return "Submitted";
-  return "Required";
+  if (state === "submitted") return "Submitted";
+  if (state === "pending") return "Action needed";
+  return "Not required";
 }
 
 function stateClasses(state: ReviewState): string {
   if (state === "approved") return "border-emerald-500/40 bg-emerald-500/10 text-emerald-700";
   if (state === "rejected") return "border-red-500/40 bg-red-500/10 text-red-700";
-  if (state === "pending") return "border-amber-500/40 bg-amber-500/10 text-amber-700";
+  if (state === "submitted") return "border-blue-500/40 bg-blue-500/10 text-blue-700";
+  if (state === "pending") return "border-amber-500/40 bg-amber-500/10 text-amber-800";
   return "border-stone-300 bg-stone-100 text-stone-700";
 }
 
@@ -142,7 +163,7 @@ export default function BusinessVerificationPage() {
 
   const [licenseNumber, setLicenseNumber] = useState("");
   const [taxIdLast4, setTaxIdLast4] = useState("");
-  const [uploading, setUploading] = useState<EvidenceKey | null>(null);
+  const [uploading, setUploading] = useState<BusinessVerificationField | null>(null);
 
   const { data, isLoading, error } = useQuery<ProfileVerificationResponse>({
     queryKey: [endpoint],
@@ -158,12 +179,29 @@ export default function BusinessVerificationPage() {
     () => EVIDENCE.filter((spec) => requiredFor(data, spec)),
     [data]
   );
+  const fieldResolutions = useMemo(
+    () => requiredEvidence.map((spec) => ({ spec, resolution: resolutionFor(data, spec) })),
+    [data, requiredEvidence]
+  );
+  const actionNeeded = hasActionableBusinessVerificationFields(
+    fieldResolutions.map(({ resolution }) => resolution)
+  );
   const bypassActive = data?.verificationBypassActive === true;
-  const overallState = normalizeState(
+  const serverOverallState = normalizeState(
     data?.overallStatus ||
       data?.verificationStatus ||
       (typeof data?.status === "string" ? data.status : "")
   );
+  const overallState: ReviewState = actionNeeded
+    ? fieldResolutions.some(({ resolution }) => resolution.state === "rejected")
+      ? "rejected"
+      : "pending"
+    : fieldResolutions.length > 0 &&
+        fieldResolutions.every(({ resolution }) => resolution.state === "approved")
+      ? "approved"
+      : fieldResolutions.some(({ resolution }) => resolution.state === "submitted")
+        ? "submitted"
+        : serverOverallState;
 
   const patchMutation = useMutation({
     mutationFn: (payload: Record<string, string>) =>
@@ -186,7 +224,7 @@ export default function BusinessVerificationPage() {
       });
       return;
     }
-    if (spec.key === "taxDocument" && taxIdLast4.length !== 4) {
+    if (spec.key === "tax_id" && taxIdLast4.length !== 4) {
       toast({
         title: "Enter the last four digits",
         description: "Enter exactly four digits before uploading the tax document.",
@@ -202,7 +240,7 @@ export default function BusinessVerificationPage() {
         ...basePayload(),
         [spec.payloadKey]: uploaded.objectKey,
         ...(spec.key === "license" ? { licenseNumber: licenseNumber.trim() } : {}),
-        ...(spec.key === "taxDocument" ? { taxIdLast4 } : {}),
+        ...(spec.key === "tax_id" ? { taxIdLast4 } : {}),
       });
       toast({ title: `${spec.label} submitted for review` });
     } catch (uploadError) {
@@ -325,10 +363,10 @@ export default function BusinessVerificationPage() {
           </CardContent>
         </Card>
       ) : (
-        requiredEvidence.map((spec) => {
-          const reviewState = stateFor(data, spec);
-          const rejectionReason = reasonFor(data, spec);
-          const canReplace = reviewState !== "approved";
+        fieldResolutions.map(({ spec, resolution }) => {
+          const reviewState = resolution.state;
+          const rejectionReason = resolution.rejectionReason;
+          const canReplace = resolution.actionable;
           return (
             <Card key={spec.key} data-testid={`business-verification-${spec.key}`}>
               <CardHeader>
@@ -363,7 +401,7 @@ export default function BusinessVerificationPage() {
                   </div>
                 ) : null}
 
-                {spec.key === "taxDocument" ? (
+                {spec.key === "tax_id" ? (
                   <div className="max-w-xs space-y-2">
                     <Label htmlFor="tax-id-last-four">Tax ID last four</Label>
                     <div className="flex gap-2">
@@ -401,9 +439,9 @@ export default function BusinessVerificationPage() {
                     )}
                     {uploading === spec.key
                       ? "Uploading..."
-                      : reviewState === "not_submitted"
-                        ? "Choose document"
-                        : "Replace document"}
+                      : reviewState === "rejected"
+                        ? "Replace document"
+                        : "Choose document"}
                     <input
                       type="file"
                       accept="application/pdf,image/jpeg,image/png,image/webp"
@@ -417,9 +455,15 @@ export default function BusinessVerificationPage() {
                     />
                   </label>
                 ) : (
-                  <div className="flex items-center gap-2 text-sm text-emerald-700">
+                  <div
+                    className={`flex items-center gap-2 text-sm ${
+                      reviewState === "approved" ? "text-emerald-700" : "text-blue-700"
+                    }`}
+                  >
                     <CheckCircle2 className="h-4 w-4" />
-                    Approved. No further action is required.
+                    {reviewState === "approved"
+                      ? "Approved. No further action is required."
+                      : "Submitted for review. No further action is required right now."}
                   </div>
                 )}
               </CardContent>
