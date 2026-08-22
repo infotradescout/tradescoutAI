@@ -12,10 +12,11 @@ import { INTERNAL_ADMIN_PROFILE_SLUGS } from "@shared/publicProfileIndexing";
 import { db, pool as neonPool } from "../db";
 import { and, asc, desc, eq, notInArray, or, sql } from "drizzle-orm";
 import {
-  canExposePublishedProfilePublicly,
+  canDiscoverPublishedProfilePublicly,
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import { publicBusinessCitySlugSql, publicBusinessStateCodeSql } from "../publicCityHtml";
 
 export type ProfileSitemapEligibilityCandidate = Omit<
   PublishedProfileExposureCandidate,
@@ -27,7 +28,7 @@ export type ProfileSitemapEligibilityCandidate = Omit<
 export function shouldIncludePublicProfileInSitemap(
   candidate: ProfileSitemapEligibilityCandidate
 ): boolean {
-  return canExposePublishedProfilePublicly({
+  return canDiscoverPublishedProfilePublicly({
     ...candidate,
     profileSlug: candidate.slug,
     profileStatus: "published",
@@ -42,6 +43,12 @@ export class SitemapRepository {
         slug: profiles.slug,
         updatedAt: profiles.updatedAt,
         businessId: profiles.businessId,
+        profileRoleContext: profiles.roleContext,
+        profileHeadline: profiles.headline,
+        profileServicesDescription: sql<
+          string | null
+        >`(${users.preferences} ->> 'servicesDescription')`,
+        profileContentBlocks: profiles.contentBlocks,
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
@@ -215,7 +222,8 @@ export class SitemapRepository {
   }
 
   async countDirectoryCitiesForSitemap(): Promise<number> {
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+    const citySlugExpr = publicBusinessCitySlugSql();
+    const businessStateCodeExpr = publicBusinessStateCodeSql();
 
     const rows = await db
       .select({
@@ -233,6 +241,7 @@ export class SitemapRepository {
           where ${businesses.status} = 'active'
             and ${businesses.publicDiscoveryEnabled} = true
             and ${publicBusinessDetailExposureSqlPredicate()}
+            and ${businessStateCodeExpr} = ${counties.stateCode}
             and coalesce(${businesses.profileData} ->> 'city', '') <> ''
           group by ${counties.stateCode}, ${citySlugExpr}
         ) as city_groups`
@@ -251,7 +260,8 @@ export class SitemapRepository {
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
 
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+    const citySlugExpr = publicBusinessCitySlugSql();
+    const businessStateCodeExpr = publicBusinessStateCodeSql();
 
     const rows = await db
       .select({
@@ -268,6 +278,7 @@ export class SitemapRepository {
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
           publicBusinessDetailExposureSqlPredicate(),
+          sql`${businessStateCodeExpr} = ${counties.stateCode}`,
           sql`coalesce(${businesses.profileData} ->> 'city', '') <> ''`
         )
       )

@@ -77,6 +77,7 @@ const genericContentBlocks = [
 
 const ownerProfile = {
   id: "profile-jw",
+  isDiscoverable: true,
   ownerUserId: "owner-jw",
   slug: "jw-stone",
   displayName: "JW Stone Logistics",
@@ -97,6 +98,7 @@ const ownerProfile = {
 
 const genericProfile = {
   id: "profile-generic",
+  isDiscoverable: true,
   ownerUserId: "owner-generic",
   slug: "example-supplier",
   displayName: "Example Supplier",

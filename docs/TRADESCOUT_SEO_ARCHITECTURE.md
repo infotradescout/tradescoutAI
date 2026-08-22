@@ -17,7 +17,7 @@ TradeScout exposes a **crawlable discovery layer** while keeping routing, trust 
 **AI/search discovery**
 - `robots.txt` includes explicit groups for Meta crawlers (`facebookexternalhit`, `Facebot`, `meta-externalagent`, `meta-externalfetcher`), Bing/Microsoft legacy discovery (`bingbot`, `msnbot`), DuckDuckGo (`DuckDuckBot`, `DuckAssistBot`), Apple (`Applebot`, `Applebot-Extended`), Yandex (`YandexBot`), Yahoo (`Slurp`), OpenAI search/training/user fetchers (`OAI-SearchBot`, `GPTBot`, `ChatGPT-User`), and Perplexity (`PerplexityBot`).
 - These agents may crawl the same public discovery layer as other crawlers, but remain blocked from `/api/*`, `/admin/*`, `/dashboard/*`, `/scout/*`, `/messages/*`, `/settings/*`, and `/auth/*`.
-- `/llms.txt` lists the best AI-answer targets and restates contact-gating constraints so AI summaries do not imply contact access.
+- `/llms.txt` dynamically lists the same-host profiles and opted-in profile content that currently pass public exposure and indexing gates. It is supplemental machine-readable guidance, not proof or a guarantee of search/AI inclusion, ranking, or citation.
 - Bing is the priority non-Google setup target because Bing Webmaster Tools plus IndexNow can speed discovery for Bing and participating downstream search engines.
 - TradeScout serves the IndexNow ownership key at `/indexnow-key.txt`; submit URLs with `keyLocation=https://www.thetradescout.com/indexnow-key.txt`.
 

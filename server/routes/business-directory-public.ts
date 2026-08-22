@@ -26,6 +26,12 @@ import {
   deriveTradeSlugFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
+import {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "../publicCityHtml";
 
 const router = Router();
 
@@ -822,10 +828,6 @@ function resolveCountyFipsBySlug(
   return { fips, countyName: String((county as any).name || ""), stateCode, countySlug };
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
 // Public safe: supports SPA rendering for /best/* pages (crawlers see SSR).
 router.get("/api/public/seo/best/trade-county", async (req, res) => {
   // Only cache safe, public GETs (no user context)
@@ -941,9 +943,10 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
     if (!match) return res.status(400).json({ message: "Invalid tradeSlug" });
 
     const stateCode = normalizeStateCode(req.query.stateCode ?? req.query.state);
-    const citySlug = coerceString(req.query.citySlug ?? req.query.city).toLowerCase();
+    const requestedCitySlug = req.query.citySlug ?? req.query.city;
+    const citySlug = normalizePublicCitySlug(requestedCitySlug);
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
-    if (!/^[a-z0-9-]+$/.test(citySlug))
+    if (!isCanonicalPublicCitySlug(requestedCitySlug))
       return res.status(400).json({ message: "Invalid citySlug" });
 
     const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
@@ -960,7 +963,8 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
       eq(businesses.publicDiscoveryEnabled, true as any),
       publicBusinessDetailExposureSqlPredicate(),
       eq(counties.stateCode, stateCode),
-      sql`${sqlCitySlugExpr()} = ${citySlug}`,
+      sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+      sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
       sql`${businesses.updatedAt} >= ${recencyCutoff}`,
     ];
     if (tradeClause) whereClauses.push(tradeClause);
@@ -1105,9 +1109,10 @@ router.get("/api/public/seo/recent/county", async (req, res) => {
 router.get("/api/public/seo/recent/city", async (req, res) => {
   try {
     const stateCode = normalizeStateCode(req.query.stateCode ?? req.query.state);
-    const citySlug = coerceString(req.query.citySlug ?? req.query.city).toLowerCase();
+    const requestedCitySlug = req.query.citySlug ?? req.query.city;
+    const citySlug = normalizePublicCitySlug(requestedCitySlug);
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
-    if (!/^[a-z0-9-]+$/.test(citySlug))
+    if (!isCanonicalPublicCitySlug(requestedCitySlug))
       return res.status(400).json({ message: "Invalid citySlug" });
 
     const rules = await getPublicationRules();
@@ -1248,9 +1253,10 @@ router.get("/api/public/seo/recent/trade-city", async (req, res) => {
     const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
 
     const stateCode = normalizeStateCode(req.query.stateCode ?? req.query.state);
-    const citySlug = coerceString(req.query.citySlug ?? req.query.city).toLowerCase();
+    const requestedCitySlug = req.query.citySlug ?? req.query.city;
+    const citySlug = normalizePublicCitySlug(requestedCitySlug);
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
-    if (!/^[a-z0-9-]+$/.test(citySlug))
+    if (!isCanonicalPublicCitySlug(requestedCitySlug))
       return res.status(400).json({ message: "Invalid citySlug" });
 
     const rules = await getPublicationRules();

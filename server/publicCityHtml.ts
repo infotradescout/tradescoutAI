@@ -132,17 +132,39 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   return html;
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+export function normalizePublicCitySlug(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+export function isCanonicalPublicCitySlug(value: unknown): boolean {
+  const requested = String(value || "")
+    .trim()
+    .toLowerCase();
+  return requested.length > 0 && requested === normalizePublicCitySlug(requested);
+}
+
+/** Canonical SQL equivalent of normalizePublicCitySlug for business profile data. */
+export function publicBusinessCitySlugSql() {
+  return sql`trim(both '-' from regexp_replace(lower(trim(coalesce(${businesses.profileData} ->> 'city', ''))), '[^a-z0-9]+', '-', 'g'))`;
+}
+
+/**
+ * City discovery requires an explicit business state. County assignment alone
+ * cannot prove that a city belongs in that state.
+ */
+export function publicBusinessStateCodeSql() {
+  return sql`upper(trim(coalesce(nullif(${businesses.profileData} ->> 'stateCode', ''), nullif(${businesses.profileData} -> 'importExtras' ->> 'state_code', ''), '')))`;
 }
 
 export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<string | null> {
   const stateCode = String(opts.stateCode || "").toUpperCase();
-  const citySlug = String(opts.citySlug || "")
-    .trim()
-    .toLowerCase();
+  const citySlug = normalizePublicCitySlug(opts.citySlug);
   if (!/^[A-Z]{2}$/.test(stateCode)) return null;
-  if (!/^[a-z0-9-]+$/.test(citySlug)) return null;
+  if (!isCanonicalPublicCitySlug(opts.citySlug)) return null;
 
   const rules = await getPublicationRules();
   const now = new Date();
@@ -167,13 +189,18 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
         eq(businesses.publicDiscoveryEnabled, true as any),
         publicBusinessDetailExposureSqlPredicate(),
         eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
+        sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+        sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`
       )
     )
     .groupBy(counties.fips, counties.name, counties.stateCode)
     .orderBy(asc(counties.name))
     .limit(80);
+
+  // A route-shaped URL is not a real discovery page without a published,
+  // eligible business in the requested city and state.
+  if (!rows.length) return null;
 
   const displayCity = titleizeCitySlug(citySlug);
   const canonicalPath = `/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(

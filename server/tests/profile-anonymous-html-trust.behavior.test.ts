@@ -43,6 +43,7 @@ const templateHtml =
 function linkedRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "profile-onboarding-1",
+    profileStatus: "published",
     slug: "pending-onboarding-business",
     displayName: "PRIVATE ONBOARDING EVIDENCE",
     headline: "PRIVATE EVIDENCE HEADLINE",
@@ -65,7 +66,10 @@ function linkedRow(overrides: Record<string, unknown> = {}) {
     ownerVerifiedBadge: false,
     ownerVerificationStatus: "pending",
     ownerProvider: "local",
-    ownerPreferences: { profileVisibility: "public" },
+    ownerPreferences: {
+      profileVisibility: "public",
+      publicProfileIds: ["profile-onboarding-1"],
+    },
     businessStatus: "active",
     businessOwnerUserId: "owner-1",
     publicDiscoveryEnabled: true,
@@ -102,7 +106,7 @@ describe("anonymous public-profile HTML trust boundary", () => {
   it("keeps unlinked community profiles and verified linked profiles public", async () => {
     const repository = new ProfileRepository();
 
-    mocks.rows = [linkedRow({ businessId: null })];
+    mocks.rows = [linkedRow({ businessId: null, roleContext: "homeowner" })];
     await expect(repository.getProfileBySlugPublic("community-member")).resolves.toMatchObject({
       displayName: "PRIVATE ONBOARDING EVIDENCE",
     });
@@ -134,6 +138,43 @@ describe("anonymous public-profile HTML trust boundary", () => {
       }),
     ];
     await expect(repository.getProfileBySlugPublic("lookalike")).resolves.toBeUndefined();
+  });
+
+  it("serves verified direct-only profiles by exact link without advertising them for indexing", async () => {
+    const repository = new ProfileRepository();
+    mocks.rows = [
+      linkedRow({
+        slug: "verified-direct-only",
+        ownerVerificationStatus: "approved",
+        publicDiscoveryEnabled: false,
+      }),
+    ];
+    mocks.publicRead.mockImplementation((slug: string) => repository.getProfileBySlugPublic(slug));
+    mocks.getBusinessPublicById.mockResolvedValue(null);
+
+    const record = await repository.getProfileBySlugPublic("verified-direct-only");
+    expect(record).toMatchObject({ slug: "verified-direct-only", isDiscoverable: false });
+
+    const [html, llms, sitemap] = await Promise.all([
+      buildPublicProfileHtml({
+        slug: "verified-direct-only",
+        origin: "https://www.thetradescout.com",
+        templateHtml,
+      }),
+      buildPublicProfileLlmsText({
+        slug: "verified-direct-only",
+        origin: "https://www.thetradescout.com",
+      }),
+      buildPublicProfileSitemapXml({
+        slug: "verified-direct-only",
+        origin: "https://www.thetradescout.com",
+      }),
+    ]);
+
+    expect(html).toContain('meta name="robots" content="noindex, follow"');
+    expect(html).not.toContain("application/ld+json");
+    expect(llms).toBeNull();
+    expect(sitemap).toBeNull();
   });
 
   it("returns no SSR HTML, host-local llms guidance, or host-local sitemap for pending evidence", async () => {

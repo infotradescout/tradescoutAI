@@ -11,14 +11,7 @@ import {
   deriveTradeSlugFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
-
-function slugifyCityName(name: string): string {
-  return String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+import { normalizePublicCitySlug } from "../publicCityHtml";
 
 export type SeoDirectoryScopeSnapshotResult = {
   tradeCountyPages: number;
@@ -174,8 +167,18 @@ export async function runSeoDirectoryScopeSnapshotJob(): Promise<SeoDirectorySco
     }
 
     const rawCity = typeof profileData.city === "string" ? profileData.city.trim() : "";
-    const citySlug = rawCity ? slugifyCityName(rawCity) : "";
-    if (citySlug) {
+    const importExtras =
+      profileData.importExtras && typeof profileData.importExtras === "object"
+        ? profileData.importExtras
+        : {};
+    const businessStateCode = String(profileData.stateCode || importExtras.state_code || "")
+      .trim()
+      .toUpperCase();
+    const citySlug = rawCity ? normalizePublicCitySlug(rawCity) : "";
+    // County assignment remains the operational container, but a city page is
+    // publishable only when the business explicitly places that city in the
+    // same state. This prevents impossible city/state combinations.
+    if (citySlug && businessStateCode === stateCode) {
       const cityKey = `${tradeSlug}|${stateCode}|${citySlug}`;
       const cityPrev = cityMap.get(cityKey);
       if (!cityPrev) {

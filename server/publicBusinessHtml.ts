@@ -14,6 +14,7 @@ import {
 import { formatTradeScoutTitle } from "@shared/brand";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { isPubliclyVerifiedProfileOwner } from "./services/ownerConfirmedDirectProfile";
+import { normalizePublicCitySlug } from "./publicCityHtml";
 
 type PublicBusinessHtmlOptions = {
   slug: string;
@@ -53,14 +54,6 @@ function injectFaviconOverride(html: string, imageUrl: string): string {
     .replace(/<link rel="apple-touch-icon"[^>]*>\s*/gi, "");
   const tag = `<link rel="icon" href="${escapeHtml(imageUrl)}" />\n    <link rel="apple-touch-icon" href="${escapeHtml(imageUrl)}" />`;
   return withoutIcons.replace("</head>", `${tag}\n</head>`);
-}
-
-function slugifyCityName(name: string): string {
-  return String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function injectJsonLd(html: string, jsonLd: object) {
@@ -387,7 +380,8 @@ export async function buildPublicBusinessHtml({
             countySlug
           )}`
         : "";
-    const citySlug = published.city && published.stateCode ? slugifyCityName(published.city) : "";
+    const citySlug =
+      published.city && published.stateCode ? normalizePublicCitySlug(published.city) : "";
     const cityHref =
       citySlug && published.stateCode
         ? `/city/${encodeURIComponent(published.stateCode.toLowerCase())}/${encodeURIComponent(
@@ -675,7 +669,7 @@ export async function buildPublicBusinessHtml({
         )}/${encodeURIComponent(countySlug)}`
       : "";
   const rawCity = typeof profileData.city === "string" ? profileData.city.trim() : "";
-  const citySlug = rawCity && stateCode ? slugifyCityName(rawCity) : "";
+  const citySlug = rawCity && stateCode ? normalizePublicCitySlug(rawCity) : "";
   const cityHref =
     citySlug && stateCode
       ? `/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(citySlug)}`

@@ -139,7 +139,7 @@ describe("sitemap contracts", () => {
 
     expect(serverIndex).toContain("resolveCanonicalBusinessProfileRoute(slug)");
     expect(canonicalRoute).toContain(".innerJoin(users, eq(users.id, profiles.ownerUserId))");
-    expect(canonicalRoute).toContain("canExposePublishedProfilePublicly({");
+    expect(canonicalRoute).toContain("canDiscoverPublishedProfilePublicly({");
     expect(canonicalRoute).toContain("profileId: profiles.id");
     expect(canonicalRoute).toContain("${profiles.updatedAt} DESC NULLS LAST");
     expect(canonicalRoute).toContain("${profiles.createdAt} DESC NULLS LAST");
@@ -228,9 +228,7 @@ describe("sitemap contracts", () => {
     expect(source).toContain("with trade_state_pairs as (");
     expect(source).toContain("from ts_seo_trade_county_pages");
     expect(source).toContain("from ts_seo_trade_city_pages");
-    expect(source).toContain(
-      "activeTradeSlugs.length > 0 ? activeTradeSlugs : PRIMARY_TRADE_SLUGS"
-    );
-    expect(source).not.toContain("PRIMARY_TRADE_SLUGS.flatMap");
+    expect(source).toContain("...activeTradeSlugs.map");
+    expect(source).not.toContain("PRIMARY_TRADE_SLUGS");
   });
 });

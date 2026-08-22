@@ -17,7 +17,7 @@
  * - Managing multiple platforms
  *
  * Users can select a preset or create their own custom color scheme.
- * Public profiles are crawlable by Scout for discovery.
+ * Eligible, published profiles can be included in Scout discovery.
  */
 
 export interface ColorScheme {

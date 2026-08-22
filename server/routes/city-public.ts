@@ -5,6 +5,12 @@ import { businessCounties, businesses, counties, users } from "../../shared/sche
 import { slugifyCountyName } from "../../shared/tradeSeo";
 import { getTradeSeoMatch } from "../../shared/tradeSeo";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "../publicCityHtml";
 
 const router = Router();
 
@@ -18,8 +24,7 @@ function normalizeStateCode(raw: unknown): string {
 }
 
 function normalizeCitySlug(raw: unknown): string {
-  const value = coerceString(raw).toLowerCase();
-  return /^[a-z0-9-]+$/.test(value) ? value : "";
+  return isCanonicalPublicCitySlug(raw) ? normalizePublicCitySlug(raw) : "";
 }
 
 function titleizeCitySlug(slug: string): string {
@@ -28,10 +33,6 @@ function titleizeCitySlug(slug: string): string {
     .replace(/-+/g, " ")
     .trim();
   return cleaned.replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
 function buildTradeWhereClause(tradeRaw: unknown) {
@@ -72,7 +73,8 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
           eq(businesses.publicDiscoveryEnabled, true),
           publicBusinessDetailExposureSqlPredicate(),
           eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`
+          sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+          sql`${publicBusinessCitySlugSql()} = ${citySlug}`
         )
       )
       .groupBy(counties.fips, counties.name, counties.stateCode)
@@ -138,7 +140,8 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
           eq(businesses.publicDiscoveryEnabled, true),
           publicBusinessDetailExposureSqlPredicate(),
           eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`,
+          sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+          sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
           tradeClause
         )
       )

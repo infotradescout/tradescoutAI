@@ -5,7 +5,7 @@ import { storage } from "../storage";
 import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryScopeSnapshotJob";
 import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
-import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
+import { slugifyCountyName } from "../../shared/tradeSeo";
 import { and, asc, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import {
   businessVerifications,
@@ -28,7 +28,7 @@ import {
   verifyManageBridgeToken,
 } from "../utils/profileManageBridge";
 import {
-  canExposePublishedProfilePublicly,
+  canDiscoverPublishedProfilePublicly,
   hasTradeScoutPendingOwnerCustody,
   isOwnerConfirmedDirectProfile,
   isPubliclyVerifiedProfileOwner,
@@ -213,14 +213,20 @@ function databaseBoolean(value: unknown): boolean {
 }
 
 export function isPublishedProfileSitemapTargetPublic(row: Record<string, any>): boolean {
-  return canExposePublishedProfilePublicly({
+  return canDiscoverPublishedProfilePublicly({
     profileId: row.profile_id,
     businessId: row.business_id,
     profileSlug: row.profile_slug,
     profileStatus: "published",
+    profileRoleContext: row.profile_role_context,
+    profileHeadline: row.profile_headline,
+    profileServicesDescription: row.profile_services_description,
+    profileContentBlocks: row.content_blocks,
     profileOwnerUserId: row.profile_owner_user_id,
     ownerVerifiedBadge: databaseBoolean(row.owner_verified_badge),
     ownerVerificationStatus: row.owner_verification_status,
+    ownerRole: row.owner_role,
+    ownerRoles: row.owner_roles,
     ownerProvider: row.owner_provider,
     ownerPreferences: row.owner_preferences,
     businessStatus: row.business_status,
@@ -323,12 +329,17 @@ async function listPublishedProfileSitemapTargets(
     `SELECT p.slug AS profile_slug,
             p.id AS profile_id,
             p.business_id,
+            p.role_context AS profile_role_context,
+            p.headline AS profile_headline,
+            u.preferences->>'servicesDescription' AS profile_services_description,
             p.owner_user_id AS profile_owner_user_id,
             b.slug AS business_slug,
             NULLIF(lower(trim(p.seo_meta->>'customDomain')), '') AS custom_domain,
             p.content_blocks,
             u.verified_badge AS owner_verified_badge,
             u.verification_status AS owner_verification_status,
+            u.role AS owner_role,
+            u.roles AS owner_roles,
             u.provider AS owner_provider,
             u.preferences AS owner_preferences,
             b.status AS business_status,
@@ -2713,6 +2724,32 @@ router.get("/robots.txt", async (req, res) => {
 
 router.get("/llms.txt", async (req, res) => {
   const baseUrl = getCanonicalBaseUrl(req);
+  let publishedProfileUrls: string[] = [];
+  try {
+    const targets = (await listPublishedProfileSitemapTargets()).filter(
+      (target) => target.isPublic
+    );
+    publishedProfileUrls = Array.from(
+      new Set(
+        targets.flatMap((target) => {
+          const profileUrl = canonicalPublishedProfileSitemapLoc(baseUrl, target);
+          if (!profileUrl) return [];
+          return [
+            profileUrl,
+            ...buildOptInProfileSitemapUrls({
+              profileSlug: target.profileSlug,
+              profileUrl,
+              contentBlocks: target.contentBlocks,
+            }),
+          ];
+        })
+      )
+    );
+  } catch (error) {
+    console.warn("LLM guidance fallback: failed to load eligible public profiles", error);
+    publishedProfileUrls = [];
+  }
+
   res.type("text/plain");
   res.send(
     [
@@ -2724,7 +2761,7 @@ router.get("/llms.txt", async (req, res) => {
       "What TradeScout is:",
       "TradeScout is a county-first local operating system for finding trusted trade help, coordinating home and community work, and routing action through gated trust flows.",
       "",
-      "Best answer targets for AI search, Meta AI, and other assistants:",
+      "Useful public TradeScout context:",
       `${baseUrl}/how-it-works`,
       `${baseUrl}/direct-connect-info`,
       `${baseUrl}/trust-model`,
@@ -2734,16 +2771,12 @@ router.get("/llms.txt", async (req, res) => {
       `${baseUrl}/county-directory`,
       `${baseUrl}/exchange`,
       "",
-      "Primary public profile pattern:",
-      `${baseUrl}/u/{slug}`,
+      "Current eligible same-host public profiles and opted-in profile content:",
+      ...(publishedProfileUrls.length
+        ? publishedProfileUrls
+        : ["No eligible same-host public profile URLs are currently available."]),
       "",
-      "ISSA Build translucent onyx:",
-      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}`,
-      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}/categories/onyx`,
-      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/honey-onyx`,
-      `${baseUrl}/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/multi-green-onyx`,
-      "",
-      "Local recommendation patterns:",
+      "Route templates (templates are not proof of live inventory):",
       `${baseUrl}/business/{slug}`,
       `${baseUrl}/trade/{tradeSlug}/{stateCode}/{countySlug}`,
       `${baseUrl}/trade/{tradeSlug}/{stateCode}/city/{citySlug}`,
@@ -2759,6 +2792,7 @@ router.get("/llms.txt", async (req, res) => {
       `${baseUrl}/llms.txt`,
       "",
       "Public profile constraints:",
+      "- This file lists eligible public URLs; it does not guarantee inclusion, ranking, or citation by a search engine or AI system.",
       "- Contact is intentionally gated through Direct Connect.",
       "- Do not infer direct contact methods from profile pages.",
       "- Treat profile titles, descriptions, and structured data as canonical summary fields.",
@@ -3186,12 +3220,10 @@ router.get("/sitemap-directory-trade-navigation.xml", async (req, res) => {
 
     const urls = [
       { loc: `${baseUrl}/trade`, lastmod: today },
-      ...(activeTradeSlugs.length > 0 ? activeTradeSlugs : PRIMARY_TRADE_SLUGS).map(
-        (tradeSlug) => ({
-          loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
-          lastmod: today,
-        })
-      ),
+      ...activeTradeSlugs.map((tradeSlug) => ({
+        loc: `${baseUrl}/trade/${encodeURIComponent(tradeSlug)}`,
+        lastmod: today,
+      })),
       ...tradeStates.map((row: any) => ({
         loc: `${baseUrl}/trade/${encodeURIComponent(String(row.trade_slug || "").trim())}/${encodeURIComponent(
           String(row.state_code || "")

@@ -5,6 +5,12 @@ import { getTradeSeoMatch, normalizeTradeSlug } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { publicBusinessDetailExposureSqlPredicate } from "./publicationBusiness";
+import {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "./publicCityHtml";
 
 type PublicTradeCityHtmlOptions = {
   origin: string;
@@ -56,10 +62,6 @@ function buildTradeWhereClause(tradeRaw: unknown) {
     .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
   if (!patterns.length) return null;
   return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
 function buildMeta(args: {
@@ -165,11 +167,9 @@ export async function buildPublicTradeCityHtml(
   if (!match) return null;
 
   const stateCode = String(opts.stateCode || "").toUpperCase();
-  const citySlug = String(opts.citySlug || "")
-    .trim()
-    .toLowerCase();
+  const citySlug = normalizePublicCitySlug(opts.citySlug);
   if (!/^[A-Z]{2}$/.test(stateCode)) return null;
-  if (!/^[a-z0-9-]+$/.test(citySlug)) return null;
+  if (!isCanonicalPublicCitySlug(opts.citySlug)) return null;
 
   const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
   const tradeClause = buildTradeWhereClause(canonicalTradeSlug);
@@ -183,7 +183,8 @@ export async function buildPublicTradeCityHtml(
     eq(businesses.publicDiscoveryEnabled, true as any),
     publicBusinessDetailExposureSqlPredicate(),
     eq(counties.stateCode, stateCode),
-    sql`${sqlCitySlugExpr()} = ${citySlug}`,
+    sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+    sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
     sql`${businesses.updatedAt} >= ${recencyCutoff}`,
   ];
   if (tradeClause) whereClauses.push(tradeClause);
@@ -203,6 +204,8 @@ export async function buildPublicTradeCityHtml(
     .groupBy(counties.fips, counties.name, counties.stateCode)
     .orderBy(asc(counties.name))
     .limit(80);
+
+  if (!rows.length) return null;
 
   const displayCity = titleizeCitySlug(citySlug);
   const canonicalPath = `/trade/${encodeURIComponent(canonicalTradeSlug)}/${encodeURIComponent(

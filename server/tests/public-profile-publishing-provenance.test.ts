@@ -9,6 +9,7 @@ import {
 
 const profileRecord = {
   id: "profile-owner-stone",
+  isDiscoverable: true,
   slug: "owner-stone",
   displayName: "Owner Stone Account",
   headline: "Published stone inventory",
@@ -101,8 +102,7 @@ const OWNER_ID = "https://ownerstone.example/#identity";
 
 function structuredData(html: string) {
   const raw =
-    [...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)].at(-1)?.[1] ||
-    "";
+    [...html.matchAll(/<script type="application\/ld\+json">([^<]+)<\/script>/g)].at(-1)?.[1] || "";
   return JSON.parse(raw);
 }
 

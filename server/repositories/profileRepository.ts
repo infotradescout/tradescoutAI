@@ -12,6 +12,7 @@ import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
 import {
+  canDiscoverPublishedProfilePublicly,
   canExposeProviderProfileOnPublicMap,
   canServePublishedProfileAtDirectRoute,
   type PublishedProfileExposureCandidate,
@@ -41,6 +42,7 @@ export type PublicProfileRecord = {
   ownerState: string | null;
   ownerRoles: string[] | null;
   servicesDescription: string | null;
+  isDiscoverable: boolean;
 };
 
 export type PublicProfileSearchRecord = {
@@ -50,6 +52,31 @@ export type PublicProfileSearchRecord = {
   headline: string | null;
   roleContext: any;
 };
+
+function profileExposureCandidateFromRow(row: any): PublishedProfileExposureCandidate {
+  return {
+    profileId: row.id,
+    businessId: row.businessId,
+    profileSlug: row.slug,
+    profileStatus: row.profileStatus,
+    profileRoleContext: row.roleContext,
+    profileHeadline: row.headline,
+    profileServicesDescription: row.servicesDescription,
+    profileContentBlocks: row.contentBlocks,
+    profileOwnerUserId: row.profileOwnerUserId,
+    ownerVerifiedBadge: row.ownerVerifiedBadge,
+    ownerVerificationStatus: row.ownerVerificationStatus,
+    ownerRole: row.ownerRole,
+    ownerRoles: row.ownerRoles,
+    ownerProvider: row.ownerProvider,
+    ownerPreferences: row.ownerPreferences,
+    businessStatus: row.businessStatus,
+    businessOwnerUserId: row.businessOwnerUserId,
+    publicDiscoveryEnabled: row.publicDiscoveryEnabled,
+    businessSources: row.businessSources,
+    businessClaimStatus: row.businessClaimStatus,
+  };
+}
 
 export async function loadCanonicalPublicMapProfileUrls(
   providerIds: string[]
@@ -186,6 +213,7 @@ export class ProfileRepository {
       .select({
         id: profiles.id,
         slug: profiles.slug,
+        profileStatus: profiles.status,
         displayName: profiles.displayName,
         headline: profiles.headline,
         roleContext: profiles.roleContext,
@@ -228,7 +256,9 @@ export class ProfileRepository {
   }
 
   private toPublicProfileRecord(row: any): PublicProfileRecord {
+    const exposureCandidate = profileExposureCandidateFromRow(row);
     const {
+      profileStatus: _profileStatus,
       legacyProfileBooking,
       profileOwnerUserId: _profileOwnerUserId,
       ownerVerifiedBadge: _ownerVerifiedBadge,
@@ -245,6 +275,7 @@ export class ProfileRepository {
     } = row;
     return {
       ...publicProfile,
+      isDiscoverable: canDiscoverPublishedProfilePublicly(exposureCandidate),
       profileSections:
         readProfileSectionConfigBlock(publicProfile.contentBlocks) ??
         publicProfile.profileSections ??
@@ -269,30 +300,8 @@ export class ProfileRepository {
   async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
     const row = await this.getProfileBySlugRecord(slug, true);
     if (!row) return undefined;
-    if (
-      !canServePublishedProfileAtDirectRoute({
-        profileId: row.id,
-        businessId: row.businessId,
-        profileSlug: row.slug,
-        profileStatus: "published",
-        profileRoleContext: row.roleContext,
-        profileHeadline: row.headline,
-        profileServicesDescription: row.servicesDescription,
-        profileContentBlocks: row.contentBlocks,
-        profileOwnerUserId: row.profileOwnerUserId,
-        ownerVerifiedBadge: row.ownerVerifiedBadge,
-        ownerVerificationStatus: row.ownerVerificationStatus,
-        ownerRole: row.ownerRole,
-        ownerRoles: row.ownerRoles,
-        ownerProvider: row.ownerProvider,
-        ownerPreferences: row.ownerPreferences,
-        businessStatus: row.businessStatus,
-        businessOwnerUserId: row.businessOwnerUserId,
-        publicDiscoveryEnabled: row.publicDiscoveryEnabled,
-        businessSources: row.businessSources,
-        businessClaimStatus: row.businessClaimStatus,
-      })
-    ) {
+    const candidate = profileExposureCandidateFromRow(row);
+    if (!canServePublishedProfileAtDirectRoute(candidate)) {
       return undefined;
     }
     return this.toPublicProfileRecord(row);

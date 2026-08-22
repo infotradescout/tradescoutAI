@@ -288,6 +288,8 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
     return { slug, name: trade ? String((trade as any).name || slug) : slug };
   });
 
+  if (!sampleBusinesses.length) return null;
+
   const canonicalPath = `/county/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(countySlug)}`;
   const title = formatTradeScoutTitle(
     `Find Contractors in ${String((county as any).name || "County")}, ${stateCode}`

@@ -174,7 +174,8 @@ export const users = pgTable("users", {
       | "dashboard"
       | "profile"
       | "community"; // User's preferred landing page
-    profileVisibility?: "public" | "private"; // Public profiles are crawlable by LLM
+    // Public visibility makes a profile reachable; search/AI indexing remains a separate gate.
+    profileVisibility?: "public" | "private";
     colorScheme?: {
       primary?: string; // Main brand color (hex)
       secondary?: string; // Secondary accent color (hex)

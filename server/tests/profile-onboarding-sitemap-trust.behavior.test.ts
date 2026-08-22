@@ -15,11 +15,14 @@ const baseCandidate: ProfileSitemapEligibilityCandidate = {
   profileId: "profile-1",
   slug: "onboarded-business",
   businessId: "business-1",
+  profileRoleContext: "business_owner",
+  profileHeadline: "A real local business profile.",
+  profileContentBlocks: [{ type: "about", data: { text: "Useful public details." } }],
   profileOwnerUserId: "owner-1",
   ownerVerifiedBadge: false,
   ownerVerificationStatus: "pending",
   ownerProvider: "local",
-  ownerPreferences: { profileVisibility: "public" },
+  ownerPreferences: { profileVisibility: "public", publicProfileIds: ["profile-1"] },
   businessStatus: "active",
   businessOwnerUserId: "owner-1",
   publicDiscoveryEnabled: false,
@@ -37,6 +40,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         slug: "community-member",
         businessId: null,
+        profileRoleContext: "homeowner",
       })
     ).toBe(true);
   });
@@ -47,6 +51,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         ownerVerificationStatus: "approved",
         ownerPreferences: { publicProfileIds: ["profile-1"] },
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
     expect(
@@ -81,6 +86,7 @@ describe("onboarding profile sitemap trust boundary", () => {
       shouldIncludePublicProfileInSitemap({
         ...baseCandidate,
         ownerVerificationStatus: " APPROVED ",
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
     expect(
@@ -88,18 +94,26 @@ describe("onboarding profile sitemap trust boundary", () => {
         ...baseCandidate,
         ownerVerifiedBadge: true,
         ownerVerificationStatus: "pending",
+        publicDiscoveryEnabled: true,
       })
     ).toBe(true);
+    expect(
+      shouldIncludePublicProfileInSitemap({
+        ...baseCandidate,
+        ownerVerificationStatus: "approved",
+        publicDiscoveryEnabled: false,
+      })
+    ).toBe(false);
   });
 
-  it("retains only the exact existing owner-confirmed direct-profile exception", () => {
+  it("keeps the exact owner-confirmed direct-profile exception out of discovery", () => {
     const exactAuthority = {
       ...baseCandidate,
       slug: JRS_PROFILE_SLUG,
       businessSources: [OWNER_CONFIRMED_PROFILE_SOURCE],
     };
 
-    expect(shouldIncludePublicProfileInSitemap(exactAuthority)).toBe(true);
+    expect(shouldIncludePublicProfileInSitemap(exactAuthority)).toBe(false);
     expect(
       shouldIncludePublicProfileInSitemap({
         ...exactAuthority,
@@ -152,6 +166,9 @@ describe("onboarding profile sitemap trust boundary", () => {
       isPublishedProfileSitemapTargetPublic({
         ...rawTarget,
         business_id: null,
+        profile_role_context: "homeowner",
+        profile_headline: "A real local community profile.",
+        content_blocks: [{ type: "about", data: { text: "Useful public details." } }],
       })
     ).toBe(true);
     expect(
@@ -167,7 +184,7 @@ describe("onboarding profile sitemap trust boundary", () => {
         public_discovery_enabled: false,
         business_sources: [OWNER_CONFIRMED_PROFILE_SOURCE],
       })
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isPublishedProfileSitemapTargetPublic({
         ...rawTarget,

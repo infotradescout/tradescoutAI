@@ -33,6 +33,7 @@ const templateHtml = `<!doctype html>
 function profile(slug: string) {
   return {
     id: `profile-${slug}`,
+    isDiscoverable: !isInternalAdminProfileSlug(slug),
     slug,
     displayName: slug,
     headline: null,

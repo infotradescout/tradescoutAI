@@ -16,12 +16,15 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain("BING_INDEXNOW_KEY");
     expect(source).toContain("buildAutoSeoMeta");
     expect(source).toContain("seoMeta: effectiveSeoMeta");
-    expect(source).toContain("Best answer targets for AI search, Meta AI, and other assistants");
+    expect(source).toContain("Current eligible same-host public profiles");
+    expect(source).toContain("listPublishedProfileSitemapTargets()");
+    expect(source).toContain("canonicalPublishedProfileSitemapLoc(baseUrl, target)");
+    expect(source).toContain(
+      "does not guarantee inclusion, ranking, or citation by a search engine or AI system"
+    );
     expect(source).toContain("Visibility does not grant contact access or authority");
-    expect(source).toContain("ISSA Build translucent onyx:");
-    expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/categories/onyx");
-    expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/honey-onyx");
-    expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/inventory/multi-green-onyx");
+    expect(source).not.toContain("ISSA Build translucent onyx:");
+    expect(source).not.toContain("`${baseUrl}/u/{slug}`");
   });
 
   it("publishes human service-area names instead of internal county identifiers", () => {

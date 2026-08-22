@@ -11,6 +11,12 @@ import {
   publicBusinessDetailExposureSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "./publicCityHtml";
 
 type PublicBestTradeCountyHtmlOptions = {
   origin: string;
@@ -138,10 +144,6 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
   return html;
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
 function isMissingColumnError(error: unknown, columnName: string): boolean {
@@ -279,6 +281,8 @@ export async function buildPublicBestTradeCountyHtml(
     })
     .filter((r): r is { slug: string; name: string } => Boolean(r));
 
+  if (!items.length) return null;
+
   const canonicalPath = `/best/${encodeURIComponent(canonicalTradeSlug)}/${encodeURIComponent(
     stateCode.toLowerCase()
   )}/${encodeURIComponent(countySlug)}`;
@@ -355,11 +359,9 @@ export async function buildPublicBestTradeCityHtml(
   if (!match) return null;
 
   const stateCode = String(opts.stateCode || "").toUpperCase();
-  const citySlug = String(opts.citySlug || "")
-    .trim()
-    .toLowerCase();
+  const citySlug = normalizePublicCitySlug(opts.citySlug);
   if (!/^[A-Z]{2}$/.test(stateCode)) return null;
-  if (!/^[a-z0-9-]+$/.test(citySlug)) return null;
+  if (!isCanonicalPublicCitySlug(opts.citySlug)) return null;
 
   const rules = await getPublicationRules();
   const now = new Date();
@@ -385,6 +387,7 @@ export async function buildPublicBestTradeCityHtml(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       ownerVerificationStatus: users.verificationStatus,
       ownerAddressVerified: users.addressVerified,
+      countyName: counties.name,
     })
     .from(businesses)
     .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
@@ -396,7 +399,8 @@ export async function buildPublicBestTradeCityHtml(
         publicBusinessDetailExposureSqlPredicate(),
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
+        sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+        sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
         keywordPatterns.length
           ? or(
@@ -446,6 +450,8 @@ export async function buildPublicBestTradeCityHtml(
       return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
     })
     .filter((r): r is { slug: string; name: string } => Boolean(r));
+
+  if (!items.length) return null;
 
   const canonicalPath = `/best/${encodeURIComponent(canonicalTradeSlug)}/${encodeURIComponent(
     stateCode.toLowerCase()

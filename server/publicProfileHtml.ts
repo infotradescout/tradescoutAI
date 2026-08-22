@@ -223,7 +223,7 @@ export async function buildPublicProfileLlmsText({
 }: PublicProfileLlmsTextOptions): Promise<string | null> {
   if (!shouldIndexPublicProfileSlug(slug)) return null;
   const profileRecord = await storage.getProfileBySlugPublic(slug);
-  if (!profileRecord) return null;
+  if (!profileRecord?.isDiscoverable) return null;
 
   const publicOrigin = normalizePublicOrigin(origin);
   if (!publicOrigin) return null;
@@ -293,7 +293,7 @@ export async function buildPublicProfileSitemapXml({
   if (!publicOrigin) return null;
   if (!shouldIndexPublicProfileSlug(slug)) return null;
   const profileRecord = await storage.getProfileBySlugPublic(slug);
-  if (!profileRecord) return null;
+  if (!profileRecord?.isDiscoverable) return null;
 
   const inventory = listProfileInventoryItems(
     inventoryCategoriesForProfile(profileRecord.slug, profileRecord.contentBlocks)
@@ -1038,7 +1038,8 @@ export async function buildPublicProfileHtml({
   const pageCategoryShare = itemShare ? null : categoryShare;
   const meta = buildMeta(data, origin, itemShare, pageCategoryShare, pageMetadata);
   const jsonLd = buildJsonLd(data, origin, itemShare, pageCategoryShare, pageMetadata);
-  const shouldIndexProfile = shouldIndexPublicProfileSlug(profileRecord.slug);
+  const shouldIndexProfile =
+    profileRecord.isDiscoverable && shouldIndexPublicProfileSlug(profileRecord.slug);
 
   let html = templateHtml;
 

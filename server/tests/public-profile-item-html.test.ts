@@ -20,6 +20,7 @@ const jwPublicDiscoveryBlock = JW_STONE_PUBLIC_DISCOVERY_BLOCK;
 
 const profileRecord = {
   id: "profile-jw",
+  isDiscoverable: true,
   slug: "jw-stone",
   displayName: "JW Stone LLC",
   headline: "Natural stone inventory",
@@ -555,7 +556,7 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:image:height" content="630"');
   });
 
-  it("renders JR's exact before-photo preview from its paid profile share link", async () => {
+  it("renders JR's exact direct-only photo preview without indexable schema", async () => {
     profileRecord.slug = "jrs-auto-glass";
     profileRecord.displayName = "JR's Auto Glass";
     profileRecord.businessId = "";
@@ -590,20 +591,11 @@ describe("public profile item HTML", () => {
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
     expect(html).toContain('data-seo-profile-item="gallery"');
-    expect(html).toContain('"@type":"ImageObject"');
-    expect(html).toContain(`"contentUrl":"${sourceImageUrl}"`);
+    expect(html).toContain('meta name="robots" content="noindex, follow"');
+    expect(html).not.toContain('"@type":"ImageObject"');
+    expect(html).not.toContain(`"contentUrl":"${sourceImageUrl}"`);
     expect(html).toContain(`<img src="${sourceImageUrl}"`);
-    expect(html).toContain('"@type":"Person"');
-    expect(html).toContain(
-      '"creator":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass#identity"}'
-    );
-    expect(html).toContain(
-      '"@type":"Organization","@id":"https://www.thetradescout.com/#organization","name":"TradeScout"'
-    );
-    expect(html).toContain(
-      `"mainEntity":{"@id":"https://www.thetradescout.com/u/jrs-auto-glass/gallery/${beforeItem.slug}#image"}`
-    );
-    expect(html).toContain('"publisher":{"@id":"https://www.thetradescout.com/#organization"}');
+    expect(html).not.toContain("application/ld+json");
   });
 
   it("builds profile-specific LLM guidance without direct contact or exact-address text", async () => {
