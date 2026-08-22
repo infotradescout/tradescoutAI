@@ -39,8 +39,12 @@ type JwStoneShareStone = {
   slug: string;
   images: string[];
   shareImageOrder?: number[];
+  publicSummary: string;
   publicKind: "offering";
 };
+
+const JW_STONE_MATERIAL_LIBRARY_SHARE_SUMMARY =
+  "This material is part of JW Stone's material library, not a claim of current stock.";
 
 const reconciledStones: JwStoneShareStone[] = reconcileJwStoneGeneratedInventory(
   generatedJwStoneInventory as GeneratedJwStoneRecord[]
@@ -53,6 +57,7 @@ const reconciledStones: JwStoneShareStone[] = reconcileJwStoneGeneratedInventory
     slug: stone.slug,
     images: stone.images,
     shareImageOrder: stone.shareImageOrder,
+    publicSummary: JW_STONE_MATERIAL_LIBRARY_SHARE_SUMMARY,
     publicKind: "offering",
   };
 });

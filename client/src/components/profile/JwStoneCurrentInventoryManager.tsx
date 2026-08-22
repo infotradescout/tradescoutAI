@@ -274,7 +274,7 @@ export default function JwStoneCurrentInventoryManager({ open, profileSlug, onCl
         className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-bold text-black disabled:opacity-50"
       >
         <PackageCheck className="h-4 w-4" aria-hidden="true" />
-        {saving ? "Saving…" : "Save confirmed stock"}
+        {saving ? "Saving…" : "Confirm current stock"}
       </button>
 
       <div className="mt-5 border-t border-white/10 pt-4">

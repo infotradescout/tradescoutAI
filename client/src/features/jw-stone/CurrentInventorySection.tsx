@@ -54,7 +54,7 @@ export function CurrentInventorySection({ onAsk, onStartRequest }: Props) {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--jw-accent)]">
-              Seller-published physical stock
+              Physically confirmed stock
             </p>
             <h2
               id="jw-current-inventory-heading"
@@ -63,9 +63,9 @@ export function CurrentInventorySection({ onAsk, onStartRequest }: Props) {
               Current Inventory
             </h2>
             <p className={`mt-2 max-w-2xl text-sm leading-6 ${jw.muted}`}>
-              Only physical lots explicitly marked sale-ready inside their active confirmation
-              window appear here. The Material Library below is broader reference material and does
-              not claim that a physical item is on hand.
+              Only physical lots explicitly marked sale-ready inside their active recheck window
+              appear here. The Material Library below is broader reference material and does not
+              claim that a physical item is on hand.
             </p>
           </div>
           <button
