@@ -5370,6 +5370,13 @@ body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-a
   color: #ff8b39;
 }
 
+@media (min-width: 641px) {
+  .ts-community-viewbar {
+    padding-top: 0.25rem;
+    padding-inline: 0.25rem;
+  }
+}
+
 .ts-community-context-card {
   border-top: 2px solid rgba(255, 106, 0, 0.72);
   background: linear-gradient(145deg, rgba(255, 106, 0, 0.075), rgba(255, 255, 255, 0.025));
@@ -5386,9 +5393,17 @@ body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
 
 @media (max-width: 640px) {
   .ts-community-viewbar {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+  .ts-community-viewbar__divider {
+    display: block !important;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 0;
+    margin: 0 !important;
+    opacity: 0;
   }
   .ts-community-composer .w-10.h-10 {
     display: none;

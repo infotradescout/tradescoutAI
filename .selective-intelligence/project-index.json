@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T21:03:15Z",
+  "generated_at": "2026-08-22T22:16:24Z",
   "source": {
     "kind": "git",
-    "revision": "e1d56fb65a302ef7c6c8f00e99e21e9df0009517",
+    "revision": "b21d638fcf642db7601ae7469f4037f66183df2a",
     "dirty": true,
-    "inventory_sha256": "13e2c977a0a8f1effb264cc5e886d37365d8c0fe0c638b43f45cc4b768e74dfe"
+    "inventory_sha256": "7c54aa544c76937101b0d1f70b97977c2cf2e1c2cfb58f0917f1df6b9e548e54"
   },
   "inventory": {
     "directories": [
@@ -6845,8 +6845,8 @@
       {
         "path": "client/src/scout/ScoutInputRow.tsx",
         "language": "tsx",
-        "sha256": "4c1c67e5057a65d39801d5c02d84b8ce1ddb5f54a43e0f681e37f7c3c5f436fa",
-        "bytes": 8572
+        "sha256": "f4a52f47a7244c8615859f5c1c20f85cd27ee1a47f9942ed8b8bc10c6e86de11",
+        "bytes": 8847
       },
       {
         "path": "client/src/scout/ScoutLaunchContextCard.tsx",
@@ -6857,26 +6857,26 @@
       {
         "path": "client/src/scout/ScoutOS.tsx",
         "language": "tsx",
-        "sha256": "c2b2d1fcbcbf82421be2d1ca5cd96346b7e3cd2acfe516d6fae7d307105391f0",
-        "bytes": 220031
+        "sha256": "1618c21e52fd8a4e9585b8c6da8edae84274387f4a82f05ebe50bc9b96480799",
+        "bytes": 225783
       },
       {
         "path": "client/src/scout/ScoutSearchDock.tsx",
         "language": "tsx",
-        "sha256": "3a7057e3b4b53cb14a52ed04c558f8f1dc5349eb2dd410156cea1d1388aa7644",
-        "bytes": 2539
+        "sha256": "6a04314c872125f9bf6d4331de4fb08e6d3482e63eddfa002c77449ceb22fe12",
+        "bytes": 2631
       },
       {
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
         "language": "ts",
-        "sha256": "ada5205ad05e2e42947d97cc7d8862db0d15de443996b175e2877d3146d6b85b",
-        "bytes": 52312
+        "sha256": "e814ea91e4b9f674cdf945927155454eb6d1ff42d8f7131b1bdfa4d853296e85",
+        "bytes": 53824
       },
       {
         "path": "client/src/scout/ScoutThread.tsx",
         "language": "tsx",
-        "sha256": "cee40d0c164e718065f77020ca7aaa515876b435b6978618130822c5c285c9b9",
-        "bytes": 47818
+        "sha256": "e52bad4195e411e86616ac63b0a9c631d45861d453cb10bb5820603e48d36fa2",
+        "bytes": 49134
       },
       {
         "path": "client/src/scout/ScoutToolsDrawer.tsx",
@@ -7115,8 +7115,8 @@
       {
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
         "language": "ts",
-        "sha256": "914d732aaf323a7242d30556f5be2133bbe6068ae1fb5c7f7b371151d6d4c48b",
-        "bytes": 35050
+        "sha256": "55cf013687b4e92600725d32b86cda47dbc22e727f11ffba5192e201b0b7a9f8",
+        "bytes": 35645
       },
       {
         "path": "client/src/scout/scout-home-personalization.contract.test.ts",
@@ -19037,8 +19037,8 @@
       {
         "path": "server/tests/authenticated-social-frame.contract.test.ts",
         "language": "ts",
-        "sha256": "0ecca23108c6d9ba7fdf4a15a5d75c5a96cc3746a279d4bc3c766ac0b66110e8",
-        "bytes": 6779
+        "sha256": "209006a0082c192627f7e1b1e47240071ffba29ed5660482e6b664dd2215becf",
+        "bytes": 7224
       },
       {
         "path": "server/tests/backlog-fixes-2.contract.test.ts",
@@ -19199,8 +19199,8 @@
       {
         "path": "server/tests/community-app-surface-ux.contract.test.ts",
         "language": "ts",
-        "sha256": "11b6d635fb6340a4c1bded9dbbd9fcd4793b9dba07f907b7298b9a1a9d5b2abe",
-        "bytes": 9923
+        "sha256": "d96e4828b75ce72d78c78f694b3abb1a4336ac9ecfde317af41649479aa3c43f",
+        "bytes": 10352
       },
       {
         "path": "server/tests/community-causes-allocation.integration.test.ts",
@@ -22595,8 +22595,8 @@
       {
         "path": "tests/community-feed.e2e.spec.ts",
         "language": "ts",
-        "sha256": "7793db61bf6b9eac43b876c5e975335a2c9beaf08fc6ce8cbf6e028bb5766182",
-        "bytes": 716
+        "sha256": "2af8f519a39c59595e08814373b9b8acee5ecb1eaf607b039a8ec58a36e45fb1",
+        "bytes": 6035
       },
       {
         "path": "tests/community-shell.spec.ts",
@@ -148958,14 +148958,14 @@
         "name": "staticLocationHook",
         "kind": "function",
         "path": "server/tests/community-app-surface-ux.contract.test.ts",
-        "line": 185,
+        "line": 193,
         "exported": false
       },
       {
         "name": "staticSearchHook",
         "kind": "function",
         "path": "server/tests/community-app-surface-ux.contract.test.ts",
-        "line": 189,
+        "line": 197,
         "exported": false
       },
       {
