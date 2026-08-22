@@ -5,6 +5,32 @@ export type ProfileAccountEntitlement = Readonly<{
   status: "pending_verification" | "active" | "suspended" | "revoked";
 }>;
 
+export function resolveProfileAccountEntitlementStatus(
+  verificationStatus: "not_required" | "pending" | "approved" | "rejected"
+): ProfileAccountEntitlement["status"] {
+  if (verificationStatus === "approved" || verificationStatus === "not_required") {
+    return "active";
+  }
+  return verificationStatus === "rejected" ? "revoked" : "pending_verification";
+}
+
+export function applyProfileAccountEntitlementVerificationBypass(
+  entitlements: readonly ProfileAccountEntitlement[],
+  verificationBypassActive: boolean
+): readonly ProfileAccountEntitlement[] {
+  if (!verificationBypassActive) return entitlements;
+
+  let changed = false;
+  const projected = entitlements.map((entitlement) => {
+    if (entitlement.status === "active" || entitlement.status === "suspended") {
+      return entitlement;
+    }
+    changed = true;
+    return Object.freeze({ ...entitlement, status: "active" as const });
+  });
+  return changed ? Object.freeze(projected) : entitlements;
+}
+
 export async function ensureProfileAccountEntitlement(args: {
   profileAccountId: string;
   productKey: string;
@@ -14,12 +40,7 @@ export async function ensureProfileAccountEntitlement(args: {
     .trim()
     .toLowerCase();
   if (!/^[a-z0-9_]{2,80}$/.test(productKey)) throw new Error("Invalid product entitlement");
-  const nextStatus =
-    args.verificationStatus === "approved"
-      ? "active"
-      : args.verificationStatus === "rejected"
-        ? "revoked"
-        : "pending_verification";
+  const nextStatus = resolveProfileAccountEntitlementStatus(args.verificationStatus);
   const result = await pool.query(
     `INSERT INTO profile_account_entitlements (
        profile_account_id,

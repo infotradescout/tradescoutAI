@@ -43,6 +43,25 @@ export type ProfileAccountState = Readonly<{
   account: ProfileAccountRecord | null;
 }>;
 
+export function applyProfileAccountVerificationBypass(
+  account: ProfileAccountRecord | null,
+  verificationBypassActive: boolean
+): ProfileAccountRecord | null {
+  if (
+    !account ||
+    !verificationBypassActive ||
+    account.verificationStatus === "approved" ||
+    account.verificationStatus === "not_required"
+  ) {
+    return account;
+  }
+
+  return Object.freeze({
+    ...account,
+    verificationStatus: "not_required" as const,
+  });
+}
+
 function normalizeSlug(value: unknown): string {
   return String(value || "")
     .trim()

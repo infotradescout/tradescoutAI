@@ -8,16 +8,19 @@ import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { storage } from "../storage";
 import {
+  applyProfileAccountVerificationBypass,
   ensureProfileAccount,
   getProfileAccountState,
   type ProfileAccountRecord,
 } from "../services/profileAccountService";
 import {
+  applyProfileAccountEntitlementVerificationBypass,
   ensureProfileAccountEntitlement,
   listProfileAccountEntitlements,
   type ProfileAccountEntitlement,
 } from "../services/profileAccountEntitlementService";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { hasPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 
 function isSafeInternalPath(value: string): boolean {
   if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return false;
@@ -220,11 +223,20 @@ export function registerProfileAccountRoutes(app: Express) {
         res.status(404).json({ message: "Profile not found" });
         return;
       }
+      const verificationBypassActive = hasPrivilegedVerificationBypass(req.user);
       const entitlements = state.account
         ? await listProfileAccountEntitlements(state.account.id)
         : [];
       res.setHeader("Cache-Control", "private, no-store");
-      res.json({ ...state, entitlements });
+      res.json({
+        ...state,
+        account: applyProfileAccountVerificationBypass(state.account, verificationBypassActive),
+        verificationBypassActive,
+        entitlements: applyProfileAccountEntitlementVerificationBypass(
+          entitlements,
+          verificationBypassActive
+        ),
+      });
     } catch (error) {
       console.error("[profile-accounts] state failed", error);
       res.status(500).json({ message: "Profile account is temporarily unavailable." });
@@ -454,9 +466,18 @@ export function registerProfileAccountRoutes(app: Express) {
           account: created.account,
           includesBidRock: created.policy.includesBidRock,
         });
+        const verificationBypassActive = hasPrivilegedVerificationBypass(req.user);
 
         res.setHeader("Cache-Control", "private, no-store");
-        res.status(201).json({ ...created, entitlements });
+        res.status(201).json({
+          ...created,
+          account: applyProfileAccountVerificationBypass(created.account, verificationBypassActive),
+          verificationBypassActive,
+          entitlements: applyProfileAccountEntitlementVerificationBypass(
+            entitlements,
+            verificationBypassActive
+          ),
+        });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Profile account could not be created.";
