@@ -279,8 +279,11 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("const showDiscoveryRail = false");
     expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
-    expect(scoutOsSource).toContain("className={`w-full flex flex-1 flex-col min-h-0 relative ${");
+    expect(scoutOsSource).toContain(
+      "className={`scout-active-column w-full flex flex-1 flex-col min-h-0 relative ${"
+    );
     expect(scoutOsSource).toContain('isMobile || showDiscoveryRail ? "" : "max-w-4xl mx-auto"');
+    expect(scoutOsSource).toContain("className={`scout-active-layout w-full ${");
     expect(scoutOsSource).toContain('"calc(var(--scout-search-dock-h) + 1rem)"');
     expect(scoutOsSource).toContain('"calc(var(--scout-search-dock-h) + 1.25rem)"');
     expect(scoutOsSource).not.toContain("--scout-search-dock-height");
@@ -385,7 +388,16 @@ describe("Scout entry framing contracts", () => {
       /\.scout-task-work-region \.scout-thread\s*\{[^}]*overscroll-behavior:\s*contain;/s
     );
     expect(cssSource).toMatch(
-      /\.scout-task-auxiliary-region\s*\{[^}]*flex:\s*0 1 auto;[^}]*min-height:\s*44px;[^}]*max-height:\s*min\(16rem,\s*28dvh\);[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s
+      /\.scout-active-workbench\s*\{[^}]*flex:\s*1 1 auto;[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior-y:\s*contain;[^}]*scroll-behavior:\s*auto;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-current-task__primary\s*\{[^}]*scroll-margin-bottom:\s*1px;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-active-workbench \.scout-task-auxiliary-region,\s*\.scout-active-workbench \.scout-task-work-region \.scout-thread\s*\{[^}]*overscroll-behavior-y:\s*auto;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-task-auxiliary-region\s*\{[^}]*flex:\s*0 1 auto;[^}]*min-height:\s*44px;[^}]*max-height:\s*min\(16rem,\s*28dvh\);[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;[^}]*scroll-behavior:\s*auto;[^}]*scroll-margin-bottom:\s*1px;/s
     );
     expect(cssSource).toMatch(
       /\.scout-task-auxiliary-region > \.scout-task-auxiliary-region__priority\s*\{[^}]*position:\s*sticky;[^}]*top:\s*0;[^}]*z-index:\s*2;/s
@@ -394,7 +406,16 @@ describe("Scout entry framing contracts", () => {
       /\.scout-active-workbench > \.scout-task-work-region\s*\{[^}]*min-height:\s*clamp\(6rem,\s*20dvh,\s*12rem\);/s
     );
     expect(cssSource).toMatch(
-      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-task-auxiliary-region\s*\{[^}]*max-height:\s*min\(9rem,\s*14dvh\);.*?\.scout-active-workbench > \.scout-task-work-region\s*\{[^}]*min-height:\s*clamp\(5\.5rem,\s*18dvh,\s*7rem\);/s
+      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-active-workbench > \.scout-task-work-region\s*\{[^}]*min-height:\s*clamp\(5\.5rem,\s*18dvh,\s*7rem\);/s
+    );
+    expect(cssSource).toMatch(
+      /@media \(max-width: 767px\)[^{]*\{.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-layout\s*\{[^}]*padding-top:\s*0;[^}]*padding-bottom:\s*0 !important;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*\{[^}]*margin-top:\s*0;[^}]*padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.75rem \+ 1px\) !important;[^}]*scroll-padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.75rem\);.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-input-bottom-pin\s*\{[^}]*height:\s*0;[^}]*min-height:\s*0;[^}]*margin:\s*0;[^}]*padding:\s*0;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-task-auxiliary-region\s*\{[^}]*min-height:\s*64px;[^}]*max-height:\s*min\(9rem,\s*22dvh\);/s
+    );
+    expect(cssSource).toMatch(
+      /@media \(max-width: 767px\) and \(max-height: 420px\)\s*\{[^}]*\.scout-current-task__primary strong\s*\{[^}]*display:\s*-webkit-box;[^}]*overflow:\s*hidden;[^}]*-webkit-box-orient:\s*vertical;[^}]*-webkit-line-clamp:\s*2;/s
+    );
+    expect(cssSource).toMatch(
+      /@media \(min-width: 768px\) and \(max-height: 480px\)\s*\{.*?body\.ts-scout-active\s+#app-scroll-root:has\(\.scout-shell--active-task\)\s*> \.app-page\s*\{[^}]*padding-top:\s*0;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-layout\s*\{[^}]*padding-top:\s*0;[^}]*padding-bottom:\s*0 !important;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-column\s*\{[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior-y:\s*contain;[^}]*scroll-behavior:\s*auto;[^}]*padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.375rem \+ 1px\);[^}]*scroll-padding-bottom:\s*calc\(var\(--scout-search-dock-h\) - 0\.375rem\);.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*\{[^}]*flex:\s*0 0 auto;[^}]*margin-top:\s*0;[^}]*overflow:\s*visible;[^}]*overscroll-behavior-y:\s*auto;[^}]*padding-bottom:\s*0 !important;[^}]*scroll-padding-bottom:\s*auto;.*?\.scout-current-task__primary strong\s*\{[^}]*display:\s*-webkit-box;[^}]*overflow:\s*hidden;[^}]*-webkit-box-orient:\s*vertical;[^}]*-webkit-line-clamp:\s*2;/s
     );
     expect(cssSource).toMatch(/\.scout-command-bar__input\s*\{[^}]*max-height:\s*120px;/s);
     expect(cssSource).toMatch(

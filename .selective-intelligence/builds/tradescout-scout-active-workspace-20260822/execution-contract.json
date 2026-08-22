@@ -8,6 +8,20 @@
     "lockVersion": "manual_unverified"
   },
   "phase": "continuation",
+  "releaseControl": {
+    "status": "hold",
+    "remoteHead": "f4f4f2f5741c945564fc41cf12765f21d9ab3ada",
+    "remoteHeadEvidence": "invalidated_for_current_candidate_by_uncommitted_p2_correction",
+    "workingCandidate": "uncommitted_four_file_pr425_p2_correction",
+    "reviewThread": "3836662192",
+    "objector": "sustained",
+    "aligner": "sustained_provisionally_aligned",
+    "focusedTests": "38_of_39_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
+    "requiredNineFileTests": "89_of_90_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
+    "typecheck": "pass",
+    "guards": "pass",
+    "releaseAuthority": "none"
+  },
   "wholeProduct": {
     "preserved": true,
     "summary": "TradeScout remains one governed multi-app operating environment. D7 makes the active Scout conversation the primary work surface without claiming every app interior is complete.",
@@ -32,7 +46,8 @@
         "Use a bounded internal work-region scroll that lands on the latest meaningful turn while the task header and single composer preserve orientation.",
         "Save the task, start New, reopen it through Conversations, and recover the same task identity, updates, validated next action, county context, visible record, and composer.",
         "Open local Community through the existing Scout next action and return to the same Scout task state.",
-        "Use the same flow at 1440 by 1000 and 390 by 844 without page-level horizontal overflow, fixed-control overlap, or a nested full-page scroll trap."
+        "Use the same flow at 1440 by 1000 and 390 by 844 without page-level horizontal overflow, fixed-control overlap, or a nested full-page scroll trap.",
+        "At ultra-short mobile and embedded boundaries, scroll the single outer task owner through task, auxiliary context, work record, thread, and final controls while the fixed dock and page root remain stationary."
       ],
       "proof": [
         {
@@ -55,6 +70,20 @@
           "expected": "Canonical Scout owners are discoverable and no competing active owner requires a new implementation.",
           "observed": "The index refreshed with canonical client/src Scout owners usable. Its 1,104 errors are the pre-existing mirrored exports/workspaces duplicate baseline and remain outside D7.",
           "evidenceRef": "../../project-index.json"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Run the current four-file P2 focused Scout framing/thread suite, required nine-file D7/D6/Community candidate suite, TypeScript check, source guards, and diff check.",
+          "expected": "All D7/P2 ownership, reachability, fixed-dock, action, taskbar, and Community assertions pass; any unrelated baseline remains explicitly isolated.",
+          "observed": "Focused 38/39 and required nine-file 89/90 passed except for the same unchanged HomeID initialHomeIdFromUrl source-name baseline. TypeScript, all P2 guards, and diff check passed.",
+          "evidenceRef": "evidence.md#automated-proof"
+        },
+        {
+          "type": "manual_observation",
+          "procedure": "Exercise the authenticated adversarial saved task at 390x320/360/361, 568x320, 767x421, 768x320/360/361, and 1440x480/481, including keyboard focus, owner endpoints, ordinary wheel movement, and two distinct wheel gestures from an ended nested thread.",
+          "expected": "Exactly one task/aux/work/thread/composer chain remains reachable above the fixed dock, the intended outer owner moves, and body/root remain locked.",
+          "observed": "All measured primary, work, thread, and final-control rectangles strictly cleared the dock. Mobile used the workbench owner; short desktop used the active-column owner and returned to the normal workbench at 481px. A second distinct wheel gesture chained thread-to-column while rapid same-gesture deltas remained browser-latched and non-persistent.",
+          "evidenceRef": "evidence.md#rendered-proof"
         }
       ],
       "constraints": [
@@ -90,7 +119,7 @@
         "Focused existing Scout framing and thread behavior tests proving the visible work region, a single composer and dominant action, bounded scrolling, latest-turn behavior, sparse history, saved-task restore, and Community return without weakening action validation.",
         "Focused D6 taskbar and Community browse-only regression tests.",
         "Typecheck and production build at the exact implementation commit.",
-        "Authenticated rendered proof at 1440x1000, 1440x600, 390x844, and both sides of the 730/731px short-desktop boundary for sparse, eight-update, and long-history tasks, including geometry, full work/thread containment, internal scroll-to-latest, taskbar and composer clearance, top-right tools, and zero page-level overflow.",
+        "Authenticated rendered proof at 1440x1000, 1440x600, 390x844, both sides of the 730/731px short-desktop boundary, and the P2 390x320/360/361, 568x320, 767x421, 768x320/360/361, and 1440x480/481 boundaries for sparse, eight-update, adversarial, and long-history tasks, including geometry, full work/thread containment, intentional nested-to-outer wheel chaining, taskbar and composer clearance, top-right tools, and zero page-level overflow.",
         "Rendered Save to New to Conversations to reopen proof plus Scout to Community to Scout return proof using the same county and saved task.",
         "Exact minimum-release gate and post-deploy x-tradescout-build plus /api/health identity before a release completion claim."
       ],
@@ -157,7 +186,7 @@
   "baseline": {
     "commit": "cd3623ab1bf39502b4ad2133c90d6a5f60788ed6",
     "productionObservation": "Production reports the exact D6 merge SHA and healthy database and migration state. D2 rendered evidence shows an eight-update active Scout task with its conversation collapsed and most of the center workspace inert.",
-    "projectIndex": "refreshed_at_cd3623ab1bf39502b4ad2133c90d6a5f60788ed6; canonical ScoutOS, ScoutThread, and index.css owners usable; 1104 pre-existing findings dominated by mirrored exports/workspaces duplicates excluded"
+    "projectIndex": "refreshed_2026-08-22T19:39:31Z_from_dirty_f4f4f2f5741c945564fc41cf12765f21d9ab3ada_inventory_ac5ed17c9081acd0cdb6121bdf00b05146737ec93949c0b97181bb931a1057c6; canonical ScoutOS and index.css owners usable; 1101 pre-existing mirrored-export/competing-owner errors plus five raw-UI warnings remain excluded"
   },
   "approval": {
     "standingUserDirection": "always without asking; approve; keep going; then keep going",
@@ -169,11 +198,12 @@
     "intake": "pass; Scout active-task dead canvas is the highest-impact next interior defect while Community remains protected",
     "intentObjector": "pass with revision; the conversation and result record must become the primary usable work object, not merely an opened details panel",
     "planner": "go; canonical existing owners and proof boundary are sufficient",
-    "implementationObjector": "initially blocked on auto-route cancellation and proof classification, then on exact short-height overlap and the first 701px noncompact frame clipping the thread owner; cancellation, evidence classification, constrained layout, and boundary were corrected; final short-height re-review sustained with no blocking finding",
-    "implementationAligner": "provisionally_aligned after the auto-route and 730/731 short-height corrections; bounded correction matches D7, GO to refreshed index and exact verification, HOLD release claim until exact clean commit, browser proof, gate, review resolution, merge, and production proof"
+    "implementationObjector": "initially blocked on auto-route cancellation and proof classification, then on exact short-height overlap and the first 701px noncompact frame clipping the thread owner; those findings were corrected. PR425 P2 thread 3836662192 then found ultra-short owner, focus, endpoint, and nested-wheel defects; the current uncommitted four-file correction is sustained with no source blocker, and rapid same-gesture latching is classified as native and non-persistent",
+    "implementationAligner": "sustained and provisionally aligned for the PR425 P2 four-file correction; the responsive owner handoff preserves the D7 plan and changes no route, API, persistence, contact, county, or Trust/CVS authority. Release remains HOLD until a clean exact commit, refreshed browser/test/build/gate evidence, exact-head review and conversation resolution, merge, and production proof"
   },
   "manualUnverified": {
-    "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source.",
-    "reuseDecision": "Extend ScoutOS and existing Scout styles and tests. Touch ScoutThread only if its canonical scroll behavior requires a bounded correction; create no new component or parallel owner."
+    "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source. Separately, the current PR425 P2 correction is uncommitted, so f4f4f2f5 exact release evidence is invalid for the working candidate.",
+    "reuseDecision": "Extend ScoutOS and existing Scout styles and tests. Touch ScoutThread only if its canonical scroll behavior requires a bounded correction; create no new component or parallel owner.",
+    "releaseHold": "Objector and Aligner sustained; exact verifier proof remains pending. No commit, push, gate refresh, merge, deploy, or production identity proof is authorized or complete."
   }
 }

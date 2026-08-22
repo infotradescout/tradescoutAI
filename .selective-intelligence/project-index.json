@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T17:20:58Z",
+  "generated_at": "2026-08-22T19:39:31Z",
   "source": {
     "kind": "git",
-    "revision": "a328d3a21f22d5075401fc7f0aeabea9fe3140e1",
+    "revision": "f4f4f2f5741c945564fc41cf12765f21d9ab3ada",
     "dirty": true,
-    "inventory_sha256": "b5893d21c52cb51a5a30c49b51c84749f60819a2dcd78fdd613afaaf7b6ca163"
+    "inventory_sha256": "ac5ed17c9081acd0cdb6121bdf00b05146737ec93949c0b97181bb931a1057c6"
   },
   "inventory": {
     "directories": [
@@ -816,6 +816,10 @@
       },
       {
         "path": "src/db",
+        "source_file_count": 1
+      },
+      {
+        "path": "test-results/assets",
         "source_file_count": 1
       },
       {
@@ -6853,8 +6857,8 @@
       {
         "path": "client/src/scout/ScoutOS.tsx",
         "language": "tsx",
-        "sha256": "a28e15a01632e0be21575b013abf7a4c03baee6c18a4f843950c4d5fb7adfc73",
-        "bytes": 219991
+        "sha256": "c2b2d1fcbcbf82421be2d1ca5cd96346b7e3cd2acfe516d6fae7d307105391f0",
+        "bytes": 220031
       },
       {
         "path": "client/src/scout/ScoutSearchDock.tsx",
@@ -6865,8 +6869,8 @@
       {
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
         "language": "ts",
-        "sha256": "3b06eb86bb059a0ec58f2420085db0a335b41503e8c81f52acac4df10bcdbe9d",
-        "bytes": 43291
+        "sha256": "ad854633058a855e9af41be5bc3e7f2ec72d714a65554c690a73b7d99a05f271",
+        "bytes": 50151
       },
       {
         "path": "client/src/scout/ScoutThread.tsx",
@@ -7111,8 +7115,8 @@
       {
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
         "language": "ts",
-        "sha256": "0a2602985c6a6575c2e89b9b81638691660f8686a2539e63e0d6a4fd4bd4c842",
-        "bytes": 31950
+        "sha256": "0e3d7a06626ddbf9bc3ac3dbc6e88ac7b194b4230119a278336b31852e88b3d2",
+        "bytes": 34899
       },
       {
         "path": "client/src/scout/scout-home-personalization.contract.test.ts",
@@ -22551,6 +22555,12 @@
         "language": "ts",
         "sha256": "edca1c96e4b84d26b002a071d396210bba8ecf661b106b28673149bed220ea6b",
         "bytes": 7419
+      },
+      {
+        "path": "test-results/assets/index-DaKof6xz.js",
+        "language": "js",
+        "sha256": "76a72613f69c2c658c63570f4ae708526a0f3acf0dcc5722f236ed10fa8463d5",
+        "bytes": 777636
       },
       {
         "path": "test-runner.js",
@@ -59492,10 +59502,31 @@
         "exported": false
       },
       {
+        "name": "mobileCorrectionApplies",
+        "kind": "function",
+        "path": "client/src/scout/ScoutThread.evidence.test.ts",
+        "line": 1209,
+        "exported": false
+      },
+      {
+        "name": "mobileClampApplies",
+        "kind": "function",
+        "path": "client/src/scout/ScoutThread.evidence.test.ts",
+        "line": 1210,
+        "exported": false
+      },
+      {
+        "name": "shortDesktopCorrectionApplies",
+        "kind": "function",
+        "path": "client/src/scout/ScoutThread.evidence.test.ts",
+        "line": 1212,
+        "exported": false
+      },
+      {
         "name": "TestResizeObserver",
         "kind": "class",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1093,
+        "line": 1299,
         "exported": false
       },
       {
@@ -60811,7 +60842,7 @@
         "name": "extractQuotedText",
         "kind": "function",
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
-        "line": 506,
+        "line": 527,
         "exported": false
       },
       {
@@ -224635,11 +224666,11 @@
     }
   ],
   "summary": {
-    "directories": 211,
-    "source_files": 3674,
-    "symbols": 20046,
+    "directories": 212,
+    "source_files": 3675,
+    "symbols": 20049,
     "components": 1484,
-    "functions_and_hooks": 11165,
+    "functions_and_hooks": 11168,
     "raw_ui_elements": 7517,
     "errors": 1101,
     "warnings": 5

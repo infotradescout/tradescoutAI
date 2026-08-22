@@ -1070,6 +1070,204 @@ describe("Scout active-task auxiliary reachability", () => {
   });
 });
 
+describe("Scout short-viewport workbench evidence", () => {
+  it("records the exact adversarial 568x320 browser proof without treating it as a DOM simulation", () => {
+    const measured = {
+      viewport: { width: 568, height: 320 },
+      document: { clientHeight: 320, scrollHeight: 320, scrollY: 0 },
+      root: { clientHeight: 210, scrollHeight: 210, scrollTop: 0, overflowY: "hidden" },
+      ownerCounts: { task: 1, primary: 1, auxiliary: 1, work: 1, log: 1, composer: 1 },
+      dock: { top: 146, bottom: 258, renderedReserve: 112 },
+      workbench: {
+        top: 58,
+        bottom: 246,
+        clientHeight: 188,
+        scrollHeight: 564,
+        protectedHeight: 88,
+        paddingBottom: 101,
+        scrollPaddingBottom: 100,
+      },
+      keyboardPrimary: { top: 59.266, bottom: 144.141, height: 84.875, hit: true },
+      endpoint: {
+        work: { top: 56.953, bottom: 144.953 },
+        thread: { top: 112.344, bottom: 143.953 },
+      },
+    };
+
+    expect(measured.document).toEqual({ clientHeight: 320, scrollHeight: 320, scrollY: 0 });
+    expect(measured.root.scrollTop).toBe(0);
+    expect(measured.root.overflowY).toBe("hidden");
+    expect(Object.values(measured.ownerCounts).every((count) => count === 1)).toBe(true);
+    expect(measured.workbench.scrollHeight).toBeGreaterThan(measured.workbench.clientHeight);
+    expect(measured.workbench.protectedHeight).toBe(measured.dock.top - measured.workbench.top);
+    expect(measured.workbench.paddingBottom).toBe(measured.dock.renderedReserve - 0.75 * 16 + 1);
+    expect(measured.workbench.scrollPaddingBottom).toBe(measured.dock.renderedReserve - 0.75 * 16);
+    expect(measured.keyboardPrimary.top).toBeGreaterThanOrEqual(measured.workbench.top);
+    expect(measured.keyboardPrimary.bottom).toBeLessThanOrEqual(measured.dock.top);
+    expect(measured.keyboardPrimary.height).toBeLessThanOrEqual(measured.workbench.protectedHeight);
+    expect(measured.keyboardPrimary.hit).toBe(true);
+    expect(measured.endpoint.work.bottom).toBeLessThan(measured.dock.top);
+    expect(measured.endpoint.thread.bottom).toBeLessThan(measured.dock.top);
+  });
+
+  it("records the short-desktop owner handoff and its 480/481 boundary from browser evidence", () => {
+    // Captured with Playwright against the adversarial saved-thread fixture. These rows
+    // preserve measured browser evidence; they are not a jsdom layout simulation.
+    const measured = [
+      {
+        viewport: "768x320",
+        owner: "column",
+        clientHeight: 192,
+        scrollHeight: 472,
+        maxScrollTop: 280,
+        paddingBottom: 105,
+        scrollPaddingBottom: 104,
+        primary: [56, 143],
+        work: [55.391, 143.391],
+        thread: [110.781, 142.391],
+        dockTop: 144,
+      },
+      {
+        viewport: "768x360",
+        owner: "column",
+        clientHeight: 232,
+        scrollHeight: 481,
+        maxScrollTop: 249,
+        paddingBottom: 105,
+        scrollPaddingBottom: 104,
+        primary: [96, 183],
+        work: [95.188, 183.188],
+        thread: [150.578, 182.188],
+        dockTop: 184,
+      },
+      {
+        viewport: "768x361",
+        owner: "column",
+        clientHeight: 233,
+        scrollHeight: 481,
+        maxScrollTop: 248,
+        paddingBottom: 105,
+        scrollPaddingBottom: 104,
+        primary: [97, 184],
+        work: [96.406, 184.406],
+        thread: [151.797, 183.406],
+        dockTop: 185,
+      },
+      {
+        viewport: "1440x480",
+        owner: "column",
+        clientHeight: 350,
+        scrollHeight: 498,
+        maxScrollTop: 148,
+        paddingBottom: 105,
+        scrollPaddingBottom: 104,
+        primary: [149, 230],
+        work: [212.594, 300.594],
+        thread: [267.984, 299.594],
+        dockTop: 304,
+      },
+      {
+        viewport: "1440x481",
+        owner: "workbench",
+        clientHeight: 159,
+        scrollHeight: 311,
+        maxScrollTop: 152,
+        paddingBottom: 16,
+        scrollPaddingBottom: "auto",
+        primary: [175, 256],
+        work: [173, 261],
+        thread: [228.391, 260],
+        dockTop: 305,
+      },
+    ] as const;
+
+    expect(measured.map(({ viewport, owner }) => ({ viewport, owner }))).toEqual([
+      { viewport: "768x320", owner: "column" },
+      { viewport: "768x360", owner: "column" },
+      { viewport: "768x361", owner: "column" },
+      { viewport: "1440x480", owner: "column" },
+      { viewport: "1440x481", owner: "workbench" },
+    ]);
+    for (const row of measured) {
+      expect(row.scrollHeight - row.clientHeight).toBe(row.maxScrollTop);
+      expect(row.primary[0]).toBeLessThan(row.primary[1]);
+      expect(row.primary[1]).toBeLessThan(row.dockTop);
+      expect(row.work[1]).toBeLessThan(row.dockTop);
+      expect(row.thread[1]).toBeLessThan(row.dockTop);
+    }
+  });
+
+  it("keeps the mobile and short-desktop owner boundaries explicit", () => {
+    const mobileCorrectionApplies = (width: number) => width <= 767;
+    const mobileClampApplies = (width: number, height: number) =>
+      mobileCorrectionApplies(width) && height <= 420;
+    const shortDesktopCorrectionApplies = (width: number, height: number) =>
+      width >= 768 && height <= 480;
+    const shortDesktopClampApplies = shortDesktopCorrectionApplies;
+    const boundaries = [
+      {
+        width: 640,
+        height: 420,
+        mobileCorrection: true,
+        mobileClamp: true,
+        shortDesktopCorrection: false,
+        shortDesktopClamp: false,
+      },
+      {
+        width: 641,
+        height: 421,
+        mobileCorrection: true,
+        mobileClamp: false,
+        shortDesktopCorrection: false,
+        shortDesktopClamp: false,
+      },
+      {
+        width: 767,
+        height: 420,
+        mobileCorrection: true,
+        mobileClamp: true,
+        shortDesktopCorrection: false,
+        shortDesktopClamp: false,
+      },
+      {
+        width: 768,
+        height: 420,
+        mobileCorrection: false,
+        mobileClamp: false,
+        shortDesktopCorrection: true,
+        shortDesktopClamp: true,
+      },
+      {
+        width: 1440,
+        height: 480,
+        mobileCorrection: false,
+        mobileClamp: false,
+        shortDesktopCorrection: true,
+        shortDesktopClamp: true,
+      },
+      {
+        width: 1440,
+        height: 481,
+        mobileCorrection: false,
+        mobileClamp: false,
+        shortDesktopCorrection: false,
+        shortDesktopClamp: false,
+      },
+    ];
+
+    expect(
+      boundaries.map(({ width, height }) => ({
+        width,
+        height,
+        mobileCorrection: mobileCorrectionApplies(width),
+        mobileClamp: mobileClampApplies(width, height),
+        shortDesktopCorrection: shortDesktopCorrectionApplies(width, height),
+        shortDesktopClamp: shortDesktopClampApplies(width, height),
+      }))
+    ).toEqual(boundaries);
+  });
+});
+
 describe("Scout fixed search dock reserve", () => {
   it("tracks the rendered dock height without locking it to the measured reserve", () => {
     const shell = document.createElement("div");

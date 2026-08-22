@@ -4147,7 +4147,7 @@ export default function ScoutOS() {
     >
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
-          className={`w-full ${
+          className={`scout-active-layout w-full ${
             isMobile ? "px-3 pt-2.5 pb-12" : "max-w-7xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
@@ -4171,7 +4171,7 @@ export default function ScoutOS() {
             }
           >
             <div
-              className={`w-full flex flex-1 flex-col min-h-0 relative ${
+              className={`scout-active-column w-full flex flex-1 flex-col min-h-0 relative ${
                 isMobile || showDiscoveryRail ? "" : "max-w-4xl mx-auto"
               }`}
             >
