@@ -278,6 +278,11 @@ describe("JW Stone compact color swatch selector", () => {
       expect(
         container.querySelector('[data-testid="jw-mood-rail"]')?.getAttribute("data-expanded")
       ).toBe("false");
+      expect(
+        container
+          .querySelector('[data-testid="jw-mood-rail-toggle"] img')
+          ?.getAttribute("src")
+      ).toContain("/story/mont-blanc-bar.webp");
       act(() => {
         container
           .querySelector('[data-testid="jw-mood-rail-toggle"]')

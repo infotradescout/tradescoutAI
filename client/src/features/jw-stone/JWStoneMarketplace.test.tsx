@@ -8,8 +8,13 @@ import JWStoneMarketplace from "./JWStoneMarketplace";
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
+const authState = vi.hoisted(() => ({
+  user: null as { id: number; email: string } | null,
+  isAuthenticated: false,
+}));
+
 vi.mock("@/hooks/useAuth", () => ({
-  useAuth: () => ({ user: null, isAuthenticated: false }),
+  useAuth: () => authState,
 }));
 
 vi.mock("@/components/SEOHelmet", () => ({
@@ -57,6 +62,8 @@ describe("JW Stone marketplace luxury layout", () => {
   let root: Root;
 
   beforeEach(() => {
+    authState.user = null;
+    authState.isAuthenticated = false;
     window.history.replaceState(null, "", "/jw-stone");
     window.localStorage.clear();
     container = document.createElement("div");
@@ -117,8 +124,19 @@ describe("JW Stone marketplace luxury layout", () => {
         ?.getAttribute("href")
     ).toBe("tel:+18505430748");
     expect(companyIdentity?.querySelector('a[href^="https://www.google.com/maps"]')).toBeNull();
-    expect(companyIdentity?.querySelector('a[href^="https://www.instagram.com"]')).toBeNull();
-    expect(companyIdentity?.querySelector('a[href^="https://www.facebook.com"]')).toBeNull();
+    expect(
+      companyIdentity
+        ?.querySelector('[data-testid="jw-social-instagram"]')
+        ?.getAttribute("href")
+    ).toBe("https://www.instagram.com/jwstonellc/");
+    expect(
+      companyIdentity
+        ?.querySelector('[data-testid="jw-social-facebook"]')
+        ?.getAttribute("href")
+    ).toBe("https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/");
+    expect(
+      companyIdentity?.querySelector('[data-testid="jw-social-youtube"]')?.getAttribute("href")
+    ).toBe("https://www.youtube.com/@JWStoneLogistics");
     expect(container.textContent).not.toContain("Why JW Stone");
     expect(container.textContent).not.toContain("How do I confirm availability or pricing?");
     expect(container.querySelector('[data-testid="jw-marketplace-trust"]')).toBeNull();
@@ -183,6 +201,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelector('[data-testid="jw-inventory-categories"]')).toBeNull();
 
     const colorToggle = container.querySelector('[data-testid="jw-palette-rail-toggle"]');
+    const moodToggle = container.querySelector('[data-testid="jw-mood-rail-toggle"]');
     const materialToggle = container.querySelector('[data-testid="jw-material-rail-toggle"]');
     const inventoryToggle = container.querySelector('[data-testid="jw-inventory-toggle"]');
     // One calm cue only — never dual "Tap to open" (under-title + pill).
@@ -190,6 +209,9 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(container.querySelectorAll('[data-testid$="-expand-hint"]')).toHaveLength(0);
     expect(
       colorToggle?.querySelector('[data-testid="jw-palette-rail-expand-cue"]')?.textContent
+    ).toMatch(/^Open$/);
+    expect(
+      moodToggle?.querySelector('[data-testid="jw-mood-rail-expand-cue"]')?.textContent
     ).toMatch(/^Open$/);
     expect(
       materialToggle?.querySelector('[data-testid="jw-material-rail-expand-cue"]')?.textContent
@@ -215,6 +237,10 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(collageSrcs.some((src) => src.includes("07-blue.webp"))).toBe(true);
     expect(collageSrcs.some((src) => src.includes("09-gold.webp"))).toBe(true);
     expect(collageSrcs.some((src) => src.includes("/black-pearl/"))).toBe(false);
+
+    expect(moodToggle?.querySelector("img")?.getAttribute("src")).toContain(
+      "/story/mont-blanc-bar.webp"
+    );
 
     expect(materialToggle?.querySelector('[data-testid="jw-material-collage"]')).not.toBeNull();
     expect(
@@ -323,6 +349,22 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(branded?.style.getPropertyValue("--jw-dark").trim()).toBe("#2a2724");
     expect(branded?.className).toMatch(/pb-\[calc\(5\.75rem/);
     expect(document.documentElement.classList.contains("jw-marketplace-scroll")).toBe(true);
+  });
+
+  it("shows Account instead of Create account after TradeScout authentication", () => {
+    authState.user = { id: 42, email: "owner@example.com" };
+    authState.isAuthenticated = true;
+    act(() => root.render(<JWStoneMarketplace />));
+
+    const accountButton = container.querySelector('[data-testid="jw-marketplace-account-button"]');
+    expect(accountButton?.textContent).toMatch(/^Account$/);
+    expect(accountButton?.getAttribute("aria-label")).toBe("Open your TradeScout account");
+    expect(accountButton?.textContent).not.toContain("Create account");
+
+    click(container.querySelector('[data-testid="jw-marketplace-menu-button"]'));
+    const menu = container.querySelector('[data-testid="jw-marketplace-menu-panel"]');
+    expect(menu?.textContent).toContain("Account");
+    expect(menu?.textContent).not.toContain("Create account");
   });
 
   it("opens company navigation and Start a Request from the menu", () => {

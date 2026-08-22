@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T02:29:57Z",
+  "generated_at": "2026-08-22T02:51:12Z",
   "source": {
     "kind": "git",
-    "revision": "5f57c490c3b76deedf5755978df57880a57fa744",
-    "dirty": false,
-    "inventory_sha256": "b0e55d70ff230c8d02481d78b44bf361e60ae19dba3fc0619eff07ddf880bba8"
+    "revision": "e16deb9fd46d084b77d307e806ef005d2ccb222f",
+    "dirty": true,
+    "inventory_sha256": "a79437003f29ae6853b032e4f12e8faf924fdedb07ffc81523f2a7ca3da44053"
   },
   "inventory": {
     "directories": [
@@ -816,10 +816,6 @@
       },
       {
         "path": "src/db",
-        "source_file_count": 1
-      },
-      {
-        "path": "test-results/assets",
         "source_file_count": 1
       },
       {
@@ -2213,8 +2209,8 @@
       {
         "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
         "language": "tsx",
-        "sha256": "d9df80c7327b9961fe90a01d3ce7d43dcd5548bf529827a5ec046a4fb4746f4c",
-        "bytes": 22312
+        "sha256": "d56cea3c2d8a846f527918d48b310f442ea2281309a60b17db32587fd18ff724",
+        "bytes": 22896
       },
       {
         "path": "client/src/components/profile/PublicProfileItems.test.ts",
@@ -2843,14 +2839,14 @@
       {
         "path": "client/src/features/jw-stone/ColorPaletteRail.test.tsx",
         "language": "tsx",
-        "sha256": "98e8a20942c45838f405edded606667bb31c242b9e9e37aa46d3bb4136e6c993",
-        "bytes": 12379
+        "sha256": "4f8e0fd7e43e3a29528e25263f9b2b4377413e8818c9c6fbb2f64c7ca8af3cea",
+        "bytes": 12556
       },
       {
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
         "language": "tsx",
-        "sha256": "2146e7bb36b8a287ec315aeec78085607073a1790778a3840dec1e5459aef8d7",
-        "bytes": 17464
+        "sha256": "def10a7f0a3e7f1ea4cbba87de9f0f0cfce300209ed83c9ddcfede1409fb348b",
+        "bytes": 17511
       },
       {
         "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
@@ -2873,14 +2869,14 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
         "language": "tsx",
-        "sha256": "6f243decae57f6453982c3c91dfb76c1bdd7074c266486b82bc8dc750634a6b8",
-        "bytes": 53439
+        "sha256": "2d0ff3e766ec942aee8c35488dc211967aa6bd3a87093e4e5433b994e51052e6",
+        "bytes": 55138
       },
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
         "language": "tsx",
-        "sha256": "4b741624700d8d65e55fbe7be793116d8bf48c526049e88a1766fda7a502dabc",
-        "bytes": 13187
+        "sha256": "368fe716529b73959ec0d9feea8dce917de49750061f5e31d44e70ab8498c592",
+        "bytes": 13267
       },
       {
         "path": "client/src/features/jw-stone/JwCollapsibleSection.test.tsx",
@@ -2897,8 +2893,8 @@
       {
         "path": "client/src/features/jw-stone/JwStoneCompanySection.tsx",
         "language": "tsx",
-        "sha256": "2ce41d7aab2df007b3bcb61c26e2b4788814e30ef663d2ab532180b12d3e4b08",
-        "bytes": 10481
+        "sha256": "a64822a99fe9f6d5049f2002443f34a25122a7a2c2ae735589a851729c919bfd",
+        "bytes": 10254
       },
       {
         "path": "client/src/features/jw-stone/JwStoneProfileContext.tsx",
@@ -2939,8 +2935,8 @@
       {
         "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
         "language": "tsx",
-        "sha256": "2f965e41d12fe3c2590142c7795466c3972a6aee76ca259378ca9f12feaf5020",
-        "bytes": 6552
+        "sha256": "7d6575cd3585f64c7e7dccdb89542eda7ea110a63753a94387cbf60d2ad54292",
+        "bytes": 6727
       },
       {
         "path": "client/src/features/jw-stone/MarketplaceIntroduction.tsx",
@@ -6359,8 +6355,8 @@
       {
         "path": "client/src/pages/reset-password.tsx",
         "language": "tsx",
-        "sha256": "0ca0ed77ae848488a8ea425df284ddca18f297e822783f914c5920bc010c3d0e",
-        "bytes": 9746
+        "sha256": "3d842a96bde185b1024faa9a82d910c89c85db1a37e741720346cdacc19c4c2e",
+        "bytes": 10017
       },
       {
         "path": "client/src/pages/resetPasswordLocation.test.ts",
@@ -16763,8 +16759,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "ad6046ce6adb2ede70a609219430fdbe0459aa96a6c1157167bd9b12e89405af",
-        "bytes": 995199
+        "sha256": "1caa09dac1462c877945090e98220672b2e5007e1e22d9c6e5a9c8565c381a96",
+        "bytes": 1021835
       },
       {
         "path": "server/routes/admin-business-county-enrichment.ts",
@@ -20267,14 +20263,14 @@
       {
         "path": "server/tests/profile-account-domain.test.ts",
         "language": "ts",
-        "sha256": "509a62d666108f4983122827f351ca1faa2c6fe34f43284d00689ec0a857d71f",
-        "bytes": 3719
+        "sha256": "3fd68e14779827460bc00ed48b8961a5b0b535922ea6efde5443b92578a08895",
+        "bytes": 3825
       },
       {
         "path": "server/tests/profile-account-foundation.contract.test.ts",
         "language": "ts",
-        "sha256": "36d7bcf53745cdc9e8a112d925095fe44d05ad81b57ba888e35dd0a2f4bf8d16",
-        "bytes": 7720
+        "sha256": "e74cefe5f355eb86f7e5c9abf5b9e131b3db920434f8b14b7b2da92393fc4aa1",
+        "bytes": 7864
       },
       {
         "path": "server/tests/profile-account-public-route-migration.contract.test.ts",
@@ -22175,8 +22171,8 @@
       {
         "path": "shared/profileAccount.ts",
         "language": "ts",
-        "sha256": "49ce5e699c5788dbf61755f2a4e3f51636fcf0f9f2c43435485ef17d26107711",
-        "bytes": 4959
+        "sha256": "493f65df13cfb01787a4f9d43d4e25541d143d7eff21238b3dcf4830dab6e767",
+        "bytes": 5116
       },
       {
         "path": "shared/profileBookingConfig.ts",
@@ -22471,12 +22467,6 @@
         "language": "ts",
         "sha256": "edca1c96e4b84d26b002a071d396210bba8ecf661b106b28673149bed220ea6b",
         "bytes": 7419
-      },
-      {
-        "path": "test-results/assets/index-DaKof6xz.js",
-        "language": "js",
-        "sha256": "76a72613f69c2c658c63570f4ae708526a0f3acf0dcc5722f236ed10fa8463d5",
-        "bytes": 777636
       },
       {
         "path": "test-runner.js",
@@ -32499,112 +32489,112 @@
         "name": "ColorSwatchOptionDef",
         "kind": "type",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 144,
+        "line": 145,
         "exported": false
       },
       {
         "name": "ColorSwatchSelection",
         "kind": "type",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 154,
+        "line": 155,
         "exported": true
       },
       {
         "name": "countForColorSwatch",
         "kind": "function",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 166,
+        "line": 167,
         "exported": true
       },
       {
         "name": "isColorSwatchActive",
         "kind": "function",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 185,
+        "line": 186,
         "exported": true
       },
       {
         "name": "selectionForColorSwatch",
         "kind": "function",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 196,
+        "line": 197,
         "exported": true
       },
       {
         "name": "ColorFaceCue",
         "kind": "component",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 205,
+        "line": 206,
         "exported": false
       },
       {
         "name": "ColorSwatchChipRowProps",
         "kind": "type",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 244,
+        "line": 245,
         "exported": false
       },
       {
         "name": "ColorSwatchChipRow",
         "kind": "component",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 259,
+        "line": 260,
         "exported": true
       },
       {
         "name": "MoodSwatchChipRowProps",
         "kind": "type",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 310,
+        "line": 311,
         "exported": false
       },
       {
         "name": "MoodSwatchChipRow",
         "kind": "component",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 314,
+        "line": 315,
         "exported": true
       },
       {
         "name": "ColorPaletteRailProps",
         "kind": "type",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 364,
+        "line": 365,
         "exported": false
       },
       {
         "name": "activeColorSwatchLabel",
         "kind": "function",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 377,
+        "line": 378,
         "exported": false
       },
       {
         "name": "ColorPaletteRail",
         "kind": "component",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 391,
+        "line": 392,
         "exported": true
       },
       {
         "name": "MoodPaletteRailProps",
         "kind": "type",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 466,
+        "line": 467,
         "exported": false
       },
       {
         "name": "activeMoodSwatchLabel",
         "kind": "function",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 468,
+        "line": 469,
         "exported": false
       },
       {
         "name": "MoodPaletteRail",
         "kind": "component",
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-        "line": 480,
+        "line": 481,
         "exported": true
       },
       {
@@ -32695,28 +32685,28 @@
         "name": "DirectConnectMockProps",
         "kind": "type",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
-        "line": 18,
+        "line": 23,
         "exported": false
       },
       {
         "name": "click",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
-        "line": 33,
+        "line": 38,
         "exported": false
       },
       {
         "name": "change",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
-        "line": 38,
+        "line": 43,
         "exported": false
       },
       {
         "name": "buttonContaining",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
-        "line": 46,
+        "line": 51,
         "exported": false
       },
       {
@@ -32751,70 +32741,70 @@
         "name": "closeStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 112,
+        "line": 114,
         "exported": false
       },
       {
         "name": "openStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 117,
+        "line": 119,
         "exported": false
       },
       {
         "name": "openSavedStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 127,
+        "line": 129,
         "exported": false
       },
       {
         "name": "startRequest",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 133,
+        "line": 135,
         "exported": false
       },
       {
         "name": "askAboutStone",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 139,
+        "line": 141,
         "exported": false
       },
       {
         "name": "openAccount",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 143,
+        "line": 145,
         "exported": false
       },
       {
         "name": "changeAccountOpen",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 148,
+        "line": 150,
         "exported": false
       },
       {
         "name": "selectPalette",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 153,
+        "line": 155,
         "exported": false
       },
       {
         "name": "selectMaterial",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 170,
+        "line": 172,
         "exported": false
       },
       {
         "name": "enterFullInventory",
         "kind": "function",
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
-        "line": 186,
+        "line": 188,
         "exported": false
       },
       {
@@ -32989,28 +32979,28 @@
         "name": "MarketplaceHeader",
         "kind": "component",
         "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-        "line": 17,
+        "line": 18,
         "exported": true
       },
       {
         "name": "onKey",
         "kind": "function",
         "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-        "line": 29,
+        "line": 31,
         "exported": false
       },
       {
         "name": "onPointer",
         "kind": "function",
         "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-        "line": 32,
+        "line": 34,
         "exported": false
       },
       {
         "name": "closeAnd",
         "kind": "function",
         "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-        "line": 42,
+        "line": 44,
         "exported": false
       },
       {
@@ -166610,12 +166600,12 @@
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-          "line": 286
+          "line": 287
         },
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
-          "line": 340
+          "line": 341
         },
         {
           "tag": "button",
@@ -166665,27 +166655,27 @@
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-          "line": 68
+          "line": 74
         },
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-          "line": 86
+          "line": 92
         },
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-          "line": 98
+          "line": 104
         },
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-          "line": 122
+          "line": 128
         },
         {
           "tag": "button",
           "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
-          "line": 150
+          "line": 156
         },
         {
           "tag": "button",
@@ -223418,8 +223408,8 @@
     }
   ],
   "summary": {
-    "directories": 212,
-    "source_files": 3661,
+    "directories": 211,
+    "source_files": 3660,
     "symbols": 19892,
     "components": 1481,
     "functions_and_hooks": 11055,

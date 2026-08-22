@@ -5,6 +5,7 @@ import { ColorCollageBackground } from "./ColorCollageBackground";
 import { isHandOnlyStone } from "./coverImages";
 import { JwCollapsibleSection } from "./JwCollapsibleSection";
 import { MaterialStonePager } from "./MaterialStonePager";
+import { JW_STORY_BACKGROUNDS } from "./storyBackgrounds";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import type { StoneColorId } from "./stoneColors";
 
@@ -512,8 +513,8 @@ export function MoodPaletteRail({
       testId="jw-mood-rail"
       headingId="jw-mood-heading"
       title="Browse by mood"
-      summary="Explore the character and movement of the stone."
       defaultExpanded={false}
+      backgroundSrc={JW_STORY_BACKGROUNDS.montBlancBar.src}
     >
       {!hasSelection ? (
         <p className={`mb-4 text-sm leading-relaxed ${jw.muted}`} data-testid="jw-mood-prompt">
