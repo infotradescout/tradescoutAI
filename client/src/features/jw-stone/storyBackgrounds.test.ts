@@ -22,7 +22,7 @@ describe("JW story backgrounds", () => {
     expect(colorJoined).not.toContain("/black-pearl/");
 
     expect(MATERIAL_SECTION_BACKGROUND.src).toContain(
-      "/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp"
+      "/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp"
     );
     expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/story/");
     expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/material-covers/");

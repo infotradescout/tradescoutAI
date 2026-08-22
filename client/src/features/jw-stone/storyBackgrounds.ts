@@ -80,8 +80,8 @@ export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
  * not finished-room photography. Same yard frame used as the profile browse CTA.
  */
 export const MATERIAL_SECTION_BACKGROUND = {
-  src: "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-  alt: "Natural stone slabs in the JW Stone warehouse",
+  src: "/images/businesses/jw-stone/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp",
+  alt: "Detailed natural stone slab from the JW Stone inventory",
 } as const;
 
 /** Full inventory — outdoor slab-yard atmosphere (no editorial caption). */

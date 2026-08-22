@@ -245,7 +245,7 @@ describe("JW Stone marketplace luxury layout", () => {
       materialToggle?.querySelectorAll('[data-testid="jw-material-collage"] img') || []
     ).map((img) => img.getAttribute("src") || "");
     expect(materialSrcs).toHaveLength(1);
-    expect(materialSrcs[0]).toContain("/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp");
+    expect(materialSrcs[0]).toContain("/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp");
     expect(materialSrcs[0]).not.toContain("/material-covers/");
     expect(materialSrcs[0]).not.toContain("/color-collage/");
     expect(materialSrcs[0]).not.toContain("/story/");

@@ -514,7 +514,7 @@ export function MoodPaletteRail({
       headingId="jw-mood-heading"
       title="Browse by mood"
       defaultExpanded={false}
-      backgroundSrc={JW_STORY_BACKGROUNDS.montBlancBar.src}
+      backgroundSrc={JW_STORY_BACKGROUNDS.livingRoom.src}
     >
       {!hasSelection ? (
         <p className={`mb-4 text-sm leading-relaxed ${jw.muted}`} data-testid="jw-mood-prompt">
