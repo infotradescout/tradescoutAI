@@ -18,7 +18,7 @@ import {
   Store,
   Users2,
 } from "lucide-react";
-import type { ScoutLocality, ScoutMode } from "./api";
+import type { ScoutActionChip, ScoutLocality, ScoutMode } from "./api";
 import type {
   ScoutAction,
   ScoutCluster,
@@ -43,6 +43,7 @@ type ScoutThreadProps = {
   status: ScoutStatus;
   mode?: ScoutMode;
   showControllerExtras?: boolean;
+  currentTurnPrimaryAction?: ScoutAction | null;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
@@ -53,19 +54,32 @@ type ScoutThreadProps = {
   locality?: ScoutLocality;
 };
 
-type ScoutFrameScheduler = (callback: FrameRequestCallback) => number;
+type ScoutThreadScrollTarget = Pick<HTMLElement, "scrollHeight" | "scrollTo">;
+type ScoutThreadViewportTarget = Pick<HTMLElement, "clientHeight" | "scrollHeight" | "scrollTop">;
 
-export function scrollOpenScoutTaskHistoryToLatest(
-  history: HTMLDetailsElement,
-  scheduleFrame: ScoutFrameScheduler = requestAnimationFrame
+const SCOUT_THREAD_NEAR_LATEST_PX = 32;
+
+export function scrollScoutThreadToLatest(
+  thread: ScoutThreadScrollTarget,
+  behavior: ScrollBehavior = "auto"
 ): void {
-  if (!history.open) return;
+  thread.scrollTo({ top: thread.scrollHeight, behavior });
+}
 
-  scheduleFrame(() => {
-    const thread = history.querySelector<HTMLElement>(".scout-thread");
-    if (!thread) return;
-    thread.scrollTo({ top: thread.scrollHeight, behavior: "auto" });
-  });
+export function isScoutThreadNearLatest(
+  thread: ScoutThreadViewportTarget,
+  threshold = SCOUT_THREAD_NEAR_LATEST_PX
+): boolean {
+  const remaining = thread.scrollHeight - thread.clientHeight - thread.scrollTop;
+  return Math.max(0, remaining) <= threshold;
+}
+
+function findLatestAssistantMessageId(messages: ScoutMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.role === "assistant") return message.id;
+  }
+  return null;
 }
 
 const SUMMARY_MAX_CHARS = 150;
@@ -206,6 +220,46 @@ function normalizeActionText(value: string): string {
 
 function actionTarget(action: ScoutAction): string {
   return String(action.to || action.path || action.prompt || action.payload?.route || action.type);
+}
+
+function actionsMatch(left: ScoutAction, right: ScoutAction): boolean {
+  const identity = (action: ScoutAction) => {
+    const target =
+      action.to ||
+      action.path ||
+      action.prompt ||
+      action.payload?.route ||
+      action.payload?.name ||
+      JSON.stringify(action.payload || {});
+    return [
+      action.type,
+      normalizeActionText(action.label || ""),
+      String(target).toLowerCase(),
+    ].join("::");
+  };
+
+  return identity(left) === identity(right);
+}
+
+function frameChipToAction(chip: ScoutActionChip): ScoutAction {
+  const args =
+    chip.args && typeof chip.args === "object" ? (chip.args as Record<string, unknown>) : undefined;
+  if (chip.kind === "NAVIGATE") {
+    return {
+      type: "NAVIGATE",
+      label: chip.label,
+      to: chip.target,
+      path: chip.target,
+      payload: args,
+      primary: chip.priority === "primary",
+    };
+  }
+  return {
+    type: chip.kind,
+    label: chip.label,
+    payload: { ...(args || {}), name: chip.target },
+    primary: chip.priority === "primary",
+  };
 }
 
 function clusterKindMeta(kind: ScoutCluster["kind"]) {
@@ -384,9 +438,11 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
 function ClusterCard({
   cluster,
   onAction,
+  currentTurnPrimaryAction,
 }: {
   cluster: ScoutCluster;
   onAction?: (action: ScoutAction) => void;
+  currentTurnPrimaryAction?: ScoutAction | null;
 }) {
   const handleAction = (action: ScoutAction) => {
     if (onAction) {
@@ -401,7 +457,14 @@ function ClusterCard({
   const isFeatured = Boolean(cluster.primaryAction);
 
   const prioritizedActions = React.useMemo(() => {
-    const actions = mergeClusterActions(cluster);
+    const actions = mergeClusterActions(cluster).filter(
+      (action) =>
+        !(
+          currentTurnPrimaryAction &&
+          action.primary === true &&
+          actionsMatch(action, currentTurnPrimaryAction)
+        )
+    );
     return [...actions].sort((a, b) => {
       if (a.primary !== b.primary) return a.primary ? -1 : 1;
       const aIsNavigate = a.type === "NAVIGATE";
@@ -412,7 +475,7 @@ function ClusterCard({
       if (aIsAsk !== bIsAsk) return aIsAsk ? 1 : -1;
       return 0;
     });
-  }, [cluster]);
+  }, [cluster, currentTurnPrimaryAction]);
 
   const visibleActions = React.useMemo(
     () => (showAllActions ? prioritizedActions : prioritizedActions.slice(0, 3)),
@@ -576,6 +639,7 @@ function MessageExtras({
   msg,
   isUser,
   showControllerExtras,
+  currentTurnPrimaryAction,
   onAction,
   onQuickAction,
   onOverride,
@@ -585,6 +649,7 @@ function MessageExtras({
   msg: ScoutMessage;
   isUser: boolean;
   showControllerExtras: boolean;
+  currentTurnPrimaryAction?: ScoutAction | null;
   onAction?: (action: ScoutAction) => void;
   onQuickAction?: (text: string) => void;
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
@@ -617,14 +682,21 @@ function MessageExtras({
     [msg.resultContract?.ambiguity_options]
   );
   const remainingContractActions = React.useMemo(
-    () => contractActionEntries.filter(({ source }) => !ambiguityActionIds.has(source.action_id)),
-    [ambiguityActionIds, contractActionEntries]
+    () =>
+      contractActionEntries.filter(
+        ({ source, action }) =>
+          !ambiguityActionIds.has(source.action_id) &&
+          !(
+            currentTurnPrimaryAction &&
+            source.primary === true &&
+            actionsMatch(action, currentTurnPrimaryAction)
+          )
+      ),
+    [ambiguityActionIds, contractActionEntries, currentTurnPrimaryAction]
   );
-  const hasContractActions = contractActionEntries.length > 0;
+  const hasContractActions = ambiguityActions.length > 0 || remainingContractActions.length > 0;
   const contractEntities = msg.resultContract?.entities || [];
   const hasContractEntities = contractEntities.length > 0;
-  const hasActionChips =
-    !hasResultContract && Boolean(msg.frame?.actionChips && msg.frame.actionChips.length > 0);
   const hasClusters = !hasResultContract && Boolean(msg.clusters && msg.clusters.length > 0);
   const hasOverride = !hasResultContract && Boolean(msg.overrideOption);
   const hasOnboardingPrompt = Boolean(
@@ -637,7 +709,15 @@ function MessageExtras({
 
   const prioritizedActionChips = React.useMemo(() => {
     const chips = Array.isArray(msg.frame?.actionChips) ? msg.frame.actionChips : [];
-    return [...chips].sort((a, b) => {
+    const availableChips = chips.filter(
+      (chip) =>
+        !(
+          currentTurnPrimaryAction &&
+          chip.priority === "primary" &&
+          actionsMatch(frameChipToAction(chip), currentTurnPrimaryAction)
+        )
+    );
+    return [...availableChips].sort((a, b) => {
       const aIsNavigate = a.kind === "NAVIGATE";
       const bIsNavigate = b.kind === "NAVIGATE";
       if (aIsNavigate !== bIsNavigate) return aIsNavigate ? -1 : 1;
@@ -646,7 +726,8 @@ function MessageExtras({
       if (aHasSubtitle !== bHasSubtitle) return aHasSubtitle ? -1 : 1;
       return 0;
     });
-  }, [msg.frame?.actionChips]);
+  }, [currentTurnPrimaryAction, msg.frame?.actionChips]);
+  const hasActionChips = !hasResultContract && prioritizedActionChips.length > 0;
 
   const visibleActionChips = React.useMemo(
     () => (controllerShowAll ? prioritizedActionChips : prioritizedActionChips.slice(0, 2)),
@@ -843,7 +924,7 @@ function MessageExtras({
           {controllerOpen && (
             <div className="space-y-3">
               {/* Action chips */}
-              {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
+              {hasActionChips && (
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
                     {visibleActionChips.map((chip) => (
@@ -907,7 +988,12 @@ function MessageExtras({
               {msg.clusters && msg.clusters.length > 0 && (
                 <div className="space-y-2">
                   {visibleClusters.map((cluster) => (
-                    <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
+                    <ClusterCard
+                      key={cluster.id}
+                      cluster={cluster}
+                      onAction={onAction}
+                      currentTurnPrimaryAction={currentTurnPrimaryAction}
+                    />
                   ))}
                   {msg.clusters.length > 2 && (
                     <button
@@ -1047,6 +1133,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
   status,
   showControllerExtras = true,
+  currentTurnPrimaryAction,
   onAction,
   onQuickAction,
   onOverride,
@@ -1054,33 +1141,58 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onSendMessage,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
+  const retainLatestOnResizeRef = React.useRef(true);
 
   React.useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage) return;
-    if (lastMessage.role === "assistant") {
-      const target = node.querySelector<HTMLElement>(`[data-scout-message-id="${lastMessage.id}"]`);
-      if (target) {
-        target.scrollIntoView({ block: "end", behavior: "smooth" });
-        return;
-      }
-    }
-    node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
+    scrollScoutThreadToLatest(node, "auto");
+    retainLatestOnResizeRef.current = true;
   }, [messages]);
+
+  React.useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const rememberReaderPosition = () => {
+      retainLatestOnResizeRef.current = isScoutThreadNearLatest(node);
+    };
+    rememberReaderPosition();
+    node.addEventListener("scroll", rememberReaderPosition, { passive: true });
+
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            if (!retainLatestOnResizeRef.current) return;
+            scrollScoutThreadToLatest(node, "auto");
+          });
+    resizeObserver?.observe(node);
+
+    return () => {
+      resizeObserver?.disconnect();
+      node.removeEventListener("scroll", rememberReaderPosition);
+    };
+  }, []);
 
   const showProgress = status !== "idle" && status !== "error";
   const statusLabel =
     status === "executing_action" ? "Completing the selected action..." : "Scout is working...";
+  const currentTurnMessageId = currentTurnPrimaryAction
+    ? findLatestAssistantMessageId(messages)
+    : null;
 
   return (
     <div
       ref={containerRef}
       className="scout-thread scout-thread--task-loop space-y-4 flex-1 min-h-0 overflow-y-auto"
       role="log"
+      aria-label="Conversation and result record"
       aria-live="polite"
       aria-relevant="additions text"
+      tabIndex={0}
     >
       {messages.map((msg) => {
         const isUser = msg.role === "user";
@@ -1160,6 +1272,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               msg={msg}
               isUser={isUser}
               showControllerExtras={showControllerExtras}
+              currentTurnPrimaryAction={
+                msg.id === currentTurnMessageId ? currentTurnPrimaryAction : null
+              }
               onAction={onAction}
               onQuickAction={onQuickAction}
               onOverride={onOverride}
