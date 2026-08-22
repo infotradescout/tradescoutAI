@@ -5,8 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { isProfileAccountResumePath } from "@/components/profile/profileAccountClient";
+import { isSafeNextPath } from "@/lib/postOnboardingRoute";
 
 type VerifyState = "loading" | "success" | "error";
+
+function readSafeNext(): string {
+  const requested = String(new URLSearchParams(window.location.search).get("next") || "").trim();
+  return isSafeNextPath(requested) ? requested : "";
+}
+
+function verificationRecoveryPath(): string {
+  const safeNext = readSafeNext();
+  return safeNext ? `/check-email?next=${encodeURIComponent(safeNext)}` : "/check-email";
+}
 
 export default function VerifyEmail() {
   const [, setLocation] = useLocation();
@@ -15,12 +27,12 @@ export default function VerifyEmail() {
   const [state, setState] = useState<VerifyState>("loading");
   const [message, setMessage] = useState("Verifying...");
   const [verifiedEmail, setVerifiedEmail] = useState<string>("");
+  const [verifiedSession, setVerifiedSession] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token") || "";
-    const nextParam = (params.get("next") || "").trim();
-    const safeNext = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
+    const safeNext = readSafeNext();
 
     if (!token) {
       setState("error");
@@ -35,6 +47,7 @@ export default function VerifyEmail() {
         setState("success");
         setMessage(resp?.message || "Email verified.");
         setVerifiedEmail(typeof resp?.email === "string" ? resp.email : "");
+        setVerifiedSession(resp?.autoLoggedIn === true);
         // If the server auto-logged us in, refresh the auth cache so isAuthenticated
         // reflects the new session before the redirect effect fires.
         if (resp?.autoLoggedIn) {
@@ -70,11 +83,9 @@ export default function VerifyEmail() {
 
   useEffect(() => {
     if (state !== "success") return;
-    const params = new URLSearchParams(window.location.search);
-    const nextParam = (params.get("next") || "").trim();
-    const safeNext = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
+    const safeNext = readSafeNext();
     const t = window.setTimeout(() => {
-      if (isAuthenticated) {
+      if (isAuthenticated || verifiedSession || isProfileAccountResumePath(safeNext)) {
         setLocation(safeNext || "/pre-scout-setup");
         return;
       }
@@ -85,7 +96,7 @@ export default function VerifyEmail() {
       );
     }, 900);
     return () => window.clearTimeout(t);
-  }, [state, isAuthenticated, setLocation, verifiedEmail]);
+  }, [state, isAuthenticated, setLocation, verifiedEmail, verifiedSession]);
 
   return (
     <div className="flex items-center justify-center px-4 py-10 text-white">
@@ -99,21 +110,14 @@ export default function VerifyEmail() {
             <Button
               className="w-full"
               onClick={() => {
-                if (isAuthenticated) {
-                  const params = new URLSearchParams(window.location.search);
-                  const nextParam = (params.get("next") || "").trim();
-                  const safeNext =
-                    nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
+                const safeNext = readSafeNext();
+                if (isAuthenticated || verifiedSession || isProfileAccountResumePath(safeNext)) {
                   setLocation(safeNext || "/pre-scout-setup");
                   return;
                 }
                 const emailParam = verifiedEmail
                   ? `?email=${encodeURIComponent(verifiedEmail)}`
                   : "";
-                const params = new URLSearchParams(window.location.search);
-                const nextParam = (params.get("next") || "").trim();
-                const safeNext =
-                  nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "";
                 const nextQ = safeNext
                   ? `${emailParam ? "&" : "?"}next=${encodeURIComponent(safeNext)}`
                   : "";
@@ -127,18 +131,15 @@ export default function VerifyEmail() {
           )}
           {state === "error" && (
             <>
-              <Button
-                className="w-full"
-                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
-              >
-                Sign in
+              <Button className="w-full" onClick={() => setLocation(verificationRecoveryPath())}>
+                Request a new verification link
               </Button>
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => setLocation("/pre-scout-setup?mode=create")}
+                onClick={() => setLocation("/pre-scout-setup?mode=signin")}
               >
-                Create account
+                Sign in
               </Button>
             </>
           )}

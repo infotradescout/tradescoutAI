@@ -15,7 +15,7 @@ function section(source: string, start: string, end: string): string {
 
 describe("BidRock final bounded correction contracts", () => {
   it("upgrades the legacy profile source-path constraint and fails closed by surface", () => {
-    const migration = read("migrations/0117_profile_accounts_and_entitlements.sql");
+    const migration = read("migrations/0123_profile_accounts_and_entitlements.sql");
     const preflight = read("server/schemaPreflight.ts");
     const profileRoutes = read("server/routes/profile-accounts.ts");
     const bidrockRoutes = read("server/routes/bidrock.ts");
@@ -83,7 +83,7 @@ describe("BidRock final bounded correction contracts", () => {
   it("uses stable public listing/order identifiers on every external route", () => {
     const routes = read("server/routes/bidrock.ts");
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
 
     expect(routes).toContain("publicListingIdSchema.safeParse");
     expect(routes).toContain("publicOrderIdSchema.safeParse");
@@ -109,7 +109,7 @@ describe("BidRock final bounded correction contracts", () => {
 
   it("requires exact immutable ACH provenance and zero canonical fee fields", () => {
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
 
     expect(service).toContain(
       "expectedReference = `bidrock:${order.public_id}:${order.listing_public_id}`"
@@ -124,7 +124,7 @@ describe("BidRock final bounded correction contracts", () => {
 
   it("enforces one monotonic handoff per type and exposes bounded admin/mobile controls", () => {
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
     const workspace = read("client/src/features/bidrock/BidRockWorkspace.tsx");
     const panels = read("client/src/features/bidrock/BidRockOperationsPanels.tsx");
     const orderSheet = read("client/src/features/bidrock/BidRockOrderSheet.tsx");

@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,6 @@ import { AdminHome } from "@/admin/AdminHome";
 import { AdminEmptyState, AdminWorkspace } from "@/admin/AdminWorkspace";
 import { AdminToolSurface } from "@/admin/AdminToolSurface";
 import { resolveAdminToolByLocation, type AdminRole } from "@/admin/adminTools";
-
-const AdminProductionAcceptance = React.lazy(
-  () => import("@/pages/admin-production-acceptance")
-);
 
 type AdminHealthResponse = {
   ok: boolean;
@@ -66,15 +62,6 @@ function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAd
 
   if (pathname === "/admin") {
     return <AdminHome role={role} isSuperAdmin={isSuperAdmin} />;
-  }
-
-  if (pathname === "/admin/acceptance" || pathname === "/admin/production-acceptance") {
-    if (!isSuperAdmin) return <AdminAccessDenied />;
-    return (
-      <Suspense fallback={<PageLoadingSpinner message="Running production acceptance..." />}>
-        <AdminProductionAcceptance />
-      </Suspense>
-    );
   }
 
   const resolved = resolveAdminToolByLocation(pathname, role, isSuperAdmin);

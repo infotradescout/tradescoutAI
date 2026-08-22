@@ -8,13 +8,23 @@ interface CountyTradeDealsAggregate {
   claimed30dCount: number;
 }
 
+type TradeDealsCountyAvailability = "available" | "unsupported";
+
 interface JobResult {
   timestamp: Date;
+  availability: TradeDealsCountyAvailability;
+  unavailableReason: string | null;
   sampledCounties: number;
   totalRecordsProcessed: number;
   metricsWritten: number;
   errors: Array<{ county: string; error: string }>;
 }
+
+type CountyTradeDealsAggregation = {
+  availability: TradeDealsCountyAvailability;
+  unavailableReason: string | null;
+  rows: CountyTradeDealsAggregate[];
+};
 
 async function tradeDealsColumns(): Promise<Set<string>> {
   const result = await pool.query(`
@@ -25,15 +35,15 @@ async function tradeDealsColumns(): Promise<Set<string>> {
   return new Set(result.rows.map((row: any) => String(row.column_name || "")));
 }
 
-async function aggregateTradeDealsByCounty(): Promise<CountyTradeDealsAggregate[]> {
+async function aggregateTradeDealsByCounty(): Promise<CountyTradeDealsAggregation> {
   console.info("[TradeDealsAggregationJob] Starting trade deals aggregation...");
 
   const columns = await tradeDealsColumns();
   if (!columns.has("county_fips")) {
-    console.warn(
-      "[TradeDealsAggregationJob] County aggregation skipped: trade_deals has no county_fips authority."
-    );
-    return [];
+    const unavailableReason =
+      "County aggregation is unsupported because trade_deals has no county_fips authority.";
+    console.warn(`[TradeDealsAggregationJob] ${unavailableReason}`);
+    return { availability: "unsupported", unavailableReason, rows: [] };
   }
 
   const activeCondition = columns.has("is_active")
@@ -63,7 +73,7 @@ async function aggregateTradeDealsByCounty(): Promise<CountyTradeDealsAggregate[
   }));
 
   console.info(`[TradeDealsAggregationJob] Aggregated ${aggregates.length} counties`);
-  return aggregates;
+  return { availability: "available", unavailableReason: null, rows: aggregates };
 }
 
 export async function runTradeDealsAggregationJob(): Promise<JobResult> {
@@ -72,7 +82,19 @@ export async function runTradeDealsAggregationJob(): Promise<JobResult> {
   console.info(`[TradeDealsAggregationJob] ${jobId} starting...`);
 
   try {
-    const aggregates = await aggregateTradeDealsByCounty();
+    const aggregation = await aggregateTradeDealsByCounty();
+    const aggregates = aggregation.rows;
+    if (aggregation.availability === "unsupported") {
+      return {
+        timestamp: startTime,
+        availability: "unsupported",
+        unavailableReason: aggregation.unavailableReason,
+        sampledCounties: 0,
+        totalRecordsProcessed: 0,
+        metricsWritten: 0,
+        errors: [],
+      };
+    }
     const requests: MetricWriteRequest[] = [];
 
     for (const aggregate of aggregates) {
@@ -119,6 +141,8 @@ export async function runTradeDealsAggregationJob(): Promise<JobResult> {
 
     return {
       timestamp: startTime,
+      availability: "available",
+      unavailableReason: null,
       sampledCounties: aggregates.length,
       totalRecordsProcessed: aggregates.length,
       metricsWritten: written,
@@ -134,14 +158,24 @@ export async function runTradeDealsAggregationJob(): Promise<JobResult> {
 export async function validateTradeDealsAggregationMetrics(
   sampleSize: number = 3
 ): Promise<{
-  isValid: boolean;
+  availability: TradeDealsCountyAvailability;
+  unavailableReason: string | null;
+  isValid: boolean | null;
   sampledCounties: number;
   matched: number;
   mismatched: Array<{ county: string; metricKey: string; expected: number; actual: number }>;
 }> {
   const columns = await tradeDealsColumns();
   if (!columns.has("county_fips")) {
-    return { isValid: true, sampledCounties: 0, matched: 0, mismatched: [] };
+    return {
+      availability: "unsupported",
+      unavailableReason:
+        "TradeDeals county metrics cannot be validated because trade_deals has no county_fips authority.",
+      isValid: null,
+      sampledCounties: 0,
+      matched: 0,
+      mismatched: [],
+    };
   }
 
   const activeCondition = columns.has("is_active")
@@ -191,6 +225,8 @@ export async function validateTradeDealsAggregationMetrics(
   }
 
   return {
+    availability: "available",
+    unavailableReason: null,
     isValid: mismatched.length === 0,
     sampledCounties: result.rows.length,
     matched,

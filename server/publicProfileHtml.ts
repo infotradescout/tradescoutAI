@@ -1167,6 +1167,22 @@ export async function buildPublicProfileHtml({
     /<link rel="canonical"[^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
+  const selectiveIntelligenceManifestUrl = `https://www.thetradescout.com/api/u/${encodeURIComponent(profileRecord.slug)}/selective-intelligence`;
+  html = upsertTag(
+    html,
+    /<meta name="selective-intelligence-trigger"[^>]*>/i,
+    '<meta name="selective-intelligence-trigger" content="profile-link" />'
+  );
+  html = upsertTag(
+    html,
+    /<meta name="selective-intelligence-product"[^>]*>/i,
+    '<meta name="selective-intelligence-product" content="TradeScout" />'
+  );
+  html = upsertTag(
+    html,
+    /<link rel="alternate" type="application\/vnd\.selective-intelligence\+json"[^>]*>/i,
+    `<link rel="alternate" type="application/vnd.selective-intelligence+json" title="Selective Intelligence" href="${escapeHtml(selectiveIntelligenceManifestUrl)}" />`
+  );
   if (meta.faviconUrl) {
     html = injectFaviconOverride(html, meta.faviconUrl);
   }

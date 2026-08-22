@@ -15,7 +15,6 @@ export const DIRECT_CONNECT_HOME = "/direct-connect";
 export const SCOUT_HOME = "/scout";
 export const DEFAULT_AUTH_COMPLETION_ROUTE = "/onboarding";
 
-// Keep these stable for navigation surfaces unrelated to the onboarding handoff.
 export const DEFAULT_LANDING = DIRECT_CONNECT_HOME;
 export const BUSINESS_LANDING = "/offer-services";
 
@@ -38,7 +37,6 @@ export function isSafeNextPath(path: string): boolean {
 
   let decodedPathname = parsed.pathname;
   try {
-    // Decode twice to catch nested encoded slash/backslash/protocol escapes.
     decodedPathname = decodeURIComponent(decodeURIComponent(decodedPathname));
   } catch {
     return false;
@@ -118,7 +116,6 @@ export function userNeedsOnboarding(user: unknown): boolean {
   return resolveOnboardingState(user) !== "complete";
 }
 
-/** Wouter v3 exposes only the pathname; preserve browser query and fragment explicitly. */
 export function getCurrentInternalPath(pathname: unknown): string {
   const raw = String(pathname || "/");
   if (/[?#]/.test(raw)) return raw.startsWith("/") ? raw : `/${raw}`;
@@ -127,11 +124,6 @@ export function getCurrentInternalPath(pathname: unknown): string {
   return `${pathOnly}${window.location.search}${window.location.hash}`;
 }
 
-/**
- * Kept as a compatibility export for callers that display profile completeness.
- * Account profile fields no longer gate onboarding, so an authenticated user
- * record is sufficient here.
- */
 export function userHasProfileBasics(user: unknown): boolean {
   return Boolean(user && typeof user === "object");
 }
@@ -159,9 +151,20 @@ export function getPostLandingRoute(user: unknown): string {
   return resolveDirectConnectLandingRoute({ entry: "auth" });
 }
 
+function isPublicProfileAccountPath(path: string): boolean {
+  const normalized =
+    String(path || "/")
+      .trim()
+      .toLowerCase()
+      .replace(/\/+$/, "") || "/";
+  if (normalized === "/jw-stone") return true;
+  return /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized);
+}
+
 export function isOnboardingExemptPath(path: string): boolean {
   const normalized = String(path || "/").replace(/\/+$/, "") || "/";
   return (
+    isPublicProfileAccountPath(normalized) ||
     normalized === "/pre-scout-setup" ||
     normalized === "/onboarding" ||
     normalized === "/onboarding/profile" ||
@@ -175,10 +178,6 @@ export function isOnboardingExemptPath(path: string): boolean {
   );
 }
 
-/**
- * Business identity still matters elsewhere in the product, but it no longer
- * decides which onboarding experience a person receives.
- */
 export function isBusinessUser(
   user: Record<string, any> | null | undefined,
   presenceType?: string | null
@@ -215,10 +214,6 @@ export function isBusinessUser(
   );
 }
 
-/**
- * Compatibility helpers: completed business accounts are no longer forced
- * through identity, verification, finance, or offer-service modules.
- */
 export function getBusinessOnboardingRoute(_user: Record<string, any> | null | undefined): null {
   return null;
 }

@@ -2,17 +2,12 @@ import {
   ArrowUpRight,
   Facebook,
   Instagram,
-  Mail,
   MapPin,
-  Phone,
   ShieldCheck,
   Youtube,
   type LucideIcon,
 } from "lucide-react";
-import {
-  JW_STONE_MANAGED_CONTACT,
-  JW_STONE_PUBLIC_IDENTITY,
-} from "@shared/jwStonePresentation";
+import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { useJwStoneProfileContext } from "./JwStoneProfileContext";
 import { jw } from "./brand";
 
@@ -26,9 +21,9 @@ const SOCIAL_ICONS: Record<
 };
 
 /**
- * Editorial company close for the JW Stone 2.0 profile. TradeScout engagement
- * remains present without repeating the address and social identity that are
- * already shown in the profile-owned visit and follow card.
+ * Editorial company close for the JW Stone 2.0 profile. Direct contact stays
+ * inside Express Direct Connect; this section keeps only company, visit, social,
+ * and community information.
  */
 export function JwStoneCompanySection() {
   const { about, founderStory, address, socials } = JW_STONE_PUBLIC_IDENTITY;
@@ -118,7 +113,7 @@ export function JwStoneCompanySection() {
                       </p>
                     </div>
                   </div>
-                  <div className="[&_[data-testid=public-profile-identity]]:hidden [&>div]:!rounded-none [&>div]:!border-0 [&>div]:!bg-transparent [&>div]:!p-0 [&>div]:!shadow-none [&>div>p:first-child]:hidden">
+                  <div className="[&_[data-testid=public-profile-identity]]:hidden [&_[data-testid=public-profile-account-card]]:hidden [&>div]:!rounded-none [&>div]:!border-0 [&>div]:!bg-transparent [&>div]:!p-0 [&>div]:!shadow-none [&>div>p:first-child]:hidden">
                     {profileActions}
                   </div>
                 </section>
@@ -129,50 +124,8 @@ export function JwStoneCompanySection() {
                 className={`overflow-hidden rounded-[1.5rem] border bg-[var(--jw-bg)] shadow-[0_18px_55px_rgba(42,39,36,0.07)] ${jw.border}`}
               >
                 <div
-                  id="jw-stone-managed-contact"
-                  data-testid="jw-managed-contact-card"
-                  className="p-5 sm:p-6"
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--jw-mark)]">
-                    {JW_STONE_MANAGED_CONTACT.label}
-                  </p>
-                  <h3 className="mt-2 font-editorial text-3xl leading-none text-[var(--jw-ink)]">
-                    {JW_STONE_MANAGED_CONTACT.heading}
-                  </h3>
-                  <p className="mt-4 text-sm leading-6 text-[var(--jw-muted)]">
-                    {JW_STONE_MANAGED_CONTACT.description}
-                  </p>
-                  <div className="mt-5 grid gap-2">
-                    <a
-                      href={`tel:${JW_STONE_MANAGED_CONTACT.tel}`}
-                      data-testid="jw-managed-contact-phone"
-                      className={`flex min-h-14 items-center gap-3 rounded-2xl border bg-[var(--jw-surface)] px-4 py-3 ${jw.border}`}
-                    >
-                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--jw-accent)]/25 text-[var(--jw-ink)]">
-                        <Phone className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <span className="text-sm font-bold text-[var(--jw-ink)]">
-                        {JW_STONE_MANAGED_CONTACT.phone}
-                      </span>
-                    </a>
-                    <a
-                      href={`mailto:${JW_STONE_MANAGED_CONTACT.email}`}
-                      data-testid="jw-managed-contact-email"
-                      className={`flex min-h-14 items-center gap-3 rounded-2xl border bg-[var(--jw-surface)] px-4 py-3 ${jw.border}`}
-                    >
-                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--jw-accent)]/25 text-[var(--jw-ink)]">
-                        <Mail className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 truncate text-sm font-bold text-[var(--jw-ink)]">
-                        {JW_STONE_MANAGED_CONTACT.email}
-                      </span>
-                    </a>
-                  </div>
-                </div>
-
-                <div
                   id="jw-stone-location"
-                  className={`border-t p-5 sm:p-6 ${jw.border} ${jw.scrollTarget}`}
+                  className={`p-5 sm:p-6 ${jw.scrollTarget}`}
                 >
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--jw-mark)]">
                     Pensacola, Florida
@@ -232,24 +185,20 @@ export function JwStoneCompanySection() {
 
                       return (
                         <li key={social.id} className="min-w-0">
-                          {social.id === "youtube" ? (
-                            <a
-                              href={social.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              data-testid="jw-social-youtube"
-                              aria-label="Watch JW Stone on YouTube"
-                              className={`${socialClassName} group transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-[var(--jw-mark)] hover:shadow-[0_12px_30px_rgba(42,39,36,0.08)]`}
-                            >
-                              {content}
-                              <ArrowUpRight
-                                className="h-4 w-4 shrink-0 text-[var(--jw-mark)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                                aria-hidden="true"
-                              />
-                            </a>
-                          ) : (
-                            <div className={socialClassName}>{content}</div>
-                          )}
+                          <a
+                            href={social.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`jw-social-${social.id}`}
+                            aria-label={`Open JW Stone on ${social.label}`}
+                            className={`${socialClassName} group transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-[var(--jw-mark)] hover:shadow-[0_12px_30px_rgba(42,39,36,0.08)]`}
+                          >
+                            {content}
+                            <ArrowUpRight
+                              className="h-4 w-4 shrink-0 text-[var(--jw-mark)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                              aria-hidden="true"
+                            />
+                          </a>
                         </li>
                       );
                     })}

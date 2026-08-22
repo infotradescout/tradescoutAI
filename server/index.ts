@@ -27,7 +27,11 @@ import {
   ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
-import { HistoricalMigrationReplayRefusedError, runRuntimeMigrations } from "./runtimeMigrations";
+import {
+  HistoricalMigrationReplayRefusedError,
+  runRelease399MigrationLedgerRecovery,
+  runRuntimeMigrations,
+} from "./runtimeMigrations";
 import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
@@ -422,6 +426,8 @@ function redirectToCanonicalCustomDomain(req: Request, res: Response, canonicalH
 }
 
 function isCustomDomainMechanicsPath(requestPath: string): boolean {
+  if (requestPath === "/business-verification") return true;
+
   if (
     requestPath.startsWith("/api/") ||
     requestPath === "/api" ||
@@ -475,6 +481,14 @@ function isSameProfileCompatibilityPath(requestPath: string, slug: string): bool
   }
 }
 
+function isCustomDomainProfileRootCompatibilityPath(requestPath: string, slug: string): boolean {
+  if (isSameProfileCompatibilityPath(requestPath, slug)) return true;
+
+  // The SPA briefly emitted this app route after custom-domain authentication.
+  // Recover saved/history URLs without turning the profile host into an app mirror.
+  return requestPath === "/community-feed";
+}
+
 function redirectPublicRequestToPlatform(req: Request, res: Response): boolean {
   const requestPath = req.path || "/";
   if (isCustomDomainMechanicsPath(requestPath)) return false;
@@ -499,7 +513,7 @@ function redirectUnhandledCustomProfilePath(
   if (req.method !== "GET" && req.method !== "HEAD") return false;
 
   const suffix = requestSearchSuffix(req);
-  if (isSameProfileCompatibilityPath(requestPath, slug)) {
+  if (isCustomDomainProfileRootCompatibilityPath(requestPath, slug)) {
     res.redirect(301, `https://${host}/${suffix}`);
     return true;
   }
@@ -1075,8 +1089,13 @@ app.use(landingContractHeaders);
       .trim()
       .toLowerCase();
     const shouldRunBootMigrations = runtimeMigrationMode === "boot";
+    const shouldRunRelease399Recovery = runtimeMigrationMode === "repair-release-399";
 
-    if (shouldRunBootMigrations) {
+    if (shouldRunRelease399Recovery) {
+      await runRelease399MigrationLedgerRecovery({
+        log: (msg) => log(msg, "RuntimeMigrations"),
+      });
+    } else if (shouldRunBootMigrations) {
       try {
         await runRuntimeMigrations({
           log: (msg) => log(msg, "RuntimeMigrations"),

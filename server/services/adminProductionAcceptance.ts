@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { pool } from "../db";
+import { getRuntimeManagedPartnerProfileHealth } from "./runtimeManagedPartnerProfileHealth";
 
 export type ProductionAcceptanceStatus =
   | "working"
@@ -25,7 +26,7 @@ export type ProductionAcceptanceReport = {
     checkedAt: string;
   };
   controlledWriteCanary: {
-    status: "passed" | "failed";
+    status: "not_run" | "passed" | "failed";
     detail: string;
   };
   summary: Record<ProductionAcceptanceStatus, number>;
@@ -110,6 +111,14 @@ async function runControlledWriteCanary(): Promise<
   } finally {
     client.release();
   }
+}
+
+function writeCanaryNotRun(): ProductionAcceptanceReport["controlledWriteCanary"] {
+  return {
+    status: "not_run",
+    detail:
+      "Not run. Reading or refreshing this report never performs a write; an authorized admin must start the rollback canary explicitly.",
+  };
 }
 
 async function requestsLane(): Promise<ProductionAcceptanceLane> {
@@ -197,64 +206,59 @@ async function partnerOperationsLane(): Promise<ProductionAcceptanceLane> {
   };
 
   return buildLane(input, async () => {
-    const { rows } = await pool.query(`
-      SELECT
-        (SELECT COUNT(*)::int FROM managed_partner_intakes WHERE archived_at IS NULL) AS active_intakes,
-        (SELECT COUNT(*)::int FROM managed_partner_intakes WHERE archived_at IS NULL AND stage = 'blocked') AS blocked_intakes,
-        (SELECT COUNT(*)::int FROM managed_partner_intakes WHERE archived_at IS NULL AND stage = 'live') AS live_intakes,
-        (SELECT COUNT(*)::int FROM professional_partnerships) AS partnerships_total,
-        (SELECT COUNT(*)::int FROM professional_partnerships WHERE status = 'active') AS partnerships_active,
-        (SELECT COUNT(*)::int FROM tradepartner_campaigns) AS campaigns_total,
-        (SELECT COUNT(*)::int FROM tradepartner_campaigns WHERE is_active = true) AS campaigns_active,
-        (SELECT COUNT(*)::int
-           FROM businesses b
-           JOIN profiles p ON p.business_id = b.id
-          WHERE (
-            COALESCE(b.profile_data->'importExtras'->>'profile_control', '') ILIKE '%tradescout%'
-            OR COALESCE(b.profile_data->'importExtras'->>'contact_management', '') ILIKE '%tradescout%'
-          )) AS managed_profiles,
-        (SELECT COUNT(*)::int
-           FROM businesses b
-           JOIN profiles p ON p.business_id = b.id
-          WHERE (
-            COALESCE(b.profile_data->'importExtras'->>'profile_control', '') ILIKE '%tradescout%'
-            OR COALESCE(b.profile_data->'importExtras'->>'contact_management', '') ILIKE '%tradescout%'
-          )
-            AND p.owner_user_id IS DISTINCT FROM b.owner_user_id) AS ownership_mismatches
-    `);
+    const [{ rows }, profileHealth] = await Promise.all([
+      pool.query(`
+        SELECT
+          (SELECT COUNT(*)::int FROM managed_partner_intakes WHERE archived_at IS NULL) AS active_intakes,
+          (SELECT COUNT(*)::int FROM managed_partner_intakes WHERE archived_at IS NULL AND stage = 'blocked') AS blocked_intakes,
+          (SELECT COUNT(*)::int FROM managed_partner_intakes WHERE archived_at IS NULL AND stage = 'live') AS live_intakes,
+          (SELECT COUNT(*)::int FROM professional_partnerships) AS partnerships_total,
+          (SELECT COUNT(*)::int FROM professional_partnerships WHERE status = 'active') AS partnerships_active,
+          (SELECT COUNT(*)::int FROM tradepartner_campaigns) AS campaigns_total,
+          (SELECT COUNT(*)::int FROM tradepartner_campaigns WHERE is_active = true) AS campaigns_active
+      `),
+      getRuntimeManagedPartnerProfileHealth(),
+    ]);
     const row = rows[0] || {};
     const activeIntakes = numberValue(row, "active_intakes");
-    const managedProfiles = numberValue(row, "managed_profiles");
-    const ownershipMismatches = numberValue(row, "ownership_mismatches");
-    const hasData = activeIntakes + managedProfiles + numberValue(row, "partnerships_total") > 0;
+    const blockedIntakes = numberValue(row, "blocked_intakes");
+    const blockedProfiles = profileHealth.summary.blocked;
+    const attentionProfiles = profileHealth.summary.attention;
+    const operatingRecords =
+      activeIntakes +
+      profileHealth.summary.total +
+      numberValue(row, "partnerships_total") +
+      numberValue(row, "campaigns_total");
+    const acceptanceBlocked =
+      blockedIntakes > 0 || blockedProfiles > 0 || attentionProfiles > 0;
 
     return {
-      status: ownershipMismatches > 0
+      status: acceptanceBlocked
         ? "blocked"
-        : hasData
+        : operatingRecords > 0
           ? "working"
           : "genuinely_empty",
-      summary: ownershipMismatches > 0
-        ? "Managed profile ownership is inconsistent."
-        : hasData
-          ? "Managed partner intake, profile stewardship, partnership, and campaign sources are readable."
+      summary: acceptanceBlocked
+        ? "Partner operations require action before production acceptance."
+        : operatingRecords > 0
+          ? "Managed partner intake, canonical profile health, partnership, and campaign sources are readable."
           : "Partner sources are reachable and contain no operating records.",
       counts: {
         activeIntakes,
-        blockedIntakes: numberValue(row, "blocked_intakes"),
+        blockedIntakes,
         liveIntakes: numberValue(row, "live_intakes"),
         partnerships: numberValue(row, "partnerships_total"),
         activePartnerships: numberValue(row, "partnerships_active"),
         campaigns: numberValue(row, "campaigns_total"),
         activeCampaigns: numberValue(row, "campaigns_active"),
-        managedProfiles,
-        ownershipMismatches,
+        managedProfiles: profileHealth.summary.total,
+        readyProfiles: profileHealth.summary.ready,
+        attentionProfiles,
+        blockedProfiles,
       },
       findings: [
         `${numberValue(row, "blocked_intakes")} intake(s) have a named blocker and remain visible for action.`,
-        ownershipMismatches > 0
-          ? `${ownershipMismatches} managed profile ownership mismatch(es) require repair.`
-          : "No managed profile ownership mismatch was found.",
+        `${profileHealth.summary.ready} ready, ${attentionProfiles} attention, and ${blockedProfiles} blocked managed profile(s) were reported by the canonical runtime health audit.`,
       ],
     };
   });
@@ -293,6 +297,13 @@ async function countyCoverageLane(): Promise<ProductionAcceptanceLane> {
           WHERE u.county_fips ~ '^\\d{5}$') AS affiliates_with_county,
         (SELECT COUNT(DISTINCT county_fips)::int FROM county_metrics WHERE metric_key = 'affiliates_count') AS affiliate_metric_counties,
         (SELECT COUNT(*)::int FROM trade_deals) AS trade_deals_total,
+        (SELECT EXISTS (
+           SELECT 1
+             FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'trade_deals'
+              AND column_name = 'county_fips'
+        )) AS trade_deals_has_county,
         (SELECT COUNT(DISTINCT county_fips)::int
            FROM county_metrics
           WHERE metric_key IN ('tradedeals_active', 'tradedeals_claimed_30d')) AS trade_deal_metric_counties,
@@ -306,20 +317,30 @@ async function countyCoverageLane(): Promise<ProductionAcceptanceLane> {
     const affiliatesWithCounty = numberValue(row, "affiliates_with_county");
     const affiliateMetricCounties = numberValue(row, "affiliate_metric_counties");
     const tradeDeals = numberValue(row, "trade_deals_total");
+    const tradeDealsHaveCounty = row.trade_deals_has_county === true;
     const tradeDealMetricCounties = numberValue(row, "trade_deal_metric_counties");
     const missingUserMetrics = usersWithCounty > 0 && userMetricCounties === 0;
     const missingAffiliateMetrics = affiliatesWithCounty > 0 && affiliateMetricCounties === 0;
-    const missingTradeDealMetrics = tradeDeals > 0 && tradeDealMetricCounties === 0;
+    const missingTradeDealMetrics =
+      tradeDealsHaveCounty && tradeDeals > 0 && tradeDealMetricCounties === 0;
     const blocked =
       counties < 3000 || missingUserMetrics || missingAffiliateMetrics || missingTradeDealMetrics;
     const fullCoverage = numberValue(row, "full_coverage");
     const partialCoverage = numberValue(row, "partial_coverage");
 
     return {
-      status: blocked ? "blocked" : counties === 0 ? "genuinely_empty" : "working",
-      summary: blocked
-        ? "The county source is readable, but one or more required coverage inputs are incomplete."
-        : "County identity, assignments, notes, and precomputed metric sources are readable.",
+      status: !tradeDealsHaveCounty
+        ? "unavailable"
+        : blocked
+          ? "blocked"
+          : counties === 0
+            ? "genuinely_empty"
+            : "working",
+      summary: !tradeDealsHaveCounty
+        ? "County identity is readable, but TradeDeals county attribution is unsupported by the current schema."
+        : blocked
+          ? "The county source is readable, but one or more required coverage inputs are incomplete."
+          : "County identity, assignments, notes, and precomputed metric sources are readable.",
       counts: {
         counties,
         fullCoverage,
@@ -332,6 +353,7 @@ async function countyCoverageLane(): Promise<ProductionAcceptanceLane> {
         affiliatesWithCounty,
         affiliateMetricCounties,
         tradeDeals,
+        tradeDealsCountyAttribution: tradeDealsHaveCounty ? "available" : "not_supported",
         tradeDealMetricCounties,
         metricRows: numberValue(row, "metric_rows"),
         latestMetricAt: textValue(row, "latest_metric_at"),
@@ -346,9 +368,11 @@ async function countyCoverageLane(): Promise<ProductionAcceptanceLane> {
         missingAffiliateMetrics
           ? "Affiliate accounts resolve to counties, but affiliates_count metrics are missing."
           : "Affiliate county metrics are available or no affiliate county source exists.",
-        missingTradeDealMetrics
-          ? "TradeDeals exist, but no county-attributed TradeDeals metric is available."
-          : "TradeDeals metrics are available or no county-attributable TradeDeals exist.",
+        !tradeDealsHaveCounty
+          ? "TradeDeals county attribution is unsupported by the current schema; this lane remains unavailable rather than treating missing metrics as valid."
+          : missingTradeDealMetrics
+            ? "TradeDeals exist, but no county-attributed TradeDeals metric is available."
+            : "TradeDeals metrics are available or no county-attributable TradeDeals exist.",
       ],
     };
   });
@@ -571,18 +595,32 @@ async function systemStatusLane(): Promise<ProductionAcceptanceLane> {
         (SELECT COUNT(*)::int FROM bot_observation_events WHERE observed_at >= now() - interval '24 hours' AND status_code >= 500) AS bot_5xx_24h,
         (SELECT MAX(observed_at) FROM bot_observation_events) AS latest_bot_at,
         (SELECT EXTRACT(EPOCH FROM (now() - MAX(computed_at))) FROM admin_live_stream_snapshots) AS snapshot_age_seconds,
-        (SELECT EXTRACT(EPOCH FROM (now() - MAX(observed_at))) FROM crawler_request_events) AS crawler_age_seconds
+        (SELECT EXTRACT(EPOCH FROM (now() - MAX(observed_at))) FROM crawler_request_events) AS crawler_age_seconds,
+        (SELECT EXTRACT(EPOCH FROM (now() - MAX(observed_at))) FROM bot_observation_events) AS bot_age_seconds,
+        (SELECT COALESCE(jsonb_array_length(COALESCE(summary_json->'degradedSources', '[]'::jsonb)), 0)
+           FROM admin_live_stream_snapshots
+          ORDER BY computed_at DESC
+          LIMIT 1) AS degraded_sources_count
     `);
     const row = rows[0] || {};
     const snapshots = numberValue(row, "snapshots_total");
     const snapshotAge = Number(row.snapshot_age_seconds ?? Number.POSITIVE_INFINITY);
     const crawlerAge = Number(row.crawler_age_seconds ?? Number.POSITIVE_INFINITY);
+    const botAge = Number(row.bot_age_seconds ?? Number.POSITIVE_INFINITY);
+    const crawler5xx = numberValue(row, "crawler_5xx_24h");
+    const bot5xx = numberValue(row, "bot_5xx_24h");
+    const degradedSources = numberValue(row, "degraded_sources_count");
     const blocked =
       snapshots === 0 ||
       !Number.isFinite(snapshotAge) ||
       snapshotAge > 2 * 60 * 60 ||
       !Number.isFinite(crawlerAge) ||
-      crawlerAge > 30 * 60;
+      crawlerAge > 30 * 60 ||
+      !Number.isFinite(botAge) ||
+      botAge > 30 * 60 ||
+      crawler5xx > 0 ||
+      bot5xx > 0 ||
+      degradedSources > 0;
 
     return {
       status: blocked ? "blocked" : "working",
@@ -594,16 +632,19 @@ async function systemStatusLane(): Promise<ProductionAcceptanceLane> {
         latestSnapshotAt: textValue(row, "latest_snapshot_at"),
         history: numberValue(row, "history_total"),
         crawler24h: numberValue(row, "crawler_24h"),
-        crawler5xx24h: numberValue(row, "crawler_5xx_24h"),
+        crawler5xx24h: crawler5xx,
         latestCrawlerAt: textValue(row, "latest_crawler_at"),
         bot24h: numberValue(row, "bot_24h"),
-        bot5xx24h: numberValue(row, "bot_5xx_24h"),
+        bot5xx24h: bot5xx,
         latestBotAt: textValue(row, "latest_bot_at"),
         snapshotAgeSeconds: Number.isFinite(snapshotAge) ? Math.round(snapshotAge) : null,
         crawlerAgeSeconds: Number.isFinite(crawlerAge) ? Math.round(crawlerAge) : null,
+        botAgeSeconds: Number.isFinite(botAge) ? Math.round(botAge) : null,
+        degradedSources,
       },
       findings: [
-        `${numberValue(row, "crawler_5xx_24h")} crawler 5xx response(s) and ${numberValue(row, "bot_5xx_24h")} bot-observation 5xx response(s) were recorded in the last 24 hours.`,
+        `${crawler5xx} crawler 5xx response(s) and ${bot5xx} bot-observation 5xx response(s) were recorded in the last 24 hours.`,
+        `${degradedSources} degraded source(s) were reported by the latest canonical live-stream snapshot.`,
       ],
     };
   });
@@ -669,12 +710,16 @@ async function financeLane(): Promise<ProductionAcceptanceLane> {
   });
 }
 
-export async function runProductionAcceptanceReport(): Promise<ProductionAcceptanceReport> {
+export async function runProductionAcceptanceReport(
+  options: { runWriteCanary?: boolean } = {}
+): Promise<ProductionAcceptanceReport> {
   const checkedAt = new Date().toISOString();
   await pool.query("SELECT 1");
 
   const [controlledWriteCanary, ...lanes] = await Promise.all([
-    runControlledWriteCanary(),
+    options.runWriteCanary
+      ? runControlledWriteCanary()
+      : Promise.resolve(writeCanaryNotRun()),
     requestsLane(),
     partnerOperationsLane(),
     countyCoverageLane(),

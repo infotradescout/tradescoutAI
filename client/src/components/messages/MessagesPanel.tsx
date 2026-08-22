@@ -216,6 +216,64 @@ type DirectConnectThreadJob = {
   };
 };
 
+function isRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+export function hasRenderableDirectConnectThreadJob(
+  value: unknown
+): value is DirectConnectThreadJob {
+  if (!isRecord(value) || !isRecord(value.request) || !isRecord(value.job)) return false;
+  if (
+    (value.viewerRole !== "requester" && value.viewerRole !== "provider") ||
+    typeof value.request.title !== "string" ||
+    typeof value.request.description !== "string" ||
+    typeof value.request.status !== "string" ||
+    !Array.isArray(value.job.allowedLifecycleActions)
+  ) {
+    return false;
+  }
+
+  const summaries = value.summaries;
+  if (
+    !isRecord(summaries) ||
+    !isRecord(summaries.estimates) ||
+    !isRecord(summaries.schedules) ||
+    !isRecord(summaries.invoices) ||
+    !isRecord(summaries.punch) ||
+    !isRecord(summaries.completion) ||
+    typeof summaries.estimates.count !== "number" ||
+    typeof summaries.schedules.count !== "number" ||
+    typeof summaries.invoices.count !== "number" ||
+    typeof summaries.punch.openCount !== "number"
+  ) {
+    return false;
+  }
+
+  if (value.assist != null) {
+    const assist = value.assist;
+    if (
+      !isRecord(assist) ||
+      !isRecord(assist.primaryAction) ||
+      typeof assist.primaryAction.label !== "string" ||
+      !isRecord(assist.prefill) ||
+      !isRecord(assist.learningSignals) ||
+      !isRecord(assist.learningSignals.cost) ||
+      !isRecord(assist.learningSignals.timeline) ||
+      !isRecord(assist.learningSignals.satisfaction) ||
+      !isRecord(assist.learningSignals.trust) ||
+      (assist.primaryAction.oneClick != null &&
+        (!isRecord(assist.primaryAction.oneClick) ||
+          typeof assist.primaryAction.oneClick.label !== "string" ||
+          typeof assist.primaryAction.oneClick.endpoint !== "string"))
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function formatJobStatus(value: string | null | undefined): string {
   const raw = String(value || "").trim();
   if (!raw) return "Not started";
@@ -375,7 +433,13 @@ export default function MessagesPanel() {
       }
     },
   });
-  const directConnectThreadJob = directConnectThreadJobQuery.data || null;
+  const directConnectThreadJobPayload = directConnectThreadJobQuery.data || null;
+  const directConnectThreadJob = hasRenderableDirectConnectThreadJob(directConnectThreadJobPayload)
+    ? directConnectThreadJobPayload
+    : null;
+  const directConnectThreadJobUnavailable = Boolean(
+    directConnectThreadJobPayload && !directConnectThreadJob
+  );
 
   const directConnectJobActionMutation = useMutation({
     mutationFn: (payload: { endpoint: string }) => apiRequest("POST", payload.endpoint, {}),
@@ -513,7 +577,7 @@ export default function MessagesPanel() {
   const activeContextLabel = directConnectThreadJob
     ? "Direct Connect"
     : activeThread?.context.label || "Conversation";
-  const activeTitle = directConnectThreadJob?.request.title || activeThread?.subject;
+  const activeTitle = directConnectThreadJob?.request?.title || activeThread?.subject;
 
   const selectThread = (thread: Thread) => {
     setActiveThreadId(thread.id);
@@ -1057,6 +1121,15 @@ export default function MessagesPanel() {
                           Job lane active
                         </Badge>
                       )}
+                    </div>
+                  </div>
+                ) : directConnectThreadJobUnavailable ? (
+                  <div className="rounded-xl border border-white/10 bg-tsCard/95 p-4" role="status">
+                    <div className="text-sm font-semibold text-white">
+                      Accepted job details are temporarily unavailable
+                    </div>
+                    <div className="mt-1 text-xs text-white/60">
+                      This conversation is still open. Retry the page before using job actions.
                     </div>
                   </div>
                 ) : null}

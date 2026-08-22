@@ -1,5 +1,11 @@
-import { useMemo, useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import {
   JW_STONE_CATALOG,
   filterJwStoneCatalog,
@@ -18,6 +24,8 @@ import type { JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 type CollectionFilters = Pick<MarketplaceUrlState, "aesthetic" | "color" | "material" | "origin">;
 
 type AvailabilityFilter = "any" | "with-count";
+
+export const INVENTORY_PAGE_SIZE = 8;
 
 type StoneCollectionProps = {
   state: MarketplaceUrlState;
@@ -39,6 +47,81 @@ type ActiveChip = Readonly<{
   onClear: () => void;
 }>;
 
+type InventoryPagerProps = {
+  page: number;
+  pageCount: number;
+  position: "top" | "bottom";
+  statusRef?: RefObject<HTMLParagraphElement>;
+  onChange: (page: number) => void;
+};
+
+function InventoryPager({
+  page,
+  pageCount,
+  position,
+  statusRef,
+  onChange,
+}: InventoryPagerProps) {
+  if (pageCount <= 1) return null;
+
+  return (
+    <nav
+      aria-label={`Inventory pages (${position})`}
+      data-testid={`jw-inventory-pagination-${position}`}
+      className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--jw-border)] py-3"
+    >
+      <p
+        ref={statusRef}
+        tabIndex={statusRef ? -1 : undefined}
+        className={`scroll-mt-32 text-xs font-semibold uppercase tracking-[0.14em] ${jw.muted}`}
+        aria-live={position === "top" ? "polite" : undefined}
+        data-testid={`jw-inventory-page-status-${position}`}
+      >
+        Page {page + 1} of {pageCount}
+      </p>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label="Previous inventory page"
+          data-testid={`jw-inventory-page-prev-${position}`}
+          disabled={page === 0}
+          onClick={() => onChange(page - 1)}
+          className={`inline-flex min-h-11 items-center gap-2 px-3 text-xs font-semibold disabled:pointer-events-none disabled:opacity-35 ${jw.ghostOnLight}`}
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Previous</span>
+        </button>
+        <label className="inline-flex min-h-11 items-center border border-[var(--jw-border-strong)] bg-[var(--jw-surface)] px-2.5">
+          <span className="sr-only">Choose inventory page</span>
+          <select
+            aria-label={`Choose inventory page (${position})`}
+            value={page}
+            onChange={(event) => onChange(Number(event.target.value))}
+            className="bg-transparent text-sm font-semibold text-[var(--jw-ink)] outline-none"
+          >
+            {Array.from({ length: pageCount }, (_, index) => (
+              <option key={index} value={index}>
+                Page {index + 1}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          aria-label="Next inventory page"
+          data-testid={`jw-inventory-page-next-${position}`}
+          disabled={page === pageCount - 1}
+          onClick={() => onChange(page + 1)}
+          className={`inline-flex min-h-11 items-center gap-2 px-3 text-xs font-semibold disabled:pointer-events-none disabled:opacity-35 ${jw.ghostOnLight}`}
+        >
+          <span className="hidden sm:inline">Next</span>
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 export function StoneCollection({
   state,
   isSaved,
@@ -59,6 +142,9 @@ export function StoneCollection({
   const [draftMaterial, setDraftMaterial] = useState<string | null>(null);
   const [draftFinish, setDraftFinish] = useState<string | null>(null);
   const [draftAvailability, setDraftAvailability] = useState<AvailabilityFilter>("any");
+  const [page, setPage] = useState(0);
+  const pageStatusRef = useRef<HTMLParagraphElement>(null);
+  const restorePageStartRef = useRef(false);
 
   const colorOptions = useMemo(() => getColorFilterOptions(catalog), [catalog]);
   const materialOptions = useMemo(() => getMaterialFilterOptions(catalog), [catalog]);
@@ -208,6 +294,33 @@ export function StoneCollection({
   ]);
 
   const hasRefinements = Boolean(query.trim() || chips.length);
+  const pageCount = Math.ceil(filtered.length / INVENTORY_PAGE_SIZE);
+  const safePage = pageCount ? Math.min(page, pageCount - 1) : 0;
+  const visibleStones = filtered.slice(
+    safePage * INVENTORY_PAGE_SIZE,
+    (safePage + 1) * INVENTORY_PAGE_SIZE
+  );
+  const visibleStart = filtered.length ? safePage * INVENTORY_PAGE_SIZE + 1 : 0;
+  const visibleEnd = Math.min(filtered.length, (safePage + 1) * INVENTORY_PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(0);
+  }, [availability, finish, query, state.aesthetic, state.color, state.material, state.origin]);
+
+  useEffect(() => {
+    if (!restorePageStartRef.current) return;
+    restorePageStartRef.current = false;
+    pageStatusRef.current?.focus({ preventScroll: true });
+    pageStatusRef.current?.scrollIntoView?.({ block: "start" });
+  }, [safePage]);
+
+  const changePage = (nextPage: number) => {
+    const boundedPage = Math.max(0, Math.min(nextPage, Math.max(0, pageCount - 1)));
+    if (boundedPage === safePage) return;
+    restorePageStartRef.current = true;
+    setPage(boundedPage);
+  };
+
   const draftResultCount = useMemo(() => {
     return filterJwStoneCatalog(
       {
@@ -248,6 +361,7 @@ export function StoneCollection({
           setDraftMaterial(null);
           setDraftFinish(null);
           setDraftAvailability("any");
+          setPage(0);
           setFiltersOpen(false);
           onEnterFullInventory?.();
         }}
@@ -315,19 +429,42 @@ export function StoneCollection({
           className="mt-6 pb-8 sm:pb-12 lg:pb-16"
         >
           {filtered.length ? (
-            <ul className="flex flex-col gap-8 sm:gap-10">
-              {filtered.map((stone) => (
-                <li key={stone.id} className="min-w-0">
-                  <StoneCard
-                    stone={stone}
-                    saved={isSaved(stone.id)}
-                    onToggleSaved={onToggleSaved}
-                    onOpen={onOpen}
-                    onAsk={onAsk}
-                  />
-                </li>
-              ))}
-            </ul>
+            <>
+              <div className="mb-5">
+                <p className={`text-xs ${jw.muted}`} data-testid="jw-inventory-visible-range">
+                  Showing {visibleStart}–{visibleEnd} of {filtered.length}
+                </p>
+              </div>
+              <InventoryPager
+                page={safePage}
+                pageCount={pageCount}
+                position="top"
+                statusRef={pageStatusRef}
+                onChange={changePage}
+              />
+              <ul className="mt-5 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {visibleStones.map((stone) => (
+                  <li key={stone.id} className="min-w-0">
+                    <StoneCard
+                      stone={stone}
+                      saved={isSaved(stone.id)}
+                      onToggleSaved={onToggleSaved}
+                      onOpen={onOpen}
+                      onAsk={onAsk}
+                      photoBrowsing={false}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-8">
+                <InventoryPager
+                  page={safePage}
+                  pageCount={pageCount}
+                  position="bottom"
+                  onChange={changePage}
+                />
+              </div>
+            </>
           ) : (
             <div className="py-14 text-center">
               <h3 className="font-editorial text-3xl text-[var(--jw-ink)]">No matching stones</h3>

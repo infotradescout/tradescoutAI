@@ -29,6 +29,17 @@ describe("resolveJwStonePublicStorefrontRedirect", () => {
     );
   });
 
+  it("preserves profile-account continuation on the canonical marketplace", () => {
+    expect(resolveJwStonePublicStorefrontRedirect("/u/jw-stone?profileAccount=1")).toBe(
+      "/jw-stone?profileAccount=1"
+    );
+    expect(
+      resolveJwStonePublicStorefrontRedirect(
+        "/u/jw-stone?profileAccount=1&profileAccountMode=signin#account"
+      )
+    ).toBe("/jw-stone?profileAccount=1&profileAccountMode=signin#account");
+  });
+
   it("leaves booking and admin edit on the profile surface", () => {
     expect(resolveJwStonePublicStorefrontRedirect("/u/jw-stone?book=1")).toBeNull();
     expect(resolveJwStonePublicStorefrontRedirect("/u/jw-stone/edit")).toBeNull();

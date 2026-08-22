@@ -6,7 +6,7 @@ import {
 } from "@shared/profileAccount";
 
 describe("profile account policy", () => {
-  it("keeps the same generic CTA while stone profiles accept any business", () => {
+  it("keeps the same generic CTA while stone profiles remain business-only", () => {
     const jwPolicy = resolveProfileAccountPolicy({
       profileSlug: "jw-stone",
       profileName: "JW Stone",
@@ -25,15 +25,14 @@ describe("profile account policy", () => {
       expect(policy.priorityKey).toBe("stone_business_access");
       expect(policy.label).toBe("Account");
       expect(policy.heading).toBe("Create an account");
-      expect(policy.description).toBe(
-        `Businesses can create an account directly with ${policy.profileSlug === "jw-stone" ? "JW Stone" : "ISSA Build"}.`
-      );
+      expect(policy.description).toMatch(/^Continue with (JW Stone|ISSA Build)\.$/);
+      expect(policy.description).not.toContain("TradeScout identity");
       expect(policy).not.toHaveProperty("roles");
       expect(policy).not.toHaveProperty("defaultRole");
     }
   });
 
-  it("lets ordinary public profiles create a direct profile account", () => {
+  it("leaves ordinary public profiles on their own account priority", () => {
     const policy = resolveProfileAccountPolicy({
       profileSlug: "local-electrician",
       profileName: "Local Electrician",
@@ -43,7 +42,7 @@ describe("profile account policy", () => {
     expect(policy.requiredIdentity).toBe("user");
     expect(policy.includesBidRock).toBe(false);
     expect(policy.priorityKey).toBe("profile_account");
-    expect(policy.description).toBe("Create an account directly with Local Electrician.");
+    expect(policy.description).toBe("Continue with Local Electrician.");
   });
 
   it("lets a non-stone profile set its own identity requirement and priority", () => {
@@ -54,7 +53,7 @@ describe("profile account policy", () => {
       profilePriorityConfig: {
         requiredIdentity: "business",
         priorityKey: "dealer_access",
-        description: "Businesses can create an account directly with Wholesale Supply.",
+        description: "Approved businesses can continue through this supplier account.",
       },
     });
 
@@ -62,7 +61,7 @@ describe("profile account policy", () => {
     expect(policy.includesBidRock).toBe(false);
     expect(policy.priorityKey).toBe("dealer_access");
     expect(policy.description).toBe(
-      "Businesses can create an account directly with Wholesale Supply."
+      "Approved businesses can continue through this supplier account."
     );
   });
 
@@ -98,9 +97,10 @@ describe("profile account policy", () => {
     ).toBe(true);
   });
 
-  it("returns to the exact profile without an account-role parameter", () => {
-    expect(buildProfileAccountReturnPath("JW Stone")).toBe(
-      "/u/jw-stone?profileAccount=1"
+  it("returns to the canonical public profile without an account-role parameter", () => {
+    expect(buildProfileAccountReturnPath("JW Stone")).toBe("/u/jw-stone?profileAccount=1");
+    expect(buildProfileAccountReturnPath("Local Electrician")).toBe(
+      "/u/local-electrician?profileAccount=1"
     );
   });
 });

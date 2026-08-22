@@ -1,55 +1,47 @@
 import { pool } from "../db";
 
-type Queryable = Pick<typeof pool, "query">;
-let verificationPromise: Promise<void> | null = null;
-
-export async function ensureProfileAccountEntitlementTables(): Promise<void> {
-  if (!verificationPromise) {
-    verificationPromise = (async () => {
-      const result = await pool.query(
-        `SELECT to_regclass('public.profile_accounts') AS accounts,
-                to_regclass('public.profile_account_entitlements') AS entitlements`
-      );
-      if (!result.rows[0]?.accounts || !result.rows[0]?.entitlements) {
-        throw new Error("Profile account entitlement migrations are required");
-      }
-    })().catch((error) => {
-      verificationPromise = null;
-      throw error;
-    });
-  }
-  return verificationPromise;
-}
-
 export type ProfileAccountEntitlement = Readonly<{
   productKey: string;
   status: "pending_verification" | "active" | "suspended" | "revoked";
 }>;
 
+export function resolveProfileAccountEntitlementStatus(
+  verificationStatus: "not_required" | "pending" | "approved" | "rejected"
+): ProfileAccountEntitlement["status"] {
+  if (verificationStatus === "approved" || verificationStatus === "not_required") {
+    return "active";
+  }
+  return verificationStatus === "rejected" ? "revoked" : "pending_verification";
+}
+
+export function applyProfileAccountEntitlementVerificationBypass(
+  entitlements: readonly ProfileAccountEntitlement[],
+  verificationBypassActive: boolean
+): readonly ProfileAccountEntitlement[] {
+  if (!verificationBypassActive) return entitlements;
+
+  let changed = false;
+  const projected = entitlements.map((entitlement) => {
+    if (entitlement.status === "active" || entitlement.status === "suspended") {
+      return entitlement;
+    }
+    changed = true;
+    return Object.freeze({ ...entitlement, status: "active" as const });
+  });
+  return changed ? Object.freeze(projected) : entitlements;
+}
+
 export async function ensureProfileAccountEntitlement(args: {
   profileAccountId: string;
   productKey: string;
   verificationStatus: "not_required" | "pending" | "approved" | "rejected";
-  accountStatus?: "active" | "suspended" | "closed";
-  client?: Queryable;
 }): Promise<ProfileAccountEntitlement> {
-  if (!args.client) await ensureProfileAccountEntitlementTables();
-  const queryable = args.client ?? pool;
   const productKey = String(args.productKey || "")
     .trim()
     .toLowerCase();
   if (!/^[a-z0-9_]{2,80}$/.test(productKey)) throw new Error("Invalid product entitlement");
-  const nextStatus =
-    args.accountStatus === "suspended"
-      ? "suspended"
-      : args.accountStatus === "closed"
-        ? "revoked"
-        : args.verificationStatus === "approved"
-      ? "active"
-      : args.verificationStatus === "rejected"
-        ? "revoked"
-        : "pending_verification";
-  const result = await queryable.query(
+  const nextStatus = resolveProfileAccountEntitlementStatus(args.verificationStatus);
+  const result = await pool.query(
     `INSERT INTO profile_account_entitlements (
        profile_account_id,
        product_key,
@@ -59,8 +51,7 @@ export async function ensureProfileAccountEntitlement(args: {
      ) VALUES ($1::uuid, $2, $3, NOW(), NOW())
      ON CONFLICT (profile_account_id, product_key) DO UPDATE SET
        status = CASE
-         WHEN profile_account_entitlements.status IN ('suspended', 'revoked')
-           THEN profile_account_entitlements.status
+         WHEN profile_account_entitlements.status = 'suspended' THEN 'suspended'
          ELSE EXCLUDED.status
        END,
        updated_at = NOW()
@@ -76,7 +67,6 @@ export async function ensureProfileAccountEntitlement(args: {
 export async function listProfileAccountEntitlements(
   profileAccountId: string
 ): Promise<readonly ProfileAccountEntitlement[]> {
-  await ensureProfileAccountEntitlementTables();
   const result = await pool.query(
     `SELECT product_key, status
        FROM profile_account_entitlements

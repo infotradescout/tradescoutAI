@@ -126,20 +126,16 @@ export function resolveProfileAccountPolicy(args: {
   });
   const configured = readProfilePriorityConfig(args.profilePriorityConfig);
 
-  // Stone profiles are the first completed account lane. Their accounts are
-  // business-only because they can unlock verified-business stone access and
-  // BidRock. Other profiles keep the same generic CTA but choose their own
-  // identity requirement and priority through profile configuration.
+  // Stone profiles are the first completed business-account lane because they
+  // can unlock verified-business stone access and BidRock. The customer still
+  // creates the account directly with the business whose profile they opened.
   const requiredIdentity: ProfileAccountIdentityRequirement = stoneProfile
     ? "business"
     : configured.requiredIdentity || "user";
   const priorityKey = stoneProfile
     ? "stone_business_access"
     : normalizePriorityKey(configured.priorityKey, "profile_account");
-  const defaultDescription =
-    requiredIdentity === "business"
-      ? `Businesses can create an account directly with ${profileName}.`
-      : `Create an account directly with ${profileName}.`;
+  const defaultDescription = `Continue with ${profileName}.`;
 
   return Object.freeze({
     enabled: true,
@@ -156,5 +152,6 @@ export function resolveProfileAccountPolicy(args: {
 export function buildProfileAccountReturnPath(profileSlug: string): string {
   const normalized = normalizeSlug(profileSlug);
   const params = new URLSearchParams({ profileAccount: "1" });
-  return `/u/${encodeURIComponent(normalized)}?${params.toString()}`;
+  const profilePath = `/u/${encodeURIComponent(normalized)}`;
+  return `${profilePath}?${params.toString()}`;
 }

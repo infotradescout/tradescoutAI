@@ -5,21 +5,21 @@ import { marketplaceBasePath } from "./marketplaceRoutes";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
+  hasAccount: boolean;
   onOpenWishlist: () => void;
   onOpenAccount: () => void;
-  accountLabel: string;
   onStartRequest: () => void;
 };
 
 /**
- * Light site chrome: logo · Saved · Create account · Menu.
- * Social destinations stay together in the company section near the bottom.
+ * JW Stone site chrome. Account lives with the other customer utilities in the
+ * sticky header. Direct contact remains exclusively inside Express Direct Connect.
  */
 export function MarketplaceHeader({
   wishlistCount,
+  hasAccount,
   onOpenWishlist,
   onOpenAccount,
-  accountLabel,
   onStartRequest,
 }: MarketplaceHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,6 +46,10 @@ export function MarketplaceHeader({
     setMenuOpen(false);
     action?.();
   };
+  const accountLabel = hasAccount ? "Account" : "Create account";
+  const accountAriaLabel = hasAccount
+    ? "Open your TradeScout account"
+    : "Create a TradeScout account";
 
   return (
     <header
@@ -55,7 +59,7 @@ export function MarketplaceHeader({
       <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-2 px-4 sm:h-[4.25rem] sm:gap-4 sm:px-9 lg:px-12">
         <a
           href={marketplaceBasePath() || "/"}
-          aria-label="JW Stone marketplace home"
+          aria-label="JW Stone home"
           className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
         >
           <img
@@ -66,7 +70,7 @@ export function MarketplaceHeader({
           />
         </a>
 
-        <nav aria-label="JW Stone actions" className="flex items-center gap-0.5 sm:gap-1.5">
+        <nav aria-label="JW Stone account and saved stones" className="flex items-center gap-0.5 sm:gap-1.5">
           <button
             type="button"
             onClick={onOpenWishlist}
@@ -89,11 +93,11 @@ export function MarketplaceHeader({
             type="button"
             data-testid="jw-marketplace-account-button"
             onClick={onOpenAccount}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[var(--jw-accent)] px-2.5 text-xs font-black text-[var(--jw-on-accent)] transition hover:opacity-90 sm:px-3 sm:text-sm"
-            aria-label={`${accountLabel} with JW Stone`}
+            className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
+            aria-label={accountAriaLabel}
           >
             <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span>{accountLabel}</span>
+            <span className="text-xs font-semibold sm:text-sm">{accountLabel}</span>
           </button>
 
           <div className="relative" ref={menuRef}>

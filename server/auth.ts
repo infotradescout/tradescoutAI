@@ -3,7 +3,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import session from "express-session";
-import type { Express, RequestHandler } from "express";
+import type { Express, Request, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import crypto from "node:crypto";
 import { db, pool } from "./db";
@@ -120,6 +120,18 @@ function isPrimaryAppHost(host: string): boolean {
   );
 }
 
+export function applyRequestSessionCookieScope(req: Request): void {
+  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+    .toLowerCase()
+    .split(",")[0]
+    .trim()
+    .split(":")[0];
+
+  if (req.session && host && !isPrimaryAppHost(host)) {
+    req.session.cookie.domain = undefined;
+  }
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -130,12 +142,7 @@ export async function setupAuth(app: Express) {
   // cookie for any request that didn't land on a thetradescout.com host, so
   // login/session works natively wherever a profile is actually being viewed.
   app.use((req, _res, next) => {
-    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
-      .toLowerCase()
-      .split(":")[0];
-    if (req.session && host && !isPrimaryAppHost(host)) {
-      req.session.cookie.domain = undefined;
-    }
+    applyRequestSessionCookieScope(req);
     next();
   });
   app.use(passport.initialize());

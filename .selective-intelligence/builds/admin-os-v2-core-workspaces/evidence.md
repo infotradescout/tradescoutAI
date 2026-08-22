@@ -12,7 +12,7 @@ This release migrates the first high-value review and publication workflows with
 
 The prior two-column card wall and repeated page title are replaced with:
 
-- Pending, open, in-progress, and critical summary
+- Unresolved, open, in-progress, and critical summary
 - Status and report-type filters
 - One compact operating list
 - Inline status and priority controls

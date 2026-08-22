@@ -37,7 +37,7 @@ type CollageStrip = Readonly<{
 
 /**
  * Browse-by-color atmosphere: pre-cropped stone-face strips (no yard chrome).
- * Spectrum L→R: white → warm → gray → black → brown → green → blue → red.
+ * Available picker colors L→R: white → beige → gray → black → brown → gold → green → blue.
  * Assets built by tmp/build-color-collage-faces.mjs into color-collage/.
  */
 export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
@@ -47,7 +47,7 @@ export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
   },
   {
     src: "/images/businesses/jw-stone/color-collage/02-warm.webp",
-    alt: "Warm stone face",
+    alt: "Beige stone face",
   },
   {
     src: "/images/businesses/jw-stone/color-collage/03-gray.webp",
@@ -59,7 +59,11 @@ export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
   },
   {
     src: "/images/businesses/jw-stone/color-collage/05-brown.webp",
-    alt: "Brown gold stone face",
+    alt: "Brown stone face",
+  },
+  {
+    src: "/images/businesses/jw-stone/color-collage/09-gold.webp",
+    alt: "Gold stone face",
   },
   {
     src: "/images/businesses/jw-stone/color-collage/06-green.webp",
@@ -69,10 +73,6 @@ export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
     src: "/images/businesses/jw-stone/color-collage/07-blue.webp",
     alt: "Blue stone face",
   },
-  {
-    src: "/images/businesses/jw-stone/color-collage/08-red.webp",
-    alt: "Red burgundy stone face",
-  },
 ]);
 
 /**
@@ -80,8 +80,8 @@ export const COLOR_COLLAGE_STRIPS: readonly CollageStrip[] = Object.freeze([
  * not finished-room photography. Same yard frame used as the profile browse CTA.
  */
 export const MATERIAL_SECTION_BACKGROUND = {
-  src: "/images/businesses/jw-stone/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp",
-  alt: "Natural stone slabs in the JW Stone warehouse",
+  src: "/images/businesses/jw-stone/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp",
+  alt: "Detailed natural stone slab from the JW Stone inventory",
 } as const;
 
 /** Full inventory — outdoor slab-yard atmosphere (no editorial caption). */

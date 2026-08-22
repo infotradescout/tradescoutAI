@@ -139,7 +139,10 @@ import {
   affiliateShareSlugError,
   directConnectOwnsPersistedShareSlug,
 } from "./utils/shareRouteNamespace";
-import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
+import {
+  hasPrivilegedVerificationBypass,
+  hasRequestPrivilegedVerificationBypass,
+} from "./utils/privilegedVerification";
 import {
   collectAuthorityRoles,
   getPrivilegedAliasEmails,
@@ -162,6 +165,19 @@ import { passwordResetService } from "./services/passwordResetService";
 import { getRelatedBusinessSuggestions } from "./services/relatedBusinessSuggestions";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
+import {
+  adminBusinessVerificationDecisionSchema,
+  buildVerificationFieldReviewState,
+  businessVerificationFieldSchema,
+  deriveOverallBusinessVerificationStatus,
+  getStoredVerificationDocumentKey,
+  isOwnedPrivateObjectKey,
+  mergeVerificationSubmission,
+  profileVerificationSubmissionSchema,
+  recordVerificationDecision,
+  sanitizeVerificationSubmissions,
+  selectOwnedVerificationProfile,
+} from "./services/businessVerificationWorkflow";
 import { notifyIndexNow } from "./services/indexNowService";
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
@@ -436,6 +452,7 @@ import { getUserTypeBadgeLabel, getUserTypeMetadata } from "../shared/userTypes"
 import { shouldIndexPublicProfileSlug } from "../shared/publicProfileIndexing";
 import { storage } from "./storage";
 import {
+  applyRequestSessionCookieScope,
   setupAuth,
   isAuthenticated,
   isAdmin,
@@ -1210,7 +1227,7 @@ const maybeSendEmailVerificationForUser = async (req: Request, user: any): Promi
     // Mark before sending to prevent rapid re-sends if the provider is slow/failing.
     sessionAny[key] = now;
 
-    const { token, expiresAt } = emailVerificationService.createToken(userId);
+    const { token, expiresAt } = await emailVerificationService.createToken(userId);
     const verifyBase = getPublicBaseUrlFromRequest(req);
     const next = sanitizeNextPath((req.session as any)?.oauthNext) || "/pre-scout-setup";
     const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -2627,6 +2644,30 @@ export async function registerRoutes(app: any) {
   };
 
   // Authentication routes
+  const establishAuthenticatedSession = (req: Request, user: any): Promise<void> =>
+    new Promise((resolve, reject) => {
+      req.logIn(user, (loginErr: any) => {
+        if (loginErr) {
+          reject(loginErr);
+          return;
+        }
+
+        if (!req.session) {
+          resolve();
+          return;
+        }
+
+        applyRequestSessionCookieScope(req);
+        req.session.save((saveErr: any) => {
+          if (saveErr) {
+            reject(saveErr);
+            return;
+          }
+          resolve();
+        });
+      });
+    });
+
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
@@ -2667,24 +2708,11 @@ export async function registerRoutes(app: any) {
           code,
         });
       }
-      req.logIn(user, (loginErr: any) => {
-        if (loginErr) {
-          return next(loginErr);
-        }
-        const completeLogin = () =>
-          res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
-
-        // Ensure session persistence before responding to avoid
-        // immediate logged-out state on the next auth check request.
-        if (req.session) {
-          return req.session.save((saveErr: any) => {
-            if (saveErr) return next(saveErr);
-            return completeLogin();
-          });
-        }
-
-        return completeLogin();
-      });
+      establishAuthenticatedSession(req, user)
+        .then(() =>
+          res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" })
+        )
+        .catch(next);
     })(req, res, next);
   };
 
@@ -2920,7 +2948,7 @@ export async function registerRoutes(app: any) {
       let verificationToken: string | undefined;
 
       if (emailVerificationRequired) {
-        const { token, expiresAt } = emailVerificationService.createToken(created.user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(created.user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const next = "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -2983,136 +3011,190 @@ export async function registerRoutes(app: any) {
     }
   };
 
-  // Verification checklist: what this account still needs, recomputed live so it
-  // always matches the profile's current category (not stale from signup time).
+  type OwnedVerificationProfileRow = Omit<typeof userProfiles.$inferSelect, "id"> & {
+    id: string;
+  };
+
+  const loadOwnedVerificationProfiles = async (
+    userId: string
+  ): Promise<OwnedVerificationProfileRow[]> => {
+    const rows = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId));
+    return rows as OwnedVerificationProfileRow[];
+  };
+
+  const selectVerificationProfile = (
+    profiles: readonly OwnedVerificationProfileRow[],
+    requestedBusinessProfileId?: string
+  ): OwnedVerificationProfileRow | null =>
+    selectOwnedVerificationProfile<OwnedVerificationProfileRow>(
+      profiles,
+      requestedBusinessProfileId
+    );
+
+  const verificationStatusForProfile = (profile: any, user: any) => ({
+    email: Boolean(user?.emailVerified || profile?.email_verified),
+    address: Boolean(user?.addressVerified || profile?.address_verified),
+    license: Boolean(profile?.license_verified),
+    insurance: Boolean(profile?.insurance_verified),
+    tax_id: Boolean(profile?.tax_id_verified),
+    business_registration: Boolean(profile?.business_registration_verified),
+  });
+
+  // Verification checklist: profile selection is owner-scoped and business-first.
   app.get("/api/profile/verification", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = (req.user as any)?.id;
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
       const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const requestedBusinessProfileId =
+        typeof req.query.businessProfileId === "string"
+          ? req.query.businessProfileId.trim()
+          : undefined;
+      if (requestedBusinessProfileId && requestedBusinessProfileId.length > 128) {
+        return res.status(400).json({ message: "Invalid businessProfileId" });
       }
 
-      const [profile] = await db
-        .select()
-        .from(userProfiles)
-        .where(and(eq(userProfiles.userId, userId), eq(userProfiles.isPrimary, true)))
-        .limit(1);
+      const profiles = await loadOwnedVerificationProfiles(userId);
+      const profile = selectVerificationProfile(profiles, requestedBusinessProfileId);
+      if (requestedBusinessProfileId && !profile) {
+        return res.status(404).json({ message: "Business profile not found" });
+      }
 
+      const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
       if (!profile) {
+        const requirements = await computeVerificationRequirements("person");
+        const status = verificationStatusForProfile(null, user);
         return res.json({
+          profileId: null,
+          displayName: null,
           userIntent: "person",
-          requirements: {
-            email: true,
-            address: true,
-            license: false,
-            insurance: false,
-            tax_id: false,
-            business_registration: false,
-          },
-          status: {
-            email: Boolean((user as any).emailVerified),
-            address: Boolean((user as any).addressVerified),
-            license: false,
-            insurance: false,
-            tax_id: false,
-            business_registration: false,
-          },
-          submissions: {},
+          businessType: null,
+          requirements,
+          status,
+          fieldReview: buildVerificationFieldReviewState({ requirements, status, submissions: {} }),
+          submissions: sanitizeVerificationSubmissions({}),
+          verificationStatus: verificationBypassActive ? "not_required" : "pending",
+          verificationBypassActive,
         });
       }
 
       const requirements = await computeVerificationRequirements(
         profile.userIntent as "person" | "business",
-        (profile.businessType as "service_provider" | "seller") || undefined,
+        (profile.businessType as "service_provider" | "seller" | "generic" | null) || undefined,
         profile.serviceTags || [],
         profile.sellerTags || []
       );
+      const status = verificationStatusForProfile(profile, user);
+      const submissions = (profile as any).verificationSubmissions || {};
 
-      res.json({
+      return res.json({
+        profileId: profile.id,
+        displayName: profile.displayName || null,
         userIntent: profile.userIntent,
         businessType: profile.businessType,
         requirements,
-        status: {
-          email: Boolean((user as any).emailVerified || (profile as any).email_verified),
-          address: Boolean((user as any).addressVerified || (profile as any).address_verified),
-          license: Boolean((profile as any).license_verified),
-          insurance: Boolean((profile as any).insurance_verified),
-          tax_id: Boolean((profile as any).tax_id_verified),
-          business_registration: Boolean((profile as any).business_registration_verified),
-        },
-        submissions: (profile as any).verificationSubmissions || {},
-        verificationStatus: profile.verificationStatus,
+        status,
+        fieldReview: buildVerificationFieldReviewState({ requirements, status, submissions }),
+        submissions: sanitizeVerificationSubmissions(submissions),
+        verificationStatus: verificationBypassActive
+          ? "not_required"
+          : profile.verificationStatus || "pending",
+        verificationBypassActive,
       });
     } catch (error) {
       console.error("Error fetching verification status:", error);
-      res.status(500).json({ message: "Failed to fetch verification status" });
+      return res.status(500).json({ message: "Failed to fetch verification status" });
     }
   });
 
-  // Accepts self-reported values/documents for the requirements above. This does NOT
-  // flip the *_verified flags — those only change once an admin reviews the submission.
+  // Submissions remain claims until an admin reviews each required field.
   app.patch("/api/profile/verification", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const userId = (req.user as any)?.id;
-      const {
-        licenseNumber,
-        licenseDocObjectKey,
-        taxId,
-        insuranceDocObjectKey,
-        businessRegistrationDocObjectKey,
-      } = (req.body ?? {}) as Record<string, unknown>;
-
-      const [profile] = await db
-        .select()
-        .from(userProfiles)
-        .where(and(eq(userProfiles.userId, userId), eq(userProfiles.isPrimary, true)))
-        .limit(1);
-
-      if (!profile) {
-        return res.status(404).json({ message: "No profile found for this account" });
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+      const parsed = profileVerificationSubmissionSchema.safeParse(req.body ?? {});
+      if (!parsed.success) {
+        return res.status(400).json({
+          message: "Invalid verification submission",
+          errors: parsed.error.flatten(),
+        });
       }
 
-      const existingSubmissions = ((profile as any).verificationSubmissions || {}) as Record<
-        string,
-        unknown
-      >;
-      const nextSubmissions = {
-        ...existingSubmissions,
-        ...(typeof licenseNumber === "string" && licenseNumber.trim()
-          ? { licenseNumber: licenseNumber.trim() }
-          : {}),
-        ...(typeof licenseDocObjectKey === "string" && licenseDocObjectKey.trim()
-          ? { licenseDocObjectKey: licenseDocObjectKey.trim() }
-          : {}),
-        ...(typeof taxId === "string" && taxId.trim() ? { taxId: taxId.trim() } : {}),
-        ...(typeof insuranceDocObjectKey === "string" && insuranceDocObjectKey.trim()
-          ? { insuranceDocObjectKey: insuranceDocObjectKey.trim() }
-          : {}),
-        ...(typeof businessRegistrationDocObjectKey === "string" &&
-        businessRegistrationDocObjectKey.trim()
-          ? { businessRegistrationDocObjectKey: businessRegistrationDocObjectKey.trim() }
-          : {}),
-        submittedAt: new Date().toISOString(),
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const profiles = await loadOwnedVerificationProfiles(userId);
+      const profile = selectVerificationProfile(profiles, parsed.data.businessProfileId);
+      if (!profile) return res.status(404).json({ message: "Business profile not found" });
+
+      const privateDocumentFields = [
+        ["licenseDocObjectKey", parsed.data.licenseDocObjectKey],
+        ["insuranceDocObjectKey", parsed.data.insuranceDocObjectKey],
+        ["taxDocumentObjectKey", parsed.data.taxDocumentObjectKey],
+        ["businessRegistrationDocObjectKey", parsed.data.businessRegistrationDocObjectKey],
+      ] as const;
+      for (const [field, objectKey] of privateDocumentFields) {
+        if (objectKey && !isOwnedPrivateObjectKey(objectKey, userId)) {
+          return res.status(400).json({ message: `${field} is not an owned private object key` });
+        }
+      }
+
+      const requirements = await computeVerificationRequirements(
+        profile.userIntent as "person" | "business",
+        (profile.businessType as "service_provider" | "seller" | "generic" | null) || undefined,
+        profile.serviceTags || [],
+        profile.sellerTags || []
+      );
+      const submittedAt = new Date().toISOString();
+      const nextSubmissions = mergeVerificationSubmission(
+        (profile as any).verificationSubmissions || {},
+        parsed.data,
+        submittedAt
+      );
+      const nextValues: Record<string, unknown> = {
+        verificationRequirements: requirements,
+        verificationSubmissions: nextSubmissions,
+        verificationStatus: "pending",
+        updatedAt: new Date(),
       };
+      if (parsed.data.licenseNumber || parsed.data.licenseDocObjectKey) {
+        nextValues.license_verified = false;
+      }
+      if (parsed.data.insuranceDocObjectKey) nextValues.insurance_verified = false;
+      if (parsed.data.taxIdLast4 || parsed.data.taxDocumentObjectKey) {
+        nextValues.tax_id_verified = false;
+      }
+      if (parsed.data.businessRegistrationDocObjectKey) {
+        nextValues.business_registration_verified = false;
+      }
 
       const [updated] = await db
         .update(userProfiles)
-        .set({
-          verificationSubmissions: nextSubmissions as any,
-          verificationStatus: "pending",
-          updatedAt: new Date(),
-        })
-        .where(eq(userProfiles.id, profile.id))
+        .set(nextValues as any)
+        .where(and(eq(userProfiles.id, profile.id), eq(userProfiles.userId, userId)))
         .returning();
+      if (!updated) return res.status(404).json({ message: "Business profile not found" });
 
-      res.json({
-        submissions: (updated as any).verificationSubmissions || {},
-        verificationStatus: updated.verificationStatus,
+      const status = verificationStatusForProfile(updated, user);
+      const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
+      return res.json({
+        profileId: updated.id,
+        displayName: updated.displayName || null,
+        requirements,
+        status,
+        fieldReview: buildVerificationFieldReviewState({
+          requirements,
+          status,
+          submissions: nextSubmissions,
+        }),
+        submissions: sanitizeVerificationSubmissions(nextSubmissions),
+        verificationStatus: verificationBypassActive ? "not_required" : "pending",
+        verificationBypassActive,
       });
     } catch (error) {
       console.error("Error submitting verification info:", error);
-      res.status(500).json({ message: "Failed to submit verification info" });
+      return res.status(500).json({ message: "Failed to submit verification info" });
     }
   });
 
@@ -3438,7 +3520,7 @@ export async function registerRoutes(app: any) {
       let emailVerificationSent = false;
       let verificationToken: string | undefined;
       if (emailVerificationRequired && !user.emailVerified) {
-        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const next = "/pre-scout-setup";
         const verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${token}&next=${encodeURIComponent(next)}`;
@@ -3978,6 +4060,7 @@ export async function registerRoutes(app: any) {
     emailVerificationLimiter,
     async (req: Request, res: Response) => {
       try {
+        const genericMessage = "If an account exists, a verification link has been sent.";
         const body = (req.body || {}) as any;
         const email = typeof body.email === "string" ? body.email.trim() : "";
         if (!email) {
@@ -3985,15 +4068,11 @@ export async function registerRoutes(app: any) {
         }
 
         const user = await storage.getUserByEmail(email);
-        if (!user) {
-          return res.json({ message: "If an account exists, a verification link has been sent." });
+        if (!user || user.emailVerified) {
+          return res.json({ message: genericMessage });
         }
 
-        if (user.emailVerified) {
-          return res.json({ message: "Email already verified." });
-        }
-
-        const { token, expiresAt } = emailVerificationService.createToken(user.id);
+        const { token, expiresAt } = await emailVerificationService.createToken(user.id);
         const verifyBase = getPublicBaseUrlFromRequest(req);
         const requestedNext = sanitizeNextPath((req.body as any)?.next);
         const next = requestedNext || "/pre-scout-setup";
@@ -4017,7 +4096,7 @@ export async function registerRoutes(app: any) {
             : {};
 
         return res.json({
-          message: "If an account exists, a verification link has been sent.",
+          message: genericMessage,
           ...debug,
         });
       } catch (error: any) {
@@ -4033,7 +4112,7 @@ export async function registerRoutes(app: any) {
       const token = typeof body.token === "string" ? body.token.trim() : "";
       if (!token) return res.status(400).json({ message: "Token is required" });
 
-      const userId = emailVerificationService.consumeToken(token);
+      const userId = await emailVerificationService.consumeToken(token);
       if (!userId) {
         return res.status(400).json({ message: "Invalid or expired verification token" });
       }
@@ -4052,6 +4131,12 @@ export async function registerRoutes(app: any) {
             else resolve();
           });
         });
+        applyRequestSessionCookieScope(req);
+        if (req.session) {
+          await new Promise<void>((resolve, reject) => {
+            req.session.save((err) => (err ? reject(err) : resolve()));
+          });
+        }
       } catch (loginErr) {
         // Non-fatal: verification succeeded; session establishment failed.
         // The client will fall back to the normal sign-in path.
@@ -8612,7 +8697,7 @@ export async function registerRoutes(app: any) {
         const user = await storage.getUserByEmail(String(email).toLowerCase());
 
         if (user) {
-          const { token, code, expiresAt } = passwordResetService.createToken(user.id);
+          const { token, code, expiresAt } = await passwordResetService.createToken(user.id);
           const resetBase =
             process.env.PASSWORD_RESET_URL || process.env.APP_BASE_URL || "http://localhost:5173";
           const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
@@ -8667,12 +8752,12 @@ export async function registerRoutes(app: any) {
           return res.status(400).json({ message: "Invalid or expired verification code" });
         }
 
-        const valid = passwordResetService.consumeCodeForUser(user.id, normalizedCode);
+        const valid = await passwordResetService.consumeCodeForUser(user.id, normalizedCode);
         if (!valid) {
           return res.status(400).json({ message: "Invalid or expired verification code" });
         }
 
-        const { token } = passwordResetService.createToken(user.id);
+        const { token } = await passwordResetService.createToken(user.id);
         return res.json({ token });
       } catch (error: any) {
         return sendAutoClassifiedError(res, error, "Failed to verify reset code");
@@ -8699,7 +8784,7 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "Password must be at least 8 characters" });
       }
 
-      const userId = passwordResetService.consumeToken(token);
+      const userId = await passwordResetService.consumeToken(token);
 
       if (!userId) {
         return res.status(400).json({ message: "Invalid or expired token" });
@@ -8712,7 +8797,17 @@ export async function registerRoutes(app: any) {
         updatedAt: new Date(),
       });
 
-      return res.json({ message: "Password has been reset successfully" });
+      const updatedUser = await storage.getUser(userId);
+      if (!updatedUser) {
+        throw new Error("Password reset identity could not be reloaded");
+      }
+
+      await establishAuthenticatedSession(req, updatedUser);
+
+      return res.json({
+        message: "Password has been reset successfully",
+        user: sanitizeUserForResponse(req.user),
+      });
     } catch (error: any) {
       console.error("[RESET-PASSWORD] CRITICAL ERROR:", error);
       console.error("[RESET-PASSWORD] Stack:", error?.stack);
@@ -14973,10 +15068,17 @@ export async function registerRoutes(app: any) {
 
   // Admin: bulk import business owner accounts (CSV/TSV/text)
   const multer = (await import("multer")).default;
+  const configuredBusinessImportFileLimit = Number(
+    process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 10 * 1024 * 1024
+  );
+  const businessImportFileLimit =
+    Number.isFinite(configuredBusinessImportFileLimit) && configuredBusinessImportFileLimit > 0
+      ? Math.min(configuredBusinessImportFileLimit, 10 * 1024 * 1024)
+      : 10 * 1024 * 1024;
   const businessImportUpload = multer({
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: Number(process.env.BUSINESS_IMPORT_FILE_LIMIT_BYTES || 25 * 1024 * 1024),
+      fileSize: businessImportFileLimit,
     },
   });
   const businessImportMaybeUploadFile = (req: any, res: any, next: any) => {
@@ -15351,7 +15453,7 @@ export async function registerRoutes(app: any) {
         let parseFile: any = null;
 
         if (isXlsxUpload) {
-          const parsedXlsx = parseXlsxImport(uploadedFile!.buffer as Buffer);
+          const parsedXlsx = await parseXlsxImport(uploadedFile!.buffer as Buffer);
           records = parsedXlsx.records;
           parseFile = parsedXlsx.meta;
           // Keep response delimiter stable for the existing client UI.
@@ -16312,7 +16414,7 @@ export async function registerRoutes(app: any) {
             // Activation: generate password reset token and optionally email it (only when a user exists)
             let activationLink: string | undefined;
             if (!dryRun && userId && userId !== "__dry_run__") {
-              const { token, expiresAt } = passwordResetService.createToken(userId);
+              const { token, expiresAt } = await passwordResetService.createToken(userId);
               activationPrepared++;
               const resetLink = `${resetBase.replace(/\/$/, "")}/reset-password?token=${token}`;
 
@@ -16323,7 +16425,7 @@ export async function registerRoutes(app: any) {
                 );
                 let verifyLink: string | null = null;
                 if (emailVerificationRequired) {
-                  const verify = emailVerificationService.createToken(userId);
+                  const verify = await emailVerificationService.createToken(userId);
                   const verifyBase = getPublicBaseUrlFromRequest(req as any);
                   verifyLink = `${verifyBase.replace(/\/$/, "")}/verify-email?token=${verify.token}&next=${encodeURIComponent("/pre-scout-setup")}`;
                 }
@@ -19136,12 +19238,47 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        const statusFilter = String((req.query.status as string) || "all");
+        const statusFilter = String((req.query.status as string) || "all")
+          .trim()
+          .toLowerCase();
+        if (
+          ![
+            "all",
+            "pending",
+            "under_review",
+            "approved",
+            "rejected",
+            "expired",
+            "suspended",
+          ].includes(statusFilter)
+        ) {
+          return res.status(400).json({ message: "Invalid status filter" });
+        }
 
         const rows = await db
           .select({
-            profile: userProfiles,
-            user: users,
+            profileId: userProfiles.id,
+            profileUserId: userProfiles.userId,
+            displayName: userProfiles.displayName,
+            userIntent: userProfiles.userIntent,
+            businessType: userProfiles.businessType,
+            serviceTags: userProfiles.serviceTags,
+            sellerTags: userProfiles.sellerTags,
+            verificationRequirements: userProfiles.verificationRequirements,
+            verificationStatus: userProfiles.verificationStatus,
+            verificationSubmissions: userProfiles.verificationSubmissions,
+            emailVerified: userProfiles.email_verified,
+            addressVerified: userProfiles.address_verified,
+            licenseVerified: userProfiles.license_verified,
+            insuranceVerified: userProfiles.insurance_verified,
+            taxIdVerified: userProfiles.tax_id_verified,
+            businessRegistrationVerified: userProfiles.business_registration_verified,
+            updatedAt: userProfiles.updatedAt,
+            userEmail: users.email,
+            userFirstName: users.firstName,
+            userLastName: users.lastName,
+            userEmailVerified: users.emailVerified,
+            userAddressVerified: users.addressVerified,
           })
           .from(userProfiles)
           .leftJoin(users, eq(userProfiles.userId, users.id))
@@ -19152,7 +19289,74 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           )
           .orderBy(desc(userProfiles.updatedAt));
 
-        res.json(rows);
+        const reviewRows = await Promise.all(
+          rows.map(async (row) => {
+            const requirements = await computeVerificationRequirements(
+              row.userIntent as "person" | "business",
+              (row.businessType as "service_provider" | "seller" | "generic" | null) || undefined,
+              row.serviceTags || [],
+              row.sellerTags || []
+            );
+            const status = {
+              email: Boolean(row.userEmailVerified || row.emailVerified),
+              address: Boolean(row.userAddressVerified || row.addressVerified),
+              license: Boolean(row.licenseVerified),
+              insurance: Boolean(row.insuranceVerified),
+              tax_id: Boolean(row.taxIdVerified),
+              business_registration: Boolean(row.businessRegistrationVerified),
+            };
+            const sanitized = sanitizeVerificationSubmissions(row.verificationSubmissions || {});
+            const documentBase = `/api/admin/profile-verifications/${encodeURIComponent(
+              String(row.profileId)
+            )}/documents`;
+            const documentUrls = {
+              license: sanitized.evidence.licenseDocument ? `${documentBase}/license` : null,
+              insurance: sanitized.evidence.insuranceDocument ? `${documentBase}/insurance` : null,
+              tax_id: sanitized.evidence.taxDocument ? `${documentBase}/tax_id` : null,
+              business_registration: sanitized.evidence.businessRegistrationDocument
+                ? `${documentBase}/business_registration`
+                : null,
+            };
+            return {
+              profile: {
+                id: row.profileId,
+                userId: row.profileUserId,
+                displayName: row.displayName,
+                userIntent: row.userIntent,
+                businessType: row.businessType,
+                verificationRequirements: requirements,
+                verificationStatus: row.verificationStatus,
+                license_verified: status.license,
+                insurance_verified: status.insurance,
+                tax_id_verified: status.tax_id,
+                business_registration_verified: status.business_registration,
+                verificationSubmissions: {
+                  licenseNumber: sanitized.licenseNumber,
+                  taxId: sanitized.taxIdLast4 ? `****${sanitized.taxIdLast4}` : null,
+                  licenseDocObjectKey: documentUrls.license,
+                  insuranceDocObjectKey: documentUrls.insurance,
+                  businessRegistrationDocObjectKey: documentUrls.business_registration,
+                  submittedAt: sanitized.submittedAt,
+                },
+                fieldReview: buildVerificationFieldReviewState({
+                  requirements,
+                  status,
+                  submissions: row.verificationSubmissions || {},
+                  includeReviewer: true,
+                }),
+                documentUrls,
+                updatedAt: row.updatedAt,
+              },
+              user: {
+                id: row.profileUserId,
+                email: row.userEmail,
+                firstName: row.userFirstName,
+                lastName: row.userLastName,
+              },
+            };
+          })
+        );
+        return res.json(reviewRows);
       } catch (error) {
         console.error("Error fetching profile verifications:", error);
         res.status(500).json({ message: "Failed to fetch profile verifications" });
@@ -19166,18 +19370,35 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     isAdmin,
     async (req: Request, res: Response) => {
       try {
-        const { profileId } = req.params;
-        const { field, decision } = (req.body ?? {}) as {
-          field?: "license" | "insurance" | "tax_id" | "business_registration";
-          decision?: "approved" | "rejected";
-        };
-
-        const validFields = ["license", "insurance", "tax_id", "business_registration"] as const;
-        if (!field || !validFields.includes(field)) {
-          return res.status(400).json({ message: "Invalid field" });
+        const profileId = String(req.params.profileId || "").trim();
+        const parsed = adminBusinessVerificationDecisionSchema.safeParse(req.body ?? {});
+        if (!parsed.success) {
+          return res.status(400).json({
+            message: "Invalid verification decision",
+            errors: parsed.error.flatten(),
+          });
         }
-        if (decision !== "approved" && decision !== "rejected") {
-          return res.status(400).json({ message: "Invalid decision" });
+        const reviewerId = String(
+          (req.user as any)?.id || (req.user as any)?.claims?.sub || ""
+        ).trim();
+        if (!reviewerId) return res.status(401).json({ message: "Unauthorized" });
+
+        const [profile] = await db
+          .select()
+          .from(userProfiles)
+          .where(eq(userProfiles.id, profileId))
+          .limit(1);
+        if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+        const requirements = await computeVerificationRequirements(
+          profile.userIntent as "person" | "business",
+          (profile.businessType as "service_provider" | "seller" | "generic" | null) || undefined,
+          profile.serviceTags || [],
+          profile.sellerTags || []
+        );
+        const { field, decision, rejectionReason } = parsed.data;
+        if (!requirements[field]) {
+          return res.status(400).json({ message: "This verification field is not required" });
         }
 
         const columnMap = {
@@ -19187,35 +19408,122 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           business_registration: "business_registration_verified",
         } as const;
 
+        const reviewedAt = new Date().toISOString();
+        const nextSubmissions = recordVerificationDecision({
+          submissions: (profile as any).verificationSubmissions || {},
+          field,
+          decision,
+          reviewerId,
+          reviewedAt,
+          rejectionReason,
+        });
+        const nextStatus = {
+          email: Boolean((profile as any).email_verified),
+          address: Boolean((profile as any).address_verified),
+          license:
+            field === "license"
+              ? decision === "approved"
+              : Boolean((profile as any).license_verified),
+          insurance:
+            field === "insurance"
+              ? decision === "approved"
+              : Boolean((profile as any).insurance_verified),
+          tax_id:
+            field === "tax_id"
+              ? decision === "approved"
+              : Boolean((profile as any).tax_id_verified),
+          business_registration:
+            field === "business_registration"
+              ? decision === "approved"
+              : Boolean((profile as any).business_registration_verified),
+        };
+        const fieldReview = buildVerificationFieldReviewState({
+          requirements,
+          status: nextStatus,
+          submissions: nextSubmissions,
+          includeReviewer: true,
+        });
+        const overallStatus = deriveOverallBusinessVerificationStatus({
+          requirements,
+          fieldReviewState: fieldReview,
+        });
         const [updated] = await db
           .update(userProfiles)
           .set({
             [columnMap[field]]: decision === "approved",
+            verificationRequirements: requirements,
+            verificationSubmissions: nextSubmissions,
+            verificationStatus: overallStatus,
             updatedAt: new Date(),
           } as any)
           .where(eq(userProfiles.id, profileId))
           .returning();
+        if (!updated) return res.status(404).json({ message: "Profile not found" });
 
-        if (!updated) {
-          return res.status(404).json({ message: "Profile not found" });
-        }
-
-        const allRequired = (updated as any).verificationRequirements || {};
-        const allSatisfied = (["license", "insurance", "tax_id", "business_registration"] as const)
-          .filter((key) => allRequired[key])
-          .every((key) => Boolean((updated as any)[columnMap[key]]));
-
-        if (allSatisfied) {
-          await db
-            .update(userProfiles)
-            .set({ verificationStatus: "approved", updatedAt: new Date() })
-            .where(eq(userProfiles.id, profileId));
-        }
-
-        res.json({ profile: updated });
+        return res.json({
+          profile: {
+            id: updated.id,
+            verificationStatus: overallStatus,
+            verificationRequirements: requirements,
+            status: nextStatus,
+            fieldReview,
+            submissions: sanitizeVerificationSubmissions(nextSubmissions),
+          },
+        });
       } catch (error) {
         console.error("Error updating profile verification:", error);
         res.status(500).json({ message: "Failed to update profile verification" });
+      }
+    }
+  );
+
+  app.get(
+    "/api/admin/profile-verifications/:profileId/documents/:field",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const profileId = String(req.params.profileId || "").trim();
+        const parsedField = businessVerificationFieldSchema.safeParse(req.params.field);
+        if (!profileId || !parsedField.success) {
+          return res.status(400).json({ message: "Invalid verification document request" });
+        }
+
+        const [profile] = await db
+          .select({
+            userId: userProfiles.userId,
+            verificationSubmissions: userProfiles.verificationSubmissions,
+          })
+          .from(userProfiles)
+          .where(eq(userProfiles.id, profileId))
+          .limit(1);
+        if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+        const objectKey = getStoredVerificationDocumentKey(
+          profile.verificationSubmissions,
+          parsedField.data
+        );
+        if (!objectKey || !isOwnedPrivateObjectKey(objectKey, profile.userId)) {
+          return res.status(404).json({ message: "Verification document not found" });
+        }
+
+        const filename = `${parsedField.data.replace(/_/g, "-")}-verification-document`;
+        const useR2 = Boolean(process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID);
+        if (useR2) {
+          const { R2StorageService } = await import("./localStorage");
+          const storageService = new R2StorageService();
+          const downloadUrl = await storageService.getDownloadURL(objectKey, { filename });
+          return res.redirect(302, downloadUrl);
+        }
+
+        const { LocalStorageService } = await import("./localStorage");
+        const storageService = new LocalStorageService();
+        const filePath = await storageService.getPrivateFilePathFromObjectKey(objectKey);
+        if (!filePath) return res.status(404).json({ message: "Verification document not found" });
+        return res.download(filePath, filename);
+      } catch (error) {
+        console.error("Error downloading profile verification document:", error);
+        return res.status(500).json({ message: "Failed to download verification document" });
       }
     }
   );

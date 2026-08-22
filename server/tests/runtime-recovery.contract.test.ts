@@ -26,6 +26,10 @@ describe("runtime recovery contracts", () => {
     expect(source).toContain('url.searchParams.set("__fresh", String(Date.now()))');
     expect(source).toContain("window.location.replace(url.toString())");
     expect(source).toContain("Failed to fetch dynamically imported module");
+    expect(source).toContain('window.addEventListener("vite:preloadError"');
+    expect(source).toContain("event.preventDefault()");
+    expect(source).toContain("let chunkRecoveryInFlight = false");
+    expect(source).toContain("if (chunkRecoveryInFlight) return");
   });
 
   it("missing hashed assets remain explicitly non-cacheable on the server", () => {

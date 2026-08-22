@@ -74,7 +74,7 @@ describe("Community app surface UX contract", () => {
     expect(feed).toContain("Community feed views");
     expect(feed).toContain("Explore");
     expect(feed).toContain("New neighbors");
-    expect(feed).toContain("What do you need?");
+    expect(feed).toContain("More ways to start");
     expect(feed).toContain("Turn a need into action");
     expect(feed).toContain("Reach interested buyers");
     expect(feed).toContain("This week");
@@ -108,6 +108,44 @@ describe("Community app surface UX contract", () => {
     expect(routes).toContain("isUsefulPublicCommunityBrowsePost(post)");
     expect(routes).toContain("furnace|\\bac\\b|air\\s+conditioner");
     expect(routes).not.toContain("furnace|ac|air\\s+conditioner");
+  });
+
+  it("keeps local views in one internally scrollable row and moves start modes behind disclosure", () => {
+    const feed = read("client/src/pages/community-feed.tsx");
+    const styles = read("client/src/index.css");
+    const pageMarkup = feed.slice(feed.lastIndexOf("\n  return ("));
+    const headingIndex = pageMarkup.indexOf('data-testid="community-feed-heading"');
+    const controlsIndex = pageMarkup.indexOf('data-testid="community-feed-view-controls"');
+    const startActionsIndex = pageMarkup.indexOf('data-testid="community-start-actions"');
+    const feedIndex = pageMarkup.indexOf("{renderFeedList()}");
+
+    expect(feed).toContain(
+      'className="ts-community-viewbar mb-3 flex flex-nowrap items-center gap-1.5 overflow-x-auto'
+    );
+    expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*nowrap;/s);
+    expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*overflow-x:\s*auto;/s);
+    expect(styles).not.toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*wrap;/s);
+    expect(styles).toMatch(/\.ts-community-viewbar__item\s*\{[^}]*min-height:\s*44px;/s);
+    expect(feed).toContain('data-testid="community-feed-stream"');
+    expect(feed).toContain('data-testid="community-start-actions"');
+    expect(feed).toContain("<details");
+    expect(feed).toContain("<summary");
+    expect(feed).not.toContain('data-testid="community-action-panel"');
+    for (const key of ["request", "question", "recommendation", "alert", "forsale"]) {
+      expect(feed).toContain(`key: "${key}"`);
+    }
+    expect(feed).toContain("data-testid={`community-route-${key}`}");
+    expect(feed).toContain("startCommunityRoute(key)");
+    expect(headingIndex).toBeGreaterThan(-1);
+    expect(controlsIndex).toBeGreaterThan(headingIndex);
+    expect(startActionsIndex).toBeGreaterThan(controlsIndex);
+    expect(feedIndex).toBeGreaterThan(startActionsIndex);
+    expect(pageMarkup.slice(startActionsIndex, feedIndex)).not.toMatch(
+      /<details[^>]*\sopen(?:\s|=|>)/s
+    );
+    expect(feed).toContain("xl:grid-cols-[minmax(0,1fr)_300px]");
+    expect(feed).not.toContain("lg:grid-cols-[minmax(0,1fr)_300px]");
+    expect(feed).not.toContain("min-w-[142px]");
   });
 
   it("deletes displaced Community snapshot, recommendation, and duplicate empty-state sources", () => {

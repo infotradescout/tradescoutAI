@@ -40,7 +40,7 @@ describe("managed partner intake queue", () => {
   });
 
   it("creates a durable queue without changing existing company tables", () => {
-    const ddl = read("server/db/ensureManagedPartnerOpsTables.ts");
+    const ddl = read("migrations/0117_managed_partner_intakes.sql");
 
     expect(ddl).toContain("CREATE TABLE IF NOT EXISTS managed_partner_intakes");
     expect(ddl).toContain("display_name TEXT NOT NULL");
@@ -57,6 +57,7 @@ describe("managed partner intake queue", () => {
     expect(ddl).toContain("'archived'");
     expect(ddl).toContain("idx_managed_partner_intakes_slug_unique");
     expect(ddl).toContain("idx_managed_partner_intakes_active_queue");
+    expect(ddl).toContain("tradescout-schema:0117:v1");
     expect(ddl).not.toContain("ALTER TABLE businesses");
     expect(ddl).not.toContain("ALTER TABLE profiles");
     expect(ddl).not.toContain("ALTER TABLE users");
@@ -96,6 +97,8 @@ describe("managed partner intake queue", () => {
     expect(service).not.toContain("UPDATE businesses");
     expect(service).not.toContain("UPDATE profiles");
     expect(service).not.toContain("UPDATE users");
+    expect(service).not.toContain("ensureManagedPartnerOpsTables");
+    expect(service).not.toMatch(/CREATE\s+(?:TABLE|INDEX)/i);
   });
 
   it("keeps the intake API admin-only and normalizes contact only after live promotion", () => {

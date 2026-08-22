@@ -152,7 +152,6 @@ export type LiveLaneEventStream = {
   nextCursor: string | null;
 };
 
-let ensurePromise: Promise<void> | null = null;
 let prunePromise: Promise<void> | null = null;
 let lastPruneAt = 0;
 
@@ -181,58 +180,6 @@ const LIVE_STREAM_DEGRADED_RETRY_MINUTES = Math.max(
   Number(process.env.LIVE_STREAM_DEGRADED_RETRY_MINUTES || 2)
 );
 
-export async function ensureLiveStreamSnapshotTables(): Promise<void> {
-  if (!ensurePromise) {
-    ensurePromise = (async () => {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS admin_live_stream_snapshots (
-          id bigserial PRIMARY KEY,
-          source_filter text,
-          state_code varchar(2),
-          county_filter text,
-          limit_value integer NOT NULL DEFAULT 20,
-          summary_json jsonb NOT NULL DEFAULT '{}'::jsonb,
-          stream_json jsonb NOT NULL DEFAULT '[]'::jsonb,
-          computed_at timestamptz NOT NULL DEFAULT now(),
-          created_at timestamptz NOT NULL DEFAULT now()
-        );
-      `);
-      await pool.query(`
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_live_stream_snapshots_unique
-        ON admin_live_stream_snapshots (
-          coalesce(source_filter, ''),
-          coalesce(state_code, ''),
-          coalesce(county_filter, ''),
-          limit_value
-        );
-      `);
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS admin_live_stream_snapshot_history (
-          id bigserial PRIMARY KEY,
-          source_filter text,
-          state_code varchar(2),
-          county_filter text,
-          limit_value integer NOT NULL DEFAULT 20,
-          summary_json jsonb NOT NULL DEFAULT '{}'::jsonb,
-          stream_json jsonb NOT NULL DEFAULT '[]'::jsonb,
-          computed_at timestamptz NOT NULL DEFAULT now(),
-          created_at timestamptz NOT NULL DEFAULT now()
-        );
-      `);
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS idx_admin_live_stream_snapshot_history_lookup
-        ON admin_live_stream_snapshot_history (
-          coalesce(source_filter, ''),
-          coalesce(state_code, ''),
-          coalesce(county_filter, ''),
-          computed_at DESC
-        );
-      `);
-    })();
-  }
-  await ensurePromise;
-}
-
 async function pruneLiveStreamSnapshotHistoryIfNeeded(): Promise<void> {
   const now = Date.now();
   if (now - lastPruneAt < 6 * 60 * 60 * 1000) return;
@@ -240,7 +187,6 @@ async function pruneLiveStreamSnapshotHistoryIfNeeded(): Promise<void> {
 
   prunePromise = (async () => {
     try {
-      await ensureLiveStreamSnapshotTables();
       await pool.query(
         `
         delete from admin_live_stream_snapshot_history
@@ -2018,8 +1964,7 @@ export async function refreshLiveStreamSnapshot(params?: {
   county?: string;
   limit?: number;
 }): Promise<LiveStreamSnapshot> {
-  await ensureLiveStreamSnapshotTables();
-  void pruneLiveStreamSnapshotHistoryIfNeeded();
+  await pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const snapshot = await buildLiveStreamSnapshot(filters);
 
@@ -2092,8 +2037,6 @@ export async function getLiveStreamSnapshot(params?: {
   limit?: number;
   maxSnapshotAgeMinutes?: number;
 }): Promise<LiveStreamSnapshot> {
-  await ensureLiveStreamSnapshotTables();
-  void pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const maxSnapshotAgeMinutes = Math.max(1, Number(params?.maxSnapshotAgeMinutes || 5));
   const result = await pool.query(
@@ -2117,13 +2060,20 @@ export async function getLiveStreamSnapshot(params?: {
   const stream = Array.isArray(row?.stream_json)
     ? (row.stream_json as LiveStreamSnapshotEntry[])
     : [];
-  const isStale =
-    !computedAt ||
-    !Number.isFinite(computedAt.getTime()) ||
-    Date.now() - computedAt.getTime() > maxSnapshotAgeMinutes * 60 * 1000;
+  if (!row || !computedAt || !Number.isFinite(computedAt.getTime())) {
+    throw new Error("No persisted live-stream snapshot is available; run the explicit refresh action.");
+  }
 
-  if (!row || isStale || shouldRefreshWeakSnapshot({ summary, stream, computedAt })) {
-    return refreshLiveStreamSnapshot(filters);
+  const isStale =
+    Date.now() - computedAt.getTime() > maxSnapshotAgeMinutes * 60 * 1000;
+  const isWeak = shouldRefreshWeakSnapshot({ summary, stream, computedAt });
+  const degradedSources = new Set(summary?.degradedSources || []);
+  const degradedSourceReasons = { ...(summary?.degradedSourceReasons || {}) };
+  if (isStale || isWeak) {
+    degradedSources.add("live_stream_snapshot");
+    degradedSourceReasons.live_stream_snapshot = isStale
+      ? `Persisted snapshot is older than ${maxSnapshotAgeMinutes} minutes; use Refresh snapshots to recompute it.`
+      : "Persisted snapshot failed the usability threshold; use Refresh snapshots to recompute it.";
   }
 
   return {
@@ -2134,7 +2084,11 @@ export async function getLiveStreamSnapshot(params?: {
       county: filters.county || null,
       limit: filters.limit,
     },
-    summary: summary || {
+    summary: summary ? {
+      ...summary,
+      degradedSources: Array.from(degradedSources),
+      degradedSourceReasons,
+    } : {
       truthNow: "",
       currentLeadCounty: null,
       currentLeadState: null,
@@ -2151,7 +2105,9 @@ export async function getLiveStreamSnapshot(params?: {
       usabilityRejectionReasons: {},
       usabilityRejectionReasonsBySource: {},
     },
-    stream,
+    stream: isStale || isWeak
+      ? stream.map((entry) => ({ ...entry, truthStatus: "stale" as const }))
+      : stream,
   };
 }
 
@@ -2162,8 +2118,6 @@ export async function getLiveStreamSnapshotHistory(params?: {
   limit?: number;
   lookbackDays?: number;
 }): Promise<LiveStreamSnapshot[]> {
-  await ensureLiveStreamSnapshotTables();
-  void pruneLiveStreamSnapshotHistoryIfNeeded();
   const filters = normalizeFilters(params || {});
   const historyLimit = Math.max(1, Math.min(20, Number(params?.limit || 10)));
   const lookbackDays = Math.max(

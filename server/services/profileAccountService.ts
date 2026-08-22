@@ -5,32 +5,6 @@ import {
   type ProfileAccountPolicy,
 } from "@shared/profileAccount";
 import { pool } from "../db";
-import {
-  ensureProfileAccountEntitlement,
-  type ProfileAccountEntitlement,
-} from "./profileAccountEntitlementService";
-
-let verificationPromise: Promise<void> | null = null;
-
-export async function verifyProfileAccountSchema(): Promise<void> {
-  if (!verificationPromise) {
-    verificationPromise = pool
-      .query(`SELECT to_regclass('public.profile_accounts') AS profile_accounts`)
-      .then((result) => {
-        if (!result.rows[0]?.profile_accounts) {
-          throw new Error("Profile account migrations are required");
-        }
-      })
-      .catch((error) => {
-        verificationPromise = null;
-        throw error;
-      });
-  }
-  return verificationPromise;
-}
-
-/** Backward-compatible verifier; schema creation belongs to migrations/0117. */
-export const ensureProfileAccountTables = verifyProfileAccountSchema;
 
 type ProfileAccountTarget = {
   profileId: string;
@@ -69,6 +43,25 @@ export type ProfileAccountState = Readonly<{
   account: ProfileAccountRecord | null;
 }>;
 
+export function applyProfileAccountVerificationBypass(
+  account: ProfileAccountRecord | null,
+  verificationBypassActive: boolean
+): ProfileAccountRecord | null {
+  if (
+    !account ||
+    !verificationBypassActive ||
+    account.verificationStatus === "approved" ||
+    account.verificationStatus === "not_required"
+  ) {
+    return account;
+  }
+
+  return Object.freeze({
+    ...account,
+    verificationStatus: "not_required" as const,
+  });
+}
+
 function normalizeSlug(value: unknown): string {
   return String(value || "")
     .trim()
@@ -76,14 +69,6 @@ function normalizeSlug(value: unknown): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 120);
-}
-
-function normalizeResumePath(value: unknown, fallback: string): string {
-  const path = String(value || "").trim();
-  if (!path.startsWith("/u/") || path.startsWith("//") || path.includes("\\")) {
-    return fallback;
-  }
-  return path.slice(0, 500);
 }
 
 function normalizeSourcePath(value: unknown, fallback: string): string {
@@ -94,12 +79,19 @@ function normalizeSourcePath(value: unknown, fallback: string): string {
   try {
     const parsed = new URL(path, "https://profile-account.local");
     if (parsed.origin !== "https://profile-account.local") return fallback;
-    const decodedPath = decodeURIComponent(parsed.pathname);
-    if (decodedPath.split("/").includes("..")) return fallback;
+    if (decodeURIComponent(parsed.pathname).split("/").includes("..")) return fallback;
     return `${parsed.pathname}${parsed.search}${parsed.hash}`.slice(0, 500);
   } catch {
     return fallback;
   }
+}
+
+function normalizeResumePath(value: unknown, fallback: string): string {
+  const path = String(value || "").trim();
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) {
+    return fallback;
+  }
+  return path.slice(0, 500);
 }
 
 function normalizeBusinessName(value: unknown): string {
@@ -200,6 +192,32 @@ async function loadViewerBusinessProfile(
   });
 }
 
+async function queueBusinessVerificationReview(
+  businessProfileId: string,
+  client: Pick<typeof pool, "query">
+): Promise<void> {
+  await client.query(
+    `UPDATE user_profiles
+        SET verification_requirements = COALESCE(verification_requirements, '{}'::jsonb)
+              || '{"business_registration": true}'::jsonb,
+            verification_submissions = COALESCE(verification_submissions, '{}'::jsonb)
+              || jsonb_build_object(
+                   'businessRegistrationReviewRequestedAt',
+                   COALESCE(
+                     verification_submissions ->> 'businessRegistrationReviewRequestedAt',
+                     NOW()::text
+                   ),
+                   'businessRegistrationReviewSource',
+                   'profile_account'
+                 ),
+            updated_at = NOW()
+      WHERE id = $1
+        AND user_intent = 'business'
+        AND verification_status = 'pending'`,
+    [businessProfileId]
+  );
+}
+
 async function createPrivateBusinessProfile(
   userId: string,
   businessName: unknown,
@@ -207,7 +225,7 @@ async function createPrivateBusinessProfile(
 ): Promise<ViewerBusinessProfile> {
   const name = normalizeBusinessName(businessName);
   if (name.length < 2) {
-    throw new Error("Business name is required to create an account with this profile");
+    throw new Error("Business name is required to create this account");
   }
 
   const result = await client.query(
@@ -218,19 +236,26 @@ async function createPrivateBusinessProfile(
        roles,
        profile_visibility,
        verification_status,
+       verification_requirements,
+       verification_submissions,
        is_primary,
        display_name,
        created_at,
        updated_at
      )
      SELECT
-       $1,
+       $1::varchar,
        'business',
        'business_owner',
        ARRAY['business_owner']::text[],
        'private',
        'pending',
-       NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1),
+       '{"business_registration": true}'::jsonb,
+       jsonb_build_object(
+         'businessRegistrationReviewRequestedAt', NOW()::text,
+         'businessRegistrationReviewSource', 'profile_account'
+       ),
+       NOT EXISTS (SELECT 1 FROM user_profiles WHERE user_id = $1::varchar),
        $2,
        NOW(),
        NOW()
@@ -252,7 +277,8 @@ function toAccountRecord(args: {
   viewerBusiness: ViewerBusinessProfile | null;
   row: any;
 }): ProfileAccountRecord {
-  const identityKind = String(args.row.identity_kind || "user") === "business" ? "business" : "user";
+  const identityKind =
+    String(args.row.identity_kind || "user") === "business" ? "business" : "user";
   const businessProfileId = args.row.business_profile_id
     ? String(args.row.business_profile_id)
     : null;
@@ -276,9 +302,7 @@ function toAccountRecord(args: {
       args.row.resume_path,
       buildProfileAccountReturnPath(args.target.profileSlug)
     ),
-    lastSeenAt: args.row.last_seen_at
-      ? new Date(args.row.last_seen_at).toISOString()
-      : null,
+    lastSeenAt: args.row.last_seen_at ? new Date(args.row.last_seen_at).toISOString() : null,
     bidRockIncluded: args.policy.includesBidRock,
   });
 }
@@ -303,42 +327,35 @@ export async function getProfileAccountState(args: {
   const viewerBusiness =
     policy.requiredIdentity === "business" ? await loadViewerBusinessProfile(userId) : null;
   const result = await pool.query(
-    `SELECT id,
-            identity_kind,
-            business_profile_id,
-            priority_key,
-            status,
-            verification_status,
-            resume_path,
-            last_seen_at
-       FROM profile_accounts
-      WHERE owner_user_id = $1
-        AND target_profile_id = $2
-        AND identity_kind = $3
+    `SELECT pa.id,
+            pa.identity_kind,
+            pa.business_profile_id,
+            pa.priority_key,
+            pa.status,
+            CASE
+              WHEN pa.identity_kind = 'business' THEN
+                COALESCE(account_business.verification_status::text, 'pending')
+              ELSE 'not_required'
+            END AS verification_status,
+            pa.resume_path,
+            pa.last_seen_at,
+            account_business.display_name AS business_name
+       FROM profile_accounts pa
+       LEFT JOIN user_profiles account_business
+         ON account_business.id = pa.business_profile_id
+      WHERE pa.owner_user_id = $1
+        AND pa.target_profile_id = $2
+        AND pa.identity_kind = $3
       LIMIT 1`,
     [userId, target.profileId, policy.requiredIdentity]
   );
-  const row = result.rows[0]
-    ? {
-        ...result.rows[0],
-        verification_status:
-          policy.requiredIdentity === "business"
-            ? viewerBusiness?.verificationStatus || result.rows[0].verification_status
-            : "not_required",
-      }
-    : null;
 
   return Object.freeze({
     policy,
     viewerBusiness,
     requiresBusinessSetup: policy.requiredIdentity === "business" && !viewerBusiness,
-    account: row
-      ? toAccountRecord({
-          target,
-          policy,
-          viewerBusiness,
-          row,
-        })
+    account: result.rows[0]
+      ? toAccountRecord({ target, policy, viewerBusiness, row: result.rows[0] })
       : null,
   });
 }
@@ -353,9 +370,7 @@ export async function ensureProfileAccount(args: {
   viewerBusiness: ViewerBusinessProfile | null;
   requiresBusinessSetup: false;
   account: ProfileAccountRecord;
-  entitlements: readonly ProfileAccountEntitlement[];
 }> {
-  await ensureProfileAccountTables();
   const userId = String(args.userId || "").trim();
   if (!userId) throw new Error("Authentication required");
 
@@ -367,7 +382,9 @@ export async function ensureProfileAccount(args: {
     const policy = policyForTarget(target);
     if (!policy.enabled) throw new Error("Accounts are not available for this profile");
 
-    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [userId]);
+    const userResult = await client.query(`SELECT id FROM users WHERE id = $1 FOR UPDATE`, [
+      userId,
+    ]);
     if (!userResult.rows[0]) throw new Error("Private identity not found");
 
     let viewerBusiness =
@@ -376,6 +393,9 @@ export async function ensureProfileAccount(args: {
         : null;
     if (policy.requiredIdentity === "business" && !viewerBusiness) {
       viewerBusiness = await createPrivateBusinessProfile(userId, args.businessName, client);
+    }
+    if (viewerBusiness?.verificationStatus === "pending") {
+      await queueBusinessVerificationReview(viewerBusiness.id, client);
     }
 
     const identityKind = policy.requiredIdentity;
@@ -410,7 +430,7 @@ export async function ensureProfileAccount(args: {
          identity_kind = EXCLUDED.identity_kind,
          priority_key = EXCLUDED.priority_key,
          status = CASE
-           WHEN profile_accounts.status IN ('suspended', 'closed') THEN profile_accounts.status
+           WHEN profile_accounts.status = 'suspended' THEN 'suspended'
            ELSE 'active'
          END,
          verification_status = EXCLUDED.verification_status,
@@ -439,96 +459,13 @@ export async function ensureProfileAccount(args: {
       ]
     );
 
-    const account = toAccountRecord({
-      target,
-      policy,
-      viewerBusiness,
-      row: result.rows[0],
-    });
-    const entitlements = policy.includesBidRock
-      ? [
-          await ensureProfileAccountEntitlement({
-            profileAccountId: account.id,
-            productKey: "bidrock",
-            verificationStatus: account.verificationStatus,
-            accountStatus: account.status,
-            client,
-          }),
-        ]
-      : [];
-
     await client.query("COMMIT");
     return {
       policy,
       viewerBusiness,
       requiresBusinessSetup: false,
-      account,
-      entitlements,
+      account: toAccountRecord({ target, policy, viewerBusiness, row: result.rows[0] }),
     };
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
-/** Explicit authenticated state transition used by profile/BidRock account loaders. */
-export async function reconcileProfileAccountState(args: {
-  userId: string;
-  profileSlug: string;
-}): Promise<{
-  account: ProfileAccountRecord;
-  entitlements: readonly ProfileAccountEntitlement[];
-}> {
-  await ensureProfileAccountTables();
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const target = await loadProfileAccountTarget(args.profileSlug, client);
-    if (!target) throw new Error("Profile account target not found");
-    const policy = policyForTarget(target);
-    const viewerBusiness =
-      policy.requiredIdentity === "business"
-        ? await loadViewerBusinessProfile(args.userId, client, true)
-        : null;
-    const existing = await client.query(
-      `SELECT id, identity_kind, business_profile_id, priority_key, status,
-              verification_status, resume_path, last_seen_at
-         FROM profile_accounts
-        WHERE owner_user_id = $1 AND target_profile_id = $2
-        FOR UPDATE`,
-      [args.userId, target.profileId]
-    );
-    if (!existing.rows[0]) throw new Error("Profile account not found");
-    const verificationStatus =
-      policy.requiredIdentity === "business"
-        ? viewerBusiness?.verificationStatus || existing.rows[0].verification_status
-        : "not_required";
-    const updated = await client.query(
-      `UPDATE profile_accounts
-          SET verification_status = $2,
-              last_seen_at = NOW(),
-              updated_at = NOW()
-        WHERE id = $1::uuid
-        RETURNING id, identity_kind, business_profile_id, priority_key, status,
-                  verification_status, resume_path, last_seen_at`,
-      [existing.rows[0].id, verificationStatus]
-    );
-    const account = toAccountRecord({ target, policy, viewerBusiness, row: updated.rows[0] });
-    const entitlements = policy.includesBidRock
-      ? [
-          await ensureProfileAccountEntitlement({
-            profileAccountId: account.id,
-            productKey: "bidrock",
-            verificationStatus: account.verificationStatus,
-            accountStatus: account.status,
-            client,
-          }),
-        ]
-      : [];
-    await client.query("COMMIT");
-    return { account, entitlements };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

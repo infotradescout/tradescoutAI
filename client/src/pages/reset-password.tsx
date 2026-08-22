@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,44 +9,45 @@ import { apiRequest } from "@/lib/queryClient";
 import { KeyRound } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  normalizeProfileAccountResumePath,
+  requestProfileAccountPasswordReset,
+} from "@/components/profile/profileAccountClient";
+import { isSafeNextPath } from "@/lib/postOnboardingRoute";
+import { readResetPasswordParam } from "./resetPasswordLocation";
+import { prepareResetPasswordSubmission } from "./resetPasswordSubmission";
 
 export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [location, navigate] = useLocation();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => readResetPasswordParam("email"));
   const [code, setCode] = useState("");
   const [verifiedToken, setVerifiedToken] = useState("");
+  const verifiedTokenRef = useRef("");
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [codeStepVisible, setCodeStepVisible] = useState(false);
 
   const token = useMemo(() => {
-    try {
-      const idx = location.indexOf("?");
-      if (idx === -1) return "";
-      const params = new URLSearchParams(location.slice(idx + 1));
-      return String(params.get("token") || "").trim();
-    } catch {
-      return "";
-    }
+    return readResetPasswordParam("token");
   }, [location]);
   const effectiveToken = token || verifiedToken;
   const safeNext = useMemo(() => {
-    try {
-      const idx = location.indexOf("?");
-      if (idx === -1) return "";
-      const params = new URLSearchParams(location.slice(idx + 1));
-      const requested = String(params.get("next") || "").trim();
-      return requested.startsWith("/") && !requested.startsWith("//") ? requested : "";
-    } catch {
-      return "";
-    }
+    const requested = readResetPasswordParam("next");
+    return isSafeNextPath(requested) ? requested : "";
   }, [location]);
+  const profileAccountNext = useMemo(() => normalizeProfileAccountResumePath(safeNext), [safeNext]);
 
   const requestResetMutation = useMutation({
     mutationFn: async () => {
       const normalizedEmail = email.trim().toLowerCase();
       if (!normalizedEmail) throw new Error("Email is required");
+      if (profileAccountNext) {
+        return requestProfileAccountPasswordReset({
+          email: normalizedEmail,
+          next: profileAccountNext,
+        });
+      }
       return apiRequest("POST", "/api/auth/request-password-reset", { email: normalizedEmail });
     },
     onSuccess: (data: any) => {
@@ -94,6 +95,7 @@ export default function ResetPasswordPage() {
         });
         return;
       }
+      verifiedTokenRef.current = nextToken;
       setVerifiedToken(nextToken);
       toast({ title: "Code verified", description: "Set your new password." });
     },
@@ -107,14 +109,24 @@ export default function ResetPasswordPage() {
   });
 
   const resetMutation = useMutation({
-    mutationFn: async () => {
-      if (!effectiveToken) throw new Error("Missing reset token");
-      if (newPassword.length < 8) throw new Error("Password must be at least 8 characters");
-      if (newPassword !== confirm) throw new Error("Passwords do not match");
-      return apiRequest("POST", "/api/auth/reset-password", { token: effectiveToken, newPassword });
+    mutationFn: async ({
+      token: resetToken,
+      newPassword: password,
+    }: {
+      token: string;
+      newPassword: string;
+    }) => {
+      return apiRequest("POST", "/api/auth/reset-password", {
+        token: resetToken,
+        newPassword: password,
+      });
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
+      if (profileAccountNext) {
+        window.location.assign(profileAccountNext);
+        return;
+      }
       const signinPath = safeNext
         ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeNext)}`
         : "/pre-scout-setup?mode=signin";
@@ -128,6 +140,24 @@ export default function ResetPasswordPage() {
       });
     },
   });
+
+  const submitNewPassword = () => {
+    const submission = prepareResetPasswordSubmission({
+      urlToken: token,
+      verifiedToken: verifiedTokenRef.current,
+      newPassword,
+      confirmPassword: confirm,
+    });
+    if (!submission.ok) {
+      toast({
+        title: "Reset failed",
+        description: submission.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    resetMutation.mutate(submission.value);
+  };
 
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
@@ -151,8 +181,11 @@ export default function ResetPasswordPage() {
           {!effectiveToken ? (
             <>
               <div className="space-y-2">
-                <label className="text-xs text-white/60">Email</label>
+                <label htmlFor="reset-password-email" className="text-xs text-white/60">
+                  Email
+                </label>
                 <Input
+                  id="reset-password-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -172,8 +205,11 @@ export default function ResetPasswordPage() {
               {codeStepVisible ? (
                 <>
                   <div className="space-y-2 pt-2">
-                    <label className="text-xs text-white/60">Verification code</label>
+                    <label htmlFor="reset-password-code" className="text-xs text-white/60">
+                      Verification code
+                    </label>
                     <Input
+                      id="reset-password-code"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       className="bg-black/30 border-[color:var(--border-subtle)]"
@@ -194,8 +230,11 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               <div className="space-y-2">
-                <label className="text-xs text-white/60">New password</label>
+                <label htmlFor="reset-password-new" className="text-xs text-white/60">
+                  New password
+                </label>
                 <Input
+                  id="reset-password-new"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -204,8 +243,11 @@ export default function ResetPasswordPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-white/60">Confirm password</label>
+                <label htmlFor="reset-password-confirm" className="text-xs text-white/60">
+                  Confirm password
+                </label>
                 <Input
+                  id="reset-password-confirm"
                   type="password"
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
@@ -215,7 +257,7 @@ export default function ResetPasswordPage() {
 
               <Button
                 className="bg-ts-orange hover:bg-ts-orange-dark w-full"
-                onClick={() => resetMutation.mutate()}
+                onClick={submitNewPassword}
                 disabled={resetMutation.isPending}
               >
                 {resetMutation.isPending ? "Saving..." : "Save Password"}

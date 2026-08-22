@@ -459,7 +459,7 @@ export async function getRuntimeManagedPartnerProfileHealth(): Promise<ManagedPa
     getManagedPartnerProfileHealth(),
     getRuntimeManagedPartnerProfileDefinitions(),
   ]);
-  const staticSlugs = new Set(
+  const staticSlugs = new Set<string>(
     MANAGED_PARTNER_PROFILE_DEFINITIONS.map((definition) => definition.slug)
   );
   const dynamicDefinitions = runtimeDefinitions.filter(

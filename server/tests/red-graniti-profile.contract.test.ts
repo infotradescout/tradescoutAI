@@ -89,7 +89,7 @@ describe("R.E.D. Graniti profile and Stone Core separation contract", () => {
 
   it("stores materials, physical assets, inventory, publications, and rights separately", () => {
     const stoneCore = read("server/services/stoneCoreProvisioning.ts");
-    const migration = read("migrations/0116_stone_core_schema.sql");
+    const migration = read("migrations/0122_stone_core_schema.sql");
     const provisioner = read("server/services/redGranitiProfileProvisioning.ts");
 
     expect(migration).toContain("CREATE TABLE IF NOT EXISTS stone_materials");

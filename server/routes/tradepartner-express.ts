@@ -784,10 +784,10 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         }
         const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
         const activation = requesterWasCreated
-          ? passwordResetService.createToken(String(requester.id))
+          ? await passwordResetService.createToken(String(requester.id))
           : null;
         const verification = requesterWasCreated
-          ? emailVerificationService.createToken(String(requester.id))
+          ? await emailVerificationService.createToken(String(requester.id))
           : null;
         const onboardingPath = activation
           ? `/reset-password?token=${encodeURIComponent(activation.token)}&next=${encodeURIComponent(requestWorkspacePath)}`

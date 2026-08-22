@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   DollarSign,
   Globe,
+  ChevronDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1082,7 +1083,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   const renderFeedList = () => (
-    <div className="ts-community-stream space-y-3 md:space-y-5">
+    <div className="ts-community-stream space-y-3 md:space-y-5" data-testid="community-feed-stream">
       {postsLoading ? (
         <div className="text-center py-10">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30"></div>
@@ -1449,7 +1450,10 @@ const CommunityFeed = memo(function CommunityFeed() {
               </DialogContent>
             </Dialog>
 
-            <header className="ts-community-heading mb-4 flex items-center justify-between gap-4 border-b border-white/[0.08] px-1 pb-3 pt-1 md:mb-5 md:pb-4">
+            <header
+              className="ts-community-heading mb-3 flex items-center justify-between gap-3 border-b border-white/[0.08] px-1 pb-3 pt-1 md:mb-4 md:pb-4"
+              data-testid="community-feed-heading"
+            >
               <div className="min-w-0">
                 <h1 className="text-2xl font-semibold tracking-[-0.025em] text-white md:text-3xl">
                   Community
@@ -1474,7 +1478,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <Button
                     type="button"
                     size="sm"
-                    className="ts-community-create-action bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
+                    className="ts-community-create-action min-h-11 bg-ts-orange font-semibold text-black hover:bg-ts-orange-dark"
                     onClick={() => {
                       if (!isAuthenticated) {
                         const next = `${currentPath}?compose=1`;
@@ -1491,8 +1495,9 @@ const CommunityFeed = memo(function CommunityFeed() {
               </div>
             </header>
             <nav
-              className="ts-community-viewbar mb-5 flex items-center gap-2 overflow-x-auto border-b border-white/[0.07] pb-3"
+              className="ts-community-viewbar mb-3 flex flex-nowrap items-center gap-1.5 overflow-x-auto border-b border-white/[0.07] pb-2"
               aria-label="Community feed views"
+              data-testid="community-feed-view-controls"
             >
               <button
                 type="button"
@@ -1512,7 +1517,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                 <Globe className="h-3.5 w-3.5" />
                 Explore
               </button>
-              <span className="ts-community-viewbar__divider mx-1 h-5 w-px shrink-0 bg-white/[0.08]" />
+              <span className="ts-community-viewbar__divider mx-1 hidden h-5 w-px shrink-0 bg-white/[0.08] sm:block" />
               <button
                 type="button"
                 onClick={() => handleCommunityView(isGlobalView ? "global" : "local", "forYou")}
@@ -1541,27 +1546,21 @@ const CommunityFeed = memo(function CommunityFeed() {
               ) : null}
             </nav>
 
-            <section
-              className="mb-5 overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(110deg,rgba(255,107,0,0.10),rgba(255,255,255,0.025)_42%,rgba(255,255,255,0.015))]"
-              aria-labelledby="community-action-title"
-              data-testid="community-action-panel"
+            <details
+              className="ts-community-start-actions group mb-3 overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02]"
+              data-testid="community-start-actions"
             >
-              <div className="flex flex-col gap-3 px-3 py-3.5 sm:px-4 lg:flex-row lg:items-center">
-                <div className="min-w-0 lg:w-[210px] lg:shrink-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
-                    Get it done
-                  </p>
-                  <h2
-                    id="community-action-title"
-                    className="mt-1 text-base font-semibold text-white"
-                  >
-                    What do you need?
-                  </h2>
-                  <p className="mt-1 text-xs leading-5 text-white/48">
-                    Ask, recommend, alert people, find help, or sell something.
-                  </p>
-                </div>
-                <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
+              <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-left [&::-webkit-details-marker]:hidden sm:px-4">
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-white">More ways to start</span>
+                  <span className="mt-0.5 block text-[10px] text-white/42">
+                    Find help, ask, recommend, alert people, or sell something.
+                  </span>
+                </span>
+                <ChevronDown className="h-4 w-4 shrink-0 text-ts-orange transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="border-t border-white/[0.06] px-2 py-2 sm:px-3">
+                <div className="grid min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                   {[
                     {
                       key: "request",
@@ -1598,7 +1597,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                       key={key}
                       type="button"
                       onClick={() => startCommunityRoute(key)}
-                      className="group flex min-w-[142px] items-center gap-2.5 rounded-xl border border-white/[0.07] bg-black/20 px-3 py-2.5 text-left transition hover:border-ts-orange/45 hover:bg-ts-orange/[0.08] lg:min-w-0"
+                      className="group flex min-w-0 items-center gap-2.5 rounded-lg border border-transparent bg-transparent px-2.5 py-2 text-left transition hover:border-ts-orange/30 hover:bg-ts-orange/[0.07]"
                       data-testid={`community-route-${key}`}
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.055] text-ts-orange transition group-hover:bg-ts-orange/15">
@@ -1606,22 +1605,22 @@ const CommunityFeed = memo(function CommunityFeed() {
                       </span>
                       <span className="min-w-0">
                         <span className="block text-xs font-semibold text-white">{label}</span>
-                        <span className="mt-0.5 block whitespace-nowrap text-[10px] text-white/38">
+                        <span className="mt-0.5 block text-[10px] leading-4 text-white/38">
                           {detail}
                         </span>
                       </span>
                     </button>
                   ))}
                 </div>
+                <div className="mt-2 border-t border-white/[0.06] px-1 pt-2 text-[10px] text-white/38">
+                  Your contact details stay private until you choose to connect.
+                </div>
               </div>
-              <div className="border-t border-white/[0.06] px-3 py-2 text-[10px] text-white/38 sm:px-4">
-                Your contact details stay private until you choose to connect.
-              </div>
-            </section>
+            </details>
 
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-8">
               {/* Main Feed */}
-              <div className="min-w-0 space-y-3 md:space-y-4">
+              <div className="min-w-0 space-y-3 md:space-y-4" data-testid="community-feed-column">
                 <div className="flex items-end justify-between gap-3 px-1">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">
@@ -2031,7 +2030,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         {connectionActivityData?.activeNowCount ?? activeConnections.length}
                       </span>
                     </div>
-                    <div className="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
+                    <div className="flex gap-3 overflow-x-auto pb-1 xl:flex-wrap xl:overflow-visible">
                       {activeConnections.slice(0, 8).map((neighbor) => {
                         const name =
                           [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||

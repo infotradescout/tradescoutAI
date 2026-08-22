@@ -36,7 +36,7 @@ const discoveryMigrationSource = fs.readFileSync(
   "utf8"
 );
 const recoveryMigrationSource = fs.readFileSync(
-  path.resolve(process.cwd(), "migrations/0115_jw_stone_inventory_truth.sql"),
+  path.resolve(process.cwd(), "migrations/0121_jw_stone_inventory_truth.sql"),
   "utf8"
 );
 const inventory = JSON.parse(

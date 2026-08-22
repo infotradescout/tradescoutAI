@@ -42,7 +42,10 @@ RUN apk add --no-cache fontconfig ttf-dejavu
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=builder /app/server ./server
+COPY --from=builder /app/shared ./shared
+COPY --from=builder /app/scripts ./scripts
 # Include SQL migrations for runtime auto-migrate on boot (server/runtimeMigrations.ts).
 COPY --from=builder /app/migrations ./migrations
 # Include the on-disk knowledge base used by Scout knowledgeService.ts
@@ -52,10 +55,9 @@ COPY --from=builder /app/docs ./docs
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:5000/api/scout/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider "http://127.0.0.1:${PORT:-5000}/api/health" || exit 1
 
-# WARNING: This image starts the app only. It does NOT run db:migrate / db:verify:required.
-# Render Docker runtime also ignores render.yaml preDeployCommand. Production must use the
-# Node + preDeploy path in render.yaml (see docs/DEPLOYMENT_TARGET.md), or an explicit
-# owner-approved entrypoint that runs migrate+verify before exec'ing node.
+# Render runs db:migrate + db:verify:required as the service pre-deploy command.
+# Keep the migration scripts, config, shared schema, SQL, and production drizzle-kit
+# dependency in this image so a failed migration or verification blocks traffic swap.
 CMD ["node", "dist/index.js"]

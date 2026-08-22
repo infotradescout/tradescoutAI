@@ -70,7 +70,7 @@ describeWithPostgres("BidRock disposable PostgreSQL concurrency", () => {
         ) VALUES ('upgrade-user', 'upgrade-profile', 'user', '/u/jw-stone');
       `);
       const migration = fs.readFileSync(
-        path.resolve(process.cwd(), "migrations/0117_profile_accounts_and_entitlements.sql"),
+        path.resolve(process.cwd(), "migrations/0123_profile_accounts_and_entitlements.sql"),
         "utf8"
       );
       await client.query(migration);

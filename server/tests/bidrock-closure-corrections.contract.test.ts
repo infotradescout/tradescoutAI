@@ -19,18 +19,18 @@ describe("BidRock closure migration and readiness contracts", () => {
     const migrateScript = read("scripts/db-migrate-safe.mjs");
     const journal = JSON.parse(read("migrations/meta/_journal.json"));
     const entries = journal.entries as Array<{ idx: number; when: number; tag: string }>;
-    const recoveryEntries = entries.filter((entry) => /^011[5-9]_/.test(entry.tag));
+    const recoveryEntries = entries.filter((entry) => /^012[1-5]_/.test(entry.tag));
 
     expect(packageJson.scripts["db:migrate"]).toBe("node scripts/db-migrate-safe.mjs");
     expect(migrateScript).toContain('run("npx drizzle-kit migrate")');
     expect(recoveryEntries.map((entry) => entry.tag)).toEqual([
-      "0115_jw_stone_inventory_truth",
-      "0116_stone_core_schema",
-      "0117_profile_accounts_and_entitlements",
-      "0118_bidrock_marketplace",
-      "0119_bidrock_timed_auctions",
+      "0121_jw_stone_inventory_truth",
+      "0122_stone_core_schema",
+      "0123_profile_accounts_and_entitlements",
+      "0124_bidrock_marketplace",
+      "0125_bidrock_timed_auctions",
     ]);
-    expect(recoveryEntries.map((entry) => entry.idx)).toEqual([118, 119, 120, 121, 122]);
+    expect(recoveryEntries.map((entry) => entry.idx)).toEqual([124, 125, 126, 127, 128]);
     expect(
       recoveryEntries.every(
         (entry, index) => index === 0 || entry.when > recoveryEntries[index - 1]!.when
@@ -44,7 +44,7 @@ describe("BidRock closure migration and readiness contracts", () => {
   });
 
   it("repairs and freezes public listing ids before validating uniqueness", () => {
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
     const audit = migration.indexOf("CREATE TABLE IF NOT EXISTS bidrock_listing_public_id_audit");
     const repair = migration.indexOf("bidrock_listing_public_id_repair_queue");
     const formatCheck = migration.indexOf("bidrock_listings_public_id_format_check");
@@ -64,7 +64,7 @@ describe("BidRock closure migration and readiness contracts", () => {
   });
 
   it("merges every legacy handoff replay key before deduplication and fails conflicts closed", () => {
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
     const conflictCheck = migration.indexOf("Conflicting duplicate BidRock handoff replay history");
     const merge = migration.indexOf("-- Merge the full replay history into the survivor");
     const deletion = migration.indexOf("DELETE FROM bidrock_handoffs handoff");

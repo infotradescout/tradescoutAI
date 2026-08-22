@@ -1,8 +1,5 @@
 import { formatTradeScoutTitle } from "@shared/brand";
-import {
-  JW_STONE_MANAGED_CONTACT,
-  JW_STONE_PUBLIC_IDENTITY,
-} from "@shared/jwStonePresentation";
+import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { resolveJwStoneLegacyItemSlug } from "@shared/jwStoneLegacyAliases";
 import {
   createProfileInventoryCategoryShareMetadata,
@@ -83,7 +80,8 @@ function resolveCollectionUrl(opts: PublicJwStoneMarketplaceHtmlOptions): string
 
 /**
  * Injects crawler and share metadata for the JW Stone marketplace collection
- * and optional stone/material deep links.
+ * and optional stone/material deep links. Direct contact is intentionally not
+ * published here; customer contact stays behind Express Direct Connect.
  */
 export function buildPublicJwStoneMarketplaceHtml(
   opts: PublicJwStoneMarketplaceHtmlOptions
@@ -97,14 +95,6 @@ export function buildPublicJwStoneMarketplaceHtml(
     name: JW_STONE_PUBLIC_IDENTITY.brandName,
     description: JW_STONE_PUBLIC_IDENTITY.about,
     url: profileUrl,
-    telephone: JW_STONE_MANAGED_CONTACT.phone,
-    email: JW_STONE_MANAGED_CONTACT.email,
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "customer service",
-      telephone: JW_STONE_MANAGED_CONTACT.phone,
-      email: JW_STONE_MANAGED_CONTACT.email,
-    },
     address: {
       "@type": "PostalAddress",
       streetAddress: JW_STONE_PUBLIC_IDENTITY.address.streetAddress,
@@ -156,16 +146,11 @@ export function buildPublicJwStoneMarketplaceHtml(
   <section data-seo-jw-stone-company="true" aria-labelledby="seo-jw-stone-about">
     <h2 id="seo-jw-stone-about">About JW Stone</h2>
     <p>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.about)}</p>
-    <h2>${escapeHtml(JW_STONE_MANAGED_CONTACT.label)}</h2>
-    <p>Phone: ${escapeHtml(JW_STONE_MANAGED_CONTACT.phone)} · Email: ${escapeHtml(JW_STONE_MANAGED_CONTACT.email)}</p>
     <h2>Visit JW Stone</h2>
     <address>${escapeHtml(JW_STONE_PUBLIC_IDENTITY.address.formatted)}</address>
     <h2>Follow JW Stone</h2>
     <p>${JW_STONE_PUBLIC_IDENTITY.socials
-      .map(
-        (social) =>
-          `${escapeHtml(social.label)}: ${escapeHtml(social.publicHandle)}`
-      )
+      .map((social) => `${escapeHtml(social.label)}: ${escapeHtml(social.publicHandle)}`)
       .join(" · ")}</p>
   </section>`;
 
@@ -384,8 +369,6 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     "",
     JW_STONE_PUBLIC_IDENTITY.about,
     "",
-    `TradeScout managed phone: ${JW_STONE_MANAGED_CONTACT.phone}`,
-    `TradeScout managed email: ${JW_STONE_MANAGED_CONTACT.email}`,
     `Address: ${JW_STONE_PUBLIC_IDENTITY.address.formatted}`,
     ...JW_STONE_PUBLIC_IDENTITY.socials.map(
       (social) => `${social.label}: ${social.publicHandle}`
@@ -400,7 +383,7 @@ export function buildJwStoneMarketplaceLlmsText(origin: string): string {
     `- Stones: ${publicOrigin}/stones/{slug}`,
     `- Materials: ${publicOrigin}/materials/{slug}`,
     "",
-    "Calls and requests are handled through TradeScout.",
+    "Calls and requests are available through Express Direct Connect on the profile.",
     "",
   ].join("\n");
 }

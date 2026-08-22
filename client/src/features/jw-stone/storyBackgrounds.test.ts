@@ -15,13 +15,14 @@ describe("JW story backgrounds", () => {
     const colorJoined = COLOR_COLLAGE_STRIPS.map((strip) => strip.src).join(" ");
     expect(colorJoined).toContain("04-black.webp");
     expect(colorJoined).toContain("07-blue.webp");
-    expect(colorJoined).toContain("08-red.webp");
+    expect(colorJoined).toContain("09-gold.webp");
+    expect(colorJoined).not.toContain("08-red.webp");
     expect(colorJoined).not.toContain("/inventory/");
     expect(colorJoined).not.toContain("/inventory-source/");
     expect(colorJoined).not.toContain("/black-pearl/");
 
     expect(MATERIAL_SECTION_BACKGROUND.src).toContain(
-      "/inventory-source/1YaoUMDs2-E_UvX7aqoNXRboo4M323utd.webp"
+      "/inventory-source/10hwbokQWc-hgPGqXhdKkuLRjs4a6Zbfd.webp"
     );
     expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/story/");
     expect(MATERIAL_SECTION_BACKGROUND.src).not.toContain("/material-covers/");

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS profile_accounts (
   CHECK (resume_path IS NULL OR (resume_path ~ '^/u/' AND resume_path NOT LIKE '%\\%'))
 );
 
--- Releases before 0117 constrained source_path to /u/* even though the account
+-- Releases before 0123 constrained source_path to /u/* even though the account
 -- entry point is also rendered at /jw-stone and /bidrock. Discover and remove
 -- that legacy check by its definition (its generated name was not stable), then
 -- install one named constraint. Existing values are inspected before VALIDATE so
@@ -91,7 +91,7 @@ BEGIN
    );
   IF unsafe_source_path_count > 0 THEN
     RAISE EXCEPTION
-      'profile_accounts contains % unsafe source_path row(s); correct them before applying 0117',
+      'profile_accounts contains % unsafe source_path row(s); correct them before applying 0123',
       unsafe_source_path_count;
   END IF;
 END $$;

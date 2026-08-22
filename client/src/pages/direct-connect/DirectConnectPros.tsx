@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  ChevronRight,
+  MapPin,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { ProviderCard } from "@/components/contractor-card";
+import { ProviderCard, type ProviderCardProvider } from "@/components/contractor-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +33,18 @@ import { StateCountySelector } from "@/components/state-county-selector";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { DirectoryListingLink } from "./DirectoryListingLink";
 import { DISCOVERY_INTERNAL_SEARCH_EVENT } from "@shared/discoveryObservatory";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  buildCanonicalBusinessesWorkspaceHref,
+  clearBusinessesWorkspaceState,
+  resolveBusinessesWorkspaceCountyChange,
+  resolveBusinessesWorkspaceEffectiveArea,
+  resolveBusinessesWorkspaceState,
+  resolveBusinessesWorkspaceViewerCoordinates,
+  resolveSelectedWorkspaceProvider,
+  writeBusinessesWorkspaceState,
+  type BusinessesWorkspaceState,
+} from "./businessesWorkspaceState";
 
 const BUSINESS_AVATAR_PALETTE = [
   "bg-sky-500/20 text-sky-200",
@@ -100,31 +121,202 @@ function compareByDistanceThenCvs(a: any, b: any): number {
   return getProviderCvs(b) - getProviderCvs(a);
 }
 
-function DirectoryRail({
+function getProviderName(provider: ProviderCardProvider): string {
+  return String(provider.companyName || provider.name || "Business").trim() || "Business";
+}
+
+function getProviderCategory(provider: ProviderCardProvider): string {
+  return String(
+    provider.category ||
+      provider.roleContext ||
+      (provider.isGeneralContractor ? "General contractor" : "")
+  )
+    .replace(/_/g, " ")
+    .trim();
+}
+
+function getProviderLocation(provider: ProviderCardProvider): string {
+  const serviceAreas = Array.isArray(provider.serviceAreas) ? provider.serviceAreas : [];
+  if (serviceAreas.length > 0) return serviceAreas.slice(0, 2).join(", ");
+  const city = String(provider.city || "").trim();
+  const state = String(provider.state || provider.stateCode || "").trim();
+  return (
+    [city, state].filter(Boolean).join(", ") ||
+    String(provider.county || provider.countyName || "").trim()
+  );
+}
+
+function formatProviderDistance(provider: ProviderCardProvider): string {
+  const distance = getProviderDistance(provider);
+  if (distance === null) return "Local service area";
+  if (distance < 0.1) return "Less than 0.1 miles away";
+  return `${distance < 10 ? distance.toFixed(1) : Math.round(distance)} miles away`;
+}
+
+function ProviderResultRow({
+  provider,
+  selected,
+  onSelect,
+}: {
+  provider: ProviderCardProvider;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const name = getProviderName(provider);
+  const category = getProviderCategory(provider);
+  const location = getProviderLocation(provider);
+  const hasTrustEvidence = Boolean(
+    provider.verifiedLicensed ||
+    provider.verifiedInsured ||
+    (provider.totalRecommendations || 0) > 0
+  );
+
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      aria-controls="business-workspace-inspector"
+      onClick={onSelect}
+      className={`group flex min-h-16 w-full min-w-0 items-center gap-3 px-3 py-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--theme-accent-primary)] ${
+        selected
+          ? "bg-[color:var(--surface-elevated)]"
+          : "bg-transparent hover:bg-[color:var(--surface-intermediate)]"
+      }`}
+      data-testid={`business-result-${provider.id}`}
+    >
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xs font-bold ${
+          selected
+            ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/15 text-[color:var(--theme-accent-primary)]"
+            : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+        }`}
+        aria-hidden="true"
+      >
+        {getBusinessInitials(name)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-[color:var(--text-primary)]">
+          {name}
+        </span>
+        <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
+          {[category, location].filter(Boolean).join(" · ") || formatProviderDistance(provider)}
+        </span>
+        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--text-secondary)]">
+          <span className="inline-flex items-center gap-1">
+            <MapPin className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
+            {formatProviderDistance(provider)}
+          </span>
+          {hasTrustEvidence && (
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="h-3 w-3 text-[color:var(--theme-accent-primary)]" />
+              Trust evidence available
+            </span>
+          )}
+        </span>
+      </span>
+      <ChevronRight
+        className={`h-4 w-4 shrink-0 transition ${
+          selected
+            ? "text-[color:var(--theme-accent-primary)]"
+            : "text-[color:var(--text-secondary)] group-hover:text-[color:var(--text-primary)]"
+        }`}
+        aria-hidden="true"
+      />
+    </button>
+  );
+}
+
+function BusinessesWorkspace({
   title,
   subtitle,
   providers,
+  selectedProvider,
+  selectedProviderId,
+  onSelect,
 }: {
   title: string;
   subtitle: string;
-  providers: any[];
+  providers: ProviderCardProvider[];
+  selectedProvider: ProviderCardProvider | null;
+  selectedProviderId: string;
+  onSelect: (providerId: string) => void;
 }) {
   if (providers.length === 0) return null;
 
   return (
-    <section className="space-y-2">
-      <div className="flex items-end justify-between gap-3">
+    <section
+      className="min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
+      aria-labelledby="business-workspace-results-title"
+      data-testid="businesses-results-workspace"
+    >
+      <div className="flex min-w-0 items-end justify-between gap-3 border-b border-[color:var(--border-subtle)] px-4 py-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">{title}</h3>
+          <h3
+            id="business-workspace-results-title"
+            className="text-sm font-semibold text-[color:var(--text-primary)]"
+          >
+            {title}
+          </h3>
           <p className="text-xs text-[color:var(--text-secondary)]">{subtitle}</p>
         </div>
+        <Badge variant="outline" className="shrink-0 border-[color:var(--border-subtle)]">
+          {providers.length} {providers.length === 1 ? "result" : "results"}
+        </Badge>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {providers.map((contractor) => (
-          <div key={contractor.id}>
-            <ProviderCard contractor={contractor} compact action="connect" />
-          </div>
-        ))}
+      <div className="grid min-w-0 lg:grid-cols-[minmax(18rem,0.9fr)_minmax(20rem,1.1fr)]">
+        <ul
+          aria-label="Business results"
+          className={`max-h-[22rem] min-w-0 overflow-y-auto border-b border-[color:var(--border-subtle)] lg:order-1 lg:max-h-[38rem] lg:border-b-0 lg:border-r ${
+            selectedProvider ? "order-2" : "order-1"
+          }`}
+          data-testid="business-results-list"
+        >
+          {providers.map((provider) => (
+            <li
+              key={String(provider.id)}
+              className="border-b border-[color:var(--border-subtle)]/70 last:border-b-0"
+            >
+              <ProviderResultRow
+                provider={provider}
+                selected={String(provider.id) === selectedProviderId}
+                onSelect={() => onSelect(String(provider.id))}
+              />
+            </li>
+          ))}
+        </ul>
+        <div
+          id="business-workspace-inspector"
+          role="region"
+          aria-label="Selected business details"
+          aria-live="polite"
+          className={`min-w-0 bg-[color:var(--surface-base)] px-3 py-2.5 sm:p-4 lg:order-2 ${
+            selectedProvider
+              ? "order-1 border-b border-[color:var(--border-subtle)] lg:border-b-0"
+              : "order-2"
+          }`}
+          data-testid="business-workspace-inspector"
+        >
+          {selectedProvider ? (
+            <div className="mx-auto max-w-xl">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-secondary)] sm:mb-3">
+                <CheckCircle2 className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+                Selected business
+              </div>
+              <ProviderCard contractor={selectedProvider} compact action="connect" />
+            </div>
+          ) : (
+            <div className="flex min-h-48 flex-col items-center justify-center px-5 text-center">
+              <Building2 className="h-8 w-8 text-[color:var(--theme-accent-primary)]" />
+              <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
+                Choose a business to inspect
+              </p>
+              <p className="mt-1 max-w-sm text-xs leading-5 text-[color:var(--text-secondary)]">
+                Selection shows public profile details here. Contact still continues through Direct
+                Connect.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </section>
   );
@@ -132,33 +324,105 @@ function DirectoryRail({
 
 export default function DirectConnectPros() {
   const location = useLocationContext();
-
-  const routePrefill = useMemo(() => {
-    if (typeof window === "undefined") {
-      return { stateCode: "", countyFips: "", tradeSlug: "", searchQuery: "" };
-    }
-    const params = new URLSearchParams(window.location.search || "");
-    const rawState = (params.get("state") || "").trim().toUpperCase();
-    const stateCode = /^[A-Z]{2}$/.test(rawState) ? rawState : "";
-    const countyFips = (params.get("county") || params.get("countyFips") || "").trim();
-    const tradeSlug = (params.get("trade") || "").trim().toLowerCase();
-    const searchQuery = (params.get("q") || params.get("query") || params.get("city") || "").trim();
-    return { stateCode, countyFips, tradeSlug, searchQuery };
-  }, []);
-
-  const [stateCode, setStateCode] = useState(routePrefill.stateCode || location.stateCode || "");
-  const [countyFips, setCountyFips] = useState(
-    routePrefill.countyFips || location.countyFips || ""
-  );
-  const [tradeSlug, setTradeSlug] = useState(routePrefill.tradeSlug || "");
-  const [searchQuery, setSearchQuery] = useState(routePrefill.searchQuery || "");
+  const { user, isLoading: authLoading } = useAuth();
+  const [stateCode, setStateCode] = useState("");
+  const [countyFips, setCountyFips] = useState("");
+  const [tradeSlug, setTradeSlug] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProviderId, setSelectedProviderId] = useState("");
+  const currentWorkspaceScope = `${user?.id || "guest"}:${
+    typeof window === "undefined" ? "/contractors" : window.location.pathname
+  }`;
+  const [hydratedWorkspaceScope, setHydratedWorkspaceScope] = useState("");
+  const workspaceHydrated = hydratedWorkspaceScope === currentWorkspaceScope;
   const [showOutsideArea, setShowOutsideArea] = useState(false);
   const recordedSearches = useRef(new Set<string>());
 
-  const effectiveStateCode = String(stateCode || location.stateCode || "").toUpperCase();
-  const effectiveCountyFips = String(countyFips || location.countyFips || "").trim();
-  const viewerLat = typeof location.lat === "number" ? location.lat : undefined;
-  const viewerLng = typeof location.lng === "number" ? location.lng : undefined;
+  useEffect(() => {
+    if (typeof window === "undefined" || authLoading) return;
+
+    let storage: Storage | null = null;
+    try {
+      storage = window.sessionStorage;
+    } catch {
+      storage = null;
+    }
+
+    const restored = resolveBusinessesWorkspaceState({
+      search: window.location.search || "",
+      storage,
+      authenticatedUserId: user?.id,
+      pathname: window.location.pathname,
+    });
+    setStateCode(restored.stateCode);
+    setCountyFips(restored.countyFips);
+    setTradeSlug(restored.tradeSlug);
+    setSearchQuery(restored.searchQuery);
+    setSelectedProviderId(restored.selectedProviderId);
+    setHydratedWorkspaceScope(currentWorkspaceScope);
+  }, [authLoading, currentWorkspaceScope, user?.id]);
+
+  useEffect(() => {
+    if (!workspaceHydrated || typeof window === "undefined") return;
+
+    const state: BusinessesWorkspaceState = {
+      stateCode,
+      countyFips,
+      tradeSlug,
+      searchQuery,
+      selectedProviderId,
+    };
+    let storage: Storage | null = null;
+    try {
+      storage = window.sessionStorage;
+    } catch {
+      storage = null;
+    }
+    writeBusinessesWorkspaceState({
+      storage,
+      authenticatedUserId: user?.id,
+      pathname: window.location.pathname,
+      state,
+    });
+
+    const href = buildCanonicalBusinessesWorkspaceHref({
+      pathname: window.location.pathname,
+      currentSearch: window.location.search,
+      hash: window.location.hash,
+      state,
+    });
+    const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (href !== currentHref) {
+      window.history.replaceState(window.history.state, "", href);
+    }
+  }, [
+    countyFips,
+    searchQuery,
+    selectedProviderId,
+    stateCode,
+    tradeSlug,
+    user?.id,
+    workspaceHydrated,
+  ]);
+
+  const effectiveArea = resolveBusinessesWorkspaceEffectiveArea({
+    workspaceStateCode: stateCode,
+    workspaceCountyFips: countyFips,
+    locationStateCode: location.stateCode,
+    locationCountyFips: location.countyFips,
+  });
+  const effectiveStateCode = effectiveArea.stateCode;
+  const effectiveCountyFips = effectiveArea.countyFips;
+  const viewerCoordinates = resolveBusinessesWorkspaceViewerCoordinates({
+    workspaceStateCode: stateCode,
+    workspaceCountyFips: countyFips,
+    locationStateCode: location.stateCode,
+    locationCountyFips: location.countyFips,
+    locationLat: location.lat,
+    locationLng: location.lng,
+  });
+  const viewerLat = viewerCoordinates.lat;
+  const viewerLng = viewerCoordinates.lng;
 
   const localCommitted = hasLocalContext(location) || Boolean(effectiveCountyFips);
   const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
@@ -186,7 +450,8 @@ export default function DirectConnectPros() {
 
   const effectiveTradeSlug = tradeSlug || inferredTradeSlug;
   const hasDirectoryIntent = Boolean((effectiveTradeSlug || "").trim() || searchQuery.trim());
-  const canQueryDirectory = localCommitted || (hasStateContext && hasDirectoryIntent);
+  const canQueryDirectory =
+    workspaceHydrated && (localCommitted || (hasStateContext && hasDirectoryIntent));
 
   const { data: contractors = [], isLoading } = useQuery({
     queryKey: [
@@ -222,10 +487,21 @@ export default function DirectConnectPros() {
     : effectiveStateCode || "your area";
   const searchActive = Boolean(searchQuery.trim() || effectiveTradeSlug);
   const distanceFirstProviders = useMemo(
-    () => [...((contractors as any[]) || [])].sort(compareByDistanceThenCvs),
+    () =>
+      [...((contractors as ProviderCardProvider[]) || [])].sort(
+        compareByDistanceThenCvs
+      ) as ProviderCardProvider[],
     [contractors]
   );
-  const visibleProviders = distanceFirstProviders.slice(0, searchActive ? 24 : 14);
+  const selectedProvider = useMemo(
+    () => resolveSelectedWorkspaceProvider(distanceFirstProviders, selectedProviderId),
+    [distanceFirstProviders, selectedProviderId]
+  );
+
+  useEffect(() => {
+    if (!workspaceHydrated || isLoading) return;
+    if (selectedProviderId && !selectedProvider) setSelectedProviderId("");
+  }, [isLoading, selectedProvider, selectedProviderId, workspaceHydrated]);
 
   const { data: directoryFallback = [], isLoading: directoryFallbackLoading } = useQuery<
     DirectoryBusinessFallback[]
@@ -343,14 +619,27 @@ export default function DirectConnectPros() {
   const handleStateChange = (value: string) => {
     setStateCode(value);
     setCountyFips("");
+    setSelectedProviderId("");
   };
 
   const handleCountyChange = (value: string) => {
-    setCountyFips(value);
-    if (value && stateCode) {
+    if (!value) {
+      setCountyFips("");
+      setSelectedProviderId("");
+      return;
+    }
+    const next = resolveBusinessesWorkspaceCountyChange({
+      countyFips: value,
+      workspaceStateCode: stateCode,
+      locationStateCode: location.stateCode,
+    });
+    setStateCode(next.stateCode);
+    setCountyFips(next.countyFips);
+    setSelectedProviderId(next.selectedProviderId);
+    if (next.countyFips && next.stateCode) {
       setSessionLocationOverride({
-        stateCode,
-        countyFips: value,
+        stateCode: next.stateCode,
+        countyFips: next.countyFips,
         countyName: undefined,
         countyId: undefined,
         lat: undefined,
@@ -360,56 +649,141 @@ export default function DirectConnectPros() {
     }
   };
 
+  const handleTradeChange = (value: string) => {
+    setTradeSlug(value);
+    setSelectedProviderId("");
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setSelectedProviderId("");
+  };
+
+  const handleProviderSelect = (providerId: string) => {
+    setSelectedProviderId(providerId);
+    if (typeof window === "undefined" || !window.matchMedia("(max-width: 1023px)").matches) {
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("business-workspace-inspector")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const handleClearWorkspace = () => {
+    if (typeof window !== "undefined") {
+      let storage: Storage | null = null;
+      try {
+        storage = window.sessionStorage;
+      } catch {
+        storage = null;
+      }
+      clearBusinessesWorkspaceState({
+        storage,
+        authenticatedUserId: user?.id,
+        pathname: window.location.pathname,
+      });
+      const href = buildCanonicalBusinessesWorkspaceHref({
+        pathname: window.location.pathname,
+        currentSearch: window.location.search,
+        hash: window.location.hash,
+        state: {
+          stateCode: "",
+          countyFips: "",
+          tradeSlug: "",
+          searchQuery: "",
+          selectedProviderId: "",
+        },
+      });
+      window.history.replaceState(window.history.state, "", href);
+    }
+    setStateCode("");
+    setCountyFips("");
+    setTradeSlug("");
+    setSearchQuery("");
+    setSelectedProviderId("");
+    setShowOutsideArea(false);
+  };
+
+  const hasWorkspaceState = Boolean(
+    stateCode || countyFips || tradeSlug || searchQuery.trim() || selectedProviderId
+  );
+
   return (
-    <div className="space-y-4">
-      <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
-        <CardHeader className="pb-1">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0">
-              <CardTitle className="text-sm">Nearby Directory</CardTitle>
-              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                {localCommitted
-                  ? `${(contractors as any[])?.length || 0} local profile(s), sorted by location fit and available trust evidence`
-                  : "Set your area once, then TradeScout keeps the directory local by default."}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {localCommitted && (
-                <Badge
-                  variant="outline"
-                  className="gap-1 border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-primary)]"
-                >
-                  <MapPin className="h-3.5 w-3.5 text-[color:var(--theme-accent-primary)]" />
-                  {areaLabel}
-                </Badge>
-              )}
+    <div className="min-w-0 space-y-3" data-testid="businesses-workspace">
+      <section
+        className="min-w-0 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
+        aria-labelledby="businesses-workspace-heading"
+      >
+        <div className="flex min-w-0 flex-col gap-3 border-b border-[color:var(--border-subtle)] px-4 py-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
+              Local workspace
+            </p>
+            <h2
+              id="businesses-workspace-heading"
+              className="mt-1 text-base font-semibold text-[color:var(--text-primary)]"
+            >
+              Find and inspect businesses
+            </h2>
+            <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+              {localCommitted
+                ? `${distanceFirstProviders.length} local profile(s), ordered by location fit and available trust evidence.`
+                : "Set an area once, then TradeScout keeps this workspace local by default."}
+            </p>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {localCommitted && (
+              <Badge
+                variant="outline"
+                className="min-h-9 max-w-full gap-1 border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-primary)]"
+              >
+                <MapPin className="h-3.5 w-3.5 shrink-0 text-[color:var(--theme-accent-primary)]" />
+                <span className="truncate">{areaLabel}</span>
+              </Badge>
+            )}
+            {hasWorkspaceState && (
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
-                className="gap-2 border-[color:var(--border-subtle)]"
-                onClick={() => setShowOutsideArea((value) => !value)}
+                variant="ghost"
+                className="min-h-11 px-3 text-[color:var(--text-secondary)]"
+                onClick={handleClearWorkspace}
+                data-testid="businesses-workspace-clear"
               >
-                <SlidersHorizontal className="h-4 w-4" />
-                {showOutsideArea || !localCommitted ? "Hide area picker" : "Search outside area"}
+                Clear
               </Button>
-            </div>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="min-h-11 gap-2 border-[color:var(--border-subtle)]"
+              onClick={() => setShowOutsideArea((value) => !value)}
+              aria-expanded={showOutsideArea || !localCommitted}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {showOutsideArea || !localCommitted ? "Hide area" : "Change area"}
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
+        </div>
+        <div className="min-w-0 space-y-3 p-3 sm:p-4">
           {(showOutsideArea || !localCommitted) && (
             <StateCountySelector
-              selectedState={stateCode}
-              selectedCounty={countyFips}
+              selectedState={effectiveStateCode}
+              selectedCounty={effectiveCountyFips}
               onStateChange={handleStateChange}
               onCountyChange={handleCountyChange}
-              className="mt-2"
+              className="min-w-0"
+              stateTestId="businesses-state-select"
+              countyTestId="businesses-county-select"
             />
           )}
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <Select value={tradeSlug} onValueChange={setTradeSlug}>
-              <SelectTrigger>
+          <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+            <Select value={tradeSlug} onValueChange={handleTradeChange}>
+              <SelectTrigger className="min-h-11 min-w-0">
                 <SelectValue placeholder="Filter by trade" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
@@ -421,22 +795,23 @@ export default function DirectConnectPros() {
               </SelectContent>
             </Select>
 
-            <div className="relative">
+            <div className="relative min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
               <Input
                 value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                className="pl-10 pr-10"
+                onChange={(event) => handleSearchChange(event.target.value)}
+                className="min-h-11 min-w-0 pl-10 pr-10"
                 placeholder="Search by name, trade, or keyword"
+                data-testid="businesses-workspace-search"
               />
               {searchQuery.trim().length > 0 && (
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  className="absolute right-0.5 top-1/2 h-10 w-10 -translate-y-1/2"
                   aria-label="Clear search"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => handleSearchChange("")}
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -454,10 +829,10 @@ export default function DirectConnectPros() {
               want to browse somewhere else.
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {isLoading && (
+      {(!workspaceHydrated || isLoading) && (
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="space-y-3 p-6">
             <div className="h-4 w-40 rounded bg-[color:var(--surface-intermediate)]" />
@@ -601,10 +976,13 @@ export default function DirectConnectPros() {
       )}
 
       {hasResults && (
-        <DirectoryRail
+        <BusinessesWorkspace
           title={searchActive ? "Best nearby matches" : "Businesses near you"}
-          subtitle="Each business appears once, ordered by location fit and available trust evidence."
-          providers={visibleProviders}
+          subtitle="Select a row to inspect one public profile without losing your place."
+          providers={distanceFirstProviders}
+          selectedProvider={selectedProvider}
+          selectedProviderId={selectedProviderId}
+          onSelect={handleProviderSelect}
         />
       )}
     </div>

@@ -167,11 +167,15 @@ export class LocalStorageService {
     return `/api/objects/upload/${fileId}`;
   }
 
-  async getPrivateUploadURL(): Promise<{ uploadURL: string; objectKey: string }> {
+  async getPrivateUploadURL(userId: string): Promise<{ uploadURL: string; objectKey: string }> {
     const fileId = randomUUID();
+    const safeUserId = String(userId || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+    if (!safeUserId) throw new Error("A valid private upload owner is required");
     return {
-      uploadURL: `/api/objects/upload-private/${fileId}`,
-      objectKey: `private/${fileId}`,
+      uploadURL: `/api/objects/upload-private/${safeUserId}/${fileId}`,
+      objectKey: `private/${safeUserId}/${fileId}`,
     };
   }
 
@@ -190,17 +194,38 @@ export class LocalStorageService {
     return `${this.publicUrlBase}/${filename}`;
   }
 
-  async savePrivateFile(fileId: string, buffer: Buffer, _contentType: string): Promise<string> {
+  async savePrivateFile(
+    userId: string,
+    fileId: string,
+    buffer: Buffer,
+    _contentType: string
+  ): Promise<string> {
     await this.initPrivate();
 
     const path = await import("path");
     const fs = await import("fs/promises");
+    const safeUserId = String(userId || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "");
+    const isSafeUploadId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      fileId
+    );
+    if (!safeUserId || !isSafeUploadId) throw new Error("Invalid private upload path");
+
+    const privateRoot = path.resolve(this.privateUploadDir);
+    const ownerDir = path.resolve(privateRoot, safeUserId);
+    const filePath = path.resolve(ownerDir, fileId);
+    const rootPrefix = privateRoot.endsWith(path.sep) ? privateRoot : `${privateRoot}${path.sep}`;
+    const ownerPrefix = ownerDir.endsWith(path.sep) ? ownerDir : `${ownerDir}${path.sep}`;
+    if (!ownerDir.startsWith(rootPrefix) || !filePath.startsWith(ownerPrefix)) {
+      throw new Error("Invalid private upload path");
+    }
 
     // Keep private objects extension-less; contentType is stored in DB metadata when needed.
-    const filePath = path.join(this.privateUploadDir, fileId);
+    await fs.mkdir(ownerDir, { recursive: true });
     await fs.writeFile(filePath, buffer);
 
-    return `private/${fileId}`;
+    return `private/${safeUserId}/${fileId}`;
   }
 
   async getPrivateFilePathFromObjectKey(objectKey: string): Promise<string | null> {
@@ -209,11 +234,11 @@ export class LocalStorageService {
 
     if (typeof objectKey !== "string") return null;
     const trimmed = objectKey.trim();
-    if (!trimmed.startsWith("private/")) return null;
-
-    // Allow either private/<uuid> or private/<user>/<uuid> by taking the last segment.
     const parts = trimmed.split("/").filter(Boolean);
-    const fileId = parts[parts.length - 1] || "";
+    if (parts.length !== 3 || parts[0] !== "private") return null;
+    const ownerSegment = parts[1] || "";
+    const fileId = parts[2] || "";
+    if (!/^[a-zA-Z0-9_-]+$/.test(ownerSegment)) return null;
 
     // We generate IDs as UUIDs; enforce that here to prevent traversal/overwrite.
     const isSafeUploadId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -222,7 +247,12 @@ export class LocalStorageService {
     if (!isSafeUploadId) return null;
 
     await this.initPrivate();
-    const filePath = path.join(this.privateUploadDir, fileId);
+    const privateRoot = path.resolve(this.privateUploadDir);
+    const ownerDir = path.resolve(privateRoot, ownerSegment);
+    const filePath = path.resolve(ownerDir, fileId);
+    const rootPrefix = privateRoot.endsWith(path.sep) ? privateRoot : `${privateRoot}${path.sep}`;
+    const ownerPrefix = ownerDir.endsWith(path.sep) ? ownerDir : `${ownerDir}${path.sep}`;
+    if (!ownerDir.startsWith(rootPrefix) || !filePath.startsWith(ownerPrefix)) return null;
 
     try {
       await fs.stat(filePath);

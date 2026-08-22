@@ -62,7 +62,7 @@ describe("BidRock marketplace recovery contract", () => {
   it("persists seller-authoritative natural or engineered stone classes marketplace-wide", () => {
     const routes = read("server/routes/stone-inventory.ts");
     const inventory = read("server/services/stoneInventoryService.ts");
-    const migration = read("migrations/0116_stone_core_schema.sql");
+    const migration = read("migrations/0122_stone_core_schema.sql");
 
     expect(routes).toContain('materialClass: z.enum(["natural_stone", "engineered_stone"])');
     expect(inventory).toContain('materialClass: PublicStoneInventoryItem["materialClass"]');
@@ -75,10 +75,10 @@ describe("BidRock marketplace recovery contract", () => {
   });
 
   it("keeps schema changes in ordered migrations and public GET services read-only", () => {
-    const stoneMigration = read("migrations/0116_stone_core_schema.sql");
-    const accountMigration = read("migrations/0117_profile_accounts_and_entitlements.sql");
-    const bidrockMigration = read("migrations/0118_bidrock_marketplace.sql");
-    const auctionMigration = read("migrations/0119_bidrock_timed_auctions.sql");
+    const stoneMigration = read("migrations/0122_stone_core_schema.sql");
+    const accountMigration = read("migrations/0123_profile_accounts_and_entitlements.sql");
+    const bidrockMigration = read("migrations/0124_bidrock_marketplace.sql");
+    const auctionMigration = read("migrations/0125_bidrock_timed_auctions.sql");
     const stoneProvisioning = read("server/services/stoneCoreProvisioning.ts");
     const profileAccounts = read("server/services/profileAccountService.ts");
     const bidrock = read("server/services/bidrockService.ts");
@@ -136,7 +136,7 @@ describe("BidRock marketplace recovery contract", () => {
   it("enforces seller ownership, idempotency, canonical ACH reconciliation, and admin completion", () => {
     const routes = read("server/routes/bidrock.ts");
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
 
     expect(service).toContain("viewerCanManageListing(viewer, row)");
     expect(service).toContain("A seller cannot submit an offer on their own inventory");
@@ -157,11 +157,12 @@ describe("BidRock marketplace recovery contract", () => {
     const jwSurface = read("client/src/features/jw-stone/JWStoneMarketplace.tsx");
     const collection = read("client/src/features/jw-stone/StoneCollection.tsx");
     const current = read("client/src/features/jw-stone/CurrentInventorySection.tsx");
+    const normalizedCurrent = current.replace(/\s+/g, " ");
 
     expect(jwSurface).toContain("CurrentInventorySection");
     expect(collection).toContain('title="Material Library"');
     expect(current).toContain("Only physical lots explicitly marked sale-ready");
-    expect(current).toContain("does not claim that a physical item is on hand");
+    expect(normalizedCurrent).toContain("does not claim that a physical item is on hand");
     expect(current).not.toContain("sourceAssetRef");
   });
 });

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-os-shell-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-os-shell-20260821",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "first_delivery",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout remains a multi-app local operating system with Scout, Direct Connect, Businesses, Jobs, Community, Share, Exchange, and existing governed routes and data.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": true,
+      "outcome": "A signed-in person can use one stable TradeScout OS shell, start or continue work in Scout, move to a readable Community app, and open Jobs without competing navigation or clipped controls.",
+      "entry": "Open any signed-in TradeScout app at desktop or mobile width.",
+      "ending": "Use the persistent bottom taskbar to move among Scout, Community, and Jobs while each app retains a readable, unobstructed workspace.",
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Inspect the three owner-provided production captures for shell hierarchy, first-view action visibility, and horizontal clipping.",
+          "expected": "One bottom taskbar, compact top-right system controls, no universal side rails, a visible Scout start action, and unclipped app controls.",
+          "observed": "The baseline captures show a competing top route bar, universal side rails, a missing first-view Scout input, and clipped Community and Jobs controls.",
+          "evidenceRef": "builds/tradescout-os-shell-20260821/evidence.md#baseline"
+        }
+      ],
+      "journeySteps": [
+        "Open Scout and see the primary outcome input without scrolling or taskbar overlap.",
+        "Start or resume work while the bottom taskbar and top-right system controls remain stable.",
+        "Open Community and read or act on local posts in a full-width app surface.",
+        "Open Jobs and use every tab and filter without truncation or horizontal overflow."
+      ],
+      "constraints": [
+        "Reuse AppShell, AppShellCore, MobileAppBar, ScoutHome, ScoutOS, and community-feed as canonical owners; create no competing shell, navigation, feed, or Scout input owner.",
+        "Preserve every existing feature, route, data contract, permission boundary, Trust/CVS exposure rule, county scope, global browse-only behavior, and Intent to Decision Card to Contact gate.",
+        "Keep primary navigation in the bottom taskbar on signed-in desktop and mobile surfaces, with only compact system and account actions at the top right.",
+        "Do not push, merge, deploy, mutate production, or alter the separate JW Stone Selective Intelligence lock."
+      ],
+      "requirementIds": [
+        "TSOS-SHELL",
+        "TSOS-SCOUT",
+        "TSOS-COMMUNITY",
+        "TSOS-RESPONSIVE"
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "TSOS-SHELL",
+          "scope": "active_deliverable",
+          "claim": "The signed-in shell uses a persistent bottom taskbar and compact top-right system controls without a competing top route bar or universal side rails."
+        },
+        {
+          "requirementId": "TSOS-SCOUT",
+          "scope": "active_deliverable",
+          "claim": "Scout exposes its outcome input in the first usable view and keeps continuation available without taskbar overlap."
+        },
+        {
+          "requirementId": "TSOS-COMMUNITY",
+          "scope": "active_deliverable",
+          "claim": "Community renders as a readable local app with clear actions and without nested global dashboard rails."
+        },
+        {
+          "requirementId": "TSOS-RESPONSIVE",
+          "scope": "active_deliverable",
+          "claim": "Scout, Community, and Jobs avoid horizontal clipping at the verified desktop and mobile widths."
+        }
+      ],
+      "excludedFromActive": [
+        "Visual redesign of unrelated authenticated apps beyond shared-shell regression effects.",
+        "Backend, schema, routing, permissions, ranking, billing, or production changes.",
+        "Push, pull request, merge, deployment, and production acceptance."
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "outcome": "Extend verified app-level density and responsive refinements to remaining TradeScout surfaces only when concrete regressions are demonstrated."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The established TradeScout repository owns the authenticated shell, governed workflows, responsive navigation, tests, and release gates required for this repair.",
+    "constraintsConsidered": [
+      "The repair depends on existing application state, authentication, permissions, routes, responsive components, and repository-level tests."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": false
+    }
+  },
+  "manualUnverified": {
+    "reason": "The project index was refreshed at the initial base; origin/main later advanced through non-overlapping profile-account and JW changes. Doctor reports pre-existing exact duplicates and owner ambiguity from mirrored exports/workspaces trees.",
+    "reuseDecision": "Use canonical client/src and server/tests owners only; do not edit mirrored exports/workspaces copies or introduce new shell, taskbar, feed, or Scout input abstractions."
+  }
+}

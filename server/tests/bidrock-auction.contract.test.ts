@@ -259,7 +259,7 @@ describe("BidRock auction persistence contract", () => {
 
   it("makes close and order creation exactly once and creates no sale chain below reserve", () => {
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0119_bidrock_timed_auctions.sql");
+    const migration = read("migrations/0125_bidrock_timed_auctions.sql");
     const preflight = read("server/schemaPreflight.ts");
     const closeBody = service.slice(
       service.indexOf("async function closeBidRockAuctionByInternalId"),
@@ -286,7 +286,7 @@ describe("BidRock auction persistence contract", () => {
   it("uses auction origins, the existing ACH handoff path, and zero-fee canonical validation", () => {
     const service = read("server/services/bidrockService.ts");
     const routes = read("server/routes/bidrock.ts");
-    const migration = read("migrations/0119_bidrock_timed_auctions.sql");
+    const migration = read("migrations/0125_bidrock_timed_auctions.sql");
     const workspace = read("client/src/features/bidrock/BidRockWorkspace.tsx");
     const closeBody = service.slice(
       service.indexOf("async function closeBidRockAuctionByInternalId"),

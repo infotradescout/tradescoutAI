@@ -170,7 +170,8 @@ export function SuperAdminLeftNav({
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
         {visibleSections.map((section) => {
-          const sectionOpen = normalizedQuery || !collapsedSections[section.section];
+          const sectionOpen =
+            Boolean(normalizedQuery) || !collapsedSections[section.section];
           const sectionActive = section.items.some((item) =>
             isItemActive(normalizedLocation, item)
           );

@@ -35,7 +35,10 @@ export function CurrentInventorySection({ onAsk, onStartRequest }: Props) {
   const inventoryQuery = useQuery({
     queryKey: ["jw-stone", "current-inventory"],
     queryFn: () =>
-      apiRequest("GET", "/api/u/jw-stone/stone-inventory/current") as Promise<PublicStoneInventoryResponse>,
+      apiRequest(
+        "GET",
+        "/api/u/jw-stone/stone-inventory/current"
+      ) as Promise<PublicStoneInventoryResponse>,
     staleTime: 30_000,
   });
   const items = inventoryQuery.data?.items ?? [];
@@ -61,8 +64,8 @@ export function CurrentInventorySection({ onAsk, onStartRequest }: Props) {
             </h2>
             <p className={`mt-2 max-w-2xl text-sm leading-6 ${jw.muted}`}>
               Only physical lots explicitly marked sale-ready inside their active confirmation
-              window appear here. The Material Library below is broader reference material and
-              does not claim that a physical item is on hand.
+              window appear here. The Material Library below is broader reference material and does
+              not claim that a physical item is on hand.
             </p>
           </div>
           <button

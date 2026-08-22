@@ -10,8 +10,6 @@ import {
   Heart,
   Compass,
   Map,
-  ChevronDown,
-  ChevronUp,
   Menu,
   UserPlus,
   LogIn,
@@ -51,6 +49,7 @@ import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
 import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
+import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 
 export type NavItem = {
   label: string;
@@ -290,10 +289,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
 // SITE FEATURES ONLY.
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
-const buildFeatureNav = (opts?: {
-  includeAdmin?: boolean;
-  includeAdvancedHrefs?: Set<string> | null;
-}): NavItem[] => {
+const buildFeatureNav = (opts?: { includeAdvancedHrefs?: Set<string> | null }): NavItem[] => {
   const coreNav: NavItem[] = [
     {
       label: "Scout",
@@ -325,15 +321,15 @@ const buildFeatureNav = (opts?: {
       icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "See nearby posts and updates.",
     },
+  ];
+
+  const advancedNav: NavItem[] = [
     {
       label: "Share",
       href: "/share",
       icon: <Share2 className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Copy and publish your best links.",
     },
-  ];
-
-  const advancedNav: NavItem[] = [
     {
       label: "TradeDeals",
       href: "/trade-deals",
@@ -386,80 +382,32 @@ const buildFeatureNav = (opts?: {
     description: "Get support and how-to guidance.",
   });
 
-  if (opts?.includeAdmin) {
-    baseNav.unshift({
-      label: "Admin",
-      href: "/admin",
-      icon: <Shield className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-    });
-  }
-
   return baseNav;
 };
 
-function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
-  const desiredPrimaryLabels = ["Direct Connect", "Community", "Scout"];
+export const MOBILE_TASKBAR_PRIMARY_LABELS = [
+  "Scout",
+  "Direct Connect",
+  "Businesses",
+  "Jobs",
+  "Community",
+] as const;
+
+export function buildMobileAppTaskbarNav(items: NavItem[]): NavItem[] {
   const byLabel = new globalThis.Map(items.map((item) => [item.label, item]));
-  const primary = desiredPrimaryLabels
-    .map((label) => byLabel.get(label))
-    .filter((item): item is NavItem => Boolean(item));
+  const primary = MOBILE_TASKBAR_PRIMARY_LABELS.map((label) => byLabel.get(label)).filter(
+    (item): item is NavItem => Boolean(item)
+  );
 
-  const primaryHrefs = new Set(primary.map((item) => item.href));
-  const overflow = items.filter((item) => !primaryHrefs.has(item.href));
+  const stablePrimary = primary.map((item) =>
+    item.label === "Direct Connect" ? { ...item, href: DIRECT_CONNECT_TASKBAR_RESUME_HREF } : item
+  );
+  const primaryLabels = new Set(MOBILE_TASKBAR_PRIMARY_LABELS);
+  const secondaryApps = items.filter(
+    (item) => !primaryLabels.has(item.label as (typeof MOBILE_TASKBAR_PRIMARY_LABELS)[number])
+  );
 
-  return {
-    ordered: [...primary, ...overflow],
-    primary,
-  };
-}
-
-function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[] {
-  const byHref = new globalThis.Map(items.map((item) => [item.href, item]));
-  const communityHref = ROUTES.COMMUNITY ?? "/community";
-  const scout = byHref.get("/scout");
-  const request = byHref.get("/direct-connect/active");
-  const community = byHref.get(communityHref);
-  const inboxHref = "/direct-connect/inbox";
-  const pinnedHrefs = new Set(["/direct-connect/active", inboxHref, communityHref, "/scout"]);
-
-  const primary: NavItem[] = [
-    request
-      ? {
-          ...request,
-          label: "Requests",
-          description: "Track requests, replies, and next actions.",
-        }
-      : {
-          label: "Requests",
-          href: "/direct-connect/active",
-          icon: (
-            <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
-          ),
-        },
-    {
-      label: "Inbox",
-      href: inboxHref,
-      icon: <MessageCircle className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      badge: contactRequestCount > 0 ? String(Math.min(contactRequestCount, 9)) : undefined,
-      description: "See replies, messages, and active coordination.",
-    },
-    community
-      ? { ...community, label: "Community", description: "See local activity and ask around." }
-      : {
-          label: "Community",
-          href: communityHref,
-          icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-        },
-    scout
-      ? { ...scout, label: "Start", description: "Tell Scout what you want to get done." }
-      : {
-          label: "Start",
-          href: "/scout",
-          icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-        },
-  ];
-
-  return [...primary, ...items.filter((item) => !pinnedHrefs.has(item.href))];
+  return [...stablePrimary, ...secondaryApps];
 }
 
 export function AppShell({ children, footer }: AppShellProps) {
@@ -470,10 +418,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [isStartGuideOpen, setIsStartGuideOpen] = useState(false);
-  const [isMobileUnlockablesOpen, setIsMobileUnlockablesOpen] = useState(false);
-  const RIGHT_TOOLS_COLLAPSED_KEY = "ts:rightToolsCollapsed";
-  const RIGHT_TOOLS_COLLAPSED_W = "56px";
-  const [isRightToolsCollapsed, setIsRightToolsCollapsed] = useState(false);
   const handedness = useHandedness();
   const [location, navigate] = useLocation();
   const { canPromptInstall, promptInstall } = useInstallPrompt();
@@ -483,13 +427,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   useLocationUpgrade();
 
   const isScoutSurface = location === "/" || location.startsWith("/scout");
-  const isSettingsSurface =
-    location.startsWith("/settings") ||
-    location.startsWith("/profile-settings") ||
-    location.startsWith("/dashboard-settings") ||
-    location.startsWith("/notifications") ||
-    location.startsWith("/privacy") ||
-    location.startsWith("/privacy-request");
   const showMobileScoutHero = location === "/";
   const isAuthSurface =
     location.startsWith("/create-account") ||
@@ -497,11 +434,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     location.startsWith("/register");
   const isSetupSurface =
     location.startsWith("/pre-scout-setup") || isOnboardingSurfacePath(location);
-  const isPortalSurface =
-    location === "/homescout-listings" ||
-    location.startsWith("/homescout/") ||
-    location.startsWith("/tradepartners/") ||
-    location.startsWith("/collections/");
   const isAdminSurface = location.startsWith("/admin");
   const isAuthOrSetupSurface = isAuthSurface || isSetupSurface;
   const role =
@@ -545,48 +477,9 @@ export function AppShell({ children, footer }: AppShellProps) {
     mobileSimplificationEnabled && isMobile && !isAuthOrSetupSurface && !isAdminSurface;
 
   const featureNav = buildFeatureNav({
-    includeAdmin: shouldShowAdminNav,
     includeAdvancedHrefs: shouldGateAdvancedNav ? unlockedAdvancedHrefs : null,
   });
-  const mobileNav = useMemo(() => {
-    if (!isMobileSimplified) {
-      return {
-        ordered: featureNav,
-        primary: featureNav.slice(0, 4),
-      };
-    }
-    return buildMobileSimplifiedNav(featureNav);
-  }, [featureNav, isMobileSimplified]);
-  const mobileFlowNav = useMemo(
-    () => buildMobileFlowNav(featureNav, contactRequestCount),
-    [featureNav, contactRequestCount]
-  );
-
-  const desktopPrimaryNav = useMemo(() => {
-    const primaryHrefs = new Set([
-      "/scout",
-      "/direct-connect",
-      ROUTES.CONTRACTORS ?? "/contractors",
-      "/direct-connect/opportunities",
-      ROUTES.COMMUNITY ?? "/community",
-      "/share",
-    ]);
-
-    return featureNav.filter((item) => primaryHrefs.has(item.href));
-  }, [featureNav]);
-
-  const topRightUnlockableItems = useMemo(() => {
-    const unlockableHrefs = new Set<string>([
-      "/trade-deals",
-      ROUTES.EXCHANGE ?? "/exchange",
-      "/homes",
-      "/maps",
-      "/leaderboard",
-      "/foundation",
-    ]);
-
-    return featureNav.filter((item) => unlockableHrefs.has(item.href));
-  }, [featureNav]);
+  const mobileTaskbarNav = buildMobileAppTaskbarNav(featureNav);
 
   const mobileSurfaceCardStyle = {
     border: "1px solid color-mix(in oklab, var(--border-primary) 82%, transparent)",
@@ -612,20 +505,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const navigateFromMobileTools = (href: string) => {
     setIsToolsOpen(false);
     navigate(href);
-  };
-
-  const handleMobileUnlockablesToggle = () => {
-    setIsMobileUnlockablesOpen((open) => {
-      const nextOpen = !open;
-      if (nextOpen && typeof window !== "undefined") {
-        window.setTimeout(() => {
-          document
-            .getElementById("mobile-unlockable-links")
-            ?.scrollIntoView({ block: "nearest", behavior: "auto" });
-        }, 0);
-      }
-      return nextOpen;
-    });
   };
 
   const renderMobileDrawerAction = ({
@@ -665,24 +544,24 @@ export function AppShell({ children, footer }: AppShellProps) {
     </button>
   );
 
-  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
-  const showSurfaceOrientation = true;
-  const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const currentPath = location.split("?")[0].split("#")[0];
+  const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
+  const appOwnsSurfaceOrientation =
+    currentPath === "/scout" ||
+    currentPath.startsWith("/scout/") ||
+    currentPath === "/community" ||
+    currentPath.startsWith("/community/") ||
+    currentPath === "/community-feed" ||
+    currentPath.startsWith("/community-feed/") ||
+    currentPath.startsWith("/community-post/") ||
+    currentPath.startsWith("/direct-connect/opportunities") ||
+    currentPath.startsWith("/direct-connect/employment");
+  const showSurfaceOrientation = !appOwnsSurfaceOrientation;
+  const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const publicProfileContinuation = useMemo(
     () => parsePublicProfileContinuation(location),
     [location]
   );
-  const pinRightToolsEnabled =
-    String(import.meta.env.VITE_PIN_RIGHT_TOOLS_V1 ?? "false") === "true";
-  const shouldPinRightTools =
-    pinRightToolsEnabled &&
-    !isMobile &&
-    !isAdminSurface &&
-    !isAuthOrSetupSurface &&
-    !isScoutSurface &&
-    !isSettingsSurface &&
-    !isPortalSurface;
   const showInstallAction = !isStandalone && !isAuthOrSetupSurface;
   const handleInstallAction = async () => {
     if (canPromptInstall) {
@@ -751,27 +630,12 @@ export function AppShell({ children, footer }: AppShellProps) {
     };
   }, [isAuthenticated, isAuthOrSetupSurface]);
 
-  // Desktop preference: allow collapsing the right tools panel to reclaim space.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (isMobile) return;
-    try {
-      setIsRightToolsCollapsed(window.localStorage.getItem(RIGHT_TOOLS_COLLAPSED_KEY) === "1");
-    } catch {
-      // ignore
-    }
-  }, [isMobile]);
-
   // Never keep stale tool overlays open across navigation changes.
   // This prevents transparent/full-height drawers from blocking clicks
   // when the user moves between settings/profile surfaces.
   useEffect(() => {
     setIsToolsOpen(false);
   }, [location]);
-
-  useEffect(() => {
-    if (!isToolsOpen) setIsMobileUnlockablesOpen(false);
-  }, [isToolsOpen]);
 
   useEffect(() => {
     if (!isLoggedIn || isAuthOrSetupSurface || isAdminSurface) return;
@@ -805,18 +669,6 @@ export function AppShell({ children, footer }: AppShellProps) {
   const navigateFromStartGuide = (href: string) => {
     closeStartGuide();
     navigate(href);
-  };
-
-  const toggleRightToolsCollapsed = () => {
-    setIsRightToolsCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem(RIGHT_TOOLS_COLLAPSED_KEY, next ? "1" : "0");
-      } catch {
-        // ignore
-      }
-      return next;
-    });
   };
 
   // Mobile hero content for context/messaging/CTAs
@@ -970,16 +822,17 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setIsStartGuideOpen(true)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border"
                 style={{
                   borderColor: "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
-                  backgroundColor: "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                  backgroundColor:
+                    "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
                   color: "var(--theme-accent-primary)",
                 }}
                 aria-label="Open Start here guide"
+                title="Start here"
               >
                 <Compass className="h-4 w-4" />
-                Start
               </button>
             )}
             {!isMobileSimplified && !isLoggedIn && !isAuthOrSetupSurface && (
@@ -1091,43 +944,6 @@ export function AppShell({ children, footer }: AppShellProps) {
             </div>
           </Link>
 
-          {showFeatureNav && desktopPrimaryNav.length > 0 && (
-            <nav
-              aria-label="Primary"
-              className="ts-desktop-primary-nav hidden min-w-0 flex-1 items-center justify-center gap-1 px-3 lg:flex"
-            >
-              {desktopPrimaryNav.map((item) => {
-                const hrefPath = item.href.split("?")[0].split("#")[0];
-                const isActive = currentPath === hrefPath || currentPath.startsWith(hrefPath + "/");
-
-                return (
-                  <Link
-                    key={`desktop-nav-${item.href}`}
-                    href={item.href}
-                    data-active={isActive ? "true" : "false"}
-                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 items-center gap-2 whitespace-nowrap rounded-md border px-3 text-xs font-medium no-underline transition-colors"
-                    style={{
-                      borderColor: isActive
-                        ? "color-mix(in oklab, var(--theme-accent-primary) 44%, transparent)"
-                        : "transparent",
-                      backgroundColor: isActive
-                        ? "color-mix(in oklab, var(--theme-accent-primary) 12%, var(--charcoal-950))"
-                        : "transparent",
-                      color: isActive ? "var(--theme-accent-primary)" : "var(--text-secondary)",
-                    }}
-                  >
-                    {item.icon ? (
-                      <span className="ts-desktop-nav-icon inline-flex h-4 w-4 shrink-0 items-center justify-center">
-                        {item.icon}
-                      </span>
-                    ) : null}
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          )}
-
           {/* Right side: auth CTA + icons */}
           <div className="flex items-center gap-2 shrink-0">
             {!isLoggedIn && !isAuthOrSetupSurface && (
@@ -1159,7 +975,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => setIsStartGuideOpen(true)}
-                  className="hidden h-9 items-center gap-2 rounded-full border px-3 text-xs font-semibold transition-colors xl:inline-flex"
+                  className="hidden h-8 w-8 items-center justify-center rounded-full border transition-colors lg:inline-flex"
                   style={{
                     borderColor:
                       "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
@@ -1167,9 +983,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                       "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
                     color: "var(--theme-accent-primary)",
                   }}
+                  aria-label="Open Start here guide"
+                  title="Start here"
                 >
                   <CircleHelp className="h-4 w-4" />
-                  What can I do?
                 </button>
                 {showInstallAction && (
                   <button
@@ -1266,11 +1083,6 @@ export function AppShell({ children, footer }: AppShellProps) {
         style={{
           top: isAdminSurface ? 0 : "var(--top-nav-h)",
           bottom: showFeatureNav && isMobile ? "var(--bottom-nav-h)" : 0,
-          paddingRight: shouldPinRightTools
-            ? isRightToolsCollapsed
-              ? RIGHT_TOOLS_COLLAPSED_W
-              : "var(--right-nav-w)"
-            : undefined,
           // Let the global TradeScoutBackground show through; pages/cards provide surfaces.
           background: "transparent",
           color: "var(--text-primary)",
@@ -1355,27 +1167,6 @@ export function AppShell({ children, footer }: AppShellProps) {
           {children}
         </div>
       </main>
-
-      {/* Optional desktop tools rail; disabled by default to preserve page width. */}
-      {shouldPinRightTools && (
-        <aside
-          className="fixed z-40"
-          style={{
-            top: isAdminSurface ? 0 : "var(--top-nav-h)",
-            bottom: 0,
-            right: 0,
-            width: isRightToolsCollapsed ? RIGHT_TOOLS_COLLAPSED_W : "var(--right-nav-w)",
-            background: "var(--surface-intermediate)",
-            color: "var(--text-primary)",
-          }}
-        >
-          <RightToolsPanel
-            contactRequestCount={contactRequestCount}
-            collapsed={isRightToolsCollapsed}
-            onToggleCollapsed={toggleRightToolsCollapsed}
-          />
-        </aside>
-      )}
 
       {/* Desktop tools stay on demand so pages keep their full working width. */}
       {!isMobile && isToolsOpen && !isAuthOrSetupSurface && (
@@ -1478,7 +1269,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                       style={{ color: "var(--theme-accent-primary)" }}
                     />
                   </span>
-                  <span className="mt-1 text-xs leading-5" style={{ color: "var(--text-secondary)" }}>
+                  <span
+                    className="mt-1 text-xs leading-5"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     {item.description}
                   </span>
                 </button>
@@ -1521,10 +1315,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* MOBILE FEATURE NAV */}
       {showFeatureNav && isMobile && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
-          <MobileAppBar
-            items={isMobileSimplified ? mobileFlowNav : mobileNav.ordered}
-            primaryLimit={isMobileSimplified ? 4 : 5}
-          />
+          <MobileAppBar items={mobileTaskbarNav} primaryLimit={5} stablePrimary />
         </div>
       )}
 
@@ -1592,6 +1383,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       )}
 
+      {/* MOBILE ACCOUNT/SYSTEM DRAWER */}
       {isMobile && isToolsOpen && !isAuthOrSetupSurface && isMobileSimplified && (
         <div
           className="fixed inset-x-0 top-0 z-50"
@@ -1666,17 +1458,6 @@ export function AppShell({ children, footer }: AppShellProps) {
                   style={mobileSurfaceCardStyle}
                 >
                   {renderMobileDrawerAction({
-                    href:
-                      contactRequestCount > 0
-                        ? "/direct-connect/inbox?filter=requests"
-                        : "/direct-connect/inbox",
-                    icon: <MessageCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
-                    label: "Messages",
-                    ...(contactRequestCount > 0
-                      ? { badge: contactRequestCount > 9 ? "9+" : contactRequestCount }
-                      : {}),
-                  })}
-                  {renderMobileDrawerAction({
                     href: "/profile",
                     icon: <UserCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
                     label: "Profile",
@@ -1723,54 +1504,6 @@ export function AppShell({ children, footer }: AppShellProps) {
                     label: "Security",
                   })}
                 </div>
-              </div>
-            )}
-
-            {topRightUnlockableItems.length > 0 && (
-              <div className="mt-3 rounded-lg p-3" style={mobileSurfaceCardStyle}>
-                <button
-                  type="button"
-                  aria-expanded={isMobileUnlockablesOpen}
-                  onClick={handleMobileUnlockablesToggle}
-                  className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold"
-                  style={mobileActionButtonStyle}
-                >
-                  <span className="inline-flex min-w-0 items-center gap-2.5">
-                    <Sparkles className="h-4 w-4 shrink-0" style={mobileDrawerIconStyle} />
-                    <span className="truncate">Unlockable features</span>
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-2">
-                    <span
-                      className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                      style={{
-                        backgroundColor:
-                          "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                        color: "var(--theme-accent-primary)",
-                      }}
-                    >
-                      {topRightUnlockableItems.length}
-                    </span>
-                    {isMobileUnlockablesOpen ? (
-                      <ChevronUp className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
-                    )}
-                  </span>
-                </button>
-
-                {isMobileUnlockablesOpen && (
-                  <div id="mobile-unlockable-links" className="mt-2 grid grid-cols-1 gap-2">
-                    {topRightUnlockableItems.map((item) =>
-                      renderMobileDrawerAction({
-                        href: item.href,
-                        icon: item.icon ?? (
-                          <Sparkles className="h-4 w-4" style={mobileDrawerIconStyle} />
-                        ),
-                        label: item.label,
-                      })
-                    )}
-                  </div>
-                )}
               </div>
             )}
 

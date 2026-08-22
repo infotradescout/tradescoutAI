@@ -16,11 +16,7 @@ import type { BidRockListing } from "@shared/bidrock";
 import { BIDROCK_DEFAULT_PROFILE_SLUG, formatBidRockMoney } from "@shared/bidrock";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
-import {
-  loadProfileAccountState,
-  profileAccountActionLabel,
-  type ProfileAccountResponse,
-} from "@/components/profile/profileAccountClient";
+import { loadProfileAccountState } from "@/components/profile/profileAccountClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -243,7 +239,7 @@ export default function BidRockWorkspace() {
     selectedListing?.sourceProfileName || listings[0]?.sourceProfileName || "BidRock";
   const accountQuery = useQuery({
     queryKey: ["profile-account", accountProfileSlug, viewerCacheScope],
-    queryFn: () => loadProfileAccountState(accountProfileSlug, isAuthenticated),
+    queryFn: () => loadProfileAccountState(accountProfileSlug),
     staleTime: 30_000,
   });
   const comparedListings = compareIds
@@ -267,11 +263,12 @@ export default function BidRockWorkspace() {
     0
   );
   const sellerCount = new Set(filteredListings.map((listing) => listing.sourceProfileSlug)).size;
-  const accountActionLabel = accountQuery.data
-    ? profileAccountActionLabel(accountQuery.data)
-    : isAuthenticated
+  const accountActionLabel =
+    accountQuery.data?.account?.status === "active"
       ? "Business access"
-      : "Sign in to bid";
+      : isAuthenticated
+        ? "Set up business access"
+        : "Sign in to bid";
 
   const reportFailure = (error: unknown, title: string) => {
     toast({
@@ -775,15 +772,18 @@ export default function BidRockWorkspace() {
       />
       <PublicProfileAccountDialog
         open={accountOpen}
-        onOpenChange={setAccountOpen}
+        onOpenChange={(open) => {
+          setAccountOpen(open);
+          if (!open) {
+            void queryClient.invalidateQueries({
+              queryKey: ["profile-account", accountProfileSlug],
+            });
+            void catalogQuery.refetch();
+          }
+        }}
         profileSlug={accountProfileSlug}
         profileName={accountProfileName}
         tone="light"
-        initialState={accountQuery.data ?? null}
-        onStateChange={(next: ProfileAccountResponse) => {
-          queryClient.setQueryData(["profile-account", accountProfileSlug, viewerCacheScope], next);
-          void catalogQuery.refetch();
-        }}
       />
     </div>
   );

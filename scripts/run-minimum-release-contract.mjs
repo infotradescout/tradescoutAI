@@ -165,10 +165,15 @@ async function main() {
     "server/tests/historical-migration-chain.contract.test.ts",
     "server/tests/migrationCompatibilityStatus.contract.test.ts",
     "server/tests/health-release-contract.contract.test.ts",
+    "server/tests/landing-seo-contracts.test.ts",
+    "server/tests/profile-account-foundation.contract.test.ts",
+    "server/tests/admin-production-acceptance.contract.test.ts",
+    "server/tests/admin-live-stream.contract.test.ts",
     "server/tests/direct-connect-gates.regression.test.ts",
     "server/tests/discovery-landing.contract.test.ts",
     "server/tests/discovery-observatory.contract.test.ts",
     "client/src/lib/discoveryLanding.test.ts",
+    "client/src/admin/admin-production-acceptance.contract.test.ts",
     "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
   ];
   const testRun = run("npm", ["run", "test:run", "--", ...contractTests], {

@@ -468,6 +468,7 @@ const DatasetsCountiesPage = React.lazy(() => import("./pages/datasets/DatasetsC
 const DatasetsCitiesPage = React.lazy(() => import("./pages/datasets/DatasetsCitiesPage"));
 const MapsPage = React.lazy(() => import("./pages/maps"));
 const Verification = React.lazy(() => import("./pages/verification"));
+const BusinessVerification = React.lazy(() => import("./pages/business-verification"));
 const IdentityVerification = React.lazy(() => import("./pages/identity-verification"));
 const InsuranceVerification = React.lazy(() => import("./pages/insurance-verification"));
 const LicenseVerification = React.lazy(() => import("./pages/license-verification"));
@@ -1761,6 +1762,9 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Verification & Compliance */}
               <Route path="/verification">
                 <LazyPage Component={Verification} />
+              </Route>
+              <Route path="/business-verification">
+                <LazyPage Component={BusinessVerification} />
               </Route>
               <Route path="/identity-verification">
                 <LazyPage Component={IdentityVerification} />

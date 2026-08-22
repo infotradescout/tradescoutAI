@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Building2, CheckCircle2, Loader2, LogIn, UserPlus } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Building2, CheckCircle2, Loader2, LogIn, RefreshCw, UserPlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,17 +7,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/useAuth";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { cn } from "@/lib/utils";
 import {
+  buildProfileAccountResumePath,
   createProfileAccount,
   currentProfileAccountSourcePath,
   loadProfileAccountState,
-  profileAccountAccessState,
-  readResponseJson,
+  readProfileAccountJson,
+  registerProfileAccount,
+  type ProfileAccountMode,
   type ProfileAccountResponse,
 } from "./profileAccountClient";
-
-type AccountMode = "create" | "signin";
 
 type PublicProfileAccountDialogProps = {
   open: boolean;
@@ -26,14 +27,21 @@ type PublicProfileAccountDialogProps = {
   profileSlug: string;
   profileName: string;
   tone?: "light" | "dark";
-  initialState?: ProfileAccountResponse | null;
-  onStateChange?: (state: ProfileAccountResponse) => void;
+  initialMode?: ProfileAccountMode;
 };
 
-type AuthError = Error & {
-  status?: number;
-  code?: string;
-};
+type RequestError = Error & { status?: number; code?: string };
+
+function requestedMode(fallback: ProfileAccountMode): ProfileAccountMode {
+  if (typeof window === "undefined") return fallback;
+  try {
+    return new URL(window.location.href).searchParams.get("profileAccountMode") === "signin"
+      ? "signin"
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function passwordProblem(password: string): string | null {
   if (password.length < 8) return "Use at least 8 characters.";
@@ -43,24 +51,23 @@ function passwordProblem(password: string): string | null {
   return null;
 }
 
-async function submitAuth(path: "/api/auth/register" | "/api/auth/login", body: object) {
-  const response = await fetch(path, {
+async function signIn(email: string, password: string): Promise<void> {
+  const response = await fetch(buildApiUrl("/api/auth/login"), {
     method: "POST",
     credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
   });
-  const payload = await readResponseJson(response);
+  const payload = await readProfileAccountJson(response);
   if (!response.ok) {
-    const error = new Error(String(payload.message || "Account access failed.")) as AuthError;
+    const error = new Error(String(payload.message || "Sign-in failed.")) as RequestError;
     error.status = response.status;
     error.code = typeof payload.code === "string" ? payload.code : undefined;
     throw error;
   }
-  return payload;
 }
 
 export function PublicProfileAccountDialog({
@@ -69,19 +76,22 @@ export function PublicProfileAccountDialog({
   profileSlug,
   profileName,
   tone = "light",
-  initialState = null,
-  onStateChange,
+  initialMode = "create",
 }: PublicProfileAccountDialogProps) {
   const { user, isAuthenticated, refetch } = useAuth();
-  const hasViewerSession = isAuthenticated || Boolean((user as { id?: string } | null)?.id);
-  const [data, setData] = useState<ProfileAccountResponse | null>(initialState);
-  const [mode, setMode] = useState<AccountMode>("create");
+  const hasSession = isAuthenticated || Boolean(user?.id);
+  const [mode, setMode] = useState<ProfileAccountMode>(initialMode);
+  const [state, setState] = useState<ProfileAccountResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const autoContinueAttemptedRef = useRef<string | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [businessName, setBusinessName] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -90,163 +100,183 @@ export function PublicProfileAccountDialog({
   const isDark = tone === "dark";
 
   useEffect(() => {
-    if (initialState) setData(initialState);
-  }, [initialState]);
-
-  useEffect(() => {
     if (!open) return;
-    let current = true;
+    let active = true;
+    setMode(requestedMode(initialMode));
     setLoading(true);
+    setLoadError("");
     setError("");
-    loadProfileAccountState(profileSlug, hasViewerSession)
+    setNotice("");
+    loadProfileAccountState(profileSlug)
       .then((next) => {
-        if (!current) return;
-        setData(next);
-        onStateChange?.(next);
+        if (!active) return;
+        setState(next);
         if (next.viewerBusiness?.name) setBusinessName(next.viewerBusiness.name);
       })
       .catch((nextError) => {
-        if (current) {
-          setError(nextError instanceof Error ? nextError.message : "Account is unavailable.");
-        }
+        if (!active) return;
+        setLoadError(
+          nextError instanceof Error ? nextError.message : "Account is temporarily unavailable."
+        );
       })
       .finally(() => {
-        if (current) setLoading(false);
+        if (active) setLoading(false);
       });
     return () => {
-      current = false;
+      active = false;
     };
-  }, [hasViewerSession, open, profileSlug]);
+  }, [open, profileSlug, initialMode, loadAttempt]);
 
-  const requiresBusiness = data?.policy.requiredIdentity === "business";
-  const accessState = profileAccountAccessState(data);
-  const connected = accessState === "active" || accessState === "relationship_active";
-  const relationshipExists = accessState !== "none";
-  const needsBusinessName = requiresBusiness && !data?.viewerBusiness;
+  const connected = state?.account?.status === "active";
+  const requiresBusiness = state?.policy.requiredIdentity === "business";
   const normalizedBusinessName = businessName.trim();
+  const resumePath = buildProfileAccountResumePath(profileSlug, "signin");
+  const emailVerificationPath = useMemo(() => {
+    const params = new URLSearchParams({ next: resumePath });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail) params.set("email", normalizedEmail);
+    return `/check-email?${params.toString()}`;
+  }, [email, resumePath]);
+  const passwordResetPath = useMemo(() => {
+    const params = new URLSearchParams({ next: resumePath });
+    const normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail) params.set("email", normalizedEmail);
+    return `/reset-password?${params.toString()}`;
+  }, [email, resumePath]);
 
   const description = useMemo(() => {
-    if (connected) {
-      return `Your account with ${profileName} is ready.`;
+    if (connected) return `Your account with ${profileName} is ready.`;
+    if (!hasSession && mode === "signin") {
+      return `Use your existing TradeScout account to continue. No separate ${profileName} signup is required.`;
     }
-    if (accessState === "pending_verification") {
-      return `Your relationship with ${profileName} is saved. BidRock access is waiting for business verification.`;
-    }
-    if (accessState === "suspended" || accessState === "revoked") {
-      return `This relationship is ${accessState} and protected business actions are unavailable.`;
-    }
-    if (requiresBusiness) {
-      return `Any business can create an account directly with ${profileName}. Your business details stay private unless you later choose to publish them.`;
-    }
-    return `Create an account directly with ${profileName} and continue where you left off.`;
-  }, [accessState, connected, profileName, requiresBusiness]);
+    return `Continue with ${profileName}.`;
+  }, [connected, hasSession, mode, profileName, requiresBusiness]);
 
-  const publishState = (next: ProfileAccountResponse) => {
-    setData(next);
-    onStateChange?.(next);
-  };
-
-  const signIn = async () => {
-    if (!email.trim() || !password) {
-      throw new Error("Enter your email and password.");
+  const finishExistingSession = useCallback(async () => {
+    const current = await loadProfileAccountState(profileSlug);
+    setState(current);
+    if (current.account?.status === "active") return;
+    if (
+      current.policy.requiredIdentity === "business" &&
+      !current.viewerBusiness &&
+      normalizedBusinessName.length < 2
+    ) {
+      throw new Error("Enter your business name.");
     }
-    await submitAuth("/api/auth/login", {
-      email: email.trim().toLowerCase(),
-      password,
+    const created = await createProfileAccount({
+      profileSlug,
+      businessName: current.policy.requiredIdentity === "business" ? normalizedBusinessName : null,
+      sourcePath: currentProfileAccountSourcePath(profileSlug),
     });
-    await refetch().catch(() => undefined);
-  };
+    setState(created);
+  }, [normalizedBusinessName, profileSlug]);
 
-  const finishProfileAccount = async (allowLoginRetry: boolean) => {
-    let current = await loadProfileAccountState(profileSlug, true);
-    publishState(current);
-    if (current.account?.status === "active") return current;
-
-    const businessRequired = current.policy.requiredIdentity === "business";
-    if (businessRequired && !current.viewerBusiness && normalizedBusinessName.length < 2) {
-      throw new Error("Enter the name of your business.");
+  useEffect(() => {
+    if (!open) {
+      autoContinueAttemptedRef.current = null;
+      return;
     }
 
-    try {
-      const created = await createProfileAccount({
-        profileSlug,
-        businessName: businessRequired ? normalizedBusinessName : null,
-        sourcePath: currentProfileAccountSourcePath(profileSlug),
-      });
-      publishState(created);
-      return created;
-    } catch (nextError) {
-      const authError = nextError as AuthError;
-      if (allowLoginRetry && authError.status === 401 && email.trim() && password) {
-        await signIn();
-        current = await createProfileAccount({
-          profileSlug,
-          businessName: businessRequired ? normalizedBusinessName : null,
-          sourcePath: currentProfileAccountSourcePath(profileSlug),
-        });
-        publishState(current);
-        return current;
-      }
-      throw nextError;
+    if (
+      !hasSession ||
+      !state ||
+      submitting ||
+      state.account?.status === "active" ||
+      state.requiresBusinessSetup ||
+      (state.policy.requiredIdentity === "business" && !state.viewerBusiness)
+    ) {
+      return;
     }
-  };
 
-  const createNewIdentityAndAccount = async () => {
+    const attemptKey = `${profileSlug}:${state.viewerBusiness?.id || "user"}`;
+    if (autoContinueAttemptedRef.current === attemptKey) return;
+    autoContinueAttemptedRef.current = attemptKey;
+
+    setError("");
+    setSubmitting(true);
+    void finishExistingSession()
+      .catch((nextError: unknown) => {
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Your TradeScout account could not be connected. Please try again."
+        );
+      })
+      .finally(() => setSubmitting(false));
+  }, [finishExistingSession, hasSession, open, profileSlug, state, submitting]);
+
+  const createNewAccount = async () => {
+    if (!state) throw new Error("Account details have not finished loading.");
+    if (requiresBusiness && normalizedBusinessName.length < 2) {
+      throw new Error("Enter your business name.");
+    }
     if (!firstName.trim()) throw new Error("Enter your first name.");
     if (!lastName.trim()) throw new Error("Enter your last name.");
     if (!email.trim() || !email.includes("@")) throw new Error("Enter a valid email address.");
     if (phone.replace(/\D/g, "").length < 10) throw new Error("Enter a valid phone number.");
-    if (requiresBusiness && normalizedBusinessName.length < 2) {
-      throw new Error("Enter the name of your business.");
-    }
     const passwordMessage = passwordProblem(password);
     if (passwordMessage) throw new Error(passwordMessage);
     if (password !== confirmPassword) throw new Error("The passwords do not match.");
     if (!acceptTerms) throw new Error("Accept the Terms of Service and Privacy Policy.");
 
     try {
-      await submitAuth("/api/auth/register", {
+      const created = await registerProfileAccount({
+        profileSlug,
+        businessName: normalizedBusinessName,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
         password,
         acceptTerms: true,
-        allowPhoneCalls: false,
-        userTypes: requiresBusiness ? ["business_owner"] : [],
-        role: requiresBusiness ? "business_owner" : undefined,
-        userIntent: requiresBusiness ? "business" : "profile_account",
+        sourcePath: currentProfileAccountSourcePath(profileSlug),
+        next: resumePath,
       });
-    } catch (nextError) {
-      const authError = nextError as AuthError;
-      if (authError.status === 409 || authError.code === "AUTH_ACCOUNT_EXISTS") {
-        setMode("signin");
-        throw new Error(
-          `An account already exists for ${email.trim()}. Sign in to continue with ${profileName}.`
+      setState(created);
+      if (created.emailVerificationRequired) {
+        setNotice(
+          created.emailVerificationSent
+            ? `Check ${email.trim()} for the verification link. Your account is already connected to ${profileName}.`
+            : `Your account is connected to ${profileName}. Email verification can be completed later.`
         );
+      }
+      await refetch().catch(() => undefined);
+    } catch (nextError) {
+      const requestError = nextError as RequestError;
+      if (requestError.status === 409 || requestError.code === "AUTH_ACCOUNT_EXISTS") {
+        setMode("signin");
+        throw new Error(`An account already exists for ${email.trim()}. Sign in to continue.`);
       }
       throw nextError;
     }
-
-    await refetch().catch(() => undefined);
-    await finishProfileAccount(true);
   };
 
   const submit = async () => {
-    if (submitting) return;
+    if (submitting || !state) return;
     setSubmitting(true);
     setError("");
+    setNotice("");
     try {
-      if (hasViewerSession) {
-        await finishProfileAccount(false);
+      if (hasSession) {
+        await finishExistingSession();
       } else if (mode === "signin") {
-        await signIn();
-        await finishProfileAccount(false);
+        if (!email.trim() || !password) throw new Error("Enter your email and password.");
+        await signIn(email, password);
+        await refetch().catch(() => undefined);
+        await finishExistingSession();
       } else {
-        await createNewIdentityAndAccount();
+        await createNewAccount();
       }
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
+      const requestError = nextError as RequestError;
+      if (requestError.code === "AUTH_SOCIAL_ONLY") {
+        setMode("signin");
+        setError(
+          "Use the password link below to set a password for this email, then sign in here."
+        );
+      } else {
+        setError(nextError instanceof Error ? nextError.message : "Account could not be created.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -270,9 +300,7 @@ export function PublicProfileAccountDialog({
         data-testid="profile-account-dialog"
         className={cn(
           "max-h-[92vh] overflow-y-auto sm:max-w-xl",
-          isDark
-            ? "border-white/10 bg-stone-950 text-white"
-            : "border-stone-200 bg-white text-stone-950"
+          isDark ? "border-white/10 bg-stone-950 text-white" : "border-stone-200 bg-white"
         )}
       >
         <DialogHeader>
@@ -287,50 +315,62 @@ export function PublicProfileAccountDialog({
             )}
           >
             {connected ? (
-              <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+              <CheckCircle2 className="h-5 w-5" />
             ) : requiresBusiness ? (
-              <Building2 className="h-5 w-5" aria-hidden="true" />
+              <Building2 className="h-5 w-5" />
             ) : (
-              <UserPlus className="h-5 w-5" aria-hidden="true" />
+              <UserPlus className="h-5 w-5" />
             )}
           </div>
-          <DialogTitle className={cn("text-2xl", isDark ? "text-white" : "text-stone-950")}>
+          <DialogTitle className="text-2xl">
             {connected
               ? `Your ${profileName} account`
-              : hasViewerSession
-                ? `Create your account with ${profileName}`
+              : hasSession
+                ? `Continue with ${profileName}`
                 : mode === "signin"
-                  ? `Sign in to ${profileName}`
+                  ? "Sign in with TradeScout"
                   : `Create an account with ${profileName}`}
           </DialogTitle>
           <DialogDescription className={mutedClass}>{description}</DialogDescription>
         </DialogHeader>
 
-        {loading ? (
-          <div className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}>
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        {loading && !state ? (
+          <div
+            className={cn("flex min-h-32 items-center justify-center gap-2 text-sm", mutedClass)}
+          >
+            <Loader2 className="h-4 w-4 animate-spin" />
             Opening your account…
           </div>
-        ) : relationshipExists ? (
-          <div className="space-y-4" data-testid="profile-account-dialog-connected">
-            <div
-              className={cn(
-                "rounded-2xl border p-4 text-sm leading-6",
-                isDark ? "border-emerald-400/20 bg-emerald-400/10" : "border-emerald-200 bg-emerald-50"
-              )}
+        ) : loadError && !state ? (
+          <div className="space-y-4" data-testid="profile-account-load-error">
+            <p
+              className="rounded-xl bg-red-50 px-3 py-3 text-sm font-bold text-red-800"
+              role="alert"
             >
+              {loadError}
+            </p>
+            <button
+              type="button"
+              onClick={() => setLoadAttempt((value) => value + 1)}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-stone-300 bg-white px-5 text-sm font-black text-stone-900"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try again
+            </button>
+          </div>
+        ) : connected ? (
+          <div className="space-y-4" data-testid="profile-account-dialog-connected">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-stone-900">
               <p className="font-black">
-                {connected
-                  ? `${data?.account?.businessName || "Your account"} is connected to ${profileName}.`
-                  : accessState === "pending_verification"
-                    ? `Your relationship with ${profileName} is waiting for verification.`
-                    : `Your ${profileName} relationship is ${accessState}.`}
+                {state?.account?.businessName || "Your account"} is connected to {profileName}.
               </p>
-              {data?.account?.verificationStatus === "pending" ? (
-                <p className={cn("mt-1", mutedClass)}>
-                  Protected business features remain limited until verification is complete.
+              {state?.account?.verificationStatus === "pending" ? (
+                <p className="mt-1 text-stone-600">
+                  Business verification is pending. Protected pricing and business-only features
+                  remain locked until approval.
                 </p>
               ) : null}
+              {notice ? <p className="mt-2 font-semibold text-stone-600">{notice}</p> : null}
             </div>
             <button
               type="button"
@@ -343,9 +383,9 @@ export function PublicProfileAccountDialog({
               Continue browsing
             </button>
           </div>
-        ) : (
+        ) : state ? (
           <div className="space-y-4">
-            {requiresBusiness && (needsBusinessName || !hasViewerSession) ? (
+            {requiresBusiness && (mode === "create" || (hasSession && !state.viewerBusiness)) ? (
               <label className={labelClass}>
                 <span>Business name</span>
                 <input
@@ -354,24 +394,11 @@ export function PublicProfileAccountDialog({
                   value={businessName}
                   onChange={(event) => setBusinessName(event.target.value)}
                   autoComplete="organization"
-                  placeholder="Your business name"
                 />
               </label>
-            ) : requiresBusiness && data?.viewerBusiness ? (
-              <div
-                className={cn(
-                  "rounded-2xl border p-4 text-sm",
-                  isDark ? "border-white/10 bg-white/5" : "border-stone-200 bg-stone-50"
-                )}
-              >
-                <p className={cn("text-xs font-black uppercase tracking-[0.15em]", mutedClass)}>
-                  Business
-                </p>
-                <p className="mt-1 font-black">{data.viewerBusiness.name}</p>
-              </div>
             ) : null}
 
-            {!hasViewerSession && mode === "create" ? (
+            {!hasSession && mode === "create" ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className={labelClass}>
                   <span>First name</span>
@@ -396,7 +423,7 @@ export function PublicProfileAccountDialog({
               </div>
             ) : null}
 
-            {!hasViewerSession ? (
+            {!hasSession ? (
               <>
                 <label className={labelClass}>
                   <span>Email</span>
@@ -407,10 +434,8 @@ export function PublicProfileAccountDialog({
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     autoComplete="email"
-                    inputMode="email"
                   />
                 </label>
-
                 {mode === "create" ? (
                   <label className={labelClass}>
                     <span>Phone</span>
@@ -421,11 +446,9 @@ export function PublicProfileAccountDialog({
                       value={phone}
                       onChange={(event) => setPhone(event.target.value)}
                       autoComplete="tel"
-                      inputMode="tel"
                     />
                   </label>
                 ) : null}
-
                 <label className={labelClass}>
                   <span>Password</span>
                   <input
@@ -437,7 +460,6 @@ export function PublicProfileAccountDialog({
                     autoComplete={mode === "create" ? "new-password" : "current-password"}
                   />
                 </label>
-
                 {mode === "create" ? (
                   <>
                     <label className={labelClass}>
@@ -461,11 +483,21 @@ export function PublicProfileAccountDialog({
                       />
                       <span>
                         I agree to the{" "}
-                        <a className="font-bold underline" href="/terms" target="_blank" rel="noreferrer">
+                        <a
+                          className="font-bold underline"
+                          href="/terms"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           Terms of Service
                         </a>{" "}
                         and acknowledge the{" "}
-                        <a className="font-bold underline" href="/privacy" target="_blank" rel="noreferrer">
+                        <a
+                          className="font-bold underline"
+                          href="/privacy"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
                           Privacy Policy
                         </a>
                         .
@@ -479,10 +511,7 @@ export function PublicProfileAccountDialog({
             {error ? (
               <p
                 data-testid="profile-account-error"
-                className={cn(
-                  "rounded-xl px-3 py-2 text-sm font-bold",
-                  isDark ? "bg-red-400/10 text-red-200" : "bg-red-50 text-red-800"
-                )}
+                className="rounded-xl bg-red-50 px-3 py-2 text-sm font-bold text-red-800"
                 role="alert"
               >
                 {error}
@@ -493,27 +522,44 @@ export function PublicProfileAccountDialog({
               type="button"
               data-testid="profile-account-submit"
               onClick={() => void submit()}
-              disabled={submitting}
+              disabled={submitting || !state}
               className={cn(
                 "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-sm font-black transition disabled:cursor-wait disabled:opacity-60",
                 primaryClass
               )}
             >
               {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              ) : mode === "signin" && !hasViewerSession ? (
-                <LogIn className="h-4 w-4" aria-hidden="true" />
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : mode === "signin" && !hasSession ? (
+                <LogIn className="h-4 w-4" />
               ) : (
-                <UserPlus className="h-4 w-4" aria-hidden="true" />
+                <UserPlus className="h-4 w-4" />
               )}
-              {hasViewerSession
-                ? `Create account with ${profileName}`
-                : mode === "signin"
-                  ? `Sign in and continue`
+              {mode === "signin" && !hasSession
+                ? "Sign in and continue"
+                : hasSession
+                  ? "Continue with TradeScout"
                   : `Create account with ${profileName}`}
             </button>
 
-            {!hasViewerSession ? (
+            {!hasSession && mode === "signin" ? (
+              <div className={cn("space-y-1 border-t border-current/10 pt-3", mutedClass)}>
+                <a
+                  href={emailVerificationPath}
+                  className="inline-flex min-h-10 w-full items-center justify-center text-sm font-bold underline-offset-4 hover:underline"
+                >
+                  Lost the verification email?
+                </a>
+                <a
+                  href={passwordResetPath}
+                  className="inline-flex min-h-10 w-full items-center justify-center text-sm font-bold underline-offset-4 hover:underline"
+                >
+                  Forgot or need to set your password?
+                </a>
+              </div>
+            ) : null}
+
+            {!hasSession ? (
               <button
                 type="button"
                 onClick={() => {
@@ -525,11 +571,13 @@ export function PublicProfileAccountDialog({
                   mutedClass
                 )}
               >
-                {mode === "create" ? "Already have an account? Sign in" : "New here? Create an account"}
+                {mode === "create"
+                  ? "Already have an account? Sign in"
+                  : "New here? Create an account"}
               </button>
             ) : null}
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );

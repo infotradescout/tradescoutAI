@@ -1,6 +1,6 @@
 import { Calendar, Hammer, Home, MapPin, MessageCircle, UsersRound } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,7 @@ interface ContinuityThread {
 }
 
 interface ScoutHomeProps {
+  primaryOutcomeInput: ReactNode;
   onPromptSelect: (text: string) => void;
   onContinuationSelect: (threadId: string) => void;
   continuationThreads?: ContinuityThread[];
@@ -115,12 +116,19 @@ function looksLikeRealDisplayTitle(value?: string | null): boolean {
   return specificTokenCount >= 1 && tokens.length >= 2;
 }
 
-function getMeaningfulContinuations(threads: ContinuityThread[]): ContinuityThread[] {
+export function getMeaningfulContinuations(threads: ContinuityThread[]): ContinuityThread[] {
   return threads
     .filter((thread) => {
       if (!thread.id) return false;
-      const objectTitle = thread.relatedLabel || thread.title || thread.preview || thread.summary;
-      if (!looksLikeRealDisplayTitle(objectTitle)) return false;
+      const identityCandidates = [
+        thread.relatedLabel,
+        thread.title,
+        thread.preview,
+        thread.summary,
+      ];
+      if (!identityCandidates.some((candidate) => looksLikeRealDisplayTitle(candidate))) {
+        return false;
+      }
       const detail = thread.preview || thread.summary;
       return detail ? !isGenericContinuityLabel(detail) : true;
     })
@@ -316,6 +324,7 @@ function ScoutControlSnapshot({
 }
 
 export function ScoutHome({
+  primaryOutcomeInput,
   onPromptSelect,
   onContinuationSelect,
   continuationThreads = [],
@@ -364,8 +373,9 @@ export function ScoutHome({
   );
 
   return (
-    <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">
+    <div className="scout-home-surface pb-8 md:pb-10">
       <ScoutHero locationLabel={location.label} />
+      {primaryOutcomeInput}
       <ScoutControlSnapshot
         snapshot={localCommandSnapshot}
         onPromptSelect={onPromptSelect}

@@ -66,9 +66,7 @@ describe("historical migration chain compatibility", () => {
   it("reconstructs the active affiliate core before lifetime referral backfill", () => {
     const migration = read("migrations/0030_users_affiliate_lifetime_referral.sql");
 
-    const accountCreate = migration.indexOf(
-      "CREATE TABLE IF NOT EXISTS public.affiliate_accounts"
-    );
+    const accountCreate = migration.indexOf("CREATE TABLE IF NOT EXISTS public.affiliate_accounts");
     const referralCreate = migration.indexOf(
       "CREATE TABLE IF NOT EXISTS public.affiliate_referrals"
     );
@@ -143,9 +141,7 @@ describe("historical migration chain compatibility", () => {
     const migration = read("migrations/0077_affiliate_accounts_uniqueness.sql");
 
     const dealsCreate = migration.indexOf("CREATE TABLE IF NOT EXISTS public.trade_deals");
-    const clicksCreate = migration.indexOf(
-      "CREATE TABLE IF NOT EXISTS public.trade_deal_clicks"
-    );
+    const clicksCreate = migration.indexOf("CREATE TABLE IF NOT EXISTS public.trade_deal_clicks");
     const earningsCreate = migration.indexOf(
       "CREATE TABLE IF NOT EXISTS public.trade_deal_earnings"
     );
@@ -183,6 +179,22 @@ describe("historical migration chain compatibility", () => {
     expect(migration).toContain("RETURN;");
     expect(migration).toContain("notifications.type is varchar");
     expect(migration).toContain("direct_connect_beta_request");
+  });
+
+  it("aligns fresh users tables with the runtime without replacing canonical county routing", () => {
+    const migration = read("migrations/0120_users_runtime_column_alignment.sql");
+
+    expect(migration).toContain("ALTER TABLE public.users");
+    expect(migration).toContain("ADD COLUMN IF NOT EXISTS county varchar");
+    expect(migration).toContain(
+      "ADD COLUMN IF NOT EXISTS verification_status verification_status DEFAULT 'pending'"
+    );
+    expect(migration).toContain(
+      "ADD COLUMN IF NOT EXISTS theme_preference varchar DEFAULT 'default'"
+    );
+    expect(migration).toContain("ADD COLUMN IF NOT EXISTS custom_theme_colors text");
+    expect(migration).toContain("county_fips remains canonical");
+    expect(migration).not.toMatch(/\bDROP\s+(?:TABLE|COLUMN|TYPE)\b/i);
   });
 
   it("replaces the existing community-post comment foreign key idempotently", () => {

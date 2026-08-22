@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-direct-connect-workspace-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-direct-connect-workspace-20260822",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout remains a multi-app local operating system. This slice turns Direct Connect request creation, incoming assignments, and requester-owned work into one role-aware resumable desk without claiming whole-product completion.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": false,
+      "status": "released",
+      "outcome": "The authenticated shell uses the bottom taskbar for primary navigation and compact top-right system controls.",
+      "evidenceRef": "../tradescout-os-shell-20260821/evidence.md"
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "status": "released",
+      "outcome": "Scout and Community expose a resumable task loop and feed-first workspace.",
+      "evidenceRef": "../tradescout-workspace-density-20260821/evidence.md"
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "status": "released",
+      "outcome": "Businesses exposes a resumable local search-and-inspect workspace with the existing gated Direct Connect handoff.",
+      "evidenceRef": "../tradescout-businesses-workspace-20260821/evidence.md"
+    },
+    {
+      "id": "D4",
+      "active": false,
+      "status": "released",
+      "outcome": "Jobs exposes a role-aware local list-and-inspector desk with valid URL and account-scoped continuity.",
+      "evidenceRef": "../tradescout-jobs-workspace-20260822/evidence.md"
+    },
+    {
+      "id": "D5",
+      "active": true,
+      "outcome": "A person can start or resume a request, land on the exact owned request after submission, select one incoming assignment or owned request without losing the queue, complete only the actions authorized for that role, and return after reload or an app switch with the same still-valid context.",
+      "entry": "Open Direct Connect from the persistent bottom taskbar in an authenticated local session, or arrive through an existing explicit Direct Connect entry context.",
+      "ending": "Return to the same valid role-labeled task and selection after navigation or reload, then complete the existing gated next action without mixing requester, provider, Messages, county, verification, or contact authority.",
+      "journeySteps": [
+        "Use the compact Start, Incoming, and My Requests task switcher without encountering a generic guidance-card or six-route wall.",
+        "Author or resume a request through the existing composer; after successful creation, open that exact owned request in the canonical My Requests inspector.",
+        "Select one compact incoming assignment or owned request while the surrounding list remains available on desktop, or use list to detail to Back progression on mobile.",
+        "Accept or decline only a provider-authorized real assignment; use only requester-authorized lifecycle and Decision Card actions on an owned request.",
+        "Hand accepted conversations to the existing Messages owner and keep contact locked until the existing Decision Card transition allows release.",
+        "Switch apps, reload, or open a copied canonical URL without restoring a stale selection from another account, role, task, county, filter, or result set."
+      ],
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Inspect the supplied authenticated desktop captures and trace the released Direct Connect hierarchy at the exact baseline.",
+          "expected": "The observation separates the protected global taskbar and top-right tools from Direct Connect-local hierarchy and workflow defects.",
+          "observed": "The protected shell is correct. Direct Connect-local Inbox and My Requests still stack a heading, generic guidance, first-task card, six equal route controls, filters, and expanded action-heavy cards before the work.",
+          "evidenceRef": "evidence.md#locked-outcome"
+        },
+        {
+          "type": "artifact_inspection",
+          "procedure": "Trace DirectConnectShell, directConnectRoutes, the request create/list/detail routes, assignment response route, DecisionContactGatePanel, and Messages handoff.",
+          "expected": "Existing owners expose enough state and actions for a client-owned work desk without a new API, schema, route, contact owner, or authority merge.",
+          "observed": "The composer already creates requests, requester list and owner-only detail routes already exist, provider Inbox already owns assignment decisions, and accepted work already hands off to Messages. The current submit success incorrectly navigates the requester to the mixed provider Inbox instead of the newly owned request.",
+          "evidenceRef": "evidence.md#reuse-decision"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Refresh the Selective Intelligence project index at the exact baseline before implementation.",
+          "expected": "Canonical Direct Connect owners are discoverable and no competing active work-desk owner blocks extension.",
+          "observed": "The index refreshed at 4edc16222cf3ffa209d067d2116853cbe2816412. DirectConnectShell and directConnectRoutes remain the canonical client owners; server/routes/direct-connect.ts and Messages retain their existing authority surfaces.",
+          "evidenceRef": "../../project-index.json"
+        }
+      ],
+      "constraints": [
+        "Keep primary navigation in the persistent bottom taskbar and system/account tools at the top right.",
+        "Use a compact Direct Connect-local three-task switcher for Start, Incoming, and My Requests; Board remains secondarily reachable and Jobs and Businesses remain their released global destinations.",
+        "Remove only the duplicated Direct Connect-local heading, generic guidance/CTA cards, and six-route wall from Start, Incoming, and My Requests; preserve canonical route reachability.",
+        "Extend DirectConnectShell, directConnectRoutes, the existing composer, Inbox, My Requests, DecisionContactGatePanel, lifecycle panels, entry-context helpers, and Messages handoff; add only one focused adjacent workspace-state helper.",
+        "Do not combine requester-owned requests and provider assignments into one undifferentiated list, inspector, query, or permission model.",
+        "After successful creation, navigate to the canonical requester route with the exact created request selected; do not send the requester to the provider/mixed Inbox.",
+        "Treat explicit URL selection as authoritative on first load, restore only missing compatible state from session storage, emit one canonical query form, and scope stored state by authenticated user plus canonical role route.",
+        "Clear stale selection on authenticated-user, task/role route, county, filter, or result-membership change; a previous account must never flash in the inspector.",
+        "Never let the legacy request draft override an explicit recipient, profile, entry intent, or another authenticated account; draft changes must remain bounded and backward compatible.",
+        "Do not hide a nonterminal requester-owned request solely because it is older than 120 days.",
+        "Render truthful loading, empty, error, and retry states; an API error must never become an empty queue.",
+        "Narrowly correct the existing requester-list and provider-Incoming owners so the 120-day history bound applies only to completed or cancelled work and assignment/schema failures return structured non-2xx errors; add no route, response authority, lifecycle transition, or data field.",
+        "Preserve county routing, profile/address verification, Trust/CVS, visibility-not-access, and Intent to Decision Card to Contact gating.",
+        "Provider Accept and Decline remain available only for real actionable assignment IDs; synthetic requester status items cannot acquire provider authority.",
+        "Messages remains the conversation owner. Do not embed or recreate contact/conversation ownership inside Direct Connect.",
+        "Preserve all lifecycle, job workspace, route, cancel, reopen, pending-outcome, complete, share, attachment, and Decision Card actions through their existing API owners.",
+        "Do not add a backend endpoint, schema, migration, canonical workspace route, notification owner, matching rule, production-data mutation, or contact exception.",
+        "Do not copy Windows branding or literal window chrome; express the operating-system model through compact task identity, panes, selection, continuity, keyboard-native controls, and context-aware actions.",
+        "On mobile, show one work surface at a time with a native Back path and focus return instead of squeezing list, inspector, and every command into one row.",
+        "Avoid page-level horizontal overflow and retain accessible interactive targets at desktop and 390px widths.",
+        "Do not edit JW Stone lanes, mirrored exports/workspaces trees, or unrelated TradeScout apps."
+      ],
+      "requirementIds": [
+        "REQ-DC-WORKDESK",
+        "REQ-DC-AUTHORITY",
+        "REQ-DC-CONTINUITY",
+        "REQ-DC-PROTECTED"
+      ],
+      "excludedFromActive": [
+        "Board, Jobs, Businesses, Scout, Community, Exchange, HomeID, Messages, notifications, matching/ranking, and unrelated app redesigns.",
+        "Shared taskbar or top-right tools redesign.",
+        "New backend Direct Connect routes, schemas, migrations, lifecycle semantics, county models, verification semantics, contact paths, or Trust/CVS rules beyond the narrow existing-list and Incoming truthfulness corrections explicitly required by REQ-DC-WORKDESK."
+      ],
+      "proofRequired": [
+        "Behavior tests for canonical alias handling, URL-over-session precedence, bounded sanitization, user and role-route isolation, selection invalidation, current-result resolution, account changes, and nonterminal age visibility.",
+        "Interaction contracts proving submit-to-selected-My-Requests, provider actionable-assignment isolation, requester lifecycle actions, truthful loading/error/retry states, mobile progression, and preserved Messages/contact-gate handoff.",
+        "Existing Direct Connect intake, requester-status, assignment, lifecycle, redaction, county, shell, Messages bridge, and contact-law suites.",
+        "Typecheck and production build at the exact implementation commit.",
+        "Authenticated deterministic browser proof at 1440x1000 and 390x844 using requester and provider fixtures; include Start to selected My Requests, Incoming selection/accept/decline, reload/app-switch continuity, account/county invalidation, contact locked/released states, taskbar/top-right tools, keyboard/focus behavior, and zero page-level horizontal overflow.",
+        "Authorization proof that another requester cannot open the selected owner detail and a provider can act only on its assignment.",
+        "Exact minimum-release gate and post-deploy build identity before a release completion claim."
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-DC-WORKDESK",
+          "scope": "active_deliverable",
+          "claim": "Start, Incoming, and My Requests present one compact role-labeled work-desk model with selectable lists and one action-aware inspector."
+        },
+        {
+          "requirementId": "REQ-DC-AUTHORITY",
+          "scope": "active_deliverable",
+          "claim": "Requester and provider surfaces preserve their existing queries, mutations, Messages handoff, and contact-gate authority without cross-role promotion."
+        },
+        {
+          "requirementId": "REQ-DC-CONTINUITY",
+          "scope": "active_deliverable",
+          "claim": "Canonical URL and user-plus-role-scoped session state restore only a valid task and selection after creation, navigation, or reload."
+        },
+        {
+          "requirementId": "REQ-DC-PROTECTED",
+          "scope": "active_deliverable",
+          "claim": "The global shell, canonical routes, APIs, county truth, verification, Trust/CVS, lifecycle behavior, and contact-law boundaries remain protected."
+        }
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D6",
+      "active": false,
+      "status": "later",
+      "outcome": "Remaining Scout, Community, and cross-app density defects are observed and corrected through bounded routed slices."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout application already owns Direct Connect creation, assignment responses, requester lifecycle, Messages handoff, county state, verification, contact gating, authenticated shell, tests, and release proof.",
+    "constraintsConsidered": [
+      "The active outcome depends on persisted authenticated ownership, provider assignments, requester lifecycle, canonical routes, county truth, and the existing production release path.",
+      "The slice must reuse the established application and cannot be represented truthfully by a standalone site or component preview."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": true
+    }
+  },
+  "baseline": {
+    "commit": "4edc16222cf3ffa209d067d2116853cbe2816412",
+    "productionObservation": "The released global taskbar and top-right tools are protected. Direct Connect-local Inbox and My Requests still add generic instruction/CTA chrome and a six-route control wall, then render independent expanded card lists. Successful request creation sends the requester to the mixed provider Inbox instead of the exact newly owned request.",
+    "projectIndex": "refreshed_at_4edc16222cf3ffa209d067d2116853cbe2816412; canonical client owners DirectConnectShell and directConnectRoutes; server Direct Connect and Messages owners preserved"
+  },
+  "approval": {
+    "standingUserDirection": "always without asking; approve; keep going",
+    "checkpointPresentedAt": "2026-08-22T00:00:00Z",
+    "approvedToExecute": true,
+    "authorizedSequence": "bounded local edit, focused and rendered proof, exact minimum-release gate, pull request, merge after gates, production identity and health proof"
+  },
+  "council": {
+    "intentObjector": "held any undifferentiated merge; required owner-only request selection, real-assignment provider authority, existing Messages/contact owners, and authorization proof",
+    "intentAligner": "aligned the role-labeled three-task work desk with list-inspector continuity, mobile progression, state precedence, truthful error handling, and nonterminal-age rules",
+    "implementationObjector": "pending",
+    "implementationAligner": "pending"
+  }
+}

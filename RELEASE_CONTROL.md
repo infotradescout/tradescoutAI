@@ -6,7 +6,7 @@
 
 | Layer | Posture |
 | --- | --- |
-| Render auto-deploy | **On Commit** for production web service (`tradescout-pro`) |
+| Render auto-deploy | **On Commit** for production web service (`tradescoutAI`) |
 | Production path | Merge/push to `main` → Render builds and deploys |
 | GitHub Actions | **Not used**; `.github/workflows/` is intentionally empty |
 | Release evidence | Local commands against the exact commit, recorded on the pull request |
@@ -103,11 +103,11 @@ If production `migrations.compatibility` is not `compatible`, **do not** treat t
 
 ## Human checklist (Render)
 
-1. Open production web service `tradescout-pro` (tradescoutai.onrender.com).
+1. Open production web service `tradescoutAI` (tradescoutai.onrender.com).
 2. **Settings → Build & Deploy → Auto-Deploy → On** (On Commit).
 3. Confirm platform health-check path is set to `/api/health` when changing Render settings (Docker `HEALTHCHECK` alone is not the Render probe).
-4. **Runtime must be Node for `preDeployCommand` to run.** If live is Docker (`CMD node dist/index.js`), `render.yaml` preDeploy is ignored and migrate/verify will not run before traffic. Preferred owner GO: switch to Node with Build=`npm run build`, Pre-Deploy=`npm run db:migrate && npm run db:verify:required`, Start=`npm start`, keep `RUNTIME_MIGRATIONS_MODE=off`. See `docs/DEPLOYMENT_TARGET.md`. Do not mutate Render without explicit GO.
-5. Confirm live service actually executes that pre-Deploy command on the next deploy (deploy logs must show migrate + verify). CRLF verifier fix must be on the deployed commit **before** enabling predeploy with the old verifier.
+4. Keep Runtime=`Docker` and Pre-Deploy=`npm run db:migrate && npm run db:verify:required`. The production image must retain `scripts/`, `drizzle.config.ts`, `shared/`, `migrations/`, and production `drizzle-kit`; see `docs/DEPLOYMENT_TARGET.md`.
+5. Confirm the live service executes that pre-deploy command on the next deploy (deploy logs must show migrate + verify before instance start). CRLF verifier fix must be on the deployed commit **before** enabling predeploy with the old verifier.
 6. Use Render Dashboard Manual Deploy only when a manual redeploy is needed.
 7. Verify production with the live build/commit marker and the post-deploy smoke block above.
 

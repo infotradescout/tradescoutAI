@@ -16,6 +16,31 @@ type MigrationFile = {
 
 type MigrationHashAliases = Record<string, string[]>;
 
+const RELEASE_399_RECOVERY_REMOVE_FILENAMES = [
+  "0072_seo_publication_rules_and_freshness.sql",
+  "0074_provider_eligibilities.sql",
+  "0083_scout_onboarding_sessions.sql",
+  "0084_dc_universal_provider.sql",
+  "0085_dc_worker_assignments.sql",
+  "0086_dc_pending_outcome_status.sql",
+  "0087_conversations_universal_provider_fk.sql",
+  "0088_admin_audit_log.sql",
+  "0092_procurement_engine_workspaces.sql",
+  "0094_accounting_books_foundation.sql",
+  "0095_profile_offers_finance_bridge.sql",
+  "0096_marketplace_value_bundle_shipping.sql",
+  "0097_direct_connect_giveaway_entries.sql",
+  "0098_affiliate_attribution_conversion_ledger.sql",
+  "0099_trust_ledger_events.sql",
+] as const;
+
+const RELEASE_399_RECOVERY_APPLY_FILENAMES = [
+  "0114_la_plumbing_public_copy_invariant.sql",
+  "0115_profile_accounts.sql",
+  "0116_admin_live_stream_snapshots.sql",
+  "0117_managed_partner_intakes.sql",
+] as const;
+
 type RecordedMigration = {
   hash: string;
   createdAt: number | null;
@@ -32,6 +57,12 @@ export class HistoricalMigrationReplayRefusedError extends Error {
 
 function sha256(text: string): string {
   return crypto.createHash("sha256").update(text).digest("hex");
+}
+
+function lineEndingCompatibleHashes(sql: string): string[] {
+  const lf = String(sql).replace(/\r\n?/g, "\n");
+  const crlf = lf.replace(/\n/g, "\r\n");
+  return [...new Set([sha256(lf), sha256(crlf)])];
 }
 
 async function functionExists(name: string): Promise<boolean> {
@@ -122,6 +153,19 @@ function loadSqlMigrations(migrationsDir: string): MigrationFile[] {
     migrations.push({ filename, fullPath, sql, hash, predecessorHashes });
   }
   return migrations;
+}
+
+function loadJournalMigrationTimes(migrationsDir: string): Map<string, number> {
+  const journalPath = path.join(migrationsDir, "meta", "_journal.json");
+  const parsed = JSON.parse(fs.readFileSync(journalPath, "utf8")) as {
+    entries?: Array<{ tag?: unknown; when?: unknown }>;
+  };
+  const times = new Map<string, number>();
+  for (const entry of parsed.entries ?? []) {
+    if (typeof entry.tag !== "string" || typeof entry.when !== "number") continue;
+    times.set(`${entry.tag}.sql`, entry.when);
+  }
+  return times;
 }
 
 async function ensureDrizzleMigrationsTable() {
@@ -222,6 +266,235 @@ async function schemaLooksInitialized(): Promise<boolean> {
     (Boolean(row?.users_reg) &&
       (Boolean(row?.marketplace_conversations_reg) || Boolean(row?.conversations_reg)))
   );
+}
+
+/**
+ * One-shot, explicitly gated recovery for the interrupted PR #399 migration catch-up.
+ *
+ * A production boot with the broad runtime migrator recorded the current hashes for
+ * exactly 15 repaired historical files, then correctly refused to replay 0100. This
+ * recovery removes only those newly inserted hashes and applies only the four release
+ * migrations that were pending before that boot. Everything is committed atomically,
+ * and an already-completed recovery is a no-op so an instance restart is safe.
+ */
+export async function runRelease399MigrationLedgerRecovery(options?: {
+  log?: (msg: string) => void;
+}) {
+  const log = options?.log ?? ((msg: string) => console.log(msg));
+  const migrationsDir = path.join(getRepoRoot(), "migrations");
+  const migrations = loadSqlMigrations(migrationsDir);
+  const byFilename = new Map(migrations.map((migration) => [migration.filename, migration]));
+  const journalTimes = loadJournalMigrationTimes(migrationsDir);
+  const expectedCount = journalTimes.size;
+
+  const requiredFiles = [
+    ...RELEASE_399_RECOVERY_REMOVE_FILENAMES,
+    ...RELEASE_399_RECOVERY_APPLY_FILENAMES,
+  ];
+  for (const filename of requiredFiles) {
+    if (!byFilename.has(filename) || !journalTimes.has(filename)) {
+      throw new Error(`[RuntimeMigrations] Recovery file is missing from the journal: ${filename}`);
+    }
+  }
+
+  const removeMigrations = RELEASE_399_RECOVERY_REMOVE_FILENAMES.map(
+    (filename) => byFilename.get(filename)!
+  );
+  const applyMigrations = RELEASE_399_RECOVERY_APPLY_FILENAMES.map(
+    (filename) => byFilename.get(filename)!
+  );
+  const requiredHealthMigration = byFilename.get("0072_seo_publication_rules_and_freshness.sql")!;
+  const requiredHealthHashes = lineEndingCompatibleHashes(requiredHealthMigration.sql);
+  const client = await pool.connect();
+
+  try {
+    await client.query("begin");
+    await client.query("set local lock_timeout = '15s'");
+    await client.query("set local statement_timeout = '120s'");
+    await client.query("select pg_advisory_xact_lock($1::bigint)", [39920260820]);
+    const countResult = await client.query<{ count: number }>(
+      "select count(*)::int as count from drizzle.__drizzle_migrations"
+    );
+    const beforeCount = Number(countResult.rows?.[0]?.count ?? 0);
+    const removeHashes = removeMigrations.map((migration) => migration.hash);
+    const applyHashes = applyMigrations.map((migration) => migration.hash);
+    const presence = await client.query<{ hash: string }>(
+      `select hash
+         from drizzle.__drizzle_migrations
+        where hash = any($1::text[])`,
+      [[...removeHashes, ...applyHashes]]
+    );
+    const presentHashes = new Set(presence.rows.map((row) => row.hash));
+    const requiredHealthPresence = await client.query<{ present: boolean }>(
+      `select exists (
+         select 1
+           from drizzle.__drizzle_migrations
+          where hash = any($1::text[])
+       ) as present`,
+      [requiredHealthHashes]
+    );
+    const alreadyComplete =
+      beforeCount === expectedCount &&
+      removeHashes.every((hash) => !presentHashes.has(hash)) &&
+      applyHashes.every((hash) => presentHashes.has(hash)) &&
+      Boolean(requiredHealthPresence.rows?.[0]?.present);
+
+    if (alreadyComplete) {
+      await client.query("commit");
+      log("[RuntimeMigrations] PR #399 ledger recovery is already complete.");
+      return;
+    }
+
+    const expectedInterruptedCount =
+      expectedCount - applyMigrations.length + removeMigrations.length;
+    if (
+      beforeCount !== expectedInterruptedCount ||
+      removeHashes.some((hash) => !presentHashes.has(hash)) ||
+      applyHashes.some((hash) => presentHashes.has(hash))
+    ) {
+      throw new Error(
+        `[RuntimeMigrations] Refusing PR #399 ledger recovery from unexpected state (${beforeCount}/${expectedCount}).`
+      );
+    }
+
+    for (const migration of removeMigrations) {
+      const originalLedgerRow = await client.query<{ count: number }>(
+        `select count(*)::int as count
+           from drizzle.__drizzle_migrations
+          where created_at = $1
+            and hash <> $2`,
+        [journalTimes.get(migration.filename), migration.hash]
+      );
+      if (Number(originalLedgerRow.rows?.[0]?.count ?? 0) !== 1) {
+        throw new Error(
+          `[RuntimeMigrations] Refusing to remove ${migration.filename}: expected exactly one surviving original ledger row.`
+        );
+      }
+    }
+
+    const removed = await client.query(
+      "delete from drizzle.__drizzle_migrations where hash = any($1::text[])",
+      [removeHashes]
+    );
+    if (removed.rowCount !== removeMigrations.length) {
+      throw new Error(
+        `[RuntimeMigrations] Expected to remove ${removeMigrations.length} interrupted ledger rows; removed ${removed.rowCount ?? 0}.`
+      );
+    }
+
+    const survivingHealthHash = await client.query<{ present: boolean }>(
+      `select exists (
+         select 1
+           from drizzle.__drizzle_migrations
+          where hash = any($1::text[])
+       ) as present`,
+      [requiredHealthHashes]
+    );
+    if (!Boolean(survivingHealthHash.rows?.[0]?.present)) {
+      throw new Error(
+        "[RuntimeMigrations] Refusing PR #399 recovery because the accepted 0072 health hash would be removed."
+      );
+    }
+
+    for (const migration of applyMigrations) {
+      if (requiresNonTransactionalExecution(migration.sql)) {
+        throw new Error(
+          `[RuntimeMigrations] Recovery migration requires non-transactional execution: ${migration.filename}`
+        );
+      }
+      log(`[RuntimeMigrations] Recovery applying ${migration.filename}...`);
+      await client.query(migration.sql);
+      await client.query(
+        "insert into drizzle.__drizzle_migrations (hash, created_at) values ($1, $2)",
+        [migration.hash, journalTimes.get(migration.filename)]
+      );
+    }
+
+    const finalCountResult = await client.query<{ count: number }>(
+      "select count(*)::int as count from drizzle.__drizzle_migrations"
+    );
+    const finalCount = Number(finalCountResult.rows?.[0]?.count ?? 0);
+    if (finalCount !== expectedCount) {
+      throw new Error(
+        `[RuntimeMigrations] PR #399 ledger recovery ended at ${finalCount}/${expectedCount}; rolling back.`
+      );
+    }
+
+    const finalPresence = await client.query<{ count: number }>(
+      `select count(*)::int as count
+         from drizzle.__drizzle_migrations
+        where hash = any($1::text[])`,
+      [applyHashes]
+    );
+    if (Number(finalPresence.rows?.[0]?.count ?? 0) !== applyMigrations.length) {
+      throw new Error(
+        "[RuntimeMigrations] PR #399 tail hashes were not fully recorded; rolling back."
+      );
+    }
+
+    const schemaProof = await client.query<{
+      profile_accounts: boolean;
+      profile_account_entitlements: boolean;
+      admin_live_stream_snapshots: boolean;
+      admin_live_stream_snapshot_history: boolean;
+      managed_partner_intakes: boolean;
+      profile_identity_function: boolean;
+      profile_identity_trigger: boolean;
+      la_copy_function: boolean;
+      la_copy_trigger: boolean;
+    }>(`
+      select
+        to_regclass('public.profile_accounts') is not null as profile_accounts,
+        to_regclass('public.profile_account_entitlements') is not null
+          as profile_account_entitlements,
+        to_regclass('public.admin_live_stream_snapshots') is not null
+          as admin_live_stream_snapshots,
+        to_regclass('public.admin_live_stream_snapshot_history') is not null
+          as admin_live_stream_snapshot_history,
+        to_regclass('public.managed_partner_intakes') is not null
+          as managed_partner_intakes,
+        to_regprocedure('public.enforce_profile_account_identity()') is not null
+          as profile_identity_function,
+        exists (
+          select 1
+            from pg_trigger trigger_row
+            join pg_class table_row on table_row.oid = trigger_row.tgrelid
+            join pg_namespace schema_row on schema_row.oid = table_row.relnamespace
+           where schema_row.nspname = 'public'
+             and table_row.relname = 'profile_accounts'
+             and trigger_row.tgname = 'profile_accounts_identity_trigger'
+             and not trigger_row.tgisinternal
+        ) as profile_identity_trigger,
+        to_regprocedure('public.enforce_la_plumbing_public_copy()') is not null
+          as la_copy_function,
+        exists (
+          select 1
+            from pg_trigger trigger_row
+            join pg_class table_row on table_row.oid = trigger_row.tgrelid
+            join pg_namespace schema_row on schema_row.oid = table_row.relnamespace
+           where schema_row.nspname = 'public'
+             and table_row.relname = 'profiles'
+             and trigger_row.tgname = 'profiles_la_plumbing_public_copy'
+             and not trigger_row.tgisinternal
+        ) as la_copy_trigger
+    `);
+    const schema = schemaProof.rows?.[0];
+    if (!schema || Object.values(schema).some((value) => value !== true)) {
+      throw new Error("[RuntimeMigrations] PR #399 required schema proof failed; rolling back.");
+    }
+
+    await client.query("commit");
+    log(`[RuntimeMigrations] PR #399 ledger recovery complete (${finalCount}/${expectedCount}).`);
+  } catch (error) {
+    try {
+      await client.query("rollback");
+    } catch {
+      // ignore rollback failures and preserve the original error
+    }
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function runRuntimeMigrations(options?: { log?: (msg: string) => void }) {

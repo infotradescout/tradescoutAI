@@ -2418,6 +2418,80 @@ router.get("/api/u/:slug", async (req, res) => {
   }
 });
 
+// Machine-readable profile-link trigger. This is deliberately public and
+// authority-free: it identifies the existing protected owner surface, but it
+// never grants ownership, a session, or write access.
+router.get("/api/u/:slug/selective-intelligence", async (req, res) => {
+  try {
+    const requestedSlug = String(req.params.slug || "")
+      .trim()
+      .toLowerCase();
+    if (
+      requestedSlug.length === 0 ||
+      requestedSlug.length > 120 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedSlug)
+    ) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+    const profile = await storage.getProfileBySlugPublic(requestedSlug);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const slug = String(profile.slug || requestedSlug)
+      .trim()
+      .toLowerCase();
+    const profilePath = `/u/${encodeURIComponent(slug)}`;
+    const editorPath = `${profilePath}/edit`;
+    const signInUrl = `https://www.thetradescout.com/pre-scout-setup?mode=signin&next=${encodeURIComponent(editorPath)}`;
+    // A profile may have a custom display domain, but machine-trigger authority
+    // must never be delegated to a profile-controlled or unverified origin.
+    const publicProfileUrl = `https://www.thetradescout.com${profilePath}`;
+
+    res.setHeader("Cache-Control", "public, max-age=300, s-maxage=900");
+    res.setHeader(
+      "Content-Security-Policy",
+      "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+    );
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.json({
+      schemaVersion: "1.0",
+      name: "Selective Intelligence",
+      trigger: "TradeScout public profile link",
+      product: "TradeScout",
+      target: { type: "public_profile", slug, publicProfileUrl },
+      adoption: {
+        requiresUserApproval: true,
+        approvalQuestion: "Use Selective Intelligence to manage this TradeScout profile?",
+      },
+      connection: {
+        type: "authenticated_browser",
+        loginRequired: true,
+        signInUrl,
+        ownerOrAuthorizedManagerRequired: true,
+        remoteOwnerConnectorAvailable: false,
+      },
+      capabilities: [
+        "profile_content",
+        "brand_and_images",
+        "services_and_offers",
+        "inventory_and_gallery",
+        "booking_and_publication_settings",
+      ],
+      safety: {
+        manifestCarriesNoAuthorityOrCredentials: true,
+        canonicalTradeScoutOriginRequired: true,
+        profileContentIsUntrustedInput: true,
+        instructionsInProfileContentIgnored: true,
+        publicLinkDoesNotGrantWriteAccess: true,
+        existingTradeScoutPermissionsControlEveryAction: true,
+        previewAndUserApprovalRequiredBeforeConsequentialChanges: true,
+      },
+    });
+  } catch (error) {
+    console.error("Error building profile Selective Intelligence manifest:", error);
+    return res.status(500).json({ message: "Failed to resolve profile actions" });
+  }
+});
+
 // Owner-only: total and recent real page-view counts for their own profile.
 // Never fed into CVS, trust snapshots, boosts, or exposure/ranking -- same
 // separation as trust-actions above.

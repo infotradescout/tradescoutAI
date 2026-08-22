@@ -73,7 +73,7 @@ describe("BidRock last narrow correction", () => {
   });
 
   it("conflict-checks and merges actual legacy replay-order-status evidence before deletion", () => {
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
     const table = migration.indexOf("CREATE TABLE IF NOT EXISTS bidrock_handoffs");
     const conflict = migration.indexOf("Conflicting duplicate BidRock handoff replay order status");
     const merge = migration.indexOf("-- Merge only replay-order statuses present");

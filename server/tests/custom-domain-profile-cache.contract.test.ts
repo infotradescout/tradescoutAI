@@ -75,9 +75,7 @@ describe("custom-domain profile cache contract", () => {
     expect(handlerSource).toContain(
       'sendPublicPageRenderFailure(res, "Unable to render profile category")'
     );
-    expect(handlerSource).toContain(
-      'sendPublicPageRenderFailure(res, "Unable to render profile")'
-    );
+    expect(handlerSource).toContain('sendPublicPageRenderFailure(res, "Unable to render profile")');
     expect(handlerSource).not.toContain(
       "`https://${CANONICAL_WEB_HOST}/u/${encodeURIComponent(slug)}${requestSearchSuffix(req)}`"
     );
@@ -129,9 +127,7 @@ describe("custom-domain profile cache contract", () => {
     const helperStart = source.indexOf("function isCustomDomainMechanicsPath(");
     const middlewareEnd = source.indexOf("// Core allowed origins", helperStart);
     const customDomainSource = source.slice(helperStart, middlewareEnd);
-    const profileFallbackStart = source.indexOf(
-      "function redirectUnhandledCustomProfilePath("
-    );
+    const profileFallbackStart = source.indexOf("function redirectUnhandledCustomProfilePath(");
     const profileFallbackEnd = source.indexOf(
       "// A configured profile custom domain",
       profileFallbackStart
@@ -147,8 +143,9 @@ describe("custom-domain profile cache contract", () => {
     expect(customDomainSource).toContain('"/images/"');
     expect(customDomainSource).toContain('"/offline.html"');
     expect(customDomainSource).toContain('requestPath.startsWith("/auth/")');
+    expect(customDomainSource).toContain('return requestPath === "/community-feed"');
     expect(profileFallbackSource).toContain(
-      "isSameProfileCompatibilityPath(requestPath, slug)"
+      "isCustomDomainProfileRootCompatibilityPath(requestPath, slug)"
     );
     expect(profileFallbackSource).toContain("res.redirect(301, `https://${host}/${suffix}`)");
     expect(profileFallbackSource).toContain(
@@ -168,12 +165,8 @@ describe("custom-domain profile cache contract", () => {
     expect(customDomainSource).toContain('host === "tradescoutai.onrender.com"');
     expect(customDomainSource).not.toContain('host.endsWith("thetradescout.com")');
     expect(customDomainSource).not.toContain('host.includes("onrender.com")');
-    expect(customDomainSource).toContain(
-      "markMappedProfileDomainRequest(req, host, cached.slug)"
-    );
-    expect(customDomainSource).toContain(
-      "markMappedProfileDomainRequest(req, host, profileSlug)"
-    );
+    expect(customDomainSource).toContain("markMappedProfileDomainRequest(req, host, cached.slug)");
+    expect(customDomainSource).toContain("markMappedProfileDomainRequest(req, host, profileSlug)");
 
     const canonicalStart = source.indexOf("// Force canonical host:");
     const canonicalEnd = source.indexOf("// Custom domains:", canonicalStart);
@@ -186,5 +179,16 @@ describe("custom-domain profile cache contract", () => {
     const corsSource = source.slice(corsStart, corsEnd);
     expect(corsSource).toContain("isCorsNeutralPublicAssetRequest(req.method, req.path)");
     expect(corsSource).toContain("return callback(null, false)");
+  });
+
+  it("passes business verification through the custom-domain profile interceptor", () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf-8");
+    const helperStart = source.indexOf("function isCustomDomainMechanicsPath(");
+    const helperEnd = source.indexOf("function isSameProfileCompatibilityPath(", helperStart);
+    const helperSource = source.slice(helperStart, helperEnd);
+
+    expect(helperStart).toBeGreaterThanOrEqual(0);
+    expect(helperEnd).toBeGreaterThan(helperStart);
+    expect(helperSource).toContain('requestPath === "/business-verification"');
   });
 });

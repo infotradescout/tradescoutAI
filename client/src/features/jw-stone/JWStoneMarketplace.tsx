@@ -1,15 +1,8 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from "react";
-import {
-  JW_STONE_MANAGED_CONTACT,
-  JW_STONE_PUBLIC_IDENTITY,
-} from "@shared/jwStonePresentation";
+import { useLayoutEffect, useMemo, useState } from "react";
+import { JW_STONE_PUBLIC_IDENTITY } from "@shared/jwStonePresentation";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { PublicProfileAccountDialog } from "@/components/profile/PublicProfileAccountDialog";
-import {
-  loadProfileAccountState,
-  profileAccountActionLabel,
-  type ProfileAccountResponse,
-} from "@/components/profile/profileAccountClient";
+import type { ProfileAccountMode } from "@/components/profile/profileAccountClient";
 import { useAuth } from "@/hooks/useAuth";
 import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -17,7 +10,7 @@ import type { DirectConnectMaterialTarget } from "@/pages/profile-sites/directCo
 import type { PublicStoneInventoryItem } from "@shared/stoneInventory";
 import { JW_STONE_BRAND_STYLE, jw } from "./brand";
 import { JW_STONE_CATALOG, getCatalogItemById, getNamedCatalogItemByShareSlug } from "./catalog";
-import { ColorPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
+import { ColorPaletteRail, MoodPaletteRail, type ColorSwatchSelection } from "./ColorPaletteRail";
 import { CurrentInventorySection } from "./CurrentInventorySection";
 import { FirstCutSection } from "./FirstCutSection";
 import { JwStoneCompanySection } from "./JwStoneCompanySection";
@@ -47,43 +40,56 @@ function marketplaceCanonicalUrl(): string {
   return "https://www.thetradescout.com/jw-stone";
 }
 
+function readProfileAccountRequest(): { open: boolean; mode: ProfileAccountMode } {
+  if (typeof window === "undefined") return { open: false, mode: "create" };
+  try {
+    const params = new URL(window.location.href).searchParams;
+    return {
+      open: params.get("profileAccount") === "1",
+      mode: params.get("profileAccountMode") === "signin" ? "signin" : "create",
+    };
+  } catch {
+    return { open: false, mode: "create" };
+  }
+}
+
+function clearProfileAccountRequest(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("profileAccount");
+    url.searchParams.delete("profileAccountMode");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  } catch {
+    // The dialog can still close if history replacement is unavailable.
+  }
+}
+
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
+  const hasViewerAccount = isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
+  const [accountRequest] = useState(readProfileAccountRequest);
   const [wishlistOpen, setWishlistOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [accountState, setAccountState] = useState<ProfileAccountResponse | null>(null);
+  const [accountOpen, setAccountOpen] = useState(accountRequest.open);
+  const [accountMode, setAccountMode] = useState<ProfileAccountMode>(accountRequest.mode);
   /** Ephemeral / First Cut / anonymous detail stones not resolvable from catalog by id alone. */
   const [detailOverride, setDetailOverride] = useState<JwStoneCatalogItem | null>(null);
   const [requestContext, setRequestContext] = useState<readonly JwStoneCatalogItem[] | null>(null);
 
-  // Ensure unlock while this page is mounted; AppLayout owns route-level cleanup
-  // so Strict Mode remounts do not briefly strip the class mid-route.
   useLayoutEffect(() => {
     const root = document.documentElement;
     const body = document.body;
     root.classList.add("jw-marketplace-scroll");
     body.classList.add("jw-marketplace-scroll");
-    if (body.style.overflow === "hidden") {
-      body.style.overflow = "";
-    }
+    if (body.style.overflow === "hidden") body.style.overflow = "";
   }, []);
 
-  useEffect(() => {
-    let current = true;
-    loadProfileAccountState("jw-stone", isAuthenticated)
-      .then((next) => {
-        if (current) setAccountState(next);
-      })
-      .catch(() => undefined);
-    return () => {
-      current = false;
-    };
-  }, [isAuthenticated]);
-
-  // Capture landing attribution before useMarketplaceUrlState canonicalizes the URL
-  // (filter params only — utm_* is not in marketplace state and would be stripped).
   useLayoutEffect(() => {
     const landingSearch = window.location.search;
     const canonicalRoute = isJwStoneMarketplaceDomainSurface()
@@ -94,7 +100,6 @@ export default function JWStoneMarketplace() {
     void trackDiscoveryLandingOnce({ canonicalRoute, search: landingSearch });
   }, []);
 
-  // Prefer URL-named stone, else explicit override (First Cut photo / anonymous catalog).
   const activeStone =
     (state.stone ? getNamedCatalogItemByShareSlug(state.stone) : null) || detailOverride;
 
@@ -115,7 +120,6 @@ export default function JWStoneMarketplace() {
 
   const openStone = (stone: JwStoneCatalogItem) => {
     if (stone.anonymous || !stone.shareSlug) {
-      // First Cut photo ids are not in JW_STONE_CATALOG — keep the full object.
       setDetailOverride(getCatalogItemById(stone.id) || stone);
       if (state.stone) commit({ ...state, stone: null }, { replace: true });
       return;
@@ -145,7 +149,16 @@ export default function JWStoneMarketplace() {
     startRequest(catalogStone ? [catalogStone] : []);
   };
 
-  /** Browse by color — never invents or keeps a material refinement; results show in the color section. */
+  const openAccount = () => {
+    setAccountMode("create");
+    setAccountOpen(true);
+  };
+
+  const changeAccountOpen = (open: boolean) => {
+    setAccountOpen(open);
+    if (!open) clearProfileAccountRequest();
+  };
+
   const selectPalette = (next: ColorSwatchSelection) => {
     commit({
       ...state,
@@ -155,16 +168,15 @@ export default function JWStoneMarketplace() {
       stone: null,
     });
     if (!next.aesthetic && !next.color) return;
+    const resultsTestId = next.aesthetic ? "jw-mood-results" : "jw-palette-results";
     requestAnimationFrame(() => {
       document
-        .querySelector('[data-testid="jw-palette-results"]')
+        .querySelector(`[data-testid="${resultsTestId}"]`)
         ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   };
 
   const selectMaterial = (material: string | null) => {
-    // Material browse is material-first: show that material's stones only.
-    // Never carry or write color/aesthetic params that yank shoppers into color UX.
     commit({
       ...state,
       material,
@@ -180,7 +192,6 @@ export default function JWStoneMarketplace() {
     });
   };
 
-  /** The Material Library is a clean slate — browse-rail tags do not carry over. */
   const enterFullInventory = () => {
     if (!state.aesthetic && !state.color && !state.material && !state.origin) return;
     commit(
@@ -210,14 +221,6 @@ export default function JWStoneMarketplace() {
       description: JW_STONE_PUBLIC_IDENTITY.about,
       foundingDate: JW_STONE_PUBLIC_IDENTITY.foundingDate,
       url: canonicalUrl,
-      telephone: JW_STONE_MANAGED_CONTACT.phone,
-      email: JW_STONE_MANAGED_CONTACT.email,
-      contactPoint: {
-        "@type": "ContactPoint",
-        contactType: "customer service",
-        telephone: JW_STONE_MANAGED_CONTACT.phone,
-        email: JW_STONE_MANAGED_CONTACT.email,
-      },
       hasMap: JW_STONE_PUBLIC_IDENTITY.address.mapUrl,
       address: {
         "@type": "PostalAddress",
@@ -249,9 +252,9 @@ export default function JWStoneMarketplace() {
       />
       <MarketplaceHeader
         wishlistCount={wishlist.count}
+        hasAccount={hasViewerAccount}
         onOpenWishlist={() => setWishlistOpen(true)}
-        onOpenAccount={() => setAccountOpen(true)}
-        accountLabel={profileAccountActionLabel(accountState)}
+        onOpenAccount={openAccount}
         onStartRequest={() => startRequest([])}
       />
       <p className="sr-only" aria-live="polite">
@@ -286,6 +289,16 @@ export default function JWStoneMarketplace() {
         onOpen={openStone}
         onAsk={askAboutStone}
       />
+      <MoodPaletteRail
+        aesthetic={state.aesthetic}
+        material={null}
+        origin={state.origin}
+        onSelect={selectPalette}
+        isSaved={wishlist.isSaved}
+        onToggleSaved={(stone) => wishlist.toggle(stone.id)}
+        onOpen={openStone}
+        onAsk={askAboutStone}
+      />
       <MaterialCategoryRail
         active={state.material}
         aesthetic={state.aesthetic}
@@ -300,19 +313,16 @@ export default function JWStoneMarketplace() {
 
       <JwStoneStorySection />
       <JwStoneCompanySection />
-
       <MarketplaceFooter />
-
       <JwStoneRequestBand onStartRequest={() => startRequest([])} />
 
       <PublicProfileAccountDialog
         open={accountOpen}
-        onOpenChange={setAccountOpen}
+        onOpenChange={changeAccountOpen}
         profileSlug="jw-stone"
-        profileName={JW_STONE_PUBLIC_IDENTITY.brandName}
-        initialState={accountState}
-        onStateChange={setAccountState}
+        profileName="JW Stone"
         tone="light"
+        initialMode={accountMode}
       />
 
       <StoneDetailDialog
@@ -344,7 +354,7 @@ export default function JWStoneMarketplace() {
         profileSlug="jw-stone"
         businessName={JW_STONE_PUBLIC_IDENTITY.brandName}
         businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}
-        hasViewerSession={isAuthenticated || Boolean((user as { id?: unknown } | null)?.id)}
+        hasViewerSession={hasViewerAccount}
         allowCall
         stayInProfile
         requestMode="materials"

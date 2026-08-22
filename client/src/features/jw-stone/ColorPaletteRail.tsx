@@ -5,56 +5,73 @@ import { ColorCollageBackground } from "./ColorCollageBackground";
 import { isHandOnlyStone } from "./coverImages";
 import { JwCollapsibleSection } from "./JwCollapsibleSection";
 import { MaterialStonePager } from "./MaterialStonePager";
+import { JW_STORY_BACKGROUNDS } from "./storyBackgrounds";
 import type { ColorDirectionId, JwStoneCatalogItem, MarketplaceUrlState } from "./types";
 import type { StoneColorId } from "./stoneColors";
 
-const COLOR_FACE_VERSION = "face-4";
+const COLOR_FACE_VERSION = "face-5";
 
 /**
- * Compact shopper color families → existing aesthetic / color URL filters.
- * Labels are shopper-facing; filter keys must match catalog classifications.
- * Full set always renders (no "All" chip; no count-based omission).
+ * Literal shopper colors → the matching catalog color URL filter.
+ * The label, photographed face, count, and result set must all describe the
+ * same color family. Editorial aesthetics live in a separate mood picker and
+ * must never masquerade as colors in this picker.
+ * The available named-inventory set always renders (no "All" chip).
  * Face cues are real stone photography (color-collage/), not flat paint chips.
  */
 export const COLOR_SWATCH_OPTIONS = [
   {
-    id: "white-light",
-    label: "White & light",
-    aesthetic: "soft-light" as const,
-    color: null,
+    id: "white",
+    label: "White",
+    aesthetic: null,
+    color: "white" as const,
+    representativeStoneId: "alabama-white",
     faceSrc: "/images/businesses/jw-stone/color-collage/01-white.webp",
     faces: null,
   },
   {
-    id: "warm-neutrals",
-    label: "Warm neutrals",
-    aesthetic: "warm-earthy" as const,
-    color: null,
+    id: "beige",
+    label: "Beige",
+    aesthetic: null,
+    color: "beige" as const,
+    representativeStoneId: "cristallo",
     faceSrc: "/images/businesses/jw-stone/color-collage/02-warm.webp",
     faces: null,
   },
   {
-    id: "gray-silver",
-    label: "Gray & silver",
+    id: "gray",
+    label: "Gray",
     aesthetic: null,
     color: "gray" as const,
+    representativeStoneId: "steel-gray",
     faceSrc: "/images/businesses/jw-stone/color-collage/03-gray.webp",
     faces: null,
   },
   {
-    id: "black-dramatic",
+    id: "black",
     label: "Black",
-    aesthetic: "deep-dramatic" as const,
-    color: null,
+    aesthetic: null,
+    color: "black" as const,
+    representativeStoneId: "preto-sao-gabriel",
     faceSrc: "/images/businesses/jw-stone/color-collage/04-black.webp",
     faces: null,
   },
   {
-    id: "brown-earth",
-    label: "Brown & earth",
+    id: "brown",
+    label: "Brown",
     aesthetic: null,
     color: "brown" as const,
+    representativeStoneId: "emperor-brown",
     faceSrc: "/images/businesses/jw-stone/color-collage/05-brown.webp",
+    faces: null,
+  },
+  {
+    id: "gold",
+    label: "Gold",
+    aesthetic: null,
+    color: "gold" as const,
+    representativeStoneId: "gold-macaubas",
+    faceSrc: "/images/businesses/jw-stone/color-collage/09-gold.webp",
     faces: null,
   },
   {
@@ -62,6 +79,7 @@ export const COLOR_SWATCH_OPTIONS = [
     label: "Green",
     aesthetic: null,
     color: "green" as const,
+    representativeStoneId: "marbella-green",
     faceSrc: "/images/businesses/jw-stone/color-collage/06-green.webp",
     faces: null,
   },
@@ -70,27 +88,56 @@ export const COLOR_SWATCH_OPTIONS = [
     label: "Blue",
     aesthetic: null,
     color: "blue" as const,
+    representativeStoneId: "blue-goias",
     faceSrc: "/images/businesses/jw-stone/color-collage/07-blue.webp",
     faces: null,
   },
+] as const satisfies readonly ColorSwatchOptionDef[];
+
+/**
+ * Editorial browse paths preserved separately from literal shopper colors.
+ * These are moods, not color claims, so they intentionally use ?aesthetic=
+ * and never appear inside COLOR_SWATCH_OPTIONS.
+ */
+export const MOOD_SWATCH_OPTIONS = [
   {
-    id: "red-burgundy",
-    label: "Red & burgundy",
-    aesthetic: null,
-    color: "rose" as const,
-    faceSrc: "/images/businesses/jw-stone/color-collage/08-red.webp",
+    id: "soft-light",
+    label: "Soft & Light",
+    aesthetic: "soft-light" as const,
+    color: null,
+    representativeStoneId: "alabama-white",
+    faceSrc: "/images/businesses/jw-stone/color-collage/01-white.webp",
     faces: null,
   },
   {
-    id: "multicolor",
-    label: "Multicolor",
+    id: "warm-earthy",
+    label: "Warm & Earthy",
+    aesthetic: "warm-earthy" as const,
+    color: null,
+    representativeStoneId: "cristallo",
+    faceSrc: "/images/businesses/jw-stone/color-collage/02-warm.webp",
+    faces: null,
+  },
+  {
+    id: "deep-dramatic",
+    label: "Deep & Dramatic",
+    aesthetic: "deep-dramatic" as const,
+    color: null,
+    representativeStoneId: "preto-sao-gabriel",
+    faceSrc: "/images/businesses/jw-stone/color-collage/04-black.webp",
+    faces: null,
+  },
+  {
+    id: "bold-expressive",
+    label: "Bold & Expressive",
     aesthetic: "bold-expressive" as const,
     color: null,
+    representativeStoneId: "blue-goias",
     faceSrc: null,
     faces: [
       "/images/businesses/jw-stone/color-collage/07-blue.webp",
       "/images/businesses/jw-stone/color-collage/06-green.webp",
-      "/images/businesses/jw-stone/color-collage/08-red.webp",
+      "/images/businesses/jw-stone/color-collage/09-gold.webp",
       "/images/businesses/jw-stone/color-collage/02-warm.webp",
     ] as const,
   },
@@ -101,6 +148,7 @@ type ColorSwatchOptionDef = {
   label: string;
   aesthetic: ColorDirectionId | null;
   color: StoneColorId | null;
+  representativeStoneId: string;
   faceSrc: string | null;
   faces: readonly string[] | null;
 };
@@ -110,13 +158,11 @@ export type ColorSwatchSelection = {
   color: string | null;
 };
 
-/** @deprecated Prefer COLOR_SWATCH_OPTIONS — kept for any residual imports. */
-export const PALETTE_RAIL_DIRECTIONS = COLOR_SWATCH_OPTIONS.filter(
-  (option) => option.aesthetic
-).map((option) => ({
+/** @deprecated Prefer MOOD_SWATCH_OPTIONS — kept for residual imports. */
+export const PALETTE_RAIL_DIRECTIONS = MOOD_SWATCH_OPTIONS.map((option) => ({
   id: option.aesthetic!,
   label: option.label,
-  coverStoneId: "",
+  coverStoneId: option.representativeStoneId,
 }));
 
 export function countForColorSwatch(
@@ -134,7 +180,7 @@ export function countForColorSwatch(
       material: baseFilters.material,
       origin: baseFilters.origin,
     },
-    catalog
+    catalog.filter((stone) => !stone.anonymous)
   ).length;
 }
 
@@ -230,7 +276,61 @@ export function ColorSwatchChipRow({
 
   return (
     <div
-      className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-5 lg:grid-cols-9"
+      className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-8"
+      role="list"
+      aria-label={ariaLabel}
+      data-testid={`${testIdPrefix}-chip-row`}
+    >
+      {options.map((option) => {
+        const isActive = isColorSwatchActive(option, activeState);
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="listitem"
+            data-testid={`${testIdPrefix}-${option.id}`}
+            aria-pressed={isActive}
+            onClick={() => onSelect(selectionForColorSwatch(option, isActive))}
+            className="group min-w-0 text-left"
+          >
+            <ColorFaceCue faceSrc={option.faceSrc} faces={option.faces} active={isActive} />
+            <span className="mt-2.5 block min-w-0 sm:mt-3">
+              <span className="block font-editorial text-base leading-tight tracking-tight text-[var(--jw-ink)] sm:text-lg lg:text-xl">
+                {option.label}
+              </span>
+              <span className={`mt-0.5 block text-xs leading-none ${jw.muted}`}>
+                {option.count} {option.count === 1 ? "selection" : "selections"}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+type MoodSwatchChipRowProps = Omit<ColorSwatchChipRowProps, "color">;
+
+/** Editorial mood chips kept distinct from the literal color grid. */
+export function MoodSwatchChipRow({
+  aesthetic,
+  material = null,
+  origin = null,
+  onSelect,
+  catalog = JW_STONE_CATALOG,
+  testIdPrefix = "jw-mood",
+  ariaLabel = "Stone moods",
+}: MoodSwatchChipRowProps) {
+  const base = { material, origin };
+  const options = MOOD_SWATCH_OPTIONS.map((option) => ({
+    ...option,
+    count: countForColorSwatch(option, catalog, base),
+  }));
+  const activeState = { aesthetic, color: null };
+
+  return (
+    <div
+      className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4"
       role="list"
       aria-label={ariaLabel}
       data-testid={`${testIdPrefix}-chip-row`}
@@ -276,20 +376,20 @@ type ColorPaletteRailProps = {
   catalog?: readonly JwStoneCatalogItem[];
 };
 
-function activeColorSwatchLabel(aesthetic: ColorDirectionId | null, color: string | null): string {
+function activeColorSwatchLabel(color: string | null): string {
   const match = COLOR_SWATCH_OPTIONS.find((option) =>
-    isColorSwatchActive(option, { aesthetic, color })
+    isColorSwatchActive(option, { aesthetic: null, color })
   );
   return match?.label ?? "Color";
 }
 
 /**
  * Always collapsed on mount — shopper must open the band.
- * Shared URL ?color= / ?aesthetic= must not auto-expand this section.
- * Deep-link filters still apply once opened. Material browse never opens this band.
+ * Shared URL ?color= must not auto-expand this section. Legacy ?aesthetic=
+ * remains parseable elsewhere, but is intentionally ignored by this literal
+ * color rail. Material browse never opens this band.
  */
 export function ColorPaletteRail({
-  aesthetic,
   color,
   material = null,
   origin = null,
@@ -300,13 +400,13 @@ export function ColorPaletteRail({
   onAsk,
   catalog = JW_STONE_CATALOG,
 }: ColorPaletteRailProps) {
-  const hasSelection = Boolean(aesthetic || color);
-  const selectionLabel = activeColorSwatchLabel(aesthetic, color);
+  const hasSelection = Boolean(color);
+  const selectionLabel = activeColorSwatchLabel(color);
   const matches = useMemo(() => {
     if (!hasSelection) return [];
     return filterJwStoneCatalog(
       {
-        aesthetic,
+        aesthetic: null,
         color,
         material,
         origin,
@@ -316,7 +416,7 @@ export function ColorPaletteRail({
       .filter((stone) => !stone.anonymous)
       .slice()
       .sort((a, b) => Number(isHandOnlyStone(a.images)) - Number(isHandOnlyStone(b.images)));
-  }, [aesthetic, catalog, color, hasSelection, material, origin]);
+  }, [catalog, color, hasSelection, material, origin]);
 
   return (
     <JwCollapsibleSection
@@ -329,11 +429,11 @@ export function ColorPaletteRail({
     >
       {!hasSelection ? (
         <p className={`mb-4 text-sm leading-relaxed ${jw.muted}`} data-testid="jw-palette-prompt">
-          Choose a color direction — matching stones appear right here.
+          Choose a color — matching stones appear right here.
         </p>
       ) : null}
       <ColorSwatchChipRow
-        aesthetic={aesthetic}
+        aesthetic={null}
         color={color}
         material={material}
         origin={origin}
@@ -357,6 +457,94 @@ export function ColorPaletteRail({
               data-testid="jw-palette-results-empty"
             >
               No named selections in this color. Choose another color, or clear the color filter.
+            </p>
+          )}
+        </div>
+      ) : null}
+    </JwCollapsibleSection>
+  );
+}
+
+type MoodPaletteRailProps = Omit<ColorPaletteRailProps, "color">;
+
+function activeMoodSwatchLabel(aesthetic: ColorDirectionId | null): string {
+  const match = MOOD_SWATCH_OPTIONS.find((option) =>
+    isColorSwatchActive(option, { aesthetic, color: null })
+  );
+  return match?.label ?? "Mood";
+}
+
+/**
+ * Separate editorial mood browse. Legacy ?aesthetic= links remain functional,
+ * while literal colors keep their own truthful picker and ?color= contract.
+ */
+export function MoodPaletteRail({
+  aesthetic,
+  material = null,
+  origin = null,
+  onSelect,
+  isSaved,
+  onToggleSaved,
+  onOpen,
+  onAsk,
+  catalog = JW_STONE_CATALOG,
+}: MoodPaletteRailProps) {
+  const hasSelection = Boolean(aesthetic);
+  const selectionLabel = activeMoodSwatchLabel(aesthetic);
+  const matches = useMemo(() => {
+    if (!hasSelection) return [];
+    return filterJwStoneCatalog(
+      {
+        aesthetic,
+        color: null,
+        material,
+        origin,
+      },
+      catalog
+    )
+      .filter((stone) => !stone.anonymous)
+      .slice()
+      .sort((a, b) => Number(isHandOnlyStone(a.images)) - Number(isHandOnlyStone(b.images)));
+  }, [aesthetic, catalog, hasSelection, material, origin]);
+
+  return (
+    <JwCollapsibleSection
+      id="jw-mood-rail"
+      testId="jw-mood-rail"
+      headingId="jw-mood-heading"
+      title="Browse by mood"
+      defaultExpanded={false}
+      backgroundSrc={JW_STORY_BACKGROUNDS.livingRoom.src}
+    >
+      {!hasSelection ? (
+        <p className={`mb-4 text-sm leading-relaxed ${jw.muted}`} data-testid="jw-mood-prompt">
+          Choose a mood — matching stones appear right here.
+        </p>
+      ) : null}
+      <MoodSwatchChipRow
+        aesthetic={aesthetic}
+        material={material}
+        origin={origin}
+        onSelect={onSelect}
+        catalog={catalog}
+      />
+      {hasSelection ? (
+        <div className="mt-6 sm:mt-8" data-testid="jw-mood-results">
+          {matches.length ? (
+            <MaterialStonePager
+              materialLabel={selectionLabel}
+              stones={matches}
+              isSaved={isSaved}
+              onToggleSaved={onToggleSaved}
+              onOpen={onOpen}
+              onAsk={onAsk}
+            />
+          ) : (
+            <p
+              className={`text-sm leading-relaxed ${jw.muted}`}
+              data-testid="jw-mood-results-empty"
+            >
+              No named selections in this mood. Choose another mood, or clear the mood filter.
             </p>
           )}
         </div>

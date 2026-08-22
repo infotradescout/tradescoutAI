@@ -15,8 +15,8 @@ function slice(source: string, start: string, end: string): string {
 
 describe("BidRock correction safety contracts", () => {
   it("orders audits before unique canonical constraints and keeps runtime services DDL-free", () => {
-    const stoneMigration = read("migrations/0116_stone_core_schema.sql");
-    const bidrockMigration = read("migrations/0118_bidrock_marketplace.sql");
+    const stoneMigration = read("migrations/0122_stone_core_schema.sql");
+    const bidrockMigration = read("migrations/0124_bidrock_marketplace.sql");
     const services = [
       "server/services/stoneCoreProvisioning.ts",
       "server/services/profileAccountService.ts",
@@ -90,7 +90,7 @@ describe("BidRock correction safety contracts", () => {
 
   it("uses DB-clock expiry, row locks, CAS versions, canonical holds, and one-time effects", () => {
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
 
     expect(service).toContain("reservation.expires_at <= NOW()");
     expect(service).toContain(
@@ -112,7 +112,7 @@ describe("BidRock correction safety contracts", () => {
 
   it("validates immutable ACH and procurement provenance again at settlement", () => {
     const service = read("server/services/bidrockService.ts");
-    const migration = read("migrations/0118_bidrock_marketplace.sql");
+    const migration = read("migrations/0124_bidrock_marketplace.sql");
     const settlement = slice(
       service,
       "export async function recordBidRockPaymentSettlement",

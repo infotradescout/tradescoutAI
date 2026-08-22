@@ -2995,9 +2995,52 @@ body.ts-scout-active .scout-content {
   padding-bottom: 5rem;
 }
 
+.scout-task-history__body {
+  display: flex;
+  height: min(48vh, 34rem);
+  min-height: 16rem;
+  min-width: 0;
+  padding-top: 0.4rem;
+}
+
+.scout-thread--task-loop {
+  padding-bottom: 1rem;
+}
+
+.scout-thread--task-loop > [data-scout-message-id] {
+  width: min(100%, 78ch);
+  margin-inline: auto;
+}
+
+.scout-thread--task-loop .scout-user-bubble {
+  align-items: flex-start;
+}
+
+.scout-thread--task-loop .scout-user-bubble__meta {
+  justify-content: flex-start;
+}
+
+.scout-thread--task-loop .scout-user-bubble__avatar {
+  order: -1;
+}
+
+.scout-thread--task-loop .scout-user-bubble__body,
+.scout-thread--task-loop .scout-assistant-bubble__body {
+  max-width: 100%;
+}
+
 @media (max-width: 640px) {
   .scout-thread {
     padding-bottom: 12rem;
+  }
+
+  .scout-task-history__body {
+    height: min(38vh, 20rem);
+    min-height: 12rem;
+  }
+
+  .scout-thread--task-loop {
+    padding-bottom: 1rem;
   }
 }
 
@@ -3491,6 +3534,12 @@ body.ts-scout-active .scout-content {
       transparent 100%
     );
   isolation: isolate;
+}
+
+.scout-search-dock-inline {
+  position: relative;
+  width: 100%;
+  padding: 0.5rem 0 0.75rem;
 }
 
 .scout-search-dock-fixed::before {
@@ -4027,37 +4076,6 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 
 .ts-authenticated-app .app-page [class*="shadow-"] {
   box-shadow: var(--surface-card-shadow) !important;
-}
-
-.ts-desktop-primary-nav {
-  max-width: min(720px, calc(100vw - 520px));
-}
-
-.ts-desktop-nav-item:hover {
-  border-color: color-mix(in oklab, var(--border-primary) 78%, transparent) !important;
-  background: color-mix(in oklab, var(--surface-intermediate) 72%, transparent) !important;
-  color: var(--text-primary) !important;
-}
-
-.ts-desktop-nav-icon svg {
-  width: 1rem !important;
-  height: 1rem !important;
-}
-
-.ts-desktop-nav-item[data-active="false"] .ts-desktop-nav-icon svg {
-  color: var(--text-secondary) !important;
-}
-
-@media (max-width: 1180px) {
-  .ts-desktop-primary-nav {
-    max-width: min(580px, calc(100vw - 460px));
-  }
-
-  .ts-desktop-nav-item {
-    max-width: 124px;
-    padding-right: 0.625rem;
-    padding-left: 0.625rem;
-  }
 }
 
 .ts-landing nav,
@@ -5039,9 +5057,18 @@ body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-a
   gap: 0.75rem;
 }
 
+.ts-community-viewbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
 .ts-community-viewbar__item {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 44px;
   flex: 0 0 auto;
   align-items: center;
   gap: 0.4rem;
@@ -5051,6 +5078,12 @@ body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-a
   font-size: 0.75rem;
   font-weight: 600;
   transition: color 150ms ease, background 150ms ease;
+}
+
+.ts-community-start-actions > summary:focus-visible,
+.ts-community-viewbar__item:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--theme-accent-primary) 72%, white);
+  outline-offset: 2px;
 }
 
 .ts-community-viewbar__item:hover {
@@ -5079,14 +5112,9 @@ body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
 
 @media (max-width: 640px) {
   .ts-community-viewbar {
-    flex-wrap: wrap;
-    overflow: visible;
-  }
-  .ts-community-viewbar__divider {
-    height: 0;
-    flex-basis: 100%;
-    margin: 0;
-    opacity: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
   .ts-community-composer .w-10.h-10 {
     display: none;

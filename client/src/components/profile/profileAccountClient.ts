@@ -1,4 +1,6 @@
 import type { ProfileAccountPolicy } from "@shared/profileAccount";
+import { buildApiUrl } from "@/lib/apiBaseUrl";
+import { isSafeNextPath } from "@/lib/postOnboardingRoute";
 
 export type ViewerBusinessProfile = Readonly<{
   id: string;
@@ -35,119 +37,180 @@ export type ProfileAccountResponse = Readonly<{
   message?: string;
 }>;
 
-export type ProfileAccountAccessState =
-  | "none"
-  | "relationship_active"
-  | "pending_verification"
-  | "active"
-  | "suspended"
-  | "revoked";
+export type ProfileAccountRegistrationResponse = ProfileAccountResponse &
+  Readonly<{
+    emailVerificationRequired?: boolean;
+    emailVerificationSent?: boolean;
+  }>;
 
-export function profileAccountAccessState(
-  data: ProfileAccountResponse | null | undefined
-): ProfileAccountAccessState {
-  if (!data?.account) return "none";
-  if (data.account.status === "suspended") return "suspended";
-  if (data.account.status === "closed") return "revoked";
-  if (!data.policy.includesBidRock) return "relationship_active";
-  const entitlement = data.entitlements.find((item) => item.productKey === "bidrock");
-  return entitlement?.status ?? "pending_verification";
+export type ProfileAccountMode = "create" | "signin";
+
+type ProfileAccountError = Error & {
+  status?: number;
+  code?: string;
+  requiresBusinessSetup?: boolean;
+};
+
+function canonicalProfilePath(profileSlug: string): string {
+  const slug = String(profileSlug || "")
+    .trim()
+    .toLowerCase();
+  return `/u/${encodeURIComponent(slug)}`;
 }
 
-export function profileAccountActionLabel(
-  data: ProfileAccountResponse | null | undefined
-): string {
-  switch (profileAccountAccessState(data)) {
-    case "active":
-      return "BidRock active";
-    case "relationship_active":
-      return "Account active";
-    case "pending_verification":
-      return "Verification pending";
-    case "suspended":
-      return "Account suspended";
-    case "revoked":
-      return "Access revoked";
-    default:
-      return "Create account";
+function safeInternalPath(value: unknown): string {
+  const candidate = String(value || "").trim();
+  if (!isSafeNextPath(candidate)) return "";
+  try {
+    const parsed = new URL(candidate, "https://profile-account.local");
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`.slice(0, 500);
+  } catch {
+    return "";
   }
 }
 
-export async function readResponseJson(response: Response): Promise<Record<string, unknown>> {
+export function buildProfileAccountResumePath(
+  profileSlug: string,
+  mode: ProfileAccountMode = "create"
+): string {
+  const params = new URLSearchParams({ profileAccount: "1" });
+  if (mode === "signin") params.set("profileAccountMode", "signin");
+  return `${canonicalProfilePath(profileSlug)}?${params.toString()}`;
+}
+
+export function isProfileAccountResumePath(value: unknown): boolean {
+  const path = safeInternalPath(value);
+  if (!path) return false;
+  try {
+    const parsed = new URL(path, "https://profile-account.local");
+    if (parsed.searchParams.get("profileAccount") !== "1") return false;
+    const pathname = parsed.pathname.toLowerCase().replace(/\/+$/, "") || "/";
+    return pathname === "/jw-stone" || /^\/u\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(pathname);
+  } catch {
+    return false;
+  }
+}
+
+export function normalizeProfileAccountResumePath(value: unknown): string {
+  const path = safeInternalPath(value);
+  if (!path || !isProfileAccountResumePath(path)) return "";
+  return path.replace(/^\/jw-stone\/?(?=[?#]|$)/i, "/u/jw-stone");
+}
+
+export function currentProfileAccountSourcePath(profileSlug: string): string {
+  if (typeof window === "undefined") return canonicalProfilePath(profileSlug);
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("profileAccount");
+    url.searchParams.delete("profileAccountMode");
+    const path = safeInternalPath(`${url.pathname}${url.search}${url.hash}`);
+    if (path) return path;
+  } catch {
+    // Use the canonical public profile route below.
+  }
+  return canonicalProfilePath(profileSlug);
+}
+
+export async function readProfileAccountJson(response: Response): Promise<Record<string, unknown>> {
   return response.json().catch(() => ({}));
 }
 
+function toError(
+  response: Response,
+  payload: Record<string, unknown>,
+  fallback: string
+): ProfileAccountError {
+  const error = new Error(String(payload.message || fallback)) as ProfileAccountError;
+  error.status = response.status;
+  error.code = typeof payload.code === "string" ? payload.code : undefined;
+  error.requiresBusinessSetup = payload.requiresBusinessSetup === true;
+  return error;
+}
+
 export async function loadProfileAccountState(
-  profileSlug: string,
-  reconcile = false
+  profileSlug: string
 ): Promise<ProfileAccountResponse> {
-  const response = await fetch(`/api/u/${encodeURIComponent(profileSlug)}/account`, {
+  const response = await fetch(buildApiUrl(`/api/u/${encodeURIComponent(profileSlug)}/account`), {
     credentials: "include",
     headers: { Accept: "application/json" },
   });
-  const payload = await readResponseJson(response);
-  if (!response.ok) {
-    throw new Error(String(payload.message || "Account is temporarily unavailable."));
-  }
-  const state = payload as ProfileAccountResponse;
-  if (!reconcile || !state.account) return state;
-  const reconcileResponse = await fetch(
-    `/api/u/${encodeURIComponent(profileSlug)}/account/reconcile`,
-    {
-      method: "POST",
-      credentials: "include",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
-      body: "{}",
-    }
-  );
-  const reconciled = await readResponseJson(reconcileResponse);
-  if (!reconcileResponse.ok) {
-    throw new Error(String(reconciled.message || "Account state could not be reconciled."));
-  }
-  return {
-    ...state,
-    account: reconciled.account as ProfileAccountRecord,
-    entitlements: (reconciled.entitlements as readonly ProfileAccountEntitlement[]) ?? [],
-  };
+  const payload = await readProfileAccountJson(response);
+  if (!response.ok) throw toError(response, payload, "Account is temporarily unavailable.");
+  return payload as ProfileAccountResponse;
 }
 
 export async function createProfileAccount(args: {
   profileSlug: string;
   businessName?: string | null;
-  sourcePath?: string | null;
+  sourcePath: string;
 }): Promise<ProfileAccountResponse> {
-  const response = await fetch(`/api/u/${encodeURIComponent(args.profileSlug)}/account`, {
+  const response = await fetch(
+    buildApiUrl(`/api/u/${encodeURIComponent(args.profileSlug)}/account`),
+    {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sourcePath: args.sourcePath,
+        ...(args.businessName ? { businessName: args.businessName } : {}),
+      }),
+    }
+  );
+  const payload = await readProfileAccountJson(response);
+  if (!response.ok) throw toError(response, payload, "Account could not be created.");
+  return payload as ProfileAccountResponse;
+}
+
+export async function registerProfileAccount(args: {
+  profileSlug: string;
+  businessName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  acceptTerms: true;
+  sourcePath: string;
+  next: string;
+}): Promise<ProfileAccountRegistrationResponse> {
+  const response = await fetch(buildApiUrl("/api/profile-accounts/register"), {
     method: "POST",
     credentials: "include",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      ...(args.businessName ? { businessName: args.businessName } : {}),
-      ...(args.sourcePath ? { sourcePath: args.sourcePath } : {}),
-    }),
+    body: JSON.stringify(args),
   });
-  const payload = await readResponseJson(response);
-  if (!response.ok) {
-    const error = new Error(String(payload.message || "Account could not be created.")) as Error & {
-      status?: number;
-      code?: string;
-      requiresBusinessSetup?: boolean;
-    };
-    error.status = response.status;
-    error.code = typeof payload.code === "string" ? payload.code : undefined;
-    error.requiresBusinessSetup = payload.requiresBusinessSetup === true;
-    throw error;
-  }
-  return payload as ProfileAccountResponse;
+  const payload = await readProfileAccountJson(response);
+  if (!response.ok) throw toError(response, payload, "Account could not be created.");
+  return payload as ProfileAccountRegistrationResponse;
 }
 
-export function currentProfileAccountSourcePath(profileSlug: string): string {
-  if (typeof window === "undefined") return `/u/${profileSlug}`;
-  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  if (current.startsWith("/") && !current.startsWith("//") && !current.includes("\\")) {
-    return current.slice(0, 500);
+export async function requestProfileAccountPasswordReset(args: {
+  email: string;
+  next: string;
+}): Promise<{ message: string }> {
+  if (!isProfileAccountResumePath(args.next)) {
+    throw new Error("The account return path is invalid.");
   }
-  return `/u/${profileSlug}`;
+  const response = await fetch(buildApiUrl("/api/profile-accounts/request-password-reset"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email: args.email, next: args.next }),
+  });
+  const payload = await readProfileAccountJson(response);
+  if (!response.ok) {
+    throw toError(response, payload, "Password reset could not be requested.");
+  }
+  return {
+    message: String(payload.message || "Check your email for a password reset link."),
+  };
 }

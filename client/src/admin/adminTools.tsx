@@ -22,6 +22,7 @@ import {
   Radio,
   Camera,
   ShoppingCart,
+  ClipboardCheck,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
@@ -236,6 +237,9 @@ const ContentModeration = React.lazy(() => import("@/pages/content-moderation"))
 const StaffShareLinksPage = React.lazy(() => import("@/pages/staff-share-links"));
 const AdminTestingControls = React.lazy(() => import("@/pages/admin-testing-controls"));
 const AdminLiveStream = React.lazy(() => import("@/pages/admin-live-stream"));
+const AdminProductionAcceptance = React.lazy(
+  () => import("@/pages/admin-production-acceptance")
+);
 const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-coverage"));
 const AdminProfessionalVerification = React.lazy(
   () => import("@/pages/admin-professional-verification")
@@ -962,6 +966,25 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         keywords: ["observability", "live", "crawler", "snapshots"],
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <AdminLiveStream />,
+      }),
+      tool({
+        id: "production-acceptance",
+        label: "Production Acceptance",
+        path: "/admin/production-acceptance",
+        icon: ClipboardCheck,
+        description: "Current production truth across the operating lanes.",
+        keywords: ["acceptance", "production", "readiness", "operations"],
+        visibleIf: { superOnly: true },
+        render: () => <AdminProductionAcceptance />,
+      }),
+      tool({
+        id: "legacy-production-acceptance",
+        label: "Production Acceptance (Legacy)",
+        path: "/admin/acceptance",
+        icon: ClipboardCheck,
+        visibleIf: { superOnly: true },
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/production-acceptance" />,
       }),
       tool({
         id: "observability",

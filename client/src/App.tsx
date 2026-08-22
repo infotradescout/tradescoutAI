@@ -7,7 +7,7 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SessionProvider } from "./contexts/SessionContext";
 import { useAuth } from "./hooks/useAuth";
-import { resolveDefaultHomeRoute, type DefaultHomePage } from "./lib/homeRoute";
+import { resolveAuthenticatedHomeRedirect } from "./lib/homeRoute";
 import {
   FEATURE_HOLD_TO_EXPLAIN,
   FEATURE_HOLD_INTRO_TUTORIAL,
@@ -64,17 +64,6 @@ const PWAInstallPrompt = React.lazy(() =>
 );
 const SimpleBugReportTool = React.lazy(() => import("./components/SimpleBugReportTool"));
 
-function isDefaultHomePage(value: unknown): value is DefaultHomePage {
-  return (
-    value === "llm" ||
-    value === "marketplace" ||
-    value === "contractor-board" ||
-    value === "dashboard" ||
-    value === "profile" ||
-    value === "community"
-  );
-}
-
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
   const [location, setLocation] = useLocation();
@@ -99,12 +88,9 @@ const AppLayout = memo(function AppLayout() {
   const isShareRoute = pathOnly.startsWith("/r/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
-  // Set server-side only when this page is being served at a business's own
-  // custom domain root -- the URL path itself gives no clue which profile to
-  // render (there's no /u/:slug in it), so this is the only way the client
-  // router knows. Takes priority over everything else: a visitor on a
-  // business's own domain should always see that business, regardless of
-  // path or auth state.
+  // Set server-side when this page is served at a business's own domain. The
+  // custom domain owns its public profile routes, while explicitly reserved
+  // platform routes continue through the normal AppRoutes classifier.
   const customDomainProfileSlug =
     typeof window !== "undefined"
       ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
@@ -113,7 +99,9 @@ const AppLayout = memo(function AppLayout() {
   // JW's public profile lives at /jw-stone and should follow standard profile flow.
   const isJwStoneProfileRoute = pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
   const isBidRockRoute = pathOnly === "/bidrock" || pathOnly.startsWith("/bidrock/");
-  const isCustomDomainProfileRoute = Boolean(customDomainProfileSlug);
+  const isCustomDomainPlatformRoute = pathOnly === "/business-verification";
+  const isCustomDomainProfileRoute =
+    Boolean(customDomainProfileSlug) && !isCustomDomainPlatformRoute;
   const isPublicProfileRoute =
     isJwStoneProfileRoute ||
     isBidRockRoute ||
@@ -234,29 +222,22 @@ const AppLayout = memo(function AppLayout() {
     }
   }, [location, setLocation]);
 
-  // Respect user default home page preference when landing on '/'.
-  // Community-first users always land on the community feed.
+  // Respect user default home page preference when landing on the TradeScout
+  // app root. A profile custom domain owns its root regardless of auth state.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     if (!hasCompletedSetup(user)) return;
 
-    if (user.communityFirst && location === "/") {
-      setLocation("/community-feed");
-      return;
-    }
+    const targetRoute = resolveAuthenticatedHomeRedirect({
+      location,
+      isCustomDomainProfileRoute,
+      communityFirst: Boolean(user.communityFirst),
+      defaultHomePage: user.preferences?.defaultHomePage,
+    });
 
-    if (!user.preferences?.defaultHomePage) return;
-
-    const rawDefaultPage: unknown = user.preferences.defaultHomePage;
-    const targetRoute = resolveDefaultHomeRoute(
-      isDefaultHomePage(rawDefaultPage) ? rawDefaultPage : null
-    );
-
-    if (targetRoute && location === "/") {
-      setLocation(targetRoute);
-    }
-  }, [isAuthenticated, user, location, setLocation]);
+    if (targetRoute) setLocation(targetRoute);
+  }, [isAuthenticated, user, location, setLocation, isCustomDomainProfileRoute]);
 
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";

@@ -122,9 +122,10 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(page.getByTestId("jw-material-rail")).toBeVisible();
 
   await page.getByTestId("jw-palette-rail-toggle").click();
-  await expect(page.getByTestId("jw-palette-all")).toBeVisible();
-  await expect(page.getByTestId("jw-palette-warm-neutrals")).toBeVisible();
-  await expect(page.getByTestId("jw-palette-gray-silver")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-all")).toHaveCount(0);
+  await expect(page.getByTestId("jw-palette-beige")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-gray")).toBeVisible();
+  await expect(page.getByTestId("jw-palette-gold")).toBeVisible();
   await page.getByTestId("jw-palette-rail-toggle").click();
 
   await page.getByTestId("jw-inventory-toggle").click();
@@ -134,7 +135,7 @@ test("desktop proves catalog-first luxury storefront", async ({ page }) => {
   await expect(page.locator('select[aria-label="Color"]')).toHaveCount(0);
   await expect(page.locator('select[aria-label="Material"]')).toHaveCount(0);
   const stoneCount = await page.locator("#current-inventory [data-stone-card]").count();
-  expect(stoneCount).toBeGreaterThan(20);
+  expect(stoneCount).toBe(8);
   await page.getByTestId("jw-inventory-toggle").click();
 
   const sectionOrder = await page.evaluate(() => {
@@ -315,7 +316,9 @@ test("mobile keeps editorial showroom usable at 390", async ({ page }) => {
   expect(cardBox?.width ?? 0).toBeGreaterThan(300);
   expect(cardBox?.height ?? 0).toBeGreaterThan(280);
   const inventoryList = page.locator('[data-testid="jw-inventory-grid"] ul');
-  await expect(inventoryList).toHaveClass(/flex-col/);
+  await expect(inventoryList).toHaveClass(/\bgrid\b/);
+  await expect(inventoryList).not.toHaveClass(/flex-col/);
+  await expect(page.locator("#current-inventory [data-stone-card]")).toHaveCount(8);
   await page.locator("#current-inventory").scrollIntoViewIfNeeded();
   await screenshot(page, "04-mobile-390-editorial-cards.png");
   await screenshotElement(page.getByTestId("jw-marketplace-request"), "04-mobile-connect.png");
