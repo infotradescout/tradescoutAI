@@ -231,7 +231,7 @@ describe("JW Stone marketplace luxury layout", () => {
     expect(collageSrcs.some((src) => src.includes("/black-pearl/"))).toBe(false);
 
     expect(moodToggle?.querySelector("img")?.getAttribute("src")).toContain(
-      "/story/mont-blanc-bar.webp"
+      "/story/taj-living-room.webp"
     );
 
     expect(materialToggle?.querySelector('[data-testid="jw-material-collage"]')).not.toBeNull();
