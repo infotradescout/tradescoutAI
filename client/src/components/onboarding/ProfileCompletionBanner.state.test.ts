@@ -43,15 +43,21 @@ describe("resolveProfileCompletionBannerMode", () => {
   });
 
   it("routes business verification through the existing business setup path", () => {
+    const businessNeedingVerification = {
+      ...readyPerson,
+      userIntent: "business",
+      role: "business_owner",
+      verifiedBadge: false,
+      verificationStatus: "pending",
+    };
+
+    expect(mode(businessNeedingVerification)).toBe("business_setup");
     expect(
-      mode({
-        ...readyPerson,
-        userIntent: "business",
-        role: "business_owner",
-        verifiedBadge: false,
-        verificationStatus: "pending",
-      })
-    ).toBe("business_setup");
+      mode(businessNeedingVerification, "/direct-connect/inbox?selected=assignment-1")
+    ).toBeNull();
+    expect(
+      mode(businessNeedingVerification, "/direct-connect/active?selected=request-1")
+    ).toBeNull();
   });
 
   it("does not show the banner after a person profile is ready", () => {

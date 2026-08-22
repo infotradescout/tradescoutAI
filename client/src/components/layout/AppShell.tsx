@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { ROUTES } from "@/lib/routes";
 import { isOnboardingSurfacePath } from "@/lib/onboardingSurface";
 import MobileAppBar from "@/components/navigation/MobileAppBar";
+import { DIRECT_CONNECT_TASKBAR_RESUME_HREF } from "@/pages/direct-connect/directConnectWorkspaceState";
 import AppShellCore from "./AppShellCore";
 import type { NavItem } from "./AppShellCore";
 
@@ -44,7 +45,7 @@ function buildDesktopBottomNav(): NavItem[] {
     },
     {
       label: "Direct Connect",
-      href: "/direct-connect",
+      href: DIRECT_CONNECT_TASKBAR_RESUME_HREF,
       icon: <ClipboardList className="h-5 w-5" style={iconStyle} />,
       description: "Post requests and track replies.",
     },

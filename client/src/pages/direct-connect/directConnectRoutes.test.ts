@@ -21,6 +21,8 @@ describe("directConnectRoutes", () => {
   });
 
   it("preserves directory query entry behavior", () => {
+    expect(getDirectConnectSection("/direct-connect")).toBe("post");
+    expect(getDirectConnectSection("/direct-connect?resume=last-task")).toBe("post");
     expect(getDirectConnectSection("/direct-connect?intent=local_search")).toBe("pros");
     expect(getDirectConnectSection("/direct-connect?mode=directory")).toBe("pros");
   });
@@ -31,12 +33,12 @@ describe("directConnectRoutes", () => {
     expect(shouldResolveDirectConnectEntry("unknown")).toBe(false);
   });
 
-  it("lets Jobs and the composer own their hierarchy without removing sibling chrome", () => {
+  it("lets the three-task work desk and Jobs own their hierarchy without removing sibling chrome", () => {
     expect(shouldRenderDirectConnectSectionChrome("employment")).toBe(false);
     expect(shouldRenderDirectConnectSectionChrome("post")).toBe(false);
+    expect(shouldRenderDirectConnectSectionChrome("inbox")).toBe(false);
+    expect(shouldRenderDirectConnectSectionChrome("engagements")).toBe(false);
     expect(shouldRenderDirectConnectSectionChrome("board")).toBe(true);
-    expect(shouldRenderDirectConnectSectionChrome("inbox")).toBe(true);
     expect(shouldRenderDirectConnectSectionChrome("pros")).toBe(true);
-    expect(shouldRenderDirectConnectSectionChrome("engagements")).toBe(true);
   });
 });

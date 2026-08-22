@@ -15,7 +15,7 @@ describe("Direct Connect task-route contract", () => {
   it("uses task language for the canonical app screens", () => {
     expect(shellSource).toContain('post: "Post"');
     expect(shellSource).toContain('board: "Board"');
-    expect(shellSource).toContain('employment: "Opportunities"');
+    expect(shellSource).toContain('employment: "Jobs"');
     expect(shellSource).toContain('inbox: "Inbox"');
     expect(shellSource).toContain('pros: "Businesses"');
     expect(shellSource).toContain('engagements: "My Requests"');

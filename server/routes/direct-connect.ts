@@ -3576,10 +3576,14 @@ export function registerDirectConnectRoutes(app: Express) {
         } catch (error) {
           if (isSchemaMismatchError(error)) {
             console.warn(
-              "[direct-connect] work_requests schema mismatch while listing requests; returning empty list",
+              "[direct-connect] work_requests schema mismatch while listing requests",
               error
             );
-            return res.json([]);
+            return res.status(503).json({
+              code: "DIRECT_CONNECT_REQUEST_LIST_SCHEMA_UNAVAILABLE",
+              message: "Direct Connect requests are temporarily unavailable. Please retry.",
+              requestId: (req as any).requestId || null,
+            });
           }
           throw error;
         }
@@ -3604,10 +3608,13 @@ export function registerDirectConnectRoutes(app: Express) {
           if (normalizedStatus === "draft") return false;
           if (looksLikeHiddenOrTestRequest(row)) return false;
 
-          const ts = row.updatedAt || row.createdAt;
-          if (!ts) return false;
-          const ageMs = nowMs - new Date(ts).getTime();
-          if (Number.isFinite(ageMs) && ageMs > maxAgeMs) return false;
+          const isTerminal = normalizedStatus === "completed" || normalizedStatus === "cancelled";
+          if (isTerminal) {
+            const ts = row.updatedAt || row.createdAt;
+            if (!ts) return false;
+            const ageMs = nowMs - new Date(ts).getTime();
+            if (Number.isFinite(ageMs) && ageMs > maxAgeMs) return false;
+          }
           return true;
         });
 
@@ -8197,8 +8204,8 @@ export function registerDirectConnectRoutes(app: Express) {
             inboxItems.push(...bizItems);
           }
         } catch (e) {
-          // responderUserId column may not exist in older DB instances — fail soft
-          console.warn("[direct-connect] Failed to fetch business provider inbox items", e);
+          console.error("[direct-connect] Failed to fetch business provider inbox items", e);
+          throw e;
         }
         // Worker/helper inbox: fetch assignments routed to this user as a worker profile.
         // Workers use responderUserId (same as business providers) but also have a workerId FK.
@@ -8228,7 +8235,8 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           }
         } catch (e) {
-          console.warn("[direct-connect] Failed to fetch worker inbox items", e);
+          console.error("[direct-connect] Failed to fetch worker inbox items", e);
+          throw e;
         }
 
         const ownRequests = await db
@@ -8313,9 +8321,14 @@ export function registerDirectConnectRoutes(app: Express) {
         res.json(sorted);
       } catch (error: any) {
         console.error("Error fetching direct connect inbox:", error);
-        res
-          .status(500)
-          .json({ message: "Failed to fetch inbox", requestId: (req as any).requestId || null });
+        const schemaUnavailable = isSchemaMismatchError(error);
+        res.status(schemaUnavailable ? 503 : 500).json({
+          code: schemaUnavailable
+            ? "DIRECT_CONNECT_INBOX_SCHEMA_UNAVAILABLE"
+            : "DIRECT_CONNECT_INBOX_UNAVAILABLE",
+          message: "Direct Connect Incoming is temporarily unavailable. Please retry.",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );

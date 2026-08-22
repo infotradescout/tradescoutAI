@@ -44,6 +44,10 @@ export function resolveProfileCompletionBannerMode(params: {
     path.startsWith("/insurance-verification");
   if (isSetupRoute) return null;
 
+  const isFocusedDirectConnectWorkspace =
+    path.startsWith("/direct-connect/inbox") || path.startsWith("/direct-connect/active");
+  if (isFocusedDirectConnectWorkspace) return null;
+
   const businessUser = isBusinessUser(user);
   const readiness = resolveLiveReadiness({
     user: {

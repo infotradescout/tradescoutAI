@@ -70,5 +70,5 @@ export function buildDirectConnectHref(section: DirectConnectSection): string {
 }
 
 export function shouldRenderDirectConnectSectionChrome(section: DirectConnectSection): boolean {
-  return section !== "post" && section !== "employment";
+  return !["post", "inbox", "engagements", "employment"].includes(section);
 }

@@ -44,7 +44,6 @@ import {
 import { ToastAction } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { WhyThisJobModal } from "./WhyThisJobModal";
 import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
@@ -123,6 +122,8 @@ import {
   FolderKanban,
   Clock3,
   X,
+  ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
 import {
   getDirectConnectContextLabel,
@@ -142,6 +143,32 @@ import {
   shouldResolveDirectConnectEntry,
   type DirectConnectSection as Section,
 } from "./directConnectRoutes";
+import {
+  DIRECT_CONNECT_INCOMING_PATH,
+  DIRECT_CONNECT_REQUESTS_PATH,
+  buildCanonicalDirectConnectWorkspaceHref,
+  canonicalizeDirectConnectWorkspacePathname,
+  getDirectConnectComposerDraftSessionKey,
+  getDirectConnectWorkspaceTask,
+  hasDirectConnectTaskbarResumeSignal,
+  isRealDirectConnectAssignmentId,
+  resolveDirectConnectTaskbarResumeHref,
+  resolveDirectConnectComposerLocation,
+  resolveDirectConnectComposerReturnPath,
+  resolveDirectConnectWorkspaceScopeHydration,
+  resolveDirectConnectWorkspaceState,
+  resolveDirectConnectComposerDraftText,
+  resolveSelectedDirectConnectWorkspaceItem,
+  shouldKeepDirectConnectWorkspaceRequest,
+  shouldConsumeDirectConnectDraftAfterHydration,
+  shouldInvalidateDirectConnectWorkspaceSelection,
+  updateDirectConnectWorkspaceState,
+  writeDirectConnectLastTask,
+  writeDirectConnectWorkspaceState,
+  type DirectConnectWorkspaceFilter,
+  type DirectConnectWorkspaceState,
+  type DirectConnectWorkspaceTask,
+} from "./directConnectWorkspaceState";
 
 type RequestType =
   | "service_request"
@@ -222,6 +249,7 @@ const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secon
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
 const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const DIRECT_CONNECT_DRAFT_SAVE_DEBOUNCE_MS = 300;
 const DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS = 3000;
 const DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS = 2000;
 
@@ -259,6 +287,9 @@ const GENERATED_HOME_LABEL_PATTERN = /^(slice\d+\s+\d+|\d{8,}|[a-f0-9]{12,})$/i;
 type DirectConnectDraftSnapshot = {
   savedAt: number;
   returnPath: string;
+  ownerUserId?: string;
+  authHandoff?: boolean;
+  entrySignature?: string;
   title: string;
   description: string;
   budgetMin: string;
@@ -386,6 +417,169 @@ const SECTION_GROUPS: Array<{ title: string; sections: Section[]; icon?: ReactNo
     icon: <TrendingUp className="h-4 w-4" />,
   },
 ];
+
+const DIRECT_CONNECT_WORKDESK_TASKS = ["post", "inbox", "engagements"] as const;
+
+const DIRECT_CONNECT_WORKDESK_META: Record<
+  (typeof DIRECT_CONNECT_WORKDESK_TASKS)[number],
+  { label: string; role: string }
+> = {
+  post: { label: "Start", role: "Requester" },
+  inbox: { label: "Incoming", role: "Provider" },
+  engagements: { label: "My Requests", role: "Requester" },
+};
+
+function isDirectConnectWorkdeskSection(
+  section: Section
+): section is (typeof DIRECT_CONNECT_WORKDESK_TASKS)[number] {
+  return DIRECT_CONNECT_WORKDESK_TASKS.includes(
+    section as (typeof DIRECT_CONNECT_WORKDESK_TASKS)[number]
+  );
+}
+
+function DirectConnectTaskSwitcher({
+  activeSection,
+  counts,
+  onSelect,
+}: {
+  activeSection: (typeof DIRECT_CONNECT_WORKDESK_TASKS)[number];
+  counts: Partial<Record<Section, number>>;
+  onSelect: (section: Section) => void;
+}) {
+  return (
+    <div
+      className="min-w-0 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-1.5"
+      data-testid="direct-connect-task-switcher"
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <nav aria-label="Direct Connect tasks" className="grid min-w-0 flex-1 grid-cols-3 gap-1">
+          {DIRECT_CONNECT_WORKDESK_TASKS.map((section) => {
+            const active = section === activeSection;
+            const meta = DIRECT_CONNECT_WORKDESK_META[section];
+            const count = counts[section] || 0;
+            return (
+              <button
+                key={section}
+                type="button"
+                aria-current={active ? "page" : undefined}
+                onClick={() => onSelect(section)}
+                className={cn(
+                  "flex min-h-[44px] min-w-0 flex-col items-center justify-center rounded-lg border px-1.5 py-1 text-center outline-none transition focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)] sm:px-3",
+                  active
+                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--text-primary)]"
+                    : "border-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                )}
+              >
+                <span className="max-w-full truncate text-xs font-semibold sm:text-sm">
+                  {meta.label}
+                  {count > 0 ? ` (${count})` : ""}
+                </span>
+                <span className="max-w-full truncate text-[10px] uppercase tracking-[0.12em] opacity-75">
+                  {meta.role}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+        <button
+          type="button"
+          onClick={() => onSelect("board")}
+          aria-label="Open public request board"
+          className="inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-lg border border-[color:var(--border-subtle)] text-xs font-medium text-[color:var(--text-secondary)] outline-none transition hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--theme-accent-primary)] sm:w-auto sm:px-3"
+        >
+          <LayoutList className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+          <span className="hidden sm:inline">Board</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function useDirectConnectWorkdeskState({
+  task,
+  pathname,
+  authenticatedUserId,
+  currentCountyFips,
+  authLoading,
+}: {
+  task: DirectConnectWorkspaceTask;
+  pathname: string;
+  authenticatedUserId: string | null | undefined;
+  currentCountyFips?: string | null;
+  authLoading: boolean;
+}) {
+  const canonicalPathname = canonicalizeDirectConnectWorkspacePathname(pathname);
+  const currentScope = `${authenticatedUserId || "guest"}:${canonicalPathname}:${
+    currentCountyFips || "no-county"
+  }`;
+  const [state, setState] = useState<DirectConnectWorkspaceState>({
+    filter: "all",
+    selectedId: "",
+    countyFips: "",
+  });
+  const [hydratedScope, setHydratedScope] = useState("");
+  const hydrated = hydratedScope === currentScope;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || authLoading || hydratedScope === currentScope) return;
+    let storage: Storage | null = null;
+    try {
+      storage = window.sessionStorage;
+    } catch {
+      storage = null;
+    }
+    const restored = resolveDirectConnectWorkspaceState({
+      search: window.location.search,
+      storage,
+      authenticatedUserId,
+      pathname,
+      currentCountyFips,
+    });
+    setState(
+      resolveDirectConnectWorkspaceScopeHydration({
+        restoredState: restored,
+        previousScope: hydratedScope,
+        currentScope,
+        task,
+      })
+    );
+    setHydratedScope(currentScope);
+  }, [
+    authLoading,
+    authenticatedUserId,
+    currentCountyFips,
+    currentScope,
+    hydratedScope,
+    pathname,
+    task,
+  ]);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    let storage: Storage | null = null;
+    try {
+      storage = window.sessionStorage;
+    } catch {
+      storage = null;
+    }
+    writeDirectConnectWorkspaceState({
+      storage,
+      authenticatedUserId,
+      pathname: canonicalPathname,
+      state,
+    });
+    const href = buildCanonicalDirectConnectWorkspaceHref({
+      pathname: canonicalPathname,
+      currentSearch: window.location.search,
+      hash: window.location.hash,
+      state,
+    });
+    const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (href !== currentHref) window.history.replaceState(window.history.state, "", href);
+  }, [authenticatedUserId, canonicalPathname, hydrated, state]);
+
+  return { state, setState, hydrated, currentScope };
+}
 
 const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectIntentConfig> = {
   fix_improve: {
@@ -878,7 +1072,14 @@ type DirectConnectRequest = {
   isHomeIdPreviewDraft?: boolean | null;
 };
 
-type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";
+type RequestFilter =
+  | "all"
+  | "open"
+  | "routed"
+  | "in_progress"
+  | "pending_outcome"
+  | "completed"
+  | "cancelled";
 
 type RequestWorkflowStage =
   | "ready_to_send"
@@ -893,6 +1094,7 @@ const REQUEST_FILTERS: RequestFilter[] = [
   "open",
   "routed",
   "in_progress",
+  "pending_outcome",
   "completed",
   "cancelled",
 ];
@@ -943,6 +1145,8 @@ function getRequestFilterLabel(filter: RequestFilter): string {
       return "Waiting on pros";
     case "in_progress":
       return "In conversation";
+    case "pending_outcome":
+      return "Pending outcome";
     case "completed":
       return "Completed";
     case "cancelled":
@@ -1076,17 +1280,10 @@ function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilt
   if (filter === "all") return stage !== "cancelled";
   if (filter === "open") return stage === "ready_to_send";
   if (filter === "routed") return stage === "waiting_on_pros";
-  if (filter === "in_progress")
-    return stage === "active_conversation" || stage === "pending_outcome";
+  if (filter === "in_progress") return stage === "active_conversation";
+  if (filter === "pending_outcome") return stage === "pending_outcome";
   if (filter === "completed") return stage === "completed";
   return stage === "cancelled";
-}
-
-function isCurrentRequest(request: DirectConnectRequest): boolean {
-  const ts = request.dcLastEventAt || request.updatedAt || request.createdAt;
-  if (!ts) return false;
-  const ageMs = Date.now() - new Date(ts).getTime();
-  return Number.isFinite(ageMs) && ageMs <= 120 * 24 * 60 * 60 * 1000;
 }
 
 type DraftAttachment = {
@@ -1362,6 +1559,8 @@ function DirectConnectRequestComposer({
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
+  const draftSubmittedRef = useRef(false);
+  const latestAuthenticatedDraftSaveRef = useRef<() => void>(() => undefined);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
 
@@ -1374,20 +1573,50 @@ function DirectConnectRequestComposer({
     : [];
   const hasExistingHomes = homes.length > 0;
 
-  const currentReturnPath = () => {
-    if (typeof window === "undefined") return location || "/direct-connect";
-    return `${window.location.pathname}${window.location.search || ""}`;
+  const currentReturnPath = () =>
+    resolveDirectConnectComposerReturnPath(entryLocation, location || "/direct-connect");
+
+  const currentEntrySignature = () => {
+    const entryIdentity = {
+      intent: getDirectConnectIntent(entryLocation || location || "/direct-connect") || "",
+      targetUserId: String(prefillTargetUserId || "").trim(),
+      targetProviderId: String(prefillTargetProviderId || "").trim(),
+      targetSelector: String(prefillTargetSelector || "").trim(),
+      contextType: String(prefillContextType || "").trim(),
+      contextId: String(prefillContextId || "").trim(),
+      subjectType: String(prefillSubjectType || "").trim(),
+      source: String(prefillSource || "").trim(),
+      title: String(prefillTitle || "").trim(),
+      description: String(prefillDescription || "").trim(),
+      budgetMin: String(prefillBudgetMin || "").trim(),
+      budgetMax: String(prefillBudgetMax || "").trim(),
+      location: String(prefillLocation || "").trim(),
+      timing: String(prefillTiming || "").trim(),
+      tradeId: String(prefillTradeId || "").trim(),
+    };
+    return Object.values(entryIdentity).some(Boolean) ? JSON.stringify(entryIdentity) : "";
   };
+
+  const currentAuthenticatedDraftKey = () =>
+    getDirectConnectComposerDraftSessionKey(
+      user?.id ? String(user.id) : null,
+      entryLocation || location || "/direct-connect",
+      currentEntrySignature()
+    );
 
   const clearDirectConnectDraft = () => {
     if (typeof window === "undefined") return;
+    const authenticatedDraftKey = currentAuthenticatedDraftKey();
+    if (authenticatedDraftKey) window.sessionStorage.removeItem(authenticatedDraftKey);
     window.sessionStorage.removeItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY);
     window.localStorage.removeItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY);
   };
 
   const readDirectConnectDraft = () => {
     if (typeof window === "undefined") return null;
+    const authenticatedDraftKey = currentAuthenticatedDraftKey();
     return (
+      (authenticatedDraftKey && window.sessionStorage.getItem(authenticatedDraftKey)) ||
       window.sessionStorage.getItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY) ||
       window.localStorage.getItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY)
     );
@@ -1431,7 +1660,26 @@ function DirectConnectRequestComposer({
       });
       return;
     }
-    if (parsed.returnPath !== currentReturnPath()) return;
+    const returnPathMatches = parsed.authHandoff
+      ? parsed.returnPath === currentReturnPath()
+      : canonicalizeDirectConnectWorkspacePathname(parsed.returnPath) ===
+        canonicalizeDirectConnectWorkspacePathname(currentReturnPath());
+    if (!returnPathMatches) return;
+    const authenticatedUserId = String(user?.id || "").trim();
+    const draftOwnerUserId = String(parsed.ownerUserId || "").trim();
+    const accountMismatch = Boolean(
+      authenticatedUserId &&
+      ((draftOwnerUserId && draftOwnerUserId !== authenticatedUserId) ||
+        (!draftOwnerUserId && parsed.authHandoff !== true))
+    );
+    const entrySignature = currentEntrySignature();
+    const entryMismatch = Boolean(
+      entrySignature && String(parsed.entrySignature || "") !== entrySignature
+    );
+    if (accountMismatch || entryMismatch) {
+      clearDirectConnectDraft();
+      return;
+    }
     if (Date.now() - parsed.savedAt > DIRECT_CONNECT_DRAFT_TTL_MS) {
       clearDirectConnectDraft();
       return;
@@ -1445,10 +1693,10 @@ function DirectConnectRequestComposer({
       .map((item) => (typeof item === "string" ? item.trim() : ""))
       .filter(Boolean);
 
-    setTitle(parsed.title || prefillTitle?.trim() || "");
-    setDescription(parsed.description || prefillDescription?.trim() || "");
-    setBudgetMin(parsed.budgetMin || "");
-    setBudgetMax(parsed.budgetMax || "");
+    setTitle(resolveDirectConnectComposerDraftText(parsed.title, prefillTitle));
+    setDescription(resolveDirectConnectComposerDraftText(parsed.description, prefillDescription));
+    setBudgetMin(resolveDirectConnectComposerDraftText(parsed.budgetMin, prefillBudgetMin));
+    setBudgetMax(resolveDirectConnectComposerDraftText(parsed.budgetMax, prefillBudgetMax));
     if (
       parsedRequestType === "service_request" ||
       parsedRequestType === "business_request" ||
@@ -1457,10 +1705,14 @@ function DirectConnectRequestComposer({
       parsedRequestType === "buy_sell" ||
       parsedRequestType === "other"
     ) {
-      setRequestType(parsedRequestType);
+      setRequestType(prefillSubjectType === "product" ? "buy_sell" : parsedRequestType);
     }
-    setShowOptional(Boolean(parsed.showOptional));
-    setSelectedContractorIds(parsedProviderIds);
+    setShowOptional(
+      Boolean(parsed.showOptional || prefillBudgetMin?.trim() || prefillBudgetMax?.trim())
+    );
+    setSelectedContractorIds(
+      prefillTargetProviderId?.trim() ? [prefillTargetProviderId.trim()] : parsedProviderIds
+    );
     if (typeof parsed.selectedHomeId === "string") setSelectedHomeId(parsed.selectedHomeId.trim());
     if (
       parsed.assetComponentType === "roof" ||
@@ -1493,13 +1745,18 @@ function DirectConnectRequestComposer({
     setDraftAttachmentKeys(Array.from(new Set(parsedAttachmentKeys)).slice(0, 6));
     if (parsed.detailAnswers) {
       setDetailAnswers({
-        what: String(parsed.detailAnswers.what || prefillTitle?.trim() || ""),
-        where: String(parsed.detailAnswers.where || prefillLocation?.trim() || ""),
-        when: String(parsed.detailAnswers.when || prefillTiming?.trim() || ""),
-        details: String(parsed.detailAnswers.details || prefillDescription?.trim() || ""),
+        what: resolveDirectConnectComposerDraftText(parsed.detailAnswers.what, prefillTitle),
+        where: resolveDirectConnectComposerDraftText(parsed.detailAnswers.where, prefillLocation),
+        when: resolveDirectConnectComposerDraftText(parsed.detailAnswers.when, prefillTiming),
+        details: resolveDirectConnectComposerDraftText(
+          parsed.detailAnswers.details,
+          prefillDescription
+        ),
       });
     }
-    clearDirectConnectDraft();
+    if (shouldConsumeDirectConnectDraftAfterHydration(parsed.authHandoff)) {
+      clearDirectConnectDraft();
+    }
   };
 
   const persistDirectConnectDraft = (payload: { selectedProviderIds?: string[] } = {}) => {
@@ -1508,6 +1765,9 @@ function DirectConnectRequestComposer({
     const draft: DirectConnectDraftSnapshot = {
       savedAt: Date.now(),
       returnPath: currentReturnPath(),
+      ownerUserId: user?.id ? String(user.id) : undefined,
+      authHandoff: !user?.id,
+      entrySignature: currentEntrySignature() || undefined,
       requestType,
       title: title.trim(),
       description: description.trim(),
@@ -1543,6 +1803,11 @@ function DirectConnectRequestComposer({
       },
     };
     const serialized = JSON.stringify(draft);
+    const authenticatedDraftKey = currentAuthenticatedDraftKey();
+    if (authenticatedDraftKey) {
+      window.sessionStorage.setItem(authenticatedDraftKey, serialized);
+      return;
+    }
     window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
     window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
   };
@@ -1847,6 +2112,29 @@ function DirectConnectRequestComposer({
     dispatchMode === "top_count"
       ? topCountSelectionKey
       : String(prefillTargetProviderId || "").trim();
+  const hasMeaningfulAuthenticatedDraft = Boolean(
+    title.trim() ||
+    description.trim() ||
+    budgetMin.trim() ||
+    budgetMax.trim() ||
+    detailAnswers.what.trim() ||
+    detailAnswers.where.trim() ||
+    detailAnswers.when.trim() ||
+    detailAnswers.details.trim() ||
+    selectedContractorIds.length ||
+    selectedHomeId.trim() ||
+    assetComponentId.trim() ||
+    assetLabel.trim() ||
+    draftAttachmentKeys.length
+  );
+  latestAuthenticatedDraftSaveRef.current = () => {
+    if (!draftInitializedRef.current || !user?.id || draftSubmittedRef.current) return;
+    if (hasMeaningfulAuthenticatedDraft) {
+      persistDirectConnectDraft();
+    } else {
+      clearDirectConnectDraft();
+    }
+  };
 
   useEffect(() => {
     if (!showDispatchSheet) return;
@@ -1861,6 +2149,43 @@ function DirectConnectRequestComposer({
 
   useEffect(() => {
     hydrateDirectConnectDraft();
+  }, []);
+
+  useEffect(() => {
+    if (!draftInitializedRef.current || !user?.id) return;
+    const timeoutId = window.setTimeout(
+      () => latestAuthenticatedDraftSaveRef.current(),
+      DIRECT_CONNECT_DRAFT_SAVE_DEBOUNCE_MS
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    assetComponentId,
+    assetComponentType,
+    assetLabel,
+    budgetMax,
+    budgetMin,
+    description,
+    detailAnswers.details,
+    detailAnswers.what,
+    detailAnswers.when,
+    detailAnswers.where,
+    draftAttachmentKeys,
+    homeContextIntent,
+    requestType,
+    selectedContractorIds,
+    selectedHomeId,
+    showOptional,
+    title,
+    user?.id,
+  ]);
+
+  useEffect(() => {
+    const flushAuthenticatedDraft = () => latestAuthenticatedDraftSaveRef.current();
+    window.addEventListener("pagehide", flushAuthenticatedDraft);
+    return () => {
+      window.removeEventListener("pagehide", flushAuthenticatedDraft);
+      flushAuthenticatedDraft();
+    };
   }, []);
 
   useEffect(() => {
@@ -2040,8 +2365,13 @@ function DirectConnectRequestComposer({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
+      draftSubmittedRef.current = true;
       clearDirectConnectDraft();
-      navigate("/direct-connect/inbox");
+      navigate(
+        submittedRequestId
+          ? `${DIRECT_CONNECT_REQUESTS_PATH}?selected=${encodeURIComponent(submittedRequestId)}`
+          : DIRECT_CONNECT_REQUESTS_PATH
+      );
     },
     onError: (error: any, _variables: DirectConnectCreateDispatch | undefined) => {
       const variables = _variables ?? {};
@@ -3462,15 +3792,11 @@ function NavigationGrid({
   );
 }
 
-function DirectConnectInbox() {
+function DirectConnectInbox({ defaultCountyFips }: { defaultCountyFips?: string }) {
   const [, navigate] = useLocation();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
-  const [whyJobAssignmentId, setWhyJobAssignmentId] = useState<string | null>(null);
-  const [declineAssignmentId, setDeclineAssignmentId] = useState<string | null>(null);
-  const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
   const [expandedAssignmentId, setExpandedAssignmentId] = useState<string | null>(null);
-  const [mobileActionAssignmentId, setMobileActionAssignmentId] = useState<string | null>(null);
   const [archivedAssignmentIds, setArchivedAssignmentIds] = useState<string[]>([]);
   const [availabilityByAssignment, setAvailabilityByAssignment] = useState<Record<string, string>>(
     {}
@@ -3479,28 +3805,45 @@ function DirectConnectInbox() {
   const [scopeNoteByAssignment, setScopeNoteByAssignment] = useState<Record<string, string>>({});
   const [structuredReplyOpenId, setStructuredReplyOpenId] = useState<string | null>(null);
   const firstQualifiedReplyTrackedRef = useRef(false);
-  const [inboxFilter, setInboxFilter] = useState<"all" | "suggested" | "accepted" | "declined">(
-    "all"
-  );
-
-  const { data, isLoading } = useQuery<DirectConnectInboxItem[]>({
-    queryKey: ["/api/direct-connect/inbox"],
-    queryFn: async () => {
-      const res = await fetch("/api/direct-connect/inbox");
-      if (!res.ok) {
-        trackDirectConnectApiFailure({
-          source: "/api/direct-connect/inbox",
-          section: "inbox",
-          status: res.status,
-          blocked: true,
-        });
-        throw new Error("Failed to load Direct Connect messages");
-      }
-      return res.json();
-    },
-    enabled: isAuthenticated,
+  const selectedRowRef = useRef<HTMLButtonElement | null>(null);
+  const { toast } = useToast();
+  const {
+    state: workspaceState,
+    setState: setWorkspaceState,
+    hydrated: workspaceHydrated,
+  } = useDirectConnectWorkdeskState({
+    task: "incoming",
+    pathname: DIRECT_CONNECT_INCOMING_PATH,
+    authenticatedUserId: user?.id,
+    currentCountyFips: defaultCountyFips || (user as any)?.countyFips,
+    authLoading,
   });
-  const items = useMemo(() => data || [], [data]);
+  const inboxFilter = workspaceState.filter as "all" | "suggested" | "accepted" | "declined";
+
+  const { data, isLoading, isError, isSuccess, isFetching, isFetchedAfterMount, refetch } =
+    useQuery<DirectConnectInboxItem[]>({
+      queryKey: ["/api/direct-connect/inbox", "workspace", user?.id],
+      queryFn: async () => {
+        const res = await fetch("/api/direct-connect/inbox");
+        if (!res.ok) {
+          trackDirectConnectApiFailure({
+            source: "/api/direct-connect/inbox",
+            section: "inbox",
+            status: res.status,
+            blocked: true,
+          });
+          throw new Error("Failed to load Direct Connect messages");
+        }
+        return res.json();
+      },
+      enabled: isAuthenticated && workspaceHydrated,
+    });
+  // The API also carries synthetic requester-status rows. Incoming is a
+  // provider-authority queue, so only real assignment identities enter it.
+  const items = useMemo(
+    () => (data || []).filter((item) => isRealDirectConnectAssignmentId(item.assignment.id)),
+    [data]
+  );
   const normalizeInboxStatus = (status: string | null | undefined) => {
     const value = String(status || "suggested").toLowerCase();
     return value === "invited" ? "suggested" : value;
@@ -3511,6 +3854,38 @@ function DirectConnectInbox() {
   const visibleItems = filteredItems.filter(
     (item) => !archivedAssignmentIds.includes(String(item.assignment.id || ""))
   );
+  const selectedItem = useMemo(
+    () =>
+      resolveSelectedDirectConnectWorkspaceItem(
+        visibleItems,
+        workspaceState.selectedId,
+        (item) => item.assignment.id
+      ),
+    [visibleItems, workspaceState.selectedId]
+  );
+
+  useEffect(() => {
+    if (
+      !shouldInvalidateDirectConnectWorkspaceSelection({
+        workspaceHydrated,
+        selectedId: workspaceState.selectedId,
+        selectionResolved: Boolean(selectedItem),
+        queryIsSuccess: isSuccess,
+        queryIsFetching: isFetching,
+        queryFetchedAfterMount: isFetchedAfterMount,
+      })
+    )
+      return;
+    setWorkspaceState((current) => ({ ...current, selectedId: "" }));
+  }, [
+    isFetchedAfterMount,
+    isFetching,
+    isSuccess,
+    selectedItem,
+    setWorkspaceState,
+    workspaceHydrated,
+    workspaceState.selectedId,
+  ]);
 
   useEffect(() => {
     if (isAuthenticated && user) return;
@@ -3545,6 +3920,9 @@ function DirectConnectInbox() {
       priceBand?: "budget" | "standard" | "premium" | "custom_quote";
       scopeNote?: string;
     }) => {
+      if (!isRealDirectConnectAssignmentId(payload.id)) {
+        throw new Error("This item is not an actionable provider assignment.");
+      }
       return apiRequest("POST", `/api/direct-connect/assignments/${payload.id}/respond`, {
         decision: payload.decision,
         reason: payload.reason,
@@ -3570,16 +3948,13 @@ function DirectConnectInbox() {
         requestId: variables?.id ? String(variables.id) : undefined,
         blocked: true,
       });
+      toast({
+        title: "Couldn’t update this assignment",
+        description: formatUserFacingErrorMessage(error, "Please retry from Incoming."),
+        variant: "destructive",
+      });
     },
   });
-  const handleRespond = async (
-    assignmentId: string,
-    decision: "accept" | "decline",
-    reason?: string
-  ) => {
-    await respondMutation.mutateAsync({ id: assignmentId, decision, reason });
-  };
-
   useEffect(() => {
     if (firstQualifiedReplyTrackedRef.current) return;
     const firstQualified = (items || []).find((item) => {
@@ -3609,7 +3984,7 @@ function DirectConnectInbox() {
     );
   }
 
-  if (isLoading) {
+  if (!workspaceHydrated || isLoading) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="space-y-3 p-4 md:p-6">
@@ -3621,19 +3996,49 @@ function DirectConnectInbox() {
     );
   }
 
-  if (!items.length) {
+  if (isError) {
     return (
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No Direct Connect messages yet.
+      <Card className="border-rose-500/35 bg-[color:var(--surface-card)]">
+        <CardContent className="flex min-h-48 flex-col items-center justify-center p-6 text-center">
+          <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+            Incoming assignments couldn’t load
+          </p>
+          <p className="mt-1 max-w-md text-xs text-[color:var(--text-secondary)]">
+            Nothing was cleared or treated as an empty queue. Retry the same provider view.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-4 min-h-[44px]"
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
+            <RefreshCw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
+            Retry Incoming
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
-  const currentWhyJobSnapshot = items.find((i) => i.assignment.id === whyJobAssignmentId)
-    ?.assignment.scoreSnapshot;
-  const currentAcceptedForInvoice = items.find((i) => i.assignment.id === creatingInvoice);
+  if (!items.length) {
+    return (
+      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardContent className="space-y-3 p-6 text-center md:p-8">
+          <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+            No incoming assignments yet
+          </p>
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            Incoming is only for work assigned to your provider identity. Updates to requests you
+            own stay in My Requests.
+          </p>
+          <Button variant="outline" onClick={() => navigate(DIRECT_CONNECT_REQUESTS_PATH)}>
+            Open My Requests
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -3649,8 +4054,16 @@ function DirectConnectInbox() {
             <button
               key={f}
               type="button"
-              onClick={() => setInboxFilter(f)}
-              className="shrink-0 rounded-xl border px-3.5 text-[13px] font-medium transition-all h-10"
+              onClick={() =>
+                setWorkspaceState((current) =>
+                  updateDirectConnectWorkspaceState(
+                    current,
+                    { filter: f as DirectConnectWorkspaceFilter },
+                    "incoming"
+                  )
+                )
+              }
+              className="h-10 min-h-[44px] shrink-0 rounded-xl border px-3.5 text-[13px] font-medium transition-all sm:min-h-10"
               style={{
                 borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                 color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -3664,317 +4077,495 @@ function DirectConnectInbox() {
           );
         })}
       </div>
-      <Card className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        {visibleItems.map((item) => {
-          const { assignment, request } = item;
-          const assignmentStatusRaw = String(assignment.status || "suggested").toLowerCase();
-          const canRespond =
-            assignmentStatusRaw === "suggested" || assignmentStatusRaw === "invited";
-          const actionableAssignment =
-            canRespond && !String(assignment.id || "").startsWith("request-");
-          const status = assignmentStatusRaw;
-          const snapshot = assignment.scoreSnapshot || undefined;
-          const createdAt = assignment.createdAt || request?.createdAt;
-          const isExpanded = expandedAssignmentId === assignment.id;
-          const isMobileActionOpen = mobileActionAssignmentId === assignment.id;
-          const isStructuredReplyOpen = structuredReplyOpenId === assignment.id;
-          const availabilityWindow = availabilityByAssignment[assignment.id] || "";
-          const priceBand = priceBandByAssignment[assignment.id] || "";
-          const scopeNote = scopeNoteByAssignment[assignment.id] || "";
-          const canSubmitStructuredAccept =
-            availabilityWindow.trim().length >= 3 &&
-            scopeNote.trim().length >= 10 &&
-            ["budget", "standard", "premium", "custom_quote"].includes(priceBand);
-          const inboxNextStepCopy = getDirectConnectInboxNextStepCopy({
-            assignmentStatus: status,
-            requestStatus: request?.status ?? null,
-            conversationThreadId: item.conversationThreadId ?? null,
-            actionableAssignment,
-            isStructuredReplyOpen,
-          });
-          const inboxDisplay = buildDirectConnectInboxDisplay({
-            status,
-            timestamp: createdAt,
-            scoreSnapshot: snapshot,
-          });
-
-          return (
-            <div
-              key={assignment.id}
-              className="border-b border-[color:var(--border-subtle)]/60 last:border-b-0 hover:bg-[color:var(--surface-intermediate)]/40 transition-colors"
-            >
-              <div className="space-y-3 p-3 md:p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      {inboxNextStepCopy.label}
-                    </p>
-                    <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
-                      {request?.title || "New opportunity"}
-                    </h3>
-                    <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
-                      {request?.description || "Request details."}
-                    </p>
-                    <p className="text-[11px] text-[color:var(--text-secondary)]/90">
-                      {inboxNextStepCopy.summary}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <Badge
-                      variant="outline"
-                      className={cn("uppercase text-[10px]", statusTone(status))}
-                    >
-                      {inboxDisplay.statusLabel}
-                    </Badge>
-                    {(() => {
-                      const a = assignment as any;
-                      if (a.workerId)
-                        return (
-                          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                            Worker
-                          </Badge>
-                        );
-                      if (a.responderUserId && !a.contractorId)
-                        return (
-                          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                            Business
-                          </Badge>
-                        );
-                      if (a.contractorId)
-                        return (
-                          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                            Provider
-                          </Badge>
-                        );
-                      return null;
-                    })()}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                  <span className="min-w-0 truncate">
-                    {[
-                      request?.status
-                        ? `Request ${String(request.status).replace("_", " ")}`
-                        : null,
-                      request?.tradeId ? `Trade ${request.tradeId}` : null,
-                      request?.countyFips
-                        ? formatCountyLabel(request.countyFips, request?.stateCode)
-                        : null,
-                      inboxDisplay.timeLabel,
-                    ]
-                      .filter(Boolean)
-                      .join(" • ") || "Local match"}
-                  </span>
-                  {inboxDisplay.detailRows.length > 0 && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 shrink-0 px-2 text-[11px]"
-                      onClick={() =>
-                        setExpandedAssignmentId((current) =>
-                          current === assignment.id ? null : assignment.id
-                        )
-                      }
-                      aria-expanded={isExpanded}
-                    >
-                      {isExpanded ? "Hide details" : inboxDisplay.detailsLabel}
-                    </Button>
-                  )}
-                </div>
-
-                {isExpanded && inboxDisplay.detailRows.length > 0 && (
-                  <div className="space-y-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-[11px] text-[color:var(--text-secondary)]">
-                    <p className="font-medium uppercase tracking-[0.16em] text-[color:var(--text-primary)]">
-                      {inboxDisplay.detailsHeading}
-                    </p>
-                    {inboxDisplay.detailRows.map((detail) => (
-                      <div key={`${assignment.id}-${detail}`}>{detail}</div>
-                    ))}
-                  </div>
-                )}
-
-                {request?.id && request.attachmentCount ? (
-                  <RequestAttachmentStrip
-                    requestId={request.id}
-                    attachmentCount={request.attachmentCount}
-                  />
-                ) : null}
-
-                {actionableAssignment && isStructuredReplyOpen && (
-                  <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-                      Structured reply
-                    </p>
-                    <Input
-                      value={availabilityWindow}
-                      onChange={(event) =>
-                        setAvailabilityByAssignment((current) => ({
+      <div
+        className="grid min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] md:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.2fr)]"
+        data-testid="direct-connect-incoming-workspace"
+      >
+        <section
+          aria-label="Incoming assignments"
+          className={cn(
+            "min-w-0 border-[color:var(--border-subtle)] md:block md:border-r",
+            selectedItem ? "hidden" : "block"
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-[color:var(--border-subtle)] px-3 py-2.5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--theme-accent-primary)]">
+                Provider · Incoming
+              </p>
+              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                Select one assignment to respond.
+              </p>
+            </div>
+            <Badge variant="outline">{visibleItems.length}</Badge>
+          </div>
+          {visibleItems.length ? (
+            <ul className="max-h-[38rem] min-w-0 overflow-y-auto" data-testid="incoming-list">
+              {visibleItems.map((item) => {
+                const status = normalizeInboxStatus(item.assignment.status);
+                const display = buildDirectConnectInboxDisplay({
+                  status,
+                  timestamp: item.assignment.createdAt || item.request?.createdAt,
+                  scoreSnapshot: item.assignment.scoreSnapshot,
+                });
+                const selected = item.assignment.id === workspaceState.selectedId;
+                return (
+                  <li
+                    key={item.assignment.id}
+                    className="border-b border-[color:var(--border-subtle)]/70 last:border-b-0"
+                  >
+                    <button
+                      ref={selected ? selectedRowRef : undefined}
+                      type="button"
+                      aria-pressed={selected}
+                      aria-controls="direct-connect-incoming-inspector"
+                      data-testid={`incoming-row-${item.assignment.id}`}
+                      onClick={(event) => {
+                        selectedRowRef.current = event.currentTarget;
+                        setWorkspaceState((current) => ({
                           ...current,
-                          [assignment.id]: event.target.value,
-                        }))
-                      }
-                      placeholder="Availability window (e.g., this week, weekdays after 3pm)"
-                      className="bg-[color:var(--surface-card)]"
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { value: "budget", label: "Budget" },
-                        { value: "standard", label: "Standard" },
-                        { value: "premium", label: "Premium" },
-                        { value: "custom_quote", label: "Custom quote" },
-                      ].map((option) => {
-                        const active = priceBand === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
+                          selectedId: item.assignment.id,
+                        }));
+                        if (
+                          typeof window !== "undefined" &&
+                          window.matchMedia("(max-width: 767px)").matches
+                        ) {
+                          window.requestAnimationFrame(() =>
+                            document.getElementById("direct-connect-incoming-back")?.focus()
+                          );
+                        }
+                      }}
+                      className={cn(
+                        "flex min-h-16 w-full min-w-0 items-center gap-3 px-3 py-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--theme-accent-primary)]",
+                        selected
+                          ? "bg-[color:var(--surface-elevated)]"
+                          : "hover:bg-[color:var(--surface-intermediate)]"
+                      )}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                          {item.request?.title || "Incoming assignment"}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
+                          {item.request?.description || "Review the request details."}
+                        </span>
+                        <span className="mt-1 block text-[11px] text-[color:var(--text-secondary)]">
+                          {[display.statusLabel, display.timeLabel].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+                      <ChevronRight
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          selected
+                            ? "text-[color:var(--theme-accent-primary)]"
+                            : "text-[color:var(--text-secondary)]"
+                        )}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="flex min-h-40 items-center justify-center p-5 text-center text-xs text-[color:var(--text-secondary)]">
+              No assignments match this filter.
+            </div>
+          )}
+        </section>
+
+        <section
+          id="direct-connect-incoming-inspector"
+          aria-label="Selected incoming assignment"
+          aria-live="polite"
+          className={cn(
+            "min-w-0 bg-[color:var(--surface-base)] md:block",
+            selectedItem ? "block" : "hidden"
+          )}
+          data-testid="incoming-inspector"
+        >
+          {selectedItem && (
+            <div className="border-b border-[color:var(--border-subtle)] p-2 md:hidden">
+              <Button
+                id="direct-connect-incoming-back"
+                type="button"
+                variant="ghost"
+                className="min-h-[44px]"
+                onClick={() => {
+                  const selectedRow = selectedRowRef.current;
+                  setWorkspaceState((current) => ({ ...current, selectedId: "" }));
+                  window.requestAnimationFrame(() => selectedRow?.focus());
+                }}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Incoming
+              </Button>
+            </div>
+          )}
+          <Card className="min-h-full overflow-hidden rounded-none border-0 bg-[color:var(--surface-card)] shadow-none max-md:[&_button]:!min-h-[44px]">
+            {selectedItem ? (
+              [selectedItem].map((item) => {
+                const { assignment, request } = item;
+                const assignmentStatusRaw = String(assignment.status || "suggested").toLowerCase();
+                const canRespond =
+                  assignmentStatusRaw === "suggested" || assignmentStatusRaw === "invited";
+                const actionableAssignment =
+                  canRespond && isRealDirectConnectAssignmentId(assignment.id);
+                const status = assignmentStatusRaw;
+                const snapshot = assignment.scoreSnapshot || undefined;
+                const createdAt = assignment.createdAt || request?.createdAt;
+                const isExpanded = expandedAssignmentId === assignment.id;
+                const isStructuredReplyOpen = structuredReplyOpenId === assignment.id;
+                const availabilityWindow = availabilityByAssignment[assignment.id] || "";
+                const priceBand = priceBandByAssignment[assignment.id] || "";
+                const scopeNote = scopeNoteByAssignment[assignment.id] || "";
+                const canSubmitStructuredAccept =
+                  availabilityWindow.trim().length >= 3 &&
+                  scopeNote.trim().length >= 10 &&
+                  ["budget", "standard", "premium", "custom_quote"].includes(priceBand);
+                const inboxNextStepCopy = getDirectConnectInboxNextStepCopy({
+                  assignmentStatus: status,
+                  requestStatus: request?.status ?? null,
+                  conversationThreadId: item.conversationThreadId ?? null,
+                  actionableAssignment,
+                  isStructuredReplyOpen,
+                });
+                const inboxDisplay = buildDirectConnectInboxDisplay({
+                  status,
+                  timestamp: createdAt,
+                  scoreSnapshot: snapshot,
+                });
+
+                return (
+                  <div
+                    key={assignment.id}
+                    className="border-b border-[color:var(--border-subtle)]/60 last:border-b-0 hover:bg-[color:var(--surface-intermediate)]/40 transition-colors"
+                  >
+                    <div className="space-y-3 p-3 md:p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                            {inboxNextStepCopy.label}
+                          </p>
+                          <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                            {request?.title || "New opportunity"}
+                          </h3>
+                          <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
+                            {request?.description || "Request details."}
+                          </p>
+                          <p className="text-[11px] text-[color:var(--text-secondary)]/90">
+                            {inboxNextStepCopy.summary}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={cn("uppercase text-[10px]", statusTone(status))}
+                          >
+                            {inboxDisplay.statusLabel}
+                          </Badge>
+                          {(() => {
+                            const a = assignment as any;
+                            if (a.workerId)
+                              return (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] uppercase tracking-wide"
+                                >
+                                  Worker
+                                </Badge>
+                              );
+                            if (a.responderUserId && !a.contractorId)
+                              return (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] uppercase tracking-wide"
+                                >
+                                  Business
+                                </Badge>
+                              );
+                            if (a.contractorId)
+                              return (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[9px] uppercase tracking-wide"
+                                >
+                                  Provider
+                                </Badge>
+                              );
+                            return null;
+                          })()}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                        <span className="min-w-0 truncate">
+                          {[
+                            request?.status
+                              ? `Request ${String(request.status).replace("_", " ")}`
+                              : null,
+                            request?.tradeId ? `Trade ${request.tradeId}` : null,
+                            request?.countyFips
+                              ? formatCountyLabel(request.countyFips, request?.stateCode)
+                              : null,
+                            inboxDisplay.timeLabel,
+                          ]
+                            .filter(Boolean)
+                            .join(" • ") || "Local match"}
+                        </span>
+                        {inboxDisplay.detailRows.length > 0 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 min-h-[44px] shrink-0 px-2 text-[11px] sm:min-h-7"
                             onClick={() =>
-                              setPriceBandByAssignment((current) => ({
+                              setExpandedAssignmentId((current) =>
+                                current === assignment.id ? null : assignment.id
+                              )
+                            }
+                            aria-expanded={isExpanded}
+                          >
+                            {isExpanded ? "Hide details" : inboxDisplay.detailsLabel}
+                          </Button>
+                        )}
+                      </div>
+
+                      {isExpanded && inboxDisplay.detailRows.length > 0 && (
+                        <div className="space-y-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-[11px] text-[color:var(--text-secondary)]">
+                          <p className="font-medium uppercase tracking-[0.16em] text-[color:var(--text-primary)]">
+                            {inboxDisplay.detailsHeading}
+                          </p>
+                          {inboxDisplay.detailRows.map((detail) => (
+                            <div key={`${assignment.id}-${detail}`}>{detail}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {request?.id && request.attachmentCount ? (
+                        <RequestAttachmentStrip
+                          requestId={request.id}
+                          attachmentCount={request.attachmentCount}
+                        />
+                      ) : null}
+
+                      {actionableAssignment && isStructuredReplyOpen && (
+                        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
+                          <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+                            Structured reply
+                          </p>
+                          <Input
+                            value={availabilityWindow}
+                            onChange={(event) =>
+                              setAvailabilityByAssignment((current) => ({
                                 ...current,
-                                [assignment.id]: option.value,
+                                [assignment.id]: event.target.value,
                               }))
                             }
-                            className={cn(
-                              "rounded-md border px-2 py-1.5 text-xs text-left transition-colors",
-                              active
-                                ? "border-ts-orange bg-ts-orange/20 text-white"
-                                : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
-                            )}
+                            placeholder="Availability window (e.g., this week, weekdays after 3pm)"
+                            className="bg-[color:var(--surface-card)]"
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { value: "budget", label: "Budget" },
+                              { value: "standard", label: "Standard" },
+                              { value: "premium", label: "Premium" },
+                              { value: "custom_quote", label: "Custom quote" },
+                            ].map((option) => {
+                              const active = priceBand === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() =>
+                                    setPriceBandByAssignment((current) => ({
+                                      ...current,
+                                      [assignment.id]: option.value,
+                                    }))
+                                  }
+                                  className={cn(
+                                    "min-h-[44px] rounded-md border px-2 py-1.5 text-left text-xs transition-colors sm:min-h-8",
+                                    active
+                                      ? "border-ts-orange bg-ts-orange/20 text-white"
+                                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                                  )}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <Textarea
+                            value={scopeNote}
+                            onChange={(event) =>
+                              setScopeNoteByAssignment((current) => ({
+                                ...current,
+                                [assignment.id]: event.target.value,
+                              }))
+                            }
+                            rows={2}
+                            placeholder="Scope note (what you can handle and next recommended step)"
+                            className="bg-[color:var(--surface-card)]"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {actionableAssignment && (
+                          <Button
+                            size="sm"
+                            className="h-8 min-h-[44px] px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90 sm:min-h-8"
+                            disabled={
+                              respondMutation.isPending ||
+                              (isStructuredReplyOpen && !canSubmitStructuredAccept)
+                            }
+                            onClick={async () => {
+                              if (!isStructuredReplyOpen) {
+                                setStructuredReplyOpenId(assignment.id);
+                                return;
+                              }
+                              let result: any;
+                              try {
+                                result = await respondMutation.mutateAsync({
+                                  id: assignment.id,
+                                  decision: "accept",
+                                  availabilityWindow,
+                                  priceBand: priceBand as
+                                    | "budget"
+                                    | "standard"
+                                    | "premium"
+                                    | "custom_quote",
+                                  scopeNote,
+                                });
+                              } catch {
+                                return;
+                              }
+                              trackShellEvent({
+                                type: "scout_query",
+                                payload: {
+                                  event: "direct_connect_reply_accepted",
+                                  assignmentId: assignment.id,
+                                  requestId: assignment.workRequestId,
+                                },
+                              });
+                              if (result?.conversationId) {
+                                trackShellEvent({
+                                  type: "scout_query",
+                                  payload: {
+                                    event: "direct_connect_moved_to_conversation",
+                                    assignmentId: assignment.id,
+                                    requestId: assignment.workRequestId,
+                                    conversationId: String(result.conversationId),
+                                  },
+                                });
+                              }
+                              setStructuredReplyOpenId(null);
+                            }}
                           >
-                            {option.label}
-                          </button>
-                        );
-                      })}
+                            {inboxNextStepCopy.actionHint}
+                          </Button>
+                        )}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 min-h-[44px] px-2 text-xs sm:min-h-8"
+                          onClick={() => {
+                            const threadId = item.conversationThreadId;
+                            if (threadId) {
+                              window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
+                              return;
+                            }
+                            window.location.href = request?.id
+                              ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
+                              : "/messages?tab=requests";
+                          }}
+                        >
+                          {inboxNextStepCopy.contactUnlocked
+                            ? "Open conversation"
+                            : "Open Messages"}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 min-h-[44px] px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10 sm:min-h-8"
+                          disabled={respondMutation.isPending}
+                          onClick={async () => {
+                            if (actionableAssignment) {
+                              try {
+                                await respondMutation.mutateAsync({
+                                  id: assignment.id,
+                                  decision: "decline",
+                                  reason: "Archived from inbox",
+                                });
+                              } catch {
+                                return;
+                              }
+                            }
+                            setArchivedAssignmentIds((current) => [...current, assignment.id]);
+                          }}
+                        >
+                          Archive
+                        </Button>
+                      </div>
                     </div>
-                    <Textarea
-                      value={scopeNote}
-                      onChange={(event) =>
-                        setScopeNoteByAssignment((current) => ({
-                          ...current,
-                          [assignment.id]: event.target.value,
-                        }))
-                      }
-                      rows={2}
-                      placeholder="Scope note (what you can handle and next recommended step)"
-                      className="bg-[color:var(--surface-card)]"
-                    />
                   </div>
-                )}
-
-                <div className="flex flex-wrap gap-1.5">
-                  {actionableAssignment && (
-                    <Button
-                      size="sm"
-                      className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                      disabled={
-                        respondMutation.isPending ||
-                        (isStructuredReplyOpen && !canSubmitStructuredAccept)
-                      }
-                      onClick={async () => {
-                        if (!isStructuredReplyOpen) {
-                          setStructuredReplyOpenId(assignment.id);
-                          return;
-                        }
-                        const result = await respondMutation.mutateAsync({
-                          id: assignment.id,
-                          decision: "accept",
-                          availabilityWindow,
-                          priceBand: priceBand as
-                            | "budget"
-                            | "standard"
-                            | "premium"
-                            | "custom_quote",
-                          scopeNote,
-                        });
-                        trackShellEvent({
-                          type: "scout_query",
-                          payload: {
-                            event: "direct_connect_reply_accepted",
-                            assignmentId: assignment.id,
-                            requestId: assignment.workRequestId,
-                          },
-                        });
-                        if (result?.conversationId) {
-                          trackShellEvent({
-                            type: "scout_query",
-                            payload: {
-                              event: "direct_connect_moved_to_conversation",
-                              assignmentId: assignment.id,
-                              requestId: assignment.workRequestId,
-                              conversationId: String(result.conversationId),
-                            },
-                          });
-                        }
-                        setStructuredReplyOpenId(null);
-                      }}
-                    >
-                      {inboxNextStepCopy.actionHint}
-                    </Button>
-                  )}
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => {
-                      const threadId = item.conversationThreadId;
-                      if (threadId) {
-                        window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
-                        return;
-                      }
-                      window.location.href = request?.id
-                        ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
-                        : "/messages?tab=requests";
-                    }}
-                  >
-                    {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Open Messages"}
-                  </Button>
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                    disabled={respondMutation.isPending}
-                    onClick={async () => {
-                      if (actionableAssignment) {
-                        await respondMutation.mutateAsync({
-                          id: assignment.id,
-                          decision: "decline",
-                          reason: "Archived from inbox",
-                        });
-                      }
-                      setArchivedAssignmentIds((current) => [...current, assignment.id]);
-                    }}
-                  >
-                    Archive
-                  </Button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </Card>
+                );
+              })
+            ) : (
+              <CardContent className="flex min-h-64 flex-col items-center justify-center p-6 text-center">
+                <Inbox className="h-8 w-8 text-[color:var(--theme-accent-primary)]" />
+                <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
+                  Choose an incoming assignment
+                </p>
+                <p className="mt-1 max-w-sm text-xs text-[color:var(--text-secondary)]">
+                  Its provider-authorized actions will appear here without replacing the queue.
+                </p>
+              </CardContent>
+            )}
+          </Card>
+        </section>
+      </div>
     </div>
   );
 }
 
-function MyDirectConnectRequests() {
-  const { user, isAuthenticated } = useAuth();
+function MyDirectConnectRequests({ defaultCountyFips }: { defaultCountyFips?: string }) {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);
   const [mobileActionRequestId, setMobileActionRequestId] = useState<string | null>(null);
-  const [requestFilter, setRequestFilter] = useState<RequestFilter>("all");
   const [showRouteSheet, setShowRouteSheet] = useState(false);
   const [routeDispatchMode, setRouteDispatchMode] = useState<DispatchMode>("top_count");
   const [routeDispatchCount, setRouteDispatchCount] = useState<1 | 2 | 3>(3);
   const [routeDirectorySearch, setRouteDirectorySearch] = useState("");
   const [selectedRouteRequestId, setSelectedRouteRequestId] = useState<string | null>(null);
   const [selectedRouteContractorIds, setSelectedRouteContractorIds] = useState<string[]>([]);
+  const selectedRowRef = useRef<HTMLButtonElement | null>(null);
   const { toast } = useToast();
-  const { data: requestsData, isLoading } = useQuery<DirectConnectRequest[]>({
-    queryKey: ["/api/direct-connect/requests"],
+  const {
+    state: workspaceState,
+    setState: setWorkspaceState,
+    hydrated: workspaceHydrated,
+  } = useDirectConnectWorkdeskState({
+    task: "requests",
+    pathname: DIRECT_CONNECT_REQUESTS_PATH,
+    authenticatedUserId: user?.id,
+    currentCountyFips: defaultCountyFips || (user as any)?.countyFips,
+    authLoading,
+  });
+  const requestFilter = workspaceState.filter as RequestFilter;
+  const {
+    data: requestsData,
+    isLoading,
+    isError,
+    isSuccess,
+    isFetching,
+    isFetchedAfterMount,
+    refetch,
+  } = useQuery<DirectConnectRequest[]>({
+    queryKey: ["/api/direct-connect/requests", "workspace", user?.id],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/requests?scope=all");
       if (!res.ok) {
@@ -3984,25 +4575,61 @@ function MyDirectConnectRequests() {
           status: res.status,
           blocked: true,
         });
-        return [];
+        throw new Error("Failed to load owned Direct Connect requests");
       }
       return res.json();
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && workspaceHydrated,
   });
 
-  const filteredRequests = useMemo(() => {
+  const eligibleRequests = useMemo(() => {
     if (!requestsData) return [];
     return requestsData
       .filter((request) => !looksLikeHiddenOrTestRequest(request))
-      .filter((request) => isCurrentRequest(request))
-      .filter((request) => matchesRequestFilter(request, requestFilter))
+      .filter((request) => shouldKeepDirectConnectWorkspaceRequest(request))
       .sort((a, b) => {
         const aTs = new Date(a.dcLastEventAt || a.updatedAt || a.createdAt || 0).getTime();
         const bTs = new Date(b.dcLastEventAt || b.updatedAt || b.createdAt || 0).getTime();
         return bTs - aTs;
       });
-  }, [requestsData, requestFilter]);
+  }, [requestsData]);
+  const filteredRequests = useMemo(
+    () => eligibleRequests.filter((request) => matchesRequestFilter(request, requestFilter)),
+    [eligibleRequests, requestFilter]
+  );
+
+  const selectedRequest = useMemo(
+    () =>
+      resolveSelectedDirectConnectWorkspaceItem(
+        filteredRequests,
+        workspaceState.selectedId,
+        (request) => request.id
+      ),
+    [filteredRequests, workspaceState.selectedId]
+  );
+
+  useEffect(() => {
+    if (
+      !shouldInvalidateDirectConnectWorkspaceSelection({
+        workspaceHydrated,
+        selectedId: workspaceState.selectedId,
+        selectionResolved: Boolean(selectedRequest),
+        queryIsSuccess: isSuccess,
+        queryIsFetching: isFetching,
+        queryFetchedAfterMount: isFetchedAfterMount,
+      })
+    )
+      return;
+    setWorkspaceState((current) => ({ ...current, selectedId: "" }));
+  }, [
+    isFetchedAfterMount,
+    isFetching,
+    isSuccess,
+    selectedRequest,
+    setWorkspaceState,
+    workspaceHydrated,
+    workspaceState.selectedId,
+  ]);
 
   const activeRouteRequest = useMemo(
     () => filteredRequests.find((request) => request.id === selectedRouteRequestId) || null,
@@ -4282,7 +4909,17 @@ function MyDirectConnectRequests() {
     });
   };
 
-  if (isLoading) {
+  if (!isAuthenticated || !user) {
+    return (
+      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <CardContent className="p-6 text-center text-sm text-[color:var(--text-secondary)] md:p-8">
+          Sign in to view and manage your requests.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!workspaceHydrated || isLoading) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="space-y-3 p-4 md:p-6">
@@ -4293,29 +4930,26 @@ function MyDirectConnectRequests() {
     );
   }
 
-  if (!filteredRequests.length) {
+  if (isError) {
     return (
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="space-y-4 p-6 text-center md:p-8">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--theme-accent-primary)]">
-            <FolderKanban className="h-5 w-5" />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-[color:var(--text-primary)]">
-              No requests in this view
-            </p>
-            <p className="text-sm text-[color:var(--text-secondary)]">
-              Start a request and it will show up here with updates, photos, and next steps.
-            </p>
-          </div>
-          <div className="flex justify-center">
-            <Button
-              className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
-              onClick={() => navigate("/direct-connect")}
-            >
-              Direct Connect
-            </Button>
-          </div>
+      <Card className="border-rose-500/35 bg-[color:var(--surface-card)]">
+        <CardContent className="flex min-h-48 flex-col items-center justify-center p-6 text-center">
+          <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+            My Requests couldn’t load
+          </p>
+          <p className="mt-1 max-w-md text-xs text-[color:var(--text-secondary)]">
+            Nothing was cleared or treated as an empty list. Retry your owned-request view.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-4 min-h-[44px]"
+            disabled={isFetching}
+            onClick={() => void refetch()}
+          >
+            <RefreshCw className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")} />
+            Retry My Requests
+          </Button>
         </CardContent>
       </Card>
     );
@@ -4323,14 +4957,6 @@ function MyDirectConnectRequests() {
 
   return (
     <div className="space-y-3">
-      {!isAuthenticated && (
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="space-y-2 p-4 text-center text-sm text-[color:var(--text-secondary)]">
-            <p>You're viewing requests from this device session.</p>
-            <p>Sign in anytime to save and sync your requests.</p>
-          </CardContent>
-        </Card>
-      )}
       <div className="space-y-2 px-1">
         <p className="text-sm text-[color:var(--text-secondary)]">
           Each request moves through one clear stage at a time: ready to send, waiting on pros, or
@@ -4338,15 +4964,24 @@ function MyDirectConnectRequests() {
         </p>
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {REQUEST_FILTERS.map((f) => {
-            const count =
-              requestsData?.filter((request) => matchesRequestFilter(request, f)).length || 0;
+            const count = eligibleRequests.filter((request) =>
+              matchesRequestFilter(request, f)
+            ).length;
             const active = requestFilter === f;
             return (
               <button
                 key={f}
                 type="button"
-                onClick={() => setRequestFilter(f)}
-                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
+                onClick={() =>
+                  setWorkspaceState((current) =>
+                    updateDirectConnectWorkspaceState(
+                      current,
+                      { filter: f as DirectConnectWorkspaceFilter },
+                      "requests"
+                    )
+                  )
+                }
+                className="min-h-[44px] shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all sm:min-h-8"
                 style={{
                   borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                   color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -4362,313 +4997,576 @@ function MyDirectConnectRequests() {
         </div>
       </div>
 
-      <Card className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        {filteredRequests.map((r) => {
-          const status = String(r.status || "open").toLowerCase();
-          const interpreted = interpretWorkRequestStateForScout(r as unknown as WorkRequest);
-          const stage = getRequestWorkflowStage(r);
-          const hasAccepted = stage === "active_conversation" || stage === "completed";
-          const canSend = stage === "ready_to_send";
-          const canExpand = stage === "waiting_on_pros";
-          const canMessage = Boolean(r.dcConversationThreadId) || stage === "active_conversation";
-          const canCancel =
-            stage === "ready_to_send" ||
-            stage === "waiting_on_pros" ||
-            stage === "active_conversation";
-          const canMarkPendingOutcome = stage === "active_conversation";
-          const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation";
-          const canReopen = stage === "cancelled";
-          const canShare = stage !== "cancelled" && stage !== "completed";
-          const nextStepCopy = getDirectConnectNextStepCopy(r);
-          const isExpanded = expandedRequestId === r.id;
-          const isMobileActionOpen = mobileActionRequestId === r.id;
-          const timelineStamp = r.dcLastEventAt || r.createdAt;
-          const displayTitle = getDisplayRequestTitle(r);
-          const displayDescription = getDisplayRequestDescription(r);
-          const displayLatestStatus = getDisplayLatestStatus(r);
-          const statusFacts = [
-            r.tradeId ? `Trade ${r.tradeId}` : null,
-            r.countyFips ? formatCountyLabel(r.countyFips, r.stateCode) : null,
-            typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
-              ? `${r.dcSuggestedCount} routed`
-              : null,
-            typeof r.responseCount === "number" && r.responseCount > 0
-              ? `${r.responseCount} response${r.responseCount === 1 ? "" : "s"}`
-              : null,
-            typeof r.contactRequestCount === "number" && r.contactRequestCount > 0
-              ? `${r.contactRequestCount} contact request${r.contactRequestCount === 1 ? "" : "s"}`
-              : null,
-            typeof r.attachmentCount === "number" && r.attachmentCount > 0
-              ? `${r.attachmentCount} photos`
-              : null,
-          ].filter(Boolean);
-          const contactGateState = String(r.contactGateState || "locked");
-          const canApproveContact = contactGateState === "contractor_requested";
-          const canDenyContact = contactGateState === "contractor_requested";
-          const canReleaseContact = contactGateState === "user_approved";
-          const contactPanelState = normalizeDirectConnectContactState(r.contactGateState);
-          const contactPanelActions: DecisionContactGateAction[] = [
-            canApproveContact ? { label: "Approve contact" } : null,
-            canDenyContact ? { label: "Decline contact" } : null,
-            canReleaseContact ? { label: "Release contact" } : null,
-          ].filter((action): action is DecisionContactGateAction => Boolean(action));
-
-          const handleOpenRequest = async () => {
-            void trackShellEvent({
-              type: "scout_query",
-              payload: {
-                event: "direct_connect_next_step_card_opened",
-                requestId: r.id,
-                stage,
-                label: nextStepCopy.label,
-                actionHint: nextStepCopy.actionHint,
-                contactUnlocked: nextStepCopy.contactUnlocked,
-                ts: new Date().toISOString(),
-              },
-            });
-
-            if (canShare) {
-              try {
-                let shareUrl = String(r.dcMiniLandingUrl || "").trim();
-                if (!shareUrl) {
-                  const payload = await shareLandingMutation.mutateAsync(r.id);
-                  shareUrl = String(payload?.shareUrl || "").trim();
-                }
-                if (shareUrl) {
-                  window.location.href = shareUrl;
-                  return;
-                }
-              } catch {
-                // fall through to non-share behavior
-              }
-            }
-
-            if (canMessage) {
-              const threadId = r.dcConversationThreadId;
-              window.location.href = threadId
-                ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                : r.id
-                  ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                  : "/messages?tab=requests";
-              return;
-            }
-            setExpandedRequestId((current) => (current === r.id ? null : r.id));
-          };
-
-          return (
-            <div
-              key={r.id}
-              className="border-b border-[color:var(--border-subtle)]/60 last:border-b-0 transition-colors hover:bg-[color:var(--surface-intermediate)]/30"
-            >
-              <div className="space-y-4 p-4 md:p-5">
-                <button
-                  type="button"
-                  onClick={handleOpenRequest}
-                  className="w-full text-left"
-                  aria-label={`Open request ${displayTitle}`}
-                >
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div className="min-w-0 flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                          {nextStepCopy.label}
-                        </p>
-                        {timelineStamp && (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
-                            <Clock3 className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(timelineStamp), { addSuffix: true })}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
-                        {displayTitle}
-                      </h3>
-                      <p className="text-sm text-[color:var(--text-secondary)]">
-                        {interpreted.primaryPhrase}
-                      </p>
-                      {interpreted.secondaryPhrase && (
-                        <p className="text-xs text-[color:var(--text-secondary)]/90">
-                          {interpreted.secondaryPhrase}
-                        </p>
-                      )}
-                      {canApproveContact && (
-                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2">
-                          <p className="text-xs font-medium text-emerald-100">
-                            A local business responded
-                          </p>
-                          <p className="mt-1 text-[11px] text-emerald-200/90">
-                            They are asking to contact you
-                          </p>
-                        </div>
-                      )}
-                      {displayLatestStatus && (
-                        <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
-                          <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                            {displayLatestStatus}
-                          </p>
-                          {typeof r.unreadStatusCount === "number" && r.unreadStatusCount > 0 && (
-                            <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
-                              {r.unreadStatusCount} new request update
-                              {r.unreadStatusCount === 1 ? "" : "s"}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      <p className="text-[11px] text-ts-orange/90">{nextStepCopy.actionHint}</p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={cn("h-fit uppercase text-[10px]", statusTone(status))}
-                    >
-                      {status.replace("_", " ")}
-                    </Badge>
-                  </div>
-                </button>
-
-                <div className="space-y-2">
-                  <p className="text-sm text-[color:var(--text-primary)]">{displayDescription}</p>
-                  {statusFacts.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                      {statusFacts.map((fact) => (
-                        <span
-                          key={fact}
-                          className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1"
-                        >
-                          {fact}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <RequestLifecycleRail stage={stage} />
-                </div>
-
-                <DecisionContactGatePanel
-                  contactState={contactPanelState}
-                  viewerRole="requester"
-                  nextActor={getDirectConnectContactGateNextActor(contactPanelState)}
-                  nextRequiredAction={getDirectConnectContactGateNextAction(contactPanelState)}
-                  safeSummary={getDirectConnectContactGateSummary(r)}
-                  releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}
-                  actions={contactPanelActions}
-                  className="shadow-none"
-                />
-
-                <RequestAttachmentStrip requestId={r.id} attachmentCount={r.attachmentCount} />
-
-                <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                        What happens now
-                      </p>
-                      <p className="mt-1 text-sm text-[color:var(--text-primary)]">
-                        {nextStepCopy.summary}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 px-2 text-xs"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setExpandedRequestId((current) => (current === r.id ? null : r.id));
-                      }}
-                    >
-                      {isExpanded ? "Hide details" : "Show details"}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 sm:hidden">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setMobileActionRequestId((current) => (current === r.id ? null : r.id));
-                    }}
+      <div
+        className="grid min-w-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] md:grid-cols-[minmax(16rem,0.8fr)_minmax(0,1.2fr)]"
+        data-testid="direct-connect-requests-workspace"
+      >
+        <section
+          aria-label="Owned requests"
+          className={cn(
+            "min-w-0 border-[color:var(--border-subtle)] md:block md:border-r",
+            selectedRequest ? "hidden" : "block"
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-[color:var(--border-subtle)] px-3 py-2.5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--theme-accent-primary)]">
+                Requester · My Requests
+              </p>
+              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                Select one request to manage.
+              </p>
+            </div>
+            <Badge variant="outline">{filteredRequests.length}</Badge>
+          </div>
+          {filteredRequests.length ? (
+            <ul className="max-h-[38rem] min-w-0 overflow-y-auto" data-testid="my-requests-list">
+              {filteredRequests.map((request) => {
+                const stage = getRequestWorkflowStage(request);
+                const selected = request.id === workspaceState.selectedId;
+                const displayStatus =
+                  getDisplayLatestStatus(request) || getRequestStageLabel(stage);
+                return (
+                  <li
+                    key={request.id}
+                    className="border-b border-[color:var(--border-subtle)]/70 last:border-b-0"
                   >
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-
-                {isExpanded && (
-                  <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
-                    {(stage === "active_conversation" ||
-                      stage === "pending_outcome" ||
-                      stage === "completed") &&
-                      r.dcAcceptedResponseSummary && (
-                        <div className="md:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
-                            Provider Response
-                          </p>
-                          {r.dcAcceptedResponseSummary.availabilityWindow && (
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
-                                Availability
-                              </p>
-                              <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
-                                {r.dcAcceptedResponseSummary.availabilityWindow}
-                              </p>
-                            </div>
-                          )}
-                          {r.dcAcceptedResponseSummary.priceBand && (
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
-                                Price Band
-                              </p>
-                              <p className="mt-0.5 text-sm text-[color:var(--text-primary)] capitalize">
-                                {r.dcAcceptedResponseSummary.priceBand.replace("_", " ")}
-                              </p>
-                            </div>
-                          )}
-                          {r.dcAcceptedResponseSummary.scopeNote && (
-                            <div>
-                              <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
-                                Scope Note
-                              </p>
-                              <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
-                                {r.dcAcceptedResponseSummary.scopeNote}
-                              </p>
-                            </div>
-                          )}
-                        </div>
+                    <button
+                      ref={selected ? selectedRowRef : undefined}
+                      type="button"
+                      aria-pressed={selected}
+                      aria-controls="direct-connect-request-inspector"
+                      data-testid={`my-request-row-${request.id}`}
+                      onClick={(event) => {
+                        selectedRowRef.current = event.currentTarget;
+                        setExpandedRequestId(request.id);
+                        setMobileActionRequestId(null);
+                        setWorkspaceState((current) => ({ ...current, selectedId: request.id }));
+                        if (
+                          typeof window !== "undefined" &&
+                          window.matchMedia("(max-width: 767px)").matches
+                        ) {
+                          window.requestAnimationFrame(() =>
+                            document.getElementById("direct-connect-request-back")?.focus()
+                          );
+                        }
+                      }}
+                      className={cn(
+                        "flex min-h-16 w-full min-w-0 items-center gap-3 px-3 py-3 text-left outline-none transition focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--theme-accent-primary)]",
+                        selected
+                          ? "bg-[color:var(--surface-elevated)]"
+                          : "hover:bg-[color:var(--surface-intermediate)]"
                       )}
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                        Status
-                      </p>
-                      <p className="mt-1 text-[color:var(--text-primary)]">
-                        {getRequestStageLabel(stage)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                        Conversation
-                      </p>
-                      <p className="mt-1 text-[color:var(--text-primary)]">
-                        {canMessage
-                          ? "You can open the thread now."
-                          : "Messaging unlocks after a pro engages."}
-                      </p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                        Other actions
-                      </p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {canExpand && (
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                          {getDisplayRequestTitle(request)}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs text-[color:var(--text-secondary)]">
+                          {getDisplayRequestDescription(request) || "Review this request."}
+                        </span>
+                        <span className="mt-1 block text-[11px] text-[color:var(--text-secondary)]">
+                          {displayStatus}
+                        </span>
+                      </span>
+                      <ChevronRight
+                        className={cn(
+                          "h-4 w-4 shrink-0",
+                          selected
+                            ? "text-[color:var(--theme-accent-primary)]"
+                            : "text-[color:var(--text-secondary)]"
+                        )}
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="flex min-h-48 flex-col items-center justify-center p-5 text-center">
+              <FolderKanban className="h-7 w-7 text-[color:var(--theme-accent-primary)]" />
+              <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
+                No requests in this view
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                Change the filter or start a new request.
+              </p>
+              <Button
+                className="mt-4 min-h-[44px] bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                onClick={() => navigate("/direct-connect")}
+              >
+                Start a request
+              </Button>
+            </div>
+          )}
+        </section>
+
+        <section
+          id="direct-connect-request-inspector"
+          aria-label="Selected owned request"
+          aria-live="polite"
+          className={cn(
+            "min-w-0 bg-[color:var(--surface-base)] md:block",
+            selectedRequest ? "block" : "hidden"
+          )}
+          data-testid="my-request-inspector"
+        >
+          {selectedRequest && (
+            <div className="border-b border-[color:var(--border-subtle)] p-2 md:hidden">
+              <Button
+                id="direct-connect-request-back"
+                type="button"
+                variant="ghost"
+                className="min-h-[44px]"
+                onClick={() => {
+                  const selectedRow = selectedRowRef.current;
+                  setWorkspaceState((current) => ({ ...current, selectedId: "" }));
+                  setMobileActionRequestId(null);
+                  window.requestAnimationFrame(() => selectedRow?.focus());
+                }}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to My Requests
+              </Button>
+            </div>
+          )}
+          <Card className="min-h-full overflow-hidden rounded-none border-0 bg-[color:var(--surface-card)] shadow-none max-md:[&_button]:!min-h-[44px]">
+            {selectedRequest ? (
+              [selectedRequest].map((r) => {
+                const status = String(r.status || "open").toLowerCase();
+                const interpreted = interpretWorkRequestStateForScout(r as unknown as WorkRequest);
+                const stage = getRequestWorkflowStage(r);
+                const hasAccepted = stage === "active_conversation" || stage === "completed";
+                const canSend = stage === "ready_to_send";
+                const canExpand = stage === "waiting_on_pros";
+                const canMessage =
+                  Boolean(r.dcConversationThreadId) || stage === "active_conversation";
+                const canCancel =
+                  stage === "ready_to_send" ||
+                  stage === "waiting_on_pros" ||
+                  stage === "active_conversation";
+                const canMarkPendingOutcome = stage === "active_conversation";
+                const canMarkComplete =
+                  stage === "pending_outcome" || stage === "active_conversation";
+                const canReopen = stage === "cancelled";
+                const canShare = stage !== "cancelled" && stage !== "completed";
+                const nextStepCopy = getDirectConnectNextStepCopy(r);
+                const isExpanded = expandedRequestId === r.id;
+                const isMobileActionOpen = mobileActionRequestId === r.id;
+                const timelineStamp = r.dcLastEventAt || r.createdAt;
+                const displayTitle = getDisplayRequestTitle(r);
+                const displayDescription = getDisplayRequestDescription(r);
+                const displayLatestStatus = getDisplayLatestStatus(r);
+                const statusFacts = [
+                  r.tradeId ? `Trade ${r.tradeId}` : null,
+                  r.countyFips ? formatCountyLabel(r.countyFips, r.stateCode) : null,
+                  typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
+                    ? `${r.dcSuggestedCount} routed`
+                    : null,
+                  typeof r.responseCount === "number" && r.responseCount > 0
+                    ? `${r.responseCount} response${r.responseCount === 1 ? "" : "s"}`
+                    : null,
+                  typeof r.contactRequestCount === "number" && r.contactRequestCount > 0
+                    ? `${r.contactRequestCount} contact request${r.contactRequestCount === 1 ? "" : "s"}`
+                    : null,
+                  typeof r.attachmentCount === "number" && r.attachmentCount > 0
+                    ? `${r.attachmentCount} photos`
+                    : null,
+                ].filter(Boolean);
+                const contactGateState = String(r.contactGateState || "locked");
+                const canApproveContact = contactGateState === "contractor_requested";
+                const canDenyContact = contactGateState === "contractor_requested";
+                const canReleaseContact = contactGateState === "user_approved";
+                const contactPanelState = normalizeDirectConnectContactState(r.contactGateState);
+                const contactPanelActions: DecisionContactGateAction[] = [
+                  canApproveContact ? { label: "Approve contact" } : null,
+                  canDenyContact ? { label: "Decline contact" } : null,
+                  canReleaseContact ? { label: "Release contact" } : null,
+                ].filter((action): action is DecisionContactGateAction => Boolean(action));
+
+                const handleShareRequest = async () => {
+                  void trackShellEvent({
+                    type: "scout_query",
+                    payload: {
+                      event: "direct_connect_request_share_opened",
+                      requestId: r.id,
+                      stage,
+                      label: nextStepCopy.label,
+                      actionHint: nextStepCopy.actionHint,
+                      contactUnlocked: nextStepCopy.contactUnlocked,
+                      ts: new Date().toISOString(),
+                    },
+                  });
+
+                  try {
+                    let shareUrl = String(r.dcMiniLandingUrl || "").trim();
+                    if (!shareUrl) {
+                      const payload = await shareLandingMutation.mutateAsync(r.id);
+                      shareUrl = String(payload?.shareUrl || "").trim();
+                    }
+                    if (shareUrl) window.location.href = shareUrl;
+                  } catch (error) {
+                    toast({
+                      title: "Couldn’t open the share page",
+                      description: formatUserFacingErrorMessage(error, "Please try again."),
+                      variant: "destructive",
+                    });
+                  }
+                };
+
+                return (
+                  <div
+                    key={r.id}
+                    className="border-b border-[color:var(--border-subtle)]/60 last:border-b-0 transition-colors hover:bg-[color:var(--surface-intermediate)]/30"
+                  >
+                    <div className="space-y-4 p-4 md:p-5">
+                      <div className="w-full text-left">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                                {nextStepCopy.label}
+                              </p>
+                              {timelineStamp && (
+                                <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
+                                  <Clock3 className="h-3 w-3" />
+                                  {formatDistanceToNow(new Date(timelineStamp), {
+                                    addSuffix: true,
+                                  })}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
+                              {displayTitle}
+                            </h3>
+                            <p className="text-sm text-[color:var(--text-secondary)]">
+                              {interpreted.primaryPhrase}
+                            </p>
+                            {interpreted.secondaryPhrase && (
+                              <p className="text-xs text-[color:var(--text-secondary)]/90">
+                                {interpreted.secondaryPhrase}
+                              </p>
+                            )}
+                            {canApproveContact && (
+                              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2">
+                                <p className="text-xs font-medium text-emerald-100">
+                                  A local business responded
+                                </p>
+                                <p className="mt-1 text-[11px] text-emerald-200/90">
+                                  They are asking to contact you
+                                </p>
+                              </div>
+                            )}
+                            {displayLatestStatus && (
+                              <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                                <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                                  {displayLatestStatus}
+                                </p>
+                                {typeof r.unreadStatusCount === "number" &&
+                                  r.unreadStatusCount > 0 && (
+                                    <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
+                                      {r.unreadStatusCount} new request update
+                                      {r.unreadStatusCount === 1 ? "" : "s"}
+                                    </p>
+                                  )}
+                              </div>
+                            )}
+                            <p className="text-[11px] text-ts-orange/90">
+                              {nextStepCopy.actionHint}
+                            </p>
+                          </div>
+                          <Badge
+                            variant="outline"
+                            className={cn("h-fit uppercase text-[10px]", statusTone(status))}
+                          >
+                            {status.replace("_", " ")}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-sm text-[color:var(--text-primary)]">
+                          {displayDescription}
+                        </p>
+                        {statusFacts.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                            {statusFacts.map((fact) => (
+                              <span
+                                key={fact}
+                                className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1"
+                              >
+                                {fact}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <RequestLifecycleRail stage={stage} />
+                      </div>
+
+                      <DecisionContactGatePanel
+                        contactState={contactPanelState}
+                        viewerRole="requester"
+                        nextActor={getDirectConnectContactGateNextActor(contactPanelState)}
+                        nextRequiredAction={getDirectConnectContactGateNextAction(
+                          contactPanelState
+                        )}
+                        safeSummary={getDirectConnectContactGateSummary(r)}
+                        releasedContact={getDirectConnectReleasedContactForPanel(
+                          r,
+                          contactPanelState
+                        )}
+                        actions={contactPanelActions}
+                        className="shadow-none"
+                      />
+
+                      <RequestAttachmentStrip
+                        requestId={r.id}
+                        attachmentCount={r.attachmentCount}
+                      />
+
+                      {canShare && (
+                        <div className="flex justify-end">
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-8 px-2 text-xs"
-                            disabled={expandMutation.isPending}
-                            onClick={() => expandMutation.mutate(r.id)}
+                            className="min-h-9 text-xs"
+                            disabled={shareLandingMutation.isPending}
+                            onClick={() => void handleShareRequest()}
                           >
-                            Widen search
+                            Share request
                           </Button>
-                        )}
+                        </div>
+                      )}
+
+                      <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                              What happens now
+                            </p>
+                            <p className="mt-1 text-sm text-[color:var(--text-primary)]">
+                              {nextStepCopy.summary}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 px-2 text-xs"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setExpandedRequestId((current) => (current === r.id ? null : r.id));
+                            }}
+                          >
+                            {isExpanded ? "Hide details" : "Show details"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 sm:hidden">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs"
+                          aria-label={`${isMobileActionOpen ? "Hide" : "Show"} request actions`}
+                          aria-expanded={isMobileActionOpen}
+                          aria-controls="direct-connect-selected-request-actions"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setMobileActionRequestId((current) => (current === r.id ? null : r.id));
+                          }}
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      {isExpanded && (
+                        <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
+                          {(stage === "active_conversation" ||
+                            stage === "pending_outcome" ||
+                            stage === "completed") &&
+                            r.dcAcceptedResponseSummary && (
+                              <div className="md:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+                                  Provider Response
+                                </p>
+                                {r.dcAcceptedResponseSummary.availabilityWindow && (
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                                      Availability
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
+                                      {r.dcAcceptedResponseSummary.availabilityWindow}
+                                    </p>
+                                  </div>
+                                )}
+                                {r.dcAcceptedResponseSummary.priceBand && (
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                                      Price Band
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-[color:var(--text-primary)] capitalize">
+                                      {r.dcAcceptedResponseSummary.priceBand.replace("_", " ")}
+                                    </p>
+                                  </div>
+                                )}
+                                {r.dcAcceptedResponseSummary.scopeNote && (
+                                  <div>
+                                    <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                                      Scope Note
+                                    </p>
+                                    <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
+                                      {r.dcAcceptedResponseSummary.scopeNote}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                              Status
+                            </p>
+                            <p className="mt-1 text-[color:var(--text-primary)]">
+                              {getRequestStageLabel(stage)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                              Conversation
+                            </p>
+                            <p className="mt-1 text-[color:var(--text-primary)]">
+                              {canMessage
+                                ? "You can open the thread now."
+                                : "Messaging unlocks after a pro engages."}
+                            </p>
+                          </div>
+                          <div className="md:col-span-2">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                              Other actions
+                            </p>
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {canExpand && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs"
+                                  disabled={expandMutation.isPending}
+                                  onClick={() => expandMutation.mutate(r.id)}
+                                >
+                                  Widen search
+                                </Button>
+                              )}
+                              {canSend && (
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                                  disabled={routeMutation.isPending}
+                                  onClick={() => openRouteSheetForRequest(r.id)}
+                                >
+                                  Send to more pros
+                                </Button>
+                              )}
+                              {canMarkPendingOutcome && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                                  data-testid="dc-mark-pending-outcome-btn"
+                                  disabled={markPendingOutcomeMutation.isPending}
+                                  onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                                >
+                                  Mark pending outcome
+                                </Button>
+                              )}
+                              {canMarkComplete && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                                  data-testid="dc-mark-complete-btn"
+                                  disabled={markCompleteMutation.isPending}
+                                  onClick={() => markCompleteMutation.mutate(r.id)}
+                                >
+                                  Mark complete
+                                </Button>
+                              )}
+                              {canCancel && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                                  disabled={cancelMutation.isPending}
+                                  onClick={() => cancelMutation.mutate(r.id)}
+                                >
+                                  Cancel request
+                                </Button>
+                              )}
+                              {canReopen && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                                  disabled={reopenMutation.isPending}
+                                  onClick={() => reopenMutation.mutate(r.id)}
+                                >
+                                  Reopen request
+                                </Button>
+                              )}
+                              {canApproveContact && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                                  disabled={contactGateMutation.isPending}
+                                  onClick={() =>
+                                    contactGateMutation.mutate({
+                                      requestId: String(r.id),
+                                      nextState: "user_approved",
+                                    })
+                                  }
+                                >
+                                  Approve contact
+                                </Button>
+                              )}
+                              {canReleaseContact && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                                  disabled={contactGateMutation.isPending}
+                                  onClick={() =>
+                                    contactGateMutation.mutate({
+                                      requestId: String(r.id),
+                                      nextState: "released",
+                                    })
+                                  }
+                                >
+                                  Release contact
+                                </Button>
+                              )}
+                              {canDenyContact && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                                  disabled={contactGateMutation.isPending}
+                                  onClick={() =>
+                                    contactGateMutation.mutate({
+                                      requestId: String(r.id),
+                                      nextState: "denied",
+                                    })
+                                  }
+                                >
+                                  Decline
+                                </Button>
+                              )}
+                              {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="hidden flex-wrap items-center justify-end gap-1.5 sm:flex">
                         {canSend && (
                           <Button
                             size="sm"
@@ -4677,6 +5575,33 @@ function MyDirectConnectRequests() {
                             onClick={() => openRouteSheetForRequest(r.id)}
                           >
                             Send to more pros
+                          </Button>
+                        )}
+                        {stage === "waiting_on_pros" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => setExpandedRequestId(r.id)}
+                          >
+                            Review request status
+                          </Button>
+                        )}
+                        {canMessage && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            onClick={() => {
+                              const threadId = r.dcConversationThreadId;
+                              window.location.href = threadId
+                                ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                                : r.id
+                                  ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                                  : "/messages?tab=requests";
+                            }}
+                          >
+                            {r.dcConversationThreadId ? "Open conversation" : "Open Messages"}
                           </Button>
                         )}
                         {canMarkPendingOutcome && (
@@ -4701,17 +5626,6 @@ function MyDirectConnectRequests() {
                             onClick={() => markCompleteMutation.mutate(r.id)}
                           >
                             Mark complete
-                          </Button>
-                        )}
-                        {canCancel && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                            disabled={cancelMutation.isPending}
-                            onClick={() => cancelMutation.mutate(r.id)}
-                          >
-                            Cancel request
                           </Button>
                         )}
                         {canReopen && (
@@ -4773,217 +5687,106 @@ function MyDirectConnectRequests() {
                             Decline
                           </Button>
                         )}
-                        {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
                       </div>
+
+                      {isMobileActionOpen && (
+                        <div
+                          id="direct-connect-selected-request-actions"
+                          className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden"
+                        >
+                          {canSend && (
+                            <Button
+                              size="sm"
+                              className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                              disabled={routeMutation.isPending}
+                              onClick={() => openRouteSheetForRequest(r.id)}
+                            >
+                              Send to more pros
+                            </Button>
+                          )}
+                          {stage === "waiting_on_pros" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-xs"
+                              onClick={() => setExpandedRequestId(r.id)}
+                            >
+                              Review request status
+                            </Button>
+                          )}
+                          {canMessage && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-xs"
+                              onClick={() => {
+                                const threadId = r.dcConversationThreadId;
+                                window.location.href = threadId
+                                  ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                                  : r.id
+                                    ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                                    : "/messages?tab=requests";
+                              }}
+                            >
+                              <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                              {r.dcConversationThreadId ? "Open conversation" : "Open Messages"}
+                            </Button>
+                          )}
+                          {canMarkPendingOutcome && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                              data-testid="dc-mark-pending-outcome-btn"
+                              disabled={markPendingOutcomeMutation.isPending}
+                              onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                            >
+                              Mark pending outcome
+                            </Button>
+                          )}
+                          {canMarkComplete && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                              data-testid="dc-mark-complete-btn"
+                              disabled={markCompleteMutation.isPending}
+                              onClick={() => markCompleteMutation.mutate(r.id)}
+                            >
+                              Mark complete
+                            </Button>
+                          )}
+                          {canReopen && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                              disabled={reopenMutation.isPending}
+                              onClick={() => reopenMutation.mutate(r.id)}
+                            >
+                              Reopen request
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
-
-                <div className="hidden flex-wrap items-center justify-end gap-1.5 sm:flex">
-                  {canSend && (
-                    <Button
-                      size="sm"
-                      className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                      disabled={routeMutation.isPending}
-                      onClick={() => openRouteSheetForRequest(r.id)}
-                    >
-                      Send to more pros
-                    </Button>
-                  )}
-                  {stage === "waiting_on_pros" && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => navigate("/direct-connect/inbox")}
-                    >
-                      Review replies
-                    </Button>
-                  )}
-                  {canMessage && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => {
-                        const threadId = r.dcConversationThreadId;
-                        window.location.href = threadId
-                          ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                          : r.id
-                            ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                            : "/messages?tab=requests";
-                      }}
-                    >
-                      Open inbox
-                    </Button>
-                  )}
-                  {canMarkPendingOutcome && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
-                      data-testid="dc-mark-pending-outcome-btn"
-                      disabled={markPendingOutcomeMutation.isPending}
-                      onClick={() => markPendingOutcomeMutation.mutate(r.id)}
-                    >
-                      Mark pending outcome
-                    </Button>
-                  )}
-                  {canMarkComplete && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                      data-testid="dc-mark-complete-btn"
-                      disabled={markCompleteMutation.isPending}
-                      onClick={() => markCompleteMutation.mutate(r.id)}
-                    >
-                      Mark complete
-                    </Button>
-                  )}
-                  {canReopen && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                      disabled={reopenMutation.isPending}
-                      onClick={() => reopenMutation.mutate(r.id)}
-                    >
-                      Reopen request
-                    </Button>
-                  )}
-                  {canApproveContact && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                      disabled={contactGateMutation.isPending}
-                      onClick={() =>
-                        contactGateMutation.mutate({
-                          requestId: String(r.id),
-                          nextState: "user_approved",
-                        })
-                      }
-                    >
-                      Approve contact
-                    </Button>
-                  )}
-                  {canReleaseContact && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                      disabled={contactGateMutation.isPending}
-                      onClick={() =>
-                        contactGateMutation.mutate({
-                          requestId: String(r.id),
-                          nextState: "released",
-                        })
-                      }
-                    >
-                      Release contact
-                    </Button>
-                  )}
-                  {canDenyContact && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                      disabled={contactGateMutation.isPending}
-                      onClick={() =>
-                        contactGateMutation.mutate({
-                          requestId: String(r.id),
-                          nextState: "denied",
-                        })
-                      }
-                    >
-                      Decline
-                    </Button>
-                  )}
-                </div>
-
-                {isMobileActionOpen && (
-                  <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
-                    {canSend && (
-                      <Button
-                        size="sm"
-                        className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                        disabled={routeMutation.isPending}
-                        onClick={() => openRouteSheetForRequest(r.id)}
-                      >
-                        Send to more pros
-                      </Button>
-                    )}
-                    {stage === "waiting_on_pros" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-xs"
-                        onClick={() => navigate("/direct-connect/inbox")}
-                      >
-                        Review replies
-                      </Button>
-                    )}
-                    {canMessage && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-xs"
-                        onClick={() => {
-                          const threadId = r.dcConversationThreadId;
-                          window.location.href = threadId
-                            ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                            : r.id
-                              ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                              : "/messages?tab=requests";
-                        }}
-                      >
-                        <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                        Open inbox
-                      </Button>
-                    )}
-                    {canMarkPendingOutcome && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
-                        data-testid="dc-mark-pending-outcome-btn"
-                        disabled={markPendingOutcomeMutation.isPending}
-                        onClick={() => markPendingOutcomeMutation.mutate(r.id)}
-                      >
-                        Mark pending outcome
-                      </Button>
-                    )}
-                    {canMarkComplete && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                        data-testid="dc-mark-complete-btn"
-                        disabled={markCompleteMutation.isPending}
-                        onClick={() => markCompleteMutation.mutate(r.id)}
-                      >
-                        Mark complete
-                      </Button>
-                    )}
-                    {canReopen && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                        disabled={reopenMutation.isPending}
-                        onClick={() => reopenMutation.mutate(r.id)}
-                      >
-                        Reopen request
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </Card>
+                );
+              })
+            ) : (
+              <CardContent className="flex min-h-64 flex-col items-center justify-center p-6 text-center">
+                <FolderKanban className="h-8 w-8 text-[color:var(--theme-accent-primary)]" />
+                <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
+                  Choose one of your requests
+                </p>
+                <p className="mt-1 max-w-sm text-xs text-[color:var(--text-secondary)]">
+                  Requester lifecycle and Decision Card actions will appear here.
+                </p>
+              </CardContent>
+            )}
+          </Card>
+        </section>
+      </div>
 
       <Sheet
         open={showRouteSheet}
@@ -5220,9 +6023,32 @@ export default function DirectConnectShell() {
     () => getDirectConnectEntry(directConnectLocation),
     [directConnectLocation]
   );
-  const activeSection = useMemo<Section>(
+  const routeActiveSection = useMemo<Section>(
     () => getDirectConnectSection(directConnectLocation),
     [directConnectLocation]
+  );
+  const hasTaskbarResumeSignal = useMemo(
+    () => hasDirectConnectTaskbarResumeSignal(directConnectLocation),
+    [directConnectLocation]
+  );
+  const taskbarResumeHref = useMemo(
+    () =>
+      isAuthenticated
+        ? resolveDirectConnectTaskbarResumeHref({
+            pathOrSearch: directConnectLocation,
+            storage: typeof window === "undefined" ? null : window.sessionStorage,
+            authenticatedUserId: user?.id ? String(user.id) : null,
+          })
+        : null,
+    [directConnectLocation, isAuthenticated, user?.id]
+  );
+  const activeSection = useMemo<Section>(
+    () => (taskbarResumeHref ? getDirectConnectSection(taskbarResumeHref) : routeActiveSection),
+    [routeActiveSection, taskbarResumeHref]
+  );
+  const composerEntryLocation = useMemo(
+    () => resolveDirectConnectComposerLocation(directConnectLocation, taskbarResumeHref),
+    [directConnectLocation, taskbarResumeHref]
   );
 
   const requestPrefill = useMemo(
@@ -5289,6 +6115,28 @@ export default function DirectConnectShell() {
   }, [isAuthenticated, location, navigate, toast, user]);
 
   useEffect(() => {
+    if (!isAuthenticated || !user || !hasTaskbarResumeSignal || !taskbarResumeHref) return;
+    navigate(taskbarResumeHref, { replace: true });
+  }, [hasTaskbarResumeSignal, isAuthenticated, navigate, taskbarResumeHref, user]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !user?.id ||
+      hasTaskbarResumeSignal ||
+      !isDirectConnectWorkdeskSection(activeSection)
+    )
+      return;
+    const task = getDirectConnectWorkspaceTask(buildDirectConnectHref(activeSection));
+    if (!task) return;
+    writeDirectConnectLastTask({
+      storage: typeof window === "undefined" ? null : window.sessionStorage,
+      authenticatedUserId: String(user.id),
+      task,
+    });
+  }, [activeSection, hasTaskbarResumeSignal, isAuthenticated, user?.id]);
+
+  useEffect(() => {
     void trackShellEvent({
       type: "direct_connect_landed",
       section: activeSection,
@@ -5321,11 +6169,25 @@ export default function DirectConnectShell() {
       deviceType: getDeviceType(),
       ts: new Date().toISOString(),
     });
+    if (isAuthenticated && user?.id && isDirectConnectWorkdeskSection(section)) {
+      const task = getDirectConnectWorkspaceTask(buildDirectConnectHref(section));
+      if (task) {
+        writeDirectConnectLastTask({
+          storage: typeof window === "undefined" ? null : window.sessionStorage,
+          authenticatedUserId: String(user.id),
+          task,
+        });
+      }
+    }
     navigate(buildDirectConnectHref(section));
   };
 
-  const { data: inboxData, isLoading: isInboxCountLoading } = useQuery<DirectConnectInboxItem[]>({
-    queryKey: ["/api/direct-connect/inbox", "count"],
+  const {
+    data: inboxData,
+    isLoading: isInboxCountLoading,
+    isError: isInboxCountError,
+  } = useQuery<DirectConnectInboxItem[]>({
+    queryKey: ["/api/direct-connect/inbox", "count", user?.id],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/inbox");
       if (!res.ok) {
@@ -5335,35 +6197,42 @@ export default function DirectConnectShell() {
           status: res.status,
           blocked: false,
         });
-        return [];
+        throw new Error("Failed to load Incoming count");
       }
       return res.json();
     },
     enabled: isAuthenticated,
   });
 
-  const { data: requestsData, isLoading: isRequestCountLoading } = useQuery<DirectConnectRequest[]>(
-    {
-      queryKey: ["/api/direct-connect/requests", "count"],
-      queryFn: async () => {
-        const res = await fetch("/api/direct-connect/requests");
-        if (!res.ok) {
-          trackDirectConnectApiFailure({
-            source: "/api/direct-connect/requests",
-            section: "request_count",
-            status: res.status,
-            blocked: false,
-          });
-          return [];
-        }
-        return res.json();
-      },
-      enabled: isAuthenticated,
-    }
-  );
+  const {
+    data: requestsData,
+    isLoading: isRequestCountLoading,
+    isError: isRequestCountError,
+  } = useQuery<DirectConnectRequest[]>({
+    queryKey: [
+      "/api/direct-connect/requests",
+      "count",
+      user?.id,
+      defaultCountyFips || (user as any)?.countyFips || null,
+    ],
+    queryFn: async () => {
+      const res = await fetch("/api/direct-connect/requests");
+      if (!res.ok) {
+        trackDirectConnectApiFailure({
+          source: "/api/direct-connect/requests",
+          section: "request_count",
+          status: res.status,
+          blocked: false,
+        });
+        throw new Error("Failed to load My Requests count");
+      }
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
 
   const { data: homesData } = useQuery<{ homes?: Array<{ id: string }> }>({
-    queryKey: ["/api/homes", "first-use-context"],
+    queryKey: ["/api/homes", "first-use-context", user?.id],
     queryFn: async () => {
       const res = await fetch("/api/homes");
       if (!res.ok) {
@@ -5385,7 +6254,10 @@ export default function DirectConnectShell() {
 
   const navCounts: Partial<Record<Section, number>> = useMemo(
     () => ({
-      inbox: (inboxData || []).filter((i) => i.assignment.status === "suggested").length,
+      inbox: (inboxData || []).filter(
+        (i) =>
+          i.assignment.status === "suggested" && isRealDirectConnectAssignmentId(i.assignment.id)
+      ).length,
       engagements: (requestsData || []).filter((r) => r.status !== "cancelled").length,
     }),
     [inboxData, requestsData]
@@ -5394,7 +6266,9 @@ export default function DirectConnectShell() {
   useEffect(() => {
     if (!isAuthenticated || activeSection !== "inbox" || isInboxCountLoading) return;
     const actionableReplies = (inboxData || []).filter(
-      (item) => item.assignment.status === "suggested"
+      (item) =>
+        item.assignment.status === "suggested" &&
+        isRealDirectConnectAssignmentId(item.assignment.id)
     );
     if (actionableReplies.length === 0) return;
 
@@ -5446,7 +6320,8 @@ export default function DirectConnectShell() {
     if (!isAuthenticated) return;
     if (pathOnly !== "/direct-connect") return;
     if (!shouldResolveDirectConnectEntry(directConnectEntry)) return;
-    if (isInboxCountLoading || isRequestCountLoading) return;
+    if (isInboxCountLoading || isRequestCountLoading || isInboxCountError || isRequestCountError)
+      return;
 
     const replyCount = directConnectEntry === "default" ? 0 : (navCounts.inbox ?? 0);
     const openRequestCount = directConnectEntry === "default" ? 0 : (navCounts.engagements ?? 0);
@@ -5478,7 +6353,9 @@ export default function DirectConnectShell() {
     activeSection,
     directConnectEntry,
     isAuthenticated,
+    isInboxCountError,
     isInboxCountLoading,
+    isRequestCountError,
     isRequestCountLoading,
     navCounts.engagements,
     navCounts.inbox,
@@ -5494,7 +6371,8 @@ export default function DirectConnectShell() {
     case "post":
       centerContent = (
         <DirectConnectRequestComposer
-          entryLocation={directConnectLocation}
+          key={`direct-connect-composer:${user?.id || "guest"}:${composerEntryLocation}`}
+          entryLocation={composerEntryLocation}
           defaultCountyFips={defaultCountyFips}
           defaultStateCode={defaultStateCode}
           prefillTargetUserId={requestPrefill?.targetUserId}
@@ -5551,7 +6429,10 @@ export default function DirectConnectShell() {
               viewerRole="provider"
             />
           )}
-          <DirectConnectInbox />
+          <DirectConnectInbox
+            key={`direct-connect-incoming:${user?.id || "guest"}`}
+            defaultCountyFips={defaultCountyFips}
+          />
         </div>
       );
       break;
@@ -5603,7 +6484,10 @@ export default function DirectConnectShell() {
               viewerRole="requester"
             />
           )}
-          <MyDirectConnectRequests />
+          <MyDirectConnectRequests
+            key={`direct-connect-requests:${user?.id || "guest"}`}
+            defaultCountyFips={defaultCountyFips}
+          />
         </div>
       );
       break;
@@ -5720,6 +6604,14 @@ export default function DirectConnectShell() {
               </Button>
             </div>
           </div>
+        ) : null}
+
+        {isDirectConnectWorkdeskSection(activeSection) ? (
+          <DirectConnectTaskSwitcher
+            activeSection={activeSection}
+            counts={navCounts}
+            onSelect={navigateSection}
+          />
         ) : null}
 
         {showSectionChrome ? (

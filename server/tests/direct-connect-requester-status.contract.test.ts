@@ -18,6 +18,30 @@ describe("direct connect requester status contracts", () => {
     expect(source).toContain("You can only view your own requests");
   });
 
+  it("keeps nonterminal work visible while bounding only terminal history", () => {
+    const source = read("server/routes/direct-connect.ts");
+    const listStart = source.indexOf("// Requester-facing: list Direct Connect requests");
+    const detailStart = source.indexOf('"/api/direct-connect/requests/:id"', listStart);
+    const listBlock = source.slice(listStart, detailStart);
+
+    expect(listBlock).toContain(
+      'const isTerminal = normalizedStatus === "completed" || normalizedStatus === "cancelled"'
+    );
+    expect(listBlock).toContain("if (isTerminal) {");
+    expect(listBlock).toContain('"pending_outcome"');
+  });
+
+  it("surfaces requester-list schema failure instead of presenting a false empty queue", () => {
+    const source = read("server/routes/direct-connect.ts");
+    const listStart = source.indexOf("// Requester-facing: list Direct Connect requests");
+    const detailStart = source.indexOf('"/api/direct-connect/requests/:id"', listStart);
+    const listBlock = source.slice(listStart, detailStart);
+
+    expect(listBlock).toContain('code: "DIRECT_CONNECT_REQUEST_LIST_SCHEMA_UNAVAILABLE"');
+    expect(listBlock).toContain("return res.status(503).json({");
+    expect(listBlock).not.toContain("schema mismatch while listing requests; returning empty list");
+  });
+
   it("includes contractor responses and contact-request visibility in request detail", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain("FROM direct_connect_contractor_responses");
@@ -98,7 +122,7 @@ describe("direct connect requester status contracts", () => {
     expect(source).toContain("Release contact");
     expect(source).toContain("/api/direct-connect/requests/${payload.requestId}/contact-gate");
     expect(source).toContain("No requests in this view");
-    expect(source).toContain("You're viewing requests from this device session.");
+    expect(source).toContain("Sign in to view and manage your requests.");
     expect(source).toContain("Contact released");
   });
 
