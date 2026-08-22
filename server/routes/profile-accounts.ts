@@ -20,7 +20,7 @@ import {
   type ProfileAccountEntitlement,
 } from "../services/profileAccountEntitlementService";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
-import { hasPrivilegedVerificationBypass } from "../utils/privilegedVerification";
+import { hasRequestPrivilegedVerificationBypass } from "../utils/privilegedVerification";
 
 function isSafeInternalPath(value: string): boolean {
   if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return false;
@@ -223,7 +223,7 @@ export function registerProfileAccountRoutes(app: Express) {
         res.status(404).json({ message: "Profile not found" });
         return;
       }
-      const verificationBypassActive = hasPrivilegedVerificationBypass(req.user);
+      const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
       const entitlements = state.account
         ? await listProfileAccountEntitlements(state.account.id)
         : [];
@@ -466,7 +466,7 @@ export function registerProfileAccountRoutes(app: Express) {
           account: created.account,
           includesBidRock: created.policy.includesBidRock,
         });
-        const verificationBypassActive = hasPrivilegedVerificationBypass(req.user);
+        const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
 
         res.setHeader("Cache-Control", "private, no-store");
         res.status(201).json({
