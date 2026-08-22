@@ -138,6 +138,7 @@ import {
   getDirectConnectEntry,
   getDirectConnectPathOnly,
   getDirectConnectSection,
+  shouldRenderDirectConnectSectionChrome,
   shouldResolveDirectConnectEntry,
   type DirectConnectSection as Section,
 } from "./directConnectRoutes";
@@ -5486,6 +5487,7 @@ export default function DirectConnectShell() {
   ]);
   const sectionMeta = SECTION_META[activeSection];
   const mobileTitle = activeSection === "post" ? "Post a request" : sectionMeta.title;
+  const showSectionChrome = shouldRenderDirectConnectSectionChrome(activeSection);
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -5519,7 +5521,12 @@ export default function DirectConnectShell() {
       );
       break;
     case "employment":
-      centerContent = <EmploymentBoard defaultCountyFips={defaultCountyFips} />;
+      centerContent = (
+        <EmploymentBoard
+          defaultCountyFips={defaultCountyFips}
+          defaultStateCode={defaultStateCode}
+        />
+      );
       break;
     case "inbox":
       centerContent = (
@@ -5612,14 +5619,14 @@ export default function DirectConnectShell() {
       />
       <div className="mx-auto w-full max-w-6xl space-y-2.5 px-2.5 py-3 sm:px-3 sm:py-4 md:space-y-3 md:px-6 md:py-6">
         <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
-          {activeSection !== "post" && (
+          {showSectionChrome && (
             <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
               {mobileTitle}
             </h1>
           )}
         </div>
 
-        {activeSection !== "post" ? (
+        {showSectionChrome ? (
           <>
             <FirstUseGuidanceCard
               title={
@@ -5715,43 +5722,40 @@ export default function DirectConnectShell() {
           </div>
         ) : null}
 
-        <div
-          className={cn(
-            "rounded-lg border border-transparent bg-transparent p-0",
-            activeSection === "post" ? "hidden" : ""
-          )}
-        >
-          <div className="grid grid-cols-3 gap-1 md:flex md:items-center md:gap-1.5">
-            {DIRECT_CONNECT_TABS.map((section) => {
-              const active = section === activeSection;
-              const count = navCounts[section] ?? 0;
-              return (
-                <button
-                  key={section}
-                  type="button"
-                  onClick={() => navigateSection(section)}
-                  className={cn(
-                    "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[13px] font-medium transition-colors md:flex-1 md:gap-2 md:px-3 md:text-sm",
-                    active
-                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--text-primary)]"
-                      : "border-[color:var(--border-subtle)]/60 bg-[color:var(--surface-card)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                  )}
-                >
-                  <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5 md:[&>svg]:h-4 md:[&>svg]:w-4">
-                    {SECTION_ICONS[section]}
-                  </span>
-                  <span className="truncate md:hidden">{SECTION_SHORT_LABELS[section]}</span>
-                  <span className="hidden truncate md:inline">{SECTION_LABELS[section]}</span>
-                  {count > 0 && (
-                    <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
-                      {count}
-                    </Badge>
-                  )}
-                </button>
-              );
-            })}
+        {showSectionChrome ? (
+          <div className="rounded-lg border border-transparent bg-transparent p-0">
+            <div className="grid grid-cols-3 gap-1 md:flex md:items-center md:gap-1.5">
+              {DIRECT_CONNECT_TABS.map((section) => {
+                const active = section === activeSection;
+                const count = navCounts[section] ?? 0;
+                return (
+                  <button
+                    key={section}
+                    type="button"
+                    onClick={() => navigateSection(section)}
+                    className={cn(
+                      "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[13px] font-medium transition-colors md:flex-1 md:gap-2 md:px-3 md:text-sm",
+                      active
+                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)]/60 bg-[color:var(--surface-card)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                    )}
+                  >
+                    <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5 md:[&>svg]:h-4 md:[&>svg]:w-4">
+                      {SECTION_ICONS[section]}
+                    </span>
+                    <span className="truncate md:hidden">{SECTION_SHORT_LABELS[section]}</span>
+                    <span className="hidden truncate md:inline">{SECTION_LABELS[section]}</span>
+                    {count > 0 && (
+                      <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
+                        {count}
+                      </Badge>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : null}
 
         <div className="min-w-0 space-y-3">{centerContent}</div>
       </div>

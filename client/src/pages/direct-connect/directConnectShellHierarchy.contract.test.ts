@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { shouldRenderDirectConnectSectionChrome } from "./directConnectRoutes";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
@@ -26,7 +27,20 @@ describe("Direct Connect shell hierarchy", () => {
     expect(source).not.toContain(">Messages</span>");
   });
 
-  it("keeps the Jobs sibling surface within the workspace and gives every tab a mobile label", () => {
+  it("lets Jobs own its heading, guidance, and controls while sibling sections keep shell chrome", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+
+    expect(shouldRenderDirectConnectSectionChrome("employment")).toBe(false);
+    expect(shouldRenderDirectConnectSectionChrome("board")).toBe(true);
+    expect(source).toContain(
+      "const showSectionChrome = shouldRenderDirectConnectSectionChrome(activeSection)"
+    );
+    expect((source.match(/\{showSectionChrome/g) || []).length).toBeGreaterThanOrEqual(3);
+    expect(source).toContain("<EmploymentBoard");
+    expect(source).toContain("defaultStateCode={defaultStateCode}");
+  });
+
+  it("keeps every sibling tab compact and labeled on mobile", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
     expect(source).toContain('className="w-full max-w-full overflow-x-hidden"');

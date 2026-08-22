@@ -3,6 +3,8 @@ import { z } from "zod";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
+import { redactContactDetails } from "../utils/workRequestShare";
+import { sanitizePublicListingText } from "@shared/publicListingSafety";
 import {
   counties,
   employmentPosts,
@@ -99,7 +101,14 @@ export function registerEmploymentRoutes(app: Express) {
             posterIdVerified: _ignore3,
             ...safe
           } = row;
-          return { ...safe, isOwner, posterVerified };
+          return {
+            ...safe,
+            title: sanitizePublicListingText(safe.title, 140),
+            body: sanitizePublicListingText(safe.body, 6000),
+            city: safe.city ? sanitizePublicListingText(safe.city, 80) : safe.city,
+            isOwner,
+            posterVerified,
+          };
         })
       );
     } catch (error: any) {
@@ -166,11 +175,11 @@ export function registerEmploymentRoutes(app: Express) {
           createdByUserId: userId,
           postType: payload.postType,
           status: "open",
-          title: payload.title.trim(),
-          body: payload.body.trim(),
+          title: sanitizePublicListingText(payload.title, 140),
+          body: sanitizePublicListingText(payload.body, 6000),
           countyFips: payload.countyFips,
           stateCode: county.stateCode ?? null,
-          city: payload.city?.trim() || null,
+          city: payload.city ? sanitizePublicListingText(payload.city, 80) || null : null,
           tradeId: payload.tradeId?.trim() || null,
           payMin: nextPayMin ?? null,
           payMax: nextPayMax ?? null,
@@ -231,7 +240,10 @@ export function registerEmploymentRoutes(app: Express) {
       const postId = String(req.params.id || "").trim();
       if (!postId) return res.status(400).json({ message: "Missing post id" });
 
-      const message = typeof req.body?.message === "string" ? req.body.message.trim() : null;
+      const message =
+        typeof req.body?.message === "string"
+          ? redactContactDetails(req.body.message).trim()
+          : null;
 
       const [post] = await db
         .select({
@@ -262,9 +274,13 @@ export function registerEmploymentRoutes(app: Express) {
         .limit(1);
 
       if (existing) {
-        return res
-          .status(409)
-          .json({ message: "You have already applied to this post", application: existing });
+        return res.status(409).json({
+          message: "You have already applied to this post",
+          application: {
+            ...existing,
+            message: existing.message ? redactContactDetails(existing.message) : existing.message,
+          },
+        });
       }
 
       const [created] = await db
@@ -308,7 +324,7 @@ export function registerEmploymentRoutes(app: Express) {
         const isOwner = post.createdByUserId === userId;
 
         if (isOwner) {
-          // Owner sees all applicants with their profile info
+          // Owner sees applicant identity and decision context, but raw contact stays gated.
           const applications = await db
             .select({
               id: employmentPostApplications.id,
@@ -319,13 +335,19 @@ export function registerEmploymentRoutes(app: Express) {
               createdAt: employmentPostApplications.createdAt,
               updatedAt: employmentPostApplications.updatedAt,
               applicantName: sql<string>`trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, ''))`,
-              applicantEmail: users.email,
             })
             .from(employmentPostApplications)
             .leftJoin(users, eq(employmentPostApplications.applicantUserId, users.id))
             .where(eq(employmentPostApplications.postId, postId))
             .orderBy(desc(employmentPostApplications.createdAt));
-          return res.json(applications);
+          return res.json(
+            applications.map((application) => ({
+              ...application,
+              message: application.message
+                ? redactContactDetails(application.message)
+                : application.message,
+            }))
+          );
         }
 
         // Non-owner: return only their own application status
@@ -340,7 +362,16 @@ export function registerEmploymentRoutes(app: Express) {
           )
           .limit(1);
 
-        res.json(own ? [own] : []);
+        res.json(
+          own
+            ? [
+                {
+                  ...own,
+                  message: own.message ? redactContactDetails(own.message) : own.message,
+                },
+              ]
+            : []
+        );
       } catch (error: any) {
         console.error("Error fetching applications:", error);
         res.status(500).json({ message: "Failed to fetch applications" });
@@ -380,7 +411,20 @@ export function registerEmploymentRoutes(app: Express) {
         .where(eq(employmentPostApplications.applicantUserId, userId))
         .orderBy(desc(employmentPostApplications.createdAt));
 
-      res.json(rows);
+      res.json(
+        rows.map((row) => ({
+          ...row,
+          coverLetter: row.coverLetter ? redactContactDetails(row.coverLetter) : row.coverLetter,
+          post: {
+            ...row.post,
+            title: sanitizePublicListingText(row.post.title, 140),
+            description: sanitizePublicListingText(row.post.description, 6000),
+            location: row.post.location
+              ? sanitizePublicListingText(row.post.location, 80)
+              : row.post.location,
+          },
+        }))
+      );
     } catch (error: any) {
       console.error("Error fetching my applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
@@ -446,7 +490,10 @@ export function registerEmploymentRoutes(app: Express) {
           .where(eq(employmentPostApplications.id, appId))
           .returning();
 
-        res.json(updated);
+        res.json({
+          ...updated,
+          message: updated.message ? redactContactDetails(updated.message) : updated.message,
+        });
       } catch (error: any) {
         console.error("Error updating application status:", error);
         res.status(500).json({ message: "Failed to update application" });
