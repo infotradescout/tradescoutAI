@@ -113,6 +113,13 @@ const SCOUT_SAVED_THREAD_CONTENT_LIMIT = 4000;
 const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
+
+export function cancelScheduledScoutAutoRoute(timerRef: { current: number | null }): void {
+  if (timerRef.current === null) return;
+  window.clearTimeout(timerRef.current);
+  timerRef.current = null;
+}
+
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
 const SCOUT_EVOLUTION_SURFACES_ENABLED =
   String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
@@ -1701,10 +1708,7 @@ export default function ScoutOS() {
   const trackedUrlIntentRef = useRef<string | null>(null);
 
   const cancelAutoRoute = useCallback(() => {
-    if (autoRouteTimerRef.current) {
-      window.clearTimeout(autoRouteTimerRef.current);
-      autoRouteTimerRef.current = null;
-    }
+    cancelScheduledScoutAutoRoute(autoRouteTimerRef);
     setAutoRoutePending(null);
   }, []);
 
@@ -2124,8 +2128,8 @@ export default function ScoutOS() {
     reset();
     setHasGuestInteracted(false);
     setOverridePendingScope(null);
-    setAutoRoutePending(null);
-  }, [reset]);
+    cancelAutoRoute();
+  }, [cancelAutoRoute, reset]);
 
   const handleSaveScoutThreadNow = useCallback(() => {
     const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
@@ -3863,6 +3867,278 @@ export default function ScoutOS() {
     if (scoutLaunch.returnPath) navigate(scoutLaunch.returnPath);
   }, [navigate, scoutLaunch.returnPath]);
 
+  const launchContextSurface = scoutLaunch.context ? (
+    <ScoutLaunchContextCard
+      context={scoutLaunch.context}
+      returnPath={scoutLaunch.returnPath}
+      onOpenOriginal={openScoutLaunchSource}
+      onClear={clearScoutLaunchContext}
+    />
+  ) : null;
+
+  const onboardingAuxiliarySurface = (
+    <>
+      {onboarding.flowState.phase === "confirming" && onboarding.flowState.confirmationCard && (
+        <div className="mt-3 mb-4 flex justify-center">
+          <ClaimConfirmationCardComponent
+            data={onboarding.flowState.confirmationCard}
+            onConfirm={(selectedClaims: ClaimType[]) => {
+              const card = onboarding.flowState.confirmationCard;
+              if (!card) return;
+
+              const confidenceByClaim: Record<string, number> = {};
+              const evidenceByClaim: Record<string, string> = {};
+              card.options.forEach((opt) => {
+                if (selectedClaims.includes(opt.claimType)) {
+                  confidenceByClaim[opt.claimType] = opt.confidence;
+                  evidenceByClaim[opt.claimType] = opt.description || "";
+                }
+              });
+
+              const provisional = (user as any)?.preferences?.provisional;
+              const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+              const countyFips =
+                profileDraft?.countyFips ||
+                profileDraft?.serviceAreas?.find((s) => s.primary)?.countyFips ||
+                profileDraft?.serviceAreas?.[0]?.countyFips ||
+                (user as any)?.countyFips ||
+                (user as any)?.county_fips ||
+                (locationCtx as any)?.countyFips ||
+                null;
+              onboarding.confirmClaims(
+                selectedClaims,
+                {
+                  confidenceByClaim,
+                  evidenceByClaim,
+                  rawUserIntentText: provisional?.userIntent || "",
+                },
+                countyFips
+              );
+              scoutModeHook.completeOnboarding(selectedClaims);
+            }}
+            onSkip={() => {
+              onboarding.skipOnboarding();
+              scoutModeHook.skipOnboarding();
+            }}
+            onEdit={() => {
+              onboarding.resetFlow();
+              navigate("/profile-settings");
+            }}
+          />
+        </div>
+      )}
+
+      {onboarding.flowState.phase === "inferring" && (
+        <div className="mt-3 mb-4 flex justify-center">
+          <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+              <span className="text-sm text-muted-foreground">Understanding your intent...</span>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {onboarding.flowState.phase === "writing" && (
+        <div className="mt-3 mb-4 flex justify-center">
+          <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
+              <span className="text-sm text-muted-foreground">Setting up your experience...</span>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {onboarding.flowState.error && (
+        <div className="mt-3 mb-4 flex justify-center">
+          <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
+            <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
+          </Card>
+        </div>
+      )}
+
+      {scoutModeHook.scoutMode === "post_onboarding" && scoutModeHook.confirmedClaims && (
+        <div className="mt-3 mb-4 flex justify-center">
+          <PostOnboardingActionCard
+            claims={scoutModeHook.confirmedClaims as ClaimType[]}
+            actions={resolvePostOnboardingActions(scoutModeHook.confirmedClaims as ClaimType[], {
+              slug: scoutModeHook.publishedProfileSlug,
+              businessName: profileDraft?.businessName,
+            })}
+            onActionSelected={(actionId: string, destination: string) => {
+              scoutModeHook.selectPostOnboardingAction(actionId);
+              navigate(destination);
+            }}
+          />
+        </div>
+      )}
+    </>
+  );
+
+  const objectiveAuxiliarySurface = (
+    <>
+      {activeObjective && (
+        <ObjectiveChip
+          objective={activeObjective}
+          isLoading={objectiveBusy}
+          onRename={async (_id, newTitle) => {
+            await updateObjective({ title: newTitle });
+          }}
+          onPause={async (_id) => {
+            await updateObjective({ status: "paused" });
+          }}
+          onComplete={async (_id) => {
+            await updateObjective({ status: "completed" });
+          }}
+          onDelete={async (_id) => {
+            await deleteObjective();
+          }}
+        />
+      )}
+
+      {showEvolutionSurfaces && objectiveOnboardingBundle && (
+        <ObjectiveOnboardingFlow
+          roleLabel={String(objectiveOnboardingBundle.role || "")}
+          suggestions={
+            Array.isArray(objectiveOnboardingBundle.suggestions)
+              ? objectiveOnboardingBundle.suggestions
+              : []
+          }
+          fastWins={
+            Array.isArray(objectiveOnboardingBundle.fastWins)
+              ? objectiveOnboardingBundle.fastWins
+              : []
+          }
+          objectiveStates={
+            activeObjective
+              ? [
+                  {
+                    objectiveId: activeObjective.id,
+                    status: objectiveStatusToOnboardingStatus(activeObjective.status),
+                    completionPct: objectiveStatusToProgress(activeObjective.status),
+                    updatedAt: activeObjective.updatedAt,
+                  },
+                ]
+              : []
+          }
+          nextRecommendedObjectiveId={
+            typeof objectiveOnboardingBundle.nextRecommendedObjectiveId === "string"
+              ? objectiveOnboardingBundle.nextRecommendedObjectiveId
+              : undefined
+          }
+          onStartObjective={handleStartObjectiveSuggestion}
+          onOpenRoute={handleOpenObjectiveRoute}
+          onCompleteFastWin={(objectiveId) => {
+            void handleCompleteFastWin(objectiveId);
+          }}
+        />
+      )}
+
+      {showEvolutionSurfaces && visibleWatchdogInterventions.length > 0 && (
+        <WatchdogInterventionBanner
+          interventions={visibleWatchdogInterventions}
+          engagementScore={
+            typeof watchdogResult?.engagementScore === "number"
+              ? watchdogResult.engagementScore
+              : undefined
+          }
+          inactivityHours={
+            typeof watchdogResult?.inactivityHours === "number"
+              ? watchdogResult.inactivityHours
+              : undefined
+          }
+          onOpenIntervention={(route, interventionId) => {
+            recordActivity({
+              type: "navigate",
+              ts: new Date().toISOString(),
+              path: location,
+              to: route,
+              label: `watchdog_${interventionId}`,
+            });
+            if (!maybeOpenWorkAreaForRoute(route, "Watchdog intervention")) {
+              navigate(route);
+            }
+          }}
+          onDismissIntervention={(interventionId) => {
+            setDismissedWatchdogId(interventionId);
+          }}
+        />
+      )}
+    </>
+  );
+
+  const autoRouteAuxiliarySurface = autoRoutePending ? (
+    <div className="scout-task-auxiliary-region__priority" data-testid="scout-priority-navigation">
+      <Card
+        className="shadow-sm"
+        style={{
+          borderColor: "var(--border-subtle)",
+          backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+        }}
+      >
+        <div className="flex items-start justify-between gap-3 p-3">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+              Smart navigation {autoRouteEnabled ? "on" : "off"} •{" "}
+              {Math.round(autoRoutePending.confidence * 100)}%
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+              {autoRouteEnabled && autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
+                ? `Opening ${autoRoutePending.label}...`
+                : `Suggested: ${autoRoutePending.label}`}
+              {autoRoutePending.why ? ` - ${autoRoutePending.why}` : ""}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {(!autoRouteEnabled || autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
+              <Button
+                size="sm"
+                style={{
+                  backgroundColor: "var(--theme-accent-primary)",
+                  color: "var(--ts-text-on-accent, #2b2b2b)",
+                }}
+                onClick={() => {
+                  cancelAutoRoute();
+                  navigate(autoRoutePending.to);
+                }}
+              >
+                Go
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              style={{
+                borderColor: "var(--border-subtle)",
+                color: "var(--text-primary)",
+                backgroundColor: "transparent",
+              }}
+              onClick={cancelAutoRoute}
+            >
+              {autoRouteEnabled && autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
+                ? "Cancel"
+                : "Dismiss"}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  ) : null;
+
+  const hasActiveTaskAuxiliaryContent = Boolean(
+    scoutLaunch.context ||
+    (onboarding.flowState.phase === "confirming" && onboarding.flowState.confirmationCard) ||
+    onboarding.flowState.phase === "inferring" ||
+    onboarding.flowState.phase === "writing" ||
+    onboarding.flowState.error ||
+    (scoutModeHook.scoutMode === "post_onboarding" && scoutModeHook.confirmedClaims) ||
+    activeObjective ||
+    (showEvolutionSurfaces && objectiveOnboardingBundle) ||
+    (showEvolutionSurfaces && visibleWatchdogInterventions.length > 0) ||
+    autoRoutePending
+  );
+
   return (
     <div
       className={`scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden ${
@@ -3946,14 +4222,7 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              {scoutLaunch.context ? (
-                <ScoutLaunchContextCard
-                  context={scoutLaunch.context}
-                  returnPath={scoutLaunch.returnPath}
-                  onOpenOriginal={openScoutLaunchSource}
-                  onClear={clearScoutLaunchContext}
-                />
-              ) : null}
+              {!hasUserMessages ? launchContextSurface : null}
 
               {!hasUserMessages && (
                 <ScoutHome
@@ -3995,117 +4264,7 @@ export default function ScoutOS() {
                 />
               )}
 
-              {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
-              {onboarding.flowState.phase === "confirming" &&
-                onboarding.flowState.confirmationCard && (
-                  <div className="mt-3 mb-4 flex justify-center">
-                    <ClaimConfirmationCardComponent
-                      data={onboarding.flowState.confirmationCard}
-                      onConfirm={(selectedClaims: ClaimType[]) => {
-                        const card = onboarding.flowState.confirmationCard;
-                        if (!card) return;
-
-                        // Build metadata from original inference
-                        const confidenceByClaim: Record<string, number> = {};
-                        const evidenceByClaim: Record<string, string> = {};
-                        card.options.forEach((opt) => {
-                          if (selectedClaims.includes(opt.claimType)) {
-                            confidenceByClaim[opt.claimType] = opt.confidence;
-                            evidenceByClaim[opt.claimType] = opt.description || "";
-                          }
-                        });
-
-                        const provisional = (user as any)?.preferences?.provisional;
-                        const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
-                        const countyFips =
-                          profileDraft?.countyFips ||
-                          profileDraft?.serviceAreas?.find((s) => s.primary)?.countyFips ||
-                          profileDraft?.serviceAreas?.[0]?.countyFips ||
-                          (user as any)?.countyFips ||
-                          (user as any)?.county_fips ||
-                          (locationCtx as any)?.countyFips ||
-                          null;
-                        onboarding.confirmClaims(
-                          selectedClaims,
-                          {
-                            confidenceByClaim,
-                            evidenceByClaim,
-                            rawUserIntentText: provisional?.userIntent || "",
-                          },
-                          countyFips
-                        );
-
-                        // PHASE 3d-B: Trigger ScoutMode state machine transition
-                        scoutModeHook.completeOnboarding(selectedClaims);
-                      }}
-                      onSkip={() => {
-                        onboarding.skipOnboarding();
-                        scoutModeHook.skipOnboarding();
-                      }}
-                      onEdit={() => {
-                        onboarding.resetFlow();
-                        navigate("/profile-settings");
-                      }}
-                    />
-                  </div>
-                )}
-
-              {/* Show loading state during inference */}
-              {onboarding.flowState.phase === "inferring" && (
-                <div className="mt-3 mb-4 flex justify-center">
-                  <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
-                      <span className="text-sm text-muted-foreground">
-                        Understanding your intent...
-                      </span>
-                    </div>
-                  </Card>
-                </div>
-              )}
-
-              {/* Show writing state */}
-              {onboarding.flowState.phase === "writing" && (
-                <div className="mt-3 mb-4 flex justify-center">
-                  <Card className="w-full max-w-2xl border-primary/20 bg-card/95 backdrop-blur p-6">
-                    <div className="flex items-center gap-3">
-                      <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
-                      <span className="text-sm text-muted-foreground">
-                        Setting up your experience...
-                      </span>
-                    </div>
-                  </Card>
-                </div>
-              )}
-
-              {/* Show error if any */}
-              {onboarding.flowState.error && (
-                <div className="mt-3 mb-4 flex justify-center">
-                  <Card className="w-full max-w-2xl border-destructive/20 bg-destructive/10 backdrop-blur p-4">
-                    <p className="text-sm text-destructive">{onboarding.flowState.error}</p>
-                  </Card>
-                </div>
-              )}
-
-              {/* PHASE 3d-B: Post-Onboarding Action Card (deterministic action selection) */}
-              {scoutModeHook.scoutMode === "post_onboarding" && scoutModeHook.confirmedClaims && (
-                <div className="mt-3 mb-4 flex justify-center">
-                  <PostOnboardingActionCard
-                    claims={scoutModeHook.confirmedClaims as ClaimType[]}
-                    actions={resolvePostOnboardingActions(
-                      scoutModeHook.confirmedClaims as ClaimType[],
-                      {
-                        slug: scoutModeHook.publishedProfileSlug,
-                        businessName: profileDraft?.businessName,
-                      }
-                    )}
-                    onActionSelected={(actionId: string, destination: string) => {
-                      scoutModeHook.selectPostOnboardingAction(actionId);
-                      navigate(destination);
-                    }}
-                  />
-                </div>
-              )}
+              {!hasUserMessages ? onboardingAuxiliarySurface : null}
 
               {false && !hasUserMessages && (
                 <div
@@ -4598,93 +4757,21 @@ export default function ScoutOS() {
                   </section>
                 )}
 
-                {activeObjective && (
-                  <ObjectiveChip
-                    objective={activeObjective}
-                    isLoading={objectiveBusy}
-                    onRename={async (_id, newTitle) => {
-                      await updateObjective({ title: newTitle });
-                    }}
-                    onPause={async (_id) => {
-                      await updateObjective({ status: "paused" });
-                    }}
-                    onComplete={async (_id) => {
-                      await updateObjective({ status: "completed" });
-                    }}
-                    onDelete={async (_id) => {
-                      await deleteObjective();
-                    }}
-                  />
+                {hasUserMessages && hasActiveTaskAuxiliaryContent && (
+                  <section
+                    className="scout-task-auxiliary-region"
+                    data-testid="scout-task-auxiliary-region"
+                    aria-label="Task guidance and controls"
+                    tabIndex={0}
+                  >
+                    {autoRouteAuxiliarySurface}
+                    {launchContextSurface}
+                    {onboardingAuxiliarySurface}
+                    {objectiveAuxiliarySurface}
+                  </section>
                 )}
 
-                {showEvolutionSurfaces && objectiveOnboardingBundle && (
-                  <ObjectiveOnboardingFlow
-                    roleLabel={String(objectiveOnboardingBundle.role || "")}
-                    suggestions={
-                      Array.isArray(objectiveOnboardingBundle.suggestions)
-                        ? objectiveOnboardingBundle.suggestions
-                        : []
-                    }
-                    fastWins={
-                      Array.isArray(objectiveOnboardingBundle.fastWins)
-                        ? objectiveOnboardingBundle.fastWins
-                        : []
-                    }
-                    objectiveStates={
-                      activeObjective
-                        ? [
-                            {
-                              objectiveId: activeObjective.id,
-                              status: objectiveStatusToOnboardingStatus(activeObjective.status),
-                              completionPct: objectiveStatusToProgress(activeObjective.status),
-                              updatedAt: activeObjective.updatedAt,
-                            },
-                          ]
-                        : []
-                    }
-                    nextRecommendedObjectiveId={
-                      typeof objectiveOnboardingBundle.nextRecommendedObjectiveId === "string"
-                        ? objectiveOnboardingBundle.nextRecommendedObjectiveId
-                        : undefined
-                    }
-                    onStartObjective={handleStartObjectiveSuggestion}
-                    onOpenRoute={handleOpenObjectiveRoute}
-                    onCompleteFastWin={(objectiveId) => {
-                      void handleCompleteFastWin(objectiveId);
-                    }}
-                  />
-                )}
-
-                {showEvolutionSurfaces && visibleWatchdogInterventions.length > 0 && (
-                  <WatchdogInterventionBanner
-                    interventions={visibleWatchdogInterventions}
-                    engagementScore={
-                      typeof watchdogResult?.engagementScore === "number"
-                        ? watchdogResult.engagementScore
-                        : undefined
-                    }
-                    inactivityHours={
-                      typeof watchdogResult?.inactivityHours === "number"
-                        ? watchdogResult.inactivityHours
-                        : undefined
-                    }
-                    onOpenIntervention={(route, interventionId) => {
-                      recordActivity({
-                        type: "navigate",
-                        ts: new Date().toISOString(),
-                        path: location,
-                        to: route,
-                        label: `watchdog_${interventionId}`,
-                      });
-                      if (!maybeOpenWorkAreaForRoute(route, "Watchdog intervention")) {
-                        navigate(route);
-                      }
-                    }}
-                    onDismissIntervention={(interventionId) => {
-                      setDismissedWatchdogId(interventionId);
-                    }}
-                  />
-                )}
+                {!hasUserMessages ? objectiveAuxiliarySurface : null}
 
                 {showThreadRegion && (
                   <section
@@ -4797,68 +4884,7 @@ export default function ScoutOS() {
                   </section>
                 )}
 
-                {autoRoutePending && (
-                  <Card
-                    className="shadow-sm"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor:
-                        "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
-                    }}
-                  >
-                    <div className="flex items-start justify-between gap-3 p-3">
-                      <div className="min-w-0">
-                        <div
-                          className="text-sm font-semibold"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Smart navigation {autoRouteEnabled ? "on" : "off"} •{" "}
-                          {Math.round(autoRoutePending.confidence * 100)}%
-                        </div>
-                        <div className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                          {autoRouteEnabled &&
-                          autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
-                            ? `Opening ${autoRoutePending.label}...`
-                            : `Suggested: ${autoRoutePending.label}`}
-                          {autoRoutePending.why ? ` - ${autoRoutePending.why}` : ""}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {(!autoRouteEnabled ||
-                          autoRoutePending.confidence < AUTO_ROUTE_MIN_CONFIDENCE) && (
-                          <Button
-                            size="sm"
-                            style={{
-                              backgroundColor: "var(--theme-accent-primary)",
-                              color: "var(--ts-text-on-accent, #2b2b2b)",
-                            }}
-                            onClick={() => {
-                              cancelAutoRoute();
-                              navigate(autoRoutePending.to);
-                            }}
-                          >
-                            Go
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          style={{
-                            borderColor: "var(--border-subtle)",
-                            color: "var(--text-primary)",
-                            backgroundColor: "transparent",
-                          }}
-                          onClick={cancelAutoRoute}
-                        >
-                          {autoRouteEnabled &&
-                          autoRoutePending.confidence >= AUTO_ROUTE_MIN_CONFIDENCE
-                            ? "Cancel"
-                            : "Dismiss"}
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                )}
+                {!hasUserMessages ? autoRouteAuxiliarySurface : null}
               </div>
             </div>
 

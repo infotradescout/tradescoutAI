@@ -261,8 +261,15 @@ describe("Scout entry framing contracts", () => {
       scoutOsSource.indexOf('data-testid="scout-current-task"')
     );
     const currentTaskIndex = activeMarkup.indexOf('data-testid="scout-current-task"');
+    const auxiliaryRegionIndex = activeMarkup.indexOf('data-testid="scout-task-auxiliary-region"');
     const workRegionIndex = activeMarkup.indexOf('data-testid="scout-task-work-region"');
     const composerIndex = activeMarkup.indexOf('data-testid="scout-task-composer"');
+    const auxiliaryRegionStart = activeMarkup.lastIndexOf("<section", auxiliaryRegionIndex);
+    const auxiliaryRegionMarkup = activeMarkup.slice(auxiliaryRegionStart, workRegionIndex);
+    const autoRouteSurfaceDefinition = scoutOsSource.slice(
+      scoutOsSource.indexOf("const autoRouteAuxiliarySurface"),
+      scoutOsSource.indexOf("const hasActiveTaskAuxiliaryContent")
+    );
     const workRegionStart = activeMarkup.lastIndexOf("<section", workRegionIndex);
     const workRegionMarkup = activeMarkup.slice(workRegionStart, composerIndex);
     const userMessageReducerCase = stateSource
@@ -284,6 +291,8 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain('data-testid="scout-current-task-title"');
     expect(scoutOsSource).toContain('data-testid="scout-latest-meaningful-state"');
     expect(scoutOsSource).toContain('data-testid="scout-primary-next-action"');
+    expect(scoutOsSource).toContain('data-testid="scout-task-auxiliary-region"');
+    expect(scoutOsSource).toContain('aria-label="Task guidance and controls"');
     expect(scoutOsSource).toContain('data-testid="scout-task-work-region"');
     expect(scoutOsSource).toContain('aria-labelledby="scout-task-work-region-title"');
     expect(scoutOsSource).toContain("Conversation and results");
@@ -296,9 +305,41 @@ describe("Scout entry framing contracts", () => {
     expect(threadSource).toContain("thread.scrollTo({ top: thread.scrollHeight, behavior })");
     expect(threadSource).not.toContain("scrollIntoView");
     expect(currentTaskIndex).toBe(0);
+    expect(auxiliaryRegionIndex).toBeGreaterThan(currentTaskIndex);
+    expect(workRegionIndex).toBeGreaterThan(auxiliaryRegionIndex);
     expect(workRegionIndex).toBeGreaterThan(currentTaskIndex);
     expect(composerIndex).toBeGreaterThan(workRegionIndex);
+    expect(activeMarkup.slice(currentTaskIndex, workRegionIndex)).toContain(
+      "hasActiveTaskAuxiliaryContent"
+    );
+    expect(auxiliaryRegionMarkup).toContain("launchContextSurface");
+    expect(auxiliaryRegionMarkup).toContain("onboardingAuxiliarySurface");
+    expect(auxiliaryRegionMarkup).toContain("objectiveAuxiliarySurface");
+    expect(auxiliaryRegionMarkup).toContain("autoRouteAuxiliarySurface");
+    expect(auxiliaryRegionMarkup).toContain("tabIndex={0}");
+    expect(auxiliaryRegionMarkup.indexOf("autoRouteAuxiliarySurface")).toBeLessThan(
+      auxiliaryRegionMarkup.indexOf("launchContextSurface")
+    );
+    expect(autoRouteSurfaceDefinition).toContain('data-testid="scout-priority-navigation"');
+    expect(autoRouteSurfaceDefinition).toContain('? "Cancel"');
+    expect(scoutOsSource).toContain("const AUTO_ROUTE_DELAY_MS = 1600");
+    const startNewDefinition = scoutOsSource.slice(
+      scoutOsSource.indexOf("const handleStartNewScoutThread"),
+      scoutOsSource.indexOf("const handleSaveScoutThreadNow")
+    );
+    expect(startNewDefinition).toContain("cancelAutoRoute();");
+    expect(startNewDefinition).not.toContain("setAutoRoutePending(null)");
+    expect(startNewDefinition).toContain("[cancelAutoRoute, reset]");
+    expect(
+      scoutOsSource.slice(0, scoutOsSource.indexOf('data-testid="scout-current-task"'))
+    ).toContain("{!hasUserMessages ? launchContextSurface : null}");
+    expect(
+      scoutOsSource.slice(0, scoutOsSource.indexOf('data-testid="scout-current-task"'))
+    ).toContain("{!hasUserMessages ? onboardingAuxiliarySurface : null}");
+    expect(activeMarkup).toContain("{!hasUserMessages ? objectiveAuxiliarySurface : null}");
+    expect(activeMarkup).toContain("{!hasUserMessages ? autoRouteAuxiliarySurface : null}");
     expect(activeMarkup.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
+    expect(activeMarkup.match(/data-testid="scout-task-auxiliary-region"/g)).toHaveLength(1);
     expect(activeMarkup.match(/data-testid="scout-task-composer"/g)).toHaveLength(1);
     expect(scoutOsSource).toContain("<ScoutHome");
     expect(scoutOsSource).toContain('placement="inline"');
@@ -342,6 +383,25 @@ describe("Scout entry framing contracts", () => {
     );
     expect(cssSource).toMatch(
       /\.scout-task-work-region \.scout-thread\s*\{[^}]*overscroll-behavior:\s*contain;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-task-auxiliary-region\s*\{[^}]*flex:\s*0 1 auto;[^}]*min-height:\s*44px;[^}]*max-height:\s*min\(16rem,\s*28dvh\);[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior:\s*contain;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-task-auxiliary-region > \.scout-task-auxiliary-region__priority\s*\{[^}]*position:\s*sticky;[^}]*top:\s*0;[^}]*z-index:\s*2;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-active-workbench > \.scout-task-work-region\s*\{[^}]*min-height:\s*clamp\(6rem,\s*20dvh,\s*12rem\);/s
+    );
+    expect(cssSource).toMatch(
+      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-task-auxiliary-region\s*\{[^}]*max-height:\s*min\(9rem,\s*14dvh\);.*?\.scout-active-workbench > \.scout-task-work-region\s*\{[^}]*min-height:\s*clamp\(5\.5rem,\s*18dvh,\s*7rem\);/s
+    );
+    expect(cssSource).toMatch(/\.scout-command-bar__input\s*\{[^}]*max-height:\s*120px;/s);
+    expect(cssSource).toMatch(
+      /@media \(max-width: 640px\)\s*\{.*?\.scout-command-bar__input\s*\{[^}]*max-height:\s*72px;/s
+    );
+    expect(cssSource).toMatch(
+      /@media \(min-width: 641px\) and \(max-height: 700px\)\s*\{.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-search-dock-fixed\s+\.scout-command-bar__input\s*\{[^}]*max-height:\s*72px;[^}]*overflow-y:\s*auto;/s
     );
     expect(cssSource).toContain("#app-scroll-root:has(.scout-shell--active-task)");
     expect(cssSource).toMatch(

@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import ScoutThread, { EvidenceSourceList, scrollScoutThreadToLatest } from "./ScoutThread";
 import ScoutSearchDock from "./ScoutSearchDock";
 import { ScoutInputRow } from "./ScoutInputRow";
+import { cancelScheduledScoutAutoRoute } from "./ScoutOS";
 import type { ScoutAction, ScoutMessage } from "./state";
 
 function renderThread(
@@ -832,6 +833,186 @@ describe("Scout task work record", () => {
         actEnvironment.IS_REACT_ACT_ENVIRONMENT = previousActEnvironment;
       }
     }
+  });
+});
+
+describe("Scout active-task auxiliary reachability", () => {
+  it("cancels an armed auto-route before New resets the active task", () => {
+    vi.useFakeTimers();
+    const navigate = vi.fn();
+    const timerRef = {
+      current: window.setTimeout(navigate, 1600),
+    };
+
+    try {
+      cancelScheduledScoutAutoRoute(timerRef);
+      vi.advanceTimersByTime(1600);
+
+      expect(timerRef.current).toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps representative auxiliary controls in one bounded region beside a usable sparse record on short mobile", () => {
+    const availableCenterHeight = 520;
+    const currentTaskHeight = 270;
+    const auxiliaryRegionHeight = 110;
+    const workRegionFloor = 112;
+    const verticalGaps = 16;
+    const html = renderToStaticMarkup(
+      React.createElement(
+        "div",
+        {
+          className: "scout-active-workbench",
+          "data-mobile-center-height": availableCenterHeight,
+        },
+        React.createElement(
+          "section",
+          { className: "scout-current-task", style: { height: currentTaskHeight } },
+          "Current task"
+        ),
+        React.createElement(
+          "section",
+          {
+            className: "scout-task-auxiliary-region",
+            "data-testid": "scout-task-auxiliary-region",
+            "aria-label": "Task guidance and controls",
+            tabIndex: 0,
+            style: {
+              flex: "0 1 auto",
+              minHeight: 44,
+              maxHeight: auxiliaryRegionHeight,
+              overflowY: "auto",
+              overscrollBehavior: "contain",
+            },
+          },
+          React.createElement(
+            "div",
+            {
+              className: "scout-task-auxiliary-region__priority",
+              "data-testid": "scout-priority-navigation",
+              style: { position: "sticky", top: 0, zIndex: 2 },
+            },
+            React.createElement("button", { type: "button" }, "Cancel smart navigation")
+          ),
+          React.createElement("button", { type: "button" }, "Open launch source"),
+          React.createElement("button", { type: "button" }, "Confirm onboarding"),
+          React.createElement("button", { type: "button" }, "Pause objective"),
+          React.createElement("button", { type: "button" }, "Open watchdog action")
+        ),
+        React.createElement(
+          "section",
+          {
+            className: "scout-task-work-region",
+            style: { flex: "1 1 0", minHeight: workRegionFloor, overflow: "hidden" },
+          },
+          React.createElement(
+            "div",
+            { className: "scout-task-work-region__body" },
+            React.createElement(
+              "div",
+              {
+                className: "scout-thread scout-thread--task-loop",
+                role: "log",
+                tabIndex: 0,
+                style: { overflowY: "auto" },
+              },
+              React.createElement("p", null, "One saved Scout update")
+            )
+          )
+        )
+      )
+    );
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const auxiliaryRegion = container.querySelector<HTMLElement>(
+      '[data-testid="scout-task-auxiliary-region"]'
+    );
+    const priorityAutoRoute = container.querySelector<HTMLElement>(
+      '[data-testid="scout-priority-navigation"]'
+    );
+    const workRegion = container.querySelector<HTMLElement>(".scout-task-work-region");
+    const thread = container.querySelector<HTMLElement>(".scout-thread");
+
+    expect(
+      currentTaskHeight + auxiliaryRegionHeight + workRegionFloor + verticalGaps
+    ).toBeLessThanOrEqual(availableCenterHeight);
+    expect(auxiliaryRegion?.getAttribute("aria-label")).toBe("Task guidance and controls");
+    expect(auxiliaryRegion?.tabIndex).toBe(0);
+    expect(auxiliaryRegion?.style.flex).toBe("0 1 auto");
+    expect(auxiliaryRegion?.style.overflowY).toBe("auto");
+    expect(auxiliaryRegion?.style.overscrollBehavior).toBe("contain");
+    expect(auxiliaryRegion?.querySelectorAll("button")).toHaveLength(5);
+    expect(auxiliaryRegion?.firstElementChild).toBe(priorityAutoRoute);
+    expect(priorityAutoRoute?.style.position).toBe("sticky");
+    expect(priorityAutoRoute?.style.top).toBe("0px");
+    expect(priorityAutoRoute?.textContent).toContain("Cancel smart navigation");
+    expect(
+      Array.from(container.querySelectorAll("button")).every((button) =>
+        auxiliaryRegion?.contains(button)
+      )
+    ).toBe(true);
+    expect(workRegion?.style.minHeight).toBe(`${workRegionFloor}px`);
+    expect(workRegion?.contains(thread)).toBe(true);
+    expect(auxiliaryRegion?.contains(thread)).toBe(false);
+    expect(thread?.getAttribute("role")).toBe("log");
+    expect(thread?.style.overflowY).toBe("auto");
+  });
+
+  it("preserves the record and scrollable input with a max multiline dock at 600px desktop height", () => {
+    const viewportHeight = 600;
+    const taskbarHeight = 58;
+    const multilineInputHeight = 72;
+    const commandBarChrome = 23;
+    const fixedDockChrome = 16;
+    const fixedComposerHeight = multilineInputHeight + commandBarChrome + fixedDockChrome;
+    const topControlsHeight = 35;
+    const currentTaskCardHeight = 137;
+    const cardAndRegionGaps = 32;
+    const recordFloor = Math.max(6 * 16, Math.min(viewportHeight * 0.2, 12 * 16));
+    const auxiliaryMaximum = Math.min(16 * 16, viewportHeight * 0.28);
+    const auxiliaryAllocation =
+      viewportHeight -
+      taskbarHeight -
+      fixedComposerHeight -
+      topControlsHeight -
+      currentTaskCardHeight -
+      cardAndRegionGaps -
+      recordFloor;
+    const textarea = document.createElement("textarea");
+    textarea.className = "scout-command-bar__input";
+    textarea.style.height = "120px";
+    textarea.style.maxHeight = `${multilineInputHeight}px`;
+    textarea.style.overflowY = "auto";
+    Object.defineProperty(textarea, "clientHeight", {
+      configurable: true,
+      value: multilineInputHeight,
+    });
+    Object.defineProperty(textarea, "scrollHeight", {
+      configurable: true,
+      value: 120,
+    });
+
+    expect(fixedComposerHeight).toBe(111);
+    expect(recordFloor).toBe(120);
+    expect(auxiliaryAllocation).toBe(107);
+    expect(auxiliaryAllocation).toBeGreaterThanOrEqual(44);
+    expect(auxiliaryAllocation).toBeLessThanOrEqual(auxiliaryMaximum);
+    expect(textarea.style.height).toBe("120px");
+    expect(textarea.style.maxHeight).toBe("72px");
+    expect(textarea.style.overflowY).toBe("auto");
+    expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight);
+    expect(
+      taskbarHeight +
+        fixedComposerHeight +
+        topControlsHeight +
+        currentTaskCardHeight +
+        cardAndRegionGaps +
+        auxiliaryAllocation +
+        recordFloor
+    ).toBe(viewportHeight);
   });
 });
 

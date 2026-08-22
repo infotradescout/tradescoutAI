@@ -169,8 +169,8 @@
     "intake": "pass; Scout active-task dead canvas is the highest-impact next interior defect while Community remains protected",
     "intentObjector": "pass with revision; the conversation and result record must become the primary usable work object, not merely an opened details panel",
     "planner": "go; canonical existing owners and proof boundary are sufficient",
-    "implementationObjector": "pending",
-    "implementationAligner": "pending"
+    "implementationObjector": "blocked on two bounded P2 findings; New did not cancel an armed auto-route timer and declaration-only auto-route coverage was overstated as runtime proof; timer corrected and evidence reclassified, all other checks passed",
+    "implementationAligner": "provisionally_aligned; bounded correction matches D7, GO to exact verification and gating, HOLD release claim until exact commit, gate, review resolution, merge, and production proof"
   },
   "manualUnverified": {
     "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source.",
