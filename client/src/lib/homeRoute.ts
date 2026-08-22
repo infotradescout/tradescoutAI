@@ -8,6 +8,17 @@ export type DefaultHomePage =
   | "profile"
   | "community";
 
+export function isDefaultHomePage(value: unknown): value is DefaultHomePage {
+  return (
+    value === "llm" ||
+    value === "marketplace" ||
+    value === "contractor-board" ||
+    value === "dashboard" ||
+    value === "profile" ||
+    value === "community"
+  );
+}
+
 /**
  * Resolve a stored defaultHomePage preference to an app route.
  *
@@ -27,4 +38,22 @@ export function resolveDefaultHomeRoute(page?: DefaultHomePage | null): string {
   };
 
   return map[page] ?? DEFAULT_LANDING;
+}
+
+export function resolveAuthenticatedHomeRedirect({
+  location,
+  isCustomDomainProfileRoute,
+  communityFirst,
+  defaultHomePage,
+}: {
+  location: string;
+  isCustomDomainProfileRoute: boolean;
+  communityFirst?: boolean;
+  defaultHomePage?: unknown;
+}): string | null {
+  if (location !== "/" || isCustomDomainProfileRoute) return null;
+  if (communityFirst) return "/community-feed";
+  if (!defaultHomePage) return null;
+
+  return resolveDefaultHomeRoute(isDefaultHomePage(defaultHomePage) ? defaultHomePage : null);
 }

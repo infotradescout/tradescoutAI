@@ -7,7 +7,7 @@ import { ErrorBoundary } from "./components/ui/error-boundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { SessionProvider } from "./contexts/SessionContext";
 import { useAuth } from "./hooks/useAuth";
-import { resolveDefaultHomeRoute, type DefaultHomePage } from "./lib/homeRoute";
+import { resolveAuthenticatedHomeRedirect } from "./lib/homeRoute";
 import {
   FEATURE_HOLD_TO_EXPLAIN,
   FEATURE_HOLD_INTRO_TUTORIAL,
@@ -63,17 +63,6 @@ const PWAInstallPrompt = React.lazy(() =>
   }))
 );
 const SimpleBugReportTool = React.lazy(() => import("./components/SimpleBugReportTool"));
-
-function isDefaultHomePage(value: unknown): value is DefaultHomePage {
-  return (
-    value === "llm" ||
-    value === "marketplace" ||
-    value === "contractor-board" ||
-    value === "dashboard" ||
-    value === "profile" ||
-    value === "community"
-  );
-}
 
 // Main app layout component
 const AppLayout = memo(function AppLayout() {
@@ -232,29 +221,22 @@ const AppLayout = memo(function AppLayout() {
     }
   }, [location, setLocation]);
 
-  // Respect user default home page preference when landing on '/'.
-  // Community-first users always land on the community feed.
+  // Respect user default home page preference when landing on the TradeScout
+  // app root. A profile custom domain owns its root regardless of auth state.
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
     if (!hasCompletedSetup(user)) return;
 
-    if (user.communityFirst && location === "/") {
-      setLocation("/community-feed");
-      return;
-    }
+    const targetRoute = resolveAuthenticatedHomeRedirect({
+      location,
+      isCustomDomainProfileRoute,
+      communityFirst: Boolean(user.communityFirst),
+      defaultHomePage: user.preferences?.defaultHomePage,
+    });
 
-    if (!user.preferences?.defaultHomePage) return;
-
-    const rawDefaultPage: unknown = user.preferences.defaultHomePage;
-    const targetRoute = resolveDefaultHomeRoute(
-      isDefaultHomePage(rawDefaultPage) ? rawDefaultPage : null
-    );
-
-    if (targetRoute && location === "/") {
-      setLocation(targetRoute);
-    }
-  }, [isAuthenticated, user, location, setLocation]);
+    if (targetRoute) setLocation(targetRoute);
+  }, [isAuthenticated, user, location, setLocation, isCustomDomainProfileRoute]);
 
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";
