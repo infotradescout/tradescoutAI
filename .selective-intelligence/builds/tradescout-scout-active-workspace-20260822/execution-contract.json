@@ -11,13 +11,14 @@
   "releaseControl": {
     "status": "hold",
     "remoteHead": "f4f4f2f5741c945564fc41cf12765f21d9ab3ada",
-    "remoteHeadEvidence": "invalidated_for_current_candidate_by_uncommitted_p2_correction",
-    "workingCandidate": "uncommitted_four_file_pr425_p2_correction",
+    "remoteHeadEvidence": "historical_f4_only_and_invalid_for_local_candidate",
+    "localCommittedCandidate": "c0311c1a8268d55ed7b41ec353b92870c45965f3",
+    "workingCandidate": "c0311c1a_plus_uncommitted_three_file_active_task_background_containment",
     "reviewThread": "3836662192",
     "objector": "sustained",
-    "aligner": "sustained_provisionally_aligned",
-    "focusedTests": "38_of_39_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
-    "requiredNineFileTests": "89_of_90_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
+    "aligner": "sustained_aligned_for_three_file_followup",
+    "focusedTests": "current_39_of_40_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
+    "requiredNineFileTests": "current_90_of_91_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
     "typecheck": "pass",
     "guards": "pass",
     "releaseAuthority": "none"
@@ -186,7 +187,7 @@
   "baseline": {
     "commit": "cd3623ab1bf39502b4ad2133c90d6a5f60788ed6",
     "productionObservation": "Production reports the exact D6 merge SHA and healthy database and migration state. D2 rendered evidence shows an eight-update active Scout task with its conversation collapsed and most of the center workspace inert.",
-    "projectIndex": "refreshed_2026-08-22T19:39:31Z_from_dirty_f4f4f2f5741c945564fc41cf12765f21d9ab3ada_inventory_ac5ed17c9081acd0cdb6121bdf00b05146737ec93949c0b97181bb931a1057c6; canonical ScoutOS and index.css owners usable; 1101 pre-existing mirrored-export/competing-owner errors plus five raw-UI warnings remain excluded"
+    "projectIndex": "refreshed_2026-08-22T20:21:35Z_from_dirty_c0311c1a8268d55ed7b41ec353b92870c45965f3_inventory_89a0837a8b34790a8ba932b006cd6ad9564a8f8255a238113026159e93808bc4; canonical ScoutOS and index.css owners usable; 1101 pre-existing mirrored-export/competing-owner errors plus five raw-UI warnings remain excluded"
   },
   "approval": {
     "standingUserDirection": "always without asking; approve; keep going; then keep going",
@@ -198,12 +199,12 @@
     "intake": "pass; Scout active-task dead canvas is the highest-impact next interior defect while Community remains protected",
     "intentObjector": "pass with revision; the conversation and result record must become the primary usable work object, not merely an opened details panel",
     "planner": "go; canonical existing owners and proof boundary are sufficient",
-    "implementationObjector": "initially blocked on auto-route cancellation and proof classification, then on exact short-height overlap and the first 701px noncompact frame clipping the thread owner; those findings were corrected. PR425 P2 thread 3836662192 then found ultra-short owner, focus, endpoint, and nested-wheel defects; the current uncommitted four-file correction is sustained with no source blocker, and rapid same-gesture latching is classified as native and non-persistent",
-    "implementationAligner": "sustained and provisionally aligned for the PR425 P2 four-file correction; the responsive owner handoff preserves the D7 plan and changes no route, API, persistence, contact, county, or Trust/CVS authority. Release remains HOLD until a clean exact commit, refreshed browser/test/build/gate evidence, exact-head review and conversation resolution, merge, and production proof"
+    "implementationObjector": "initially blocked on auto-route cancellation, short-height overlap, ultra-short ownership, focus, endpoint, and nested-wheel defects; those findings were corrected and sustained. Exact c031 browser proof then found a structural 200px page-overflow range from negative-inset ts-bg decoration. The scoped active-task vertical clip is sustained: body range is removed while responsive owners, focus, endpoints, and distinct-gesture handoff remain intact",
+    "implementationAligner": "sustained and aligned for the three-file ts-bg containment follow-up after correcting the evidence claim: the baseline is structural 1000/1200 background bleed, no trusted product-wheel escape is claimed, and corrected 1000/1000 containment preserves every responsive owner. Release remains HOLD until a clean exact commit, refreshed browser/test/build/gate evidence, exact-head review and conversation resolution, merge, and production proof"
   },
   "manualUnverified": {
-    "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source. Separately, the current PR425 P2 correction is uncommitted, so f4f4f2f5 exact release evidence is invalid for the working candidate.",
+    "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source. Separately, exact c031 proof is invalid for release because the newer three-file active-task background-containment correction is uncommitted.",
     "reuseDecision": "Extend ScoutOS and existing Scout styles and tests. Touch ScoutThread only if its canonical scroll behavior requires a bounded correction; create no new component or parallel owner.",
-    "releaseHold": "Objector and Aligner sustained; exact verifier proof remains pending. No commit, push, gate refresh, merge, deploy, or production identity proof is authorized or complete."
+    "releaseHold": "Objector and Aligner sustained the three-file follow-up; refreshed exact verifier proof remains pending. No new commit, push, gate refresh, merge, deploy, or production identity proof is authorized or complete."
   }
 }

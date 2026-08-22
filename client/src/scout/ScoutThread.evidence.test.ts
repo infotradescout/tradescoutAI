@@ -1071,6 +1071,58 @@ describe("Scout active-task auxiliary reachability", () => {
 });
 
 describe("Scout short-viewport workbench evidence", () => {
+  it("records active-task background containment for a non-overflowing no-aux thread", () => {
+    // Captured from the real 1440x1000 no-aux page. The baseline establishes a
+    // structural page range, not a trusted product-wheel escape. The source
+    // contract binds the decorative-background containment rule.
+    const beforeCorrection = {
+      body: { clientHeight: 1000, scrollHeight: 1200 },
+      root: { clientHeight: 1000, scrollHeight: 1200 },
+      backgroundLayers: {
+        base: [-200, 1200],
+        topo: [-80, 1080],
+        vignette: [-50, 1050],
+      },
+      log: { clientHeight: 493, scrollHeight: 493, scrollTop: 0 },
+      trustedProductEscapeEstablished: false,
+    };
+    const corrected = {
+      body: { clientHeight: 1000, scrollHeight: 1000 },
+      root: { clientHeight: 1000, scrollHeight: 1000 },
+      forcedBodyScrollTop: [0, 0],
+      bodyScrollTop: [0, 0],
+      rootScrollTop: [0, 0],
+      documentScrollTop: [0, 0],
+      workbenchScrollTop: [0, 0],
+      columnScrollTop: [0, 0],
+      logScrollTop: [0, 0],
+      logRect: [303.641, 797],
+      workRect: [248.25, 798],
+      dockRect: [842, 934],
+    };
+
+    expect(beforeCorrection.log.clientHeight).toBe(beforeCorrection.log.scrollHeight);
+    expect(beforeCorrection.body.scrollHeight).toBeGreaterThan(beforeCorrection.body.clientHeight);
+    expect(beforeCorrection.root.scrollHeight).toBeGreaterThan(beforeCorrection.root.clientHeight);
+    expect(beforeCorrection.backgroundLayers.base).toEqual([-200, 1200]);
+    expect(beforeCorrection.trustedProductEscapeEstablished).toBe(false);
+    expect(corrected.body.scrollHeight).toBe(corrected.body.clientHeight);
+    expect(corrected.root.scrollHeight).toBe(corrected.root.clientHeight);
+    for (const scrollPair of [
+      corrected.forcedBodyScrollTop,
+      corrected.bodyScrollTop,
+      corrected.rootScrollTop,
+      corrected.documentScrollTop,
+      corrected.workbenchScrollTop,
+      corrected.columnScrollTop,
+      corrected.logScrollTop,
+    ]) {
+      expect(scrollPair).toEqual([0, 0]);
+    }
+    expect(corrected.logRect[1]).toBeLessThan(corrected.dockRect[0]);
+    expect(corrected.workRect[1]).toBeLessThan(corrected.dockRect[0]);
+  });
+
   it("records the exact adversarial 568x320 browser proof without treating it as a DOM simulation", () => {
     const measured = {
       viewport: { width: 568, height: 320 },

@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T19:39:31Z",
+  "generated_at": "2026-08-22T20:21:35Z",
   "source": {
     "kind": "git",
-    "revision": "f4f4f2f5741c945564fc41cf12765f21d9ab3ada",
+    "revision": "c0311c1a8268d55ed7b41ec353b92870c45965f3",
     "dirty": true,
-    "inventory_sha256": "ac5ed17c9081acd0cdb6121bdf00b05146737ec93949c0b97181bb931a1057c6"
+    "inventory_sha256": "89a0837a8b34790a8ba932b006cd6ad9564a8f8255a238113026159e93808bc4"
   },
   "inventory": {
     "directories": [
@@ -6869,8 +6869,8 @@
       {
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
         "language": "ts",
-        "sha256": "ad854633058a855e9af41be5bc3e7f2ec72d714a65554c690a73b7d99a05f271",
-        "bytes": 50151
+        "sha256": "2cfc86e27e633e5823b29dd2850db427ebab4bf45868274f3eddaccacc814486",
+        "bytes": 52336
       },
       {
         "path": "client/src/scout/ScoutThread.tsx",
@@ -7115,8 +7115,8 @@
       {
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
         "language": "ts",
-        "sha256": "0e3d7a06626ddbf9bc3ac3dbc6e88ac7b194b4230119a278336b31852e88b3d2",
-        "bytes": 34899
+        "sha256": "914d732aaf323a7242d30556f5be2133bbe6068ae1fb5c7f7b371151d6d4c48b",
+        "bytes": 35050
       },
       {
         "path": "client/src/scout/scout-home-personalization.contract.test.ts",
@@ -59505,28 +59505,28 @@
         "name": "mobileCorrectionApplies",
         "kind": "function",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1209,
+        "line": 1257,
         "exported": false
       },
       {
         "name": "mobileClampApplies",
         "kind": "function",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1210,
+        "line": 1258,
         "exported": false
       },
       {
         "name": "shortDesktopCorrectionApplies",
         "kind": "function",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1212,
+        "line": 1260,
         "exported": false
       },
       {
         "name": "TestResizeObserver",
         "kind": "class",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1299,
+        "line": 1347,
         "exported": false
       },
       {
@@ -60842,7 +60842,7 @@
         "name": "extractQuotedText",
         "kind": "function",
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
-        "line": 527,
+        "line": 530,
         "exported": false
       },
       {

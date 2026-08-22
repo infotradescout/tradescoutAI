@@ -2908,6 +2908,10 @@ body.ts-scout-active .scout-content {
   min-height: 0;
 }
 
+body.ts-scout-active:has(.scout-shell--active-task) .ts-bg {
+  overflow-y: clip !important;
+}
+
 body.ts-scout-active #app-scroll-root:has(.scout-shell--active-task) {
   overflow-y: hidden;
   overscroll-behavior: none;

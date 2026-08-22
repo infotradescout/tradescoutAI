@@ -391,6 +391,9 @@ describe("Scout entry framing contracts", () => {
       /\.scout-active-workbench\s*\{[^}]*flex:\s*1 1 auto;[^}]*overflow-x:\s*hidden;[^}]*overflow-y:\s*auto;[^}]*overscroll-behavior-y:\s*contain;[^}]*scroll-behavior:\s*auto;/s
     );
     expect(cssSource).toMatch(
+      /body\.ts-scout-active:has\(\.scout-shell--active-task\) \.ts-bg\s*\{[^}]*overflow-y:\s*clip !important;/s
+    );
+    expect(cssSource).toMatch(
       /\.scout-current-task__primary\s*\{[^}]*scroll-margin-bottom:\s*1px;/s
     );
     expect(cssSource).toMatch(
