@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T00:02:29Z",
+  "generated_at": "2026-08-22T02:15:57Z",
   "source": {
     "kind": "git",
-    "revision": "259f031de25d92ef3204561b81f885aabce7ec85",
+    "revision": "61e564656a053922abb809f0847ce3cb67f0c1e6",
     "dirty": false,
-    "inventory_sha256": "781b59b3cd08272dd56f47ca6216da1875e26bd347ac2ff28bc26986f0691629"
+    "inventory_sha256": "e04a384caa57e30adcd801faf74a4a3db8f2c27fd086849cef6c86f914a771b4"
   },
   "inventory": {
     "directories": [
@@ -2213,8 +2213,8 @@
       {
         "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
         "language": "tsx",
-        "sha256": "baa5e067b26a9bf32b7d13592b4a3e3da73a2ffb07c543ff13b86ed142302d6d",
-        "bytes": 22523
+        "sha256": "d9df80c7327b9961fe90a01d3ce7d43dcd5548bf529827a5ec046a4fb4746f4c",
+        "bytes": 22312
       },
       {
         "path": "client/src/components/profile/PublicProfileItems.test.ts",
@@ -20255,14 +20255,14 @@
       {
         "path": "server/tests/profile-account-domain.test.ts",
         "language": "ts",
-        "sha256": "690f6a14d4b5e76fbd634df01bdad38784bd5920e3d71941b3dea0e00daadd08",
-        "bytes": 3868
+        "sha256": "509a62d666108f4983122827f351ca1faa2c6fe34f43284d00689ec0a857d71f",
+        "bytes": 3719
       },
       {
         "path": "server/tests/profile-account-foundation.contract.test.ts",
         "language": "ts",
-        "sha256": "7b39c987caa08a58fe102c26242b220bf59fb2f9815dc43532f4a1b12e9da2ac",
-        "bytes": 7613
+        "sha256": "36d7bcf53745cdc9e8a112d925095fe44d05ad81b57ba888e35dd0a2f4bf8d16",
+        "bytes": 7720
       },
       {
         "path": "server/tests/profile-account-public-route-migration.contract.test.ts",
@@ -22163,8 +22163,8 @@
       {
         "path": "shared/profileAccount.ts",
         "language": "ts",
-        "sha256": "f5ecf0354322ba86494832ea37fbe3767404d1d73db631e59c26ef377ea7635a",
-        "bytes": 5256
+        "sha256": "49ce5e699c5788dbf61755f2a4e3f51636fcf0f9f2c43435485ef17d26107711",
+        "bytes": 4959
       },
       {
         "path": "shared/profileBookingConfig.ts",
@@ -30170,14 +30170,14 @@
         "name": "createNewAccount",
         "kind": "function",
         "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-        "line": 210,
+        "line": 207,
         "exported": false
       },
       {
         "name": "submit",
         "kind": "function",
         "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-        "line": 256,
+        "line": 253,
         "exported": false
       },
       {
@@ -155057,7 +155057,7 @@
         "name": "buildProfileAccountReturnPath",
         "kind": "function",
         "path": "shared/profileAccount.ts",
-        "line": 154,
+        "line": 151,
         "exported": true
       },
       {
@@ -165499,62 +165499,62 @@
         {
           "tag": "button",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 355
+          "line": 352
         },
         {
           "tag": "button",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 378
+          "line": 375
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 394
+          "line": 391
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 408
+          "line": 405
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 418
+          "line": 415
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 433
+          "line": 430
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 445
+          "line": 442
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 457
+          "line": 454
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 470
+          "line": 467
         },
         {
           "tag": "input",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 480
+          "line": 477
         },
         {
           "tag": "button",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 524
+          "line": 521
         },
         {
           "tag": "button",
           "path": "client/src/components/profile/PublicProfileAccountDialog.tsx",
-          "line": 566
+          "line": 563
         },
         {
           "tag": "button",
