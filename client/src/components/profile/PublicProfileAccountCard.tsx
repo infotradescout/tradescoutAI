@@ -3,10 +3,7 @@ import { CheckCircle2, Loader2, ShieldCheck, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { cn } from "@/lib/utils";
-import {
-  buildProfileAccountReturnPath,
-  type ProfileAccountPolicy,
-} from "@shared/profileAccount";
+import { buildProfileAccountReturnPath, type ProfileAccountPolicy } from "@shared/profileAccount";
 
 type ViewerBusinessProfile = Readonly<{
   id: string;
@@ -40,6 +37,7 @@ type ProfileAccountResponse = Readonly<{
   requiresBusinessSetup: boolean;
   account: ProfileAccountRecord | null;
   entitlements: readonly ProfileAccountEntitlement[];
+  verificationBypassActive?: boolean;
   message?: string;
 }>;
 
@@ -172,12 +170,7 @@ export function PublicProfileAccountCard({
   };
 
   useEffect(() => {
-    if (
-      resumedRef.current ||
-      !data ||
-      !hasViewerSession ||
-      typeof window === "undefined"
-    ) {
+    if (resumedRef.current || !data || !hasViewerSession || typeof window === "undefined") {
       return;
     }
     const url = new URL(window.location.href);
@@ -194,6 +187,7 @@ export function PublicProfileAccountCard({
 
   const connected = data?.account?.status === "active";
   const pendingVerification =
+    !data?.verificationBypassActive &&
     data?.account?.identityKind === "business" &&
     data.account.verificationStatus === "pending";
   const connectedDescription =
