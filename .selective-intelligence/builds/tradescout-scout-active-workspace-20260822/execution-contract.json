@@ -10,15 +10,18 @@
   "phase": "continuation",
   "releaseControl": {
     "status": "hold",
-    "remoteHead": "f4f4f2f5741c945564fc41cf12765f21d9ab3ada",
-    "remoteHeadEvidence": "historical_f4_only_and_invalid_for_local_candidate",
-    "localCommittedCandidate": "c0311c1a8268d55ed7b41ec353b92870c45965f3",
-    "workingCandidate": "c0311c1a_plus_uncommitted_three_file_active_task_background_containment",
-    "reviewThread": "3836662192",
+    "preFinalCandidateRemoteHead": "f4f4f2f5741c945564fc41cf12765f21d9ab3ada",
+    "preFinalCandidateRemoteHeadEvidence": "historical_f4_only_and_invalid_for_local_candidate",
+    "candidateIdentity": "this_committed_tree_exact_full_sha_is_authoritatively_bound_by_release_contract_evidence",
+    "candidateCommitBoundary": "committed_d7_corrections_require_clean_exact_gate_before_release_authority",
+    "preFinalCandidateUnresolvedReviewThreads": [
+      {"threadId": "PRRT_kwDOQi_kTs6bZDm_", "rootCommentDatabaseId": 3836157772},
+      {"threadId": "PRRT_kwDOQi_kTs6baY1a", "rootCommentDatabaseId": 3836662192}
+    ],
     "objector": "sustained",
     "aligner": "sustained_aligned_for_three_file_followup",
-    "focusedTests": "current_39_of_40_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
-    "requiredNineFileTests": "current_90_of_91_pass; sole unchanged HomeID initialHomeIdFromUrl baseline",
+    "focusedTests": "exact_e1d_behavior_tree_39_of_40_pass; sole unchanged HomeID initialHomeIdFromUrl baseline; final committed-tree gate rerun pending",
+    "requiredNineFileTests": "exact_e1d_behavior_tree_90_of_91_pass; sole unchanged HomeID initialHomeIdFromUrl baseline; final committed-tree gate rerun pending",
     "typecheck": "pass",
     "guards": "pass",
     "releaseAuthority": "none"
@@ -187,7 +190,7 @@
   "baseline": {
     "commit": "cd3623ab1bf39502b4ad2133c90d6a5f60788ed6",
     "productionObservation": "Production reports the exact D6 merge SHA and healthy database and migration state. D2 rendered evidence shows an eight-update active Scout task with its conversation collapsed and most of the center workspace inert.",
-    "projectIndex": "refreshed_2026-08-22T20:21:35Z_from_dirty_c0311c1a8268d55ed7b41ec353b92870c45965f3_inventory_89a0837a8b34790a8ba932b006cd6ad9564a8f8255a238113026159e93808bc4; canonical ScoutOS and index.css owners usable; 1101 pre-existing mirrored-export/competing-owner errors plus five raw-UI warnings remain excluded"
+    "projectIndex": "authoritative metadata is stored in ../../project-index.json to avoid a self-referential inventory hash; canonical ScoutOS and index.css owners usable; 1101 pre-existing mirrored-export/competing-owner errors plus five raw-UI warnings remain excluded"
   },
   "approval": {
     "standingUserDirection": "always without asking; approve; keep going; then keep going",
@@ -200,11 +203,11 @@
     "intentObjector": "pass with revision; the conversation and result record must become the primary usable work object, not merely an opened details panel",
     "planner": "go; canonical existing owners and proof boundary are sufficient",
     "implementationObjector": "initially blocked on auto-route cancellation, short-height overlap, ultra-short ownership, focus, endpoint, and nested-wheel defects; those findings were corrected and sustained. Exact c031 browser proof then found a structural 200px page-overflow range from negative-inset ts-bg decoration. The scoped active-task vertical clip is sustained: body range is removed while responsive owners, focus, endpoints, and distinct-gesture handoff remain intact",
-    "implementationAligner": "sustained and aligned for the three-file ts-bg containment follow-up after correcting the evidence claim: the baseline is structural 1000/1200 background bleed, no trusted product-wheel escape is claimed, and corrected 1000/1000 containment preserves every responsive owner. Release remains HOLD until a clean exact commit, refreshed browser/test/build/gate evidence, exact-head review and conversation resolution, merge, and production proof"
+    "implementationAligner": "the functional three-file ts-bg containment follow-up is sustained and aligned: the baseline is structural 1000/1200 background bleed, no trusted product-wheel escape is claimed, and corrected 1000/1000 containment preserves every responsive owner. Exact e1d source/browser evidence also sustained; release remains HOLD because the final committed tree must bind its identity through fresh release-contract evidence, exact-head review, merge, and production proof"
   },
   "manualUnverified": {
-    "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source. Separately, exact c031 proof is invalid for release because the newer three-file active-task background-containment correction is uncommitted.",
+    "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source. Candidate identity is intentionally not self-embedded in this tracked file; the clean release-contract gate artifact supplies the authoritative final full SHA.",
     "reuseDecision": "Extend ScoutOS and existing Scout styles and tests. Touch ScoutThread only if its canonical scroll behavior requires a bounded correction; create no new component or parallel owner.",
-    "releaseHold": "Objector and Aligner sustained the three-file follow-up; refreshed exact verifier proof remains pending. No new commit, push, gate refresh, merge, deploy, or production identity proof is authorized or complete."
+    "releaseHold": "Functional Objector and Aligner review plus exact e1d behavior proof are sustained; final committed-tree gate evidence remains pending. No push, attestation, merge, deploy, or production identity proof is authorized or complete."
   }
 }

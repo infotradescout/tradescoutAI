@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T20:21:35Z",
+  "generated_at": "2026-08-22T21:03:15Z",
   "source": {
     "kind": "git",
-    "revision": "c0311c1a8268d55ed7b41ec353b92870c45965f3",
+    "revision": "e1d56fb65a302ef7c6c8f00e99e21e9df0009517",
     "dirty": true,
-    "inventory_sha256": "89a0837a8b34790a8ba932b006cd6ad9564a8f8255a238113026159e93808bc4"
+    "inventory_sha256": "13e2c977a0a8f1effb264cc5e886d37365d8c0fe0c638b43f45cc4b768e74dfe"
   },
   "inventory": {
     "directories": [
@@ -6869,8 +6869,8 @@
       {
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
         "language": "ts",
-        "sha256": "2cfc86e27e633e5823b29dd2850db427ebab4bf45868274f3eddaccacc814486",
-        "bytes": 52336
+        "sha256": "ada5205ad05e2e42947d97cc7d8862db0d15de443996b175e2877d3146d6b85b",
+        "bytes": 52312
       },
       {
         "path": "client/src/scout/ScoutThread.tsx",
@@ -59505,28 +59505,28 @@
         "name": "mobileCorrectionApplies",
         "kind": "function",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1257,
+        "line": 1253,
         "exported": false
       },
       {
         "name": "mobileClampApplies",
         "kind": "function",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1258,
+        "line": 1254,
         "exported": false
       },
       {
         "name": "shortDesktopCorrectionApplies",
         "kind": "function",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1260,
+        "line": 1256,
         "exported": false
       },
       {
         "name": "TestResizeObserver",
         "kind": "class",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1347,
+        "line": 1343,
         "exported": false
       },
       {
