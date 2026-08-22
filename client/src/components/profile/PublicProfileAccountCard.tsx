@@ -68,6 +68,15 @@ function clearResumeQuery(): void {
   window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
+function businessVerificationPath(profileSlug: string, businessProfileId: string): string {
+  const params = new URLSearchParams({
+    source: "profile_account",
+    businessProfileId,
+    next: buildProfileAccountReturnPath(profileSlug),
+  });
+  return `/business-verification?${params.toString()}`;
+}
+
 export function PublicProfileAccountCard({
   profileSlug,
   profileName,
@@ -186,10 +195,18 @@ export function PublicProfileAccountCard({
   }, [data, hasViewerSession]);
 
   const connected = data?.account?.status === "active";
-  const pendingVerification =
+  const businessVerificationState =
     !data?.verificationBypassActive &&
     data?.account?.identityKind === "business" &&
-    data.account.verificationStatus === "pending";
+    data.account.businessProfileId &&
+    (data.account.verificationStatus === "pending" ||
+      data.account.verificationStatus === "rejected")
+      ? data.account.verificationStatus
+      : null;
+  const businessVerificationHref =
+    businessVerificationState && data?.account?.businessProfileId
+      ? businessVerificationPath(profileSlug, data.account.businessProfileId)
+      : "";
   const connectedDescription =
     data?.account?.identityKind === "business"
       ? `${data.account.businessName || "Your business"} is connected to ${profileName}.`
@@ -260,16 +277,40 @@ export function PublicProfileAccountCard({
 
           {connected ? (
             <div className="mt-5 space-y-3" data-testid="profile-account-connected-state">
-              {pendingVerification ? (
-                <p
-                  className={cn(
-                    "flex items-start gap-2 text-sm leading-6",
-                    isDark ? "text-amber-200" : "text-amber-800"
-                  )}
-                >
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  Business verification is still pending.
-                </p>
+              {businessVerificationState ? (
+                <div className="space-y-3">
+                  <p
+                    className={cn(
+                      "flex items-start gap-2 text-sm leading-6",
+                      businessVerificationState === "rejected"
+                        ? isDark
+                          ? "text-red-200"
+                          : "text-red-700"
+                        : isDark
+                          ? "text-amber-200"
+                          : "text-amber-800"
+                    )}
+                  >
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    {businessVerificationState === "rejected"
+                      ? "Business verification needs an update."
+                      : "Business verification is not complete."}
+                  </p>
+                  <a
+                    href={businessVerificationHref}
+                    data-testid="profile-account-business-verification"
+                    className={cn(
+                      "inline-flex min-h-11 w-full items-center justify-center rounded-full px-5 text-sm font-black transition",
+                      isDark
+                        ? "bg-amber-300 text-stone-950 hover:bg-amber-200"
+                        : "bg-stone-950 text-white hover:bg-stone-800"
+                    )}
+                  >
+                    {businessVerificationState === "rejected"
+                      ? "Fix verification"
+                      : "Verify your business"}
+                  </a>
+                </div>
               ) : null}
             </div>
           ) : (

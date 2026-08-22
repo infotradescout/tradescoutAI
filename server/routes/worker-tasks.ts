@@ -1233,7 +1233,7 @@ export function registerWorkerTasksRoutes(app: Express): void {
 
       const { LocalStorageService } = await import("../localStorage");
       const storageService = new LocalStorageService();
-      const { uploadURL, objectKey } = await storageService.getPrivateUploadURL();
+      const { uploadURL, objectKey } = await storageService.getPrivateUploadURL(userId);
       return res.json({ uploadURL, objectKey });
     } catch (error: any) {
       console.error("Error getting private upload URL:", error);
@@ -1273,6 +1273,11 @@ export function registerWorkerTasksRoutes(app: Express): void {
     // We generate IDs as UUIDs; enforce that here to prevent traversal/overwrite.
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   };
+
+  const toPrivateOwnerSegment = (value: unknown): string =>
+    String(value || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "");
 
   const isPathUnder = (parent: string, candidate: string): boolean => {
     const parentPath = path.resolve(parent);
@@ -1345,66 +1350,81 @@ export function registerWorkerTasksRoutes(app: Express): void {
   });
 
   // Handle actual private file upload (LocalStorageService fallback only).
-  app.put("/api/objects/upload-private/:fileId", isAuthenticated, async (req: any, res: any) => {
-    try {
-      const { fileId } = req.params;
-      if (!isSafeUploadId(fileId)) {
-        return res.status(400).json({ error: "Invalid fileId" });
-      }
+  app.put(
+    "/api/objects/upload-private/:ownerSegment/:fileId",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const { ownerSegment, fileId } = req.params;
+        const userId = String((req.user as any)?.claims?.sub || (req.user as any)?.id || "").trim();
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+        const authenticatedOwnerSegment = toPrivateOwnerSegment(userId);
+        if (!authenticatedOwnerSegment || ownerSegment !== authenticatedOwnerSegment) {
+          return res.status(403).json({ error: "Private upload owner mismatch" });
+        }
+        if (!isSafeUploadId(fileId)) {
+          return res.status(400).json({ error: "Invalid fileId" });
+        }
 
-      // If R2 is configured, uploads should go directly to the signed URL returned by POST /api/objects/upload-private.
-      const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
-      if (useR2) {
-        return res
-          .status(400)
-          .json({ error: "Direct uploads are enabled; use the signed uploadURL" });
-      }
+        // If R2 is configured, uploads should go directly to the signed URL returned by POST /api/objects/upload-private.
+        const useR2 = process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID;
+        if (useR2) {
+          return res
+            .status(400)
+            .json({ error: "Direct uploads are enabled; use the signed uploadURL" });
+        }
 
-      const contentType = req.headers["content-type"] || "application/octet-stream";
+        const contentType = req.headers["content-type"] || "application/octet-stream";
 
-      const maxBytes = Number.parseInt(process.env.MAX_UPLOAD_BYTES || "", 10);
-      const limitBytes = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : 20 * 1024 * 1024; // 20MB default
+        const maxBytes = Number.parseInt(process.env.MAX_UPLOAD_BYTES || "", 10);
+        const limitBytes = Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : 20 * 1024 * 1024; // 20MB default
 
-      const contentLengthHeader = req.headers["content-length"];
-      const contentLength =
-        typeof contentLengthHeader === "string"
-          ? Number.parseInt(contentLengthHeader, 10)
-          : undefined;
-      if (
-        typeof contentLength === "number" &&
-        Number.isFinite(contentLength) &&
-        contentLength > limitBytes
-      ) {
-        return res.status(413).json({ error: "Upload too large" });
-      }
-
-      const chunks: Buffer[] = [];
-      let received = 0;
-      for await (const chunk of req) {
-        const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-        received += buf.length;
-        if (received > limitBytes) {
-          try {
-            req.destroy();
-          } catch {
-            // ignore
-          }
+        const contentLengthHeader = req.headers["content-length"];
+        const contentLength =
+          typeof contentLengthHeader === "string"
+            ? Number.parseInt(contentLengthHeader, 10)
+            : undefined;
+        if (
+          typeof contentLength === "number" &&
+          Number.isFinite(contentLength) &&
+          contentLength > limitBytes
+        ) {
           return res.status(413).json({ error: "Upload too large" });
         }
-        chunks.push(buf);
+
+        const chunks: Buffer[] = [];
+        let received = 0;
+        for await (const chunk of req) {
+          const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          received += buf.length;
+          if (received > limitBytes) {
+            try {
+              req.destroy();
+            } catch {
+              // ignore
+            }
+            return res.status(413).json({ error: "Upload too large" });
+          }
+          chunks.push(buf);
+        }
+        const buffer = Buffer.concat(chunks);
+
+        const { LocalStorageService } = await import("../localStorage");
+        const storageService = new LocalStorageService();
+        const objectKey = await storageService.savePrivateFile(
+          userId,
+          fileId,
+          buffer,
+          String(contentType)
+        );
+
+        res.status(200).send(objectKey);
+      } catch (error: any) {
+        console.error("Error uploading private file:", error);
+        res.status(500).json({ error: "Failed to upload file" });
       }
-      const buffer = Buffer.concat(chunks);
-
-      const { LocalStorageService } = await import("../localStorage");
-      const storageService = new LocalStorageService();
-      const objectKey = await storageService.savePrivateFile(fileId, buffer, String(contentType));
-
-      res.status(200).send(objectKey);
-    } catch (error: any) {
-      console.error("Error uploading private file:", error);
-      res.status(500).json({ error: "Failed to upload file" });
     }
-  });
+  );
 
   // Admin: ingest a folder of knowledge files into the manual cache
   app.post(
