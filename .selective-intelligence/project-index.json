@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T04:06:42Z",
+  "generated_at": "2026-08-22T04:09:40Z",
   "source": {
     "kind": "git",
-    "revision": "665298d76136adba858bd5de0f32f26752424cb8",
-    "dirty": true,
-    "inventory_sha256": "ec5badd07d8b62f7a0bc376696a9d21caabb7754360654bcb2a86a576709fc78"
+    "revision": "bfd8a42519c5df094ff9dfb8827f28485c8f4fe4",
+    "dirty": false,
+    "inventory_sha256": "2012c14f264478971a4dccf3fd9ff1af24abae17d0d859c4c1135b93438aa626"
   },
   "inventory": {
     "directories": [
@@ -2845,8 +2845,8 @@
       {
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
         "language": "tsx",
-        "sha256": "1c3790fc139019eff39778be3e270845d7c269cfd7a8ba46a53b8744fed36322",
-        "bytes": 17519
+        "sha256": "85f29d9b6fb07cf4474b0dc3ac8d107a71e70c195f6ee9ce632d1f15f41b67a7",
+        "bytes": 17517
       },
       {
         "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
@@ -2869,8 +2869,8 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
         "language": "tsx",
-        "sha256": "ffb7775f7e6bccaa5bf3fa83fc9d7f174aa8dbc46a14ba356455a7ec6973489c",
-        "bytes": 55090
+        "sha256": "27a25a088fc37a80b005240f15637e6e89ed16e55db3193408d1c3ff6d48fc65",
+        "bytes": 55091
       },
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
@@ -3199,14 +3199,14 @@
       {
         "path": "client/src/features/jw-stone/storyBackgrounds.test.ts",
         "language": "ts",
-        "sha256": "66cc5b439c8c6a3548f865d8d5e91e10454940c9967ea5b26f8cdf873c8ab3d7",
+        "sha256": "49dc4ab1440083ffeb5f3822eef207cf56eedcdccdd95eb1eb6a43c4bc7995b8",
         "bytes": 2287
       },
       {
         "path": "client/src/features/jw-stone/storyBackgrounds.ts",
         "language": "ts",
-        "sha256": "f6fccba9e6e856a007070a7887ae477da7ed2c4ab44ee7c6207a6acaef4f8f47",
-        "bytes": 3713
+        "sha256": "61723a3d4515dde3a9d2e30245d607163ab6bef3c6d74e1a10d1d2510a5ecbaf",
+        "bytes": 3723
       },
       {
         "path": "client/src/features/jw-stone/trending.test.ts",
@@ -4963,8 +4963,8 @@
       {
         "path": "client/src/pages/direct-connect/EmploymentBoard.tsx",
         "language": "tsx",
-        "sha256": "0bf6b7b2d8007d21241e5d0e32e6c8d75f120af829ce39bd43f8bd66a5b530e7",
-        "bytes": 54803
+        "sha256": "b7cb4b1d379043fe04f07a68f2f5dc9c50daf919db7efd4de3682cf462e0800a",
+        "bytes": 54832
       },
       {
         "path": "client/src/pages/direct-connect/EstimatePanel.tsx",
@@ -5077,14 +5077,14 @@
       {
         "path": "client/src/pages/direct-connect/jobsWorkspaceState.test.ts",
         "language": "ts",
-        "sha256": "8b014eced6b701d2559a80faff89b713b67ca87d6e335eda7cb61e0f4f372b3f",
-        "bytes": 11348
+        "sha256": "c39bac0e0cc3465a5d83a86ade2b0fc18de93a6b2f3e574892e6997efc36fd6f",
+        "bytes": 11387
       },
       {
         "path": "client/src/pages/direct-connect/jobsWorkspaceState.ts",
         "language": "ts",
-        "sha256": "a1dc618a33469de7618c9492be097fa29f335d1e3205d698e8a4e46566afe229",
-        "bytes": 15478
+        "sha256": "3c02bf6a4385aae89b45f261a5d3cd4e03eb836d0ef7b10e3cae745eb43adf13",
+        "bytes": 15499
       },
       {
         "path": "client/src/pages/direct-connect/provider-card.contract.test.ts",
