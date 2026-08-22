@@ -14,7 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { BidRockCountdown, formatBidRockDimensions } from "./BidRockListingRow";
+import {
+  BidRockCountdown,
+  formatBidRockAssetKind,
+  formatBidRockDimensions,
+} from "./BidRockListingRow";
 
 type Props = {
   listing: BidRockListing | null;
@@ -94,12 +98,15 @@ export function BidRockDetailPanel({
         <Badge className="absolute left-4 top-4 rounded bg-stone-950/90 text-white hover:bg-stone-950/90">
           {auction.lotNumber}
         </Badge>
+        <Badge className="absolute right-4 top-4 rounded bg-[var(--bidrock-auction)] text-white hover:bg-[var(--bidrock-auction)]">
+          {auction.extended ? "Soft close" : auction.status.replace(/_/g, " ")}
+        </Badge>
       </div>
       <div className="p-5 pb-28 lg:pb-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--bidrock-auction)]">
-              {listing.materialFamily || "Natural stone"}
+              {formatBidRockAssetKind(listing)} · {listing.materialFamily || "Stone"}
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-stone-950">
               {listing.title}
@@ -159,7 +166,7 @@ export function BidRockDetailPanel({
             </dd>
           </div>
           <div>
-            <dt className="text-xs text-stone-500">Slab count</dt>
+            <dt className="text-xs text-stone-500">Lot quantity</dt>
             <dd className="mt-1 font-semibold text-stone-900">
               {listing.quantity} {listing.unit}
             </dd>
@@ -200,7 +207,7 @@ export function BidRockDetailPanel({
               className={cn(saved && "fill-current text-[var(--bidrock-auction)]")}
               aria-hidden="true"
             />
-            {saved ? "Saved" : "Save lot"}
+            {saved ? "Watching" : "Watch lot"}
           </Button>
         </div>
 

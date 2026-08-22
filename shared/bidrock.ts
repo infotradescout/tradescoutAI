@@ -123,6 +123,7 @@ export type BidRockListing = Readonly<{
   id: string;
   sourceProfileSlug: string;
   sourceProfileName: string;
+  assetKind: string;
   materialSlug: string;
   title: string;
   materialFamily: string | null;

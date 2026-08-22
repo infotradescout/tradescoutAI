@@ -1068,6 +1068,7 @@ function mapListing(
     id: String(row.public_id),
     sourceProfileSlug: normalizeText(row.source_profile_slug, 120),
     sourceProfileName: normalizeText(row.source_profile_name, 180),
+    assetKind: normalizeText(row.asset_kind, 40) || "stone lot",
     materialSlug: normalizeText(row.material_slug, 120),
     title: normalizeText(row.title, 180) || "Stone",
     materialFamily: normalizeText(row.material_family, 120) || null,
@@ -1125,6 +1126,7 @@ async function listingRows(
       : "auction.ends_at ASC NULLS LAST, listing.source_profile_name ASC, listing.material_family ASC NULLS LAST, listing.title ASC";
   return pool.query(
     `SELECT listing.*,
+            passport.asset_kind,
             clock_timestamp() AS database_now,
             ip.lifecycle_status AS inventory_lifecycle_status,
             ip.quantity AS inventory_quantity,
@@ -1152,6 +1154,7 @@ async function listingRows(
             ) AS saved
        FROM bidrock_listings listing
        INNER JOIN stone_inventory_positions ip ON ip.id = listing.inventory_position_id
+       INNER JOIN stone_asset_passports passport ON passport.id = listing.asset_passport_id
        LEFT JOIN LATERAL (
          SELECT candidate.*
            FROM bidrock_auctions candidate

@@ -19,6 +19,7 @@ const baseListing: BidRockCatalogResponse["listings"][number] = {
   id: "listing-1",
   sourceProfileSlug: "jw-stone",
   sourceProfileName: "JW Stone",
+  assetKind: "slab",
   materialSlug: "blue-dunes",
   title: "Blue Dunes",
   materialFamily: "Granite",
@@ -202,9 +203,14 @@ describe("BidRock auction-first routed workspace", () => {
 
   it("makes the first screen unmistakably a timed stone auction with countdown and activity", () => {
     render();
-    expect(container.textContent).toContain("Live stone auctions");
+    expect(container.textContent).toContain("Natural and engineered stone on the block");
+    expect(container.textContent).toContain("Business-only stone auction house");
+    expect(container.textContent).toContain("Auction floor");
     expect(container.textContent).toContain("Closing soon");
     expect(container.textContent).toContain("BR-000101");
+    expect(container.textContent).toContain("Open lot");
+    expect(container.textContent).toContain("Watch");
+    expect(container.textContent).toContain("slab");
     expect(container.textContent).toContain("1 timed lot");
     expect(container.textContent).not.toContain("1 timed lots");
     expect(container.textContent).toContain("3 bids");
@@ -248,7 +254,7 @@ describe("BidRock auction-first routed workspace", () => {
       container.querySelector('[data-testid="bidrock-listing-listing-2"]'),
     ];
     const compareButtons = cards.map((card) => buttonContaining(card ?? container, "Compare"));
-    const saveButtons = cards.map((card) => buttonContaining(card ?? container, "Save lot"));
+    const saveButtons = cards.map((card) => buttonContaining(card ?? container, "Watch"));
     for (const button of [...compareButtons, ...saveButtons]) {
       expect(button?.className).toContain("text-stone-700");
       expect(button?.className).not.toMatch(/(?:^|\s)text-white(?:\/\d+)?(?:\s|$)/);

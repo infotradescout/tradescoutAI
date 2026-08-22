@@ -44,13 +44,16 @@ describe("BidRock marketplace recovery contract", () => {
     expect(routes).toContain('"/api/bidrock/orders/:id/handoffs"');
     expect(service).toContain("Photo-library records never enter BidRock here");
     expect(service).toContain("viewerCanManageListing");
+    expect(service).toContain("passport.asset_kind");
+    expect(service).toContain("assetKind: normalizeText(row.asset_kind");
     expect(service).toContain("releaseExpiredBidRockReservations");
     expect(app).toContain('pathOnly === "/bidrock"');
     expect(appRoutes).toContain('import("./features/bidrock/BidRockWorkspace")');
     expect(workspace).toContain("Search auctions");
     expect(workspace).toContain("Compare auction lots");
     expect(workspace).toContain("Seller controls");
-    expect(workspace).toContain("Live stone auctions");
+    expect(workspace).toContain("Business-only stone auction house");
+    expect(workspace).toContain("Natural and engineered stone on the block");
     expect(workspace).not.toContain("submitBidRockOffer");
   });
 

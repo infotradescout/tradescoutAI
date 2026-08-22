@@ -65,6 +65,7 @@ const sellerListing: BidRockListing = {
   id: "brl_1234567890abcdefghijklmnop",
   sourceProfileSlug: "jw-stone",
   sourceProfileName: "JW Stone",
+  assetKind: "slab",
   materialSlug: "blue-dunes",
   title: "Blue Dunes",
   materialFamily: "Granite",

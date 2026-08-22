@@ -12,6 +12,10 @@ export function formatBidRockDimensions(listing: BidRockListing): string {
   return `${length} × ${height} ${unit || "in"}`;
 }
 
+export function formatBidRockAssetKind(listing: BidRockListing): string {
+  return listing.assetKind.replace(/[_-]+/g, " ").trim() || "stone lot";
+}
+
 export function formatBidRockCountdown(remainingMilliseconds: number): string {
   if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) return "Ended";
   const remainingSeconds = Math.ceil(remainingMilliseconds / 1_000);
@@ -108,7 +112,8 @@ export function BidRockListingRow({
             </span>
             <span className="mt-1 block truncate text-xs text-stone-600">
               {auction?.lotNumber ? `${auction.lotNumber} · ` : ""}
-              {formatBidRockDimensions(listing)} · {listing.quantity} {listing.unit}
+              {formatBidRockAssetKind(listing)} · {formatBidRockDimensions(listing)} ·{" "}
+              {listing.quantity} {listing.unit}
             </span>
           </span>
         </button>
@@ -139,7 +144,7 @@ export function BidRockListingRow({
   return (
     <article
       className={cn(
-        "group overflow-hidden rounded-xl border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
+        "group overflow-hidden rounded-lg border bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
         selected
           ? "border-[var(--bidrock-auction-ring)] ring-2 ring-[var(--bidrock-auction-ring)]/20"
           : "border-stone-200"
@@ -152,7 +157,7 @@ export function BidRockListingRow({
         className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--bidrock-auction-ring)]"
         aria-label={`Open ${auction.lotNumber}: ${listing.title}`}
       >
-        <span className="relative block aspect-[5/4] overflow-hidden bg-stone-200">
+        <span className="relative block aspect-[16/10] overflow-hidden bg-stone-200">
           {listing.imageUrl ? (
             <img
               src={listing.imageUrl}
@@ -166,7 +171,7 @@ export function BidRockListingRow({
               <ImageOff className="h-8 w-8 text-stone-500" aria-hidden="true" />
             </span>
           )}
-          <span className="absolute left-3 top-3 rounded bg-stone-950/90 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white">
+          <span className="absolute left-3 top-3 rounded bg-stone-950/95 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white">
             {auction.lotNumber}
           </span>
           <span
@@ -179,37 +184,47 @@ export function BidRockListingRow({
           </span>
         </span>
         <span className="block p-4">
-          <span className="block truncate text-lg font-bold tracking-tight text-stone-950">
-            {listing.title}
+          <span className="flex items-start justify-between gap-3">
+            <span className="min-w-0">
+              <span className="block truncate text-lg font-black tracking-tight text-stone-950">
+                {listing.title}
+              </span>
+              <span className="mt-1 block truncate text-xs text-stone-600">
+                {formatBidRockDimensions(listing)} · {listing.quantity} {listing.unit}
+              </span>
+            </span>
+            <span className="shrink-0 rounded border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-600">
+              {formatBidRockAssetKind(listing)}
+            </span>
           </span>
-          <span className="mt-1 block truncate text-xs text-stone-600">
-            {formatBidRockDimensions(listing)} · {listing.quantity} {listing.unit}
-          </span>
-          <span className="mt-1 block truncate text-[11px] uppercase tracking-[0.12em] text-stone-500">
-            {listing.finishQuantities
-              .map((item) => `${item.slabCount} ${item.finish}`)
-              .join(" · ") ||
-              listing.materialFamily ||
-              "Finish pending"}
+          <span className="mt-2 flex items-center justify-between gap-3 text-[11px] text-stone-500">
+            <span className="truncate uppercase tracking-[0.1em]">
+              {listing.finishQuantities
+                .map((item) => `${item.slabCount} ${item.finish}`)
+                .join(" · ") ||
+                listing.materialFamily ||
+                "Finish pending"}
+            </span>
+            <span className="shrink-0">{listing.sourceProfileName}</span>
           </span>
 
-          <span className="mt-4 grid grid-cols-2 border-t border-stone-200 pt-3">
+          <span className="mt-4 grid grid-cols-2 rounded-md bg-stone-950 px-3 py-3 text-white">
             <span>
-              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">
+              <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400">
                 {auction.currentBid ? "Current bid" : "Bid values"}
               </span>
-              <span className="mt-1 block text-base font-bold text-stone-950">
+              <span className="mt-1 block text-base font-black">
                 {auction.currentBid ? formatBidRockMoney(auction.currentBid) : "Private"}
               </span>
             </span>
-            <span className="border-l border-stone-200 pl-3">
-              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-500">
+            <span className="border-l border-stone-700 pl-3">
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400">
                 <Clock3 className="h-3 w-3" aria-hidden="true" /> Ends in
               </span>
               <BidRockCountdown
                 endsAt={auction.endsAt}
                 serverTime={auction.serverTime}
-                className="mt-1 block text-base font-bold tabular-nums text-stone-950"
+                className="mt-1 block text-base font-black tabular-nums"
               />
             </span>
           </span>
@@ -228,7 +243,15 @@ export function BidRockListingRow({
           </span>
         </span>
       </button>
-      <div className="grid grid-cols-2 border-t border-stone-200">
+      <div className="grid grid-cols-3 border-t border-stone-200">
+        <Button
+          type="button"
+          className="rounded-none bg-[var(--bidrock-auction)] text-white hover:bg-[var(--bidrock-auction-hover)] focus-visible:ring-[var(--bidrock-auction)]"
+          onClick={onSelect}
+        >
+          <Gavel className="h-4 w-4" aria-hidden="true" />
+          Open lot
+        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -254,7 +277,7 @@ export function BidRockListingRow({
           aria-pressed={saved}
         >
           <Bookmark className={cn("h-4 w-4", saved && "fill-current")} aria-hidden="true" />
-          {saved ? "Saved" : "Save lot"}
+          {saved ? "Watching" : "Watch"}
         </Button>
       </div>
     </article>
