@@ -426,6 +426,8 @@ function redirectToCanonicalCustomDomain(req: Request, res: Response, canonicalH
 }
 
 function isCustomDomainMechanicsPath(requestPath: string): boolean {
+  if (requestPath === "/business-verification") return true;
+
   if (
     requestPath.startsWith("/api/") ||
     requestPath === "/api" ||

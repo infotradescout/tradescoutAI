@@ -18,6 +18,19 @@ describe("JW Stone public profile routing contract", () => {
     expect(appSource).not.toContain("__TS_JW_STONE_MARKETPLACE_SURFACE__");
   });
 
+  it("keeps business verification in AppRoutes on a profile custom domain", () => {
+    const appSource = read("client/src/App.tsx");
+
+    expect(appSource).toContain(
+      'const isCustomDomainPlatformRoute = pathOnly === "/business-verification";'
+    );
+    expect(appSource).toMatch(
+      /const isCustomDomainProfileRoute\s*=\s*Boolean\(customDomainProfileSlug\)\s*&&\s*!isCustomDomainPlatformRoute/
+    );
+    expect(appSource).not.toContain('pathOnly.startsWith("/business-verification/")');
+    expect(appSource).toContain("isCustomDomainProfileRoute={isCustomDomainProfileRoute}");
+  });
+
   it("keeps the flagship profile route free of platform overlays", () => {
     const appSource = read("client/src/App.tsx");
 

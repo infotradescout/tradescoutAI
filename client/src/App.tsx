@@ -88,12 +88,9 @@ const AppLayout = memo(function AppLayout() {
   const isShareRoute = pathOnly.startsWith("/r/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
-  // Set server-side only when this page is being served at a business's own
-  // custom domain root -- the URL path itself gives no clue which profile to
-  // render (there's no /u/:slug in it), so this is the only way the client
-  // router knows. Takes priority over everything else: a visitor on a
-  // business's own domain should always see that business, regardless of
-  // path or auth state.
+  // Set server-side when this page is served at a business's own domain. The
+  // custom domain owns its public profile routes, while explicitly reserved
+  // platform routes continue through the normal AppRoutes classifier.
   const customDomainProfileSlug =
     typeof window !== "undefined"
       ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
@@ -101,7 +98,9 @@ const AppLayout = memo(function AppLayout() {
       : undefined;
   // JW's public profile lives at /jw-stone and should follow standard profile flow.
   const isJwStoneProfileRoute = pathOnly === "/jw-stone" || pathOnly.startsWith("/jw-stone/");
-  const isCustomDomainProfileRoute = Boolean(customDomainProfileSlug);
+  const isCustomDomainPlatformRoute = pathOnly === "/business-verification";
+  const isCustomDomainProfileRoute =
+    Boolean(customDomainProfileSlug) && !isCustomDomainPlatformRoute;
   const isPublicProfileRoute =
     isJwStoneProfileRoute ||
     ((/^\/u\/[^/]+(?:\/[^/]+\/[^/]+)?$/.test(pathOnly) ||
