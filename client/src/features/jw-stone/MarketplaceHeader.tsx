@@ -5,6 +5,7 @@ import { marketplaceBasePath } from "./marketplaceRoutes";
 
 type MarketplaceHeaderProps = {
   wishlistCount: number;
+  hasAccount: boolean;
   onOpenWishlist: () => void;
   onOpenAccount: () => void;
   onStartRequest: () => void;
@@ -16,6 +17,7 @@ type MarketplaceHeaderProps = {
  */
 export function MarketplaceHeader({
   wishlistCount,
+  hasAccount,
   onOpenWishlist,
   onOpenAccount,
   onStartRequest,
@@ -44,6 +46,10 @@ export function MarketplaceHeader({
     setMenuOpen(false);
     action?.();
   };
+  const accountLabel = hasAccount ? "Account" : "Create account";
+  const accountAriaLabel = hasAccount
+    ? "Open your TradeScout account"
+    : "Create a TradeScout account";
 
   return (
     <header
@@ -88,10 +94,10 @@ export function MarketplaceHeader({
             data-testid="jw-marketplace-account-button"
             onClick={onOpenAccount}
             className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 px-2 text-sm sm:px-3 ${jw.ghostOnLight}`}
-            aria-label="Open your account with JW Stone"
+            aria-label={accountAriaLabel}
           >
             <UserRound className="h-4 w-4" aria-hidden="true" />
-            <span className="text-xs font-semibold sm:text-sm">Create account</span>
+            <span className="text-xs font-semibold sm:text-sm">{accountLabel}</span>
           </button>
 
           <div className="relative" ref={menuRef}>
@@ -124,7 +130,7 @@ export function MarketplaceHeader({
                     onClick={() => closeAnd(onOpenAccount)}
                     className="px-3 py-2.5 text-left font-semibold text-[var(--jw-ink)] hover:bg-[var(--jw-bg)]"
                   >
-                    Create account
+                    {accountLabel}
                   </button>
                   <a
                     href="#about-jw-stone"

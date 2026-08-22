@@ -69,6 +69,8 @@ function clearProfileAccountRequest(): void {
 
 export default function JWStoneMarketplace() {
   const { user, isAuthenticated } = useAuth();
+  const hasViewerAccount =
+    isAuthenticated || Boolean((user as { id?: unknown } | null)?.id);
   const { state, commit } = useMarketplaceUrlState();
   const wishlist = useJwStoneWishlist();
   const [accountRequest] = useState(readProfileAccountRequest);
@@ -244,6 +246,7 @@ export default function JWStoneMarketplace() {
       />
       <MarketplaceHeader
         wishlistCount={wishlist.count}
+        hasAccount={hasViewerAccount}
         onOpenWishlist={() => setWishlistOpen(true)}
         onOpenAccount={openAccount}
         onStartRequest={() => startRequest([])}
@@ -341,7 +344,7 @@ export default function JWStoneMarketplace() {
         profileSlug="jw-stone"
         businessName={JW_STONE_PUBLIC_IDENTITY.brandName}
         businessAddress={JW_STONE_PUBLIC_IDENTITY.address.formatted}
-        hasViewerSession={isAuthenticated || Boolean((user as { id?: unknown } | null)?.id)}
+        hasViewerSession={hasViewerAccount}
         allowCall
         stayInProfile
         requestMode="materials"

@@ -185,24 +185,20 @@ export function JwStoneCompanySection() {
 
                       return (
                         <li key={social.id} className="min-w-0">
-                          {social.id === "youtube" ? (
-                            <a
-                              href={social.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              data-testid="jw-social-youtube"
-                              aria-label="Watch JW Stone on YouTube"
-                              className={`${socialClassName} group transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-[var(--jw-mark)] hover:shadow-[0_12px_30px_rgba(42,39,36,0.08)]`}
-                            >
-                              {content}
-                              <ArrowUpRight
-                                className="h-4 w-4 shrink-0 text-[var(--jw-mark)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-                                aria-hidden="true"
-                              />
-                            </a>
-                          ) : (
-                            <div className={socialClassName}>{content}</div>
-                          )}
+                          <a
+                            href={social.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid={`jw-social-${social.id}`}
+                            aria-label={`Open JW Stone on ${social.label}`}
+                            className={`${socialClassName} group transition-[border-color,transform,box-shadow] hover:-translate-y-0.5 hover:border-[var(--jw-mark)] hover:shadow-[0_12px_30px_rgba(42,39,36,0.08)]`}
+                          >
+                            {content}
+                            <ArrowUpRight
+                              className="h-4 w-4 shrink-0 text-[var(--jw-mark)] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                              aria-hidden="true"
+                            />
+                          </a>
                         </li>
                       );
                     })}
