@@ -131,6 +131,19 @@ describe("DC universal provider — inbox endpoint", () => {
     // The comment explaining why contractor profile is not required for business providers
     expect(inboxSection).toContain("Business provider inbox");
   });
+
+  it("does not present failed provider assignment reads as an empty inbox", () => {
+    const dc = readRepoFile("server/routes/direct-connect.ts");
+    const inboxIndex = dc.indexOf("/api/direct-connect/inbox");
+    const inboxSection = dc.slice(inboxIndex, inboxIndex + 16000);
+
+    expect(inboxSection).toContain("DIRECT_CONNECT_INBOX_SCHEMA_UNAVAILABLE");
+    expect(inboxSection).toContain("DIRECT_CONNECT_INBOX_UNAVAILABLE");
+    expect(inboxSection).toContain("throw e;");
+    expect(inboxSection).not.toContain(
+      "responderUserId column may not exist in older DB instances"
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

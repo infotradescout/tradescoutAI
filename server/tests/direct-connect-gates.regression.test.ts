@@ -161,9 +161,9 @@ describe("direct-connect gate regressions", () => {
       "client/src/pages/direct-connect/DirectConnectShell.tsx"
     );
 
-    expect(directConnectShellFile).toContain(
-      'type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";'
-    );
+    expect(directConnectShellFile).toContain("type RequestFilter =");
+    expect(directConnectShellFile).toContain('| "pending_outcome"');
+    expect(directConnectShellFile).toContain("const REQUEST_FILTERS: RequestFilter[] = [");
     expect(directConnectShellFile).toContain('const canSend = stage === "ready_to_send";');
     expect(directConnectShellFile).toContain(
       '<TasksHub defaultCountyFips={defaultCountyFips} embedded defaultTab="browse" />'

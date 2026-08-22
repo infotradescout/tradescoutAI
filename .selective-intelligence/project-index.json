@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T04:29:24Z",
+  "generated_at": "2026-08-22T06:08:40Z",
   "source": {
     "kind": "git",
-    "revision": "8367df2d6e9fa8f45a10a8a749adc275d182224f",
-    "dirty": false,
-    "inventory_sha256": "7f32e77beac5afaf73edd1978cf2ca3c2c9f2f5b1bfda5eebef3113b8a9cfdd5"
+    "revision": "4edc16222cf3ffa209d067d2116853cbe2816412",
+    "dirty": true,
+    "inventory_sha256": "45aad06d2ba8c8b65b699346b1b7f55c62395025b9e107fadb1dfbcd3c0369e6"
   },
   "inventory": {
     "directories": [
@@ -112,7 +112,7 @@
       },
       {
         "path": "client/src/components/messages",
-        "source_file_count": 3
+        "source_file_count": 4
       },
       {
         "path": "client/src/components/moderation",
@@ -120,7 +120,7 @@
       },
       {
         "path": "client/src/components/navigation",
-        "source_file_count": 4
+        "source_file_count": 5
       },
       {
         "path": "client/src/components/onboarding",
@@ -236,7 +236,7 @@
       },
       {
         "path": "client/src/pages/direct-connect",
-        "source_file_count": 32
+        "source_file_count": 34
       },
       {
         "path": "client/src/pages/exchange",
@@ -1957,8 +1957,8 @@
       {
         "path": "client/src/components/layout/AppShell.tsx",
         "language": "tsx",
-        "sha256": "fbc85b26cf9fb9ec6125ed2fdc4d200a4be1d3ae4c5aac32dfbe8541139a6241",
-        "bytes": 6009
+        "sha256": "bad8a0c555541a52dcdf02d67ff42af2ca7255016b90952dbf8b101bab77fdf8",
+        "bytes": 6127
       },
       {
         "path": "client/src/components/layout/AppShellCore.tsx",
@@ -2015,10 +2015,16 @@
         "bytes": 29302
       },
       {
+        "path": "client/src/components/messages/MessagesPanel.direct-connect.contract.test.ts",
+        "language": "ts",
+        "sha256": "7afa5c42e70be968cb302e71a4d34db4276857588cb99a808e002acfbd62a278",
+        "bytes": 1974
+      },
+      {
         "path": "client/src/components/messages/MessagesPanel.tsx",
         "language": "tsx",
-        "sha256": "41bd2d7e12fd629c458b44d7a5bf36b2d5dfe1c1e9ed04a6a8d615e3190554e7",
-        "bytes": 53893
+        "sha256": "4d24b3af37d9c5485fa86a5d291b65b8256d0eb299a0a4495db247a4fb32ec11",
+        "bytes": 56699
       },
       {
         "path": "client/src/components/messages/conversationContextAdapter.test.ts",
@@ -2057,10 +2063,16 @@
         "bytes": 19978
       },
       {
+        "path": "client/src/components/navigation/MobileAppBar.test.ts",
+        "language": "ts",
+        "sha256": "a9bc5661ec21a72e5653d59036644fc81eda746e36e884f3beffbff9086868b5",
+        "bytes": 1174
+      },
+      {
         "path": "client/src/components/navigation/MobileAppBar.tsx",
         "language": "tsx",
-        "sha256": "99a847fad45a275e44e74defe68800d93dc82f04df751edf5a1f1690d3acb6a9",
-        "bytes": 8327
+        "sha256": "3ab0c27a573802184f36cf59feff437d147052bafd5f7a25a62372492ff0f553",
+        "bytes": 8680
       },
       {
         "path": "client/src/components/navigation/RoleBasedNavigation.tsx",
@@ -2113,14 +2125,14 @@
       {
         "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
         "language": "ts",
-        "sha256": "8062311a7b8b597ec002bceef269217aec89df35b64d2852f1863dc6ec5bca66",
-        "bytes": 2972
+        "sha256": "09a39337cf888cafa76030c47f782932f671a896850db91cae093c8d87286103",
+        "bytes": 3215
       },
       {
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
         "language": "tsx",
-        "sha256": "6973288a10872ece4f7b6314e3fe01e4468e6f36c5e45f8d931969dbace436ff",
-        "bytes": 8626
+        "sha256": "f31869f1652b0f4da54a99bfa0c87150bc22147e8f4b5f3d48f4363472eadd94",
+        "bytes": 8808
       },
       {
         "path": "client/src/components/onboarding/SimpleSubtleHints.tsx",
@@ -4951,8 +4963,8 @@
       {
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
         "language": "tsx",
-        "sha256": "6539879138763e7c993b860bfbc614394a7cb5728dcc39d90dfed2f002eda70c",
-        "bytes": 237669
+        "sha256": "632bec9d8370bb5a912201c3ce153a7b37a5233810ed062ce06ac7ddcd34a677",
+        "bytes": 271435
       },
       {
         "path": "client/src/pages/direct-connect/DirectoryListingLink.tsx",
@@ -5005,14 +5017,14 @@
       {
         "path": "client/src/pages/direct-connect/direct-connect-replies-ui.contract.test.ts",
         "language": "ts",
-        "sha256": "9261575d0ebfb78788462375f5a1ce8ccfe67840ad658e0ea306b153bdd6b27e",
-        "bytes": 1626
+        "sha256": "4641543d2f0af83d3da7d280ff3041ee39c6c971f0942df26e3b02777ad5ae50",
+        "bytes": 2775
       },
       {
         "path": "client/src/pages/direct-connect/direct-connect-task-routes.contract.test.ts",
         "language": "ts",
-        "sha256": "0266463ddc56cfd3bc6c75e1f6e87cf9843b1677711844a4bb00a0869db1f1bb",
-        "bytes": 1341
+        "sha256": "32c5d1a3eb4c3b7935794a8cd4d65188d340a0e0fe94977723e9b47fcd854b99",
+        "bytes": 1331
       },
       {
         "path": "client/src/pages/direct-connect/directConnectDispatchSelection.ts",
@@ -5053,20 +5065,32 @@
       {
         "path": "client/src/pages/direct-connect/directConnectRoutes.test.ts",
         "language": "ts",
-        "sha256": "1aec8245e845cb6536a17e30394fd049848e825ed15924688991ef94085b9cbd",
-        "bytes": 2235
+        "sha256": "6112a406f4c1992ca9c13e150323cb51aefdaf418eaebbf2acdf9458fe123e66",
+        "bytes": 2393
       },
       {
         "path": "client/src/pages/direct-connect/directConnectRoutes.ts",
         "language": "ts",
-        "sha256": "d860b1cb18c37fd4cbac137952725ea8004c52b5a02949d14e6bd8284643f4d5",
-        "bytes": 2492
+        "sha256": "206368432018e96c36e03ec66a72176ef4ead86bd6523b6a573fd46342bfde90",
+        "bytes": 2508
       },
       {
         "path": "client/src/pages/direct-connect/directConnectShellHierarchy.contract.test.ts",
         "language": "ts",
-        "sha256": "3918e85a3f64c523763544644f20a07a59678295c8df3d0541f371e4c3be9948",
-        "bytes": 2559
+        "sha256": "ddae0f2593709ed6169bbacdf5448bb0eb55584075b8392e4dae792a051d945c",
+        "bytes": 8428
+      },
+      {
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.test.ts",
+        "language": "ts",
+        "sha256": "1e8a855bb1513a97e077a10ff13bf027392e961d84fc36ccee9d9f5502f70326",
+        "bytes": 13490
+      },
+      {
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "language": "ts",
+        "sha256": "fbbc478bcb764bc630f1da8656f711147ae2bd698be8ed465927b6254e341252",
+        "bytes": 15877
       },
       {
         "path": "client/src/pages/direct-connect/employment-direct-connect-bridge.contract.test.ts",
@@ -16993,8 +17017,8 @@
       {
         "path": "server/routes/direct-connect.ts",
         "language": "ts",
-        "sha256": "747aac87f0b56ea1639d3129691e6688beaeded7e333f3d356684e23f4389ddb",
-        "bytes": 422335
+        "sha256": "c5b82bd2fb3dfaf3af0a4b1fc87e436e156fb2d8ed18447ad8008919df8a9a49",
+        "bytes": 422914
       },
       {
         "path": "server/routes/direct-connect/job-lifecycle.ts",
@@ -19411,8 +19435,8 @@
       {
         "path": "server/tests/direct-connect-gates.regression.test.ts",
         "language": "ts",
-        "sha256": "47fa2699807149b9a81e541f7ccdca02da1df32c1a54b60a8fb00368a0cb90b7",
-        "bytes": 18321
+        "sha256": "d848ebd92f8b912fefa9f6e0a0468e24f6af12d05fc8f88b5b6e36ce77a4e284",
+        "bytes": 18396
       },
       {
         "path": "server/tests/direct-connect-home-record-link-prompt.contract.test.ts",
@@ -19531,8 +19555,8 @@
       {
         "path": "server/tests/direct-connect-requester-status.contract.test.ts",
         "language": "ts",
-        "sha256": "7d5e0a195ad417dd214b7a5c3cb1e52a37cf0a0af12c1c1e2e5e44bd09f662a0",
-        "bytes": 7484
+        "sha256": "c89847e41d14b075109492b0852649ac0b219a191aa8af28d10f566e97c43951",
+        "bytes": 8768
       },
       {
         "path": "server/tests/direct-connect-routing-spine.contract.test.ts",
@@ -19561,8 +19585,8 @@
       {
         "path": "server/tests/direct-connect-universal-provider.contract.test.ts",
         "language": "ts",
-        "sha256": "05324610f2d14f19d9d1744f8711fb3c9a05aa935d3772b39d61df33c3fc6a53",
-        "bytes": 15425
+        "sha256": "87bb594502fe7226d49ee773428521d5f759d1b3e15c9a1a7f885a2fb2d90fa3",
+        "bytes": 16009
       },
       {
         "path": "server/tests/direct-connect-workflow-progress.contract.test.ts",
@@ -19723,8 +19747,8 @@
       {
         "path": "server/tests/historical-migration-chain.contract.test.ts",
         "language": "ts",
-        "sha256": "9e4e01e111459379296824a29a724de8ec8e7ceaa56e550e6e26a2003a438427",
-        "bytes": 10949
+        "sha256": "080f0145f107a67b5d12fa85f1e21d5932b684a75a49a45bd76feb75ad4d298b",
+        "bytes": 11170
       },
       {
         "path": "server/tests/hoa-api.test.ts",
@@ -28587,28 +28611,28 @@
         "name": "AppShellProps",
         "kind": "type",
         "path": "client/src/components/layout/AppShell.tsx",
-        "line": 13,
+        "line": 14,
         "exported": false
       },
       {
         "name": "isPublicProfileLikePath",
         "kind": "function",
         "path": "client/src/components/layout/AppShell.tsx",
-        "line": 20,
+        "line": 21,
         "exported": false
       },
       {
         "name": "buildDesktopBottomNav",
         "kind": "function",
         "path": "client/src/components/layout/AppShell.tsx",
-        "line": 34,
+        "line": 35,
         "exported": false
       },
       {
         "name": "AppShell",
         "kind": "component",
         "path": "client/src/components/layout/AppShell.tsx",
-        "line": 88,
+        "line": 89,
         "exported": true
       },
       {
@@ -29032,52 +29056,66 @@
         "exported": false
       },
       {
-        "name": "formatJobStatus",
+        "name": "isRecord",
         "kind": "function",
         "path": "client/src/components/messages/MessagesPanel.tsx",
         "line": 218,
         "exported": false
       },
       {
+        "name": "hasRenderableDirectConnectThreadJob",
+        "kind": "function",
+        "path": "client/src/components/messages/MessagesPanel.tsx",
+        "line": 222,
+        "exported": true
+      },
+      {
+        "name": "formatJobStatus",
+        "kind": "function",
+        "path": "client/src/components/messages/MessagesPanel.tsx",
+        "line": 276,
+        "exported": false
+      },
+      {
         "name": "formatMoney",
         "kind": "function",
         "path": "client/src/components/messages/MessagesPanel.tsx",
-        "line": 228,
+        "line": 286,
         "exported": false
       },
       {
         "name": "MessagesPanel",
         "kind": "component",
         "path": "client/src/components/messages/MessagesPanel.tsx",
-        "line": 237,
+        "line": 295,
         "exported": true
       },
       {
         "name": "handleSend",
         "kind": "function",
         "path": "client/src/components/messages/MessagesPanel.tsx",
-        "line": 481,
+        "line": 547,
         "exported": false
       },
       {
         "name": "handleShareHomeReport",
         "kind": "function",
         "path": "client/src/components/messages/MessagesPanel.tsx",
-        "line": 486,
+        "line": 552,
         "exported": false
       },
       {
         "name": "selectThread",
         "kind": "function",
         "path": "client/src/components/messages/MessagesPanel.tsx",
-        "line": 517,
+        "line": 583,
         "exported": false
       },
       {
         "name": "clearSelection",
         "kind": "function",
         "path": "client/src/components/messages/MessagesPanel.tsx",
-        "line": 525,
+        "line": 591,
         "exported": false
       },
       {
@@ -29270,17 +29308,31 @@
         "exported": false
       },
       {
+        "name": "getMobileAppBarPathOnly",
+        "kind": "function",
+        "path": "client/src/components/navigation/MobileAppBar.tsx",
+        "line": 11,
+        "exported": true
+      },
+      {
+        "name": "doesMobileAppBarItemMatch",
+        "kind": "function",
+        "path": "client/src/components/navigation/MobileAppBar.tsx",
+        "line": 15,
+        "exported": true
+      },
+      {
         "name": "doesItemMatch",
         "kind": "function",
         "path": "client/src/components/navigation/MobileAppBar.tsx",
-        "line": 18,
+        "line": 36,
         "exported": false
       },
       {
         "name": "isItemActive",
         "kind": "function",
         "path": "client/src/components/navigation/MobileAppBar.tsx",
-        "line": 36,
+        "line": 45,
         "exported": false
       },
       {
@@ -29686,28 +29738,28 @@
         "name": "ProfileCompletionBanner",
         "kind": "component",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 67,
+        "line": 71,
         "exported": true
       },
       {
         "name": "ModeConfig",
         "kind": "type",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 88,
+        "line": 92,
         "exported": false
       },
       {
         "name": "handleCtaClick",
         "kind": "function",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 183,
+        "line": 187,
         "exported": false
       },
       {
         "name": "handleDismissSkippedNudge",
         "kind": "function",
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-        "line": 188,
+        "line": 192,
         "exported": false
       },
       {
@@ -45450,469 +45502,525 @@
         "name": "DirectConnectEntryContextType",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 130,
+        "line": 131,
         "exported": false
       },
       {
         "name": "DirectConnectIntent",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 131,
+        "line": 132,
         "exported": false
       },
       {
         "name": "DirectConnectSection",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 143,
+        "line": 144,
+        "exported": false
+      },
+      {
+        "name": "DirectConnectWorkspaceFilter",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 168,
+        "exported": false
+      },
+      {
+        "name": "DirectConnectWorkspaceState",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 169,
+        "exported": false
+      },
+      {
+        "name": "DirectConnectWorkspaceTask",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 170,
         "exported": false
       },
       {
         "name": "RequestType",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 145,
+        "line": 172,
         "exported": false
       },
       {
         "name": "DirectConnectIntentConfig",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 166,
+        "line": 193,
         "exported": false
       },
       {
         "name": "RequestCompleteness",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 182,
+        "line": 209,
         "exported": false
       },
       {
         "name": "getSafeDirectConnectErrorCode",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 227,
+        "line": 255,
         "exported": false
       },
       {
         "name": "trackDirectConnectApiFailure",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 237,
+        "line": 265,
         "exported": false
       },
       {
         "name": "DirectConnectDraftSnapshot",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 258,
+        "line": 286,
         "exported": false
       },
       {
         "name": "toCleanHomeLabel",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 291,
+        "line": 322,
         "exported": false
       },
       {
         "name": "getPostSubmitHomeIdMemoryCopy",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 304,
+        "line": 335,
+        "exported": false
+      },
+      {
+        "name": "isDirectConnectWorkdeskSection",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 431,
+        "exported": false
+      },
+      {
+        "name": "DirectConnectTaskSwitcher",
+        "kind": "component",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 439,
+        "exported": false
+      },
+      {
+        "name": "useDirectConnectWorkdeskState",
+        "kind": "hook",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 500,
         "exported": false
       },
       {
         "name": "localizeIntentConfig",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 786,
+        "line": 983,
         "exported": false
       },
       {
         "name": "statusTone",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 798,
+        "line": 995,
         "exported": false
       },
       {
         "name": "DirectConnectInboxItem",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 812,
+        "line": 1009,
         "exported": false
       },
       {
         "name": "DirectConnectRequest",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 846,
+        "line": 1043,
         "exported": false
       },
       {
         "name": "RequestFilter",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 880,
+        "line": 1077,
         "exported": false
       },
       {
         "name": "RequestWorkflowStage",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 882,
+        "line": 1086,
         "exported": false
       },
       {
         "name": "getRequestWorkflowStage",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 899,
+        "line": 1104,
         "exported": false
       },
       {
         "name": "getRequestFilterLabel",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 935,
+        "line": 1140,
         "exported": false
       },
       {
         "name": "getRequestStageLabel",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 952,
+        "line": 1159,
         "exported": false
       },
       {
         "name": "evaluateRequestCompleteness",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 969,
+        "line": 1176,
         "exported": false
       },
       {
         "name": "getRequestStageSummary",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1005,
+        "line": 1212,
         "exported": false
       },
       {
         "name": "RequestLifecycleRail",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1022,
+        "line": 1229,
         "exported": false
       },
       {
         "name": "matchesRequestFilter",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1073,
-        "exported": false
-      },
-      {
-        "name": "isCurrentRequest",
-        "kind": "function",
-        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1084,
+        "line": 1280,
         "exported": false
       },
       {
         "name": "DraftAttachment",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1091,
+        "line": 1291,
         "exported": false
       },
       {
         "name": "DirectoryCandidate",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1096,
+        "line": 1296,
         "exported": false
       },
       {
         "name": "getProviderInitials",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1123,
+        "line": 1323,
         "exported": false
       },
       {
         "name": "getProviderAvatarClass",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1130,
+        "line": 1330,
         "exported": false
       },
       {
         "name": "DispatchMode",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1138,
+        "line": 1338,
         "exported": false
       },
       {
         "name": "DirectConnectCreateDispatch",
         "kind": "type",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1140,
+        "line": 1340,
         "exported": false
       },
       {
         "name": "parseNumberOrNull",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1166,
+        "line": 1366,
         "exported": false
       },
       {
         "name": "getCandidateCvsScore",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1175,
+        "line": 1375,
         "exported": false
       },
       {
         "name": "getCandidateLocationScore",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1183,
+        "line": 1383,
         "exported": false
       },
       {
         "name": "buildRequestAttachmentUrl",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1194,
+        "line": 1394,
         "exported": false
       },
       {
         "name": "RequestAttachmentStrip",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1198,
+        "line": 1398,
         "exported": false
       },
       {
         "name": "DirectConnectRequestComposer",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1236,
+        "line": 1436,
         "exported": false
       },
       {
         "name": "currentReturnPath",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1376,
+        "line": 1578,
+        "exported": false
+      },
+      {
+        "name": "currentEntrySignature",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 1581,
+        "exported": false
+      },
+      {
+        "name": "currentAuthenticatedDraftKey",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 1602,
         "exported": false
       },
       {
         "name": "clearDirectConnectDraft",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1381,
+        "line": 1609,
         "exported": false
       },
       {
         "name": "readDirectConnectDraft",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1387,
+        "line": 1617,
         "exported": false
       },
       {
         "name": "hydrateDirectConnectDraft",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1395,
+        "line": 1627,
         "exported": false
       },
       {
         "name": "persistDirectConnectDraft",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1504,
+        "line": 1769,
         "exported": false
       },
       {
         "name": "replaceAttachments",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1549,
+        "line": 1822,
         "exported": false
       },
       {
         "name": "clearAttachments",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1554,
+        "line": 1827,
         "exported": false
       },
       {
         "name": "emitHomeRecordPromptViewed",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 1724,
+        "line": 1997,
+        "exported": false
+      },
+      {
+        "name": "flushAuthenticatedDraft",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+        "line": 2191,
         "exported": false
       },
       {
         "name": "handleAttachmentSelect",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2165,
+        "line": 2503,
         "exported": false
       },
       {
         "name": "removeAttachmentAt",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2181,
+        "line": 2519,
         "exported": false
       },
       {
         "name": "toggleCandidateSelection",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2189,
+        "line": 2527,
         "exported": false
       },
       {
         "name": "handleOpenDispatchSheet",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2202,
+        "line": 2540,
         "exported": false
       },
       {
         "name": "openRequestReadyState",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2256,
+        "line": 2594,
         "exported": false
       },
       {
         "name": "handleSendWithSelection",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2279,
+        "line": 2617,
         "exported": false
       },
       {
         "name": "handleSkipAndAutoRoute",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2328,
+        "line": 2666,
         "exported": false
       },
       {
         "name": "handleDescribeReviewRequest",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 2361,
+        "line": 2699,
         "exported": false
       },
       {
         "name": "DirectConnectGiveawayDisclosure",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3347,
+        "line": 3685,
         "exported": false
       },
       {
         "name": "QuickActionCard",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3366,
+        "line": 3704,
         "exported": false
       },
       {
         "name": "NavigationGrid",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3423,
+        "line": 3761,
         "exported": false
       },
       {
         "name": "DirectConnectInbox",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3464,
+        "line": 3802,
         "exported": false
       },
       {
         "name": "normalizeInboxStatus",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3504,
+        "line": 3866,
         "exported": false
       },
       {
         "name": "firstQualified",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3585,
+        "line": 3979,
         "exported": false
       },
       {
         "name": "MyDirectConnectRequests",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 3961,
+        "line": 4535,
         "exported": false
       },
       {
         "name": "openRouteSheetForRequest",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 4244,
+        "line": 4874,
         "exported": false
       },
       {
         "name": "toggleRouteCandidate",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 4253,
+        "line": 4883,
         "exported": false
       },
       {
         "name": "handleSendRouteSelection",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 4266,
+        "line": 4896,
         "exported": false
       },
       {
         "name": "handleSkipAndAutoRoute",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 4275,
+        "line": 4905,
         "exported": false
       },
       {
-        "name": "handleOpenRequest",
+        "name": "handleShareRequest",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 4415,
+        "line": 5182,
         "exported": false
       },
       {
         "name": "DirectConnectShell",
         "kind": "component",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 5204,
+        "line": 5986,
         "exported": true
       },
       {
         "name": "navigateSection",
         "kind": "function",
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-        "line": 5302,
+        "line": 6129,
         "exported": false
       },
       {
@@ -46628,6 +46736,244 @@
         "path": "client/src/pages/direct-connect/directConnectShellHierarchy.contract.test.ts",
         "line": 5,
         "exported": false
+      },
+      {
+        "name": "DirectConnectWorkspaceState",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.test.ts",
+        "line": 27,
+        "exported": false
+      },
+      {
+        "name": "DirectConnectWorkspaceTask",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 12,
+        "exported": true
+      },
+      {
+        "name": "DirectConnectWorkspaceFilter",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 14,
+        "exported": true
+      },
+      {
+        "name": "DirectConnectWorkspaceState",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 25,
+        "exported": true
+      },
+      {
+        "name": "ParsedWorkspaceRoute",
+        "kind": "type",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 37,
+        "exported": false
+      },
+      {
+        "name": "cleanSingleLine",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 65,
+        "exported": false
+      },
+      {
+        "name": "cleanCountyFips",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 78,
+        "exported": false
+      },
+      {
+        "name": "cleanSelectedId",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 83,
+        "exported": false
+      },
+      {
+        "name": "cleanFilter",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 87,
+        "exported": false
+      },
+      {
+        "name": "getDirectConnectWorkspaceTask",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 95,
+        "exported": true
+      },
+      {
+        "name": "canonicalizeDirectConnectWorkspacePathname",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 107,
+        "exported": true
+      },
+      {
+        "name": "sanitizeDirectConnectWorkspaceState",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 116,
+        "exported": true
+      },
+      {
+        "name": "readFirstQueryValue",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 131,
+        "exported": false
+      },
+      {
+        "name": "parseDirectConnectWorkspaceRoute",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 141,
+        "exported": true
+      },
+      {
+        "name": "getDirectConnectWorkspaceStorageKey",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 166,
+        "exported": true
+      },
+      {
+        "name": "getDirectConnectLastTaskStorageKey",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 177,
+        "exported": true
+      },
+      {
+        "name": "writeDirectConnectLastTask",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 186,
+        "exported": true
+      },
+      {
+        "name": "readDirectConnectLastTask",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 204,
+        "exported": false
+      },
+      {
+        "name": "hasDirectConnectTaskbarResumeSignal",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 218,
+        "exported": true
+      },
+      {
+        "name": "resolveDirectConnectTaskbarResumeHref",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 227,
+        "exported": true
+      },
+      {
+        "name": "resolveDirectConnectComposerLocation",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 241,
+        "exported": true
+      },
+      {
+        "name": "resolveDirectConnectComposerReturnPath",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 250,
+        "exported": true
+      },
+      {
+        "name": "getDirectConnectComposerDraftSessionKey",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 260,
+        "exported": true
+      },
+      {
+        "name": "resolveDirectConnectComposerDraftText",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 273,
+        "exported": true
+      },
+      {
+        "name": "shouldConsumeDirectConnectDraftAfterHydration",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 282,
+        "exported": true
+      },
+      {
+        "name": "readStoredDirectConnectWorkspaceState",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 286,
+        "exported": false
+      },
+      {
+        "name": "resolveDirectConnectWorkspaceState",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 311,
+        "exported": true
+      },
+      {
+        "name": "resolveDirectConnectWorkspaceScopeHydration",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 345,
+        "exported": true
+      },
+      {
+        "name": "writeDirectConnectWorkspaceState",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 363,
+        "exported": true
+      },
+      {
+        "name": "buildCanonicalDirectConnectWorkspaceHref",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 384,
+        "exported": true
+      },
+      {
+        "name": "updateDirectConnectWorkspaceState",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 411,
+        "exported": true
+      },
+      {
+        "name": "shouldInvalidateDirectConnectWorkspaceSelection",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 434,
+        "exported": true
+      },
+      {
+        "name": "isRealDirectConnectAssignmentId",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 459,
+        "exported": true
+      },
+      {
+        "name": "shouldKeepDirectConnectWorkspaceRequest",
+        "kind": "function",
+        "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
+        "line": 464,
+        "exported": true
       },
       {
         "name": "JobsWorkspaceState",
@@ -125712,56 +126058,56 @@
         "name": "safeSelectRows",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 3668,
+        "line": 3675,
         "exported": false
       },
       {
         "name": "contractorResponses",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 4502,
+        "line": 4509,
         "exported": false
       },
       {
         "name": "timelineItems",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 4756,
+        "line": 4763,
         "exported": false
       },
       {
         "name": "timeline",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 5001,
+        "line": 5008,
         "exported": false
       },
       {
         "name": "summarizeOne",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 5104,
+        "line": 5111,
         "exported": false
       },
       {
         "name": "timeline",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 5391,
+        "line": 5398,
         "exported": false
       },
       {
         "name": "safeSelectRows",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 8340,
+        "line": 8353,
         "exported": false
       },
       {
         "name": "timelineItems",
         "kind": "function",
         "path": "server/routes/direct-connect.ts",
-        "line": 9184,
+        "line": 9197,
         "exported": false
       },
       {
@@ -165614,92 +165960,92 @@
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 546
+          "line": 612
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 558
+          "line": 624
         },
         {
           "tag": "input",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 578
+          "line": 644
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 604
+          "line": 670
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 653
+          "line": 719
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 702
+          "line": 768
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 723
+          "line": 789
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 775
+          "line": 841
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 788
+          "line": 854
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 867
+          "line": 933
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 883
+          "line": 949
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1041
+          "line": 1107
         },
         {
           "tag": "select",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1147
+          "line": 1225
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1165
+          "line": 1243
         },
         {
           "tag": "input",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1181
+          "line": 1259
         },
         {
           "tag": "input",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1190
+          "line": 1268
         },
         {
           "tag": "textarea",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1242
+          "line": 1320
         },
         {
           "tag": "button",
           "path": "client/src/components/messages/MessagesPanel.tsx",
-          "line": 1250
+          "line": 1328
         },
         {
           "tag": "button",
@@ -165789,7 +166135,7 @@
         {
           "tag": "button",
           "path": "client/src/components/navigation/MobileAppBar.tsx",
-          "line": 135
+          "line": 144
         },
         {
           "tag": "button",
@@ -165859,12 +166205,12 @@
         {
           "tag": "button",
           "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-          "line": 218
+          "line": 222
         },
         {
           "tag": "button",
           "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-          "line": 227
+          "line": 231
         },
         {
           "tag": "button",
@@ -173639,162 +173985,92 @@
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2476
+          "line": 464
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2502
+          "line": 487
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2538
+          "line": 2814
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 2840
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 2876
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2555
+          "line": 2893
         },
         {
           "tag": "input",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2583
+          "line": 2921
         },
         {
           "tag": "input",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2597
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2620
-        },
-        {
-          "tag": "textarea",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2641
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2674
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2687
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2706
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2801
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2813
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2849
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2872
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2896
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2906
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2922
-        },
-        {
-          "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
           "line": 2935
         },
         {
-          "tag": "button",
+          "tag": "input",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2953
+          "line": 2958
         },
         {
-          "tag": "select",
+          "tag": "textarea",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 2972
-        },
-        {
-          "tag": "select",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3006
+          "line": 2979
         },
         {
           "tag": "input",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3034
+          "line": 3012
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3046
+          "line": 3025
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3044
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3139
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3151
         },
         {
           "tag": "input",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3061
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3076
+          "line": 3187
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3096
+          "line": 3210
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3117
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3143
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3158
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3181
-        },
-        {
-          "tag": "input",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3204
+          "line": 3234
         },
         {
           "tag": "button",
@@ -173804,22 +174080,82 @@
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3311
+          "line": 3260
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3321
+          "line": 3273
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3330
+          "line": 3291
+        },
+        {
+          "tag": "select",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3310
+        },
+        {
+          "tag": "select",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3344
+        },
+        {
+          "tag": "input",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3372
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
           "line": 3384
+        },
+        {
+          "tag": "input",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3399
+        },
+        {
+          "tag": "input",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3414
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3434
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3455
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3481
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3496
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3519
+        },
+        {
+          "tag": "input",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3542
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3582
         },
         {
           "tag": "button",
@@ -173829,167 +174165,77 @@
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3770
+          "line": 3659
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3668
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 3722
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 4028
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 4054
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 4073
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 4136
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 4205
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 4323
         },
         {
           "tag": "input",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3809
+          "line": 4362
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3829
+          "line": 4382
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3850
+          "line": 4403
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3867
+          "line": 4420
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3916
+          "line": 4474
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 3934
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4312
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4345
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4464
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4568
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4583
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4662
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4673
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4683
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4695
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4707
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4718
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4729
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4745
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4761
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4784
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4794
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4804
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4821
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4833
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4845
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4856
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4872
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4888
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4908
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4918
-        },
-        {
-          "tag": "button",
-          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4928
+          "line": 4492
         },
         {
           "tag": "button",
@@ -173999,67 +174245,212 @@
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4958
+          "line": 4974
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 4970
+          "line": 5035
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5011
+          "line": 5096
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5026
+          "line": 5115
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5049
+          "line": 5310
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5332
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5347
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5429
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5440
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5450
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5462
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5474
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5485
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5496
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5512
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5528
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5551
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5561
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5571
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5588
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5600
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5612
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5623
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5639
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5655
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5678
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5688
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5698
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5716
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5728
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5740
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5793
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5808
+        },
+        {
+          "tag": "button",
+          "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
+          "line": 5831
         },
         {
           "tag": "input",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5072
+          "line": 5854
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5104
+          "line": 5886
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5169
+          "line": 5951
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5179
+          "line": 5961
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5188
+          "line": 5970
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5647
+          "line": 6516
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5713
+          "line": 6582
         },
         {
           "tag": "button",
           "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-          "line": 5732
+          "line": 6609
         },
         {
           "tag": "button",
@@ -205782,7 +206173,7 @@
           "owners": [
             {
               "path": "client/src/components/layout/AppShell.tsx",
-              "line": 88,
+              "line": 89,
               "kind": "component"
             },
             {
@@ -207027,7 +207418,7 @@
           "owners": [
             {
               "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
-              "line": 5204,
+              "line": 5986,
               "kind": "component"
             },
             {
@@ -208332,7 +208723,7 @@
           "owners": [
             {
               "path": "client/src/components/messages/MessagesPanel.tsx",
-              "line": 237,
+              "line": 295,
               "kind": "component"
             },
             {
@@ -209182,7 +209573,7 @@
           "owners": [
             {
               "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
-              "line": 67,
+              "line": 71,
               "kind": "component"
             },
             {
@@ -223763,11 +224154,11 @@
   ],
   "summary": {
     "directories": 211,
-    "source_files": 3663,
-    "symbols": 19935,
-    "components": 1483,
-    "functions_and_hooks": 11088,
-    "raw_ui_elements": 7502,
+    "source_files": 3667,
+    "symbols": 19981,
+    "components": 1484,
+    "functions_and_hooks": 11125,
+    "raw_ui_elements": 7511,
     "errors": 1104,
     "warnings": 5
   }

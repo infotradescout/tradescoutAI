@@ -9,6 +9,24 @@ type MobileAppBarProps = {
   primaryLimit?: number;
 };
 
+export function getMobileAppBarPathOnly(href: string): string {
+  return href.split("?")[0].split("#")[0] || "/";
+}
+
+export function doesMobileAppBarItemMatch(pathOnly: string, itemHref: string): boolean {
+  const itemPathOnly = getMobileAppBarPathOnly(itemHref);
+  if (itemPathOnly === "/direct-connect/inbox") {
+    return (
+      pathOnly === itemPathOnly ||
+      pathOnly.startsWith(itemPathOnly + "/") ||
+      pathOnly === "/direct-connect/engagements" ||
+      pathOnly.startsWith("/direct-connect/engagements/")
+    );
+  }
+
+  return pathOnly === itemPathOnly || pathOnly.startsWith(itemPathOnly + "/");
+}
+
 const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) => {
   const [location] = useLocation();
   const navRef = useRef<HTMLElement | null>(null);
@@ -16,22 +34,13 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
 
   const pathOnly = location.split("?")[0].split("#")[0];
 
-  const doesItemMatch = (item: NavItem) => {
-    if (item.href === "/direct-connect/inbox") {
-      return (
-        pathOnly === item.href ||
-        pathOnly.startsWith(item.href + "/") ||
-        pathOnly === "/direct-connect/engagements" ||
-        pathOnly.startsWith("/direct-connect/engagements/")
-      );
-    }
-
-    return pathOnly === item.href || pathOnly.startsWith(item.href + "/");
-  };
+  const doesItemMatch = (item: NavItem) => doesMobileAppBarItemMatch(pathOnly, item.href);
   const activeHref = useMemo(() => {
     return items
       .filter((item) => doesItemMatch(item))
-      .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+      .sort(
+        (a, b) => getMobileAppBarPathOnly(b.href).length - getMobileAppBarPathOnly(a.href).length
+      )[0]?.href;
   }, [items, pathOnly]);
   const isItemActive = (item: NavItem) => item.href === activeHref;
 
