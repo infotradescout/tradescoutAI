@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T04:09:40Z",
+  "generated_at": "2026-08-22T04:29:24Z",
   "source": {
     "kind": "git",
-    "revision": "bfd8a42519c5df094ff9dfb8827f28485c8f4fe4",
+    "revision": "8367df2d6e9fa8f45a10a8a749adc275d182224f",
     "dirty": false,
-    "inventory_sha256": "2012c14f264478971a4dccf3fd9ff1af24abae17d0d859c4c1135b93438aa626"
+    "inventory_sha256": "7f32e77beac5afaf73edd1978cf2ca3c2c9f2f5b1bfda5eebef3113b8a9cfdd5"
   },
   "inventory": {
     "directories": [
@@ -19723,8 +19723,8 @@
       {
         "path": "server/tests/historical-migration-chain.contract.test.ts",
         "language": "ts",
-        "sha256": "5661fd7f0eaf93efed8e8e3294b0240613cf6ec4da128b89a670be4a1dad7ccf",
-        "bytes": 10382
+        "sha256": "9e4e01e111459379296824a29a724de8ec8e7ceaa56e550e6e26a2003a438427",
+        "bytes": 10949
       },
       {
         "path": "server/tests/hoa-api.test.ts",
