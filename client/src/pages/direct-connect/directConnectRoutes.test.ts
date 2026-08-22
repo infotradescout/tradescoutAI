@@ -3,6 +3,7 @@ import {
   buildDirectConnectHref,
   getDirectConnectEntry,
   getDirectConnectSection,
+  shouldRenderDirectConnectSectionChrome,
   shouldResolveDirectConnectEntry,
 } from "./directConnectRoutes";
 
@@ -28,5 +29,14 @@ describe("directConnectRoutes", () => {
     expect(getDirectConnectEntry("/direct-connect?entry=onboarding")).toBe("onboarding");
     expect(shouldResolveDirectConnectEntry("onboarding")).toBe(true);
     expect(shouldResolveDirectConnectEntry("unknown")).toBe(false);
+  });
+
+  it("lets Jobs and the composer own their hierarchy without removing sibling chrome", () => {
+    expect(shouldRenderDirectConnectSectionChrome("employment")).toBe(false);
+    expect(shouldRenderDirectConnectSectionChrome("post")).toBe(false);
+    expect(shouldRenderDirectConnectSectionChrome("board")).toBe(true);
+    expect(shouldRenderDirectConnectSectionChrome("inbox")).toBe(true);
+    expect(shouldRenderDirectConnectSectionChrome("pros")).toBe(true);
+    expect(shouldRenderDirectConnectSectionChrome("engagements")).toBe(true);
   });
 });

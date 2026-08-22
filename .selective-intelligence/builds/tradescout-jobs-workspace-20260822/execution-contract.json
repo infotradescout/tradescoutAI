@@ -1,0 +1,189 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-jobs-workspace-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-jobs-workspace-20260822",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout remains a multi-app local operating system. This slice turns Jobs into one resumable role-aware employment desk without claiming whole-product completion.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": false,
+      "status": "released",
+      "outcome": "The authenticated shell uses the bottom taskbar for primary navigation and compact top-right system controls.",
+      "evidenceRef": "../tradescout-os-shell-20260821/evidence.md"
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "status": "released",
+      "outcome": "Scout and Community expose a resumable task loop and feed-first workspace.",
+      "evidenceRef": "../tradescout-workspace-density-20260821/evidence.md"
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "status": "released",
+      "outcome": "Businesses exposes a resumable local search-and-inspect workspace with the existing gated Direct Connect handoff.",
+      "evidenceRef": "../tradescout-businesses-workspace-20260821/evidence.md"
+    },
+    {
+      "id": "D4",
+      "active": true,
+      "outcome": "A person can browse local jobs or resumes, select one record without losing the list, see the action appropriate to ownership and application state, switch apps and return with the same valid context, then apply, manage applicants, close their post, or enter the existing gated reply flow.",
+      "entry": "Open Jobs from the persistent bottom taskbar at /direct-connect/opportunities in an authenticated local session.",
+      "ending": "Return to the same still-valid opportunity and context after an app switch or reload, then complete the role-appropriate next action without leaving the Jobs desk except for the existing gated Direct Connect reply handoff.",
+      "journeySteps": [
+        "Choose Hiring or Resumes and optionally change the local area, trade, or keyword search.",
+        "Select one compact result and inspect its work details beside the list on desktop or through a progressive detail surface on mobile.",
+        "For an external job, apply or see the existing application status; for an owned post, review applicants or close it; for an external resume, start the existing verification-gated reply.",
+        "Switch to another taskbar app and return to Jobs with valid mode, area, filters, and selection restored.",
+        "Use refresh or a copied canonical URL without restoring a post outside the current result set."
+      ],
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Inspect the authenticated Jobs route at 1440x1000 and 390x844 using the retained baseline captures.",
+          "expected": "The observation distinguishes the protected global shell from Jobs-local hierarchy and responsive defects.",
+          "observed": "The bottom taskbar and top-right tools are correct, while Jobs repeats its title and guidance, places a six-button route wall before the work, shows no dense lifecycle fixture, and lets the mobile verification button collide with its copy.",
+          "evidenceRef": "evidence.md#locked-outcome"
+        },
+        {
+          "type": "artifact_inspection",
+          "procedure": "Trace EmploymentBoard, DirectConnectShell, directConnectRoutes, and the employment routes from list entry through role-aware action.",
+          "expected": "Existing owners expose enough state and actions for the active slice without a new employment API, schema, route, or contact path.",
+          "observed": "EmploymentBoard already owns posting, applying, application status, applicants, close, verified resume reply, county filters, and dialogs; DirectConnectShell owns the canonical opportunities route and the redundant outer hierarchy. Exact fresh-database proof later exposed four pre-existing users-table columns missing from the migration chain, so one additive runtime-alignment migration was required before DB-backed contact proof could execute.",
+          "evidenceRef": "evidence.md#reuse-decision"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Refresh and doctor the Selective Intelligence project index at the exact baseline before adding code.",
+          "expected": "Canonical Jobs owners are discoverable and no competing active employment workspace owner blocks extension.",
+          "observed": "The index refreshed at e16deb9f. Doctor retained the repository baseline of 1104 duplicate/competing-owner errors and 5 raw-UI warnings, dominated by mirrored export trees; the same counts remain after implementation. Direct source tracing identifies EmploymentBoard and DirectConnectShell as the canonical client owners, and exports/workspaces remains excluded.",
+          "evidenceRef": "../../project-index.json"
+        }
+      ],
+      "constraints": [
+        "Keep primary navigation in the bottom taskbar and system/account tools at the top right.",
+        "Remove only the Jobs view's duplicate outer title, generic guidance card, and six-route wall; every Direct Connect route remains reachable through its existing owner.",
+        "Reuse EmploymentBoard, DirectConnectShell, employment APIs, application/applicant flows, StateCountySelector, existing dialogs, and the canonical /direct-connect/opportunities path; add no competing employment, API, schema, route, or contact owner.",
+        "Make the selected inspector mode-, ownership-, verification-, closed-, and application-state aware; a details-only directory inspector is insufficient.",
+        "Treat explicit URL fields as authoritative, restore only missing fields from session storage, emit one normalized canonical query form, and scope storage by authenticated user plus the canonical Jobs pathname.",
+        "Clear stale selection on mode, search, trade, state, county, result-membership, or signed-in-user changes.",
+        "Changing state clears the prior county before another county is selected; a canceled or incomplete area change cannot silently combine jurisdictions.",
+        "Preserve browse/post access, identity and address verification requirements for contact, county scoping, visibility-not-access, and Intent to Decision Card to Contact gating.",
+        "Do not expose raw contact information, invent employment state, or bypass the existing application and Direct Connect owners.",
+        "Narrowly enforce the existing contact law at employment write and response boundaries by reusing the repository's public-listing sanitizer and contact redactor; add no employment route, schema, eligibility, or contact owner. Permit only the idempotent users-table runtime-column alignment discovered by the exact fresh-database proof.",
+        "Do not copy Windows branding or literal window chrome; express the OS model through continuity, compact controls, panes, selection, and a context-aware action surface.",
+        "On mobile, use progressive controls and list/detail ordering instead of squeezing every command into one row.",
+        "Keep posting, applying, applicant management, closing, loading, empty, error, verified/unverified, closed, pending, shortlisted, rejected, and withdrawn behavior reachable.",
+        "Avoid page-level horizontal overflow and keep interactive targets accessible at desktop and mobile widths.",
+        "Do not edit the separate JW Stone Selective Intelligence lock or mirrored exports/workspaces trees."
+      ],
+      "requirementIds": [
+        "REQ-JOBS-WORKDESK",
+        "REQ-JOBS-LIFECYCLE",
+        "REQ-JOBS-CONTINUITY",
+        "REQ-JOBS-PROTECTED"
+      ],
+      "excludedFromActive": [
+        "Direct Connect request authoring, inbox, active requests, Businesses, Scout, Community, Exchange, HomeID, and unrelated app redesigns.",
+        "Shared taskbar or top-right tools redesign.",
+        "New backend employment routes, schemas, eligibility semantics, production-data mutation, or contact owners beyond the narrow existing-law response and write hardening required by REQ-JOBS-PROTECTED. The only migration in scope is the additive users runtime-column alignment required to make the committed fresh-database chain match shared/schema.ts."
+      ],
+      "proofRequired": [
+        "Behavior tests for URL-over-session precedence, normalization, canonical alias handling, user/path isolation, state-to-county invalidation, filter invalidation, and stale result selection.",
+        "Interaction contracts proving external-job Apply/status, owned-post Applicants/Close, external-resume gated reply, existing application status, and preserved Direct Connect bridge.",
+        "Existing employment, Direct Connect, county, shell, and contact-boundary contract suites.",
+        "Fresh-database migration proof plus DB-backed contact-redaction execution against the migrated schema.",
+        "Typecheck and production build at the exact implementation commit.",
+        "Authenticated browser proof at 1440x1000 and 390x844 using an owned job, external job, external resume, and applied-state fixture; include selection, role-aware actions, app-switch/reload continuity, area change, taskbar/top-right tools, and zero page-level horizontal overflow.",
+        "Exact minimum-release gate and post-deploy build identity before a release completion claim."
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-JOBS-WORKDESK",
+          "scope": "active_deliverable",
+          "claim": "Jobs presents one compact local list-and-inspector work desk without the duplicated Jobs-local title, guidance, or route wall."
+        },
+        {
+          "requirementId": "REQ-JOBS-LIFECYCLE",
+          "scope": "active_deliverable",
+          "claim": "Each selected record exposes the existing action appropriate to ownership, post type, verification, closed state, and application state."
+        },
+        {
+          "requirementId": "REQ-JOBS-CONTINUITY",
+          "scope": "active_deliverable",
+          "claim": "Canonical URL and user-scoped session state restore only valid mode, area, filters, and selection after navigation or reload."
+        },
+        {
+          "requirementId": "REQ-JOBS-PROTECTED",
+          "scope": "active_deliverable",
+          "claim": "The global shell, routes, APIs, county truth, verification, employment behavior, and contact-law boundaries remain protected."
+        }
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D5",
+      "active": false,
+      "status": "later",
+      "outcome": "Direct Connect request authoring, inbox, and active work become one coherent resumable operating workspace."
+    },
+    {
+      "id": "D6",
+      "active": false,
+      "status": "later",
+      "outcome": "Remaining Scout, Community, and cross-app density defects are observed and corrected through bounded routed slices."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout application already owns employment posts, applications, applicants, county state, verification, Direct Connect contact gating, authenticated shell, tests, and release proof.",
+    "constraintsConsidered": [
+      "The active outcome depends on persisted employment records, authenticated ownership, application workflow, county routing, repository-native UI, and the existing production release path.",
+      "The slice must reuse the established application and cannot be represented truthfully by a standalone site or component preview."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": true
+    }
+  },
+  "baseline": {
+    "commit": "e16deb9fd46d084b77d307e806ef005d2ccb222f",
+    "productionObservation": "The authenticated Jobs view repeats its title in a generic guidance card, shows a six-button route wall before the actual work, renders a large filter card, and has only an empty-board visual fixture; mobile verification copy and its button collide. The bottom taskbar and top-right tools are correct and remain protected.",
+    "projectIndex": "refreshed_at_e16deb9fd46d084b77d307e806ef005d2ccb222f; doctor retained 1104 pre-existing duplicate/owner errors and 5 raw-UI warnings dominated by mirrored exports; implementation refresh preserved the same counts; canonical owners EmploymentBoard and DirectConnectShell; mirrored exports/workspaces excluded"
+  },
+  "approval": {
+    "standingUserDirection": "always without asking; approve; keep going",
+    "checkpointPresentedAt": "2026-08-22T02:43:00Z",
+    "approvedToExecute": true,
+    "authorizedSequence": "bounded local edit, proof, pull request, merge after gates, production identity and health proof"
+  },
+  "council": {
+    "intentObjector": "revised generic inspector into a role-aware action pane and required dense fixtures",
+    "intentAligner": "aligned; pass to implementation with release held for focused, rendered, and minimum-release proof",
+    "implementationObjector": "source implementation accepted after viewer-scoped query isolation, fail-closed lifecycle states, county reconciliation, mobile progression, truthful error handling, and narrow contact-law hardening; release held for exact integrated browser and minimum-release proof",
+    "implementationAligner": "aligned after explicit user-scope selection invalidation and removal of transient Vitest output from the generated project index; no implementation blocker remains"
+  }
+}

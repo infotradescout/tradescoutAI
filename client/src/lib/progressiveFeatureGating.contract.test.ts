@@ -44,7 +44,9 @@ describe("progressive feature gating contracts", () => {
     expect(source).toContain("Get help with a project");
     expect(source).toContain("Find a local business");
     expect(source).toContain("Check my requests and replies");
-    expect(source).toMatch(/label: "Check my requests and replies",\s+href: "\/direct-connect\/active"/);
+    expect(source).toMatch(
+      /label: "Check my requests and replies",\s+href: "\/direct-connect\/active"/
+    );
     expect(source).toContain("Set up or manage my business");
     expect(source).toMatch(/label: "Find work or hire",\s+href: "\/direct-connect\/opportunities"/);
     expect(source).toContain("Browse commercial work");
@@ -56,9 +58,7 @@ describe("progressive feature gating contracts", () => {
 
   it("keeps request creation, requester history, and provider inbox distinct", () => {
     const appShellSource = read("client/src/components/layout/AppShellCore.tsx");
-    const directConnectSource = read(
-      "client/src/pages/direct-connect/DirectConnectShell.tsx"
-    );
+    const directConnectSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
     expect(appShellSource).toContain('title: "Make a request"');
     expect(appShellSource).toContain('title: "My requests"');
@@ -69,7 +69,7 @@ describe("progressive feature gating contracts", () => {
     expect(directConnectSource).toContain(
       'description: "Find employment, post a job or resume, apply, and review applicants."'
     );
-    expect(directConnectSource).toContain('activeSection !== "employment" ? (');
+    expect(directConnectSource).toContain("shouldRenderDirectConnectSectionChrome(activeSection)");
     expect(directConnectSource).toContain('"Track your requests."');
     expect(directConnectSource).toContain('"Review incoming work."');
     expect(directConnectSource).not.toContain('title="Start your request."');

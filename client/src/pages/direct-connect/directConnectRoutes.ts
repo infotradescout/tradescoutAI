@@ -68,3 +68,7 @@ export function buildDirectConnectHref(section: DirectConnectSection): string {
   };
   return `/direct-connect/${canonicalPaths[section] || section}`;
 }
+
+export function shouldRenderDirectConnectSectionChrome(section: DirectConnectSection): boolean {
+  return section !== "post" && section !== "employment";
+}

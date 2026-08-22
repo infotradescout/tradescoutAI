@@ -205,11 +205,20 @@ describe("Employment apply flow — server routes", () => {
     expect(employment).toContain('"/api/employment/posts/:id/applications"');
   });
 
-  it("applications endpoint returns all applicants to post owner", () => {
+  it("applications endpoint returns applicant decision context without raw contact", () => {
     const employment = readRepoFile("server/routes/employment.ts");
     expect(employment).toContain("isOwner");
     expect(employment).toContain("applicantName");
-    expect(employment).toContain("applicantEmail");
+    expect(employment).toContain("redactContactDetails");
+    expect(employment).toContain("redactContactDetails(req.body.message)");
+    expect(employment).toContain("redactContactDetails(application.message)");
+    expect(employment).toContain("redactContactDetails(own.message)");
+    expect(employment).not.toContain("applicantEmail: users.email");
+    expect(employment).toContain("sanitizePublicListingText(payload.title, 140)");
+    expect(employment).toContain("sanitizePublicListingText(payload.body, 6000)");
+    expect(employment).toContain("sanitizePublicListingText(safe.title, 140)");
+    expect(employment).toContain("sanitizePublicListingText(safe.body, 6000)");
+    expect(employment).toContain("sanitizePublicListingText(row.post.title, 140)");
   });
 
   it("applications endpoint returns only own application to non-owner", () => {
@@ -240,7 +249,7 @@ describe("Employment apply flow — server routes", () => {
 describe("Employment Board UI", () => {
   it("EmploymentBoard renders Apply button for job posts", () => {
     const board = readRepoFile("client/src/pages/direct-connect/EmploymentBoard.tsx");
-    expect(board).toContain("employment-apply-btn");
+    expect(board).toContain('data-testid="jobs-inspector-apply"');
     expect(board).toContain("Apply");
   });
 
