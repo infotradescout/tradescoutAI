@@ -271,6 +271,22 @@ export function resolveJobsWorkspaceState({
   return sanitizeJobsWorkspaceState(resolved);
 }
 
+export function resolveJobsWorkspaceScopeHydration({
+  restoredState,
+  previousScope,
+  currentScope,
+}: {
+  restoredState: JobsWorkspaceState;
+  previousScope: string;
+  currentScope: string;
+}): JobsWorkspaceState {
+  const restored = sanitizeJobsWorkspaceState(restoredState);
+  if (previousScope && previousScope !== currentScope) {
+    return { ...restored, selectedPostId: "" };
+  }
+  return restored;
+}
+
 export function writeJobsWorkspaceState({
   storage,
   authenticatedUserId,

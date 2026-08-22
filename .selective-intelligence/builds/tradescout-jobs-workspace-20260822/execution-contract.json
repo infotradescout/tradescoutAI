@@ -67,7 +67,7 @@
           "type": "automated_test",
           "procedure": "Refresh and doctor the Selective Intelligence project index at the exact baseline before adding code.",
           "expected": "Canonical Jobs owners are discoverable and no competing active employment workspace owner blocks extension.",
-          "observed": "The index refresh and doctor passed at e16deb9f; EmploymentBoard and DirectConnectShell are the canonical client owners, and the exports/workspaces mirror remains excluded.",
+          "observed": "The index refreshed at e16deb9f. Doctor retained the repository baseline of 1104 duplicate/competing-owner errors and 5 raw-UI warnings, dominated by mirrored export trees; the same counts remain after implementation. Direct source tracing identifies EmploymentBoard and DirectConnectShell as the canonical client owners, and exports/workspaces remains excluded.",
           "evidenceRef": "../../project-index.json"
         }
       ],
@@ -171,7 +171,7 @@
   "baseline": {
     "commit": "e16deb9fd46d084b77d307e806ef005d2ccb222f",
     "productionObservation": "The authenticated Jobs view repeats its title in a generic guidance card, shows a six-button route wall before the actual work, renders a large filter card, and has only an empty-board visual fixture; mobile verification copy and its button collide. The bottom taskbar and top-right tools are correct and remain protected.",
-    "projectIndex": "refreshed_and_doctor_passed_at_e16deb9fd46d084b77d307e806ef005d2ccb222f; canonical owners EmploymentBoard and DirectConnectShell; mirrored exports/workspaces excluded"
+    "projectIndex": "refreshed_at_e16deb9fd46d084b77d307e806ef005d2ccb222f; doctor retained 1104 pre-existing duplicate/owner errors and 5 raw-UI warnings dominated by mirrored exports; implementation refresh preserved the same counts; canonical owners EmploymentBoard and DirectConnectShell; mirrored exports/workspaces excluded"
   },
   "approval": {
     "standingUserDirection": "always without asking; approve; keep going",
@@ -181,6 +181,8 @@
   },
   "council": {
     "intentObjector": "revised generic inspector into a role-aware action pane and required dense fixtures",
-    "intentAligner": "aligned; pass to implementation with release held for focused, rendered, and minimum-release proof"
+    "intentAligner": "aligned; pass to implementation with release held for focused, rendered, and minimum-release proof",
+    "implementationObjector": "source implementation accepted after viewer-scoped query isolation, fail-closed lifecycle states, county reconciliation, mobile progression, truthful error handling, and narrow contact-law hardening; release held for exact integrated browser and minimum-release proof",
+    "implementationAligner": "aligned after explicit user-scope selection invalidation and removal of transient Vitest output from the generated project index; no implementation blocker remains"
   }
 }

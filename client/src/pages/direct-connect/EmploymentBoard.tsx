@@ -17,7 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,6 +47,7 @@ import {
   createClearedJobsWorkspaceState,
   formatJobsPay,
   resolveJobsInspectorLifecycle,
+  resolveJobsWorkspaceScopeHydration,
   resolveJobsWorkspaceState,
   resolveSelectedJobsWorkspacePost,
   updateJobsWorkspaceState,
@@ -163,7 +170,13 @@ export function EmploymentBoard({
       defaultStateCode: defaultStateCode || user?.stateCode,
       defaultCountyFips: defaultCountyFips || user?.countyFips,
     });
-    setWorkspaceState(restored);
+    setWorkspaceState(
+      resolveJobsWorkspaceScopeHydration({
+        restoredState: restored,
+        previousScope: hydratedWorkspaceScope,
+        currentScope: currentWorkspaceScope,
+      })
+    );
     setPostOpen(params.get("mode") === "post");
     setApplyPost(null);
     setViewApplicantsPost(null);
@@ -572,7 +585,6 @@ export function EmploymentBoard({
         <JobsWorkspaceFilters
           className="hidden border-t border-[color:var(--border-subtle)] px-4 py-3 lg:grid"
           areaLabel={selectedCountyLabel}
-          selectedCountyFips={selectedCountyFips}
           selectedTrade={selectedTrade}
           searchQuery={q}
           trades={trades as any[]}
@@ -597,7 +609,6 @@ export function EmploymentBoard({
           <JobsWorkspaceFilters
             className="grid grid-cols-1 gap-3 border-t border-[color:var(--border-subtle)] px-3 py-3 sm:grid-cols-2 sm:px-4"
             areaLabel={selectedCountyLabel}
-            selectedCountyFips={selectedCountyFips}
             selectedTrade={selectedTrade}
             searchQuery={q}
             trades={trades as any[]}
@@ -895,6 +906,9 @@ export function EmploymentBoard({
         <DialogContent className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <DialogHeader>
             <DialogTitle className="text-[color:var(--text-primary)]">Change location</DialogTitle>
+            <DialogDescription className="sr-only">
+              Choose a state and county for this Jobs workspace.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 text-sm text-[color:var(--text-secondary)]">
             <p>
@@ -957,7 +971,6 @@ function ApplicationStatusBadge({ status }: { status: string }) {
 function JobsWorkspaceFilters({
   className,
   areaLabel,
-  selectedCountyFips,
   selectedTrade,
   searchQuery,
   trades,
@@ -969,7 +982,6 @@ function JobsWorkspaceFilters({
 }: {
   className: string;
   areaLabel: string;
-  selectedCountyFips?: string;
   selectedTrade: string;
   searchQuery: string;
   trades: any[];

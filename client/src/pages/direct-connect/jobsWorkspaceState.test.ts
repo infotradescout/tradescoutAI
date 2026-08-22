@@ -9,6 +9,7 @@ import {
   formatJobsPay,
   getJobsWorkspaceStorageKey,
   resolveJobsInspectorLifecycle,
+  resolveJobsWorkspaceScopeHydration,
   resolveJobsWorkspaceState,
   resolveJobsWorkspaceStateChange,
   resolveSelectedJobsWorkspacePost,
@@ -143,6 +144,37 @@ describe("Jobs workspace state", () => {
         storage: window.sessionStorage,
         authenticatedUserId: "user-2",
         pathname: JOBS_WORKSPACE_CANONICAL_PATH,
+      }).selectedPostId
+    ).toBe("");
+  });
+
+  it("clears an explicit selection when the authenticated workspace scope changes", () => {
+    const restoredFromUrl: JobsWorkspaceState = {
+      ...storedState,
+      selectedPostId: "post-visible-to-both-users",
+    };
+    const userAScope = `user-a:${JOBS_WORKSPACE_CANONICAL_PATH}`;
+    const userBScope = `user-b:${JOBS_WORKSPACE_CANONICAL_PATH}`;
+
+    expect(
+      resolveJobsWorkspaceScopeHydration({
+        restoredState: restoredFromUrl,
+        previousScope: "",
+        currentScope: userAScope,
+      }).selectedPostId
+    ).toBe("post-visible-to-both-users");
+    expect(
+      resolveJobsWorkspaceScopeHydration({
+        restoredState: restoredFromUrl,
+        previousScope: userAScope,
+        currentScope: userAScope,
+      }).selectedPostId
+    ).toBe("post-visible-to-both-users");
+    expect(
+      resolveJobsWorkspaceScopeHydration({
+        restoredState: restoredFromUrl,
+        previousScope: userAScope,
+        currentScope: userBScope,
       }).selectedPostId
     ).toBe("");
   });
