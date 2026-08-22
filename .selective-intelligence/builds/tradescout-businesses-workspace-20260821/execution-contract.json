@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-businesses-workspace-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-businesses-workspace-20260821",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "next_evidenced_slice",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout remains a multi-app local operating system. This slice turns Businesses into one resumable search-and-inspect workspace without claiming whole-product completion.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": false,
+      "status": "released",
+      "outcome": "The authenticated shell uses the bottom taskbar for primary navigation and compact top-right system controls.",
+      "evidenceRef": "../tradescout-os-shell-20260821/evidence.md"
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "status": "released",
+      "outcome": "Scout and Community expose a resumable task loop and feed-first workspace.",
+      "evidenceRef": "../tradescout-workspace-density-20260821/evidence.md"
+    },
+    {
+      "id": "D3",
+      "active": true,
+      "outcome": "A person can search local businesses, select and inspect one result without losing the list, switch apps and return with the same search, filter, and selection, then open the public profile or enter the existing gated Direct Connect flow.",
+      "entry": "Open Businesses from the persistent bottom taskbar in an authenticated Escambia County session.",
+      "ending": "Return to the same selected business and context after an app switch, then open its profile or continue through Intent to Decision Card to Contact.",
+      "journeySteps": [
+        "Search by name, trade, or keyword and optionally change the local area.",
+        "Choose one compact result and inspect its public service, location, and available trust evidence beside the list.",
+        "Switch to another taskbar app and return to Businesses with search, trade, area, and selection restored.",
+        "Use back, forward, refresh, or a copied URL without losing explicit workspace context.",
+        "Open the selected public profile or start the existing provider-targeted Direct Connect flow."
+      ],
+      "constraints": [
+        "Keep primary navigation in the bottom taskbar and system/account tools at the top right.",
+        "Reuse DirectConnectPros, the canonical provider-search endpoint, existing profile routes, location context, and Direct Connect entry contract; add no competing directory, API, schema, or contact owner.",
+        "Treat explicit URL fields as authoritative, restore only missing fields from session storage, emit one normalized canonical query form, and scope storage by authenticated user and pathname.",
+        "Clear removes canonical and alias query fields plus the scoped stored record; every persisted string is normalized and length bounded.",
+        "Resolve a stored or URL-selected provider only from the current safe search result set and clear or replace stale selection whenever filters, jurisdiction, or results change.",
+        "Preserve county scoping, public exposure filters, Trust/CVS rules, visibility-not-access, and Intent to Decision Card to Contact gating.",
+        "Do not expose raw contact information or the internal numeric CVS composite.",
+        "Keep unverified directory fallbacks profile-only and never promote them into a Connect action.",
+        "Do not copy Windows branding or literal window chrome; express the OS model through continuity, panes, compact controls, and one selected-object action surface.",
+        "Keep area selection, trade inference, all currently reachable results, loading and empty states, fallback public listings, analytics, profile links, result counts, routes, and features.",
+        "Avoid page-level horizontal overflow and keep interactive targets accessible at desktop and mobile widths.",
+        "Do not edit the separate JW Stone Selective Intelligence lock or mirrored exports/workspaces trees."
+      ],
+      "excludedFromActive": [
+        "Jobs, Direct Connect request authoring, Scout, Community, Exchange, HomeID, and unrelated app redesigns.",
+        "Shared taskbar or top-right tools redesign.",
+        "Backend ranking, provider eligibility, database, migration, or production-data changes."
+      ],
+      "proofRequired": [
+        "Behavior tests for URL-over-session precedence, normalized aliases, explicit clear, account and pathname isolation, stale selection, filter and county changes, fallback profile-only links, and gated Direct Connect handoff.",
+        "Existing county scope, provider exposure, and contact-boundary contract suites.",
+        "Typecheck and production build at the exact implementation commit.",
+        "Authenticated browser proof at 1440x1000 and 390x844 for keyboard selection, one inspector, Businesses to Jobs to Businesses continuity with q=flooring and a selected provider, back/forward or refresh recovery, action routing, taskbar and top-right tools, and zero page-level horizontal overflow.",
+        "Exact minimum-release gate and post-deploy build identity before a release completion claim."
+      ],
+      "completionScope": "active_deliverable",
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout application already owns provider discovery, public profiles, location state, contact gating, authenticated shell, tests, and release proof."
+  },
+  "baseline": {
+    "commit": "342d198c4f243e3b200bc74ed3c5841f1a2abfca",
+    "productionObservation": "Businesses reset q=flooring after a taskbar switch and rendered 25 oversized cards with repeated Connect actions; Direct Connect and Jobs did not show a stronger current desktop regression.",
+    "projectIndex": "manual_unverified_due_to_stale_shared_index_and_jw_lane_lock"
+  },
+  "approval": {
+    "standingUserDirection": "always without asking; approve; keep going",
+    "checkpointPresented": true,
+    "approvedToExecute": true
+  }
+}

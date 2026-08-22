@@ -248,14 +248,17 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Request lifecycle");
     expect(directConnectShellFile).toContain('pros: "Businesses"');
     expect(directConnectShellFile).toContain('board: "Board"');
-    expect(directoryFile).toContain("Nearby Directory");
+    expect(directoryFile).toContain("Find and inspect businesses");
     expect(directoryFile).toContain(
       'title={searchActive ? "Best nearby matches" : "Businesses near you"}'
     );
     expect(directoryFile).toContain(
-      "Each business appears once, ordered by location fit and available trust evidence."
+      "Select a row to inspect one public profile without losing your place."
     );
     expect(directoryFile).toContain("No local businesses found for that search yet.");
+    expect(directoryFile.match(/<ProviderCard\b/g)).toHaveLength(1);
+    expect(directoryFile).toContain('aria-label="Business results"');
+    expect(directoryFile).toContain('role="region"');
   });
 
   it("requires sender to choose direct targets or top-count dispatch before sending", () => {
