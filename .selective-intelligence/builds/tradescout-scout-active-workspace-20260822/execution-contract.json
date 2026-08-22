@@ -90,7 +90,7 @@
         "Focused existing Scout framing and thread behavior tests proving the visible work region, a single composer and dominant action, bounded scrolling, latest-turn behavior, sparse history, saved-task restore, and Community return without weakening action validation.",
         "Focused D6 taskbar and Community browse-only regression tests.",
         "Typecheck and production build at the exact implementation commit.",
-        "Authenticated rendered proof at 1440x1000 and 390x844 for sparse, eight-update, and long-history tasks, including geometry, internal scroll-to-latest, taskbar and composer clearance, top-right tools, and zero page-level horizontal overflow.",
+        "Authenticated rendered proof at 1440x1000, 1440x600, 390x844, and both sides of the 730/731px short-desktop boundary for sparse, eight-update, and long-history tasks, including geometry, full work/thread containment, internal scroll-to-latest, taskbar and composer clearance, top-right tools, and zero page-level overflow.",
         "Rendered Save to New to Conversations to reopen proof plus Scout to Community to Scout return proof using the same county and saved task.",
         "Exact minimum-release gate and post-deploy x-tradescout-build plus /api/health identity before a release completion claim."
       ],
@@ -169,8 +169,8 @@
     "intake": "pass; Scout active-task dead canvas is the highest-impact next interior defect while Community remains protected",
     "intentObjector": "pass with revision; the conversation and result record must become the primary usable work object, not merely an opened details panel",
     "planner": "go; canonical existing owners and proof boundary are sufficient",
-    "implementationObjector": "blocked on two bounded P2 findings; New did not cancel an armed auto-route timer and declaration-only auto-route coverage was overstated as runtime proof; timer corrected and evidence reclassified, all other checks passed",
-    "implementationAligner": "provisionally_aligned; bounded correction matches D7, GO to exact verification and gating, HOLD release claim until exact commit, gate, review resolution, merge, and production proof"
+    "implementationObjector": "initially blocked on auto-route cancellation and proof classification, then on exact short-height overlap and the first 701px noncompact frame clipping the thread owner; cancellation, evidence classification, constrained layout, and boundary were corrected; final short-height re-review sustained with no blocking finding",
+    "implementationAligner": "provisionally_aligned after the auto-route and 730/731 short-height corrections; bounded correction matches D7, GO to refreshed index and exact verification, HOLD release claim until exact clean commit, browser proof, gate, review resolution, merge, and production proof"
   },
   "manualUnverified": {
     "reason": "The refreshed project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside canonical application source.",

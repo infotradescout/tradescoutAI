@@ -401,7 +401,7 @@ describe("Scout entry framing contracts", () => {
       /@media \(max-width: 640px\)\s*\{.*?\.scout-command-bar__input\s*\{[^}]*max-height:\s*72px;/s
     );
     expect(cssSource).toMatch(
-      /@media \(min-width: 641px\) and \(max-height: 700px\)\s*\{.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-search-dock-fixed\s+\.scout-command-bar__input\s*\{[^}]*max-height:\s*72px;[^}]*overflow-y:\s*auto;/s
+      /@media \(min-width: 641px\) and \(max-height: 730px\)\s*\{.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*\{[^}]*margin-top:\s*0;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-current-task\s*\{[^}]*gap:\s*0\.25rem;[^}]*padding:\s*0\.5rem;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+#scout-current-task-title\s*\{[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-active-workbench\s*>\s*\.scout-task-work-region\s*\{[^}]*min-height:\s*clamp\(5\.5rem,\s*16dvh,\s*6rem\);.*?body\.ts-scout-active\s+\.scout-shell\.scout-shell--active-task\s+\.scout-search-dock-fixed\s+\.scout-command-bar__input\s*\{[^}]*max-height:\s*72px;[^}]*overflow-y:\s*auto;/s
     );
     expect(cssSource).toContain("#app-scroll-root:has(.scout-shell--active-task)");
     expect(cssSource).toMatch(

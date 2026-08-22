@@ -4809,7 +4809,35 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   }
 }
 
-@media (min-width: 641px) and (max-height: 700px) {
+@media (min-width: 641px) and (max-height: 730px) {
+  body.ts-scout-active
+    .scout-shell.scout-shell--active-task
+    .scout-active-workbench {
+    margin-top: 0;
+  }
+
+  body.ts-scout-active
+    .scout-shell.scout-shell--active-task
+    .scout-current-task {
+    gap: 0.25rem;
+    padding: 0.5rem;
+  }
+
+  body.ts-scout-active
+    .scout-shell.scout-shell--active-task
+    #scout-current-task-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  body.ts-scout-active
+    .scout-shell.scout-shell--active-task
+    .scout-active-workbench
+    > .scout-task-work-region {
+    min-height: clamp(5.5rem, 16dvh, 6rem);
+  }
+
   body.ts-scout-active
     .scout-shell.scout-shell--active-task
     .scout-search-dock-fixed

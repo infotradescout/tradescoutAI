@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T16:25:18Z",
+  "generated_at": "2026-08-22T17:20:58Z",
   "source": {
     "kind": "git",
-    "revision": "039d41665fb900b4305ee01a48afc40798363e0c",
+    "revision": "a328d3a21f22d5075401fc7f0aeabea9fe3140e1",
     "dirty": true,
-    "inventory_sha256": "1a40396a87703ee01e4566aeeedba5c676461e261eab9d2a2eddee28ddd74a05"
+    "inventory_sha256": "b5893d21c52cb51a5a30c49b51c84749f60819a2dcd78fdd613afaaf7b6ca163"
   },
   "inventory": {
     "directories": [
@@ -6853,8 +6853,8 @@
       {
         "path": "client/src/scout/ScoutOS.tsx",
         "language": "tsx",
-        "sha256": "c17b1c18db9bdfb6c9e9738ddabb249fdcf096eb754a8dee3f9bf03e455e42d9",
-        "bytes": 225619
+        "sha256": "a28e15a01632e0be21575b013abf7a4c03baee6c18a4f843950c4d5fb7adfc73",
+        "bytes": 219991
       },
       {
         "path": "client/src/scout/ScoutSearchDock.tsx",
@@ -6865,8 +6865,8 @@
       {
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
         "language": "ts",
-        "sha256": "885ec48598159335ac94783e41483e8229a6994ab55e842a6783a9fa4114e00f",
-        "bytes": 41467
+        "sha256": "3b06eb86bb059a0ec58f2420085db0a335b41503e8c81f52acac4df10bcdbe9d",
+        "bytes": 43291
       },
       {
         "path": "client/src/scout/ScoutThread.tsx",
@@ -7111,8 +7111,8 @@
       {
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
         "language": "ts",
-        "sha256": "09a41456f8c13580a1c4179ae421376b9de9d33d6311d111ddf2092aeafb31f6",
-        "bytes": 31353
+        "sha256": "0a2602985c6a6575c2e89b9b81638691660f8686a2539e63e0d6a4fd4bd4c842",
+        "bytes": 31950
       },
       {
         "path": "client/src/scout/scout-home-personalization.contract.test.ts",
@@ -59495,7 +59495,7 @@
         "name": "TestResizeObserver",
         "kind": "class",
         "path": "client/src/scout/ScoutThread.evidence.test.ts",
-        "line": 1039,
+        "line": 1093,
         "exported": false
       },
       {
@@ -60811,7 +60811,7 @@
         "name": "extractQuotedText",
         "kind": "function",
         "path": "client/src/scout/scout-entry-framing.contract.test.ts",
-        "line": 510,
+        "line": 506,
         "exported": false
       },
       {
@@ -183487,192 +183487,192 @@
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4102
+          "line": 4095
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4116
+          "line": 4109
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4189
+          "line": 4181
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4206
+          "line": 4198
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4353
+          "line": 4345
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4368
+          "line": 4360
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4399
+          "line": 4391
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4417
+          "line": 4409
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4450
+          "line": 4442
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4464
+          "line": 4456
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4481
+          "line": 4473
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4516
+          "line": 4508
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4533
+          "line": 4525
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4589
+          "line": 4581
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4649
+          "line": 4641
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4695
+          "line": 4687
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4702
+          "line": 4694
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4717
+          "line": 4709
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4742
+          "line": 4734
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4948
+          "line": 4940
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 4991
+          "line": 4983
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5010
+          "line": 5002
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5029
+          "line": 5021
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5057
+          "line": 5049
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5072
+          "line": 5064
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5114
+          "line": 5106
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5242
+          "line": 5234
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5288
+          "line": 5280
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5324
+          "line": 5316
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5350
+          "line": 5342
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5367
+          "line": 5359
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5406
+          "line": 5398
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5459
+          "line": 5451
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5491
+          "line": 5483
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5513
+          "line": 5505
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5543
+          "line": 5535
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5560
+          "line": 5552
         },
         {
           "tag": "button",
           "path": "client/src/scout/ScoutOS.tsx",
-          "line": 5572
+          "line": 5564
         },
         {
           "tag": "button",

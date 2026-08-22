@@ -961,26 +961,26 @@ describe("Scout active-task auxiliary reachability", () => {
     expect(thread?.style.overflowY).toBe("auto");
   });
 
-  it("preserves the record and scrollable input with a max multiline dock at 600px desktop height", () => {
-    const viewportHeight = 600;
-    const taskbarHeight = 58;
+  it("clears a dynamic multiline dock without taking the short-desktop record below its floor", () => {
+    const measuredDockTop = 424;
+    const measuredWorkRegionBottom = 441;
+    const measuredOverlap = measuredWorkRegionBottom - measuredDockTop;
     const multilineInputHeight = 72;
-    const commandBarChrome = 23;
-    const fixedDockChrome = 16;
-    const fixedComposerHeight = multilineInputHeight + commandBarChrome + fixedDockChrome;
-    const topControlsHeight = 35;
-    const currentTaskCardHeight = 137;
-    const cardAndRegionGaps = 32;
-    const recordFloor = Math.max(6 * 16, Math.min(viewportHeight * 0.2, 12 * 16));
-    const auxiliaryMaximum = Math.min(16 * 16, viewportHeight * 0.28);
-    const auxiliaryAllocation =
-      viewportHeight -
-      taskbarHeight -
-      fixedComposerHeight -
-      topControlsHeight -
-      currentTaskCardHeight -
-      cardAndRegionGaps -
-      recordFloor;
+    const defaultRecordFloor = Math.max(6 * 16, Math.min(600 * 0.2, 12 * 16));
+    const constrainedRecordFloor = Math.max(5.5 * 16, Math.min(600 * 0.16, 6 * 16));
+    const auxiliaryFloor = 44;
+    const defaultWorkbenchTopMargin = 6;
+    const compactWorkbenchTopMargin = 0;
+    const defaultCurrentTaskPadding = 12;
+    const compactCurrentTaskPadding = 8;
+    const defaultCurrentTaskGap = 10;
+    const compactCurrentTaskGap = 4;
+    const reclaimedHeight =
+      defaultWorkbenchTopMargin -
+      compactWorkbenchTopMargin +
+      (defaultCurrentTaskPadding - compactCurrentTaskPadding) * 2 +
+      (defaultCurrentTaskGap - compactCurrentTaskGap);
+    const constrainedFloorReclaim = defaultRecordFloor - constrainedRecordFloor;
     const textarea = document.createElement("textarea");
     textarea.className = "scout-command-bar__input";
     textarea.style.height = "120px";
@@ -995,24 +995,78 @@ describe("Scout active-task auxiliary reachability", () => {
       value: 120,
     });
 
-    expect(fixedComposerHeight).toBe(111);
-    expect(recordFloor).toBe(120);
-    expect(auxiliaryAllocation).toBe(107);
-    expect(auxiliaryAllocation).toBeGreaterThanOrEqual(44);
-    expect(auxiliaryAllocation).toBeLessThanOrEqual(auxiliaryMaximum);
+    expect(defaultRecordFloor).toBe(120);
+    expect(constrainedRecordFloor).toBe(96);
+    expect(auxiliaryFloor).toBe(44);
     expect(textarea.style.height).toBe("120px");
     expect(textarea.style.maxHeight).toBe("72px");
     expect(textarea.style.overflowY).toBe("auto");
     expect(textarea.scrollHeight).toBeGreaterThan(textarea.clientHeight);
+    expect(measuredOverlap).toBe(17);
+    expect(reclaimedHeight).toBe(20);
+    expect(constrainedFloorReclaim).toBe(24);
     expect(
-      taskbarHeight +
-        fixedComposerHeight +
-        topControlsHeight +
-        currentTaskCardHeight +
-        cardAndRegionGaps +
-        auxiliaryAllocation +
-        recordFloor
-    ).toBe(viewportHeight);
+      measuredWorkRegionBottom - reclaimedHeight - constrainedFloorReclaim
+    ).toBeLessThanOrEqual(measuredDockTop);
+
+    const measuredBreakpointRectangles = [
+      {
+        viewport: "1440x730",
+        workbenchBottom: 526,
+        workBottom: 510,
+        threadBottom: 509,
+        dockTop: 554,
+        threadClientHeight: 40,
+        threadScrollHeight: 2760,
+        threadScrollTop: 2720,
+      },
+      {
+        viewport: "1440x731",
+        workbenchBottom: 479,
+        workBottom: 467.19,
+        threadBottom: 466.19,
+        dockTop: 507,
+        threadClientHeight: 90,
+        threadScrollHeight: 2760,
+        threadScrollTop: 2670,
+      },
+      {
+        viewport: "641x730",
+        workbenchBottom: 503.61,
+        workBottom: 491.61,
+        threadBottom: 490.61,
+        dockTop: 558,
+        threadClientHeight: 40,
+        threadScrollHeight: 2879,
+        threadScrollTop: 2839,
+      },
+      {
+        viewport: "641x731",
+        workbenchBottom: 456.61,
+        workBottom: 452.19,
+        threadBottom: 451.19,
+        dockTop: 511,
+        threadClientHeight: 90,
+        threadScrollHeight: 2879,
+        threadScrollTop: 2789,
+      },
+    ];
+
+    expect(measuredBreakpointRectangles.map(({ viewport }) => viewport)).toEqual([
+      "1440x730",
+      "1440x731",
+      "641x730",
+      "641x731",
+    ]);
+    for (const rectangle of measuredBreakpointRectangles) {
+      expect(rectangle.workBottom).toBeLessThanOrEqual(rectangle.workbenchBottom);
+      expect(rectangle.threadBottom).toBeLessThanOrEqual(rectangle.workbenchBottom);
+      expect(rectangle.workBottom).toBeLessThanOrEqual(rectangle.dockTop);
+      expect(rectangle.threadBottom).toBeLessThanOrEqual(rectangle.dockTop);
+      expect(rectangle.threadScrollTop + rectangle.threadClientHeight).toBe(
+        rectangle.threadScrollHeight
+      );
+    }
   });
 });
 
