@@ -6,6 +6,7 @@ import {
   STONE_CURRENT_INVENTORY_PUBLIC_STATUS,
   STONE_CURRENT_INVENTORY_VERIFIED_STATUS,
   isStoneInventoryConfirmationFresh,
+  isStoneMaterialClass,
   normalizePublicStoneInventoryImageUrls,
   type PublicStoneInventoryItem,
   type SellerStoneInventoryItem,
@@ -32,6 +33,7 @@ export type StoneInventoryMutation = Readonly<{
   publicId?: string;
   materialSlug: string;
   materialName: string;
+  materialClass: PublicStoneInventoryItem["materialClass"];
   materialFamily: string;
   assetKind: PublicStoneInventoryItem["assetKind"];
   quantity: number;
@@ -109,6 +111,8 @@ function mapInventoryRow(row: InventoryRow): SellerStoneInventoryItem | null {
   const assetKinds = new Set(["slab", "bundle", "block", "container", "a_frame", "piece"]);
   const rawAssetKind = String(row.asset_kind || "");
   if (!assetKinds.has(rawAssetKind)) return null;
+  const rawMaterialClass = String(row.material_class || "");
+  if (!isStoneMaterialClass(rawMaterialClass)) return null;
   const publicAvailabilityStatus =
     row.public_availability_status === STONE_CURRENT_INVENTORY_PUBLIC_STATUS &&
     Boolean(row.published_at) &&
@@ -129,6 +133,7 @@ function mapInventoryRow(row: InventoryRow): SellerStoneInventoryItem | null {
     passportCode: String(row.passport_code || ""),
     materialSlug: String(row.material_slug || ""),
     materialName: String(condition.ownerConfirmedName || row.material_name || ""),
+    materialClass: rawMaterialClass,
     materialFamily: String(row.material_family || "").trim() || null,
     assetKind: rawAssetKind as PublicStoneInventoryItem["assetKind"],
     sourceAssetRef,
@@ -221,6 +226,7 @@ async function inventoryRowsForBusiness(businessId: string): Promise<InventoryRo
             ap.condition_json,
             m.slug AS material_slug,
             m.canonical_name AS material_name,
+            m.material_class,
             m.material_family,
             m.primary_image_url
        FROM stone_inventory_positions ip
@@ -327,19 +333,21 @@ export async function upsertCurrentStoneInventory(
       ? await client.query(
           `UPDATE stone_materials
               SET canonical_name = $2,
-                  material_family = $3,
-                  source_profile_slug = $4,
-                  source_url = $5,
-                  primary_image_url = COALESCE($6, primary_image_url),
-                  source_metadata = source_metadata || $7::jsonb,
+                  material_class = $3,
+                  material_family = $4,
+                  source_profile_slug = $5,
+                  source_url = $6,
+                  primary_image_url = COALESCE($7, primary_image_url),
+                  source_metadata = source_metadata || $8::jsonb,
                   updated_at = NOW()
             WHERE id = $1::uuid
-              AND source_business_id = $8
-              AND slug = $9
+              AND source_business_id = $9
+              AND slug = $10
             RETURNING id`,
           [
             existingRow.material_id,
             mutation.materialName,
+            mutation.materialClass,
             mutation.materialFamily,
             target.profileSlug,
             `/u/${target.profileSlug}/stones/${mutation.materialSlug}`,
@@ -353,9 +361,10 @@ export async function upsertCurrentStoneInventory(
           `INSERT INTO stone_materials (
          slug, canonical_name, material_class, material_family, source_business_id,
          source_profile_slug, source_url, primary_image_url, source_status, source_metadata, updated_at
-       ) VALUES ($1, $2, 'natural_stone', $3, $4, $5, $6, $7, 'source_verified', $8::jsonb, NOW())
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'source_verified', $9::jsonb, NOW())
        ON CONFLICT (source_business_id, slug) DO UPDATE SET
          canonical_name = EXCLUDED.canonical_name,
+         material_class = EXCLUDED.material_class,
          material_family = EXCLUDED.material_family,
          source_profile_slug = EXCLUDED.source_profile_slug,
          source_url = EXCLUDED.source_url,
@@ -366,6 +375,7 @@ export async function upsertCurrentStoneInventory(
           [
             mutation.materialSlug,
             mutation.materialName,
+            mutation.materialClass,
             mutation.materialFamily,
             target.businessId,
             target.profileSlug,

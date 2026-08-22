@@ -4,9 +4,10 @@ export const STONE_CURRENT_INVENTORY_PUBLIC_STATUS = "published_current";
 export const STONE_CURRENT_INVENTORY_PRIVATE_STATUS = "not_published";
 export const STONE_CURRENT_INVENTORY_AVAILABLE_STATUS = "available";
 export const STONE_CURRENT_INVENTORY_VERIFIED_STATUS = "verified";
+export const STONE_MATERIAL_CLASSES = ["natural_stone", "engineered_stone"] as const;
+export type StoneMaterialClass = (typeof STONE_MATERIAL_CLASSES)[number];
 
-export const JW_STONE_CONFIRMED_STOCK_FIXTURE_VERSION =
-  "jw-stone-confirmed-stock-2026-08-20-v1";
+export const JW_STONE_CONFIRMED_STOCK_FIXTURE_VERSION = "jw-stone-confirmed-stock-2026-08-20-v1";
 export const JW_STONE_CONFIRMED_AT = "2026-08-20T12:00:00.000Z";
 export const JW_STONE_CONFIRMATION_EXPIRES_AT = "2026-10-04T12:00:00.000Z";
 
@@ -130,6 +131,7 @@ export type PublicStoneInventoryItem = Readonly<{
   id: string;
   materialSlug: string;
   materialName: string;
+  materialClass: StoneMaterialClass;
   materialFamily: string | null;
   assetKind: "slab" | "bundle" | "block" | "container" | "a_frame" | "piece";
   quantity: number;
@@ -141,20 +143,23 @@ export type PublicStoneInventoryItem = Readonly<{
   confirmationExpiresAt: string;
 }>;
 
+export function isStoneMaterialClass(value: unknown): value is StoneMaterialClass {
+  return STONE_MATERIAL_CLASSES.includes(value as StoneMaterialClass);
+}
+
 export type SellerStoneInventoryItem = PublicStoneInventoryItem &
   Readonly<{
     inventoryPositionId: string;
     passportCode: string;
     sourceAssetRef: string;
     locationLabel: string | null;
-    publicAvailabilityStatus: typeof STONE_CURRENT_INVENTORY_PUBLIC_STATUS | typeof STONE_CURRENT_INVENTORY_PRIVATE_STATUS;
+    publicAvailabilityStatus:
+      | typeof STONE_CURRENT_INVENTORY_PUBLIC_STATUS
+      | typeof STONE_CURRENT_INVENTORY_PRIVATE_STATUS;
     isSaleReady: boolean;
   }>;
 
-export type StoneInventoryCapability =
-  | "inventory_read"
-  | "inventory_write"
-  | "inventory_publish";
+export type StoneInventoryCapability = "inventory_read" | "inventory_write" | "inventory_publish";
 
 export type PublicStoneInventoryResponse = Readonly<{
   profileSlug: string;

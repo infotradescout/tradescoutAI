@@ -1,3 +1,5 @@
+import type { StoneMaterialClass } from "./stoneInventory";
+
 export const BIDROCK_PUBLIC_ROUTE = "/bidrock";
 export const BIDROCK_DEFAULT_PROFILE_SLUG = "jw-stone";
 export const BIDROCK_PAYMENT_METHOD = "ach" as const;
@@ -124,6 +126,7 @@ export type BidRockListing = Readonly<{
   sourceProfileSlug: string;
   sourceProfileName: string;
   assetKind: string;
+  materialClass: StoneMaterialClass;
   materialSlug: string;
   title: string;
   materialFamily: string | null;

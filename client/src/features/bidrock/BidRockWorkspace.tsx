@@ -74,6 +74,7 @@ import {
   BidRockListingRow,
   formatBidRockAssetKind,
   formatBidRockDimensions,
+  formatBidRockMaterialClass,
 } from "./BidRockListingRow";
 import { BidRockAdminPanel } from "./BidRockOperationsPanels";
 import { BidRockOrderSheet } from "./BidRockOrderSheet";
@@ -1010,8 +1011,8 @@ function SellerAuctionEditor({
       </p>
       <h2 className="mt-1 text-2xl font-semibold text-stone-950">{listing.title}</h2>
       <p className="mt-1 text-xs text-stone-500">
-        {formatBidRockAssetKind(listing)} · {formatBidRockDimensions(listing)} · {listing.quantity}{" "}
-        {listing.unit}
+        {formatBidRockMaterialClass(listing)} · {formatBidRockAssetKind(listing)} ·{" "}
+        {formatBidRockDimensions(listing)} · {listing.quantity} {listing.unit}
       </p>
 
       <div className="mt-5 flex items-start justify-between gap-4 rounded-lg border border-stone-200 p-4">
@@ -1470,6 +1471,7 @@ function BidRockCompareDialog({
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-200">
+                <CompareRow label="Stone class" values={listings.map(formatBidRockMaterialClass)} />
                 <CompareRow label="Lot type" values={listings.map(formatBidRockAssetKind)} />
                 <CompareRow label="Dimensions" values={listings.map(formatBidRockDimensions)} />
                 <CompareRow

@@ -25,6 +25,7 @@ import {
   STONE_CURRENT_INVENTORY_PUBLIC_STATUS,
   STONE_CURRENT_INVENTORY_VERIFIED_STATUS,
   isStoneInventoryConfirmationFresh,
+  isStoneMaterialClass,
   normalizePublicStoneInventoryImageUrls,
 } from "@shared/stoneInventory";
 import { pool } from "../db";
@@ -1064,11 +1065,13 @@ function mapListing(
     Boolean(row.inventory_published_at) &&
     Object.keys(recordValue(row.publication_evidence)).length > 0;
   const auction = mapAuction(row, viewer, canManage);
+  if (!isStoneMaterialClass(row.material_class)) return null;
   const listing: BidRockListing = {
     id: String(row.public_id),
     sourceProfileSlug: normalizeText(row.source_profile_slug, 120),
     sourceProfileName: normalizeText(row.source_profile_name, 180),
     assetKind: normalizeText(row.asset_kind, 40) || "stone lot",
+    materialClass: row.material_class,
     materialSlug: normalizeText(row.material_slug, 120),
     title: normalizeText(row.title, 180) || "Stone",
     materialFamily: normalizeText(row.material_family, 120) || null,
@@ -1127,6 +1130,7 @@ async function listingRows(
   return pool.query(
     `SELECT listing.*,
             passport.asset_kind,
+            material.material_class,
             clock_timestamp() AS database_now,
             ip.lifecycle_status AS inventory_lifecycle_status,
             ip.quantity AS inventory_quantity,
@@ -1155,6 +1159,7 @@ async function listingRows(
        FROM bidrock_listings listing
        INNER JOIN stone_inventory_positions ip ON ip.id = listing.inventory_position_id
        INNER JOIN stone_asset_passports passport ON passport.id = listing.asset_passport_id
+       INNER JOIN stone_materials material ON material.id = listing.material_id
        LEFT JOIN LATERAL (
          SELECT candidate.*
            FROM bidrock_auctions candidate

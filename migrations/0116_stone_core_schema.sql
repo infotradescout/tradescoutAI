@@ -20,6 +20,14 @@ CREATE TABLE IF NOT EXISTS stone_materials (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_stone_materials_source_slug_unique
   ON stone_materials(source_business_id, slug);
 
+ALTER TABLE stone_materials
+  DROP CONSTRAINT IF EXISTS stone_materials_material_class_check;
+ALTER TABLE stone_materials
+  ADD CONSTRAINT stone_materials_material_class_check
+  CHECK (material_class IN ('natural_stone', 'engineered_stone')) NOT VALID;
+ALTER TABLE stone_materials
+  VALIDATE CONSTRAINT stone_materials_material_class_check;
+
 ALTER TABLE stone_materials DROP CONSTRAINT IF EXISTS stone_materials_slug_key;
 
 CREATE INDEX IF NOT EXISTS idx_stone_materials_source_business

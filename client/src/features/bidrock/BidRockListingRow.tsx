@@ -16,6 +16,10 @@ export function formatBidRockAssetKind(listing: BidRockListing): string {
   return listing.assetKind.replace(/[_-]+/g, " ").trim() || "stone lot";
 }
 
+export function formatBidRockMaterialClass(listing: BidRockListing): string {
+  return listing.materialClass === "engineered_stone" ? "Engineered stone" : "Natural stone";
+}
+
 export function formatBidRockCountdown(remainingMilliseconds: number): string {
   if (!Number.isFinite(remainingMilliseconds) || remainingMilliseconds <= 0) return "Ended";
   const remainingSeconds = Math.ceil(remainingMilliseconds / 1_000);
@@ -194,7 +198,7 @@ export function BidRockListingRow({
               </span>
             </span>
             <span className="shrink-0 rounded border border-stone-200 bg-stone-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-stone-600">
-              {formatBidRockAssetKind(listing)}
+              {formatBidRockMaterialClass(listing)}
             </span>
           </span>
           <span className="mt-2 flex items-center justify-between gap-3 text-[11px] text-stone-500">
@@ -205,7 +209,9 @@ export function BidRockListingRow({
                 listing.materialFamily ||
                 "Finish pending"}
             </span>
-            <span className="shrink-0">{listing.sourceProfileName}</span>
+            <span className="shrink-0">
+              {formatBidRockAssetKind(listing)} · {listing.sourceProfileName}
+            </span>
           </span>
 
           <span className="mt-4 grid grid-cols-2 rounded-md bg-stone-950 px-3 py-3 text-white">

@@ -46,6 +46,8 @@ describe("BidRock marketplace recovery contract", () => {
     expect(service).toContain("viewerCanManageListing");
     expect(service).toContain("passport.asset_kind");
     expect(service).toContain("assetKind: normalizeText(row.asset_kind");
+    expect(service).toContain("material.material_class");
+    expect(service).toContain("materialClass: row.material_class");
     expect(service).toContain("releaseExpiredBidRockReservations");
     expect(app).toContain('pathOnly === "/bidrock"');
     expect(appRoutes).toContain('import("./features/bidrock/BidRockWorkspace")');
@@ -55,6 +57,21 @@ describe("BidRock marketplace recovery contract", () => {
     expect(workspace).toContain("Business-only stone auction house");
     expect(workspace).toContain("Natural and engineered stone on the block");
     expect(workspace).not.toContain("submitBidRockOffer");
+  });
+
+  it("persists seller-authoritative natural or engineered stone classes marketplace-wide", () => {
+    const routes = read("server/routes/stone-inventory.ts");
+    const inventory = read("server/services/stoneInventoryService.ts");
+    const migration = read("migrations/0116_stone_core_schema.sql");
+
+    expect(routes).toContain('materialClass: z.enum(["natural_stone", "engineered_stone"])');
+    expect(inventory).toContain('materialClass: PublicStoneInventoryItem["materialClass"]');
+    expect(inventory).toContain("material_class = $3");
+    expect(inventory).toContain("material_class = EXCLUDED.material_class");
+    expect(inventory).toContain("mutation.materialClass");
+    expect(inventory).not.toContain("VALUES ($1, $2, 'natural_stone'");
+    expect(migration).toContain("stone_materials_material_class_check");
+    expect(migration).toContain("'natural_stone', 'engineered_stone'");
   });
 
   it("keeps schema changes in ordered migrations and public GET services read-only", () => {

@@ -31,6 +31,7 @@ const guestCatalog: BidRockCatalogResponse = {
       sourceProfileSlug: "jw-stone",
       sourceProfileName: "JW Stone",
       assetKind: "slab",
+      materialClass: "natural_stone",
       materialSlug: "blue-dunes",
       title: "Blue Dunes",
       materialFamily: "Granite",

@@ -18,6 +18,7 @@ import {
   BidRockCountdown,
   formatBidRockAssetKind,
   formatBidRockDimensions,
+  formatBidRockMaterialClass,
 } from "./BidRockListingRow";
 
 type Props = {
@@ -106,7 +107,8 @@ export function BidRockDetailPanel({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--bidrock-auction)]">
-              {formatBidRockAssetKind(listing)} · {listing.materialFamily || "Stone"}
+              {formatBidRockMaterialClass(listing)} · {formatBidRockAssetKind(listing)} ·{" "}
+              {listing.materialFamily || "Stone"}
             </p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-stone-950">
               {listing.title}

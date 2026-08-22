@@ -37,6 +37,7 @@ const inventoryMutationSchema = z
       .max(120)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     materialName: z.string().trim().min(2).max(160),
+    materialClass: z.enum(["natural_stone", "engineered_stone"]),
     materialFamily: z.string().trim().min(2).max(80),
     assetKind: z.enum(["slab", "bundle", "block", "container", "a_frame", "piece"]),
     quantity: z.number().positive().max(100_000),

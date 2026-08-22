@@ -20,6 +20,7 @@ const baseListing: BidRockCatalogResponse["listings"][number] = {
   sourceProfileSlug: "jw-stone",
   sourceProfileName: "JW Stone",
   assetKind: "slab",
+  materialClass: "natural_stone",
   materialSlug: "blue-dunes",
   title: "Blue Dunes",
   materialFamily: "Granite",
@@ -224,6 +225,39 @@ describe("BidRock auction-first routed workspace", () => {
     expect(container.textContent).toContain("Bid values private");
     expect(container.textContent).toContain("Business verification required to view bids");
     expect(container.textContent).toContain("Reserve not met");
+    expect(container.textContent).not.toContain("$");
+  });
+
+  it("renders a non-JW engineered lot without leaking dollars to a guest", () => {
+    const auction = baseListing.auction;
+    if (!auction) throw new Error("Expected auction fixture");
+    mocks.catalog = {
+      ...guestCatalog(),
+      listings: [
+        baseListing,
+        {
+          ...baseListing,
+          id: "listing-engineered-1",
+          sourceProfileSlug: "independent-quartz",
+          sourceProfileName: "Independent Quartz Supply",
+          assetKind: "bundle",
+          materialClass: "engineered_stone",
+          materialSlug: "arctic-white-quartz",
+          title: "Arctic White Quartz",
+          materialFamily: "Quartz",
+          auction: {
+            ...auction,
+            id: "bra_1234567890abcdefghijklmnoy",
+            lotNumber: "BR-000202",
+          },
+        },
+      ],
+    };
+    render();
+    expect(container.textContent).toContain("Arctic White Quartz");
+    expect(container.textContent).toContain("Independent Quartz Supply");
+    expect(container.textContent).toContain("Engineered stone");
+    expect(container.textContent).toContain("bundle");
     expect(container.textContent).not.toContain("$");
   });
 
