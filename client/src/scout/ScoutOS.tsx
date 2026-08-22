@@ -6,7 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useScoutController } from "./useScoutController";
-import ScoutThread, { scrollOpenScoutTaskHistoryToLatest } from "./ScoutThread";
+import ScoutThread from "./ScoutThread";
 import { ScoutDirectConnectPanel } from "./ScoutDirectConnectPanel";
 import { ScoutHasDonePanel } from "./ScoutHasDonePanel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -3864,7 +3864,11 @@ export default function ScoutOS() {
   }, [navigate, scoutLaunch.returnPath]);
 
   return (
-    <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
+    <div
+      className={`scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden ${
+        hasUserMessages ? "scout-shell--active-task" : ""
+      }`}
+    >
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
@@ -3873,8 +3877,8 @@ export default function ScoutOS() {
           style={{
             paddingBottom: hasUserMessages
               ? isMobile
-                ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 1rem)"
-                : "calc(var(--scout-search-dock-h, 92px) + 58px + 1.25rem)"
+                ? "calc(var(--scout-search-dock-h) + 1rem)"
+                : "calc(var(--scout-search-dock-h) + 1.25rem)"
               : isMobile
                 ? "1.5rem"
                 : "2rem",
@@ -3884,15 +3888,15 @@ export default function ScoutOS() {
           <div
             className={
               isMobile
-                ? "max-w-[32rem] mx-auto w-full flex flex-col min-h-0"
+                ? "max-w-[32rem] mx-auto w-full flex flex-1 flex-col min-h-0"
                 : `mx-auto w-full flex flex-1 min-h-0 gap-5 ${
                     showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"
                   }`
             }
           >
             <div
-              className={`w-full flex flex-col min-h-0 relative ${
-                isMobile ? "" : showDiscoveryRail ? "flex-1" : "flex-1 max-w-4xl mx-auto"
+              className={`w-full flex flex-1 flex-col min-h-0 relative ${
+                isMobile || showDiscoveryRail ? "" : "max-w-4xl mx-auto"
               }`}
             >
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
@@ -4392,7 +4396,7 @@ export default function ScoutOS() {
                     : hasUserMessages
                       ? "space-y-2 order-2"
                       : "space-y-2 order-1"
-                }`}
+                } ${hasUserMessages ? "scout-active-workbench" : ""}`}
                 style={{ paddingBottom: isMobile ? "0.75rem" : "1rem" }}
               >
                 {false && !hasUserMessages && (
@@ -4497,6 +4501,7 @@ export default function ScoutOS() {
                   <section
                     className="scout-current-task grid gap-2.5 rounded-xl border border-[color:var(--border-subtle)] p-3"
                     data-testid="scout-current-task"
+                    data-has-next-action={Boolean(primaryNextAction)}
                     aria-labelledby="scout-current-task-title"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -4554,7 +4559,7 @@ export default function ScoutOS() {
                       </div>
                     </div>
 
-                    <div className="grid min-w-0 gap-0.5">
+                    <div className="scout-current-task__latest grid min-w-0 gap-0.5">
                       <p className="text-[10px] font-bold uppercase text-[color:var(--text-muted)]">
                         Latest
                       </p>
@@ -4682,25 +4687,29 @@ export default function ScoutOS() {
                 )}
 
                 {showThreadRegion && (
-                  <details
-                    className="scout-task-history border-b border-[color:var(--border-subtle)]"
-                    data-testid="scout-task-history"
-                    onToggle={(event) => {
-                      scrollOpenScoutTaskHistoryToLatest(event.currentTarget);
-                    }}
+                  <section
+                    className="scout-task-work-region"
+                    data-testid="scout-task-work-region"
+                    aria-labelledby="scout-task-work-region-title"
                   >
-                    <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-0.5 py-2 text-xs font-bold text-[color:var(--text-secondary)] [&::-webkit-details-marker]:hidden">
-                      <span>Conversation history</span>
+                    <header className="scout-task-work-region__header">
+                      <h2
+                        id="scout-task-work-region-title"
+                        className="text-xs font-bold text-[color:var(--text-secondary)]"
+                      >
+                        Conversation and results
+                      </h2>
                       <span className="text-[10px] font-semibold text-[color:var(--text-muted)]">
                         {state.messages.length} {state.messages.length === 1 ? "update" : "updates"}
                       </span>
-                    </summary>
-                    <div className="scout-task-history__body">
+                    </header>
+                    <div className="scout-task-work-region__body">
                       <ScoutThread
                         messages={state.messages}
                         status={state.status}
                         mode={activeMode}
                         showControllerExtras
+                        currentTurnPrimaryAction={primaryNextAction}
                         onAction={handleClusterAction}
                         onOverride={handleOverride}
                         overridePendingScope={overridePendingScope}
@@ -4785,7 +4794,7 @@ export default function ScoutOS() {
                         }}
                       />
                     </div>
-                  </details>
+                  </section>
                 )}
 
                 {autoRoutePending && (

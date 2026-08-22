@@ -254,13 +254,17 @@ describe("Scout entry framing contracts", () => {
     const threadSource = read("client/src/scout/ScoutThread.tsx");
     const actionTruthSource = read("client/src/scout/actionValidation.ts");
     const stateSource = read("client/src/scout/state.ts");
+    const searchDockSource = read("client/src/scout/ScoutSearchDock.tsx");
+    const inputRowSource = read("client/src/scout/ScoutInputRow.tsx");
     const cssSource = read("client/src/index.css");
     const activeMarkup = scoutOsSource.slice(
       scoutOsSource.indexOf('data-testid="scout-current-task"')
     );
     const currentTaskIndex = activeMarkup.indexOf('data-testid="scout-current-task"');
-    const historyIndex = activeMarkup.indexOf('data-testid="scout-task-history"');
+    const workRegionIndex = activeMarkup.indexOf('data-testid="scout-task-work-region"');
     const composerIndex = activeMarkup.indexOf('data-testid="scout-task-composer"');
+    const workRegionStart = activeMarkup.lastIndexOf("<section", workRegionIndex);
+    const workRegionMarkup = activeMarkup.slice(workRegionStart, composerIndex);
     const userMessageReducerCase = stateSource
       .split('case "USER_MESSAGE"')[1]
       .split('case "SERVER_RESPONSE"')[0];
@@ -268,29 +272,52 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("const showDiscoveryRail = false");
     expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
+    expect(scoutOsSource).toContain("className={`w-full flex flex-1 flex-col min-h-0 relative ${");
+    expect(scoutOsSource).toContain('isMobile || showDiscoveryRail ? "" : "max-w-4xl mx-auto"');
+    expect(scoutOsSource).toContain('"calc(var(--scout-search-dock-h) + 1rem)"');
+    expect(scoutOsSource).toContain('"calc(var(--scout-search-dock-h) + 1.25rem)"');
+    expect(scoutOsSource).not.toContain("--scout-search-dock-height");
+    expect(scoutOsSource).not.toContain("--global-nav-height");
+    expect(scoutOsSource).not.toContain("+ 58px");
     expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");
     expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
     expect(scoutOsSource).toContain('data-testid="scout-current-task-title"');
     expect(scoutOsSource).toContain('data-testid="scout-latest-meaningful-state"');
     expect(scoutOsSource).toContain('data-testid="scout-primary-next-action"');
-    expect(scoutOsSource).toContain('data-testid="scout-task-history"');
+    expect(scoutOsSource).toContain('data-testid="scout-task-work-region"');
+    expect(scoutOsSource).toContain('aria-labelledby="scout-task-work-region-title"');
+    expect(scoutOsSource).toContain("Conversation and results");
     expect(scoutOsSource).toContain('data-testid="scout-task-composer"');
-    expect(scoutOsSource).toContain("<details");
-    expect(scoutOsSource).toContain("scrollOpenScoutTaskHistoryToLatest(event.currentTarget)");
-    expect(threadSource).toContain("scheduleFrame(() =>");
-    expect(threadSource).toContain('querySelector<HTMLElement>(".scout-thread")');
-    expect(threadSource).toContain(
-      'thread.scrollTo({ top: thread.scrollHeight, behavior: "auto" })'
-    );
+    expect(workRegionMarkup).toContain("<section");
+    expect(workRegionMarkup).not.toContain("<details");
+    expect(workRegionMarkup).not.toContain("hidden");
+    expect(scoutOsSource).not.toContain("scrollOpenScoutTaskHistoryToLatest");
+    expect(threadSource).toContain('scrollScoutThreadToLatest(node, "auto")');
+    expect(threadSource).toContain("thread.scrollTo({ top: thread.scrollHeight, behavior })");
+    expect(threadSource).not.toContain("scrollIntoView");
     expect(currentTaskIndex).toBe(0);
-    expect(historyIndex).toBeGreaterThan(currentTaskIndex);
-    expect(composerIndex).toBeGreaterThan(historyIndex);
+    expect(workRegionIndex).toBeGreaterThan(currentTaskIndex);
+    expect(composerIndex).toBeGreaterThan(workRegionIndex);
+    expect(activeMarkup.match(/data-testid="scout-primary-next-action"/g)).toHaveLength(1);
+    expect(activeMarkup.match(/data-testid="scout-task-composer"/g)).toHaveLength(1);
+    expect(scoutOsSource).toContain("<ScoutHome");
+    expect(scoutOsSource).toContain('placement="inline"');
     expect(scoutOsSource).not.toContain("Findings and recommended paths");
     expect(scoutOsSource).not.toContain("Choose Save to keep it for later.");
     expect(scoutOsSource).toContain("resolveLatestScoutTurnActionTruth");
     expect(scoutOsSource).toContain(
       "const primaryNextAction = latestTurnActionTruth.dominantAction"
     );
+    expect(activeMarkup).toContain("currentTurnPrimaryAction={primaryNextAction}");
+    expect(threadSource).toContain("source.primary === true");
+    expect(threadSource).toContain("actionsMatch(action, currentTurnPrimaryAction)");
+    expect(threadSource).toContain(
+      "actionsMatch(frameChipToAction(chip), currentTurnPrimaryAction)"
+    );
+    expect(threadSource).toContain(
+      "const hasActionChips = !hasResultContract && prioritizedActionChips.length > 0"
+    );
+    expect(threadSource).toContain("currentTurnPrimaryAction={currentTurnPrimaryAction}");
     expect(scoutOsSource).not.toContain("controllerActions[0]");
     expect(userMessageReducerCase).toMatch(/lastActions:\s*\[\]/);
     expect(actionTruthSource).toContain('resultContract?.contract_version === "scout_result.v1"');
@@ -306,6 +333,41 @@ describe("Scout entry framing contracts", () => {
     );
     expect(cssSource).toMatch(
       /\.scout-thread--task-loop\s+\.scout-user-bubble\s*\{[^}]*align-items:\s*flex-start;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-task-work-region\s*\{[^}]*display:\s*flex;[^}]*flex:\s*1 1 0;[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-task-work-region__body\s*\{[^}]*flex:\s*1 1 0;[^}]*min-height:\s*0;[^}]*overflow:\s*hidden;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-task-work-region \.scout-thread\s*\{[^}]*overscroll-behavior:\s*contain;/s
+    );
+    expect(cssSource).toContain("#app-scroll-root:has(.scout-shell--active-task)");
+    expect(cssSource).toMatch(
+      /\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*92px;[^}]*--scout-search-dock-h:\s*var\(--scout-search-dock-min-h\);/s
+    );
+    expect(cssSource).toMatch(
+      /@media \(max-width: 640px\)[^{]*\{.*?\.scout-shell\.scout-shell--active-task\s*\{[^}]*--scout-search-dock-min-h:\s*96px;/s
+    );
+    expect(cssSource).toMatch(
+      /\.scout-search-dock-fixed\s*\{[^}]*bottom:\s*var\(--bottom-nav-h, 62px\);[^}]*min-height:\s*var\(--scout-search-dock-min-h, 92px\);/s
+    );
+    expect(searchDockSource).toContain('dock?.closest<HTMLElement>(".scout-shell--active-task")');
+    expect(searchDockSource).toContain("new ResizeObserver(publishRenderedHeight)");
+    expect(searchDockSource).toContain("dock.getBoundingClientRect().height");
+    expect(searchDockSource).toContain(
+      "activeWorkspace.style.setProperty(reserveProperty, nextReserve)"
+    );
+    expect(searchDockSource).toContain("activeWorkspace.style.removeProperty(reserveProperty)");
+    expect(inputRowSource).toContain("React.useLayoutEffect(() =>");
+    expect(inputRowSource).toContain('textarea.style.removeProperty("height")');
+    expect(inputRowSource).toContain("}, [value]);");
+    expect(threadSource).toContain("isScoutThreadNearLatest(node)");
+    expect(threadSource).toContain('node.addEventListener("scroll", rememberReaderPosition');
+    expect(threadSource).toContain("if (!retainLatestOnResizeRef.current) return");
+    expect(cssSource).not.toContain(
+      "bottom: calc(var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom, 0px))"
     );
     expect(scoutOsSource).toContain("Server-provided actions appear with each answer");
     expect(scoutOsSource).toContain("Search saved conversations");
