@@ -16,6 +16,8 @@ import {
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import { getPublicationRules } from "../publicationRules";
+import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
 
 export type ProfileSitemapEligibilityCandidate = Omit<
   PublishedProfileExposureCandidate,
@@ -215,7 +217,11 @@ export class SitemapRepository {
   }
 
   async countDirectoryCitiesForSitemap(): Promise<number> {
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+    const rules = await getPublicationRules();
+    const recencyCutoff = new Date(
+      Date.now() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+    );
+    const citySlugExpr = sqlDirectoryCitySlugExpr();
 
     const rows = await db
       .select({
@@ -234,6 +240,7 @@ export class SitemapRepository {
             and ${businesses.publicDiscoveryEnabled} = true
             and ${publicBusinessDetailExposureSqlPredicate()}
             and coalesce(${businesses.profileData} ->> 'city', '') <> ''
+            and ${businesses.updatedAt} >= ${recencyCutoff}
           group by ${counties.stateCode}, ${citySlugExpr}
         ) as city_groups`
       );
@@ -251,7 +258,11 @@ export class SitemapRepository {
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
 
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
+    const rules = await getPublicationRules();
+    const recencyCutoff = new Date(
+      Date.now() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+    );
+    const citySlugExpr = sqlDirectoryCitySlugExpr();
 
     const rows = await db
       .select({
@@ -268,7 +279,8 @@ export class SitemapRepository {
           eq(businesses.status, "active" as any),
           eq(businesses.publicDiscoveryEnabled, true as any),
           publicBusinessDetailExposureSqlPredicate(),
-          sql`coalesce(${businesses.profileData} ->> 'city', '') <> ''`
+          sql`coalesce(${businesses.profileData} ->> 'city', '') <> ''`,
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`
         )
       )
       .groupBy(counties.stateCode, citySlugExpr)

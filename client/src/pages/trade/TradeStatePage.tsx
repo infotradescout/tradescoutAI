@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Link, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPinned, ShieldCheck } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +15,30 @@ const TradeStatePage = memo(function TradeStatePage() {
     () => (stateCode ? getStateByCode(stateCode.toUpperCase()) : null),
     [stateCode]
   );
+  const canonicalTradeSlug = trade?.canonicalSlug || "";
+  const canonicalStateCode = state?.code || "";
 
-  const counties = useMemo(() => (state ? getCountiesByState(state.code) : []), [state]);
+  const { data, isLoading, isError } = useQuery<{
+    counties: Array<{ countySlug: string; businessCount: number }>;
+  }>({
+    queryKey: [
+      "/api/public/seo/directory-navigation",
+      canonicalTradeSlug,
+      canonicalStateCode,
+      "counties",
+    ],
+    enabled: Boolean(canonicalTradeSlug && canonicalStateCode),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/public/seo/directory-navigation?tradeSlug=${encodeURIComponent(
+          canonicalTradeSlug
+        )}&stateCode=${encodeURIComponent(canonicalStateCode)}`
+      );
+      if (!response.ok) throw new Error(`Failed to load county navigation (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
 
   if (!trade || !state) {
     return (
@@ -43,6 +66,22 @@ const TradeStatePage = memo(function TradeStatePage() {
     );
   }
 
+  const availableCounties = getCountiesByState(state.code);
+  const counties = (data?.counties || [])
+    .map((scope) => {
+      const county = availableCounties.find(
+        (item) =>
+          nameToSlug(item.name.replace(/\s+County$/i, "").trim() || item.name) === scope.countySlug
+      );
+      return county
+        ? { ...county, countySlug: scope.countySlug, businessCount: scope.businessCount }
+        : null;
+    })
+    .filter(Boolean) as Array<
+    (typeof availableCounties)[number] & { countySlug: string; businessCount: number }
+  >;
+  const shouldNoIndex = !isLoading && (isError || counties.length === 0);
+
   const title = `${trade.name} Contractors in ${state.name} | TradeScout`;
   const description = `Find ${trade.name} contractors in ${state.name}. Start with the local market you care about, then narrow to city or neighborhood.`;
   const breadcrumbs = [
@@ -62,6 +101,7 @@ const TradeStatePage = memo(function TradeStatePage() {
           trade.canonicalSlug
         )}/${encodeURIComponent(state.code.toLowerCase())}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
+        noIndex={shouldNoIndex}
       />
 
       <div className="bg-tsBg text-white">
@@ -91,26 +131,33 @@ const TradeStatePage = memo(function TradeStatePage() {
             <CardContent className="p-6 pt-0">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {counties.map((county) => {
-                  const countySlug = nameToSlug(
-                    county.name.replace(/\s+County$/i, "").trim() || county.name
-                  );
                   return (
                     <Link
                       key={county.fipsCode}
                       href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
                         state.code.toLowerCase()
-                      )}/${encodeURIComponent(countySlug)}`}
+                      )}/${encodeURIComponent(county.countySlug)}`}
                     >
                       <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
                         <span>
                           {toLocalMarketLabel(stripCountySuffix(county.name), state.code)}
                         </span>
-                        <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                        <span className="flex items-center gap-2">
+                          <span className="text-xs text-white/45">
+                            {county.businessCount.toLocaleString()}
+                          </span>
+                          <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                        </span>
                       </a>
                     </Link>
                   );
                 })}
               </div>
+              {!isLoading && counties.length === 0 ? (
+                <p className="text-sm text-white/60">
+                  No recent public directory coverage is available in this state for this trade yet.
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

@@ -139,7 +139,7 @@ describe("sitemap contracts", () => {
 
     expect(serverIndex).toContain("resolveCanonicalBusinessProfileRoute(slug)");
     expect(canonicalRoute).toContain(".innerJoin(users, eq(users.id, profiles.ownerUserId))");
-    expect(canonicalRoute).toContain("canExposePublishedProfilePublicly({");
+    expect(canonicalRoute).toContain("canDiscoverPublishedProfilePublicly({");
     expect(canonicalRoute).toContain("profileId: profiles.id");
     expect(canonicalRoute).toContain("${profiles.updatedAt} DESC NULLS LAST");
     expect(canonicalRoute).toContain("${profiles.createdAt} DESC NULLS LAST");

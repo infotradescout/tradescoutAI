@@ -19,7 +19,12 @@ import {
   trustSnapshots,
   users,
 } from "../../shared/schema";
-import { detectActorFromUserAgent, getClientIp, hashIp } from "../utils/requestActor";
+import {
+  BOT_USER_AGENT_SQL_PATTERN,
+  detectActorFromUserAgent,
+  getClientIp,
+  hashIp,
+} from "../utils/requestActor";
 import {
   PROFILE_MANAGE_BRIDGE_COOKIE,
   PROFILE_MANAGE_BRIDGE_TTL_SECONDS,
@@ -1435,24 +1440,41 @@ async function getPublicProfileContractorBinding(
 function recordProfileView(profileId: string, req: any): void {
   const userAgent = String(req?.headers?.["user-agent"] || "");
   const { actorType } = detectActorFromUserAgent(userAgent);
-  if (actorType === "bot") return;
+  if (actorType !== "human") return;
 
   const { ip } = getClientIp(req);
   const referrer = String(req?.headers?.referer || req?.headers?.referrer || "").slice(0, 512);
   const viewerUserId = getAuthedUserId(req) || null;
+  const ipHash = hashIp(ip) || null;
+  if (!viewerUserId && !ipHash) return;
 
-  void db
-    .insert(profileViewEvents)
-    .values({
+  void (async () => {
+    const identityClause = viewerUserId
+      ? eq(profileViewEvents.viewerUserId, viewerUserId)
+      : and(isNull(profileViewEvents.viewerUserId), eq(profileViewEvents.ipHash, ipHash as string));
+    const [recentView] = await db
+      .select({ id: profileViewEvents.id })
+      .from(profileViewEvents)
+      .where(
+        and(
+          eq(profileViewEvents.profileId, profileId),
+          identityClause,
+          gte(profileViewEvents.createdAt, new Date(Date.now() - 30 * 60 * 1000))
+        )
+      )
+      .limit(1);
+    if (recentView) return;
+
+    await db.insert(profileViewEvents).values({
       profileId,
       viewerUserId,
       referrer: referrer || null,
-      userAgent: userAgent.slice(0, 512) || null,
-      ipHash: hashIp(ip) || null,
-    })
-    .catch((error) => {
-      console.error("[profiles] Failed recording profile view:", { profileId, error });
+      userAgent: userAgent.slice(0, 512),
+      ipHash,
     });
+  })().catch((error) => {
+    console.error("[profiles] Failed recording profile view:", { profileId, error });
+  });
 }
 
 const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
@@ -2234,7 +2256,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
   }
 
-  if (req) recordProfileView(profile.id, req);
+  if (req && !viewerCanManage) recordProfileView(profile.id, req);
 
   return res.json({
     profile: {
@@ -2490,7 +2512,7 @@ router.get("/api/u/:slug/selective-intelligence", async (req, res) => {
   }
 });
 
-// Owner-only: total and recent real page-view counts for their own profile.
+// Owner-only: deduped estimated visitors plus raw accepted page loads.
 // Never fed into CVS, trust snapshots, boosts, or exposure/ranking -- same
 // separation as trust-actions above.
 router.get("/api/u/:slug/views", isAuthenticated, async (req: any, res) => {
@@ -2503,11 +2525,19 @@ router.get("/api/u/:slug/views", isAuthenticated, async (req: any, res) => {
       return res.status(403).json({ message: "Only the profile owner can view this" });
     }
 
+    const humanViewPredicate = and(
+      sql`${profileViewEvents.userAgent} is not null`,
+      sql`${profileViewEvents.userAgent} !~* ${BOT_USER_AGENT_SQL_PATTERN}`,
+      sql`${profileViewEvents.viewerUserId} is distinct from ${context.ownerUserId}`
+    );
     const [totals] = await db
       .select({
-        total: sql<number>`count(*)`,
-        last7Days: sql<number>`count(*) filter (where ${profileViewEvents.createdAt} >= now() - interval '7 days')`,
-        last30Days: sql<number>`count(*) filter (where ${profileViewEvents.createdAt} >= now() - interval '30 days')`,
+        total: sql<number>`count(distinct coalesce(${profileViewEvents.viewerUserId}, ${profileViewEvents.ipHash})) filter (where ${humanViewPredicate})`,
+        last7Days: sql<number>`count(distinct coalesce(${profileViewEvents.viewerUserId}, ${profileViewEvents.ipHash})) filter (where ${humanViewPredicate} and ${profileViewEvents.createdAt} >= now() - interval '7 days')`,
+        last30Days: sql<number>`count(distinct coalesce(${profileViewEvents.viewerUserId}, ${profileViewEvents.ipHash})) filter (where ${humanViewPredicate} and ${profileViewEvents.createdAt} >= now() - interval '30 days')`,
+        totalLoads: sql<number>`count(*) filter (where ${humanViewPredicate})`,
+        last7DayLoads: sql<number>`count(*) filter (where ${humanViewPredicate} and ${profileViewEvents.createdAt} >= now() - interval '7 days')`,
+        last30DayLoads: sql<number>`count(*) filter (where ${humanViewPredicate} and ${profileViewEvents.createdAt} >= now() - interval '30 days')`,
       })
       .from(profileViewEvents)
       .where(eq(profileViewEvents.profileId, context.profileId));
@@ -2516,6 +2546,10 @@ router.get("/api/u/:slug/views", isAuthenticated, async (req: any, res) => {
       total: Number(totals?.total || 0),
       last7Days: Number(totals?.last7Days || 0),
       last30Days: Number(totals?.last30Days || 0),
+      totalLoads: Number(totals?.totalLoads || 0),
+      last7DayLoads: Number(totals?.last7DayLoads || 0),
+      last30DayLoads: Number(totals?.last30DayLoads || 0),
+      metric: "estimated_unique_visitors",
     });
   } catch (error: any) {
     console.error("Error fetching profile view counts:", error);

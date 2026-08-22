@@ -11,14 +11,7 @@ import {
   deriveTradeSlugFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
 } from "../publicationBusiness";
-
-function slugifyCityName(name: string): string {
-  return String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+import { slugifyDirectoryCityName } from "../seoDirectoryCitySlug";
 
 export type SeoDirectoryScopeSnapshotResult = {
   tradeCountyPages: number;
@@ -174,7 +167,7 @@ export async function runSeoDirectoryScopeSnapshotJob(): Promise<SeoDirectorySco
     }
 
     const rawCity = typeof profileData.city === "string" ? profileData.city.trim() : "";
-    const citySlug = rawCity ? slugifyCityName(rawCity) : "";
+    const citySlug = rawCity ? slugifyDirectoryCityName(rawCity) : "";
     if (citySlug) {
       const cityKey = `${tradeSlug}|${stateCode}|${citySlug}`;
       const cityPrev = cityMap.get(cityKey);

@@ -11,6 +11,7 @@ import {
   publicBusinessDetailExposureSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { sqlDirectoryCitySlugExpr } from "./seoDirectoryCitySlug";
 
 type PublicBestTradeCountyHtmlOptions = {
   origin: string;
@@ -58,6 +59,7 @@ function buildMeta(args: {
   title: string;
   description: string;
   keywords: string[];
+  indexable?: boolean;
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=12`;
@@ -66,6 +68,7 @@ function buildMeta(args: {
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
+    indexable: args.indexable !== false,
     keywords: args.keywords
       .map((v) => String(v || "").trim())
       .filter(Boolean)
@@ -90,7 +93,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    meta.indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex, follow" />`
   );
   html = upsertTag(
     html,
@@ -138,10 +143,6 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
   return html;
-}
-
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
 }
 
 function isMissingColumnError(error: unknown, columnName: string): boolean {
@@ -301,6 +302,7 @@ export async function buildPublicBestTradeCountyHtml(
       "directory",
       "TradeScout",
     ],
+    indexable: items.length > 0,
   });
 
   const summary = `
@@ -396,7 +398,7 @@ export async function buildPublicBestTradeCityHtml(
         publicBusinessDetailExposureSqlPredicate(),
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
+        sql`${sqlDirectoryCitySlugExpr()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
         keywordPatterns.length
           ? or(
@@ -468,6 +470,7 @@ export async function buildPublicBestTradeCityHtml(
       "directory",
       "TradeScout",
     ],
+    indexable: items.length > 0,
   });
 
   const summary = `

@@ -5,6 +5,8 @@ import { businessCounties, businesses, counties, users } from "../../shared/sche
 import { slugifyCountyName } from "../../shared/tradeSeo";
 import { getTradeSeoMatch } from "../../shared/tradeSeo";
 import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import { getPublicationRules } from "../publicationRules";
+import { sqlDirectoryCitySlugExpr } from "../seoDirectoryCitySlug";
 
 const router = Router();
 
@@ -30,10 +32,6 @@ function titleizeCitySlug(slug: string): string {
   return cleaned.replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
 function buildTradeWhereClause(tradeRaw: unknown) {
   const match = getTradeSeoMatch(tradeRaw);
   if (!match) return null;
@@ -54,6 +52,10 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
   try {
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
     if (!citySlug) return res.status(400).json({ message: "Invalid citySlug" });
+    const rules = await getPublicationRules();
+    const recencyCutoff = new Date(
+      Date.now() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+    );
 
     const rows = await db
       .select({
@@ -72,7 +74,8 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
           eq(businesses.publicDiscoveryEnabled, true),
           publicBusinessDetailExposureSqlPredicate(),
           eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`
+          sql`${sqlDirectoryCitySlugExpr()} = ${citySlug}`,
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`
         )
       )
       .groupBy(counties.fips, counties.name, counties.stateCode)
@@ -117,6 +120,10 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
     if (!tradeSlug) return res.status(400).json({ message: "Invalid tradeSlug" });
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
     if (!citySlug) return res.status(400).json({ message: "Invalid citySlug" });
+    const rules = await getPublicationRules();
+    const recencyCutoff = new Date(
+      Date.now() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+    );
 
     const tradeClause = buildTradeWhereClause(tradeSlug);
     if (!tradeClause) return res.status(404).json({ message: "Trade not found" });
@@ -138,7 +145,8 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
           eq(businesses.publicDiscoveryEnabled, true),
           publicBusinessDetailExposureSqlPredicate(),
           eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`,
+          sql`${sqlDirectoryCitySlugExpr()} = ${citySlug}`,
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`,
           tradeClause
         )
       )

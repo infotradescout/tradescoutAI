@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Link, useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, MapPinned, ShieldCheck } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,21 @@ import { getTradeDisplay } from "./tradeSeoHelpers";
 const TradeOverviewPage = memo(function TradeOverviewPage() {
   const { tradeSlug } = useParams<{ tradeSlug: string }>();
   const trade = useMemo(() => getTradeDisplay(tradeSlug), [tradeSlug]);
+  const canonicalTradeSlug = trade?.canonicalSlug || "";
+  const { data, isLoading, isError } = useQuery<{
+    states: Array<{ stateCode: string; businessCount: number }>;
+  }>({
+    queryKey: ["/api/public/seo/directory-navigation", canonicalTradeSlug, "states"],
+    enabled: Boolean(canonicalTradeSlug),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/public/seo/directory-navigation?tradeSlug=${encodeURIComponent(canonicalTradeSlug)}`
+      );
+      if (!response.ok) throw new Error(`Failed to load state navigation (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
 
   if (!trade) {
     return (
@@ -36,6 +52,16 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
     );
   }
 
+  const states = (data?.states || [])
+    .map((scope) => {
+      const state = US_STATES_COUNTIES.find(
+        (item) => item.code.toUpperCase() === scope.stateCode.toUpperCase()
+      );
+      return state ? { ...state, businessCount: scope.businessCount } : null;
+    })
+    .filter(Boolean) as Array<(typeof US_STATES_COUNTIES)[number] & { businessCount: number }>;
+  const shouldNoIndex = !isLoading && (isError || states.length === 0);
+
   const title = `${trade.name} by State | TradeScout`;
   const description = `Browse ${trade.name} by state. Select a state and county to view local directory listings. Contact remains protected through TradeScout Direct Connect.`;
   const breadcrumbs = [
@@ -52,6 +78,7 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
         keywords={`${trade.name}, ${trade.canonicalSlug}, contractors, directory, counties, TradeScout`}
         canonical={`https://www.thetradescout.com/trade/${encodeURIComponent(trade.canonicalSlug)}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
+        noIndex={shouldNoIndex}
       />
 
       <div className="bg-tsBg text-white">
@@ -78,7 +105,7 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
             </CardHeader>
             <CardContent className="p-6 pt-0">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {US_STATES_COUNTIES.map((state) => (
+                {states.map((state) => (
                   <Link
                     key={state.code}
                     href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
@@ -87,11 +114,21 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
                   >
                     <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
                       <span>{state.name}</span>
-                      <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                      <span className="flex items-center gap-2">
+                        <span className="text-xs text-white/45">
+                          {state.businessCount.toLocaleString()}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                      </span>
                     </a>
                   </Link>
                 ))}
               </div>
+              {!isLoading && states.length === 0 ? (
+                <p className="text-sm text-white/60">
+                  No recent public directory coverage is available for this trade yet.
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

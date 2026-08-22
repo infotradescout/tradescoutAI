@@ -34,8 +34,25 @@ const BOT_PATTERNS: Array<{ re: RegExp; name: string }> = [
   { re: /mistralai-user/i, name: "MistralAI-User" },
   { re: /twitterbot/i, name: "TwitterBot" },
   { re: /linkedinbot/i, name: "LinkedInBot" },
+  { re: /headlesschrome|phantomjs|selenium|playwright|puppeteer/i, name: "BrowserAutomation" },
+  {
+    re: /curl\/|wget\/|python-requests|python-urllib|aiohttp|httpx\/|go-http-client|libwww-perl|okhttp|axios\/|node-fetch|undici/i,
+    name: "HttpAutomation",
+  },
+  {
+    re: /lighthouse|pagespeed|pingdom|uptimerobot|statuscake/i,
+    name: "SyntheticMonitor",
+  },
+  {
+    re: /chrome\/[\d.]+.*safari\/605\.1\.15/i,
+    name: "MalformedChrome",
+  },
   { re: /crawler|spider|bot/i, name: "CrawlerBot" },
 ];
+
+export const BOT_USER_AGENT_SQL_PATTERN = BOT_PATTERNS.map((rule) => rule.re.source)
+  .join("|")
+  .replace(/\\\//g, "/");
 
 export function detectActorFromUserAgent(userAgent?: string | null): {
   actorType: ActorType;

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { trackDiscoveryLandingOnce } from "@/lib/discoveryLanding";
 import {
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
@@ -728,6 +729,14 @@ export default function ProfileSiteView() {
 
     run();
   }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
+
+  useEffect(() => {
+    if (!data || data.viewerCanManage || typeof window === "undefined") return;
+    void trackDiscoveryLandingOnce({
+      canonicalRoute: window.location.pathname || `/u/${encodeURIComponent(data.profile.slug)}`,
+      search: window.location.search,
+    });
+  }, [data]);
 
   useEffect(() => {
     if (!data || typeof window === "undefined") return;
