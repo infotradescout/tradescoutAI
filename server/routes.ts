@@ -2626,6 +2626,30 @@ export async function registerRoutes(app: any) {
   };
 
   // Authentication routes
+  const establishAuthenticatedSession = (req: Request, user: any): Promise<void> =>
+    new Promise((resolve, reject) => {
+      req.logIn(user, (loginErr: any) => {
+        if (loginErr) {
+          reject(loginErr);
+          return;
+        }
+
+        if (!req.session) {
+          resolve();
+          return;
+        }
+
+        applyRequestSessionCookieScope(req);
+        req.session.save((saveErr: any) => {
+          if (saveErr) {
+            reject(saveErr);
+            return;
+          }
+          resolve();
+        });
+      });
+    });
+
   const handleLocalLogin = (req: Request, res: Response, next: NextFunction) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
@@ -2666,25 +2690,11 @@ export async function registerRoutes(app: any) {
           code,
         });
       }
-      req.logIn(user, (loginErr: any) => {
-        if (loginErr) {
-          return next(loginErr);
-        }
-        const completeLogin = () =>
-          res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" });
-
-        // Ensure session persistence before responding to avoid
-        // immediate logged-out state on the next auth check request.
-        if (req.session) {
-          applyRequestSessionCookieScope(req);
-          return req.session.save((saveErr: any) => {
-            if (saveErr) return next(saveErr);
-            return completeLogin();
-          });
-        }
-
-        return completeLogin();
-      });
+      establishAuthenticatedSession(req, user)
+        .then(() =>
+          res.json({ user: sanitizeUserForResponse(req.user), message: "Login successful" })
+        )
+        .catch(next);
     })(req, res, next);
   };
 
@@ -8715,7 +8725,17 @@ export async function registerRoutes(app: any) {
         updatedAt: new Date(),
       });
 
-      return res.json({ message: "Password has been reset successfully" });
+      const updatedUser = await storage.getUser(userId);
+      if (!updatedUser) {
+        throw new Error("Password reset identity could not be reloaded");
+      }
+
+      await establishAuthenticatedSession(req, updatedUser);
+
+      return res.json({
+        message: "Password has been reset successfully",
+        user: sanitizeUserForResponse(req.user),
+      });
     } catch (error: any) {
       console.error("[RESET-PASSWORD] CRITICAL ERROR:", error);
       console.error("[RESET-PASSWORD] Stack:", error?.stack);

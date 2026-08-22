@@ -58,7 +58,7 @@ describe("profile-native account foundation", () => {
     expect(header).toContain("Create account");
     expect(marketplace).toContain("<PublicProfileAccountDialog");
     expect(marketplace).toContain('profileSlug="jw-stone"');
-    expect(dialog).toContain("Any business can create an account directly with");
+    expect(dialog).toContain("Continue with ${profileName}.");
     expect(dialog).toContain("registerProfileAccount");
     expect(dialog).not.toContain("/pre-scout-setup");
     expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
@@ -93,9 +93,15 @@ describe("profile-native account foundation", () => {
     expect(verify).toContain("isProfileAccountResumePath(safeNext)");
     expect(verify).toContain("Request a new verification link");
     expect(reset).toContain("requestProfileAccountPasswordReset");
-    expect(reset).toContain("navigate(profileAccountNext)");
+    expect(reset).toContain("window.location.assign(profileAccountNext)");
     expect(auth).toContain("export function applyRequestSessionCookieScope");
     expect(route).toContain("applyRequestSessionCookieScope(req);");
+    expect(mainRoutes).toContain("const establishAuthenticatedSession");
+    expect(mainRoutes).toContain("await establishAuthenticatedSession(req, updatedUser);");
+    expect(mainRoutes).toContain("user: sanitizeUserForResponse(req.user)");
+    expect(dialog).toContain("autoContinueAttemptedRef");
+    expect(dialog).toContain('mode === "create" || (hasSession && !state.viewerBusiness)');
+    expect(dialog).toContain("Sign in with TradeScout");
     expect(
       mainRoutes.match(/applyRequestSessionCookieScope\(req\)/g)?.length
     ).toBeGreaterThanOrEqual(2);
@@ -111,6 +117,9 @@ describe("profile-native account foundation", () => {
     expect(combined).not.toMatch(/Builder or contractor|Stone yard or dealer|Designer/i);
     expect(combined).not.toContain("preferredRole");
     expect(combined).not.toContain("PROFILE_ACCOUNT_ROLES");
+    expect(combined).not.toMatch(
+      /Any business can|create an account directly|business details remain private/i
+    );
   });
 
   it("keeps registration blocked until profile policy loads", () => {

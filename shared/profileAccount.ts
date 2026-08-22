@@ -135,10 +135,7 @@ export function resolveProfileAccountPolicy(args: {
   const priorityKey = stoneProfile
     ? "stone_business_access"
     : normalizePriorityKey(configured.priorityKey, "profile_account");
-  const defaultDescription =
-    requiredIdentity === "business"
-      ? `Any business can create an account directly with ${profileName}.`
-      : `Create an account directly with ${profileName}.`;
+  const defaultDescription = `Continue with ${profileName}.`;
 
   return Object.freeze({
     enabled: true,
