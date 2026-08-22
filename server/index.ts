@@ -479,6 +479,14 @@ function isSameProfileCompatibilityPath(requestPath: string, slug: string): bool
   }
 }
 
+function isCustomDomainProfileRootCompatibilityPath(requestPath: string, slug: string): boolean {
+  if (isSameProfileCompatibilityPath(requestPath, slug)) return true;
+
+  // The SPA briefly emitted this app route after custom-domain authentication.
+  // Recover saved/history URLs without turning the profile host into an app mirror.
+  return requestPath === "/community-feed";
+}
+
 function redirectPublicRequestToPlatform(req: Request, res: Response): boolean {
   const requestPath = req.path || "/";
   if (isCustomDomainMechanicsPath(requestPath)) return false;
@@ -503,7 +511,7 @@ function redirectUnhandledCustomProfilePath(
   if (req.method !== "GET" && req.method !== "HEAD") return false;
 
   const suffix = requestSearchSuffix(req);
-  if (isSameProfileCompatibilityPath(requestPath, slug)) {
+  if (isCustomDomainProfileRootCompatibilityPath(requestPath, slug)) {
     res.redirect(301, `https://${host}/${suffix}`);
     return true;
   }

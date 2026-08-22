@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T02:53:36Z",
+  "generated_at": "2026-08-22T03:09:27Z",
   "source": {
     "kind": "git",
-    "revision": "199cb0a665fb31b287b25954cd1eb12b340afbaf",
+    "revision": "b950b999c8fed6c0e5c256461fd611343f5bcb57",
     "dirty": true,
-    "inventory_sha256": "a8a8a7c8a291da84bbcbdbfd5c7561a5bb04f8915a444a73822a42c813343651"
+    "inventory_sha256": "949bc1addbba74f86ea3044cf2a9c6f54eeeb788268294719d810eeb89b4cfe3"
   },
   "inventory": {
     "directories": [
@@ -200,7 +200,7 @@
       },
       {
         "path": "client/src/lib",
-        "source_file_count": 86
+        "source_file_count": 87
       },
       {
         "path": "client/src/pages",
@@ -955,8 +955,8 @@
       {
         "path": "client/src/App.tsx",
         "language": "tsx",
-        "sha256": "93b5f4a840541f050bd6cb162f19e7c54ad19619dad6244821c40b3fa30ecafb",
-        "bytes": 14840
+        "sha256": "e95ace75e9a7b2869e878587484b2a562e9c024c267bfd3061bb40720c03ddd5",
+        "bytes": 14424
       },
       {
         "path": "client/src/AppRoutes.onboarding.test.ts",
@@ -2839,14 +2839,14 @@
       {
         "path": "client/src/features/jw-stone/ColorPaletteRail.test.tsx",
         "language": "tsx",
-        "sha256": "4f8e0fd7e43e3a29528e25263f9b2b4377413e8818c9c6fbb2f64c7ca8af3cea",
-        "bytes": 12556
+        "sha256": "58fa89c4b2ddbdf9f98f84e8630be569534cfadef016806b64428a928949db87",
+        "bytes": 12565
       },
       {
         "path": "client/src/features/jw-stone/ColorPaletteRail.tsx",
         "language": "tsx",
-        "sha256": "def10a7f0a3e7f1ea4cbba87de9f0f0cfce300209ed83c9ddcfede1409fb348b",
-        "bytes": 17511
+        "sha256": "1c3790fc139019eff39778be3e270845d7c269cfd7a8ba46a53b8744fed36322",
+        "bytes": 17519
       },
       {
         "path": "client/src/features/jw-stone/CurrentInventorySection.tsx",
@@ -2869,14 +2869,14 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
         "language": "tsx",
-        "sha256": "8fd8785888ffa785802b950acbac48849ddbb7a5a427e29231fe3216e8f99309",
-        "bytes": 55068
+        "sha256": "ffb7775f7e6bccaa5bf3fa83fc9d7f174aa8dbc46a14ba356455a7ec6973489c",
+        "bytes": 55090
       },
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
         "language": "tsx",
-        "sha256": "368fe716529b73959ec0d9feea8dce917de49750061f5e31d44e70ab8498c592",
-        "bytes": 13267
+        "sha256": "17e321c771018b3297604d44a0e5bb44296a0ecf2b97bf7793f46c1dc9f86ece",
+        "bytes": 13277
       },
       {
         "path": "client/src/features/jw-stone/JwCollapsibleSection.test.tsx",
@@ -2893,8 +2893,8 @@
       {
         "path": "client/src/features/jw-stone/JwStoneCompanySection.tsx",
         "language": "tsx",
-        "sha256": "a64822a99fe9f6d5049f2002443f34a25122a7a2c2ae735589a851729c919bfd",
-        "bytes": 10254
+        "sha256": "7b12891a9e59139142da7159e6d2aa835ebc376eb7a7a4cc49f96fd22154f64b",
+        "bytes": 10272
       },
       {
         "path": "client/src/features/jw-stone/JwStoneProfileContext.tsx",
@@ -2935,8 +2935,8 @@
       {
         "path": "client/src/features/jw-stone/MarketplaceHeader.tsx",
         "language": "tsx",
-        "sha256": "7d6575cd3585f64c7e7dccdb89542eda7ea110a63753a94387cbf60d2ad54292",
-        "bytes": 6727
+        "sha256": "22bc9520b43b167cec8a537f411a810f096e186b50f32a4938849a1d7458431a",
+        "bytes": 6758
       },
       {
         "path": "client/src/features/jw-stone/MarketplaceIntroduction.tsx",
@@ -3617,10 +3617,16 @@
         "bytes": 6505
       },
       {
+        "path": "client/src/lib/homeRoute.test.ts",
+        "language": "ts",
+        "sha256": "7a2a6b0e718258919520c3fadf58204ec0e9bef21d29593a9e581ed804e7ccce",
+        "bytes": 1243
+      },
+      {
         "path": "client/src/lib/homeRoute.ts",
         "language": "ts",
-        "sha256": "5d1629d3fc3077865984fadf42a73e5a4f3598aebb33ea5e882e88236dcfb7df",
-        "bytes": 812
+        "sha256": "362b120ff51a52f6da85e32e22ae328ad207ee46ff574a56d2562ce5e5f7ad6a",
+        "bytes": 1596
       },
       {
         "path": "client/src/lib/homeScoutAuthority.test.ts",
@@ -16273,8 +16279,8 @@
       {
         "path": "server/index.ts",
         "language": "ts",
-        "sha256": "c4ed3c4f9ee8be3f379ed10a0b8037da45f167e5af87f39c2b424313f950da65",
-        "bytes": 130494
+        "sha256": "80404baad85701edb247fc79924a806ec3c0da2c5ad5dad70e83929103d23993",
+        "bytes": 130880
       },
       {
         "path": "server/ingestion/adapters/fileObservationUtils.ts",
@@ -19237,8 +19243,8 @@
       {
         "path": "server/tests/custom-domain-profile-cache.contract.test.ts",
         "language": "ts",
-        "sha256": "04078486678eb37ce7ce2958b74aef16d13e5b3572e5f1f2d08f7521f7816b66",
-        "bytes": 9974
+        "sha256": "2149cb9992cc2d11edb38e3297d9a6cf23a2bb97c51fdfd7e3cb66ae440e8c65",
+        "bytes": 10081
       },
       {
         "path": "server/tests/custom-domain-profile-navigation.contract.test.ts",
@@ -23047,13 +23053,6 @@
         "kind": "function",
         "path": "client/public/sw.js",
         "line": 87,
-        "exported": false
-      },
-      {
-        "name": "isDefaultHomePage",
-        "kind": "function",
-        "path": "client/src/App.tsx",
-        "line": 66,
         "exported": false
       },
       {
@@ -35993,10 +35992,24 @@
         "exported": true
       },
       {
+        "name": "isDefaultHomePage",
+        "kind": "function",
+        "path": "client/src/lib/homeRoute.ts",
+        "line": 10,
+        "exported": true
+      },
+      {
         "name": "resolveDefaultHomeRoute",
         "kind": "function",
         "path": "client/src/lib/homeRoute.ts",
-        "line": 17,
+        "line": 28,
+        "exported": true
+      },
+      {
+        "name": "resolveAuthenticatedHomeRedirect",
+        "kind": "function",
+        "path": "client/src/lib/homeRoute.ts",
+        "line": 42,
         "exported": true
       },
       {
@@ -118285,80 +118298,87 @@
         "exported": false
       },
       {
-        "name": "redirectPublicRequestToPlatform",
+        "name": "isCustomDomainProfileRootCompatibilityPath",
         "kind": "function",
         "path": "server/index.ts",
         "line": 481,
         "exported": false
       },
       {
+        "name": "redirectPublicRequestToPlatform",
+        "kind": "function",
+        "path": "server/index.ts",
+        "line": 489,
+        "exported": false
+      },
+      {
         "name": "redirectUnhandledCustomProfilePath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 494,
+        "line": 502,
         "exported": false
       },
       {
         "name": "renderProfileOnCustomDomain",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 520,
+        "line": 528,
         "exported": false
       },
       {
         "name": "serveCustomDomainProfilePath",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 575,
+        "line": 583,
         "exported": false
       },
       {
         "name": "attributeProfileVisit",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 617,
+        "line": 625,
         "exported": false
       },
       {
         "name": "corsOptionsForRequest",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 926,
+        "line": 934,
         "exported": false
       },
       {
         "name": "ensureMasterAdmin",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1127,
+        "line": 1135,
         "exported": false
       },
       {
         "name": "provisionProfile",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1167,
+        "line": 1175,
         "exported": false
       },
       {
         "name": "warnOnAuthOriginMismatch",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1286,
+        "line": 1294,
         "exported": false
       },
       {
         "name": "startHttpServer",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1336,
+        "line": 1344,
         "exported": false
       },
       {
         "name": "log",
         "kind": "function",
         "path": "server/index.ts",
-        "line": 1468,
+        "line": 1476,
         "exported": false
       },
       {
@@ -223409,10 +223429,10 @@
   ],
   "summary": {
     "directories": 211,
-    "source_files": 3660,
-    "symbols": 19892,
+    "source_files": 3661,
+    "symbols": 19894,
     "components": 1481,
-    "functions_and_hooks": 11055,
+    "functions_and_hooks": 11057,
     "raw_ui_elements": 7495,
     "errors": 1104,
     "warnings": 5

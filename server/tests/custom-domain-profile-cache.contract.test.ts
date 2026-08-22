@@ -147,8 +147,11 @@ describe("custom-domain profile cache contract", () => {
     expect(customDomainSource).toContain('"/images/"');
     expect(customDomainSource).toContain('"/offline.html"');
     expect(customDomainSource).toContain('requestPath.startsWith("/auth/")');
+    expect(customDomainSource).toContain(
+      'return requestPath === "/community-feed"'
+    );
     expect(profileFallbackSource).toContain(
-      "isSameProfileCompatibilityPath(requestPath, slug)"
+      "isCustomDomainProfileRootCompatibilityPath(requestPath, slug)"
     );
     expect(profileFallbackSource).toContain("res.redirect(301, `https://${host}/${suffix}`)");
     expect(profileFallbackSource).toContain(
