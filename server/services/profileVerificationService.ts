@@ -31,7 +31,7 @@ export interface VerificationRequirements {
  */
 export async function computeVerificationRequirements(
   userIntent: "person" | "business",
-  businessType?: "service_provider" | "seller",
+  businessType?: "service_provider" | "seller" | "generic" | null,
   serviceTags?: string[],
   sellerTags?: string[],
   state?: string
@@ -63,6 +63,12 @@ export async function computeVerificationRequirements(
       requires.tax_id = true;
       requires.business_registration = true;
       requires.insurance = checkInsuranceRequired(sellerTags || []);
+    } else {
+      // Generic business identities still need proof that the business exists
+      // and a tax identifier. Do not silently treat a missing subtype as a
+      // person profile with only email/address requirements.
+      requires.tax_id = true;
+      requires.business_registration = true;
     }
   }
 

@@ -336,10 +336,23 @@ export const userProfiles = pgTable(
       .$type<{
         licenseNumber?: string;
         licenseDocObjectKey?: string;
-        taxId?: string;
+        taxIdLast4?: string;
+        taxDocumentObjectKey?: string;
         insuranceDocObjectKey?: string;
         businessRegistrationDocObjectKey?: string;
         submittedAt?: string;
+        fieldReview?: Partial<
+          Record<
+            "license" | "insurance" | "tax_id" | "business_registration",
+            {
+              status: "submitted" | "approved" | "rejected";
+              submittedAt?: string;
+              reviewedAt?: string;
+              reviewedBy?: string;
+              rejectionReason?: string;
+            }
+          >
+        >;
       }>()
       .default(sql`'{}'::jsonb`),
 

@@ -9,6 +9,21 @@ import { Button } from "@/components/ui/button";
 
 type StatusTone = "complete" | "pending" | "required";
 
+type ProfileVerificationSummary = Readonly<{
+  profileId?: string;
+  verificationBypassActive?: boolean;
+  verificationStatus?: string;
+  overallStatus?: string;
+  status?: string | Record<string, boolean | string | undefined>;
+  fieldReview?: Record<string, { required?: boolean; status?: string; reviewStatus?: string }>;
+}>;
+
+function normalizeVerificationStatus(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
 function toneClass(tone: StatusTone) {
   if (tone === "complete") {
     return "border-emerald-500/40 bg-emerald-500/10 text-emerald-200";
@@ -46,6 +61,13 @@ const Verification = memo(function Verification() {
     retry: false,
   });
 
+  const { data: profileVerification, isLoading: loadingProfessional } =
+    useQuery<ProfileVerificationSummary>({
+      queryKey: ["/api/profile/verification"],
+      enabled: isAuthenticated,
+      retry: false,
+    });
+
   const profileComplete = useMemo(() => {
     if (!user) return false;
     return Boolean(
@@ -68,9 +90,32 @@ const Verification = memo(function Verification() {
       ? "pending"
       : "required";
 
-  const proStatus = String(user?.verificationStatus || "").toLowerCase();
-  const professionalTone: StatusTone =
-    proStatus === "approved" ? "complete" : proStatus === "pending" ? "pending" : "required";
+  const proStatus = normalizeVerificationStatus(
+    profileVerification?.overallStatus ||
+      profileVerification?.verificationStatus ||
+      (typeof profileVerification?.status === "string" ? profileVerification.status : "")
+  );
+  const requiredFieldStates = Object.values(profileVerification?.fieldReview || {})
+    .filter((field) => field?.required === true)
+    .map((field) => normalizeVerificationStatus(field.reviewStatus || field.status));
+  const professionalTone: StatusTone = profileVerification?.verificationBypassActive
+    ? "complete"
+    : proStatus === "approved" ||
+        (requiredFieldStates.length > 0 &&
+          requiredFieldStates.every((state) => state === "approved"))
+      ? "complete"
+      : proStatus === "pending" ||
+          requiredFieldStates.some((state) => state === "pending" || state === "submitted")
+        ? "pending"
+        : "required";
+  const businessVerificationParams = new URLSearchParams({
+    source: "verification_hub",
+    next: "/verification",
+  });
+  if (profileVerification?.profileId) {
+    businessVerificationParams.set("businessProfileId", profileVerification.profileId);
+  }
+  const businessVerificationPath = `/business-verification?${businessVerificationParams.toString()}`;
 
   const marketplaceTone: StatusTone = marketplaceStatus?.vendorVerification?.status
     ? String(marketplaceStatus.vendorVerification.status).toLowerCase() === "approved"
@@ -78,7 +123,7 @@ const Verification = memo(function Verification() {
       : "pending"
     : "required";
 
-  const loading = loadingAddress || loadingMarketplace || loadingIdentity;
+  const loading = loadingAddress || loadingMarketplace || loadingIdentity || loadingProfessional;
   return (
     <div className="px-4 py-4 md:px-6">
       <div className="mx-auto w-full max-w-6xl space-y-4">
@@ -173,9 +218,16 @@ const Verification = memo(function Verification() {
                       {toneLabel(professionalTone)}
                     </Badge>
                     <p className="text-xs text-[color:var(--text-secondary)]">
-                      {proStatus === "approved"
-                        ? "Professional verification approved."
-                        : "Submit license and insurance for trust weight upgrades."}
+                      {profileVerification?.verificationBypassActive
+                        ? "Verification is not required for this account."
+                        : professionalTone === "complete"
+                          ? "Business verification approved."
+                          : proStatus === "rejected" ||
+                              requiredFieldStates.some((state) => state === "rejected")
+                            ? "Updates are required before verification can be approved."
+                            : professionalTone === "pending"
+                              ? "Submitted evidence is being reviewed."
+                              : "Submit the requested business evidence."}
                     </p>
                   </div>
 
@@ -220,13 +272,7 @@ const Verification = memo(function Verification() {
               <Link href="/identity-verification">Complete identity verification</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/admin/professional-verification">Professional verification</Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/license-verification">License documents</Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/insurance-verification">Insurance documents</Link>
+              <Link href={businessVerificationPath}>Verify your business</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href="/direct-connect">Open Direct Connect</Link>
