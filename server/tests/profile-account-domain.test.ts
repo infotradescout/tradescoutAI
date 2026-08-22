@@ -25,7 +25,7 @@ describe("profile account policy", () => {
       expect(policy.priorityKey).toBe("stone_business_access");
       expect(policy.label).toBe("Account");
       expect(policy.heading).toBe("Create an account");
-      expect(policy.description).toContain("Any business can create an account directly with");
+      expect(policy.description).toMatch(/^Continue with (JW Stone|ISSA Build)\.$/);
       expect(policy.description).not.toContain("TradeScout identity");
       expect(policy).not.toHaveProperty("roles");
       expect(policy).not.toHaveProperty("defaultRole");
@@ -42,7 +42,7 @@ describe("profile account policy", () => {
     expect(policy.requiredIdentity).toBe("user");
     expect(policy.includesBidRock).toBe(false);
     expect(policy.priorityKey).toBe("profile_account");
-    expect(policy.description).toBe("Create an account directly with Local Electrician.");
+    expect(policy.description).toBe("Continue with Local Electrician.");
   });
 
   it("lets a non-stone profile set its own identity requirement and priority", () => {
@@ -98,9 +98,7 @@ describe("profile account policy", () => {
   });
 
   it("returns to the canonical public profile without an account-role parameter", () => {
-    expect(buildProfileAccountReturnPath("JW Stone")).toBe(
-      "/u/jw-stone?profileAccount=1"
-    );
+    expect(buildProfileAccountReturnPath("JW Stone")).toBe("/u/jw-stone?profileAccount=1");
     expect(buildProfileAccountReturnPath("Local Electrician")).toBe(
       "/u/local-electrician?profileAccount=1"
     );

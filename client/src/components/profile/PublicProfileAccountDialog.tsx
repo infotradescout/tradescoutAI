@@ -149,10 +149,7 @@ export function PublicProfileAccountDialog({
     if (!hasSession && mode === "signin") {
       return `Use your existing TradeScout account to continue. No separate ${profileName} signup is required.`;
     }
-    if (requiresBusiness) {
-      return `Any business can create an account directly with ${profileName}. Your business details remain private unless you choose to publish them later.`;
-    }
-    return `Create an account directly with ${profileName}.`;
+    return `Continue with ${profileName}.`;
   }, [connected, hasSession, mode, profileName, requiresBusiness]);
 
   const finishExistingSession = useCallback(async () => {

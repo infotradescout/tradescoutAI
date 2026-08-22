@@ -58,7 +58,7 @@ describe("profile-native account foundation", () => {
     expect(header).toContain("Create account");
     expect(marketplace).toContain("<PublicProfileAccountDialog");
     expect(marketplace).toContain('profileSlug="jw-stone"');
-    expect(dialog).toContain("Any business can create an account directly with");
+    expect(dialog).toContain("Continue with ${profileName}.");
     expect(dialog).toContain("registerProfileAccount");
     expect(dialog).not.toContain("/pre-scout-setup");
     expect(client).toContain('buildApiUrl("/api/profile-accounts/register")');
@@ -117,6 +117,9 @@ describe("profile-native account foundation", () => {
     expect(combined).not.toMatch(/Builder or contractor|Stone yard or dealer|Designer/i);
     expect(combined).not.toContain("preferredRole");
     expect(combined).not.toContain("PROFILE_ACCOUNT_ROLES");
+    expect(combined).not.toMatch(
+      /Any business can|create an account directly|business details remain private/i
+    );
   });
 
   it("keeps registration blocked until profile policy loads", () => {
