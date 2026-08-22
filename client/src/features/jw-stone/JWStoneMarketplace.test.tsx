@@ -115,24 +115,16 @@ describe("JW Stone marketplace luxury layout", () => {
     );
     expect(companyIdentity?.textContent).toContain("2103 W Herman Ave");
     expect(companyIdentity?.textContent).toContain("Pensacola, FL 32505");
-    expect(companyIdentity?.textContent).toContain("(850) 543-0748");
     expect(companyIdentity?.textContent).toContain("@jwstonellc");
     expect(companyIdentity?.textContent).toContain("JW Stone Logistics");
-    expect(
-      companyIdentity
-        ?.querySelector('[data-testid="jw-managed-contact-phone"]')
-        ?.getAttribute("href")
-    ).toBe("tel:+18505430748");
+    expect(companyIdentity?.querySelector('[data-testid="jw-managed-contact-phone"]')).toBeNull();
+    expect(companyIdentity?.querySelector('a[href^="tel:"]')).toBeNull();
     expect(companyIdentity?.querySelector('a[href^="https://www.google.com/maps"]')).toBeNull();
     expect(
-      companyIdentity
-        ?.querySelector('[data-testid="jw-social-instagram"]')
-        ?.getAttribute("href")
+      companyIdentity?.querySelector('[data-testid="jw-social-instagram"]')?.getAttribute("href")
     ).toBe("https://www.instagram.com/jwstonellc/");
     expect(
-      companyIdentity
-        ?.querySelector('[data-testid="jw-social-facebook"]')
-        ?.getAttribute("href")
+      companyIdentity?.querySelector('[data-testid="jw-social-facebook"]')?.getAttribute("href")
     ).toBe("https://www.facebook.com/people/JW-Stone-Logistics/100094713955142/");
     expect(
       companyIdentity?.querySelector('[data-testid="jw-social-youtube"]')?.getAttribute("href")

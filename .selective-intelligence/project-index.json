@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T02:51:12Z",
+  "generated_at": "2026-08-22T02:53:36Z",
   "source": {
     "kind": "git",
-    "revision": "e16deb9fd46d084b77d307e806ef005d2ccb222f",
+    "revision": "199cb0a665fb31b287b25954cd1eb12b340afbaf",
     "dirty": true,
-    "inventory_sha256": "a79437003f29ae6853b032e4f12e8faf924fdedb07ffc81523f2a7ca3da44053"
+    "inventory_sha256": "a8a8a7c8a291da84bbcbdbfd5c7561a5bb04f8915a444a73822a42c813343651"
   },
   "inventory": {
     "directories": [
@@ -2869,8 +2869,8 @@
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.test.tsx",
         "language": "tsx",
-        "sha256": "2d0ff3e766ec942aee8c35488dc211967aa6bd3a87093e4e5433b994e51052e6",
-        "bytes": 55138
+        "sha256": "8fd8785888ffa785802b950acbac48849ddbb7a5a427e29231fe3216e8f99309",
+        "bytes": 55068
       },
       {
         "path": "client/src/features/jw-stone/JWStoneMarketplace.tsx",
