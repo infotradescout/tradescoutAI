@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-22T06:16:35Z",
+  "generated_at": "2026-08-22T07:39:15Z",
   "source": {
     "kind": "git",
-    "revision": "fe981cf4b1798163543ee251b1e7f1c96ec1bed0",
+    "revision": "4c2aa11efa9e363d3dc6502ab313f8b442235088",
     "dirty": true,
-    "inventory_sha256": "ecef7d5302194586816ce21061a9ad36f60313a9a06b174b6b6a22484c5df80f"
+    "inventory_sha256": "d907d13412ea259f0abab57735bb808af284cd42f222ef0acd8ecf92858e8bc6"
   },
   "inventory": {
     "directories": [
@@ -108,7 +108,7 @@
       },
       {
         "path": "client/src/components/layout",
-        "source_file_count": 10
+        "source_file_count": 11
       },
       {
         "path": "client/src/components/messages",
@@ -1957,14 +1957,14 @@
       {
         "path": "client/src/components/layout/AppShell.tsx",
         "language": "tsx",
-        "sha256": "cf5ca5a35393ccc20a313983a4bd3408d43eba1877346be1c382e7a5833027eb",
-        "bytes": 5952
+        "sha256": "c4b479f151fbff558dfd8f960dac30a1ab379f678d02bafeaa61ed62f959c665",
+        "bytes": 6132
       },
       {
         "path": "client/src/components/layout/AppShellCore.tsx",
         "language": "tsx",
-        "sha256": "9ac30beb4a2cf3eb1a1fd991f4effe29d4352665eeb57b01a1c4095a0960f95c",
-        "bytes": 67670
+        "sha256": "955ffc2726095651c99134e3139303b898a1aeaf5618ec6330f80fa9e1036300",
+        "bytes": 59960
       },
       {
         "path": "client/src/components/layout/AuthenticatedSocialFrame.tsx",
@@ -2009,6 +2009,12 @@
         "bytes": 9983
       },
       {
+        "path": "client/src/components/layout/appShellMobileTaskbar.contract.test.ts",
+        "language": "ts",
+        "sha256": "3f9ec88694cf05460a4db4b1bc81d78f422873ccdebc86db7b3155f6633b7c11",
+        "bytes": 5413
+      },
+      {
         "path": "client/src/components/layout/navigation.tsx",
         "language": "tsx",
         "sha256": "e9da8361160de5a2a236e32203b5dfedbd2bb7c524e66247b24d36b84b92b03b",
@@ -2017,14 +2023,14 @@
       {
         "path": "client/src/components/messages/MessagesPanel.direct-connect.contract.test.ts",
         "language": "ts",
-        "sha256": "7afa5c42e70be968cb302e71a4d34db4276857588cb99a808e002acfbd62a278",
-        "bytes": 1974
+        "sha256": "574f4a77f635ffa0a59b7849cb94a86908d5916bcf4b14c2a00ca8484b764537",
+        "bytes": 2029
       },
       {
         "path": "client/src/components/messages/MessagesPanel.tsx",
         "language": "tsx",
-        "sha256": "0e415133846eb7779bc199a6339ed4a875b7b16db85c57cf49f58ab83719af5e",
-        "bytes": 55372
+        "sha256": "248e267661efa14046c55c447de160c29b646351e714d6bd1c0cebcc78cb3836",
+        "bytes": 56714
       },
       {
         "path": "client/src/components/messages/conversationContextAdapter.test.ts",
@@ -2065,14 +2071,14 @@
       {
         "path": "client/src/components/navigation/MobileAppBar.test.ts",
         "language": "ts",
-        "sha256": "a9bc5661ec21a72e5653d59036644fc81eda746e36e884f3beffbff9086868b5",
-        "bytes": 1174
+        "sha256": "8b324b951e042b6cb8aad1d76256864efdae265108880a87917351ccf16be017",
+        "bytes": 3654
       },
       {
         "path": "client/src/components/navigation/MobileAppBar.tsx",
         "language": "tsx",
-        "sha256": "434176f2c11323e59d6570730077e93cfdfd29ceea7d8259b500ec24d3f5e0c0",
-        "bytes": 8493
+        "sha256": "ea05e4ae71b7e1fc516ce71edbd5c12f0e6cffff02ec474e440577b9111da6b9",
+        "bytes": 10413
       },
       {
         "path": "client/src/components/navigation/RoleBasedNavigation.tsx",
@@ -2125,14 +2131,14 @@
       {
         "path": "client/src/components/onboarding/ProfileCompletionBanner.state.test.ts",
         "language": "ts",
-        "sha256": "a1ef79c589ec878d1fd4e9827933e3b1ee097715872cf51e65a1744a8f5265e5",
-        "bytes": 3162
+        "sha256": "51789daf0a6ac21a72020eaf91dcf3814b61d33d64042499b2264043aa5c0d3c",
+        "bytes": 3256
       },
       {
         "path": "client/src/components/onboarding/ProfileCompletionBanner.tsx",
         "language": "tsx",
-        "sha256": "4a65dd300e9e8ffd50aa5824fab7ccc76bf953adaba82ad4b9b5553d33cc281e",
-        "bytes": 8575
+        "sha256": "96f41045dbfc9c343569ad814151b9a509aee74c78cacc285c165b9fa96aeefa",
+        "bytes": 8816
       },
       {
         "path": "client/src/components/onboarding/SimpleSubtleHints.tsx",
@@ -4963,8 +4969,8 @@
       {
         "path": "client/src/pages/direct-connect/DirectConnectShell.tsx",
         "language": "tsx",
-        "sha256": "72923912524c79f9ed0484ed5154009d5f3b8ac377ff05562969dd497fb86ff8",
-        "bytes": 272314
+        "sha256": "afc8326e9dcad9142abccf670b31581b7b8875e0b17d8556eadffe0124000378",
+        "bytes": 278970
       },
       {
         "path": "client/src/pages/direct-connect/DirectoryListingLink.tsx",
@@ -5017,14 +5023,14 @@
       {
         "path": "client/src/pages/direct-connect/direct-connect-replies-ui.contract.test.ts",
         "language": "ts",
-        "sha256": "02e20e786b1f4b546ff55756bf86fe75d3c9ad1e4e92a0d19e84ea4ae1efc3ac",
-        "bytes": 2753
+        "sha256": "fed54ca0bebb919d0e3da2123f56eeb9a7ef3854aca19b543b0547124284831e",
+        "bytes": 2809
       },
       {
         "path": "client/src/pages/direct-connect/direct-connect-task-routes.contract.test.ts",
         "language": "ts",
-        "sha256": "72b3dc52cc0b6b54bdcfada1188bd368fd542dba30e6147aef8416ee11a02d2a",
-        "bytes": 1300
+        "sha256": "07756c789f71934612abd9d321cb54792f575f8461793d27d2e5fc140f38f6cf",
+        "bytes": 1332
       },
       {
         "path": "client/src/pages/direct-connect/directConnectDispatchSelection.ts",
@@ -5065,32 +5071,32 @@
       {
         "path": "client/src/pages/direct-connect/directConnectRoutes.test.ts",
         "language": "ts",
-        "sha256": "75e23397aea071ec012002bfd2525b47e381c6eb9d7a38cdbea0fb24146ab0fd",
-        "bytes": 2362
+        "sha256": "7a81e3f2ae6a411c56e4a0e48e9d4d133788425ac8db39bf2484dd734cbfeff9",
+        "bytes": 2406
       },
       {
         "path": "client/src/pages/direct-connect/directConnectRoutes.ts",
         "language": "ts",
-        "sha256": "ce1c4690ee6e2eee6059ad9435acbbd40f5bc8f434e44aa053d799ff20dbe056",
-        "bytes": 2437
+        "sha256": "ec29e90f82bdeeb08486e77182c80135143fa5f35c9a1675871f730f85048e30",
+        "bytes": 2511
       },
       {
         "path": "client/src/pages/direct-connect/directConnectShellHierarchy.contract.test.ts",
         "language": "ts",
-        "sha256": "5229356923175a68088dc94934ed1602c1d5b3edb93d85b2aec3241cdae5343a",
-        "bytes": 8363
+        "sha256": "22bb1e7b1ea9c61ca85392b19da16628c773f4786047beb9e6d34bb087dd059f",
+        "bytes": 8517
       },
       {
         "path": "client/src/pages/direct-connect/directConnectWorkspaceState.test.ts",
         "language": "ts",
-        "sha256": "a1c774bcdeb4de2e773e2a7d4273bbc0c4d1a4f6ab7dd9629c77ca63615f465a",
-        "bytes": 13464
+        "sha256": "9863dd02e7ba9e2e8d779d915bcfda16e8f8058bc2eca38da2e89be78a4f05ac",
+        "bytes": 13832
       },
       {
         "path": "client/src/pages/direct-connect/directConnectWorkspaceState.ts",
         "language": "ts",
-        "sha256": "94e10a7e23a4ff1d23980eb150aa865ade31dde66dbefb69904dd5cc2caec027",
-        "bytes": 15824
+        "sha256": "a19bb74fa0dce4651af775401804c7ab2a3abf098392000121ad19628a327c86",
+        "bytes": 16289
       },
       {
         "path": "client/src/pages/direct-connect/employment-direct-connect-bridge.contract.test.ts",
@@ -17017,8 +17023,8 @@
       {
         "path": "server/routes/direct-connect.ts",
         "language": "ts",
-        "sha256": "1b11fd2d536f27c69a0d4fa4f40b7397c26445ead62ed8057d43a74b2e2e72f0",
-        "bytes": 412727
+        "sha256": "c26e591cc5a17fd44f41202559429fb5fadeb7741fa1f3d43acd1613a9706b36",
+        "bytes": 422953
       },
       {
         "path": "server/routes/direct-connect/job-lifecycle.ts",
@@ -19003,8 +19009,8 @@
       {
         "path": "server/tests/authenticated-social-frame.contract.test.ts",
         "language": "ts",
-        "sha256": "64925e791e0890ee72698fb4d416ad4944362f71e4c1be6cc9f54b35752a968f",
-        "bytes": 6664
+        "sha256": "ef94f5c4613f112786b0aa6cfe1c08b765952658c4a5328e2024fba3a8dea6d8",
+        "bytes": 6657
       },
       {
         "path": "server/tests/backlog-fixes-2.contract.test.ts",
@@ -19435,8 +19441,8 @@
       {
         "path": "server/tests/direct-connect-gates.regression.test.ts",
         "language": "ts",
-        "sha256": "e5c5e822bc0ea57803ac7da3351a087c2f2c04a9f1d973dbee5ca381667607ae",
-        "bytes": 18027
+        "sha256": "e1d7b0e6a4ee93f06077eb0867aa366e5e4621f9b3fe0f9fb080d9b35145cd2e",
+        "bytes": 18410
       },
       {
         "path": "server/tests/direct-connect-home-record-link-prompt.contract.test.ts",
@@ -19555,8 +19561,8 @@
       {
         "path": "server/tests/direct-connect-requester-status.contract.test.ts",
         "language": "ts",
-        "sha256": "1abab5cf69ff39b1e7203caa587ce5b2477262563487bc1af32dad1c88a09948",
-        "bytes": 8632
+        "sha256": "6e80d42b6e74c490677b5b52ef8078bff158479bfbfa0dd7873ce253d70cbe26",
+        "bytes": 8799
       },
       {
         "path": "server/tests/direct-connect-routing-spine.contract.test.ts",
@@ -19585,8 +19591,8 @@
       {
         "path": "server/tests/direct-connect-universal-provider.contract.test.ts",
         "language": "ts",
-        "sha256": "9504947c40ec909c2c3d3faa5966263f3c148e2782a1c9ee30eafe15679b65f8",
-        "bytes": 15704
+        "sha256": "0cb46c8a72119e8765197e818fdaa9b01000091b3936a25f7ab7e5782c1146b5",
+        "bytes": 16038
       },
       {
         "path": "server/tests/direct-connect-workflow-progress.contract.test.ts",
@@ -28639,98 +28645,84 @@
         "name": "NavItem",
         "kind": "type",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 54,
+        "line": 53,
         "exported": true
       },
       {
         "name": "AppShellProps",
         "kind": "type",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 62,
+        "line": 61,
         "exported": false
       },
       {
         "name": "SurfaceOrientation",
         "kind": "type",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 67,
+        "line": 66,
         "exported": false
       },
       {
         "name": "resolveSurfaceOrientation",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 121,
+        "line": 120,
         "exported": false
       },
       {
-        "name": "buildMobileSimplifiedNav",
+        "name": "buildMobileAppTaskbarNav",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 399,
-        "exported": false
-      },
-      {
-        "name": "buildMobileFlowNav",
-        "kind": "function",
-        "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 415,
-        "exported": false
+        "line": 395,
+        "exported": true
       },
       {
         "name": "AppShell",
         "kind": "component",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 464,
+        "line": 412,
         "exported": true
       },
       {
         "name": "navigateFromMobileTools",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 583,
-        "exported": false
-      },
-      {
-        "name": "handleMobileUnlockablesToggle",
-        "kind": "function",
-        "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 588,
+        "line": 504,
         "exported": false
       },
       {
         "name": "handleInstallAction",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 659,
+        "line": 566,
         "exported": false
       },
       {
         "name": "handleEscape",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 750,
+        "line": 653,
         "exported": false
       },
       {
         "name": "closeStartGuide",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 756,
+        "line": 659,
         "exported": false
       },
       {
         "name": "navigateFromStartGuide",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 765,
+        "line": 668,
         "exported": false
       },
       {
         "name": "renderMobileHero",
         "kind": "function",
         "path": "client/src/components/layout/AppShellCore.tsx",
-        "line": 772,
+        "line": 675,
         "exported": false
       },
       {
@@ -28948,6 +28940,13 @@
         "kind": "function",
         "path": "client/src/components/layout/SimpleNavigation.tsx",
         "line": 38,
+        "exported": false
+      },
+      {
+        "name": "read",
+        "kind": "function",
+        "path": "client/src/components/layout/appShellMobileTaskbar.contract.test.ts",
+        "line": 4,
         "exported": false
       },
       {
@@ -29311,28 +29310,35 @@
         "name": "getMobileAppBarPathOnly",
         "kind": "function",
         "path": "client/src/components/navigation/MobileAppBar.tsx",
-        "line": 11,
+        "line": 12,
         "exported": true
       },
       {
         "name": "doesMobileAppBarItemMatch",
         "kind": "function",
         "path": "client/src/components/navigation/MobileAppBar.tsx",
-        "line": 15,
+        "line": 16,
         "exported": true
       },
       {
-        "name": "doesItemMatch",
+        "name": "getMobileAppBarActiveHref",
         "kind": "function",
         "path": "client/src/components/navigation/MobileAppBar.tsx",
-        "line": 36,
-        "exported": false
+        "line": 41,
+        "exported": true
+      },
+      {
+        "name": "partitionMobileAppBarItems",
+        "kind": "function",
+        "path": "client/src/components/navigation/MobileAppBar.tsx",
+        "line": 54,
+        "exported": true
       },
       {
         "name": "isItemActive",
         "kind": "function",
         "path": "client/src/components/navigation/MobileAppBar.tsx",
-        "line": 45,
+        "line": 102,
         "exported": false
       },
       {
@@ -165540,167 +165546,162 @@
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 614
+          "line": 521
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 786
+          "line": 689
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 793
+          "line": 696
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 874
+          "line": 777
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 919
+          "line": 822
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 937
+          "line": 840
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 949
+          "line": 852
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 964
+          "line": 867
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 983
+          "line": 886
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 998
+          "line": 901
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1048
+          "line": 951
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1055
+          "line": 958
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1072
+          "line": 975
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1089
+          "line": 992
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1103
+          "line": 1006
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1130
+          "line": 1033
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1141
+          "line": 1044
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1153
+          "line": 1056
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1271
+          "line": 1174
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1295
+          "line": 1198
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1328
+          "line": 1231
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1341
+          "line": 1244
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1387
+          "line": 1290
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1395
+          "line": 1298
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1438
+          "line": 1338
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1462
+          "line": 1362
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1491
+          "line": 1392
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1510
+          "line": 1411
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1530
+          "line": 1431
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1541
+          "line": 1442
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1622
+          "line": 1515
         },
         {
           "tag": "button",
           "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1673
-        },
-        {
-          "tag": "button",
-          "path": "client/src/components/layout/AppShellCore.tsx",
-          "line": 1686
+          "line": 1528
         },
         {
           "tag": "button",
@@ -166135,7 +166136,7 @@
         {
           "tag": "button",
           "path": "client/src/components/navigation/MobileAppBar.tsx",
-          "line": 144
+          "line": 191
         },
         {
           "tag": "button",
@@ -206178,7 +206179,7 @@
             },
             {
               "path": "client/src/components/layout/AppShellCore.tsx",
-              "line": 464,
+              "line": 412,
               "kind": "component"
             },
             {
@@ -224154,11 +224155,11 @@
   ],
   "summary": {
     "directories": 211,
-    "source_files": 3667,
+    "source_files": 3668,
     "symbols": 19981,
     "components": 1484,
     "functions_and_hooks": 11125,
-    "raw_ui_elements": 7511,
+    "raw_ui_elements": 7510,
     "errors": 1104,
     "warnings": 5
   }

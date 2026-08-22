@@ -1,0 +1,216 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-stable-mobile-taskbar-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-stable-mobile-taskbar-20260822",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout remains one governed multi-app operating environment. This slice makes the mobile bottom taskbar a stable cross-app switcher without claiming that every remaining app interior is complete.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": false,
+      "status": "released",
+      "outcome": "The authenticated shell uses the bottom taskbar for primary navigation and compact top-right system controls.",
+      "evidenceRef": "../tradescout-os-shell-20260821/evidence.md"
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "status": "released",
+      "outcome": "Scout and Community expose a resumable task loop and feed-first workspace.",
+      "evidenceRef": "../tradescout-workspace-density-20260821/evidence.md"
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "status": "released",
+      "outcome": "Businesses exposes a resumable local search-and-inspect workspace with the existing gated Direct Connect handoff.",
+      "evidenceRef": "../tradescout-businesses-workspace-20260821/evidence.md"
+    },
+    {
+      "id": "D4",
+      "active": false,
+      "status": "released",
+      "outcome": "Jobs exposes a role-aware local list-and-inspector desk with valid URL and account-scoped continuity.",
+      "evidenceRef": "../tradescout-jobs-workspace-20260822/evidence.md"
+    },
+    {
+      "id": "D5",
+      "active": false,
+      "status": "released",
+      "outcome": "Direct Connect exposes a role-aware resumable request and assignment desk.",
+      "evidenceRef": "../tradescout-direct-connect-workspace-20260822/evidence.md"
+    },
+    {
+      "id": "D6",
+      "active": true,
+      "outcome": "At mobile width, a person can move among Scout, Direct Connect, Businesses, Jobs, and Community from the same five fixed bottom slots, open secondary apps from the sixth fixed Menu slot, and always find account and system controls at the top right.",
+      "entry": "Open any ordinary TradeScout app surface at mobile width, outside authentication, setup, admin, or other already-excluded shell surfaces.",
+      "ending": "Switch between core apps and a secondary app without any primary slot changing position, then return to the correct active core app while the page remains fully usable above the fixed bar.",
+      "journeySteps": [
+        "Use the fixed bottom order Scout, Direct Connect, Businesses, Jobs, Community, and Menu on every ordinary mobile app route.",
+        "Open Direct Connect through its existing last-task resume link and find Start, Incoming, Inbox, Requests, and other workflow controls inside Direct Connect rather than in the global taskbar.",
+        "Open Jobs and see Jobs, not Direct Connect, marked active even though Jobs uses a Direct Connect child route.",
+        "Open Menu and reach only currently available secondary applications without seeing profile, settings, notifications, permissions, security, or other system tools duplicated there.",
+        "Use the top-right account and system controls, including admin access when authorized, without secondary applications being duplicated in that drawer.",
+        "Scroll to the end of the active app at 390 pixels wide without content, controls, or labels being covered or pushed into horizontal overflow."
+      ],
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Inspect the supplied 390-pixel Scout and Community captures at the released D5 baseline.",
+          "expected": "The global bottom bar keeps one stable set of app destinations.",
+          "observed": "The bottom bar is currently rewritten into Requests, Inbox, Community, Start, and Menu, so it behaves like page actions instead of an operating-system app switcher.",
+          "evidenceRef": "evidence.md#locked-outcome"
+        },
+        {
+          "type": "artifact_inspection",
+          "procedure": "Trace AppShellCore, AppShell, MobileAppBar, Direct Connect workspace state, progressive feature exposure, and existing shell content offsets.",
+          "expected": "The existing owners can provide fixed app positions, secondary-app overflow, last-task resume, active-route precedence, and unobstructed content without a new shell or route.",
+          "observed": "AppShellCore already owns mobile feature ordering and shell exclusions, AppShell owns the protected desktop taskbar, MobileAppBar already owns active matching and Menu rendering, and the shell already reserves bottom navigation height. The defects are contextual mobile ordering, active-overflow swapping, and mixed app/system ownership.",
+          "evidenceRef": "evidence.md#reuse-decision"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Refresh the Selective Intelligence project index at exact baseline 4c2aa11efa9e363d3dc6502ab313f8b442235088.",
+          "expected": "Canonical owners are discoverable and no competing active mobile shell owner blocks extension.",
+          "observed": "The index refreshed with AppShellCore, AppShell, and MobileAppBar as canonical owners. Broad duplicate-symbol errors are confined to mirrored exports/workspaces baseline material and remain outside this slice.",
+          "evidenceRef": "../../project-index.json"
+        }
+      ],
+      "constraints": [
+        "Keep exactly five fixed primary app positions in this order: Scout, Direct Connect, Businesses, Jobs, Community; keep Menu as the fixed sixth slot.",
+        "Use the existing Direct Connect last-task resume href for the Direct Connect slot.",
+        "Do not replace, reorder, or swap a primary slot when a secondary app or overflow destination is active.",
+        "Keep Direct Connect Start, Incoming, Inbox, Requests, and workflow actions inside Direct Connect; the existing global Start-here help control is not the Direct Connect Start task and remains protected.",
+        "Menu may list Share, Exchange, Help, and other currently exposed secondary applications only; it must not list Admin, Profile, Profile settings, Settings, Notifications, Permissions and roles, Verification, Privacy, Security, or Direct Connect workflow shortcuts.",
+        "Keep account, notification, security, settings, verification, role, privacy, and authorized admin access in the existing top-right system/account owner. Remove secondary-app duplication from that owner.",
+        "Preserve progressive exposure: a locked secondary app must not appear in Menu, and an unlocked secondary app must remain reachable there.",
+        "Preserve authentication, setup, admin-surface, public-profile, guest, and shell-visibility exclusions exactly unless a focused regression test proves a required ownership correction.",
+        "Resolve active state by the most specific matching destination so /direct-connect/opportunities and its children activate Jobs, not Direct Connect.",
+        "At 390 pixels, all six slots must fit without page-level horizontal overflow; every slot must provide at least a 44 by 44 pixel interactive target and an understandable visible or accessible label.",
+        "Keep the existing shell bottom inset or an equivalent measured inset so the fixed bar and device safe area do not cover the last content or action.",
+        "Preserve keyboard focus visibility, accessible names, Menu open and close behavior, Escape behavior supplied by the existing Sheet owner, and focus return.",
+        "Do not create another shell, taskbar, route registry, app launcher component, or navigation state owner.",
+        "Consolidate or remove obsolete buildMobileFlowNav and mobile simplified-order behavior instead of leaving competing global-nav definitions.",
+        "Limit product edits to AppShellCore.tsx, MobileAppBar.tsx, their focused tests, and AppShell.tsx only if an unavoidable desktop regression correction is demonstrated and documented.",
+        "Do not redesign Scout, Direct Connect, Businesses, Jobs, Community, or secondary-app interiors.",
+        "Do not add or remove routes, features, backend endpoints, schemas, migrations, persisted data, role authority, county behavior, contact behavior, or Trust/CVS behavior.",
+        "Preserve visibility-not-access, Intent to Decision Card to Contact gating, read-only global community behavior, county boundaries, and all existing authorization checks.",
+        "Do not copy Windows branding or literal window chrome; express the operating-environment model through stable placement and ownership.",
+        "Do not edit JW Stone lanes, mirrored exports/workspaces trees, or unrelated TradeScout applications."
+      ],
+      "requirementIds": [
+        "REQ-MOBILE-FIXED-APPS",
+        "REQ-MOBILE-OWNER-SEPARATION",
+        "REQ-MOBILE-ACTIVE-ROUTE",
+        "REQ-MOBILE-RESPONSIVE",
+        "REQ-MOBILE-PROTECTED"
+      ],
+      "excludedFromActive": [
+        "Interior redesign or density work in Scout, Direct Connect, Businesses, Jobs, Community, Share, Exchange, HomeID, Messages, or any other app.",
+        "Desktop navigation redesign; only regression verification is active unless a D6-caused defect requires a minimal correction.",
+        "New routes, features, APIs, schemas, migrations, persistence, authentication behavior, permissions, matching, ranking, county rules, contact paths, Trust/CVS rules, or production data changes.",
+        "Repository-wide duplicate-symbol cleanup in mirrored exports/workspaces trees.",
+        "Literal Windows branding, window chrome, or a new navigation framework."
+      ],
+      "proofRequired": [
+        "Focused unit tests for queried Direct Connect resume links, specific-route precedence, Jobs child routes, stable primary partitioning, secondary active routes that do not swap primary slots, and Menu contents.",
+        "A focused shell contract test proving the exact five-app order plus Menu, removal of contextual mobile flow navigation, Direct Connect resume ownership, app-only overflow, top-right system ownership, authorized admin reachability, and preserved shell exclusions.",
+        "Existing Direct Connect shell hierarchy and workspace-state tests to protect last-task resume and local workflow ownership.",
+        "Typecheck and production build at the exact implementation commit.",
+        "Deterministic rendered proof at 390x844 for Scout, Direct Connect, Businesses, Jobs, Community, one unlocked secondary app, Menu open, and the top-right account/system drawer; include active state, fixed slot order, full labels or accessible names, at least 44-pixel targets, focus return, content-end visibility, and zero page-level horizontal overflow.",
+        "Authenticated desktop regression proof at 1440x1000 for the existing bottom taskbar and top-right tools, plus an auth/setup/admin or public-profile exclusion sample where the baseline shell does not render.",
+        "Focused regression suites for shell visibility, progressive exposure, navigation ownership, Direct Connect contact law, county, role, and authorization behavior if those owners are touched by the diff.",
+        "Exact minimum-release gate and post-deploy x-tradescout-build plus /api/health identity before a release completion claim."
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-MOBILE-FIXED-APPS",
+          "scope": "active_deliverable",
+          "claim": "Ordinary mobile app surfaces keep Scout, Direct Connect, Businesses, Jobs, Community, and Menu in six fixed bottom positions."
+        },
+        {
+          "requirementId": "REQ-MOBILE-OWNER-SEPARATION",
+          "scope": "active_deliverable",
+          "claim": "Menu contains secondary applications only, Direct Connect owns its workflow controls, and the top-right owner contains account and system tools."
+        },
+        {
+          "requirementId": "REQ-MOBILE-ACTIVE-ROUTE",
+          "scope": "active_deliverable",
+          "claim": "The most specific canonical route owns active state, including Jobs over the broader Direct Connect prefix."
+        },
+        {
+          "requirementId": "REQ-MOBILE-RESPONSIVE",
+          "scope": "active_deliverable",
+          "claim": "At 390 pixels the six slots remain understandable, accessible, unobstructed, and free of horizontal overflow."
+        },
+        {
+          "requirementId": "REQ-MOBILE-PROTECTED",
+          "scope": "active_deliverable",
+          "claim": "Desktop behavior, shell exclusions, progressive exposure, routes, features, roles, counties, contact gating, and Trust/CVS remain protected."
+        }
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D7",
+      "active": false,
+      "status": "later",
+      "outcome": "Observe and correct the next bounded cross-app or interior workspace defect without reopening the stable shell contract."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout repository already owns authentication, shell visibility, mobile navigation, progressive exposure, app routes, responsive offsets, tests, and the production release path required for this correction.",
+    "constraintsConsidered": [
+      "The result depends on existing route precedence, authenticated and guest shell state, progressive feature exposure, Direct Connect resume behavior, and production release identity.",
+      "A standalone site or component preview cannot prove the governed cross-app navigation loop."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": false,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": false,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": false
+    }
+  },
+  "baseline": {
+    "commit": "4c2aa11efa9e363d3dc6502ab313f8b442235088",
+    "productionObservation": "The released desktop shell and app workspaces are protected. On mobile, global navigation is still rewritten into Direct Connect-local Requests, Inbox, and Start controls, and MobileAppBar can swap an active overflow destination into a primary slot.",
+    "projectIndex": "refreshed_at_4c2aa11efa9e363d3dc6502ab313f8b442235088; canonical owners AppShellCore, AppShell, and MobileAppBar; broad mirrored exports/workspaces duplicate baseline excluded"
+  },
+  "approval": {
+    "standingUserDirection": "always without asking; approve; keep going; approve this exact sequence",
+    "checkpointPresentedAt": "2026-08-22T00:00:00Z",
+    "approvedToExecute": true,
+    "authorizedSequence": "bounded local edit, focused and rendered proof, independent objector and aligner review, exact minimum-release gate, pull request, merge after gates, production identity and health proof"
+  },
+  "council": {
+    "intentObjector": "sustained the fixed operating-environment interpretation and required one revision: fixed app slots, app-only Menu, top-right system ownership, Direct Connect-local workflow controls, and protected route and exposure states",
+    "intentAligner": "locked by the planner contract; implementation alignment remains pending",
+    "implementationObjector": "pass; no corrective Worker round required; independent 6-file focused run passed 40/40 and current code, metrics, and corrected Menu capture agree",
+    "implementationAligner": "provisionally_aligned; no required corrections; approved to resume the exact clean-commit gate and release sequence while production proof remains open"
+  },
+  "manualUnverified": {
+    "reason": "The project index reports pre-existing exact duplicates and owner ambiguity in mirrored exports/workspaces trees outside the canonical application source.",
+    "reuseDecision": "Extend canonical client/src shell and navigation owners only; do not edit mirrors or introduce a new component or route owner."
+  }
+}
