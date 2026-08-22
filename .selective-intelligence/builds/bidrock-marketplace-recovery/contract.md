@@ -1,6 +1,6 @@
 # Build Contract: bidrock-marketplace-recovery
 
-Status: auction realignment reconciled; isolated database proof passed; temporary preview/browser proof pending
+Status: auction realignment reconciled; isolated database and temporary desktop-preview proof passed; native mobile live-viewport proof provisional
 Base revision: `5e6c44a49fcb0eae0cf720fadd898c477d8d8293`
 Branch: `jw-stone/bidrock-marketplace-recovery`
 Lock binding: Thomas's approved BidRock recovery checkpoint supplied on 2026-08-20 plus the auction-first replacement checkpoint approved on 2026-08-21
