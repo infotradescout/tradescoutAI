@@ -137,7 +137,10 @@ import {
   affiliateShareSlugError,
   directConnectOwnsPersistedShareSlug,
 } from "./utils/shareRouteNamespace";
-import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
+import {
+  hasPrivilegedVerificationBypass,
+  hasRequestPrivilegedVerificationBypass,
+} from "./utils/privilegedVerification";
 import {
   collectAuthorityRoles,
   getPrivilegedAliasEmails,
@@ -173,7 +176,6 @@ import {
   sanitizeVerificationSubmissions,
   selectOwnedVerificationProfile,
 } from "./services/businessVerificationWorkflow";
-import { hasPrivilegedVerificationBypass as hasBusinessVerificationBypass } from "./utils/privilegedVerification";
 import { notifyIndexNow } from "./services/indexNowService";
 import { logAdminAction } from "./services/adminAuditLogService";
 import { inferCountyFromCityState } from "./services/countyInferenceService";
@@ -3058,7 +3060,7 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Business profile not found" });
       }
 
-      const verificationBypassActive = hasBusinessVerificationBypass(req.user);
+      const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
       if (!profile) {
         const requirements = await computeVerificationRequirements("person");
         const status = verificationStatusForProfile(null, user);
@@ -3173,7 +3175,7 @@ export async function registerRoutes(app: any) {
       if (!updated) return res.status(404).json({ message: "Business profile not found" });
 
       const status = verificationStatusForProfile(updated, user);
-      const verificationBypassActive = hasBusinessVerificationBypass(req.user);
+      const verificationBypassActive = hasRequestPrivilegedVerificationBypass(req);
       return res.json({
         profileId: updated.id,
         displayName: updated.displayName || null,

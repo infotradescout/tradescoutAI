@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { LocalStorageService } from "../localStorage";
 import { computeVerificationRequirements } from "../services/profileVerificationService";
@@ -159,5 +161,14 @@ describe("business verification self service", () => {
     expect(
       deriveOverallBusinessVerificationStatus({ requirements, fieldReviewState: rejectedFields })
     ).toBe("rejected");
+  });
+});
+
+describe("business verification impersonation bypass wiring", () => {
+  it("uses the request-aware bypass in both owner verification routes", () => {
+    const source = fs.readFileSync(path.resolve(process.cwd(), "server/routes.ts"), "utf8");
+
+    expect(source.match(/hasRequestPrivilegedVerificationBypass\(req\)/g)).toHaveLength(2);
+    expect(source).not.toContain("hasBusinessVerificationBypass(req.user)");
   });
 });
