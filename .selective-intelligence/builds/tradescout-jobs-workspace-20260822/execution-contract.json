@@ -59,8 +59,8 @@
         {
           "type": "artifact_inspection",
           "procedure": "Trace EmploymentBoard, DirectConnectShell, directConnectRoutes, and the employment routes from list entry through role-aware action.",
-          "expected": "Existing owners expose enough state and actions for the active slice without a new API, schema, route, or contact path.",
-          "observed": "EmploymentBoard already owns posting, applying, application status, applicants, close, verified resume reply, county filters, and dialogs; DirectConnectShell owns the canonical opportunities route and the redundant outer hierarchy.",
+          "expected": "Existing owners expose enough state and actions for the active slice without a new employment API, schema, route, or contact path.",
+          "observed": "EmploymentBoard already owns posting, applying, application status, applicants, close, verified resume reply, county filters, and dialogs; DirectConnectShell owns the canonical opportunities route and the redundant outer hierarchy. Exact fresh-database proof later exposed four pre-existing users-table columns missing from the migration chain, so one additive runtime-alignment migration was required before DB-backed contact proof could execute.",
           "evidenceRef": "evidence.md#reuse-decision"
         },
         {
@@ -81,7 +81,7 @@
         "Changing state clears the prior county before another county is selected; a canceled or incomplete area change cannot silently combine jurisdictions.",
         "Preserve browse/post access, identity and address verification requirements for contact, county scoping, visibility-not-access, and Intent to Decision Card to Contact gating.",
         "Do not expose raw contact information, invent employment state, or bypass the existing application and Direct Connect owners.",
-        "Narrowly enforce the existing contact law at employment write and response boundaries by reusing the repository's public-listing sanitizer and contact redactor; add no route, schema, eligibility, or contact owner.",
+        "Narrowly enforce the existing contact law at employment write and response boundaries by reusing the repository's public-listing sanitizer and contact redactor; add no employment route, schema, eligibility, or contact owner. Permit only the idempotent users-table runtime-column alignment discovered by the exact fresh-database proof.",
         "Do not copy Windows branding or literal window chrome; express the OS model through continuity, compact controls, panes, selection, and a context-aware action surface.",
         "On mobile, use progressive controls and list/detail ordering instead of squeezing every command into one row.",
         "Keep posting, applying, applicant management, closing, loading, empty, error, verified/unverified, closed, pending, shortlisted, rejected, and withdrawn behavior reachable.",
@@ -97,12 +97,13 @@
       "excludedFromActive": [
         "Direct Connect request authoring, inbox, active requests, Businesses, Scout, Community, Exchange, HomeID, and unrelated app redesigns.",
         "Shared taskbar or top-right tools redesign.",
-        "New backend employment routes, schemas, migrations, eligibility semantics, production-data mutation, or contact owners beyond the narrow existing-law response and write hardening required by REQ-JOBS-PROTECTED."
+        "New backend employment routes, schemas, eligibility semantics, production-data mutation, or contact owners beyond the narrow existing-law response and write hardening required by REQ-JOBS-PROTECTED. The only migration in scope is the additive users runtime-column alignment required to make the committed fresh-database chain match shared/schema.ts."
       ],
       "proofRequired": [
         "Behavior tests for URL-over-session precedence, normalization, canonical alias handling, user/path isolation, state-to-county invalidation, filter invalidation, and stale result selection.",
         "Interaction contracts proving external-job Apply/status, owned-post Applicants/Close, external-resume gated reply, existing application status, and preserved Direct Connect bridge.",
         "Existing employment, Direct Connect, county, shell, and contact-boundary contract suites.",
+        "Fresh-database migration proof plus DB-backed contact-redaction execution against the migrated schema.",
         "Typecheck and production build at the exact implementation commit.",
         "Authenticated browser proof at 1440x1000 and 390x844 using an owned job, external job, external resume, and applied-state fixture; include selection, role-aware actions, app-switch/reload continuity, area change, taskbar/top-right tools, and zero page-level horizontal overflow.",
         "Exact minimum-release gate and post-deploy build identity before a release completion claim."
