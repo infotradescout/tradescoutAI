@@ -838,46 +838,63 @@ router.get("/api/public/seo/directory-navigation", async (req, res) => {
     countySlug: req.query.countySlug ?? req.query.county,
   };
 
-  await getCachedOrCompute("/api/public/seo/directory-navigation", cacheParams, async () => {
-    try {
-      const rawTradeSlug = coerceString(cacheParams.tradeSlug);
-      const tradeMatch = rawTradeSlug ? getTradeSeoMatch(rawTradeSlug) : null;
-      const tradeSlug = tradeMatch ? normalizeTradeSlug(tradeMatch.canonicalSlug) : "";
-      const stateCode = normalizeStateCode(cacheParams.stateCode);
-      const countySlug = coerceString(cacheParams.countySlug).toLowerCase();
+  const result = await getCachedOrCompute(
+    "/api/public/seo/directory-navigation",
+    cacheParams,
+    async () => {
+      try {
+        const rawTradeSlug = coerceString(cacheParams.tradeSlug);
+        const tradeMatch = rawTradeSlug ? getTradeSeoMatch(rawTradeSlug) : null;
+        const tradeSlug = tradeMatch ? normalizeTradeSlug(tradeMatch.canonicalSlug) : "";
+        const stateCode = normalizeStateCode(cacheParams.stateCode);
+        const countySlug = coerceString(cacheParams.countySlug).toLowerCase();
 
-      if (rawTradeSlug && !tradeSlug) {
-        return res.status(400).json({ message: "Invalid tradeSlug" });
+        if (rawTradeSlug && !tradeSlug) {
+          return { status: 400, body: { message: "Invalid tradeSlug" } };
+        }
+
+        if (!rawTradeSlug && !stateCode && !countySlug) {
+          const trades = await listActiveTradeScopes();
+          return { status: 200, body: { scope: "trades", trades } };
+        }
+
+        if (tradeSlug && !stateCode && !countySlug) {
+          const states = await listActiveTradeStateScopes(tradeSlug);
+          return { status: 200, body: { scope: "trade-states", tradeSlug, states } };
+        }
+
+        if (tradeSlug && stateCode && !countySlug) {
+          const counties = await listActiveTradeCountyScopes(tradeSlug, stateCode);
+          return {
+            status: 200,
+            body: { scope: "trade-counties", tradeSlug, stateCode, counties },
+          };
+        }
+
+        if (!tradeSlug && stateCode && /^[a-z0-9-]+$/.test(countySlug)) {
+          const county = resolveCountyFipsBySlug(stateCode, countySlug);
+          if (!county) {
+            return { status: 400, body: { message: "Invalid stateCode/countySlug" } };
+          }
+          const trades = await listActiveCountyTradeScopes(stateCode, countySlug);
+          return {
+            status: 200,
+            body: { scope: "county-trades", stateCode, countySlug, trades },
+          };
+        }
+
+        return { status: 400, body: { message: "Invalid directory navigation scope" } };
+      } catch (error: any) {
+        console.warn("SEO directory navigation degraded; returning no crawl links", error);
+        return {
+          status: 200,
+          body: { scope: "degraded", trades: [], states: [], counties: [], degraded: true },
+        };
       }
-
-      if (!rawTradeSlug && !stateCode && !countySlug) {
-        const trades = await listActiveTradeScopes();
-        return res.json({ scope: "trades", trades });
-      }
-
-      if (tradeSlug && !stateCode && !countySlug) {
-        const states = await listActiveTradeStateScopes(tradeSlug);
-        return res.json({ scope: "trade-states", tradeSlug, states });
-      }
-
-      if (tradeSlug && stateCode && !countySlug) {
-        const counties = await listActiveTradeCountyScopes(tradeSlug, stateCode);
-        return res.json({ scope: "trade-counties", tradeSlug, stateCode, counties });
-      }
-
-      if (!tradeSlug && stateCode && /^[a-z0-9-]+$/.test(countySlug)) {
-        const county = resolveCountyFipsBySlug(stateCode, countySlug);
-        if (!county) return res.status(400).json({ message: "Invalid stateCode/countySlug" });
-        const trades = await listActiveCountyTradeScopes(stateCode, countySlug);
-        return res.json({ scope: "county-trades", stateCode, countySlug, trades });
-      }
-
-      return res.status(400).json({ message: "Invalid directory navigation scope" });
-    } catch (error: any) {
-      console.warn("SEO directory navigation degraded; returning no crawl links", error);
-      return res.json({ scope: "degraded", trades: [], states: [], counties: [], degraded: true });
     }
-  });
+  );
+
+  return res.status(result.status).json(result.body);
 });
 
 // Public safe: supports SPA rendering for /best/* pages (crawlers see SSR).

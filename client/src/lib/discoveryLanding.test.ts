@@ -117,6 +117,22 @@ describe("trackDiscoveryLandingOnce", () => {
     expect(body).not.toHaveProperty("entryRequestId");
   });
 
+  it("projects a custom-domain root landing onto the profile-scoped route", async () => {
+    const slugMeta = document.querySelector('meta[name="tradescout-business-slug"]');
+    const entityTypeMeta = document.querySelector('meta[name="tradescout-business-entity-type"]');
+    slugMeta?.setAttribute("content", "example-profile");
+    entityTypeMeta?.setAttribute("content", "business_profile");
+
+    await trackDiscoveryLandingOnce({ canonicalRoute: "/" });
+
+    const body = JSON.parse((fetch as any).mock.calls[0][1].body);
+    expect(body).toMatchObject({
+      canonicalRoute: "/u/example-profile",
+      businessSlug: "example-profile",
+      entityType: "business_profile",
+    });
+  });
+
   it("does not block when analytics fetch fails", async () => {
     (fetch as any).mockRejectedValueOnce(new Error("network down"));
     const ok = await trackDiscoveryLandingOnce({

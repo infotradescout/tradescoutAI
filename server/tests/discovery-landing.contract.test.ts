@@ -3,6 +3,7 @@ import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildClientDiscoveryLandingPayload,
+  normalizeDiscoveryRouteForBusiness,
   normalizeDiscoveryAttributionToken,
   sanitizeDiscoveryLandingEvent,
 } from "@shared/discoveryLanding";
@@ -41,6 +42,17 @@ function issueToken(
 }
 
 describe("signed discovery attribution", () => {
+  it("normalizes custom-domain paths without reinterpreting another profile route", () => {
+    expect(normalizeDiscoveryRouteForBusiness("example-profile", "/")).toBe("/u/example-profile");
+    expect(normalizeDiscoveryRouteForBusiness("example-profile", "/stones/sample")).toBe(
+      "/u/example-profile/stones/sample"
+    );
+    expect(normalizeDiscoveryRouteForBusiness("jw-stone", "/stones/sample")).toBe("/stones/sample");
+    expect(normalizeDiscoveryRouteForBusiness("example-profile", "/u/another-profile")).toBe(
+      undefined
+    );
+  });
+
   it("issues a separate identifier instead of reusing an HTTP request id", () => {
     const token = issueToken("jw-stone", "/jw-stone", "business_marketplace");
     const verified = verifyDiscoveryAttributionToken(token);

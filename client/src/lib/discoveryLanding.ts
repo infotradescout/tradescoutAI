@@ -2,6 +2,7 @@ import {
   buildClientDiscoveryLandingPayload,
   DISCOVERY_LANDING_EVENT,
   normalizeDiscoveryAttributionToken,
+  normalizeDiscoveryRouteForBusiness,
 } from "@shared/discoveryLanding";
 import type { DiscoveryLandingEntityType } from "@shared/discoveryLanding";
 
@@ -119,11 +120,17 @@ export async function trackDiscoveryLandingOnce(options: {
     const discoveryAttributionToken = readDiscoveryAttributionToken();
     if (!identity || !discoveryAttributionToken) return false;
 
+    const canonicalRoute = normalizeDiscoveryRouteForBusiness(
+      identity.businessSlug,
+      options.canonicalRoute
+    );
+    if (!canonicalRoute) return false;
+
     const params = new URLSearchParams(
       options.search ?? (typeof window !== "undefined" ? window.location.search : "")
     );
     const raw = buildClientDiscoveryLandingPayload({
-      canonicalRoute: options.canonicalRoute,
+      canonicalRoute,
       businessSlug: identity.businessSlug,
       entityType: identity.entityType,
       discoveryAttributionToken,
