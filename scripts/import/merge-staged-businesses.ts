@@ -3,6 +3,12 @@ import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 import { db } from "../../server/db";
 import { businesses, businessCounties, counties, listingImportStaging } from "../../shared/schema";
+import {
+  buildImportedPublicProfileFields,
+  buildTargetingImportExtras,
+  mergeOnlyMissingProfileFields,
+  readImportPayloadValue,
+} from "./business-profile-fields";
 import { normalizePhone, normalizeWebsite, parseArgs, slugify } from "./utils";
 
 type StageRow = typeof listingImportStaging.$inferSelect;
@@ -22,15 +28,6 @@ function toInt(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function readRawValue(row: StageRow, keys: string[]): string {
-  const payload: any = (row as any).rawPayload || {};
-  for (const key of keys) {
-    const value = String(payload?.[key] ?? "").trim();
-    if (value) return value;
-  }
-  return "";
-}
-
 function coerceLicenseStatus(input: string): string {
   const v = String(input || "")
     .trim()
@@ -48,20 +45,27 @@ function buildImportExtras(
   defaults: { licenseStatusDefault?: string; licenseSource?: string }
 ) {
   const licenseNumber =
-    readRawValue(row, ["license_number", "license_no", "license", "licenseid"]) ||
-    readRawValue(row, ["license_num", "licensenumber"]);
+    readImportPayloadValue(row, ["license_number", "license_no", "license", "licenseid"]) ||
+    readImportPayloadValue(row, ["license_num", "licensenumber"]);
   const jurisdiction =
-    readRawValue(row, ["license_state", "license_jurisdiction", "license_state_code"]) ||
+    readImportPayloadValue(row, ["license_state", "license_jurisdiction", "license_state_code"]) ||
     String(row.stateCode || "").trim();
-  const statusFromPayload = readRawValue(row, ["license_status", "license_verified_status"]);
+  const statusFromPayload = readImportPayloadValue(row, [
+    "license_status",
+    "license_verified_status",
+  ]);
   // Only apply a default status when we have a license number; otherwise we'd be asserting verification
   // for rows that might not even have licensing data.
   const statusRaw = statusFromPayload || (licenseNumber ? defaults.licenseStatusDefault || "" : "");
   const licenseStatus = coerceLicenseStatus(statusRaw);
   const verifiedAt =
-    readRawValue(row, ["license_verified_at", "license_verified_date", "verified_at"]) ||
-    readRawValue(row, ["license_checked_at", "checked_at"]);
-  const expiresAt = readRawValue(row, ["license_expires_at", "license_expiration", "expires_at"]);
+    readImportPayloadValue(row, ["license_verified_at", "license_verified_date", "verified_at"]) ||
+    readImportPayloadValue(row, ["license_checked_at", "checked_at"]);
+  const expiresAt = readImportPayloadValue(row, [
+    "license_expires_at",
+    "license_expiration",
+    "expires_at",
+  ]);
 
   const out: Record<string, string> = {};
   if (licenseNumber) out.license_number = licenseNumber.slice(0, 120);
@@ -73,15 +77,15 @@ function buildImportExtras(
   if (defaults.licenseSource) out.license_source = String(defaults.licenseSource).slice(0, 64);
 
   // Maps-scraper / directory enrichment (do not treat as verification)
-  const mapsFullAddress = readRawValue(row, ["fulladdress", "full_address", "address"]);
-  const mapsStreet = readRawValue(row, ["street"]);
-  const mapsMunicipality = readRawValue(row, ["municipality"]);
-  const mapsCategories = readRawValue(row, ["categories", "category"]);
-  const mapsReviewCount = readRawValue(row, ["review_count"]);
-  const mapsAverageRating = readRawValue(row, ["average_rating"]);
-  const mapsReviewUrl = readRawValue(row, ["review_url"]);
-  const mapsUrl = readRawValue(row, ["google_maps_url"]);
-  const mapsFeaturedImage = readRawValue(row, ["featured_image"]);
+  const mapsFullAddress = readImportPayloadValue(row, ["fulladdress", "full_address", "address"]);
+  const mapsStreet = readImportPayloadValue(row, ["street"]);
+  const mapsMunicipality = readImportPayloadValue(row, ["municipality"]);
+  const mapsCategories = readImportPayloadValue(row, ["categories", "category"]);
+  const mapsReviewCount = readImportPayloadValue(row, ["review_count"]);
+  const mapsAverageRating = readImportPayloadValue(row, ["average_rating"]);
+  const mapsReviewUrl = readImportPayloadValue(row, ["review_url"]);
+  const mapsUrl = readImportPayloadValue(row, ["google_maps_url"]);
+  const mapsFeaturedImage = readImportPayloadValue(row, ["featured_image"]);
 
   if (mapsFullAddress) out.gmb_full_address = mapsFullAddress.slice(0, 300);
   if (mapsStreet) out.gmb_street = mapsStreet.slice(0, 220);
@@ -92,6 +96,10 @@ function buildImportExtras(
   if (mapsReviewUrl) out.gmb_review_url = mapsReviewUrl.slice(0, 500);
   if (mapsUrl) out.gmb_maps_url = mapsUrl.slice(0, 500);
   if (mapsFeaturedImage) out.gmb_featured_image = mapsFeaturedImage.slice(0, 500);
+
+  for (const [key, value] of Object.entries(buildTargetingImportExtras(row))) {
+    if (!out[key] && value) out[key] = value;
+  }
 
   return Object.keys(out).length ? out : null;
 }
@@ -405,9 +413,10 @@ async function main() {
       const primaryCategory =
         Array.isArray(row.tradeCategories) && row.tradeCategories.length
           ? String(row.tradeCategories[0] || "").trim()
-          : String(readRawValue(row, ["categories", "category"]) || "")
+          : String(readImportPayloadValue(row, ["categories", "category"]) || "")
               .split(",")[0]
               ?.trim();
+      const importedPublicFields = buildImportedPublicProfileFields(row);
 
       if (existing) {
         const isClaimed = Boolean(existing.ownerUserId) || existing.claimStatus === "claimed";
@@ -429,7 +438,10 @@ async function main() {
         }
 
         const existingProfile = (existing.profileData || {}) as Record<string, any>;
-        const nextProfile = { ...existingProfile };
+        const nextProfile = mergeOnlyMissingProfileFields(
+          existingProfile,
+          importedPublicFields
+        ) as Record<string, any>;
 
         if (!nextProfile.phone && row.phone) nextProfile.phone = row.phone;
         if (!nextProfile.email && row.email) nextProfile.email = row.email;
@@ -489,6 +501,7 @@ async function main() {
             claimStatus: "unclaimed",
             sources: [sourceLabel],
             profileData: {
+              ...importedPublicFields,
               category: primaryCategory || undefined,
               phone: row.phone || undefined,
               email: row.email || undefined,

@@ -102,6 +102,7 @@ import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { provisionPrecisionAerialProfile } from "./services/precisionAerialProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { provisionSteelHomePackagesProfile } from "./services/steelHomePackagesProfileProvisioning";
+import { provisionStoneCorridorProfiles } from "./services/stoneCorridorProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 import {
   preparePublicSeoHtmlForUserAgent,
@@ -1188,6 +1189,9 @@ app.use(landingContractHeaders);
     await provisionProfile("Precision Aerial", provisionPrecisionAerialProfile);
     await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile);
     await provisionProfile("Steel Home Project Tools", provisionSteelHomePackagesProfile);
+    await provisionProfile("Stone Corridor", async () => {
+      await provisionStoneCorridorProfiles();
+    });
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();

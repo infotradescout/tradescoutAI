@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "jw-stone-baton-rouge-panama-city-network-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "jw-stone-baton-rouge-panama-city-network",
+    "lockVersion": "manual_verified"
+  },
+  "phase": "public_release_in_progress",
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "Extend the existing TradeScout business directory with a source-backed stone-industry corridor from Baton Rouge, Louisiana, through Panama City, Florida, while preserving profile ownership, public-contact boundaries, and the existing JW Stone anchor.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": true,
+      "outcome": "Prepare 51 official-source business-location profiles covering stone fabricators, suppliers, and installers across the Baton Rouge-to-Panama City corridor, with county routing and internal JW Stone/BidRock targeting metadata.",
+      "entry": "Use official business websites to identify a real corridor location and its public business facts.",
+      "ending": "A validated CSV row can enter the canonical staging pipeline as an unclaimed, draft business profile without inventing trust claims or overwriting a claimed profile.",
+      "constraints": [
+        "Interpret Panama as Panama City, Florida.",
+        "Treat JW Stone as the existing corridor anchor and do not create a duplicate JW Stone row.",
+        "Use only public business facts from an official business website for the source-backed roster.",
+        "Do not assert a TradeScout partnership, verification, license status, review count, or rating.",
+        "Reuse the canonical stage-business-csv and merge-staged-businesses pipeline, business records, county mappings, public profile routes, Businesses workspace, and claim flow.",
+        "Never overwrite owner-authored fields on a claimed profile; on an existing unclaimed profile, fill only missing public fields.",
+        "Keep researched acquisition and JW Stone/BidRock fit metadata internal to importExtras.",
+        "Keep imported records in draft status until a separate public-activation approval.",
+        "Do not expose direct contact information or bypass Intent to Decision Card to Contact gating.",
+        "Do not create fake CRM contacts or named decision-makers from generic public business data."
+      ],
+      "excludedFromActive": [
+        "Claiming profiles on behalf of businesses.",
+        "Sending outreach or asserting partnerships.",
+        "Changing public profile, search, contact, trust, ranking, or claim UX.",
+        "Publishing, deploying, importing into a remote database, or activating draft records before explicit approval."
+      ],
+      "proofRequired": [
+        "Dataset contract proves 51 unique locations, official-source domain alignment, complete county routing, role and market coverage, and no invented trust claims.",
+        "Importer contract proves public field mapping, internal targeting metadata, fill-only-missing behavior, and claimed-profile preservation.",
+        "Adjacent claim-import and public-profile contract suites pass.",
+        "Typecheck, minimum-release gate, production build, and git diff checks pass at the implementation state.",
+        "A production import must run preflight and dry-run before any draft merge; activation remains a distinct approved action."
+      ],
+      "completionScope": "approval_ready_local_artifact",
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "TradeScout already owns the business directory, profile claim model, public routes, county scope, import pipeline, search workspace, and gated contact flow."
+  },
+  "baseline": {
+    "commit": "8a560de9cb65ee82134d35a46b3137b3d42b31cf",
+    "branch": "jw-stone/baton-rouge-panama-city-network",
+    "productionObservation": "No remote database mutation, public activation, outreach, push, merge, or deployment was performed during local preparation.",
+    "projectIndex": "refreshed_before_and_after_implementation"
+  },
+  "approval": {
+    "standingUserDirection": "Find stone fabricators, suppliers, and installers and create profiles plus JW Stone/BidRock targeting from Baton Rouge to Panama.",
+    "checkpointPresented": true,
+    "approvedToExecuteLocalPreparation": true,
+    "approvedToImportRemoteDrafts": true,
+    "approvedToReleaseOrActivate": true,
+    "approvalReceipt": "User replied 'ap;rlve public release' to the exact APPROVE PUBLIC RELEASE checkpoint on 2026-08-22."
+  }
+}
