@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-community-composer-responsive-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-community-composer-responsive-20260823",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "releaseControl": {
+    "status": "hold",
+    "baselineCommit": "468f4dfd24430dc953a16263392e5b8aa0f610ab",
+    "candidateIdentity": "the authoritative final candidate is the clean full commit recorded by the exact release-contract evidence after this tree is committed",
+    "objector": "pass_working_tree",
+    "aligner": "aligned_working_tree",
+    "verifier": "partial_precommit_exact_candidate_pending",
+    "releaseAuthority": "none"
+  },
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "D10 corrects the Community composer mobile containment and short-height reachability defects without changing Community creation authority, contact gates, Trust/CVS, county behavior, or persistence.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1-D9",
+      "active": false,
+      "status": "released_protected",
+      "outcome": "The released application shell, Scout workspace, Community view controls, canonical county post authority, contact law, Trust/CVS, and exact production identity remain protected."
+    },
+    {
+      "id": "D10",
+      "active": true,
+      "status": "implemented_local_proof_passed",
+      "outcome": "The canonical Community composer keeps its body, textarea, accessory actions, and primary Post action contained at narrow mobile widths; accessory actions scroll internally while Post remains visible; short desktop viewports release sticky positioning so every control can be scrolled and focused into the app viewport; normal-height desktop remains sticky below the shell header.",
+      "entry": "Open the authenticated county Community feed and open Create post at 320, 390, 640, 641, 768 by 320, 1440 by 480, or normal desktop height.",
+      "ending": "Every composer control is horizontally contained and keyboard reachable, the primary Post action remains visible with a 44-pixel mobile target, normal desktop stickiness remains, and verification submits no Community post.",
+      "journeySteps": [
+        "Open the existing authenticated Community feed and existing composer without changing geography, identity, category, or submission behavior.",
+        "Allow the canonical composer body and accessory flex child to shrink within the card instead of imposing category-row intrinsic width on the textarea and actions.",
+        "At 640 pixels and below, keep Photo, Video, and Poll in an internal horizontal scroller while the primary Post action remains a non-shrinking visible control.",
+        "Use overflow clipping that does not establish a competing scroll container and place normal desktop sticky content eight pixels below the existing app scroll root.",
+        "At desktop heights of 480 pixels or less, release only the composer from sticky positioning so its controls remain reachable through the canonical app scroll root.",
+        "Preserve the existing Create, Cancel, category, attachment, and Post handlers and do not submit during proof."
+      ],
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Measure the exact released production composer at 390 by 844 and 768 by 320 without issuing a Community write.",
+          "expected": "Composer content and Post remain inside the card and short-height focus does not place required controls under fixed shell chrome.",
+          "observed": "At 390 the card was about 334 pixels wide while its body, textarea, and actions were about 669 pixels wide and Post was fully clipped. At 768 by 320, the sticky composer could not fit the available scroll region and focus movement displaced its upper controls.",
+          "evidenceRef": "evidence.md#observed-defect"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Run the responsive source contract, broader Community and CVS contracts, TypeScript, production build, law and authority guards, and the authenticated non-mutating Playwright geometry test.",
+          "expected": "Mobile containment, attachment scrolling, primary-action visibility, short-height focus reachability, normal desktop stickiness, and zero Community create requests all pass without protected-flow changes.",
+          "observed": "Working-tree tests, TypeScript, build, guards, independent Objector review, and independent Verifier alignment passed. The expanded Playwright test passed all seven target viewport classes and observed zero POST /api/community/posts. Exact clean-candidate gate and release proof remain pending.",
+          "evidenceRef": "evidence.md#automated-proof"
+        }
+      ],
+      "constraints": [
+        "Reuse the canonical Community page, composer, CSS owner, and existing Playwright test; create no parallel component, route, or action owner.",
+        "Keep global Community browse-only and preserve county, identity, contact, Trust/CVS, moderation, and persistence behavior.",
+        "Do not change handler order, request payload, schema, migration, AppShell, Scout, or unrelated interiors.",
+        "Do not issue a production Community write or describe rendered containment proof as proof of submission behavior.",
+        "Do not describe this bounded responsive correction as whole-product completion."
+      ],
+      "requirementIds": [
+        "REQ-COMMUNITY-COMPOSER-CONTAINMENT",
+        "REQ-COMMUNITY-COMPOSER-REACHABILITY",
+        "REQ-COMMUNITY-COMPOSER-NO-WRITE-PROOF",
+        "REQ-COMMUNITY-PROTECTED"
+      ],
+      "excludedFromActive": [
+        "Community API, post authority, comment, like, save, moderation, contact, route, schema, migration, or persistence redesign.",
+        "AppShell, Scout, Businesses, Jobs, Direct Connect, JW Stone, A Plus Cabinetry, or unrelated interior changes.",
+        "The optional fresh-database notifications and feature_flags fixture gaps observed as background warnings during browser proof.",
+        "Repository-wide duplicate-source, ownership, or mirrored-export cleanup."
+      ],
+      "proofRequired": true,
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-COMMUNITY-COMPOSER-CONTAINMENT",
+          "scope": "active_deliverable",
+          "claim": "At 320, 390, 640, and 641 pixels the composer, textarea, actions, attachment strip, and primary Post action remain inside the card and page without horizontal overflow."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-COMPOSER-REACHABILITY",
+          "scope": "active_deliverable",
+          "claim": "At 768 by 320 and 1440 by 480 every category, attachment, input, Cancel, and Post control can be focused inside the app scroll root, while 1440 by 844 retains normal sticky positioning at eight pixels."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-COMPOSER-NO-WRITE-PROOF",
+          "scope": "active_deliverable",
+          "claim": "The authenticated rendered regression fills local text only, never activates Post, and asserts zero POST /api/community/posts requests."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-PROTECTED",
+          "scope": "active_deliverable",
+          "claim": "Community creation authority, global browse-only behavior, county scope, contact gating, Trust/CVS, moderation, routes, schemas, migrations, AppShell, Scout, and unrelated interiors remain unchanged."
+        }
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    }
+  ],
+  "protectedRequirements": [
+    "Global Community remains browse-only and the existing composer remains hidden there.",
+    "Existing Community handlers, request payloads, county authority, contact gates, Trust/CVS, moderation, schemas, and migrations remain unchanged.",
+    "The production verification path remains read-only; no post, comment, like, save, or moderation mutation is allowed.",
+    "D8 and D9 candidate-time records remain historical and are not rewritten by D10."
+  ],
+  "council": {
+    "intake": "sustained_production_observed",
+    "planner": "go_existing_owner",
+    "objector": "pass_no_open_findings",
+    "aligner": "aligned_no_open_findings",
+    "verifier": "partial_precommit_exact_candidate_pending"
+  },
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout repository owns the authenticated Community composer, responsive shell behavior, product-law guards, browser fixtures, and release controls required for D10.",
+    "constraintsConsidered": [
+      "The result depends on the real authenticated Community route, existing global browse-only guard, app scroll root, fixed shell chrome, responsive breakpoints, and production release identity.",
+      "A standalone component or new site cannot prove the governed Community composer inside the released shell."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": false,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": false,
+      "migrationsAuditOrSystemOfRecord": false
+    }
+  }
+}

@@ -5412,6 +5412,7 @@ body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
     padding-top: 0.75rem;
   }
   .ts-community-composer {
+    max-width: 100%;
     border-radius: 14px !important;
   }
   .ts-community-composer > div {
@@ -5424,20 +5425,38 @@ body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
     min-height: 72px !important;
   }
   .ts-community-composer__types {
+    max-width: 100%;
     margin-top: -0.125rem;
   }
   .ts-community-composer__actions {
+    min-width: 0;
     flex-direction: row !important;
     align-items: center;
     justify-content: space-between;
   }
-  .ts-community-composer__actions > div {
+  .ts-community-composer__attachments {
+    min-width: 0;
     flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
   }
   .ts-community-composer__actions .ts-community-submit-action {
-    min-height: 36px !important;
+    min-height: 44px !important;
     width: auto !important;
+    flex: 0 0 auto;
     padding-inline: 1rem;
+  }
+}
+
+@media (min-width: 768px) and (max-height: 480px) {
+  .ts-community-composer {
+    position: static !important;
+    top: auto !important;
+    scroll-margin-top: 5rem;
+  }
+
+  .ts-community-composer__input {
+    scroll-margin-top: 5rem;
   }
 }
 

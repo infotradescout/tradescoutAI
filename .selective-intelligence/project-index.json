@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-23T14:51:10Z",
+  "generated_at": "2026-08-23T16:20:00Z",
   "source": {
     "kind": "git",
-    "revision": "687b9c657d03c57273742c06460cc8facf4753f8",
+    "revision": "1508dc66dab627c597f4ddf06dd44901f286bb68",
     "dirty": true,
-    "inventory_sha256": "0163905363c2d61cda77703a35f418e401d84c9a803ac8dca6de390ec15105a2"
+    "inventory_sha256": "a317cbd8ad2790fa009dabf3232bf4ecedfc599eac6f0d2f5757e6b51e0e7780"
   },
   "inventory": {
     "directories": [
@@ -780,7 +780,7 @@
       },
       {
         "path": "server/tests",
-        "source_file_count": 467
+        "source_file_count": 468
       },
       {
         "path": "server/tests/helpers",
@@ -4721,8 +4721,8 @@
       {
         "path": "client/src/pages/community-feed.tsx",
         "language": "tsx",
-        "sha256": "318572c6cafe71de56433c06543f015e23642be860270d04b16b9007b4cbc928",
-        "bytes": 88517
+        "sha256": "a849f2cfbe41ed81abcd01e5908e056255728e2271e5b391b9721fbf187631e8",
+        "bytes": 86716
       },
       {
         "path": "client/src/pages/community-post-detail.tsx",
@@ -16445,8 +16445,8 @@
       {
         "path": "server/locationContext.ts",
         "language": "ts",
-        "sha256": "75f4f5f513c24c57ff399a4ee0b4e4000d695ed30e9fba0d3e047d39c172e6e6",
-        "bytes": 2344
+        "sha256": "0aeef8fa9a4732256d87ad7700f06b7dd0ba3fbdd79072cbea8e79f5c91ecddd",
+        "bytes": 2432
       },
       {
         "path": "server/messaging-service.ts",
@@ -16829,8 +16829,8 @@
       {
         "path": "server/routes.ts",
         "language": "ts",
-        "sha256": "667427f7d51dffc13a1a689704a2b2c3bb78d2f99d1f003327ef9862aca2776a",
-        "bytes": 1009381
+        "sha256": "98cf0bef26375092f7f39bc4c16098c577f18c11462fa647285d4bee94fc709e",
+        "bytes": 1036337
       },
       {
         "path": "server/routes/admin-business-county-enrichment.ts",
@@ -19227,6 +19227,12 @@
         "bytes": 7101
       },
       {
+        "path": "server/tests/community-composer-responsive.contract.test.ts",
+        "language": "ts",
+        "sha256": "057860a53aeed0f5447860df684df6abb73e16c2055c8cbec1d7cd6bd060f68d",
+        "bytes": 2071
+      },
+      {
         "path": "server/tests/community-feed-api.test.ts",
         "language": "ts",
         "sha256": "85de7f967348e9bc8b4143db523ce5c9665d88f51fc3e0ace847a2dd90d3e6dc",
@@ -19241,14 +19247,14 @@
       {
         "path": "server/tests/community-post-county-authority.contract.test.ts",
         "language": "ts",
-        "sha256": "5823229312e1444423a4cea2486a2ca2e60ecbc4be6d41050423b5e40f728941",
-        "bytes": 5463
+        "sha256": "030a171136bd6d89c953a097ff0b241223e122132274005526a0ce091999c83d",
+        "bytes": 5570
       },
       {
         "path": "server/tests/community-post-county-authority.integration.test.ts",
         "language": "ts",
-        "sha256": "6f25e96fc1411c3c95a0db531930ac12a903fddaaa58bf34908765bd2409e56d",
-        "bytes": 9826
+        "sha256": "7e830e2f160c64190910ad8bb69e9a033545ea8a80d00b3dffc2af590a379b7a",
+        "bytes": 10122
       },
       {
         "path": "server/tests/community-post-share.test.ts",
@@ -20057,8 +20063,8 @@
       {
         "path": "server/tests/location-context.test.ts",
         "language": "ts",
-        "sha256": "333d0596ed337b721fb25e258b91da955762ea889903b2326e20116a2d73f4d8",
-        "bytes": 4034
+        "sha256": "fabf2a78a1e61b8cc8bab69b9ddea74c7f343c6b421e8639646173ae37254a80",
+        "bytes": 4164
       },
       {
         "path": "server/tests/managed-partner-intake-queue.contract.test.ts",
@@ -20975,8 +20981,8 @@
       {
         "path": "server/tests/request-effective-user.test.ts",
         "language": "ts",
-        "sha256": "5f07e51d39bd445fd325d6b6f73c82aaac6560f48d467d386d726199a7ca8fbe",
-        "bytes": 2922
+        "sha256": "e75e02ebf67c3a74d8391fe9e9f40e0e0c9f7037c58d324586e28f3f75a951a1",
+        "bytes": 3021
       },
       {
         "path": "server/tests/required-production-schema.test.ts",
@@ -21899,8 +21905,8 @@
       {
         "path": "server/utils/requestEffectiveUser.ts",
         "language": "ts",
-        "sha256": "c66da6b79845129310787ab0cc197c679d89280e700908f317a1ea8030c5a686",
-        "bytes": 2404
+        "sha256": "ce904e390ce8847c0715e4433d683164052dc9a42b865ce9217f5ad7ca7ee1e8",
+        "bytes": 2492
       },
       {
         "path": "server/utils/scoutActionGuard.ts",
@@ -22619,8 +22625,8 @@
       {
         "path": "tests/community-feed.e2e.spec.ts",
         "language": "ts",
-        "sha256": "9e8e64356bacd6ea8efec7fbddf3f7b11684e11c30f82ca6a7c81fc9e36deec4",
-        "bytes": 6159
+        "sha256": "3755dffee0c54333171f72d1f1937c54742abed11cc6bce6b2fef0d887affced",
+        "bytes": 16757
       },
       {
         "path": "tests/community-shell.spec.ts",
@@ -149051,6 +149057,13 @@
       {
         "name": "read",
         "kind": "function",
+        "path": "server/tests/community-composer-responsive.contract.test.ts",
+        "line": 4,
+        "exported": false
+      },
+      {
+        "name": "read",
+        "kind": "function",
         "path": "server/tests/community-post-card-parity.contract.test.ts",
         "line": 4,
         "exported": false
@@ -162440,6 +162453,13 @@
         "exported": false
       },
       {
+        "name": "contained",
+        "kind": "function",
+        "path": "tests/community-feed.e2e.spec.ts",
+        "line": 169,
+        "exported": false
+      },
+      {
         "name": "CountyRow",
         "kind": "type",
         "path": "tests/cta-smoke.spec.ts",
@@ -173718,82 +173738,82 @@
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1665
+          "line": 1671
         },
         {
           "tag": "textarea",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1673
+          "line": 1679
         },
         {
           "tag": "input",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1695
+          "line": 1701
         },
         {
           "tag": "input",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1703
+          "line": 1709
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1763
+          "line": 1769
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1790
+          "line": 1796
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1809
+          "line": 1815
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1824
+          "line": 1830
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1833
+          "line": 1839
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1842
+          "line": 1848
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1853
+          "line": 1859
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1901
+          "line": 1907
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1910
+          "line": 1916
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 1977
+          "line": 1983
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 2042
+          "line": 2048
         },
         {
           "tag": "button",
           "path": "client/src/pages/community-feed.tsx",
-          "line": 2099
+          "line": 2105
         },
         {
           "tag": "button",
@@ -224750,10 +224770,10 @@
   ],
   "summary": {
     "directories": 212,
-    "source_files": 3679,
-    "symbols": 20062,
+    "source_files": 3680,
+    "symbols": 20064,
     "components": 1484,
-    "functions_and_hooks": 11177,
+    "functions_and_hooks": 11179,
     "raw_ui_elements": 7517,
     "errors": 1099,
     "warnings": 5
