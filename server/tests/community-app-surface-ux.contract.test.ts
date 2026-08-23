@@ -110,7 +110,7 @@ describe("Community app surface UX contract", () => {
     expect(routes).not.toContain("furnace|ac|air\\s+conditioner");
   });
 
-  it("keeps local views in one internally scrollable row and moves start modes behind disclosure", () => {
+  it("keeps local views visible on mobile and moves start modes behind disclosure", () => {
     const feed = read("client/src/pages/community-feed.tsx");
     const styles = read("client/src/index.css");
     const pageMarkup = feed.slice(feed.lastIndexOf("\n  return ("));
@@ -124,7 +124,15 @@ describe("Community app surface UX contract", () => {
     );
     expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*nowrap;/s);
     expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*overflow-x:\s*auto;/s);
-    expect(styles).not.toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*wrap;/s);
+    expect(styles).toMatch(
+      /@media \(max-width: 640px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    flex-wrap: wrap;\r?\n    overflow-x: visible;\r?\n    overflow-y: visible;/
+    );
+    expect(styles).toMatch(
+      /\.ts-community-viewbar__divider \{\r?\n    display: block !important;\r?\n    flex: 0 0 100%;\r?\n    width: 100%;\r?\n    height: 0;/
+    );
+    expect(styles).toMatch(
+      /@media \(min-width: 641px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    padding-top: 0\.25rem;\r?\n    padding-inline: 0\.25rem;/
+    );
     expect(styles).toMatch(/\.ts-community-viewbar__item\s*\{[^}]*min-height:\s*44px;/s);
     expect(feed).toContain('data-testid="community-feed-stream"');
     expect(feed).toContain('data-testid="community-start-actions"');
