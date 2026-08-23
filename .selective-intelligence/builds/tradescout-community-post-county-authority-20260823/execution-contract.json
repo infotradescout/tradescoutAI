@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-community-post-county-authority-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-community-post-county-authority-20260823",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "releaseControl": {
+    "status": "hold",
+    "baselineCommit": "687b9c657d03c57273742c06460cc8facf4753f8",
+    "candidateIdentity": "the authoritative final candidate is the clean full commit recorded by the exact release-contract evidence after this tree is committed",
+    "objector": "pass_working_tree",
+    "aligner": "aligned_working_tree",
+    "verifier": "partial_precommit_exact_candidate_pending",
+    "releaseAuthority": "none"
+  },
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "D9 closes one Community write-authority gap while preserving the released non-impersonated Community client journey and read behavior, contact flow, Trust/CVS policy, and application shell; acted-as create deliberately changes to a stable fail-closed conflict.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1-D8",
+      "active": false,
+      "status": "released_protected",
+      "outcome": "The authenticated shell, Scout task workspace, Community view controls, county feed, action law, and production release identity remain protected. D8's tracked HOLD text is its immutable candidate-time snapshot; PR 430's post-deploy receipt and exact production build 687b9c657d03c57273742c06460cc8facf4753f8 establish current release truth."
+    },
+    {
+      "id": "D9",
+      "active": true,
+      "status": "implemented_local_proof_passed",
+      "outcome": "A Community post accepted through the canonical authenticated endpoint is authored by the non-impersonated persisted user and written to that user's canonical registered state and county. Request-body scope, state, or county values cannot widen or redirect the write, canonical stateCode is preferred over the legacy state field, incomplete or contradictory impersonation markers do not fall back to original-admin authority, and every acted-as create is rejected before persistence until the whole Community auth/read/action spine can represent one coherent target persona.",
+      "entry": "An authenticated, onboarding-complete, non-impersonated user calls POST /api/community/posts, including through a stale or hostile client that supplies scope, stateCode, or countyFips. A request carrying any complete acted-as identity reaches the same boundary but is not accepted for creation.",
+      "ending": "For an accepted non-impersonated request, the stored post, reflected event, and any routed county note use scope county plus a canonical registered stateCode and countyFips derived from the persisted user and matching county registry row. Invalid identity, acted-as identity, or invalid county context returns its stable error before any of those writes.",
+      "journeySteps": [
+        "Resolve the authenticated identity from strict raw-string principal and server-recorded impersonation fields; fail closed on partial, non-string, or contradictory markers instead of stringifying values or falling back to the original administrator.",
+        "Reject every coherent acted-as Community create with a stable conflict before persisted-user lookup or any Community write because the existing auth payload, feed, saves, likes, comments, and moderation actions do not yet share one target persona.",
+        "For a non-impersonated request, reload the exact persisted principal through the existing storage owner after the established onboarding middleware passes.",
+        "Resolve strict state and five-digit county identity only from the persisted user record, preferring canonical stateCode with a legacy two-letter state fallback.",
+        "Require the stored FIPS to resolve through the existing county registry and require its state to match, deriving the write state from that canonical county row.",
+        "Ignore request-body geography and force the ordinary Community create route to county scope.",
+        "Fail closed before createCommunityPost, reflectCommunityAction, or county-note routing when canonical county identity is missing, malformed, unknown, or inconsistent.",
+        "Persist, reflect, and route any county note through the same canonical county context, then preserve existing category routing and accepted non-impersonated 201 response behavior."
+      ],
+      "proof": [
+        {
+          "type": "manual_observation",
+          "procedure": "Inspect the exact production-main POST /api/community/posts handler and client mutation without issuing a production write.",
+          "expected": "Only authenticated persisted-user geography controls the write boundary.",
+          "observed": "The released handler destructures scope, stateCode, and countyFips from req.body, prefers those values over the persisted user, falls back to legacy user.state instead of canonical user.stateCode, writes the result to community_posts, and copies it into the post.created reflection. The released client does not send these fields, so UI-only controls do not close the API boundary; a canonical stateCode-only user can also create a post with null state that disappears from the local state-plus-county feed.",
+          "evidenceRef": "evidence.md#observed-defect"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Run focused canonical-location and Community create-authority tests, broader Community/CVS contracts, TypeScript, build, law guards, and the exact minimum-release contract.",
+          "expected": "Spoofed body geography cannot affect persisted post, reflected event, or routed county-note context; valid county-registry resolution and missing, invalid, unknown, or mismatched context fail-closed behavior pass without a protected-flow regression.",
+          "observed": "Working-tree proof passed: 18 focused pure/source tests and TypeScript passed. A migrated disposable PostgreSQL 16 database then passed 4/4 authenticated HTTP tests, including spoofed geography with immediate feed parity, unknown persisted county, super-admin no-county denial, and a real acted-as journey that reads the actual principal-location auth payload, receives the stable impersonation conflict, refetches with the same client filters, and confirms zero post/event/note writes for both principal and target. The final project index is refreshed and includes the new owners with no new duplicate-owner error. Exact clean-candidate, final diff scope, and full release-gate proof remain pending.",
+          "evidenceRef": "evidence.md#automated-proof"
+        }
+      ],
+      "constraints": [
+        "Reuse the canonical server location context and existing Community route, storage, and reflection owners; create no parallel endpoint or data owner.",
+        "Keep the client mutation, labels, categories, images, tags, accepted non-impersonated 201 response shape, post visibility defaults, and downstream category routing unchanged; acted-as create returns the documented stable conflict.",
+        "Keep global Community read-only and all ordinary Community writes county-bound, including privileged users using the ordinary create route.",
+        "Accept only raw-string coherent impersonation markers, but do not create a Community post for any acted-as session until auth payload, feed, saves, likes, comments, and moderation share one target identity; all such creates fail before writes.",
+        "Do not change contact gating, Trust/CVS calculation, moderation, schemas, migrations, AppShell, Scout, or unrelated interiors.",
+        "Do not perform a production POST or create production data as verification.",
+        "Do not describe this bounded authority correction as whole-product completion."
+      ],
+      "requirementIds": [
+        "REQ-COMMUNITY-CANONICAL-COUNTY-WRITE",
+        "REQ-COMMUNITY-EFFECTIVE-IDENTITY",
+        "REQ-COMMUNITY-FAIL-CLOSED-GEOGRAPHY",
+        "REQ-COMMUNITY-WRITE-PARITY",
+        "REQ-COMMUNITY-PROTECTED"
+      ],
+      "excludedFromActive": [
+        "The separately observed mobile composer width defect and short-height sticky behavior; these remain the next UI frontier after D9 release.",
+        "Community read-query redesign, post/comment/like/save behavior, moderation, contact, other route paths or registrations, schema, migration, or persistence redesign.",
+        "Changes to AppShell, Scout, Businesses, Jobs, Direct Connect, JW Stone, A Plus Cabinetry, or unrelated interiors.",
+        "Repository-wide duplicate-source, root lock, or mirrored-export cleanup."
+      ],
+      "proofRequired": true,
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-COMMUNITY-CANONICAL-COUNTY-WRITE",
+          "scope": "active_deliverable",
+          "claim": "The ordinary authenticated Community create route writes scope county and canonical persisted-user state and county values regardless of request-body geography."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-EFFECTIVE-IDENTITY",
+          "scope": "active_deliverable",
+          "claim": "The ordinary authenticated Community create route accepts a persisted principal only when no impersonation marker exists, rejects malformed identity state, and rejects every coherent acted-as create before lookup or writes rather than mixing principal client context with target persistence."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-FAIL-CLOSED-GEOGRAPHY",
+          "scope": "active_deliverable",
+          "claim": "Missing or malformed canonical state/county identity returns a stable county-context error before post or reflection persistence."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-WRITE-PARITY",
+          "scope": "active_deliverable",
+          "claim": "The stored post, post.created reflection, and any routed county note share the same canonical scope and county identity while existing content/category/image/tag behavior remains unchanged."
+        },
+        {
+          "requirementId": "REQ-COMMUNITY-PROTECTED",
+          "scope": "active_deliverable",
+          "claim": "Global browse-only behavior, county reads, contact gating, Trust/CVS, moderation, other route registrations, schemas, migrations, the non-impersonated client journey, AppShell, and Scout remain unchanged; acted-as create is deliberately fail-closed."
+        }
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    }
+  ],
+  "protectedRequirements": [
+    "Global Community remains browse-only; the ordinary create route has no global, national, state, region, city, or cross-county write mode.",
+    "The non-impersonated persisted principal remains the author, onboarding authority, and canonical geography owner; incomplete impersonation state grants no fallback authority and coherent acted-as state cannot create until the whole Community persona is target-consistent.",
+    "For accepted non-impersonated creates, post content, title, category, images, tags, publication defaults, category routing, and 201 response behavior remain unchanged; acted-as create returns the stable conflict before writes.",
+    "No contact, Trust/CVS, moderation, schema, migration, AppShell, Scout, or unrelated interior owner changes.",
+    "D7 and D8 candidate-time evidence remains immutable and is not rewritten as post-release evidence."
+  ],
+  "council": {
+    "intake": "sustained_source_observed_authority_gap",
+    "planner": "go_existing_location_route_storage_reflection_owners",
+    "objector": "pass_no_open_findings",
+    "aligner": "aligned_no_open_findings",
+    "verifier": "partial_precommit_exact_candidate_pending"
+  },
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout repository owns authentication, persisted user geography, the Community create route, post storage, event reflection, law guards, and release controls required for D9.",
+    "constraintsConsidered": [
+      "The result depends on the real authenticated user record, server-side county authority, database persistence, reflection parity, and production release identity.",
+      "A client-only fix, standalone component, or new site cannot close or prove this governed write boundary."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": false
+    }
+  }
+}
