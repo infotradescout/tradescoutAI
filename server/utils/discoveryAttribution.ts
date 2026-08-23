@@ -4,7 +4,9 @@ import {
   normalizeDiscoveryAttributionToken,
   normalizeDiscoveryBusinessSlug,
   normalizeDiscoveryCanonicalRoute,
+  normalizeDiscoveryEntitySlug,
   normalizeDiscoveryEntryRequestId,
+  normalizeDiscoveryProfileSlug,
   type DiscoveryLandingEntityType,
   type VerifiedDiscoveryAttribution,
 } from "@shared/discoveryLanding";
@@ -29,15 +31,19 @@ function signPayload(encodedPayload: string, secret: string): string {
 }
 
 export function issueDiscoveryAttributionToken(args: {
-  businessSlug: string;
+  entitySlug?: string;
+  businessSlug?: string;
+  profileSlug?: string;
   entityType: DiscoveryLandingEntityType;
   canonicalRoute: string;
   issuedAt?: string;
 }): string | null {
-  const businessSlug = normalizeDiscoveryBusinessSlug(args.businessSlug);
+  const entitySlug = normalizeDiscoveryEntitySlug(
+    args.entitySlug || args.profileSlug || args.businessSlug
+  );
   const canonicalRoute = normalizeDiscoveryCanonicalRoute(args.canonicalRoute);
   const secret = getSigningSecret();
-  if (!secret || !businessSlug || !canonicalRoute) return null;
+  if (!secret || !entitySlug || !canonicalRoute) return null;
 
   const issuedAt = args.issuedAt || new Date().toISOString();
   const issuedMs = Date.parse(issuedAt);
@@ -45,7 +51,10 @@ export function issueDiscoveryAttributionToken(args: {
 
   const identity: VerifiedDiscoveryAttribution = {
     entryRequestId: randomUUID(),
-    businessSlug,
+    entitySlug,
+    ...(args.entityType === "public_profile"
+      ? { profileSlug: normalizeDiscoveryProfileSlug(args.profileSlug || entitySlug) }
+      : { businessSlug: normalizeDiscoveryBusinessSlug(args.businessSlug || entitySlug) }),
     entityType: args.entityType,
     canonicalRoute,
     issuedAt: new Date(issuedMs).toISOString(),
@@ -59,7 +68,9 @@ export function issueDiscoveryAttributionToken(args: {
 export function verifyDiscoveryAttributionToken(
   rawToken: unknown,
   expected?: {
+    entitySlug?: string | null;
     businessSlug?: string | null;
+    profileSlug?: string | null;
     entityType?: DiscoveryLandingEntityType | null;
     canonicalRoute?: string | null;
   }
@@ -85,18 +96,25 @@ export function verifyDiscoveryAttributionToken(
   }
   if (!parsed || parsed.v !== TOKEN_VERSION) return null;
 
+  const entitySlug = normalizeDiscoveryEntitySlug(
+    parsed.entitySlug || parsed.profileSlug || parsed.businessSlug
+  );
   const businessSlug = normalizeDiscoveryBusinessSlug(parsed.businessSlug);
+  const profileSlug = normalizeDiscoveryProfileSlug(parsed.profileSlug);
   const canonicalRoute = normalizeDiscoveryCanonicalRoute(parsed.canonicalRoute);
   const entryRequestId = normalizeDiscoveryEntryRequestId(parsed.entryRequestId);
   const issuedAt = typeof parsed.issuedAt === "string" ? parsed.issuedAt : "";
   const issuedMs = Date.parse(issuedAt);
-  if (!businessSlug || !canonicalRoute || !entryRequestId || !Number.isFinite(issuedMs)) {
+  if (!entitySlug || !canonicalRoute || !entryRequestId || !Number.isFinite(issuedMs)) {
     return null;
   }
 
   const identity: VerifiedDiscoveryAttribution = {
     entryRequestId,
-    businessSlug,
+    entitySlug,
+    ...(parsed.entityType === "public_profile"
+      ? { profileSlug: profileSlug || entitySlug }
+      : { businessSlug: businessSlug || entitySlug }),
     entityType: parsed.entityType,
     canonicalRoute,
     issuedAt: new Date(issuedMs).toISOString(),
@@ -107,8 +125,10 @@ export function verifyDiscoveryAttributionToken(
   if (issuedMs > now + MAX_CLOCK_SKEW_MS || now - issuedMs > MAX_TOKEN_AGE_MS) return null;
 
   if (
+    (expected?.entitySlug && identity.entitySlug !== expected.entitySlug.trim().toLowerCase()) ||
     (expected?.businessSlug &&
       identity.businessSlug !== expected.businessSlug.trim().toLowerCase()) ||
+    (expected?.profileSlug && identity.profileSlug !== expected.profileSlug.trim().toLowerCase()) ||
     (expected?.entityType && identity.entityType !== expected.entityType) ||
     (expected?.canonicalRoute && identity.canonicalRoute !== expected.canonicalRoute)
   ) {

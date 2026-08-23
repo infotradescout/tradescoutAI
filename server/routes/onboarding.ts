@@ -16,6 +16,10 @@ import {
   type OnboardingClaimType,
   type OnboardingLane,
 } from "../services/onboardingService";
+import {
+  persistAcquisitionActivationEventOnce,
+  recordServerConfirmedActivation,
+} from "../services/acquisitionMeasurement";
 
 const router = Router();
 
@@ -281,6 +285,22 @@ router.post("/api/onboarding/complete", async (req, res) => {
       next: parsed.next,
       business: parsed.business,
     });
+    if (result.kind !== "business_claim_required") {
+      try {
+        await recordServerConfirmedActivation({
+          req,
+          userId,
+          activationKind: result.kind,
+          resultClass:
+            result.kind === "business_profile" ? "public_profile_ready" : "guided_result_ready",
+          persistEventOnce: persistAcquisitionActivationEventOnce,
+        });
+      } catch (measurementError) {
+        // Canonical onboarding outcome is already committed. Measurement must
+        // never turn that successful activation into an HTTP failure.
+        console.error("[acquisition] Activation measurement failed soft", measurementError);
+      }
+    }
     return res.json({ success: true, result });
   } catch (error) {
     if (

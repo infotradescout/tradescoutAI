@@ -181,4 +181,31 @@ describe("WholesalerProfileTheme lux fail-closed", () => {
     expect(container.textContent).not.toContain("Browse full inventory");
     expect(container.textContent).not.toContain("Trap Stone");
   });
+
+  it("records the anonymous account-create action before the real pre-scout navigation", () => {
+    const onAccountCreate = vi.fn();
+    const onDirectConnect = vi.fn();
+
+    act(() => {
+      root.render(
+        <WholesalerProfileTheme
+          {...baseProps}
+          profileSlug="example-business"
+          displayName="Example Business"
+          contentBlocks={[]}
+          useExpressDirectConnect={false}
+          onDirectConnect={onDirectConnect}
+          onAccountCreate={onAccountCreate}
+        />
+      );
+    });
+
+    const accountCreateButton = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("button")
+    ).find((button) => button.textContent?.trim() === "Direct Connect");
+    expect(accountCreateButton).toBeTruthy();
+    act(() => accountCreateButton?.click());
+    expect(onDirectConnect).toHaveBeenCalledTimes(1);
+    expect(onAccountCreate).toHaveBeenCalledTimes(1);
+  });
 });

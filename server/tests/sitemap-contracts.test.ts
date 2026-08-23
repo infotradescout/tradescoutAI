@@ -9,9 +9,7 @@ const read = (relativePath: string) => {
 
 const expectedSitemapLocs = [
   "https://www.thetradescout.com/sitemap-core.xml",
-  "https://www.thetradescout.com/sitemap-u-profiles.xml",
-  "https://www.thetradescout.com/sitemap-business-profiles.xml",
-  "https://www.thetradescout.com/sitemap-directory-businesses.xml",
+  "https://www.thetradescout.com/sitemap-profiles.xml",
   "https://www.thetradescout.com/sitemap-homescout-counties.xml",
   "https://www.thetradescout.com/sitemap-homescout-listings.xml",
   "https://www.thetradescout.com/sitemap-tradepartners.xml",
@@ -20,55 +18,51 @@ const expectedSitemapLocs = [
   "https://www.thetradescout.com/sitemap-directory-trades.xml",
   "https://www.thetradescout.com/sitemap-directory-cities.xml",
   "https://www.thetradescout.com/sitemap-directory-trade-cities.xml",
-  "https://www.thetradescout.com/sitemap-best-pages.xml",
-  "https://www.thetradescout.com/sitemap-recent-activity.xml",
-  "https://www.thetradescout.com/sitemap-exchange-listings.xml",
 ];
 
-const restoredPublicDetailSitemapLocs = [
+const retiredOrDataDependentSitemapLocs = [
+  "https://www.thetradescout.com/sitemap-business-profiles.xml",
+  "https://www.thetradescout.com/sitemap-recent-activity.xml",
+  "https://www.thetradescout.com/sitemap-exchange-listings.xml",
   "https://www.thetradescout.com/sitemap-handmade-products.xml",
   "https://www.thetradescout.com/sitemap-profile-service-offers.xml",
+  "https://www.thetradescout.com/sitemap-best-pages.xml",
 ];
 
 const expectedStaticPublicRoutes = [
   "https://www.thetradescout.com/",
-  "https://www.thetradescout.com/jw-stone",
-  "https://www.thetradescout.com/direct-connect",
-  "https://www.thetradescout.com/community",
-  "https://www.thetradescout.com/how-it-works",
-  "https://www.thetradescout.com/trade-up-for-trade-schools",
-  "https://www.thetradescout.com/trust-model",
-  "https://www.thetradescout.com/direct-connect-info",
-  "https://www.thetradescout.com/compare",
-  "https://www.thetradescout.com/compare/home-services",
-  "https://www.thetradescout.com/compare/real-estate",
-  "https://www.thetradescout.com/compare/community",
-  "https://www.thetradescout.com/compare/local-business",
-  "https://www.thetradescout.com/compare/coordination",
-  "https://www.thetradescout.com/compare/lead-generation",
-  "https://www.thetradescout.com/privacy",
-  "https://www.thetradescout.com/compliance",
+  "https://www.thetradescout.com/datasets",
+  "https://www.thetradescout.com/datasets/trades",
+  "https://www.thetradescout.com/datasets/counties",
+  "https://www.thetradescout.com/datasets/cities",
 ];
 
 describe("sitemap contracts", () => {
-  it("dynamic sitemap index includes the crawler-facing directory, best, and recent feeds", () => {
+  it("dynamic sitemap index includes only the governed crawler-facing child indexes", () => {
     const source = read("server/routes/profiles.ts");
 
-    for (const loc of [...expectedSitemapLocs, ...restoredPublicDetailSitemapLocs]) {
+    for (const loc of expectedSitemapLocs) {
       expect(source).toContain(loc.replace("https://www.thetradescout.com", "${baseUrl}"));
     }
   });
 
-  it("submits restored public detail feeds through the advertised static sitemap index", () => {
+  it("does not advertise retired, empty, or QA-contaminated feeds", () => {
+    const dynamicIndex = read("server/routes/profiles.ts").slice(
+      read("server/routes/profiles.ts").indexOf('router.get("/sitemap.xml"'),
+      read("server/routes/profiles.ts").indexOf('router.get("/sitemap-core.xml"')
+    );
     const staticIndex = read("client/public/sitemap-index.xml");
     const generator = read("scripts/generate-sitemap.mjs");
     const guard = read("scripts/guard-sitemap-integrity.mjs");
 
-    for (const loc of restoredPublicDetailSitemapLocs) {
-      expect(staticIndex).toContain(`<loc>${loc}</loc>`);
+    for (const loc of retiredOrDataDependentSitemapLocs) {
+      expect(dynamicIndex).not.toContain(
+        `<loc>${loc.replace("https://www.thetradescout.com", "${baseUrl}")}</loc>`
+      );
+      expect(staticIndex).not.toContain(`<loc>${loc}</loc>`);
       const target = loc.replace("https://www.thetradescout.com", "");
-      expect(generator).toContain(`'${target}'`);
-      expect(guard).toContain(`"${target.slice(1)}"`);
+      expect(generator).not.toContain(`'${target}'`);
+      expect(guard).not.toContain(`"${target.slice(1)}"`);
     }
   });
 
@@ -84,6 +78,7 @@ describe("sitemap contracts", () => {
     expect(source).toContain("buildOptInProfileSitemapUrls({");
     expect(source).toContain("profileUrl: profileLoc");
     expect(source).toContain("if (args.linkedProfile?.isPublic)");
+    expect(source).toContain("return null;");
     expect(source).toContain("if (target.customDomain) return null");
     expect(source).toContain("return `${baseUrl}/u/${encodeURIComponent(target.profileSlug)}`");
     expect(source).toContain(
@@ -122,7 +117,7 @@ describe("sitemap contracts", () => {
     expect(source).toContain("businessSlugs ? [businessSlugs] : []");
   });
 
-  it("selects one newest public linked profile and preserves private-linked business pages", () => {
+  it("assigns public linked profiles to the /u feed and preserves private-linked business pages", () => {
     const sitemapSource = read("server/routes/profiles.ts");
     const serverIndex = read("server/index.ts");
     const canonicalRoute = read("server/services/canonicalBusinessProfileRoute.ts");
@@ -133,13 +128,15 @@ describe("sitemap contracts", () => {
     expect(sitemapSource).toContain("p.created_at DESC NULLS LAST");
     expect(sitemapSource).toContain("p.slug ASC");
     expect(sitemapSource).toContain("if (args.linkedProfile?.isPublic)");
+    expect(sitemapSource).toContain("return null;");
     expect(sitemapSource).toContain(
       "return `${args.baseUrl}/business/${encodeURIComponent(args.businessSlug)}`"
     );
 
     expect(serverIndex).toContain("resolveCanonicalBusinessProfileRoute(slug)");
+    expect(serverIndex).toContain("throw redirectCheckErr;");
     expect(canonicalRoute).toContain(".innerJoin(users, eq(users.id, profiles.ownerUserId))");
-    expect(canonicalRoute).toContain("canExposePublishedProfilePublicly({");
+    expect(canonicalRoute).toContain("canDiscoverPublishedProfilePublicly({");
     expect(canonicalRoute).toContain("profileId: profiles.id");
     expect(canonicalRoute).toContain("${profiles.updatedAt} DESC NULLS LAST");
     expect(canonicalRoute).toContain("${profiles.createdAt} DESC NULLS LAST");
@@ -224,13 +221,24 @@ describe("sitemap contracts", () => {
   it("trade navigation sitemap is driven by indexed snapshot coverage, not every trade/state combo", () => {
     const source = read("server/routes/profiles.ts");
 
-    expect(source).toContain("ensureSeoDirectoryScopeSnapshotTables()");
+    expect(source).not.toContain("ensureSeoDirectoryScopeSnapshotTables()");
+    expect(source).not.toContain("ensureTradePartnerTables()");
+    expect(source).toContain("assertSeoDirectorySnapshotReady()");
     expect(source).toContain("with trade_state_pairs as (");
     expect(source).toContain("from ts_seo_trade_county_pages");
     expect(source).toContain("from ts_seo_trade_city_pages");
-    expect(source).toContain(
-      "activeTradeSlugs.length > 0 ? activeTradeSlugs : PRIMARY_TRADE_SLUGS"
-    );
+    expect(source).toContain("...activeTradeSlugs.map((tradeSlug)");
+    expect(source).not.toContain("PRIMARY_TRADE_SLUGS");
     expect(source).not.toContain("PRIMARY_TRADE_SLUGS.flatMap");
+  });
+
+  it("retires verified-only best feeds until the snapshot carries verified scope counts", () => {
+    const source = read("server/routes/profiles.ts");
+    const retirement = source.indexOf("const RETIRED_BEST_SITEMAP_ROUTES");
+    const legacyHandler = source.indexOf('router.get("/sitemap-best-pages.xml"');
+    expect(retirement).toBeGreaterThan(-1);
+    expect(retirement).toBeLessThan(legacyHandler);
+    expect(source.slice(retirement, legacyHandler)).toContain("res.status(410)");
+    expect(source.slice(retirement, legacyHandler)).toContain('"X-Robots-Tag", "noindex"');
   });
 });

@@ -416,6 +416,7 @@ export default function TradeScoutLandingPage() {
           <a href={directConnectHref}>Direct Connect</a>
           <a href="/community-feed">Open Community</a>
           <a href="/find-local-businesses">Businesses</a>
+          <a href="/trade">Trades</a>
           <a href="/pricing">Pricing</a>
         </nav>
       </footer>

@@ -50,12 +50,10 @@ describe("trade county page SEO contract", () => {
     expect(tradeCountyPage.toLowerCase()).not.toContain("platform for contractors only");
   });
 
-  it("keeps thin and error states protected with noindex", () => {
-    expect(tradeCountyPage).toContain(
-      "const shouldNoIndex = !isLoading && (isError || items.length === 0)"
-    );
-    expect(tradeCountyPage).toContain("noIndex={shouldNoIndex}");
-    expect(tradeCountyPage).toContain("noIndex");
+  it("noindexes only authoritative empty data and preserves SSR robots on transient states", () => {
+    expect(tradeCountyPage).toContain("getDiscoveryScopeRobotsDecision");
+    expect(tradeCountyPage).toContain("noIndex={robotsDecision.noIndex}");
+    expect(tradeCountyPage).toContain("preserveRobots={robotsDecision.preserveRobots}");
   });
 
   it("blocks chatbot, lead-selling, pay-to-play, and internal architecture framing on TradeCountyPage", () => {

@@ -8,18 +8,14 @@ const read = (relativePath: string) => {
 };
 
 describe("trade seo resilience contracts", () => {
-  it("trade directory city/county pages noindex thin or error states", () => {
+  it("trade directory city/county pages preserve SSR robots until authoritative success", () => {
     const countyPage = read("client/src/pages/trade/TradeCountyPage.tsx");
     const cityPage = read("client/src/pages/trade/TradeCityPage.tsx");
 
-    expect(countyPage).toContain(
-      "const shouldNoIndex = !isLoading && (isError || items.length === 0)"
-    );
-    expect(countyPage).toContain("noIndex={shouldNoIndex}");
-    expect(cityPage).toContain(
-      "const shouldNoIndex = !isLoading && (isError || counties.length === 0)"
-    );
-    expect(cityPage).toContain("noIndex={shouldNoIndex}");
+    expect(countyPage).toContain("getDiscoveryScopeRobotsDecision");
+    expect(countyPage).toContain("preserveRobots={robotsDecision.preserveRobots}");
+    expect(cityPage).toContain("getDiscoveryScopeRobotsDecision");
+    expect(cityPage).toContain("preserveRobots={robotsDecision.preserveRobots}");
   });
 
   it("trade seo title conventions match acquisition templates", () => {
@@ -38,7 +34,7 @@ describe("trade seo resilience contracts", () => {
     );
   });
 
-  it("sitemap routes fail open to xml fallback rather than 500", () => {
+  it("sitemap routes fail retryably to XML 503 rather than authoritative empty", () => {
     const profilesRoutes = read("server/routes/profiles.ts");
     expect(profilesRoutes).toContain("function sendSitemapFallback");
     expect(profilesRoutes).toContain('sendSitemapFallback(res, "index")');

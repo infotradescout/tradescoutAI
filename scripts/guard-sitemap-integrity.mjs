@@ -28,9 +28,7 @@ if (matches.length === 0) {
 
 const runtimeGenerated = new Set([
   "sitemap-core.xml",
-  "sitemap-u-profiles.xml",
-  "sitemap-business-profiles.xml",
-  "sitemap-directory-businesses.xml",
+  "sitemap-profiles.xml",
   "sitemap-homescout-counties.xml",
   "sitemap-homescout-listings.xml",
   "sitemap-tradepartners.xml",
@@ -39,11 +37,6 @@ const runtimeGenerated = new Set([
   "sitemap-directory-trades.xml",
   "sitemap-directory-cities.xml",
   "sitemap-directory-trade-cities.xml",
-  "sitemap-best-pages.xml",
-  "sitemap-recent-activity.xml",
-  "sitemap-exchange-listings.xml",
-  "sitemap-handmade-products.xml",
-  "sitemap-profile-service-offers.xml",
 ]);
 
 const missing = matches.filter(

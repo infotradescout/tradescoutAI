@@ -387,6 +387,7 @@ export async function setupAuth(app: Express) {
               let user = await storage.getUserByFacebookId(profile.id);
 
               if (user) {
+                (user as any)._wasNewSocialUser = false;
                 return done(null, user);
               }
 
@@ -394,10 +395,18 @@ export async function setupAuth(app: Express) {
               if (email) {
                 user = await storage.getUserByEmail(email);
                 if (user) {
-                  await storage.updateUser(user.id, {
+                  const updates: Partial<User> = {
                     facebookId: profile.id,
                     profileImageUrl: profile.photos?.[0]?.value,
-                  });
+                  };
+                  if (!user.provider) {
+                    updates.provider = "facebook";
+                  }
+                  if (!user.providerId && (!user.provider || user.provider === "facebook")) {
+                    updates.providerId = profile.id;
+                  }
+                  user = (await storage.updateUser(user.id, updates)) || user;
+                  (user as any)._wasNewSocialUser = false;
                   return done(null, user);
                 }
               }
@@ -408,6 +417,8 @@ export async function setupAuth(app: Express) {
                 lastName: profile.name?.familyName || "",
                 profileImageUrl: profile.photos?.[0]?.value,
                 facebookId: profile.id,
+                provider: "facebook",
+                providerId: profile.id,
                 role: null,
                 // Email verification must be completed via the in-product workflow,
                 // regardless of signup method (local or OAuth).
@@ -417,6 +428,7 @@ export async function setupAuth(app: Express) {
                 updatedAt: new Date(),
               });
 
+              (newUser as any)._wasNewSocialUser = true;
               return done(null, newUser);
             } catch (error) {
               return done(error);

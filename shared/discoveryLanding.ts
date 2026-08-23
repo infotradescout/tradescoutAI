@@ -4,50 +4,173 @@
  */
 
 export const DISCOVERY_LANDING_EVENT = "discovery_landing" as const;
+export const PUBLIC_PROFILE_DISCOVERY_EVENT = "public_profile_discovered" as const;
+export const PUBLIC_PROFILE_CTA_EVENT = "public_profile_cta" as const;
 
-export type DiscoveryLandingEntityType = "business_marketplace" | "business_profile";
+export const PUBLIC_PROFILE_CTA_KINDS = [
+  "direct_connect",
+  "account_create",
+  "business_claim",
+  "booking_request",
+] as const;
+
+export type PublicProfileCtaKind = (typeof PUBLIC_PROFILE_CTA_KINDS)[number];
+
+export type DiscoveryLandingEntityType =
+  | "business_marketplace"
+  | "business_profile"
+  | "public_profile";
 
 export type VerifiedDiscoveryAttribution = {
   entryRequestId: string;
-  businessSlug: string;
+  entitySlug: string;
+  businessSlug?: string;
+  profileSlug?: string;
   entityType: DiscoveryLandingEntityType;
   canonicalRoute: string;
   issuedAt: string;
 };
 
 const MAX_ROUTE_LENGTH = 120;
-const MAX_HINT_LENGTH = 64;
 const MAX_HOST_LENGTH = 253;
-const MAX_ANON_LENGTH = 128;
 const MAX_BUSINESS_SLUG_LENGTH = 64;
 const MAX_REQUEST_ID_LENGTH = 128;
 const MAX_ATTRIBUTION_TOKEN_LENGTH = 4096;
 
-/** utm_source=chatgpt.com → chatgpt. Never claims search/crawler causation. */
+export type DiscoverySourceClass =
+  | "google"
+  | "bing"
+  | "chatgpt"
+  | "facebook"
+  | "linkedin"
+  | "newsletter"
+  | "direct"
+  | "other";
+
+export type DiscoveryReferrerClass =
+  | "google"
+  | "bing"
+  | "chatgpt"
+  | "facebook"
+  | "linkedin"
+  | "search"
+  | "ai"
+  | "social"
+  | "referral";
+
+const SOURCE_CLASS_ALIASES: Readonly<Record<string, DiscoverySourceClass>> = {
+  google: "google",
+  "google.com": "google",
+  googleads: "google",
+  google_ads: "google",
+  adwords: "google",
+  bing: "bing",
+  "bing.com": "bing",
+  microsoft: "bing",
+  chatgpt: "chatgpt",
+  "chatgpt.com": "chatgpt",
+  openai: "chatgpt",
+  "openai.com": "chatgpt",
+  facebook: "facebook",
+  "facebook.com": "facebook",
+  fb: "facebook",
+  instagram: "facebook",
+  "instagram.com": "facebook",
+  meta: "facebook",
+  linkedin: "linkedin",
+  "linkedin.com": "linkedin",
+  newsletter: "newsletter",
+  email: "newsletter",
+  direct: "direct",
+  none: "direct",
+  other: "other",
+};
+
+/**
+ * Converts an untrusted UTM value to a fixed source vocabulary. Unknown,
+ * contact-like, and stable-identifier values are bucketed as `other`; the raw
+ * value is never returned or persisted.
+ */
 export function normalizeDiscoverySourceHint(raw: unknown): string | undefined {
   const value = String(raw ?? "")
     .trim()
     .toLowerCase();
   if (!value) return undefined;
-  if (value === "chatgpt.com" || value === "chatgpt") return "chatgpt";
-  if (!/^[a-z0-9][a-z0-9._-]{0,63}$/i.test(value)) return undefined;
-  return value.slice(0, MAX_HINT_LENGTH);
+  return SOURCE_CLASS_ALIASES[value] || "other";
 }
 
-/** Persist referrer host only — never full referrer URL. */
-export function normalizeReferrerHost(raw: unknown): string | undefined {
+function hostMatches(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
+/**
+ * Converts an untrusted referrer to a fixed family. It never returns the raw
+ * host, subdomain, path, query, or fragment, keeping event cardinality bounded.
+ */
+export function normalizeDiscoveryReferrerClass(raw: unknown): DiscoveryReferrerClass | undefined {
   const value = String(raw ?? "").trim();
   if (!value) return undefined;
+  const finiteClass = value.toLowerCase();
+  if (
+    finiteClass === "google" ||
+    finiteClass === "bing" ||
+    finiteClass === "chatgpt" ||
+    finiteClass === "facebook" ||
+    finiteClass === "linkedin" ||
+    finiteClass === "search" ||
+    finiteClass === "ai" ||
+    finiteClass === "social" ||
+    finiteClass === "referral"
+  ) {
+    return finiteClass;
+  }
   try {
     const url = value.includes("://") ? new URL(value) : new URL(`https://${value}`);
     const host = url.hostname.toLowerCase();
     if (!host || host.length > MAX_HOST_LENGTH) return undefined;
     if (!/^[a-z0-9.-]+$/i.test(host)) return undefined;
-    return host;
+    if (hostMatches(host, "google.com") || /^google\.[a-z.]{2,12}$/.test(host)) {
+      return "google";
+    }
+    if (hostMatches(host, "bing.com")) return "bing";
+    if (hostMatches(host, "chatgpt.com") || hostMatches(host, "openai.com")) {
+      return "chatgpt";
+    }
+    if (hostMatches(host, "facebook.com") || hostMatches(host, "instagram.com")) {
+      return "facebook";
+    }
+    if (hostMatches(host, "linkedin.com")) return "linkedin";
+    if (
+      hostMatches(host, "duckduckgo.com") ||
+      hostMatches(host, "yahoo.com") ||
+      hostMatches(host, "search.brave.com")
+    ) {
+      return "search";
+    }
+    if (
+      hostMatches(host, "perplexity.ai") ||
+      hostMatches(host, "claude.ai") ||
+      hostMatches(host, "gemini.google.com") ||
+      hostMatches(host, "copilot.microsoft.com")
+    ) {
+      return "ai";
+    }
+    if (
+      hostMatches(host, "x.com") ||
+      hostMatches(host, "twitter.com") ||
+      hostMatches(host, "t.co") ||
+      hostMatches(host, "reddit.com")
+    ) {
+      return "social";
+    }
+    return "referral";
   } catch {
     return undefined;
   }
 }
+
+/** @deprecated New acquisition events persist only the finite referrer class. */
+export const normalizeReferrerHost = normalizeDiscoveryReferrerClass;
 
 export function normalizeDiscoveryCanonicalRoute(raw: unknown): string | undefined {
   const pathOnly = String(raw ?? "")
@@ -72,6 +195,9 @@ export function normalizeDiscoveryBusinessSlug(raw: unknown): string | undefined
   }
   return value;
 }
+
+export const normalizeDiscoveryEntitySlug = normalizeDiscoveryBusinessSlug;
+export const normalizeDiscoveryProfileSlug = normalizeDiscoveryBusinessSlug;
 
 export function normalizeDiscoveryEntryRequestId(raw: unknown): string | undefined {
   const value = String(raw ?? "").trim();
@@ -127,14 +253,23 @@ export function normalizeDiscoveryAttributionToken(raw: unknown): string | undef
 export function isValidDiscoveryAttributionIdentity(
   identity: VerifiedDiscoveryAttribution
 ): boolean {
-  const businessSlug = normalizeDiscoveryBusinessSlug(identity.businessSlug);
+  const entitySlug = normalizeDiscoveryEntitySlug(identity.entitySlug);
   const canonicalRoute = normalizeDiscoveryCanonicalRoute(identity.canonicalRoute);
   const entryRequestId = normalizeDiscoveryEntryRequestId(identity.entryRequestId);
-  if (!businessSlug || !canonicalRoute || !entryRequestId) return false;
+  if (!entitySlug || !canonicalRoute || !entryRequestId) return false;
   if (!isPublicBusinessRoute(canonicalRoute)) return false;
 
-  const routeBusinessSlug = businessSlugFromPublicRoute(canonicalRoute);
-  if (routeBusinessSlug && routeBusinessSlug !== businessSlug) return false;
+  const routeEntitySlug = entitySlugFromPublicRoute(canonicalRoute);
+  if (routeEntitySlug && routeEntitySlug !== entitySlug) return false;
+
+  if (identity.entityType === "public_profile") {
+    return (
+      normalizeDiscoveryProfileSlug(identity.profileSlug) === entitySlug &&
+      !identity.businessSlug &&
+      /^\/u\/[^/]+$/i.test(canonicalRoute) &&
+      entitySlug !== "jw-stone"
+    );
+  }
 
   if (
     identity.entityType !== "business_marketplace" &&
@@ -142,9 +277,15 @@ export function isValidDiscoveryAttributionIdentity(
   ) {
     return false;
   }
+  if (
+    normalizeDiscoveryBusinessSlug(identity.businessSlug) !== entitySlug ||
+    identity.profileSlug
+  ) {
+    return false;
+  }
 
   const expectedEntityType =
-    businessSlug === "jw-stone" &&
+    entitySlug === "jw-stone" &&
     (canonicalRoute === "/" ||
       canonicalRoute === "/jw-stone" ||
       canonicalRoute.startsWith("/jw-stone/") ||
@@ -155,6 +296,14 @@ export function isValidDiscoveryAttributionIdentity(
       ? "business_marketplace"
       : "business_profile";
   return identity.entityType === expectedEntityType;
+}
+
+function verifiedDiscoveryIdentityFields(
+  attribution: VerifiedDiscoveryAttribution
+): Record<string, string> {
+  return attribution.entityType === "public_profile"
+    ? { entitySlug: attribution.entitySlug, profileSlug: attribution.profileSlug || "" }
+    : { entitySlug: attribution.entitySlug, businessSlug: attribution.businessSlug || "" };
 }
 
 /**
@@ -178,14 +327,20 @@ export function sanitizeDiscoveryLandingEvent(
 
   // These are client consistency hints only. They may be compared to the
   // signed envelope, but never become the stored identity fields.
+  const claimedEntitySlug = normalizeDiscoveryEntitySlug(event.entitySlug);
   const claimedBusinessSlug = normalizeDiscoveryBusinessSlug(event.businessSlug);
+  const claimedProfileSlug = normalizeDiscoveryProfileSlug(event.profileSlug);
   const claimedEntityType = String(event.entityType ?? "").trim();
   const claimedCanonicalRoute = normalizeDiscoveryCanonicalRoute(
     event.canonicalRoute ?? event.route
   );
   if (
+    (Object.prototype.hasOwnProperty.call(event, "entitySlug") &&
+      claimedEntitySlug !== verifiedAttribution.entitySlug) ||
     (Object.prototype.hasOwnProperty.call(event, "businessSlug") &&
       claimedBusinessSlug !== verifiedAttribution.businessSlug) ||
+    (Object.prototype.hasOwnProperty.call(event, "profileSlug") &&
+      claimedProfileSlug !== verifiedAttribution.profileSlug) ||
     (Object.prototype.hasOwnProperty.call(event, "entityType") &&
       claimedEntityType !== verifiedAttribution.entityType) ||
     (Object.prototype.hasOwnProperty.call(event, "canonicalRoute") &&
@@ -199,9 +354,10 @@ export function sanitizeDiscoveryLandingEvent(
 
   const safe: Record<string, unknown> = {
     type: DISCOVERY_LANDING_EVENT,
+    serverVerified: true,
     canonicalRoute: verifiedAttribution.canonicalRoute,
     entityType: verifiedAttribution.entityType,
-    businessSlug: verifiedAttribution.businessSlug,
+    ...verifiedDiscoveryIdentityFields(verifiedAttribution),
     entryRequestId: verifiedAttribution.entryRequestId,
     ts: verifiedAttribution.issuedAt,
   };
@@ -211,25 +367,93 @@ export function sanitizeDiscoveryLandingEvent(
   );
   if (sourceHint) safe.sourceHint = sourceHint;
 
-  const referrerHost = normalizeReferrerHost(event.referrerHost ?? event.referrer);
-  if (referrerHost) safe.referrerHost = referrerHost;
+  const referrerClass = normalizeDiscoveryReferrerClass(
+    event.referrerClass ?? event.referrerHost ?? event.referrer
+  );
+  if (referrerClass) safe.referrerClass = referrerClass;
 
-  const anon =
-    typeof opts?.anonymousSessionId === "string" && opts.anonymousSessionId.trim()
-      ? opts.anonymousSessionId.trim()
-      : typeof event.anonymousSessionId === "string"
-        ? event.anonymousSessionId.trim()
-        : "";
-  if (anon && anon.length <= MAX_ANON_LENGTH && /^[A-Za-z0-9._:-]+$/.test(anon)) {
-    safe.anonymousSessionId = anon.slice(0, MAX_ANON_LENGTH);
+  return safe;
+}
+
+export const entitySlugFromPublicRoute = businessSlugFromPublicRoute;
+
+/**
+ * Allowlisted public-profile CTA milestone. Identity always comes from the
+ * signed discovery envelope; client-provided identity is consistency-only.
+ * Raw URLs, labels, text, user-agent, IP, and arbitrary action names are never
+ * persisted through this contract.
+ */
+export function sanitizePublicProfileCtaEvent(
+  event: Record<string, unknown>,
+  opts?: {
+    anonymousSessionId?: string | null;
+    verifiedAttribution?: VerifiedDiscoveryAttribution | null;
+    observedAt?: string;
   }
+): Record<string, unknown> | null {
+  if (!event || typeof event !== "object" || event.type !== PUBLIC_PROFILE_CTA_EVENT) {
+    return null;
+  }
+
+  const verifiedAttribution = opts?.verifiedAttribution;
+  if (
+    !verifiedAttribution ||
+    !isValidDiscoveryAttributionIdentity(verifiedAttribution) ||
+    verifiedAttribution.entityType === "business_marketplace"
+  ) {
+    return null;
+  }
+
+  const ctaKind = String(event.ctaKind ?? "").trim() as PublicProfileCtaKind;
+  if (!PUBLIC_PROFILE_CTA_KINDS.includes(ctaKind)) return null;
+
+  const claimedEntitySlug = normalizeDiscoveryEntitySlug(event.entitySlug);
+  const claimedBusinessSlug = normalizeDiscoveryBusinessSlug(event.businessSlug);
+  const claimedProfileSlug = normalizeDiscoveryProfileSlug(event.profileSlug);
+  const claimedEntityType = String(event.entityType ?? "").trim();
+  const claimedCanonicalRoute = normalizeDiscoveryCanonicalRoute(
+    event.canonicalRoute ?? event.route
+  );
+  if (
+    (Object.prototype.hasOwnProperty.call(event, "entitySlug") &&
+      claimedEntitySlug !== verifiedAttribution.entitySlug) ||
+    (Object.prototype.hasOwnProperty.call(event, "businessSlug") &&
+      claimedBusinessSlug !== verifiedAttribution.businessSlug) ||
+    (Object.prototype.hasOwnProperty.call(event, "profileSlug") &&
+      claimedProfileSlug !== verifiedAttribution.profileSlug) ||
+    (Object.prototype.hasOwnProperty.call(event, "entityType") &&
+      claimedEntityType !== verifiedAttribution.entityType) ||
+    (Object.prototype.hasOwnProperty.call(event, "canonicalRoute") &&
+      claimedCanonicalRoute !== verifiedAttribution.canonicalRoute) ||
+    (Object.prototype.hasOwnProperty.call(event, "route") &&
+      claimedCanonicalRoute !== verifiedAttribution.canonicalRoute) ||
+    Object.prototype.hasOwnProperty.call(event, "entryRequestId")
+  ) {
+    return null;
+  }
+
+  const observedAtMs = Date.parse(String(opts?.observedAt || ""));
+  const safe: Record<string, unknown> = {
+    type: PUBLIC_PROFILE_CTA_EVENT,
+    serverVerified: true,
+    ctaKind,
+    canonicalRoute: verifiedAttribution.canonicalRoute,
+    entityType: verifiedAttribution.entityType,
+    ...verifiedDiscoveryIdentityFields(verifiedAttribution),
+    entryRequestId: verifiedAttribution.entryRequestId,
+    ts: Number.isFinite(observedAtMs)
+      ? new Date(observedAtMs).toISOString()
+      : new Date().toISOString(),
+  };
 
   return safe;
 }
 
 export function buildClientDiscoveryLandingPayload(args: {
   canonicalRoute: string;
-  businessSlug: string;
+  entitySlug?: string;
+  businessSlug?: string;
+  profileSlug?: string;
   entityType: DiscoveryLandingEntityType;
   discoveryAttributionToken: string;
   searchParams?: URLSearchParams | { get: (key: string) => string | null };
@@ -241,6 +465,9 @@ export function buildClientDiscoveryLandingPayload(args: {
     args.searchParams && typeof args.searchParams.get === "function"
       ? args.searchParams.get("utm_source")
       : null;
+  const entitySlug = normalizeDiscoveryEntitySlug(
+    args.entitySlug || args.profileSlug || args.businessSlug
+  );
 
   return {
     type: DISCOVERY_LANDING_EVENT,
@@ -248,11 +475,38 @@ export function buildClientDiscoveryLandingPayload(args: {
     // identity from the verified token, never from these client fields.
     canonicalRoute: args.canonicalRoute,
     entityType: args.entityType,
-    businessSlug: args.businessSlug,
+    entitySlug,
+    ...(args.entityType === "public_profile"
+      ? { profileSlug: normalizeDiscoveryProfileSlug(args.profileSlug || entitySlug) }
+      : { businessSlug: normalizeDiscoveryBusinessSlug(args.businessSlug || entitySlug) }),
     discoveryAttributionToken: normalizeDiscoveryAttributionToken(args.discoveryAttributionToken),
     ts: args.ts || new Date().toISOString(),
     sourceHint: normalizeDiscoverySourceHint(utmSource),
-    referrerHost: normalizeReferrerHost(args.referrer),
-    anonymousSessionId: args.anonymousSessionId || undefined,
+    referrerClass: normalizeDiscoveryReferrerClass(args.referrer),
+  };
+}
+
+export function buildClientPublicProfileCtaPayload(args: {
+  ctaKind: PublicProfileCtaKind;
+  canonicalRoute: string;
+  entitySlug?: string;
+  businessSlug?: string;
+  profileSlug?: string;
+  entityType: DiscoveryLandingEntityType;
+  discoveryAttributionToken: string;
+}): Record<string, unknown> {
+  const entitySlug = normalizeDiscoveryEntitySlug(
+    args.entitySlug || args.profileSlug || args.businessSlug
+  );
+  return {
+    type: PUBLIC_PROFILE_CTA_EVENT,
+    ctaKind: args.ctaKind,
+    canonicalRoute: normalizeDiscoveryCanonicalRoute(args.canonicalRoute),
+    entityType: args.entityType,
+    entitySlug,
+    ...(args.entityType === "public_profile"
+      ? { profileSlug: normalizeDiscoveryProfileSlug(args.profileSlug || entitySlug) }
+      : { businessSlug: normalizeDiscoveryBusinessSlug(args.businessSlug || entitySlug) }),
+    discoveryAttributionToken: normalizeDiscoveryAttributionToken(args.discoveryAttributionToken),
   };
 }

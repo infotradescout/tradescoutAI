@@ -33,13 +33,13 @@ export default function BestTradeCountyPage() {
   const canonical = `https://www.thetradescout.com/best/${encodeURIComponent(
     tradeSlug || ""
   )}/${encodeURIComponent((stateCode || "").toLowerCase())}/${encodeURIComponent(countySlug || "")}`;
-
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <SEOHelmet
         title={title}
         description={data?.definition || "Verified listings in this scope."}
         canonical={canonical}
+        noIndex
       />
 
       <Card>

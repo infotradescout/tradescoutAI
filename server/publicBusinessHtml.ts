@@ -1,10 +1,10 @@
 import { storage } from "./storage";
 import { db } from "./db";
 import { counties, users } from "@shared/schema";
-import { eq, inArray } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { getTradeSeoMatch, slugifyCountyName } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
-import { isPublicAndCrawlableBusiness } from "@shared/publication";
+import { isPublicAndCrawlableBusinessDetail } from "@shared/publication";
 import {
   buildPublicBusinessSignals,
   canServePublicBusinessDetail,
@@ -14,6 +14,14 @@ import {
 import { formatTradeScoutTitle } from "@shared/brand";
 import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import { isPubliclyVerifiedProfileOwner } from "./services/ownerConfirmedDirectProfile";
+import { normalizePublicCitySlug } from "./seoDirectoryCitySlug";
+import {
+  buildPublicDirectoryProfile,
+  hasPublicDirectoryOfferingFacts,
+  orderPublicDirectoryCounties,
+  sanitizePublicDirectoryDisplayName,
+} from "./services/publicDirectoryBusinessPresentation";
+import { assertSeoDirectorySnapshotReady } from "./services/seoDirectoryNavigationService";
 
 type PublicBusinessHtmlOptions = {
   slug: string;
@@ -55,14 +63,6 @@ function injectFaviconOverride(html: string, imageUrl: string): string {
   return withoutIcons.replace("</head>", `${tag}\n</head>`);
 }
 
-function slugifyCityName(name: string): string {
-  return String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function injectJsonLd(html: string, jsonLd: object) {
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   const script = `<script type="application/ld+json">${json}</script>`;
@@ -74,11 +74,16 @@ function injectSummary(html: string, summaryHtml: string) {
 }
 
 function applyNoIndex(html: string) {
-  return upsertTag(
+  const noIndexHtml = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
     `<meta name="robots" content="noindex,nofollow" />`
   );
+  return noIndexHtml
+    .replace(/<meta name="tradescout-business-slug"[^>]*>\s*/gi, "")
+    .replace(/<meta name="tradescout-business-entity-type"[^>]*>\s*/gi, "")
+    .replace(/<meta name="tradescout-discovery-route"[^>]*>\s*/gi, "")
+    .replace(/<meta name="tradescout-discovery-attribution"[^>]*>\s*/gi, "");
 }
 
 function buildBusinessMeta(args: {
@@ -169,9 +174,15 @@ export async function buildPublicBusinessHtml({
   const safeSlug = String(slug || "").trim();
   if (!safeSlug) return null;
 
-  // First: published business profile (stored in user preferences for now).
+  // A canonical directory record wins any legacy preference-profile slug
+  // collision. The client uses the same precedence.
+  const directory = await storage.getBusinessBySlugPublic(safeSlug);
+
+  // Legacy preference-backed business profiles remain exact-link compatible,
+  // but are not part of the governed directory snapshot/crawl graph.
   const published = await storage.getBusinessProfileBySlug(safeSlug);
   if (
+    !directory &&
     published?.visibility === "public" &&
     isPubliclyVerifiedProfileOwner({
       ownerVerifiedBadge: published.verifiedBadge,
@@ -260,16 +271,10 @@ export async function buildPublicBusinessHtml({
 
     let html = templateHtml;
     html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
-    html = upsertTag(
-      html,
-      /<meta name="tradescout-business-slug"[^>]*>/i,
-      `<meta name="tradescout-business-slug" content="${escapeHtml(String(published.slug || safeSlug))}" />`
-    );
-    html = upsertTag(
-      html,
-      /<meta name="tradescout-business-entity-type"[^>]*>/i,
-      '<meta name="tradescout-business-entity-type" content="business_profile" />'
-    );
+    html = html
+      .replace(/<meta name="tradescout-business-slug"[^>]*>\s*/i, "")
+      .replace(/<meta name="tradescout-business-entity-type"[^>]*>\s*/i, "")
+      .replace(/<meta name="tradescout-discovery-route"[^>]*>\s*/i, "");
     html = upsertTag(
       html,
       /<meta name="description"[^>]*>/i,
@@ -283,7 +288,7 @@ export async function buildPublicBusinessHtml({
     html = upsertTag(
       html,
       /<meta name="robots"[^>]*>/i,
-      `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      `<meta name="robots" content="noindex,nofollow" />`
     );
     html = upsertTag(
       html,
@@ -387,7 +392,8 @@ export async function buildPublicBusinessHtml({
             countySlug
           )}`
         : "";
-    const citySlug = published.city && published.stateCode ? slugifyCityName(published.city) : "";
+    const citySlug =
+      published.city && published.stateCode ? normalizePublicCitySlug(published.city) : "";
     const cityHref =
       citySlug && published.stateCode
         ? `/city/${encodeURIComponent(published.stateCode.toLowerCase())}/${encodeURIComponent(
@@ -448,7 +454,7 @@ export async function buildPublicBusinessHtml({
       .filter(Boolean)
       .join(" ");
     const summary = `
-<main data-seo-business="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+<main data-seo-business="direct" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(published.name)}</h1>
     ${galleryMeta ? `<section data-seo-business-gallery="${escapeHtml(galleryMeta.itemSlug)}"><h2>${escapeHtml(galleryMeta.itemTitle)}</h2><p>${escapeHtml(galleryMeta.description)}</p></section>` : ""}
@@ -472,29 +478,57 @@ export async function buildPublicBusinessHtml({
   }
 
   // Second: directory/claimable business entry (businesses table).
-  const directory = await storage.getBusinessBySlugPublic(safeSlug);
   if (!directory || (directory as any).status !== ("active" as any)) return null;
 
   const profileData: any = (directory as any).profileData || {};
-  const tagline = typeof profileData.tagline === "string" ? profileData.tagline.trim() : "";
-  const description =
-    typeof profileData.description === "string" ? profileData.description.trim() : "";
-  const category = typeof profileData.category === "string" ? profileData.category.trim() : "";
-  const categories = category ? [category] : [];
-  const tradeMatch = category ? getTradeSeoMatch(category) : null;
-
-  const countyIds = await storage.getBusinessCountyIds(directory.id);
-  const countyRows = countyIds.length
-    ? await db
-        .select({
-          name: counties.name,
-          stateCode: counties.stateCode,
-        })
-        .from(counties)
-        .where(inArray(counties.id, countyIds))
+  const publicProfile = buildPublicDirectoryProfile(profileData);
+  await assertSeoDirectorySnapshotReady();
+  const snapshotResult = await db.execute(sql`
+    select
+      snapshot.business_id,
+      snapshot.display_name,
+      snapshot.trade_slug,
+      snapshot.primary_state_code,
+      snapshot.city_slug,
+      membership.is_primary,
+      county.id as county_id,
+      county.name as county_name,
+      county.state_code,
+      county.fips
+    from ts_seo_directory_business_pages snapshot
+    inner join ts_seo_directory_business_counties membership
+      on membership.business_id = snapshot.business_id
+    inner join counties county on county.id = membership.county_id
+    where snapshot.slug = ${safeSlug}
+    order by membership.is_primary desc, county.state_code, county.name, county.fips;
+  `);
+  const snapshotRows = Array.isArray((snapshotResult as any)?.rows)
+    ? (snapshotResult as any).rows
     : [];
+  const snapshotPublished =
+    snapshotRows.length > 0 &&
+    String(snapshotRows[0]?.business_id || "") === String((directory as any).id || "");
+  const publicName = snapshotPublished
+    ? String(snapshotRows[0]?.display_name || "Local business")
+    : sanitizePublicDirectoryDisplayName((directory as any).name || safeSlug);
+  const tagline = publicProfile.tagline || "";
+  const description = publicProfile.description || "";
+  const category = publicProfile.category || "";
+  const categories = category ? [category] : [];
+  const services = publicProfile.services;
+
+  const countyRows = snapshotRows.map((row: any) => ({
+    id: String(row.county_id || ""),
+    name: String(row.county_name || ""),
+    stateCode: String(row.state_code || "").toUpperCase(),
+    fips: String(row.fips || ""),
+  }));
   const countyNames = countyRows.map((row) => String(row.name || "")).filter(Boolean);
   const stateCode = countyRows[0]?.stateCode ? String(countyRows[0].stateCode) : null;
+  const city =
+    stateCode && publicProfile.stateCode === stateCode.trim().toUpperCase()
+      ? publicProfile.city || null
+      : null;
 
   const ownerUserId = (directory as any).ownerUserId
     ? String((directory as any).ownerUserId)
@@ -523,32 +557,40 @@ export async function buildPublicBusinessHtml({
     ownerVerificationStatus,
     ownerAddressVerified,
   });
-  const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+  const tradeSlug = deriveTradeSlugFromProfileData(publicProfile as any);
+  const tradeMatch = tradeSlug ? getTradeSeoMatch(tradeSlug) : null;
   const rules = await getPublicationRules();
-  const pub = isPublicAndCrawlableBusiness(
+  const pub = isPublicAndCrawlableBusinessDetail(
     buildPublicBusinessSignals({
       id: String((directory as any).id),
-      name: String((directory as any).name || ""),
+      name: publicName,
       slug: String((directory as any).slug || ""),
       updatedAt:
-        (directory as any).updatedAt instanceof Date ? (directory as any).updatedAt : new Date(),
+        (directory as any).updatedAt instanceof Date
+          ? (directory as any).updatedAt
+          : new Date(Number.NaN),
       publicDiscoveryEnabled: Boolean((directory as any).publicDiscoveryEnabled),
       stateCode,
       countyName: countyNames[0] || null,
-      city: typeof profileData.city === "string" ? profileData.city : null,
+      city,
       tradeSlug,
+      hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
       tier,
     }),
     rules,
     new Date()
   );
 
-  const isStale = !canServePublicBusinessDetail({ publication: pub, tier });
-  const verificationLabel = isStale ? "Inactive listing" : "Directory listing";
+  const isStale = !snapshotPublished || !canServePublicBusinessDetail({ publication: pub, tier });
+  const verificationLabel = isStale
+    ? "Inactive listing"
+    : tier === "verified"
+      ? "Professional Verified"
+      : "Unclaimed directory listing";
   const meta = buildBusinessMeta({
     origin,
     slug: safeSlug,
-    name: String((directory as any).name || safeSlug),
+    name: publicName,
     headline: isStale ? null : tagline || null,
     description: isStale
       ? "You're here early. This listing is being refreshed and will be back soon."
@@ -557,34 +599,28 @@ export async function buildPublicBusinessHtml({
     stateCode: isStale ? null : stateCode,
     categories: isStale ? [] : categories,
     serviceAreas: isStale ? [] : countyNames,
-    services: isStale ? [] : categories,
+    services: isStale ? [] : services,
     verificationLabel,
   });
 
   const jsonLd: any = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    name: String((directory as any).name || safeSlug),
+    name: publicName,
     description: meta.description,
     url: meta.canonical,
     category: categories.length ? categories : undefined,
+    makesOffer: services.length
+      ? services.slice(0, 12).map((service) => ({
+          "@type": "Offer",
+          itemOffered: { "@type": "Service", name: service },
+        }))
+      : undefined,
     areaServed: countyNames.slice(0, 12),
-    sameAs:
-      profileData.publicWebsiteEnabled === true &&
-      typeof profileData.website === "string" &&
-      profileData.website.trim()
-        ? [profileData.website.trim()]
-        : undefined,
-    hasCredential: {
-      "@type": "EducationalOccupationalCredential",
-      credentialCategory: "Verification",
-      name: verificationLabel,
-    },
     address: stateCode
       ? {
           "@type": "PostalAddress",
           addressRegion: stateCode,
-          addressLocality: countyNames[0] || undefined,
           addressCountry: "US",
         }
       : undefined,
@@ -606,6 +642,21 @@ export async function buildPublicBusinessHtml({
     html,
     /<meta name="robots"[^>]*>/i,
     `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta name="tradescout-business-slug"[^>]*>/i,
+    `<meta name="tradescout-business-slug" content="${escapeHtml(safeSlug)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta name="tradescout-business-entity-type"[^>]*>/i,
+    '<meta name="tradescout-business-entity-type" content="business_profile" />'
+  );
+  html = upsertTag(
+    html,
+    /<meta name="tradescout-discovery-route"[^>]*>/i,
+    `<meta name="tradescout-discovery-route" content="/business/${escapeHtml(safeSlug)}" />`
   );
   html = upsertTag(
     html,
@@ -654,6 +705,7 @@ export async function buildPublicBusinessHtml({
   );
 
   const categoriesSummary = categories.length ? categories.join(", ") : "";
+  const servicesSummary = services.length ? services.slice(0, 12).join(", ") : "";
   const areasSummary = countyNames.slice(0, 8).join(", ");
 
   const countySlug =
@@ -674,8 +726,8 @@ export async function buildPublicBusinessHtml({
           stateCode.toLowerCase()
         )}/${encodeURIComponent(countySlug)}`
       : "";
-  const rawCity = typeof profileData.city === "string" ? profileData.city.trim() : "";
-  const citySlug = rawCity && stateCode ? slugifyCityName(rawCity) : "";
+  const rawCity = city || "";
+  const citySlug = rawCity && stateCode ? normalizePublicCitySlug(rawCity) : "";
   const cityHref =
     citySlug && stateCode
       ? `/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(citySlug)}`
@@ -684,9 +736,10 @@ export async function buildPublicBusinessHtml({
   const summary = `
 <main data-seo-business="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
-    <h1>${escapeHtml(String((directory as any).name || safeSlug))}</h1>
+    <h1>${escapeHtml(publicName)}</h1>
     <p>${escapeHtml(meta.description)}</p>
     ${categoriesSummary ? `<p><strong>Category:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
+    ${servicesSummary ? `<p><strong>Services:</strong> ${escapeHtml(servicesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${cityHref ? `<p><a href="${cityHref}">Browse ${escapeHtml(rawCity)}</a></p>` : ""}
     ${
@@ -709,7 +762,7 @@ export async function buildPublicBusinessHtml({
     const staleSummary = `
 <main data-seo-business="stale" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
-    <h1>${escapeHtml(String((directory as any).name || safeSlug))}</h1>
+    <h1>${escapeHtml(publicName)}</h1>
     <p>You're here early. This listing is being refreshed and will be back soon.</p>
   </article>
 </main>`;

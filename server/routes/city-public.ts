@@ -1,10 +1,7 @@
 import { Router } from "express";
-import { and, asc, eq, or, sql } from "drizzle-orm";
-import { db } from "../db";
-import { businessCounties, businesses, counties, users } from "../../shared/schema";
-import { slugifyCountyName } from "../../shared/tradeSeo";
-import { getTradeSeoMatch } from "../../shared/tradeSeo";
-import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import { getTradeSeoMatch, normalizeTradeSlug, slugifyCountyName } from "../../shared/tradeSeo";
+import { isCanonicalPublicCitySlug, normalizePublicCitySlug } from "../seoDirectoryCitySlug";
+import { loadExactTradeCityCountyScopes } from "../services/publicTradeCityScopeService";
 
 const router = Router();
 
@@ -18,8 +15,7 @@ function normalizeStateCode(raw: unknown): string {
 }
 
 function normalizeCitySlug(raw: unknown): string {
-  const value = coerceString(raw).toLowerCase();
-  return /^[a-z0-9-]+$/.test(value) ? value : "";
+  return isCanonicalPublicCitySlug(raw) ? normalizePublicCitySlug(raw) : "";
 }
 
 function titleizeCitySlug(slug: string): string {
@@ -30,22 +26,6 @@ function titleizeCitySlug(slug: string): string {
   return cleaned.replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
-function buildTradeWhereClause(tradeRaw: unknown) {
-  const match = getTradeSeoMatch(tradeRaw);
-  if (!match) return null;
-  const patterns = match.keywords
-    .map((k) => String(k || "").trim())
-    .filter(Boolean)
-    .slice(0, 8)
-    .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
-  if (!patterns.length) return null;
-  return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
-}
-
 // Public (read-only): city → counties facet. This preserves "counties are operational containers"
 // by returning links/containers instead of a cross-county business list with actions.
 router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
@@ -54,30 +34,7 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
   try {
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
     if (!citySlug) return res.status(400).json({ message: "Invalid citySlug" });
-
-    const rows = await db
-      .select({
-        countyFips: counties.fips,
-        countyName: counties.name,
-        stateCode: counties.stateCode,
-        businessCount: sql<number>`count(*)`,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true),
-          publicBusinessDetailExposureSqlPredicate(),
-          eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`
-        )
-      )
-      .groupBy(counties.fips, counties.name, counties.stateCode)
-      .orderBy(asc(counties.name))
-      .limit(200);
+    const rows = await loadExactTradeCityCountyScopes({ stateCode, citySlug });
 
     const countiesOut = rows.map((r) => ({
       countyFips: String(r.countyFips),
@@ -98,14 +55,10 @@ router.get("/api/public/cities/:stateCode/:citySlug", async (req, res) => {
       counties: countiesOut,
     });
   } catch (error: any) {
-    console.warn("City facet degraded; returning empty result set", error);
-    res.json({
-      citySlug,
-      stateCode,
-      displayCity: titleizeCitySlug(citySlug),
-      counties: [],
-      degraded: true,
-    });
+    console.warn("City facet snapshot unavailable", error);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Retry-After", "300");
+    res.status(503).json({ message: "City directory temporarily unavailable" });
   }
 });
 
@@ -118,33 +71,14 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
     if (!citySlug) return res.status(400).json({ message: "Invalid citySlug" });
 
-    const tradeClause = buildTradeWhereClause(tradeSlug);
-    if (!tradeClause) return res.status(404).json({ message: "Trade not found" });
-
-    const rows = await db
-      .select({
-        countyFips: counties.fips,
-        countyName: counties.name,
-        stateCode: counties.stateCode,
-        businessCount: sql<number>`count(*)`,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true),
-          publicBusinessDetailExposureSqlPredicate(),
-          eq(counties.stateCode, stateCode),
-          sql`${sqlCitySlugExpr()} = ${citySlug}`,
-          tradeClause
-        )
-      )
-      .groupBy(counties.fips, counties.name, counties.stateCode)
-      .orderBy(asc(counties.name))
-      .limit(200);
+    const tradeMatch = getTradeSeoMatch(tradeSlug);
+    if (!tradeMatch) return res.status(404).json({ message: "Trade not found" });
+    const canonicalTradeSlug = normalizeTradeSlug(tradeMatch.canonicalSlug);
+    const rows = await loadExactTradeCityCountyScopes({
+      tradeSlug: canonicalTradeSlug,
+      stateCode,
+      citySlug,
+    });
 
     const countiesOut = rows.map((r) => ({
       countyFips: String(r.countyFips),
@@ -159,22 +93,17 @@ router.get("/api/public/trade-cities/:tradeSlug/:stateCode/:citySlug", async (re
     }));
 
     res.json({
-      tradeSlug,
+      tradeSlug: canonicalTradeSlug,
       stateCode,
       citySlug,
       displayCity: titleizeCitySlug(citySlug),
       counties: countiesOut,
     });
   } catch (error: any) {
-    console.warn("Trade-city facet degraded; returning empty result set", error);
-    res.json({
-      tradeSlug,
-      stateCode,
-      citySlug,
-      displayCity: titleizeCitySlug(citySlug),
-      counties: [],
-      degraded: true,
-    });
+    console.warn("Trade-city facet snapshot unavailable", error);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Retry-After", "300");
+    res.status(503).json({ message: "Trade-city directory temporarily unavailable" });
   }
 });
 

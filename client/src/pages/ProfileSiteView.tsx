@@ -101,6 +101,12 @@ import {
 import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
 import { sanitizePublicProfileText as sanitizePublicDiscoveryText } from "@shared/publicListingSafety";
 import {
+  appendDiscoveryAttributionHandoff,
+  getPublishedDiscoveryCanonicalRoute,
+  trackDiscoveryLandingOnce,
+  trackPublicProfileCtaOnce,
+} from "@/lib/discoveryLanding";
+import {
   buildProfileSocialDescription,
   buildProfileSocialPreviewImageUrl,
   buildProfileSocialTitle,
@@ -399,6 +405,7 @@ type ProfileSections = {
 type PublicProfile = {
   id: string;
   slug: string;
+  isDiscoverable: boolean;
   displayName: string;
   headline: string | null;
   roleContext: string;
@@ -728,6 +735,25 @@ export default function ProfileSiteView() {
 
     run();
   }, [slug, matchP, matchPItem, navigate, paramsPItem, reloadKey]);
+
+  useEffect(() => {
+    if (
+      !data ||
+      data.profile.isDiscoverable !== true ||
+      data.viewerCanManage === true ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+    const canonicalRoute = getPublishedDiscoveryCanonicalRoute();
+    if (!canonicalRoute) return;
+
+    void trackDiscoveryLandingOnce({
+      canonicalRoute,
+      search: window.location.search,
+      referrer: document.referrer || null,
+    });
+  }, [data, location]);
 
   useEffect(() => {
     if (!data || typeof window === "undefined") return;
@@ -1255,21 +1281,31 @@ export default function ProfileSiteView() {
     directConnectPath,
     platformBaseHref
   );
-  const preScoutCreateHref = qualifyPublicProfileItemDestination(
-    `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectPath)}`,
-    platformBaseHref
+  const withDiscoveryHandoff = (href: string) =>
+    profile.isDiscoverable === true ? appendDiscoveryAttributionHandoff(href) : href;
+  const preScoutCreateHref = withDiscoveryHandoff(
+    qualifyPublicProfileItemDestination(
+      `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectPath)}`,
+      platformBaseHref
+    )
   );
-  const preScoutSignInHref = qualifyPublicProfileItemDestination(
-    `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectPath)}`,
-    platformBaseHref
+  const preScoutSignInHref = withDiscoveryHandoff(
+    qualifyPublicProfileItemDestination(
+      `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectPath)}`,
+      platformBaseHref
+    )
   );
-  const profileActionSignInHref = qualifyPublicProfileItemDestination(
-    `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/u/${profile.slug}`)}`,
-    platformBaseHref
+  const profileActionSignInHref = withDiscoveryHandoff(
+    qualifyPublicProfileItemDestination(
+      `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/u/${profile.slug}`)}`,
+      platformBaseHref
+    )
   );
-  const bookingSignInHref = qualifyPublicProfileItemDestination(
-    `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/u/${profile.slug}?book=1`)}`,
-    platformBaseHref
+  const bookingSignInHref = withDiscoveryHandoff(
+    qualifyPublicProfileItemDestination(
+      `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/u/${profile.slug}?book=1`)}`,
+      platformBaseHref
+    )
   );
   const renderProfileTrustActions = (
     tone: "light" | "dark",
@@ -1521,21 +1557,31 @@ export default function ProfileSiteView() {
           ? "website"
           : "profile";
   const categoryNoIndex = Boolean(categoryShareMeta && !categoryShareMeta.indexable);
+  const publicPageNoIndex = profile.isDiscoverable !== true || categoryNoIndex;
   const publishedInventoryItems = listProfileInventoryItems(inventoryCategories);
   const categoryInventoryItems = categoryShareMeta
     ? publishedInventoryItems.filter((item) => categoryShareMeta.itemSlugs.includes(item.slug))
     : [];
   const openInventoryDirectConnect = (itemName: string, itemId: string) => {
+    if (profile.isDiscoverable === true) {
+      void trackPublicProfileCtaOnce({ ctaKind: "direct_connect" });
+    }
     setExpressServiceContext(null);
     setExpressInventoryContext({ itemName, itemId });
     setExpressPanelOpen(true);
   };
   const openGeneralDirectConnect = () => {
+    if (profile.isDiscoverable === true) {
+      void trackPublicProfileCtaOnce({ ctaKind: "direct_connect" });
+    }
     setExpressServiceContext(null);
     setExpressInventoryContext(null);
     setExpressPanelOpen(true);
   };
   const openServiceDirectConnect = (serviceName?: string) => {
+    if (profile.isDiscoverable === true) {
+      void trackPublicProfileCtaOnce({ ctaKind: "direct_connect" });
+    }
     const selectedService = sanitizePublicDiscoveryText(serviceName, 180);
     setExpressInventoryContext(null);
     setExpressServiceContext(selectedService || null);
@@ -1716,7 +1762,7 @@ export default function ProfileSiteView() {
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
-          noIndex={categoryNoIndex}
+          noIndex={publicPageNoIndex}
         />
         {manageChrome}
         {templateIndependentInventoryContext}
@@ -1778,7 +1824,7 @@ export default function ProfileSiteView() {
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
-          noIndex={categoryNoIndex}
+          noIndex={publicPageNoIndex}
         />
         {manageChrome}
         {templateIndependentInventoryContext}
@@ -1835,7 +1881,7 @@ export default function ProfileSiteView() {
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
-          noIndex={categoryNoIndex}
+          noIndex={publicPageNoIndex}
         />
         {manageChrome}
         {templateIndependentInventoryContext}
@@ -1892,7 +1938,7 @@ export default function ProfileSiteView() {
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
-          noIndex={categoryNoIndex}
+          noIndex={publicPageNoIndex}
         />
         {manageChrome}
         {templateIndependentInventoryContext}
@@ -1953,7 +1999,7 @@ export default function ProfileSiteView() {
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
-          noIndex={categoryNoIndex}
+          noIndex={publicPageNoIndex}
         />
         {manageChrome}
         {templateIndependentInventoryContext}
@@ -2012,7 +2058,7 @@ export default function ProfileSiteView() {
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
-          noIndex={categoryNoIndex}
+          noIndex={publicPageNoIndex}
         />
         {manageChrome}
         <div
@@ -2051,6 +2097,16 @@ export default function ProfileSiteView() {
             directConnectHref={directConnectHref}
             preScoutCreateHref={preScoutCreateHref}
             preScoutSignInHref={preScoutSignInHref}
+            onDirectConnect={() => {
+              if (profile.isDiscoverable === true) {
+                void trackPublicProfileCtaOnce({ ctaKind: "direct_connect" });
+              }
+            }}
+            onAccountCreate={() => {
+              if (profile.isDiscoverable === true) {
+                void trackPublicProfileCtaOnce({ ctaKind: "account_create" });
+              }
+            }}
             recommendationsDirectory={recommendationsDirectory}
             recommendationDirectorySummary={recommendationDirectorySummary}
             trustActions={renderProfileTrustActions("light")}
@@ -2081,7 +2137,7 @@ export default function ProfileSiteView() {
         ogImage={seoImage}
         structuredData={structuredData}
         preserveCanonicalQuery={Boolean(itemShareMeta)}
-        noIndex={categoryNoIndex}
+        noIndex={publicPageNoIndex}
       />
       {manageChrome}
       {templateIndependentInventoryContext}
@@ -2179,6 +2235,20 @@ export default function ProfileSiteView() {
                     viewerCanManage={viewerCanManage}
                     signInHref={bookingSignInHref}
                     platformBaseHref={platformBaseHref}
+                    onAccountCreate={
+                      profile.isDiscoverable === true
+                        ? () => {
+                            void trackPublicProfileCtaOnce({ ctaKind: "account_create" });
+                          }
+                        : undefined
+                    }
+                    onBookingRequest={
+                      profile.isDiscoverable === true
+                        ? () => {
+                            void trackPublicProfileCtaOnce({ ctaKind: "booking_request" });
+                          }
+                        : undefined
+                    }
                   />
                 </div>
                 {calendarVisibility === "public" && slots.length > 0 ? (

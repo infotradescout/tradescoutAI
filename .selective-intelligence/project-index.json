@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
   "index_version": "0.1.0",
-  "generated_at": "2026-08-23T16:20:00Z",
+  "generated_at": "2026-08-23T19:09:04Z",
   "source": {
     "kind": "git",
-    "revision": "1508dc66dab627c597f4ddf06dd44901f286bb68",
-    "dirty": true,
-    "inventory_sha256": "a317cbd8ad2790fa009dabf3232bf4ecedfc599eac6f0d2f5757e6b51e0e7780"
+    "revision": "764d56f0eb195d5597bd679b62d7d766fc1783fb",
+    "dirty": false,
+    "inventory_sha256": "0b301621f3667cbe1ad9fc8c6c85c6faa51cf0860e6869eb2a6825dbc341af73"
   },
   "inventory": {
     "directories": [
@@ -816,10 +816,6 @@
       },
       {
         "path": "src/db",
-        "source_file_count": 1
-      },
-      {
-        "path": "test-results/assets",
         "source_file_count": 1
       },
       {
@@ -4721,8 +4717,8 @@
       {
         "path": "client/src/pages/community-feed.tsx",
         "language": "tsx",
-        "sha256": "a849f2cfbe41ed81abcd01e5908e056255728e2271e5b391b9721fbf187631e8",
-        "bytes": 86716
+        "sha256": "9572166a660b62317b79f00852e3a1e073c21a56535d89b6c6cce61f08581cd6",
+        "bytes": 88848
       },
       {
         "path": "client/src/pages/community-post-detail.tsx",
@@ -19229,8 +19225,8 @@
       {
         "path": "server/tests/community-composer-responsive.contract.test.ts",
         "language": "ts",
-        "sha256": "057860a53aeed0f5447860df684df6abb73e16c2055c8cbec1d7cd6bd060f68d",
-        "bytes": 2071
+        "sha256": "1783d151b603b859fb23f619ca4779b5b1165905bcb7057a835a2c83a3e0286c",
+        "bytes": 2115
       },
       {
         "path": "server/tests/community-feed-api.test.ts",
@@ -22587,12 +22583,6 @@
         "bytes": 7419
       },
       {
-        "path": "test-results/assets/index-DaKof6xz.js",
-        "language": "js",
-        "sha256": "76a72613f69c2c658c63570f4ae708526a0f3acf0dcc5722f236ed10fa8463d5",
-        "bytes": 777636
-      },
-      {
         "path": "test-runner.js",
         "language": "js",
         "sha256": "119fbed71405f6d8b62cfa00529699b3cc194ba0ba81f2b86ee919427291aaf0",
@@ -22625,8 +22615,8 @@
       {
         "path": "tests/community-feed.e2e.spec.ts",
         "language": "ts",
-        "sha256": "3755dffee0c54333171f72d1f1937c54742abed11cc6bce6b2fef0d887affced",
-        "bytes": 16757
+        "sha256": "e240585dda70d37fb45cab7ef691df94d5ef841e74144c94302d9a53782fd561",
+        "bytes": 17139
       },
       {
         "path": "tests/community-shell.spec.ts",
@@ -224769,8 +224759,8 @@
     }
   ],
   "summary": {
-    "directories": 212,
-    "source_files": 3680,
+    "directories": 211,
+    "source_files": 3679,
     "symbols": 20064,
     "components": 1484,
     "functions_and_hooks": 11179,

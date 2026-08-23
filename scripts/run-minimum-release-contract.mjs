@@ -170,11 +170,33 @@ async function main() {
     "server/tests/admin-production-acceptance.contract.test.ts",
     "server/tests/admin-live-stream.contract.test.ts",
     "server/tests/direct-connect-gates.regression.test.ts",
+    "server/tests/acquisition-measurement.test.ts",
+    "server/tests/acquisition-registration.contract.test.ts",
+    "server/tests/business-profile-public.contract.test.ts",
+    "server/tests/business-public-hydration-parity.behavior.test.ts",
+    "server/tests/directory-business-profile-fallback.contract.test.ts",
+    "server/tests/discovery-attribution-html.test.ts",
     "server/tests/discovery-landing.contract.test.ts",
     "server/tests/discovery-observatory.contract.test.ts",
+    "server/tests/profile-site-discoverability-hydration.contract.test.ts",
+    "server/tests/public-business-html-verification-trust.behavior.test.ts",
+    "server/tests/public-directory-profile-sanitization.behavior.test.ts",
+    "server/tests/public-discovery-equivalence.contract.test.ts",
+    "server/tests/public-profile-publication-safety.behavior.test.ts",
+    "server/tests/public-seo-html.test.ts",
+    "server/tests/public-trade-html.contract.test.ts",
+    "server/tests/scheduler-leadership-retry.behavior.test.ts",
+    "server/tests/seo-crawl-recovery.behavior.test.ts",
+    "server/tests/sitemap-contracts.test.ts",
+    "server/tests/sitemap-url-set-limit.test.ts",
+    "server/tests/trade-county-page-seo.contract.test.ts",
+    "server/tests/trade-seo-resilience.contract.test.ts",
     "client/src/lib/discoveryLanding.test.ts",
+    "client/src/lib/businessProfileIndexability.test.ts",
+    "client/src/lib/discoveryScopeIndexability.test.ts",
     "client/src/admin/admin-production-acceptance.contract.test.ts",
     "client/src/pages/profile-sites/ExpressDirectConnectPanel.test.tsx",
+    "client/src/components/profile/ProfileBookingRequestDialog.test.tsx",
   ];
   const testRun = run("npm", ["run", "test:run", "--", ...contractTests], {
     label: "relevant contract tests",
@@ -200,6 +222,36 @@ async function main() {
     evidence.result = "fail";
     writeEvidence(evidence);
     process.exit(discoveryPerformanceTests.status);
+  }
+
+  const sitemapIntegrity = run("npm", ["run", "guard:sitemap-integrity"], {
+    label: "generated sitemap integrity guard",
+  });
+  record(
+    "4-sitemap-integrity",
+    sitemapIntegrity.ok ? "pass" : "fail",
+    `exit ${sitemapIntegrity.status}`
+  );
+  if (!sitemapIntegrity.ok) {
+    evidence.result = "fail";
+    writeEvidence(evidence);
+    process.exit(sitemapIntegrity.status);
+  }
+
+  const sitemapRenderParity = run(
+    "node",
+    ["--test", "scripts/audit-sitemap-render-parity.test.mjs"],
+    { label: "recursive sitemap/render parity audit contract" }
+  );
+  record(
+    "4-sitemap-render-parity",
+    sitemapRenderParity.ok ? "pass" : "fail",
+    `exit ${sitemapRenderParity.status}`
+  );
+  if (!sitemapRenderParity.ok) {
+    evidence.result = "fail";
+    writeEvidence(evidence);
+    process.exit(sitemapRenderParity.status);
   }
 
   // 5. Database compatibility proof
@@ -239,6 +291,25 @@ async function main() {
       evidence.result = "fail";
       writeEvidence(evidence);
       process.exit(verify.status);
+    }
+
+    const acquisitionDbProof = run(
+      "npm",
+      ["run", "test:run", "--", "server/tests/acquisition-report-db.integration.test.ts"],
+      {
+        env: { ...process.env, TEST_DATABASE_URL: testDbUrl, DATABASE_URL: "" },
+        label: "acquisition measurement disposable DB proof",
+      }
+    );
+    record(
+      "5-acquisition-measurement-db-proof",
+      acquisitionDbProof.ok ? "pass" : "fail",
+      `exit ${acquisitionDbProof.status}`
+    );
+    if (!acquisitionDbProof.ok) {
+      evidence.result = "fail";
+      writeEvidence(evidence);
+      process.exit(acquisitionDbProof.status);
     }
   }
 

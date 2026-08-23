@@ -2,19 +2,9 @@ import { Router } from "express";
 import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
-import { db } from "../db";
-import { counties, users } from "@shared/schema";
-import { eq, inArray } from "drizzle-orm";
-import { getPublicationRules } from "../publicationRules";
-import { isPublicAndCrawlableBusiness } from "@shared/publication";
-import {
-  buildPublicBusinessSignals,
-  canServePublicBusinessDetail,
-  derivePublicationTier,
-  deriveTradeSlugFromProfileData,
-} from "../publicationBusiness";
 import { pluginApiRouter } from "./plugin-api";
 import { pluginOAuthRouter } from "./plugin-oauth";
+import { loadPublicDirectoryBusinessBySlug } from "../services/publicDirectoryBusinessDetailService";
 
 const router = Router();
 router.use(pluginOAuthRouter);
@@ -199,112 +189,13 @@ router.post("/api/businesses/:id/set-active", isAuthenticated, async (req, res) 
 // Public profile read (no auth, indexable)
 router.get("/api/public/businesses/:slug", async (req, res) => {
   try {
-    const slug = String(req.params.slug);
-    const business = await storage.getBusinessBySlugPublic(slug);
-
-    if (!business || business.status !== ("active" as any)) {
-      return res.status(404).json({ message: "Business not found" });
-    }
-
-    const profileData: any = business.profileData || {};
-    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-    const city = typeof profileData.city === "string" ? profileData.city : null;
-
-    const countyIdRows = await storage.getBusinessCountyIds(business.id);
-    const countyRows = countyIdRows.length
-      ? await db
-          .select({
-            id: counties.id,
-            name: counties.name,
-            stateCode: counties.stateCode,
-            fips: counties.fips,
-          })
-          .from(counties)
-          .where(inArray(counties.id, countyIdRows))
-      : [];
-
-    const ownerUserId = (business as any).ownerUserId
-      ? String((business as any).ownerUserId)
-      : null;
-    let ownerVerificationStatus: string | null = null;
-    let ownerAddressVerified: boolean | null = null;
-    if (ownerUserId) {
-      const ownerRows = await db
-        .select({
-          verificationStatus: users.verificationStatus,
-          addressVerified: users.addressVerified,
-        })
-        .from(users)
-        .where(eq(users.id, ownerUserId))
-        .limit(1);
-      ownerVerificationStatus = ownerRows[0]?.verificationStatus
-        ? String(ownerRows[0].verificationStatus)
-        : null;
-      ownerAddressVerified =
-        typeof ownerRows[0]?.addressVerified === "boolean" ? ownerRows[0].addressVerified : null;
-    }
-
-    const tier = derivePublicationTier({
-      ownerUserId,
-      claimStatus: String((business as any).claimStatus || ""),
-      ownerVerificationStatus,
-      ownerAddressVerified,
-    });
-
-    const countyPrimary = countyRows[0] || null;
-    const rules = await getPublicationRules();
-    const pub = isPublicAndCrawlableBusiness(
-      buildPublicBusinessSignals({
-        id: String(business.id),
-        name: String(business.name || ""),
-        slug: String(business.slug || ""),
-        updatedAt:
-          (business as any).updatedAt instanceof Date ? (business as any).updatedAt : new Date(),
-        publicDiscoveryEnabled: Boolean((business as any).publicDiscoveryEnabled),
-        stateCode: countyPrimary?.stateCode ? String(countyPrimary.stateCode) : null,
-        countyName: countyPrimary?.name ? String(countyPrimary.name) : null,
-        city,
-        tradeSlug,
-        tier,
-      }),
-      rules,
-      new Date()
-    );
-
-    if (
-      !canServePublicBusinessDetail({
-        publication: pub,
-        tier,
-      })
-    ) {
-      return res.status(410).json({ message: "Listing inactive/out of date" });
-    }
-
-    // Public-safe profile payload (do not expose ownerUserId or any direct-contact vectors).
-    // All contact must remain intent-gated through Scout.
-    const publicProfile = {
-      tagline: profileData.tagline,
-      description: profileData.description,
-      category: profileData.category,
-      services: profileData.services,
-      city: typeof profileData.city === "string" ? profileData.city : null,
-      stateCode: typeof profileData.stateCode === "string" ? profileData.stateCode : null,
-    };
-
-    res.json({
-      id: business.id,
-      name: business.name,
-      slug: business.slug,
-      type: business.type,
-      roleContext: business.roleContext,
-      status: business.status,
-      claimStatus: (business as any).claimStatus,
-      profile: publicProfile,
-      counties: countyRows,
-    });
+    const result = await loadPublicDirectoryBusinessBySlug({ slug: req.params.slug });
+    return res.status(result.status).json(result.body);
   } catch (error: any) {
     console.error("Error fetching public business:", error);
-    res.status(500).json({ message: "Failed to fetch business" });
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Retry-After", "300");
+    res.status(503).json({ message: "Business directory temporarily unavailable" });
   }
 });
 

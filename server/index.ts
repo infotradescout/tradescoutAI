@@ -17,6 +17,7 @@ import { startCrawlerScheduler } from "./services/crawlerScheduler";
 import {
   acquireSchedulerLeadership,
   releaseSchedulerLeadership,
+  startSchedulerLeadershipRetryLoop,
 } from "./services/schedulerLeadership";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
@@ -104,6 +105,8 @@ import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkPro
 import { provisionSteelHomePackagesProfile } from "./services/steelHomePackagesProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 import {
+  enforceDiscoveryAttributionResponsePrivacy,
+  enforcePublicSeoUserAgentVariation,
   preparePublicSeoHtmlForUserAgent,
   publicSocialMetadataCacheControl,
 } from "./publicSeoHtml";
@@ -163,11 +166,19 @@ process.on("uncaughtException", (error) => {
 });
 
 let isShuttingDown = false;
+let stopSchedulerLeadershipRetry: (() => void) | null = null;
+let birthdayNotificationTimer: ReturnType<typeof setInterval> | null = null;
 const shutdown = async (signal: string) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
   logger.info(`[lifecycle] Received ${signal}; shutting down gracefully`);
   try {
+    stopSchedulerLeadershipRetry?.();
+    stopSchedulerLeadershipRetry = null;
+    if (birthdayNotificationTimer) {
+      clearInterval(birthdayNotificationTimer);
+      birthdayNotificationTimer = null;
+    }
     await releaseSchedulerLeadership();
     await closeRedisClient();
     void pool.end();
@@ -224,13 +235,19 @@ app.use((req, res, next) => {
       /<html[\s>]/i.test(body) &&
       /<meta\b[^>]*\bproperty\s*=\s*(["'])og:image\1/i.test(body)
     ) {
+      enforcePublicSeoUserAgentVariation(res);
       const prepared = preparePublicSeoHtmlForUserAgent(
         body,
         String(req.headers["user-agent"] || "")
       );
+      const discoveryAttributionIsPrivate = enforceDiscoveryAttributionResponsePrivacy(
+        prepared,
+        res
+      );
       const socialMetadataCacheControl = publicSocialMetadataCacheControl(prepared);
       const existingCacheControl = String(res.getHeader("Cache-Control") || "");
       if (
+        !discoveryAttributionIsPrivate &&
         socialMetadataCacheControl &&
         req.method === "GET" &&
         res.statusCode < 400 &&
@@ -1210,30 +1227,12 @@ app.use(landingContractHeaders);
     const schedulerLeaderOnly = process.env.SCHEDULER_LEADER_ONLY === "true";
     let backgroundJobsEnabled = false;
 
-    if (schedulerEnabled) {
-      if (schedulerLeaderOnly) {
-        const hasLeadership = await acquireSchedulerLeadership();
-        if (hasLeadership) {
-          console.log("[Scheduler] Leader lock acquired, background jobs enabled");
-          startCrawlerScheduler();
-          backgroundJobsEnabled = true;
-        } else {
-          console.log(
-            "[Scheduler] Leader lock not acquired, background jobs disabled on this instance"
-          );
-        }
-      } else {
-        console.log("[Scheduler] Enabling background jobs...");
-        startCrawlerScheduler();
-        backgroundJobsEnabled = true;
-      }
-    } else {
-      console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
-    }
-
-    if (backgroundJobsEnabled) {
+    const enableBackgroundJobsOnce = () => {
+      if (backgroundJobsEnabled) return;
+      startCrawlerScheduler();
+      backgroundJobsEnabled = true;
       // Run birthday notifications only on the elected scheduler instance.
-      setInterval(async () => {
+      birthdayNotificationTimer = setInterval(async () => {
         const now = new Date();
         if (now.getHours() === 9 && now.getMinutes() === 0) {
           try {
@@ -1243,7 +1242,34 @@ app.use(landingContractHeaders);
             console.error("Error processing birthday notifications:", error);
           }
         }
-      }, 60000); // Check every minute
+      }, 60000);
+    };
+
+    if (schedulerEnabled) {
+      if (schedulerLeaderOnly) {
+        const leadershipRetry = startSchedulerLeadershipRetryLoop({
+          acquire: acquireSchedulerLeadership,
+          onAcquired: () => {
+            console.log("[Scheduler] Leader lock acquired, background jobs enabled");
+            enableBackgroundJobsOnce();
+          },
+          onError: (error) => {
+            console.error("[Scheduler] Leader election attempt failed; retrying", error);
+          },
+        });
+        stopSchedulerLeadershipRetry = leadershipRetry.stop;
+        const hasLeadership = await leadershipRetry.initialAttempt;
+        if (!hasLeadership) {
+          console.log(
+            "[Scheduler] Leader lock not acquired; retry election remains active on this instance"
+          );
+        }
+      } else {
+        console.log("[Scheduler] Enabling background jobs...");
+        enableBackgroundJobsOnce();
+      }
+    } else {
+      console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
     }
 
     if (process.env.SENTRY_DSN) {
@@ -2195,6 +2221,7 @@ app.use(landingContractHeaders);
                       "Error checking for linked profile on /business/:slug",
                       redirectCheckErr
                     );
+                    throw redirectCheckErr;
                   }
 
                   const html = await buildPublicBusinessHtml({

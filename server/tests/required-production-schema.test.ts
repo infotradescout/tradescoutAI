@@ -5,6 +5,8 @@ import {
   ADMIN_LIVE_STREAM_MIGRATION_HASHES,
   buildLineEndingCompatibleMigrationHashes,
   MANAGED_PARTNER_INTAKES_MIGRATION_HASHES,
+  ORGANIC_ACQUISITION_MIGRATION_HASHES,
+  SEO_DIRECTORY_SCOPE_MIGRATION_HASHES,
   evaluateRequiredProductionSchema,
   PROFILE_ACCOUNT_MIGRATION_HASHES,
   REQUIRED_MIGRATION_HASHES,
@@ -13,9 +15,11 @@ import {
 const completeSchemaCheck = {
   migrationLedger: true,
   migrationRecorded: true,
+  seoDirectoryScopeMigrationRecorded: true,
   profileAccountMigrationRecorded: true,
   adminLiveStreamMigrationRecorded: true,
   managedPartnerIntakesMigrationRecorded: true,
+  organicAcquisitionMigrationRecorded: true,
   publicationRules: true,
   seoPruneLog: true,
   publicActivity: true,
@@ -32,6 +36,21 @@ const completeSchemaCheck = {
   adminLiveStreamSnapshotHistoryContract: true,
   managedPartnerIntakes: true,
   managedPartnerIntakesContract: true,
+  seoTradeCountyPages: true,
+  seoTradeCountyPagesContract: true,
+  seoTradeCityPages: true,
+  seoTradeCityPagesContract: true,
+  seoTradeCityCountyPages: true,
+  seoTradeCityCountyPagesContract: true,
+  seoCityCountyPages: true,
+  seoCityCountyPagesContract: true,
+  seoDirectoryBusinessPages: true,
+  seoDirectoryBusinessPagesContract: true,
+  seoDirectoryBusinessCounties: true,
+  seoDirectoryBusinessCountiesContract: true,
+  seoDirectorySnapshotStatus: true,
+  seoDirectorySnapshotStatusContract: true,
+  acquisitionLifecycleUniqueIndex: true,
 };
 
 describe("required production schema guard", () => {
@@ -46,12 +65,17 @@ describe("required production schema guard", () => {
       ])
     );
     expect(PROFILE_ACCOUNT_MIGRATION_HASHES).toHaveLength(2);
-    expect(PROFILE_ACCOUNT_MIGRATION_HASHES).toEqual(
+    expect(SEO_DIRECTORY_SCOPE_MIGRATION_HASHES).toEqual(
       buildLineEndingCompatibleMigrationHashes(
         fs.readFileSync(
-          path.resolve(process.cwd(), "migrations/0115_profile_accounts.sql"),
+          path.resolve(process.cwd(), "migrations/0073_seo_directory_scope_pages.sql"),
           "utf8"
         )
+      )
+    );
+    expect(PROFILE_ACCOUNT_MIGRATION_HASHES).toEqual(
+      buildLineEndingCompatibleMigrationHashes(
+        fs.readFileSync(path.resolve(process.cwd(), "migrations/0115_profile_accounts.sql"), "utf8")
       )
     );
     expect(ADMIN_LIVE_STREAM_MIGRATION_HASHES).toEqual(
@@ -66,6 +90,14 @@ describe("required production schema guard", () => {
       buildLineEndingCompatibleMigrationHashes(
         fs.readFileSync(
           path.resolve(process.cwd(), "migrations/0117_managed_partner_intakes.sql"),
+          "utf8"
+        )
+      )
+    );
+    expect(ORGANIC_ACQUISITION_MIGRATION_HASHES).toEqual(
+      buildLineEndingCompatibleMigrationHashes(
+        fs.readFileSync(
+          path.resolve(process.cwd(), "migrations/0121_organic_acquisition_measurement.sql"),
           "utf8"
         )
       )
@@ -94,6 +126,14 @@ describe("required production schema guard", () => {
     expect(guard).toContain("PROFILE_ACCOUNT_IDENTITY_FUNCTION_BODY");
     expect(guard).toContain("tradescout-schema:0115:v1");
     expect(guard).toContain("admin_live_stream_snapshots_contract");
+    expect(guard).toContain("idx_events_acquisition_lifecycle_user_unique");
+    expect(guard).toContain("seo_directory_business_pages_contract");
+    expect(guard).toContain("seo_directory_snapshot_status_contract");
+    expect(guard).toContain("seo_trade_county_pages_contract");
+    expect(guard).toContain("seo_trade_city_pages_contract");
+    expect(guard).toContain("seo_trade_city_county_pages_contract");
+    expect(guard).toContain("seo_city_county_pages_contract");
+    expect(guard).toContain("seo_directory_business_counties_contract");
   });
 
   it("rebuilds and marks legacy-era constraints and indexes before trusting them", () => {
@@ -113,12 +153,8 @@ describe("required production schema guard", () => {
     expect(profileMigration).toContain(
       "DROP CONSTRAINT IF EXISTS profile_accounts_owner_target_unique"
     );
-    expect(profileMigration).toContain(
-      "ADD CONSTRAINT profile_accounts_owner_target_unique"
-    );
-    expect(profileMigration).toContain(
-      "COMMENT ON TRIGGER profile_accounts_identity_trigger"
-    );
+    expect(profileMigration).toContain("ADD CONSTRAINT profile_accounts_owner_target_unique");
+    expect(profileMigration).toContain("COMMENT ON TRIGGER profile_accounts_identity_trigger");
     expect(liveStreamMigration).toContain(
       "DROP INDEX IF EXISTS idx_admin_live_stream_snapshots_unique"
     );
@@ -186,6 +222,79 @@ describe("required production schema guard", () => {
     ).toEqual(["drizzle.__drizzle_migrations[0117 canonical hash]"]);
   });
 
+  it("requires the canonical 0073 scope snapshot migration and table contracts", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        seoDirectoryScopeMigrationRecorded: false,
+      })
+    ).toEqual(["drizzle.__drizzle_migrations[0073 canonical hash]"]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        seoTradeCountyPages: false,
+        seoTradeCityPages: false,
+      })
+    ).toEqual(["ts_seo_trade_county_pages", "ts_seo_trade_city_pages"]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        seoTradeCountyPagesContract: false,
+        seoTradeCityPagesContract: false,
+      })
+    ).toEqual([
+      "ts_seo_trade_county_pages[canonical columns/primary key]",
+      "ts_seo_trade_city_pages[canonical columns/primary key]",
+    ]);
+  });
+
+  it("blocks release when the organic-acquisition migration or invariants are absent", () => {
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        organicAcquisitionMigrationRecorded: false,
+      })
+    ).toEqual(["drizzle.__drizzle_migrations[0121 canonical hash]"]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        seoDirectoryBusinessPages: false,
+        seoDirectoryBusinessCounties: false,
+        seoTradeCityCountyPages: false,
+        seoCityCountyPages: false,
+        seoDirectorySnapshotStatus: false,
+        acquisitionLifecycleUniqueIndex: false,
+      })
+    ).toEqual([
+      "ts_seo_trade_city_county_pages",
+      "ts_seo_city_county_pages",
+      "ts_seo_directory_business_pages",
+      "ts_seo_directory_business_counties",
+      "ts_seo_directory_snapshot_status",
+      "events[idx_events_acquisition_lifecycle_user_unique]",
+    ]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        seoDirectorySnapshotStatusContract: false,
+      })
+    ).toEqual(["ts_seo_directory_snapshot_status[canonical columns/constraints]"]);
+    expect(
+      evaluateRequiredProductionSchema({
+        ...completeSchemaCheck,
+        seoDirectoryBusinessPagesContract: false,
+        seoDirectoryBusinessCountiesContract: false,
+        seoTradeCityCountyPagesContract: false,
+        seoCityCountyPagesContract: false,
+      })
+    ).toEqual([
+      "ts_seo_trade_city_county_pages[canonical columns/constraints/index]",
+      "ts_seo_city_county_pages[canonical columns/constraints]",
+      "ts_seo_directory_business_pages[canonical columns/constraints]",
+      "ts_seo_directory_business_counties[canonical columns/constraints/index]",
+    ]);
+  });
+
   it("names every missing profile-account schema object", () => {
     expect(
       evaluateRequiredProductionSchema({
@@ -223,10 +332,7 @@ describe("required production schema guard", () => {
         adminLiveStreamSnapshots: false,
         adminLiveStreamSnapshotHistory: false,
       })
-    ).toEqual([
-      "admin_live_stream_snapshots",
-      "admin_live_stream_snapshot_history",
-    ]);
+    ).toEqual(["admin_live_stream_snapshots", "admin_live_stream_snapshot_history"]);
   });
 
   it("blocks drifted Admin live-stream tables with missing columns or keys", () => {

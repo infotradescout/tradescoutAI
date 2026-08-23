@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { canExposeLinkedBusinessProfilePublicly } from "../services/ownerConfirmedDirectProfile";
+import { collectEligibleProfileSearchRows } from "../repositories/profileRepository";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8").replace(/\r\n/g, "\n");
@@ -44,6 +45,19 @@ describe("public profile search trust limit", () => {
     expect(trustBeforeLimit.map((row) => row.profileSlug)).toEqual(["verified-1", "verified-2"]);
   });
 
+  it("continues beyond 100 newer ineligible rows to find an older eligible result", async () => {
+    const rows = [
+      ...Array.from({ length: 101 }, (_, index) => ({ id: `empty-${index}`, eligible: false })),
+      { id: "eligible-older", eligible: true },
+    ];
+    const result = await collectEligibleProfileSearchRows({
+      loadPage: async (offset, limit) => rows.slice(offset, offset + limit),
+      isEligible: (row) => row.eligible,
+      limit: 1,
+    });
+    expect(result.map((row) => row.id)).toEqual(["eligible-older"]);
+  });
+
   it("places explicit release, discovery, and trust predicates in SQL before order and limit", () => {
     const repository = read("server/repositories/profileRepository.ts");
     const search = repository.slice(
@@ -61,8 +75,8 @@ describe("public profile search trust limit", () => {
     expect(search.indexOf("publicProfileVisibilityPredicate()")).toBeLessThan(
       search.indexOf(".orderBy(")
     );
-    expect(search.indexOf(".orderBy(")).toBeLessThan(search.indexOf(".limit(limit)"));
-    expect(predicate).toContain("publicProfileIds");
+    expect(search.indexOf(".orderBy(")).toBeLessThan(search.indexOf(".limit(batchSize)"));
+    expect(repository).toContain("publicProfileIds");
     expect(predicate).toContain("${profiles.businessId} IS NOT NULL");
     expect(predicate).toContain("${businesses.status} = 'active'");
     expect(predicate).toContain("${businesses.publicDiscoveryEnabled} = true");
@@ -86,8 +100,9 @@ describe("public profile search trust limit", () => {
       routes.indexOf('router.get("/api/profiles/:id/profile-booking"')
     );
 
-    expect(search).not.toContain("ownerUserId: profiles.ownerUserId");
-    expect(search).not.toContain("businessId: profiles.businessId");
+    const safeReturn = search.slice(search.indexOf("return rows.map"));
+    expect(safeReturn).not.toContain("ownerUserId");
+    expect(safeReturn).not.toContain("businessId");
     expect(route).not.toContain("await db");
     expect(route).not.toContain("ownerUserId");
     expect(route).not.toContain("businessId");

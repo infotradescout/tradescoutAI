@@ -32,12 +32,13 @@ describe("onboarding business discovery tail trust", () => {
     );
   });
 
-  it("gates SEO scope rows before the scan limit and again before aggregation", () => {
+  it("gates SEO scope rows before the overflow detector and again before aggregation", () => {
     const source = read("server/services/seoDirectoryScopeSnapshotJob.ts");
     const sqlGate = source.indexOf("publicBusinessDetailExposureSqlPredicate()");
 
     expect(sqlGate).toBeGreaterThan(-1);
-    expect(sqlGate).toBeLessThan(source.indexOf(".limit(350_000)"));
+    expect(sqlGate).toBeLessThan(source.indexOf(".limit(SEO_DIRECTORY_SCOPE_SOURCE_ROW_CAP + 1)"));
     expect(source).toContain("canServePublicBusinessDetail({ publication: pub, tier })");
+    expect(source).toContain("assertSeoDirectoryScopeSourceCapacity(rows.length)");
   });
 });

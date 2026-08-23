@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
 import {
@@ -9,7 +9,6 @@ import {
   counties,
   tsPublicActivity,
   users,
-  type Business,
 } from "../../shared/schema";
 import { storage } from "../storage";
 import { getTradeSeoMatch, normalizeTradeSlug, slugifyCountyName } from "../../shared/tradeSeo";
@@ -18,6 +17,7 @@ import { getPublicationRules } from "../publicationRules";
 import {
   isPublicAndCrawlableActivity,
   isPublicAndCrawlableBusiness,
+  isPublicAndCrawlableBusinessDetail,
 } from "../../shared/publication";
 import {
   buildPublicBusinessSignals,
@@ -25,13 +25,37 @@ import {
   derivePublicationTier,
   deriveTradeSlugFromProfileData,
   publicBusinessDetailExposureSqlPredicate,
+  publicBusinessDetailRecencySqlPredicate,
+  publicBusinessTradeSqlPredicate,
 } from "../publicationBusiness";
+import {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "../seoDirectoryCitySlug";
+import {
+  assertSeoDirectorySnapshotReady,
+  listActiveCountyTradeScopes,
+  listActiveTradeCountyScopes,
+  listActiveTradeScopes,
+  listActiveTradeStateScopes,
+} from "../services/seoDirectoryNavigationService";
+import {
+  buildPublicDirectoryProfile,
+  hasSpecificPublicDirectoryIdentity,
+  hasPublicDirectoryOfferingFacts,
+  orderPublicDirectoryCounties,
+  sanitizePublicDirectoryDisplayName,
+} from "../services/publicDirectoryBusinessPresentation";
+import { loadPublicDirectoryBusinessBySlug } from "../services/publicDirectoryBusinessDetailService";
 
 const router = Router();
 
 // Simple in-memory cache for public directory lookups
 const PUBLIC_CACHE = new Map();
 const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+export const PUBLIC_CACHE_MAX_ENTRIES = 500;
 
 function getCacheKey(path: string, params: Record<string, any>) {
   // Only cache safe, public GETs
@@ -39,21 +63,50 @@ function getCacheKey(path: string, params: Record<string, any>) {
   return `${path}::${keys.map((k) => `${k}=${String(params[k])}`).join("&")}`;
 }
 
-function getCachedOrCompute(
+export function getCachedOrCompute(
   path: string,
   params: Record<string, any>,
   compute: () => Promise<any>
 ) {
   const key = getCacheKey(path, params);
   const now = Date.now();
+  for (const [cacheKey, entry] of PUBLIC_CACHE.entries()) {
+    if (Number(entry?.expiresAt || 0) <= now) PUBLIC_CACHE.delete(cacheKey);
+  }
   const cached = PUBLIC_CACHE.get(key);
   if (cached && cached.expiresAt > now) {
+    PUBLIC_CACHE.delete(key);
+    PUBLIC_CACHE.set(key, cached);
     return Promise.resolve(cached.value);
   }
   return compute().then((value) => {
-    PUBLIC_CACHE.set(key, { value, expiresAt: now + PUBLIC_CACHE_TTL_MS });
+    if (Number(value?.status) === 200) {
+      while (PUBLIC_CACHE.size >= PUBLIC_CACHE_MAX_ENTRIES) {
+        const oldestKey = PUBLIC_CACHE.keys().next().value;
+        if (typeof oldestKey === "undefined") break;
+        PUBLIC_CACHE.delete(oldestKey);
+      }
+      PUBLIC_CACHE.set(key, { value, expiresAt: now + PUBLIC_CACHE_TTL_MS });
+    }
     return value;
   });
+}
+
+export function getPublicDirectoryCacheSize(): number {
+  return PUBLIC_CACHE.size;
+}
+
+export async function getSnapshotAuthoritativeCachedOrCompute(
+  path: string,
+  params: Record<string, any>,
+  compute: () => Promise<any>,
+  assertReady: () => Promise<unknown> = assertSeoDirectorySnapshotReady
+) {
+  // Do not reuse a process-local payload across durable snapshot generations.
+  // Readiness is checked on every request and the current generation is read
+  // directly until a generation-keyed shared cache exists.
+  await assertReady();
+  return compute();
 }
 
 function isAuthed(req: any): boolean {
@@ -89,440 +142,189 @@ function normalizeClaimed(raw: unknown): "claimed" | "unclaimed" | "any" {
   return "unclaimed";
 }
 
-function toPublicProfile(profileData: Business["profileData"] | null | undefined) {
-  const raw = profileData && typeof profileData === "object" ? (profileData as any) : {};
-  const importExtras =
-    raw.importExtras && typeof raw.importExtras === "object" ? (raw.importExtras as any) : {};
-  const averageRating =
-    typeof importExtras.average_rating === "string" ||
-    typeof importExtras.average_rating === "number"
-      ? Number(importExtras.average_rating)
-      : null;
-  const reviewCount =
-    typeof importExtras.review_count === "string" || typeof importExtras.review_count === "number"
-      ? Number(importExtras.review_count)
-      : null;
-  const safeAverageRating = Number.isFinite(averageRating) ? Number(averageRating) : null;
-  const safeReviewCount = Number.isFinite(reviewCount)
-    ? Math.max(0, Math.trunc(Number(reviewCount)))
-    : null;
-  return {
-    tagline: typeof raw.tagline === "string" ? raw.tagline : undefined,
-    description: typeof raw.description === "string" ? raw.description : undefined,
-    category: typeof raw.category === "string" ? raw.category : undefined,
-    services: Array.isArray(raw.services)
-      ? raw.services.filter((s: any) => typeof s === "string")
-      : undefined,
-    city: typeof raw.city === "string" ? raw.city : undefined,
-    stateCode: typeof raw.stateCode === "string" ? raw.stateCode : undefined,
-    address: typeof raw.address === "string" ? raw.address : undefined,
-    zipCode: typeof raw.zipCode === "string" ? raw.zipCode : undefined,
-    importExtras: {
-      countyFips:
-        typeof importExtras.county_fips === "string" ? importExtras.county_fips : undefined,
-      countyName:
-        typeof importExtras.county_name === "string" ? importExtras.county_name : undefined,
-      averageRating: safeAverageRating,
-      reviewCount: safeReviewCount,
-      googleMapsUrl:
-        typeof importExtras.google_maps_url === "string" ? importExtras.google_maps_url : undefined,
-      reviewUrl: typeof importExtras.review_url === "string" ? importExtras.review_url : undefined,
-      source: "google_import",
-    },
-  };
-}
-
 function buildTradeWhereClause(tradeRaw: unknown) {
-  const match = getTradeSeoMatch(tradeRaw);
-  if (!match) return null;
-  const patterns = match.keywords
-    .map((k) => String(k || "").trim())
-    .filter(Boolean)
-    .slice(0, 8)
-    .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
-  if (!patterns.length) return null;
-
-  return or(...patterns.map((pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`));
+  return publicBusinessTradeSqlPredicate(tradeRaw);
 }
 
 // Public-safe directory list. Never exposes direct contact vectors.
 router.get("/api/businesses", async (req, res, next) => {
   const forcePublicView = String(req.query.public || "") === "1";
   if (isAuthed(req) && !forcePublicView) return next();
+  const countyFips = normalizeCountyFips(
+    req.query.countyFips ?? req.query.county ?? req.query.county_fips
+  );
+  const stateCode = normalizeStateCode(
+    req.query.stateCode ?? req.query.state ?? req.query.state_code
+  );
+  const claimed = normalizeClaimed(req.query.claimed);
+  const rawQuery = coerceString(req.query.q ?? req.query.search);
+  const publicQuery = rawQuery ? sanitizePublicDirectoryDisplayName(rawQuery) : "";
+  const trade = coerceString(req.query.trade ?? req.query.tradeSlug ?? req.query.trade_slug);
+  const city = coerceString(req.query.city ?? req.query.cityName ?? req.query.city_name);
+  const citySlug = city ? normalizePublicCitySlug(city) : "";
+  const tradeMatch = trade ? getTradeSeoMatch(trade) : null;
+  const requestedTradeSlug = tradeMatch ? normalizeTradeSlug(tradeMatch.canonicalSlug) : "";
+  const limitRaw = Number(req.query.limit ?? 25);
+  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, limitRaw)) : 25;
+  const offsetRaw = Number(req.query.offset ?? 0);
+  const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.min(5_000, offsetRaw)) : 0;
 
-  // Only cache safe, public GETs (no user context)
+  if (!countyFips && !stateCode) {
+    return res
+      .status(400)
+      .json({ message: "countyFips or stateCode is required for public business search" });
+  }
+  if (rawQuery && !hasSpecificPublicDirectoryIdentity(publicQuery)) {
+    return res.status(400).json({ message: "Search query is not public-safe" });
+  }
+  if (city && !citySlug) return res.status(400).json({ message: "Invalid city" });
+
   const cacheParams = {
-    countyFips: req.query.countyFips ?? req.query.county ?? req.query.county_fips,
-    stateCode: req.query.stateCode ?? req.query.state ?? req.query.state_code,
-    claimed: req.query.claimed,
-    q: req.query.q ?? req.query.search,
-    trade: req.query.trade ?? req.query.tradeSlug ?? req.query.trade_slug,
-    city: req.query.city ?? req.query.cityName ?? req.query.city_name,
-    limit: req.query.limit ?? 25,
-    offset: req.query.offset ?? 0,
+    countyFips,
+    stateCode,
+    claimed,
+    trade: requestedTradeSlug,
+    city: citySlug,
+    limit,
+    offset,
   };
-
-  await getCachedOrCompute("/api/businesses", cacheParams, async () => {
+  const compute = async () => {
     try {
-      const countyFips = normalizeCountyFips(cacheParams.countyFips);
-      const stateCode = normalizeStateCode(cacheParams.stateCode);
-      const claimed = normalizeClaimed(cacheParams.claimed);
-      const q = coerceString(cacheParams.q);
-      const trade = coerceString(cacheParams.trade);
-      const city = coerceString(cacheParams.city);
-      const limitRaw = Number(cacheParams.limit);
-      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, limitRaw)) : 25;
-      const offsetRaw = Number(cacheParams.offset);
-      const offset = Number.isFinite(offsetRaw) ? Math.max(0, Math.min(5_000, offsetRaw)) : 0;
-
-      if (!countyFips && !stateCode) {
-        return res
-          .status(400)
-          .json({ message: "countyFips or stateCode is required for public business search" });
+      await assertSeoDirectorySnapshotReady();
+      if (trade && !requestedTradeSlug) {
+        return { status: 200, body: { items: [], ...cacheParams, q: publicQuery } };
       }
-      if (stateCode && !/^[A-Z]{2}$/.test(stateCode)) {
-        return res.status(400).json({ message: "stateCode must be a 2-letter code (e.g., FL)" });
-      }
-
-      const whereClauses: any[] = [
-        eq(businesses.status, "active" as any),
-        publicBusinessDetailExposureSqlPredicate(),
-      ];
-      if (countyFips) whereClauses.push(eq(counties.fips, countyFips));
-      if (stateCode) whereClauses.push(eq(counties.stateCode, stateCode));
-      if (claimed !== "any") whereClauses.push(eq(businesses.claimStatus, claimed));
-      if (q) whereClauses.push(ilike(businesses.name, `%${q}%`));
-
-      const tradeClause = trade ? buildTradeWhereClause(trade) : null;
-      if (tradeClause) whereClauses.push(tradeClause);
-
-      if (city) {
-        const needle = `%${city.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
-        whereClauses.push(sql`coalesce(${businesses.profileData} ->> 'city', '') ILIKE ${needle}`);
-      }
-
-      const rows = await db
-        .select({
-          id: businesses.id,
-          name: businesses.name,
-          slug: businesses.slug,
-          type: businesses.type,
-          roleContext: businesses.roleContext,
-          claimStatus: businesses.claimStatus,
-          status: businesses.status,
-          updatedAt: businesses.updatedAt,
-          ownerUserId: businesses.ownerUserId,
-          profileData: businesses.profileData,
-          publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-          ownerVerificationStatus: users.verificationStatus,
-          ownerAddressVerified: users.addressVerified,
-          county: {
-            fips: counties.fips,
-            stateCode: counties.stateCode,
-            name: counties.name,
-          },
-        })
-        .from(businesses)
-        .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-        .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-        .leftJoin(users, eq(users.id, businesses.ownerUserId))
-        .where(and(...whereClauses))
-        .orderBy(businesses.name)
-        .limit(limit)
-        .offset(offset);
-
       const rules = await getPublicationRules();
       const now = new Date();
-
-      const grouped = new Map<string, any>();
-      for (const row of rows) {
-        const key = row.id;
-        const existing = grouped.get(key);
-        const county = row.county;
-        if (!existing) {
-          const profileData: any = (row as any).profileData || {};
-          const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-          const city = typeof profileData.city === "string" ? profileData.city : null;
-          const tier = derivePublicationTier({
-            ownerUserId: (row as any).ownerUserId ? String((row as any).ownerUserId) : null,
-            claimStatus: String((row as any).claimStatus || ""),
-            ownerVerificationStatus: (row as any).ownerVerificationStatus
-              ? String((row as any).ownerVerificationStatus)
-              : null,
-            ownerAddressVerified:
-              typeof (row as any).ownerAddressVerified === "boolean"
-                ? (row as any).ownerAddressVerified
-                : null,
-          });
-          const signals = buildPublicBusinessSignals({
-            id: String(row.id),
-            name: String(row.name),
-            slug: String(row.slug),
-            updatedAt: (row as any).updatedAt instanceof Date ? (row as any).updatedAt : new Date(),
-            publicDiscoveryEnabled: Boolean((row as any).publicDiscoveryEnabled),
-            stateCode: county?.stateCode ? String(county.stateCode) : null,
-            countyName: county?.name ? String(county.name) : null,
-            city,
-            tradeSlug,
-            tier,
-          });
-          const pub = isPublicAndCrawlableBusiness(signals, rules, now);
-          if (!canServePublicBusinessDetail({ publication: pub, tier })) {
-            continue;
-          }
-          grouped.set(key, {
-            id: row.id,
-            name: row.name,
-            slug: row.slug,
-            type: row.type,
-            roleContext: row.roleContext,
-            claimStatus: row.claimStatus,
-            status: row.status,
-            counties: county ? [county] : [],
-          });
-        } else if (county && !existing.counties.some((c: any) => c?.fips === county.fips)) {
-          existing.counties.push(county);
-        }
+      const unclaimedCutoff = new Date(
+        now.getTime() - rules.listingStaleDaysUnclaimed * 24 * 60 * 60 * 1000
+      );
+      const verifiedCutoff = new Date(
+        now.getTime() - rules.listingStaleDaysVerified * 24 * 60 * 60 * 1000
+      );
+      const filters = [
+        sql`live.status = 'active'`,
+        sql`coalesce(live.public_discovery_enabled, false) = true`,
+        sql`(
+          (
+            live.owner_user_id is null
+            and lower(coalesce(live.claim_status, '')) = 'unclaimed'
+            and live.updated_at >= ${unclaimedCutoff}
+          )
+          or
+          (
+            live.owner_user_id is not null
+            and lower(coalesce(live.claim_status, '')) <> 'unclaimed'
+            and lower(coalesce(cast(owner.verification_status as text), '')) = 'approved'
+            and owner.address_verified = true
+            and live.updated_at >= ${verifiedCutoff}
+          )
+        )`,
+      ];
+      if (claimed === "claimed") {
+        filters.push(sql`lower(coalesce(live.claim_status, '')) <> 'unclaimed'`);
+      }
+      if (claimed === "unclaimed") {
+        filters.push(sql`lower(coalesce(live.claim_status, '')) = 'unclaimed'`);
+      }
+      if (requestedTradeSlug) filters.push(sql`snapshot.trade_slug = ${requestedTradeSlug}`);
+      if (citySlug) {
+        filters.push(sql`snapshot.city_slug = ${citySlug}`);
+        if (stateCode) filters.push(sql`snapshot.primary_state_code = ${stateCode}`);
+      }
+      if (publicQuery) {
+        filters.push(sql`lower(snapshot.display_name) like lower(${publicQuery}) || '%'`);
+      }
+      if (countyFips || stateCode) {
+        filters.push(sql`exists (
+          select 1
+          from ts_seo_directory_business_counties scope_membership
+          inner join counties scope_county on scope_county.id = scope_membership.county_id
+          where scope_membership.business_id = snapshot.business_id
+            ${countyFips ? sql`and scope_county.fips = ${countyFips}` : sql``}
+            ${stateCode ? sql`and scope_county.state_code = ${stateCode}` : sql``}
+        )`);
       }
 
-      const items = Array.from(grouped.values());
-      res.json({
-        items,
-        countyFips,
-        stateCode: stateCode || null,
-        claimed,
-        q,
-        trade: trade || null,
-        city: city || null,
-        limit,
-        offset,
-      });
-    } catch (error: any) {
-      console.error("Error listing public businesses:", error);
-      res.status(500).json({ message: "Failed to list businesses" });
-    }
-  });
-});
-
-// Public-safe directory detail by id (matches owner route path, but only handles unauth requests).
-router.get("/api/businesses/:id", async (req, res, next) => {
-  try {
-    if (isAuthed(req)) return next();
-
-    const businessId = coerceString(req.params.id);
-    if (!businessId) return res.status(400).json({ message: "Invalid business id" });
-
-    const rows = await db
-      .select({
-        id: businesses.id,
-        ownerUserId: businesses.ownerUserId,
-        name: businesses.name,
-        slug: businesses.slug,
-        type: businesses.type,
-        roleContext: businesses.roleContext,
-        status: businesses.status,
-        claimStatus: businesses.claimStatus,
-        profileData: businesses.profileData,
-        updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-        ownerVerificationStatus: users.verificationStatus,
-        ownerAddressVerified: users.addressVerified,
-        county: {
-          fips: counties.fips,
-          stateCode: counties.stateCode,
-          name: counties.name,
+      const result = await db.execute(sql`
+        select
+          snapshot.business_id as id,
+          snapshot.display_name as name,
+          snapshot.slug,
+          live.type,
+          live.role_context,
+          lower(coalesce(live.claim_status, '')) as claim_status,
+          live.status,
+          coalesce(
+            jsonb_agg(
+              jsonb_build_object(
+                'id', county.id,
+                'fips', county.fips,
+                'stateCode', county.state_code,
+                'name', county.name
+              )
+              order by membership.is_primary desc, county.state_code, county.name, county.fips
+            ),
+            '[]'::jsonb
+          ) as counties
+        from ts_seo_directory_business_pages snapshot
+        inner join businesses live on live.id = snapshot.business_id
+        left join users owner on owner.id = live.owner_user_id
+        inner join ts_seo_directory_business_counties membership
+          on membership.business_id = snapshot.business_id
+        inner join counties county on county.id = membership.county_id
+        where ${sql.join(filters, sql` and `)}
+        group by
+          snapshot.business_id,
+          snapshot.display_name,
+          snapshot.slug,
+          live.claim_status,
+          live.type,
+          live.role_context,
+          live.status
+        order by snapshot.slug asc, snapshot.business_id asc
+        limit ${limit} offset ${offset};
+      `);
+      const rows = Array.isArray((result as any)?.rows) ? (result as any).rows : [];
+      const items = rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        type: row.type,
+        roleContext: row.role_context,
+        claimStatus: row.claim_status,
+        status: row.status,
+        counties: Array.isArray(row.counties) ? row.counties : [],
+      }));
+      return {
+        status: 200,
+        body: {
+          items,
+          countyFips,
+          stateCode: stateCode || null,
+          claimed,
+          q: publicQuery,
+          trade: requestedTradeSlug || null,
+          city: citySlug || null,
+          limit,
+          offset,
         },
-      })
-      .from(businesses)
-      .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .leftJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(eq(businesses.id, businessId));
-
-    if (!rows.length) return res.status(404).json({ message: "Business not found" });
-    const first = rows[0];
-    if (first.status !== ("active" as any))
-      return res.status(404).json({ message: "Business not found" });
-
-    const countiesList = rows
-      .map((r) => r.county)
-      .filter(Boolean)
-      .reduce((acc: any[], c: any) => {
-        if (!acc.some((x) => x?.fips === c.fips)) acc.push(c);
-        return acc;
-      }, []);
-
-    const rules = await getPublicationRules();
-    const now = new Date();
-    const profileData: any = (first as any).profileData || {};
-    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-    const city = typeof profileData.city === "string" ? profileData.city : null;
-    const tier = derivePublicationTier({
-      ownerUserId: (first as any).ownerUserId ? String((first as any).ownerUserId) : null,
-      claimStatus: String((first as any).claimStatus || ""),
-      ownerVerificationStatus: (first as any).ownerVerificationStatus
-        ? String((first as any).ownerVerificationStatus)
-        : null,
-      ownerAddressVerified:
-        typeof (first as any).ownerAddressVerified === "boolean"
-          ? (first as any).ownerAddressVerified
-          : null,
-    });
-    const countyPrimary = countiesList[0] || null;
-    const pub = isPublicAndCrawlableBusiness(
-      buildPublicBusinessSignals({
-        id: String((first as any).id),
-        name: String((first as any).name || ""),
-        slug: String((first as any).slug || ""),
-        updatedAt: (first as any).updatedAt instanceof Date ? (first as any).updatedAt : new Date(),
-        publicDiscoveryEnabled: Boolean((first as any).publicDiscoveryEnabled),
-        stateCode: countyPrimary?.stateCode ? String(countyPrimary.stateCode) : null,
-        countyName: countyPrimary?.name ? String(countyPrimary.name) : null,
-        city,
-        tradeSlug,
-        tier,
-      }),
-      rules,
-      now
-    );
-    if (
-      !canServePublicBusinessDetail({
-        publication: pub,
-        tier,
-      })
-    ) {
-      return res.status(410).json({ message: "Listing inactive/out of date" });
+      };
+    } catch (error) {
+      console.error("Error listing snapshot-backed public businesses:", error);
+      return { status: 503, body: { message: "Business directory temporarily unavailable" } };
     }
+  };
 
-    res.json({
-      id: first.id,
-      name: first.name,
-      slug: first.slug,
-      type: first.type,
-      roleContext: first.roleContext,
-      status: first.status,
-      claimStatus: first.claimStatus,
-      profile: toPublicProfile(first.profileData),
-      counties: countiesList,
-      publication: {
-        crawlable: pub.ok,
-        reason: pub.reason || null,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error fetching public business:", error);
-    res.status(500).json({ message: "Failed to fetch business" });
+  // Search text is never placed in process memory, even after sanitization.
+  const result = rawQuery
+    ? await compute()
+    : await getSnapshotAuthoritativeCachedOrCompute("/api/businesses", cacheParams, compute);
+  if (result.status >= 500) {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Retry-After", "300");
   }
-});
-
-// Public-safe directory detail by slug for /business/:slug fallback pages.
-router.get("/api/public/businesses/:slug", async (req, res) => {
-  try {
-    const businessSlug = coerceString(req.params.slug);
-    if (!businessSlug) return res.status(400).json({ message: "Invalid business slug" });
-
-    const rows = await db
-      .select({
-        id: businesses.id,
-        ownerUserId: businesses.ownerUserId,
-        name: businesses.name,
-        slug: businesses.slug,
-        type: businesses.type,
-        roleContext: businesses.roleContext,
-        status: businesses.status,
-        claimStatus: businesses.claimStatus,
-        profileData: businesses.profileData,
-        updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-        ownerVerificationStatus: users.verificationStatus,
-        ownerAddressVerified: users.addressVerified,
-        county: {
-          fips: counties.fips,
-          stateCode: counties.stateCode,
-          name: counties.name,
-        },
-      })
-      .from(businesses)
-      .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .leftJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(eq(businesses.slug, businessSlug));
-
-    if (!rows.length) return res.status(404).json({ message: "Business not found" });
-    const first = rows[0];
-    if (first.status !== ("active" as any)) {
-      return res.status(404).json({ message: "Business not found" });
-    }
-
-    const countiesList = rows
-      .map((r) => r.county)
-      .filter(Boolean)
-      .reduce((acc: any[], c: any) => {
-        if (!acc.some((x) => x?.fips === c.fips)) acc.push(c);
-        return acc;
-      }, []);
-
-    const rules = await getPublicationRules();
-    const now = new Date();
-    const profileData: any = (first as any).profileData || {};
-    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-    const city = typeof profileData.city === "string" ? profileData.city : null;
-    const tier = derivePublicationTier({
-      ownerUserId: (first as any).ownerUserId ? String((first as any).ownerUserId) : null,
-      claimStatus: String((first as any).claimStatus || ""),
-      ownerVerificationStatus: (first as any).ownerVerificationStatus
-        ? String((first as any).ownerVerificationStatus)
-        : null,
-      ownerAddressVerified:
-        typeof (first as any).ownerAddressVerified === "boolean"
-          ? (first as any).ownerAddressVerified
-          : null,
-    });
-    const countyPrimary = countiesList[0] || null;
-    const pub = isPublicAndCrawlableBusiness(
-      buildPublicBusinessSignals({
-        id: String((first as any).id),
-        name: String((first as any).name || ""),
-        slug: String((first as any).slug || ""),
-        updatedAt: (first as any).updatedAt instanceof Date ? (first as any).updatedAt : new Date(),
-        publicDiscoveryEnabled: Boolean((first as any).publicDiscoveryEnabled),
-        stateCode: countyPrimary?.stateCode ? String(countyPrimary.stateCode) : null,
-        countyName: countyPrimary?.name ? String(countyPrimary.name) : null,
-        city,
-        tradeSlug,
-        tier,
-      }),
-      rules,
-      now
-    );
-    if (
-      !canServePublicBusinessDetail({
-        publication: pub,
-        tier,
-      })
-    ) {
-      return res.status(410).json({ message: "Listing inactive/out of date" });
-    }
-
-    res.json({
-      id: first.id,
-      name: first.name,
-      slug: first.slug,
-      type: first.type,
-      roleContext: first.roleContext,
-      status: first.status,
-      claimStatus: first.claimStatus,
-      profile: toPublicProfile(first.profileData),
-      counties: countiesList,
-      publication: {
-        crawlable: pub.ok,
-        reason: pub.reason || null,
-      },
-    });
-  } catch (error: any) {
-    console.error("Error fetching public business by slug:", error);
-    res.status(500).json({ message: "Failed to fetch business" });
-  }
+  return res.status(result.status).json(result.body);
 });
 
 // Public: Suggest an edit or request removal (creates an admin queue item).
@@ -822,9 +624,97 @@ function resolveCountyFipsBySlug(
   return { fips, countyName: String((county as any).name || ""), stateCode, countySlug };
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
+// Public-safe navigation backed by the same publishable scope snapshot as the
+// directory sitemaps. It never returns contacts or creates action authority.
+router.get("/api/public/seo/directory-navigation", async (req, res) => {
+  const cacheParams = {
+    tradeSlug: req.query.tradeSlug ?? req.query.trade,
+    stateCode: req.query.stateCode ?? req.query.state,
+    countySlug: req.query.countySlug ?? req.query.county,
+  };
+
+  let result: any;
+  try {
+    result = await getSnapshotAuthoritativeCachedOrCompute(
+      "/api/public/seo/directory-navigation",
+      cacheParams,
+      async () => {
+        try {
+          const rawTradeSlug = coerceString(cacheParams.tradeSlug);
+          const tradeMatch = rawTradeSlug ? getTradeSeoMatch(rawTradeSlug) : null;
+          const tradeSlug = tradeMatch ? normalizeTradeSlug(tradeMatch.canonicalSlug) : "";
+          const stateCode = normalizeStateCode(cacheParams.stateCode);
+          const countySlug = coerceString(cacheParams.countySlug).toLowerCase();
+
+          if (rawTradeSlug && !tradeSlug) {
+            return { status: 400, body: { message: "Invalid tradeSlug" } };
+          }
+          if (!rawTradeSlug && !stateCode && !countySlug) {
+            return {
+              status: 200,
+              body: { scope: "trades", trades: await listActiveTradeScopes() },
+            };
+          }
+          if (tradeSlug && !stateCode && !countySlug) {
+            return {
+              status: 200,
+              body: {
+                scope: "trade-states",
+                tradeSlug,
+                states: await listActiveTradeStateScopes(tradeSlug),
+              },
+            };
+          }
+          if (tradeSlug && stateCode && !countySlug) {
+            return {
+              status: 200,
+              body: {
+                scope: "trade-counties",
+                tradeSlug,
+                stateCode,
+                counties: await listActiveTradeCountyScopes(tradeSlug, stateCode),
+              },
+            };
+          }
+          if (!tradeSlug && stateCode && /^[a-z0-9-]+$/.test(countySlug)) {
+            const county = resolveCountyFipsBySlug(stateCode, countySlug);
+            if (!county) {
+              return { status: 400, body: { message: "Invalid stateCode/countySlug" } };
+            }
+            return {
+              status: 200,
+              body: {
+                scope: "county-trades",
+                stateCode,
+                countySlug,
+                trades: await listActiveCountyTradeScopes(stateCode, countySlug),
+              },
+            };
+          }
+          return { status: 400, body: { message: "Invalid directory navigation scope" } };
+        } catch (error) {
+          console.warn("SEO directory navigation snapshot unavailable", error);
+          return {
+            status: 503,
+            body: { message: "Directory navigation is temporarily unavailable", retryAfter: 300 },
+          };
+        }
+      }
+    );
+  } catch (error) {
+    console.warn("SEO directory navigation snapshot authority unavailable", error);
+    result = {
+      status: 503,
+      body: { message: "Directory navigation is temporarily unavailable", retryAfter: 300 },
+    };
+  }
+
+  if (result.status >= 500) {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Retry-After", "300");
+  }
+  return res.status(result.status).json(result.body);
+});
 
 // Public safe: supports SPA rendering for /best/* pages (crawlers see SSR).
 router.get("/api/public/seo/best/trade-county", async (req, res) => {
@@ -835,104 +725,122 @@ router.get("/api/public/seo/best/trade-county", async (req, res) => {
     countySlug: req.query.countySlug ?? req.query.county,
   };
 
-  await getCachedOrCompute("/api/public/seo/best/trade-county", cacheParams, async () => {
-    try {
-      const match = getTradeSeoMatch(cacheParams.tradeSlug);
-      if (!match) return res.status(400).json({ message: "Invalid tradeSlug" });
+  const result = await getCachedOrCompute(
+    "/api/public/seo/best/trade-county",
+    cacheParams,
+    async () => {
+      try {
+        const match = getTradeSeoMatch(cacheParams.tradeSlug);
+        if (!match) return { status: 400, body: { message: "Invalid tradeSlug" } };
 
-      const county = resolveCountyFipsBySlug(cacheParams.stateCode, cacheParams.countySlug);
-      if (!county) return res.status(400).json({ message: "Invalid stateCode/countySlug" });
+        const county = resolveCountyFipsBySlug(cacheParams.stateCode, cacheParams.countySlug);
+        if (!county) {
+          return { status: 400, body: { message: "Invalid stateCode/countySlug" } };
+        }
 
-      const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
-      const tradeClause = buildTradeWhereClause(canonicalTradeSlug);
+        const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
+        const tradeClause = buildTradeWhereClause(canonicalTradeSlug);
 
-      const rules = await getPublicationRules();
-      const now = new Date();
-      const recencyCutoff = new Date(
-        now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
-      );
+        const rules = await getPublicationRules();
+        const now = new Date();
+        const recencyCutoff = new Date(
+          now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
+        );
 
-      const whereClauses: any[] = [
-        eq(businesses.status, "active" as any),
-        eq(businesses.publicDiscoveryEnabled, true as any),
-        publicBusinessDetailExposureSqlPredicate(),
-        eq(counties.fips, county.fips),
-        sql`${businesses.updatedAt} >= ${recencyCutoff}`,
-      ];
-      if (tradeClause) whereClauses.push(tradeClause);
+        const whereClauses: any[] = [
+          eq(businesses.status, "active" as any),
+          eq(businesses.publicDiscoveryEnabled, true as any),
+          publicBusinessDetailExposureSqlPredicate(),
+          eq(counties.fips, county.fips),
+          sql`${businesses.updatedAt} >= ${recencyCutoff}`,
+        ];
+        if (tradeClause) whereClauses.push(tradeClause);
 
-      const rows = await db
-        .select({
-          id: businesses.id,
-          slug: businesses.slug,
-          name: businesses.name,
-          claimStatus: businesses.claimStatus,
-          ownerUserId: businesses.ownerUserId,
-          updatedAt: businesses.updatedAt,
-          publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
-          ownerVerificationStatus: users.verificationStatus,
-          ownerAddressVerified: users.addressVerified,
-        })
-        .from(businesses)
-        .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-        .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-        .leftJoin(users, eq(users.id, businesses.ownerUserId))
-        .where(and(...whereClauses))
-        .orderBy(desc(businesses.updatedAt), asc(businesses.name))
-        .limit(250);
+        const rows = await db
+          .select({
+            id: businesses.id,
+            slug: businesses.slug,
+            name: businesses.name,
+            claimStatus: businesses.claimStatus,
+            ownerUserId: businesses.ownerUserId,
+            updatedAt: businesses.updatedAt,
+            publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+            ownerVerificationStatus: users.verificationStatus,
+            ownerAddressVerified: users.addressVerified,
+            profileData: businesses.profileData,
+          })
+          .from(businesses)
+          .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+          .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+          .leftJoin(users, eq(users.id, businesses.ownerUserId))
+          .where(and(...whereClauses))
+          .orderBy(desc(businesses.updatedAt), asc(businesses.name))
+          .limit(250);
 
-      const items = rows
-        .map((r) => {
-          const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
-          if (!updatedAt) return null;
-          const tier = derivePublicationTier({
-            ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
-            claimStatus: String((r as any).claimStatus || ""),
-            ownerVerificationStatus: (r as any).ownerVerificationStatus
-              ? String((r as any).ownerVerificationStatus)
-              : null,
-            ownerAddressVerified:
-              typeof (r as any).ownerAddressVerified === "boolean"
-                ? (r as any).ownerAddressVerified
+        const items = rows
+          .map((r) => {
+            const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
+            if (!updatedAt) return null;
+            const tier = derivePublicationTier({
+              ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
+              claimStatus: String((r as any).claimStatus || ""),
+              ownerVerificationStatus: (r as any).ownerVerificationStatus
+                ? String((r as any).ownerVerificationStatus)
                 : null,
-          });
-          if (tier !== "verified") return null;
-          const pub = isPublicAndCrawlableBusiness(
-            buildPublicBusinessSignals({
-              id: String((r as any).id),
-              name: String((r as any).name || ""),
+              ownerAddressVerified:
+                typeof (r as any).ownerAddressVerified === "boolean"
+                  ? (r as any).ownerAddressVerified
+                  : null,
+            });
+            if (tier !== "verified") return null;
+            const publicProfile = buildPublicDirectoryProfile((r as any).profileData || {});
+            if (deriveTradeSlugFromProfileData(publicProfile) !== canonicalTradeSlug) return null;
+            const pub = isPublicAndCrawlableBusiness(
+              buildPublicBusinessSignals({
+                id: String((r as any).id),
+                name: sanitizePublicDirectoryDisplayName((r as any).name),
+                slug: String((r as any).slug || ""),
+                updatedAt,
+                publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
+                stateCode: county.stateCode,
+                countyName: county.countyName,
+                city: null,
+                tradeSlug: canonicalTradeSlug,
+                hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
+                tier,
+              }),
+              rules,
+              now
+            );
+            if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
+            return {
               slug: String((r as any).slug || ""),
-              updatedAt,
-              publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
-              stateCode: county.stateCode,
-              countyName: county.countyName,
-              city: null,
-              tradeSlug: canonicalTradeSlug,
-              tier,
-            }),
-            rules,
-            now
-          );
-          if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
-          return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
-        })
-        .filter((x): x is { slug: string; name: string } => Boolean(x))
-        .slice(0, 200);
+              name: sanitizePublicDirectoryDisplayName((r as any).name),
+            };
+          })
+          .filter((x): x is { slug: string; name: string } => Boolean(x))
+          .slice(0, 200);
 
-      res.json({
-        scope: {
-          tradeSlug: canonicalTradeSlug,
-          stateCode: county.stateCode,
-          countySlug: county.countySlug,
-        },
-        definition: `Verified & active listings updated in the last ${rules.categoryPageRecencyWindowDays} days. Not ranked by payment.`,
-        items,
-      });
-    } catch (error: any) {
-      console.error("Error building best trade-county data:", error);
-      res.status(500).json({ message: "Failed to load best listings" });
+        return {
+          status: 200,
+          body: {
+            scope: {
+              tradeSlug: canonicalTradeSlug,
+              stateCode: county.stateCode,
+              countySlug: county.countySlug,
+            },
+            definition: `Verified & active listings updated in the last ${rules.categoryPageRecencyWindowDays} days. Not ranked by payment.`,
+            items,
+          },
+        };
+      } catch (error: any) {
+        console.error("Error building best trade-county data:", error);
+        return { status: 500, body: { message: "Failed to load best listings" } };
+      }
     }
-  });
+  );
+  if (result.status >= 500) res.setHeader("Cache-Control", "no-store");
+  return res.status(result.status).json(result.body);
 });
 
 router.get("/api/public/seo/best/trade-city", async (req, res) => {
@@ -941,9 +849,10 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
     if (!match) return res.status(400).json({ message: "Invalid tradeSlug" });
 
     const stateCode = normalizeStateCode(req.query.stateCode ?? req.query.state);
-    const citySlug = coerceString(req.query.citySlug ?? req.query.city).toLowerCase();
+    const rawCitySlug = req.query.citySlug ?? req.query.city;
+    const citySlug = normalizePublicCitySlug(rawCitySlug);
     if (!stateCode) return res.status(400).json({ message: "Invalid stateCode" });
-    if (!/^[a-z0-9-]+$/.test(citySlug))
+    if (!isCanonicalPublicCitySlug(rawCitySlug))
       return res.status(400).json({ message: "Invalid citySlug" });
 
     const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
@@ -960,7 +869,8 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
       eq(businesses.publicDiscoveryEnabled, true as any),
       publicBusinessDetailExposureSqlPredicate(),
       eq(counties.stateCode, stateCode),
-      sql`${sqlCitySlugExpr()} = ${citySlug}`,
+      sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+      sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
       sql`${businesses.updatedAt} >= ${recencyCutoff}`,
     ];
     if (tradeClause) whereClauses.push(tradeClause);
@@ -976,13 +886,26 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         ownerVerificationStatus: users.verificationStatus,
         ownerAddressVerified: users.addressVerified,
-        countyName: counties.name,
+        countyName: sql<string>`min(${counties.name})`,
+        profileData: businesses.profileData,
       })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
       .innerJoin(counties, eq(counties.id, businessCounties.countyId))
       .leftJoin(users, eq(users.id, businesses.ownerUserId))
       .where(and(...whereClauses))
+      .groupBy(
+        businesses.id,
+        businesses.slug,
+        businesses.name,
+        businesses.claimStatus,
+        businesses.ownerUserId,
+        businesses.updatedAt,
+        businesses.publicDiscoveryEnabled,
+        users.verificationStatus,
+        users.addressVerified,
+        businesses.profileData
+      )
       .orderBy(desc(businesses.updatedAt), asc(businesses.name))
       .limit(250);
 
@@ -1002,10 +925,12 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
               : null,
         });
         if (tier !== "verified") return null;
+        const publicProfile = buildPublicDirectoryProfile((r as any).profileData || {});
+        if (deriveTradeSlugFromProfileData(publicProfile) !== canonicalTradeSlug) return null;
         const pub = isPublicAndCrawlableBusiness(
           buildPublicBusinessSignals({
             id: String((r as any).id),
-            name: String((r as any).name || ""),
+            name: sanitizePublicDirectoryDisplayName((r as any).name),
             slug: String((r as any).slug || ""),
             updatedAt,
             publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
@@ -1013,13 +938,17 @@ router.get("/api/public/seo/best/trade-city", async (req, res) => {
             countyName: String((r as any).countyName || ""),
             city: null,
             tradeSlug: canonicalTradeSlug,
+            hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
             tier,
           }),
           rules,
           now
         );
         if (!canServePublicBusinessDetail({ publication: pub, tier })) return null;
-        return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
+        return {
+          slug: String((r as any).slug || ""),
+          name: sanitizePublicDirectoryDisplayName((r as any).name),
+        };
       })
       .filter((x): x is { slug: string; name: string } => Boolean(x))
       .slice(0, 200);

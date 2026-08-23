@@ -168,7 +168,7 @@ function applyPublicProviderBusinessSearchPredicates(
 export function buildPublicBusinessPresentationFields(
   profileData: Business["profileData"] | null | undefined,
   isTradePartner: boolean,
-  publicLocationEnabled = profileData?.publicLocationEnabled !== false
+  publicLocationEnabled = profileData?.publicLocationEnabled === true
 ): Pick<PublicBusinessRecord, "categories" | "services"> &
   Partial<Pick<PublicBusinessRecord, "address" | "city" | "stateCode" | "zipCode">> {
   const category = normalizePublicDiscoveryLabel(profileData?.category, 180);
@@ -290,33 +290,13 @@ export class BusinessRepository {
       const rows = await db
         .select()
         .from(businesses)
-        .where(and(eq(businesses.slug, slug), ne(businesses.status, "suspended" as any)))
+        .where(and(eq(businesses.slug, slug), eq(businesses.status, "active" as any)))
         .limit(1);
       return rows[0];
     } catch (error: any) {
-      if (!isMissingPublicDiscoveryEnabledColumn(error)) throw error;
-
-      const fallback = (await db.execute(sql`
-        select
-          b.id,
-          b.name,
-          b.slug,
-          b.type,
-          b.owner_user_id as "ownerUserId",
-          b.role_context as "roleContext",
-          b.profile_data as "profileData",
-          b.claim_status as "claimStatus",
-          true as "publicDiscoveryEnabled",
-          b.sources,
-          b.status,
-          b.created_at as "createdAt",
-          b.updated_at as "updatedAt"
-        from businesses b
-        where b.slug = ${slug}
-          and b.status <> 'suspended'
-        limit 1
-      `)) as any;
-      return Array.isArray(fallback?.rows) ? (fallback.rows[0] as Business | undefined) : undefined;
+      // Anonymous publication must not turn a missing consent column into
+      // public=true. Schema drift reaches the caller and fails closed.
+      throw error;
     }
   }
 
@@ -344,15 +324,8 @@ export class BusinessRepository {
       .where(eq(businessCounties.businessId, businessId))
       .orderBy(asc(counties.name), asc(counties.stateCode));
 
-    const publicContactEnabled = business.profileData?.publicContactEnabled !== false;
-    const publicLocationEnabled = business.profileData?.publicLocationEnabled !== false;
-    const publicWebsiteEnabled = business.profileData?.publicWebsiteEnabled !== false;
-    const contactEmail = publicContactEnabled
-      ? business.profileData?.email || undefined
-      : undefined;
-    const contactPhone = publicContactEnabled
-      ? business.profileData?.phone || undefined
-      : undefined;
+    const publicLocationEnabled = business.profileData?.publicLocationEnabled === true;
+    const publicWebsiteEnabled = business.profileData?.publicWebsiteEnabled === true;
     const isTradePartner = business.profileData?.tradePartner === true;
     const publicPresentation = buildPublicBusinessPresentationFields(
       business.profileData,
@@ -379,8 +352,6 @@ export class BusinessRepository {
       ...(business.profileData?.brandColors
         ? { brandColors: business.profileData.brandColors }
         : {}),
-      ...(contactEmail ? { contactEmail } : {}),
-      ...(contactPhone ? { contactPhone } : {}),
       // TradePartner location/website data can power richer public SEO. Phone
       // remains intentionally absent: Express Direct Connect reveals it only
       // after a visitor clicks the profile CTA and chooses Call.

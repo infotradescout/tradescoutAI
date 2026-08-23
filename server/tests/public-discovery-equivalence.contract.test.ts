@@ -52,8 +52,8 @@ const USER_AGENTS = [
 
 const BUSINESS_FIXTURES = [
   {
-    slug: "jrs-auto-glass",
-    name: "JR's Auto Glass",
+    slug: "river-city-auto-glass",
+    name: "River City Auto Glass",
     headline: "Mobile auto glass service for daily drivers.",
     servicesDescription: "Windshield replacement, chip repair, and camera recalibration.",
     categories: ["Auto glass"],
@@ -62,8 +62,8 @@ const BUSINESS_FIXTURES = [
     profileBooking: null,
   },
   {
-    slug: "la-plumbing",
-    name: "LA Plumbing",
+    slug: "capital-plumbing",
+    name: "Capital Plumbing",
     headline: "Residential plumbing help with clear next steps.",
     servicesDescription: "Leak repair, drain service, and fixture installation.",
     categories: ["Plumbing", "Home services"],
@@ -72,8 +72,8 @@ const BUSINESS_FIXTURES = [
     profileBooking: { enabled: true, paidBookings: false },
   },
   {
-    slug: "pro-fab-specialty-services",
-    name: "Pro Fab Specialty Services LLC",
+    slug: "hill-country-specialty-fabrication",
+    name: "Hill Country Specialty Fabrication",
     headline: "Specialty fabrication for practical jobsite needs.",
     servicesDescription: "Custom fabrication, repair, and specialty metal work.",
     categories: ["Fabrication", "Metal work", "Specialty services"],
@@ -99,6 +99,7 @@ function registerFixture(fixture: (typeof BUSINESS_FIXTURES)[number]) {
     updatedAt: "2026-08-08T12:00:00.000Z",
     profileSections: null,
     profileBooking: fixture.profileBooking,
+    isDiscoverable: true,
     ownerFirstName: null,
     ownerLastName: null,
     ownerProfileImageUrl: null,
@@ -216,9 +217,9 @@ describe("platform-wide public discovery equivalence", () => {
       "utf8"
     );
 
-    expect(source).toContain("'/sitemap-u-profiles.xml'");
-    expect(source).toContain("'/sitemap-business-profiles.xml'");
-    expect(source).toContain("'/sitemap-directory-businesses.xml'");
-    expect(source).not.toContain("'/sitemap-profiles.xml'");
+    expect(source).toContain("'/sitemap-profiles.xml'");
+    expect(source).not.toContain("'/sitemap-u-profiles.xml'");
+    expect(source).not.toContain("'/sitemap-business-profiles.xml'");
+    expect(source).not.toContain("'/sitemap-directory-businesses.xml'");
   });
 });

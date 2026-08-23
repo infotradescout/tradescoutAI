@@ -73,7 +73,9 @@ describe("public profile publication safety", () => {
   it("ignores account-wide public visibility without exact profile release", () => {
     expect(
       derivePublishedProfileExposure(
-        personalCandidate({ ownerPreferences: { profileVisibility: "public", publicProfileIds: [] } })
+        personalCandidate({
+          ownerPreferences: { profileVisibility: "public", publicProfileIds: [] },
+        })
       )
     ).toEqual({
       mode: "private",
@@ -81,11 +83,13 @@ describe("public profile publication safety", () => {
     });
   });
 
-  it("allows a meaningful personal profile only after exact release", () => {
+  it("keeps a meaningful released personal profile exact-link-only until a crawlable hub exists", () => {
     expect(derivePublishedProfileExposure(personalCandidate())).toEqual({
-      mode: "public",
-      reason: "public",
+      mode: "direct_only",
+      reason: "direct_only",
     });
+    expect(canServePublishedProfileAtDirectRoute(personalCandidate())).toBe(true);
+    expect(canDiscoverPublishedProfilePublicly(personalCandidate())).toBe(false);
   });
 
   it("keeps an explicitly released but empty profile private", () => {
@@ -95,6 +99,53 @@ describe("public profile publication safety", () => {
           profileHeadline: null,
           profileServicesDescription: null,
           profileContentBlocks: [],
+        })
+      )
+    ).toEqual({ mode: "private", reason: "empty_profile" });
+  });
+
+  it.each(["businessDraft", "profileBooking", "profileSections", "siteTemplate", "customConfig"])(
+    "does not treat internal %s configuration as public profile content",
+    (type) => {
+      expect(
+        derivePublishedProfileExposure(
+          personalCandidate({
+            profileHeadline: null,
+            profileServicesDescription: null,
+            profileContentBlocks: [{ type, data: { owner: "keep", amount: 100 } }],
+          })
+        )
+      ).toEqual({ mode: "private", reason: "empty_profile" });
+    }
+  );
+
+  it.each(["about", "services", "gallery"])(
+    "accepts meaningful allowlisted %s content for an exact-link-only released profile",
+    (type) => {
+      expect(
+        derivePublishedProfileExposure(
+          personalCandidate({
+            profileHeadline: null,
+            profileServicesDescription: null,
+            profileContentBlocks: [{ type, data: { text: "Useful public detail" } }],
+          })
+        )
+      ).toEqual({ mode: "direct_only", reason: "direct_only" });
+    }
+  );
+
+  it.each([
+    { layout: "split" },
+    { columns: 3 },
+    { id: "private-record-id" },
+    { items: [{ id: "private-record-id", layout: "card" }] },
+  ])("does not treat allowlisted config-only block data as substantive: %j", (data) => {
+    expect(
+      derivePublishedProfileExposure(
+        personalCandidate({
+          profileHeadline: null,
+          profileServicesDescription: null,
+          profileContentBlocks: [{ type: "about", data }],
         })
       )
     ).toEqual({ mode: "private", reason: "empty_profile" });
@@ -115,11 +166,29 @@ describe("public profile publication safety", () => {
     "keeps approved discoverable business %s public",
     (profileSlug) => {
       const candidate = businessCandidate({ profileSlug });
-      expect(derivePublishedProfileExposure(candidate)).toEqual({ mode: "public", reason: "public" });
+      expect(derivePublishedProfileExposure(candidate)).toEqual({
+        mode: "public",
+        reason: "public",
+      });
       expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(true);
       expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
     }
   );
+
+  it("keeps an empty linked business profile exact-link-only and out of discovery", () => {
+    const candidate = businessCandidate({
+      profileHeadline: null,
+      profileServicesDescription: null,
+      profileContentBlocks: [],
+    });
+
+    expect(derivePublishedProfileExposure(candidate)).toEqual({
+      mode: "direct_only",
+      reason: "empty_profile",
+    });
+    expect(canServePublishedProfileAtDirectRoute(candidate)).toBe(true);
+    expect(canDiscoverPublishedProfilePublicly(candidate)).toBe(false);
+  });
 
   it("preserves JR's exact direct route but excludes discovery and indexing", () => {
     const candidate = businessCandidate({

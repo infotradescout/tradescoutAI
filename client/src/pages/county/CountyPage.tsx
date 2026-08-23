@@ -27,6 +27,7 @@ import {
   trustScoreDescription,
   trustScoreLabel,
 } from "@/lib/userFacingCopy";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
 
 interface CountyCoverageData {
   countyFips: string;
@@ -71,7 +72,12 @@ function nameToSlug(name: string): string {
 function findCountyBySlug(state: any, slug: string): any {
   if (!state) return null;
   const counties = getCountiesByState(state.code);
-  return counties.find((c) => nameToSlug(c.name) === slug.toLowerCase());
+  const normalized = String(slug || "").toLowerCase();
+  return counties.find((c) => {
+    const fullSlug = nameToSlug(c.name);
+    const canonicalSlug = nameToSlug(c.name.replace(/\s+County$/i, "").trim() || c.name);
+    return canonicalSlug === normalized || fullSlug === normalized;
+  });
 }
 
 // Build FAQ content based on coverage status
@@ -198,27 +204,57 @@ const CountyPage = memo(function CountyPage() {
     enabled: !!county?.fipsCode,
     retry: 1,
   });
+  const directoryCountySlug = county
+    ? nameToSlug(county.name.replace(/\s+County$/i, "").trim() || county.name)
+    : "";
+  const directoryStateCode = String(state?.code || "");
+  const {
+    data: directoryNavigation,
+    isLoading: directoryNavigationLoading,
+    isError: directoryNavigationError,
+  } = useQuery<{ trades: Array<{ tradeSlug: string; businessCount: number }> }>({
+    queryKey: [
+      "/api/public/seo/directory-navigation",
+      directoryStateCode,
+      directoryCountySlug,
+      "trades",
+    ],
+    enabled: Boolean(directoryStateCode && directoryCountySlug),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/public/seo/directory-navigation?stateCode=${encodeURIComponent(
+          directoryStateCode
+        )}&countySlug=${encodeURIComponent(directoryCountySlug)}`
+      );
+      if (!response.ok) throw new Error(`Failed to load county navigation (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
 
   // 404 on mismatch
   if (!state || !county) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-6 text-center">
-            <h1 className="text-2xl font-bold text-red-900 mb-2">County Not Found</h1>
-            <p className="text-red-700 mb-4">
-              {countySlug && stateCode
-                ? `${countySlug} in ${stateCode} could not be resolved.`
-                : "Invalid county or state."}
-            </p>
-            <Link href="/county-directory">
-              <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Browse All Markets
-              </a>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <SEOHelmet title="County Not Found | TradeScout" noIndex />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-6 text-center">
+              <h1 className="text-2xl font-bold text-red-900 mb-2">County Not Found</h1>
+              <p className="text-red-700 mb-4">
+                {countySlug && stateCode
+                  ? `${countySlug} in ${stateCode} could not be resolved.`
+                  : "Invalid county or state."}
+              </p>
+              <Link href="/county-directory">
+                <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
+                  Browse All Markets
+                </a>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
@@ -255,27 +291,24 @@ const CountyPage = memo(function CountyPage() {
     state.code
   )}&source=county-community-path`;
   const communityFeedHref = `/community-feed?county=${county.fipsCode}`;
-  const featuredTradeSlugs = [
-    "plumbing",
-    "electrical",
-    "roofing",
-    "hvac",
-    "concrete-contractor",
-    "landscaping",
-    "painting",
-    "flooring",
-    "pest-control",
-    "general-contractor",
-    "tree-service",
-    "handyman",
-  ];
-  const featuredTrades = featuredTradeSlugs
-    .map((slug) => getTradeBySlug(slug))
-    .filter(Boolean)
-    .map((t) => ({ slug: (t as any).slug as string, name: (t as any).name as string }));
-  const countySlugForTradeLinks = nameToSlug(
-    county.name.replace(/\s+County$/i, "").trim() || county.name
-  );
+  const featuredTrades = (directoryNavigation?.trades || [])
+    .map((scope) => {
+      const trade = getTradeBySlug(scope.tradeSlug);
+      return trade
+        ? {
+            slug: String((trade as any).slug || scope.tradeSlug),
+            name: String((trade as any).name || scope.tradeSlug),
+            businessCount: scope.businessCount,
+          }
+        : null;
+    })
+    .filter(Boolean) as Array<{ slug: string; name: string; businessCount: number }>;
+  const countySlugForTradeLinks = directoryCountySlug;
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading: directoryNavigationLoading,
+    hasError: directoryNavigationError,
+    itemCount: featuredTrades.length,
+  });
 
   return (
     <>
@@ -284,7 +317,9 @@ const CountyPage = memo(function CountyPage() {
         description={description}
         keywords={keywords}
         structuredData={placeSchema}
-        canonical={`https://www.thetradescout.com/county/${state.code.toLowerCase()}/${nameToSlug(county.name)}`}
+        canonical={`https://www.thetradescout.com/county/${state.code.toLowerCase()}/${directoryCountySlug}`}
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -353,7 +388,7 @@ const CountyPage = memo(function CountyPage() {
                       )}/${encodeURIComponent(countySlugForTradeLinks)}`}
                     >
                       <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center justify-between gap-2">
                           {categoryImageSrc ? (
                             <img
                               src={categoryImageSrc}
@@ -366,6 +401,9 @@ const CountyPage = memo(function CountyPage() {
                             />
                           ) : null}
                           <span>{trade.name}</span>
+                          <span className="text-xs text-white/45">
+                            {trade.businessCount.toLocaleString()}
+                          </span>
                         </span>
                       </a>
                     </Link>
@@ -373,6 +411,11 @@ const CountyPage = memo(function CountyPage() {
                 })()
               )}
             </div>
+            {!directoryNavigationLoading && featuredTrades.length === 0 ? (
+              <p className="mt-3 text-sm text-white/60">
+                No recent public trade coverage is available in this county yet.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
 

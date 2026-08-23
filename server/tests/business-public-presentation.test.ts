@@ -1,26 +1,47 @@
 import { describe, expect, it } from "vitest";
 import { buildPublicBusinessPresentationFields } from "../repositories/businessRepository";
+import fs from "node:fs";
+import path from "node:path";
 
 describe("public business presentation fields", () => {
-  it("makes onboarding services and coarse location available to a normal business profile", () => {
+  it.each([undefined, null, false])(
+    "keeps location private unless it is explicitly enabled (%s)",
+    (publicLocationEnabled) => {
+      const result = buildPublicBusinessPresentationFields(
+        {
+          category: "Drone videographer",
+          services: ["Real estate aerials", "Construction progress", "Real estate aerials", ""],
+          city: " Pensacola ",
+          stateCode: " FL ",
+          address: "123 Private Street",
+          zipCode: "32501",
+          publicLocationEnabled: publicLocationEnabled as any,
+        },
+        false
+      );
+
+      expect(result).toEqual({
+        categories: ["Drone videographer"],
+        services: ["Real estate aerials", "Construction progress"],
+      });
+      expect(result).not.toHaveProperty("address");
+      expect(result).not.toHaveProperty("zipCode");
+    }
+  );
+
+  it("allows only coarse city/state for an explicitly enabled normal business", () => {
     const result = buildPublicBusinessPresentationFields(
       {
-        category: "Drone videographer",
-        services: ["Real estate aerials", "Construction progress", "Real estate aerials", ""],
-        city: " Pensacola ",
-        stateCode: " FL ",
+        city: "Pensacola",
+        stateCode: "FL",
         address: "123 Private Street",
         zipCode: "32501",
+        publicLocationEnabled: true,
       },
       false
     );
 
-    expect(result).toEqual({
-      categories: ["Drone videographer"],
-      services: ["Real estate aerials", "Construction progress"],
-      city: "Pensacola",
-      stateCode: "FL",
-    });
+    expect(result).toMatchObject({ city: "Pensacola", stateCode: "FL" });
     expect(result).not.toHaveProperty("address");
     expect(result).not.toHaveProperty("zipCode");
   });
@@ -52,6 +73,7 @@ describe("public business presentation fields", () => {
         stateCode: "FL",
         address: "123 Public Street",
         zipCode: "32501",
+        publicLocationEnabled: true,
       },
       true
     );
@@ -96,5 +118,21 @@ describe("public business presentation fields", () => {
     ]);
     expect(result).not.toHaveProperty("city");
     expect(result).not.toHaveProperty("stateCode");
+  });
+
+  it("requires explicit presentation opt-ins and never returns raw contact from public records", () => {
+    const source = fs.readFileSync(
+      path.resolve(process.cwd(), "server/repositories/businessRepository.ts"),
+      "utf8"
+    );
+    const method = source.slice(
+      source.indexOf("async getBusinessPublicById"),
+      source.indexOf("async getBusinessCountyIds")
+    );
+    expect(method).toContain("publicLocationEnabled === true");
+    expect(method).toContain("publicWebsiteEnabled === true");
+    expect(method).not.toContain("publicContactEnabled");
+    expect(method).not.toContain("profileData?.email");
+    expect(method).not.toContain("profileData?.phone");
   });
 });

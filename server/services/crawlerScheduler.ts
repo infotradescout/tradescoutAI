@@ -13,10 +13,7 @@ import { runCompletedJobPriceSnapshotJob } from "./completedJobPriceSnapshotJob"
 import { runPartnerCountyObservationSnapshotJob } from "./partnerCountyObservationSnapshotService";
 import { runPartnerIntelligenceBriefSnapshotJob } from "./partnerIntelligenceBriefSnapshotService";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
-import {
-  getSchedulerDbConcurrencySnapshot,
-  withAdvisoryLock,
-} from "../utils/advisoryLocks";
+import { getSchedulerDbConcurrencySnapshot, withAdvisoryLock } from "../utils/advisoryLocks";
 import { runSeoPublicationPruneJob } from "./seoPublicationPruneJob";
 import { runSeoDirectoryScopeSnapshotJob } from "./seoDirectoryScopeSnapshotJob";
 import { runCrawlerTelemetryMaintenance } from "./crawlerTelemetryService";
@@ -439,7 +436,7 @@ function startSeoDirectoryScopeSnapshotScheduler() {
 
   console.log(`\n🗺️ Starting SEO directory scope snapshot scheduler with schedule: "${schedule}"`);
 
-  seoDirectoryScopeSnapshotTask = cron.schedule(schedule, async () => {
+  const runTick = async (): Promise<boolean> => {
     console.log(`\n🗺️ [${new Date().toISOString()}] Running SEO directory scope snapshot job...`);
     emitJobStart(jobName);
     try {
@@ -449,16 +446,37 @@ function startSeoDirectoryScopeSnapshotScheduler() {
       if (result === null) {
         console.log(`Skipping ${jobName} (advisory lock not acquired)`);
         emitJobEnd(jobName, 0, false);
-        return;
+        return false;
       }
-      const count = ((result as any).tradeCountyPages || 0) + ((result as any).tradeCityPages || 0);
+      const count =
+        ((result as any).directoryBusinesses || 0) +
+        ((result as any).tradeCountyPages || 0) +
+        ((result as any).tradeCityPages || 0);
       console.log("✅ SEO directory scope snapshot job completed", result);
       emitJobEnd(jobName, count, false);
+      return true;
     } catch (error) {
       console.error("❌ SEO directory scope snapshot job failed:", error);
       emitJobError(jobName, error);
+      return false;
     }
-  });
+  };
+
+  // Backfill on startup under the same singleton lock. Readers remain 503 until
+  // a fresh completed marker exists; bounded retries avoid a single transient
+  // cold-start failure waiting for the next six-hour cron window.
+  const startupRetryDelaysMs = [60_000, 5 * 60_000, 15 * 60_000];
+  const runStartupBackfill = async (attempt = 0): Promise<void> => {
+    const completed = await runTick();
+    if (completed || attempt >= startupRetryDelaysMs.length) return;
+    const timer = setTimeout(
+      () => void runStartupBackfill(attempt + 1),
+      startupRetryDelaysMs[attempt]
+    );
+    timer.unref?.();
+  };
+  void runStartupBackfill();
+  seoDirectoryScopeSnapshotTask = cron.schedule(schedule, runTick);
 
   console.log("✅ SEO directory scope snapshot scheduler started\n");
 }
@@ -508,8 +526,7 @@ function startPartnerIntelligenceBriefSnapshotsScheduler() {
     return;
   }
 
-  const schedule =
-    process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "8-59/15 * * * *";
+  const schedule = process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "8-59/15 * * * *";
   const jobName = "partner_intelligence_brief_snapshots";
 
   console.log(
@@ -906,8 +923,7 @@ function startPartnerCountyObservationSnapshotsScheduler() {
     return;
   }
 
-  const schedule =
-    process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "6-59/15 * * * *";
+  const schedule = process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "6-59/15 * * * *";
   const jobName = "partner_county_observation_snapshots";
 
   console.log(
@@ -1158,13 +1174,11 @@ export function getCrawlerSchedulerStatus() {
     },
     partnerCountyObservationSnapshots: {
       active: partnerCountyObservationSnapshotsTask !== null,
-      schedule:
-        process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "6-59/15 * * * *",
+      schedule: process.env.PARTNER_COUNTY_OBSERVATION_SNAPSHOTS_SCHEDULE || "6-59/15 * * * *",
     },
     partnerIntelligenceBriefSnapshots: {
       active: partnerIntelligenceBriefSnapshotsTask !== null,
-      schedule:
-        process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "8-59/15 * * * *",
+      schedule: process.env.PARTNER_INTELLIGENCE_BRIEF_SNAPSHOTS_SCHEDULE || "8-59/15 * * * *",
     },
     botArmyAutoPromote: {
       active: botArmyAutoPromoteTask !== null,

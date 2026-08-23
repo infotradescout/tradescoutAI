@@ -1,9 +1,13 @@
-import { and, asc, eq, sql } from "drizzle-orm";
-import { db } from "./db";
-import { businessCounties, businesses, counties, users } from "@shared/schema";
-import { getPublicationRules } from "./publicationRules";
 import { formatTradeScoutTitle } from "@shared/brand";
-import { publicBusinessDetailExposureSqlPredicate } from "./publicationBusiness";
+import { isCanonicalPublicCitySlug, normalizePublicCitySlug } from "./seoDirectoryCitySlug";
+import { loadExactTradeCityCountyScopes } from "./services/publicTradeCityScopeService";
+
+export {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "./seoDirectoryCitySlug";
 
 type PublicCityHtmlOptions = {
   origin: string;
@@ -50,6 +54,7 @@ function buildMeta(args: {
   title: string;
   description: string;
   keywords: string[];
+  indexable?: boolean;
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=12`;
@@ -58,6 +63,7 @@ function buildMeta(args: {
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
+    indexable: args.indexable !== false,
     keywords: args.keywords
       .map((v) => String(v || "").trim())
       .filter(Boolean)
@@ -82,7 +88,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    meta.indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex, follow" />`
   );
   html = upsertTag(
     html,
@@ -132,48 +140,13 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   return html;
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
 export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<string | null> {
   const stateCode = String(opts.stateCode || "").toUpperCase();
-  const citySlug = String(opts.citySlug || "")
-    .trim()
-    .toLowerCase();
+  const citySlug = normalizePublicCitySlug(opts.citySlug);
   if (!/^[A-Z]{2}$/.test(stateCode)) return null;
-  if (!/^[a-z0-9-]+$/.test(citySlug)) return null;
+  if (!isCanonicalPublicCitySlug(opts.citySlug)) return null;
 
-  const rules = await getPublicationRules();
-  const now = new Date();
-  const recencyCutoff = new Date(
-    now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
-  );
-
-  const rows = await db
-    .select({
-      countyFips: counties.fips,
-      countyName: counties.name,
-      stateCode: counties.stateCode,
-      businessCount: sql<number>`count(*)`,
-    })
-    .from(businesses)
-    .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-    .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-    .leftJoin(users, eq(users.id, businesses.ownerUserId))
-    .where(
-      and(
-        eq(businesses.status, "active" as any),
-        eq(businesses.publicDiscoveryEnabled, true as any),
-        publicBusinessDetailExposureSqlPredicate(),
-        eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
-        sql`${businesses.updatedAt} >= ${recencyCutoff}`
-      )
-    )
-    .groupBy(counties.fips, counties.name, counties.stateCode)
-    .orderBy(asc(counties.name))
-    .limit(80);
+  const rows = await loadExactTradeCityCountyScopes({ stateCode, citySlug });
 
   const displayCity = titleizeCitySlug(citySlug);
   const canonicalPath = `/city/${encodeURIComponent(stateCode.toLowerCase())}/${encodeURIComponent(
@@ -190,6 +163,7 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
     title,
     description,
     keywords: [displayCity, stateCode, "contractors", "directory", "counties", "TradeScout"],
+    indexable: rows.length > 0,
   });
 
   const summary = `
@@ -216,6 +190,7 @@ export async function buildPublicCityHtml(opts: PublicCityHtmlOptions): Promise<
         })
         .join("\n")}
     </ul>
+    ${rows.length ? "" : "<p><em>No recent public business coverage is available for this city yet.</em></p>"}
     <p>Contact is protected through TradeScout Direct Connect.</p>
   </article>
 </main>`;

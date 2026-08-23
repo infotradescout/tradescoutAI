@@ -4,7 +4,10 @@ import { businessCounties, businesses, counties, users } from "@shared/schema";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { getTradeBySlug, PRIMARY_TRADE_SLUGS, slugifyCountyName } from "@shared/tradeSeo";
 import { getPublicationRules } from "./publicationRules";
-import { isPublicAndCrawlableBusiness } from "@shared/publication";
+import {
+  isPublicAndCrawlableBusiness,
+  isPublicAndCrawlableBusinessDetail,
+} from "@shared/publication";
 import {
   buildPublicBusinessSignals,
   canServePublicBusinessDetail,
@@ -13,6 +16,11 @@ import {
   publicBusinessDetailExposureSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import {
+  buildPublicDirectoryProfile,
+  hasPublicDirectoryOfferingFacts,
+  sanitizePublicDirectoryDisplayName,
+} from "./services/publicDirectoryBusinessPresentation";
 
 type PublicCountyHtmlOptions = {
   origin: string;
@@ -51,6 +59,7 @@ function buildMeta(args: {
   title: string;
   description: string;
   keywords: string[];
+  indexable?: boolean;
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=12`;
@@ -59,6 +68,7 @@ function buildMeta(args: {
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
+    indexable: args.indexable !== false,
     keywords: args.keywords
       .map((v) => String(v || "").trim())
       .filter(Boolean)
@@ -83,7 +93,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    meta.indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex, follow" />`
   );
   html = upsertTag(
     html,
@@ -133,13 +145,6 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   return html;
 }
 
-function isMissingColumnError(error: unknown, columnName: string): boolean {
-  const err = error as any;
-  const code = String(err?.code || "");
-  const message = String(err?.message || "");
-  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
-}
-
 export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Promise<string | null> {
   const stateCode = String(opts.stateCode || "").toUpperCase();
   const countySlug = String(opts.countySlug || "")
@@ -170,7 +175,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
   );
 
   // Pull a recency-bounded slice of businesses in this county and derive trade presence in JS.
-  const runCountyQuery = (includeDiscovery: boolean) =>
+  const runCountyQuery = () =>
     db
       .select({
         id: businesses.id,
@@ -179,9 +184,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
         claimStatus: businesses.claimStatus,
         ownerUserId: businesses.ownerUserId,
         updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: includeDiscovery
-          ? businesses.publicDiscoveryEnabled
-          : sql<boolean>`false`,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         profileData: businesses.profileData,
         ownerVerificationStatus: users.verificationStatus,
         ownerAddressVerified: users.addressVerified,
@@ -194,7 +197,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
         and(
           eq(businesses.status, "active" as any),
           publicBusinessDetailExposureSqlPredicate(),
-          ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
+          eq(businesses.publicDiscoveryEnabled, true as any),
           eq(counties.fips, String((county as any).fipsCode || "")),
           sql`${businesses.updatedAt} >= ${recencyCutoff}`
         )
@@ -204,14 +207,9 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
 
   let rows: any[] = [];
   try {
-    rows = await runCountyQuery(true);
+    rows = await runCountyQuery();
   } catch (error) {
-    if (isMissingColumnError(error, "public_discovery_enabled")) {
-      rows = await runCountyQuery(false);
-    } else {
-      console.error("[SEO] County directory query failed; serving page without listings", error);
-      rows = [];
-    }
+    throw error;
   }
 
   const tradeCounts = new Map<string, number>();
@@ -221,9 +219,11 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
   for (const r of rows) {
     const updatedAt = (r as any).updatedAt instanceof Date ? (r as any).updatedAt : null;
     if (!updatedAt) continue;
-    const profileData: any = (r as any).profileData || {};
+    const profileData = buildPublicDirectoryProfile((r as any).profileData || {});
     const tradeSlug = deriveTradeSlugFromProfileData(profileData);
-    if (!tradeSlug) continue;
+    const businessSlug = String((r as any).slug || "").trim();
+    const businessName = sanitizePublicDirectoryDisplayName((r as any).name);
+    if (!businessSlug || !businessName) continue;
 
     const tier = derivePublicationTier({
       ownerUserId: (r as any).ownerUserId ? String((r as any).ownerUserId) : null,
@@ -237,35 +237,32 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
           : null,
     });
 
-    const pub = isPublicAndCrawlableBusiness(
-      buildPublicBusinessSignals({
-        id: String((r as any).id),
-        name: String((r as any).name || ""),
-        slug: String((r as any).slug || ""),
-        updatedAt,
-        publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
-        stateCode,
-        countyName: String((county as any).name || ""),
-        city: typeof profileData.city === "string" ? profileData.city : null,
-        tradeSlug,
-        tier,
-      }),
-      rules,
-      now
-    );
-    if (!canServePublicBusinessDetail({ publication: pub, tier })) continue;
+    const signals = buildPublicBusinessSignals({
+      id: String((r as any).id),
+      name: businessName,
+      slug: businessSlug,
+      updatedAt,
+      publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
+      stateCode,
+      countyName: String((county as any).name || ""),
+      city: profileData.city || null,
+      tradeSlug,
+      hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(profileData),
+      tier,
+    });
+    const detailPublication = isPublicAndCrawlableBusinessDetail(signals, rules, now);
+    if (!canServePublicBusinessDetail({ publication: detailPublication, tier })) continue;
 
+    if (sampleBusinesses.length < 50) {
+      sampleBusinesses.push({ slug: businessSlug, name: businessName, updatedAt });
+    }
+
+    if (!tradeSlug) continue;
+    const tradePublication = isPublicAndCrawlableBusiness(signals, rules, now);
+    if (!tradePublication.ok) continue;
     tradeCounts.set(tradeSlug, (tradeCounts.get(tradeSlug) || 0) + 1);
     const prev = tradeLastmod.get(tradeSlug);
     if (!prev || updatedAt > prev) tradeLastmod.set(tradeSlug, updatedAt);
-
-    if (sampleBusinesses.length < 50) {
-      sampleBusinesses.push({
-        slug: String((r as any).slug || ""),
-        name: String((r as any).name || ""),
-        updatedAt,
-      });
-    }
   }
 
   const topTrades = Array.from(tradeCounts.entries())
@@ -309,6 +306,7 @@ export async function buildPublicCountyHtml(opts: PublicCountyHtmlOptions): Prom
       "trades",
       "TradeScout",
     ],
+    indexable: sampleBusinesses.length > 0,
   });
 
   const summary = `

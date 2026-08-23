@@ -67,10 +67,16 @@ test("historical windows mark signed attribution and conversion as not applicabl
   assert.equal(report.measurement.phase, "historical_pre_release");
   assert.equal(report.measurement.signedAttribution.status, "not_applicable");
   assert.equal(report.measurement.discoveryConversion.status, "not_applicable");
+  assert.equal(report.measurement.acquisitionFunnel.phase, "pending_production_activation");
+  assert.equal(report.acquisitionFunnel.status, "not_applicable");
   assert.equal(report.summary.verifiedAttributions, null);
   assert.equal(report.summary.convertedRequests, null);
   assert.deepEqual(report.coverage.uncrawledProfiles, [
-    { slug: "uncrawled-business", displayName: "Uncrawled Business" },
+    {
+      slug: "uncrawled-business",
+      displayName: "Uncrawled Business",
+      identityRoute: "/u/uncrawled-business",
+    },
   ]);
   assert.deepEqual(report.crawlDistributionByCrawlerFamily, [
     { crawlerFamily: "OAI-SearchBot", crawlRequests: 2 },
@@ -119,6 +125,206 @@ test("post-release windows measure source attribution and conversion", () => {
   assert.equal(report.summary.convertedRequests, 1);
   assert.equal(report.requestDistributionByProfile.status, "measured");
   assert.equal(report.requestDistributionByProfile.items[0].requests, 1);
+  assert.equal(report.acquisitionFunnel.status, "not_applicable");
+});
+
+test("activated acquisition funnel reports source stages, directory businesses, and authority coverage", () => {
+  const funnelActivatedAt = new Date("2026-08-23T12:00:00.000Z");
+  const report = buildReport({
+    catalogRows: [
+      {
+        business_slug: "example-business",
+        entity_type: "published_profile",
+        display_name: "Example Business",
+        canonical_route: "/u/example-business",
+        identity_route: "/u/example-business",
+        is_publicly_exposable: true,
+      },
+      {
+        business_slug: "directory-only-business",
+        entity_type: "governed_directory_business",
+        display_name: "Directory Only Business",
+        canonical_route: "/business/directory-only-business",
+        identity_route: "/business/directory-only-business",
+        is_publicly_exposable: true,
+      },
+    ],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    acquisitionFunnelRows: [
+      {
+        entity_slug: "example-business",
+        entity_type: "business_profile",
+        identity_route: "/u/example-business",
+        source: "utm:chatgpt",
+        profile_discoveries: 4,
+        cta_entries: 2,
+        registrations: 1,
+        activations: 0,
+      },
+      {
+        entity_slug: "directory-only-business",
+        entity_type: "business_profile",
+        identity_route: "/business/directory-only-business",
+        source: "referrer:google",
+        profile_discoveries: 1,
+        cta_entries: 1,
+        registrations: 1,
+        activations: 1,
+      },
+    ],
+    acquisitionCoverageRows: [
+      {
+        consumer_provider_account_creations: 3,
+        excluded_system_provider_account_creations: 4,
+        projected_registrations: 2,
+        source_attributed_registration_projections: 1,
+        registration_projections_without_source: 1,
+        missing_registration_projections: 1,
+        consumer_provider_activations: 1,
+        projected_activations: 1,
+        source_attributed_activation_projections: 1,
+        activation_projections_without_source: 0,
+        missing_activation_projections: 0,
+      },
+    ],
+    generatedAt: "2026-08-24T12:00:00.000Z",
+    from: new Date("2026-08-23T12:00:00.000Z"),
+    to: new Date("2026-08-24T12:00:00.000Z"),
+    productionActivationAt: activationAt,
+    acquisitionFunnelActivatedAt: funnelActivatedAt,
+  });
+
+  assert.equal(report.acquisitionFunnel.status, "measured");
+  assert.deepEqual(report.acquisitionFunnel.totals, {
+    profileDiscoveries: 5,
+    ctaEntries: 3,
+    registrations: 2,
+    activations: 1,
+    discoveryToCtaRate: 60,
+    ctaToRegistrationRate: 66.67,
+    registrationToActivationRate: 50,
+  });
+  assert.equal(report.acquisitionFunnel.projectionCoverage.consumerProviderAccountCreations, 3);
+  assert.equal(
+    report.acquisitionFunnel.projectionCoverage.excludedSystemProviderAccountCreations,
+    4
+  );
+  assert.equal(report.acquisitionFunnel.projectionCoverage.missingRegistrationProjections, 1);
+  assert.equal(
+    report.acquisitionFunnel.projectionCoverage.sourceAttributedRegistrationProjections,
+    1
+  );
+  assert.equal(
+    report.acquisitionFunnel.projectionCoverage.registrationProjectionsWithoutSource,
+    1
+  );
+  assert.equal(
+    report.acquisitionFunnel.sources.find(
+      (row) => row.slug === "directory-only-business"
+    )?.catalogClassification,
+    "governed_directory_business"
+  );
+  assert.match(buildMarkdown(report), /directory-only-business/);
+  assert.match(buildMarkdown(report), /Excluded system\/provisioned-provider account creations.*4/);
+  assert.match(buildMarkdown(report), /not labeled organic or self-serve signups/);
+});
+
+test("activated acquisition funnel is zero-safe without inventing rates", () => {
+  const funnelActivatedAt = new Date("2026-08-23T12:00:00.000Z");
+  const report = buildReport({
+    catalogRows: [],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    acquisitionFunnelRows: [],
+    acquisitionCoverageRows: [{}],
+    generatedAt: "2026-08-24T12:00:00.000Z",
+    from: funnelActivatedAt,
+    to: new Date("2026-08-24T12:00:00.000Z"),
+    productionActivationAt: activationAt,
+    acquisitionFunnelActivatedAt: funnelActivatedAt,
+  });
+
+  assert.equal(report.acquisitionFunnel.totals.discoveryToCtaRate, null);
+  assert.equal(report.acquisitionFunnel.totals.ctaToRegistrationRate, null);
+  assert.equal(report.acquisitionFunnel.totals.registrationToActivationRate, null);
+  assert.match(buildMarkdown(report), /\| 0 \| 0 \| 0 \| 0 \| N\/A \| N\/A \| N\/A \|/);
+});
+
+test("same-slug profile and directory activity remain route-distinct", () => {
+  const funnelActivatedAt = new Date("2026-08-23T12:00:00.000Z");
+  const report = buildReport({
+    catalogRows: [
+      {
+        business_slug: "same-slug",
+        entity_type: "published_profile",
+        display_name: "Published Profile",
+        canonical_route: "/u/same-slug",
+        identity_route: "/u/same-slug",
+        is_publicly_exposable: true,
+      },
+      {
+        business_slug: "same-slug",
+        entity_type: "governed_directory_business",
+        display_name: "Directory Business",
+        canonical_route: "/business/same-slug",
+        identity_route: "/business/same-slug",
+        is_publicly_exposable: true,
+      },
+    ],
+    crawlRows: [],
+    crawlFamilyRows: [],
+    landingRows: [],
+    sourceRows: [],
+    profileViewRows: [],
+    conversionRows: [],
+    acquisitionFunnelRows: [
+      {
+        entity_slug: "same-slug",
+        entity_type: "business_profile",
+        identity_route: "/u/same-slug",
+        source: "chatgpt",
+        profile_discoveries: 3,
+        cta_entries: 1,
+        registrations: 1,
+        activations: 0,
+      },
+      {
+        entity_slug: "same-slug",
+        entity_type: "business_profile",
+        identity_route: "/business/same-slug",
+        source: "google",
+        profile_discoveries: 7,
+        cta_entries: 4,
+        registrations: 2,
+        activations: 1,
+      },
+    ],
+    acquisitionCoverageRows: [{}],
+    generatedAt: "2026-08-24T12:00:00.000Z",
+    from: funnelActivatedAt,
+    to: new Date("2026-08-24T12:00:00.000Z"),
+    productionActivationAt: activationAt,
+    acquisitionFunnelActivatedAt: funnelActivatedAt,
+  });
+
+  const published = report.profiles.find((row) => row.identityRoute === "/u/same-slug");
+  const directory = report.profiles.find(
+    (row) => row.identityRoute === "/business/same-slug"
+  );
+  assert.equal(published?.acquisitionFunnel.profileDiscoveries, 3);
+  assert.equal(published?.acquisitionFunnel.registrations, 1);
+  assert.equal(directory?.acquisitionFunnel.profileDiscoveries, 7);
+  assert.equal(directory?.acquisitionFunnel.registrations, 2);
+  assert.equal(report.acquisitionFunnel.sources.length, 2);
 });
 
 test("windows crossing activation do not measure signed attribution or conversion", () => {

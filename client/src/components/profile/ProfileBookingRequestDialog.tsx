@@ -47,6 +47,8 @@ type Props = {
   viewerCanManage: boolean;
   signInHref: string;
   platformBaseHref: string;
+  onAccountCreate?: () => void;
+  onBookingRequest?: () => void;
 };
 
 function shouldOpenFromReturn(): boolean {
@@ -69,6 +71,8 @@ export function ProfileBookingRequestDialog({
   viewerCanManage,
   signInHref,
   platformBaseHref,
+  onAccountCreate,
+  onBookingRequest,
 }: Props) {
   const { toast } = useToast();
   const [open, setOpen] = useState(() => hasViewerSession && shouldOpenFromReturn());
@@ -98,7 +102,9 @@ export function ProfileBookingRequestDialog({
 
   const handleTrigger = () => {
     if (viewerCanManage) return;
+    onBookingRequest?.();
     if (!hasViewerSession) {
+      onAccountCreate?.();
       window.location.assign(signInHref);
       return;
     }

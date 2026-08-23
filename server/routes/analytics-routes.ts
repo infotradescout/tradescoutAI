@@ -1,6 +1,13 @@
 import type { Express, Request, Response } from "express";
 import { rateLimit } from "express-rate-limit";
-import { DISCOVERY_LANDING_EVENT, sanitizeDiscoveryLandingEvent } from "@shared/discoveryLanding";
+import {
+  DISCOVERY_LANDING_EVENT,
+  PUBLIC_PROFILE_CTA_EVENT,
+  PUBLIC_PROFILE_DISCOVERY_EVENT,
+  sanitizeDiscoveryLandingEvent,
+  sanitizePublicProfileCtaEvent,
+  type PublicProfileCtaKind,
+} from "@shared/discoveryLanding";
 import {
   DISCOVERY_INTERNAL_SEARCH_EVENT,
   sanitizeDiscoveryInternalSearch,
@@ -12,6 +19,12 @@ import { verifyDiscoveryAttributionToken } from "../utils/discoveryAttribution";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
 import { resolveAnonymousSessionId } from "../utils/anonymousSession";
+import {
+  ACQUISITION_ACTIVATION_COMPLETED_EVENT,
+  ACQUISITION_REGISTRATION_COMPLETED_EVENT,
+  isRecognizedAutomatedAcquisitionRequest,
+  stageAcquisitionDiscoverySession,
+} from "../services/acquisitionMeasurement";
 
 const DEMAND_EVENT_TYPES = [
   "demand.landing_view",
@@ -351,6 +364,53 @@ export function registerAnalyticsRoutes(app: Express) {
         return;
       }
 
+      // Resolve signed acquisition events before ending the response so the
+      // server session can carry verified landing attribution into signup.
+      // Raw user-agent is used only to exclude recognized automation.
+      let safeDiscoveryLanding: Record<string, unknown> | null = null;
+      let safePublicProfileCta: Record<string, unknown> | null = null;
+      let duplicateDiscoveryLanding = false;
+      let duplicatePublicProfileDiscovery = false;
+      let duplicatePublicProfileCta = false;
+      const isAcquisitionEvent =
+        event?.type === DISCOVERY_LANDING_EVENT || event?.type === PUBLIC_PROFILE_CTA_EVENT;
+      if (isAcquisitionEvent && !isRecognizedAutomatedAcquisitionRequest(req)) {
+        const verifiedAttribution = verifyDiscoveryAttributionToken(
+          event.discoveryAttributionToken
+        );
+        if (verifiedAttribution && event.type === DISCOVERY_LANDING_EVENT) {
+          safeDiscoveryLanding = sanitizeDiscoveryLandingEvent(event, {
+            verifiedAttribution,
+          });
+          if (safeDiscoveryLanding) {
+            const dedupe = stageAcquisitionDiscoverySession({
+              req,
+              discoveryAttributionToken: String(event.discoveryAttributionToken || ""),
+              verifiedAttribution,
+              safeEvent: safeDiscoveryLanding,
+              milestone: "landing",
+            });
+            duplicateDiscoveryLanding = dedupe.duplicateLanding;
+            duplicatePublicProfileDiscovery = dedupe.duplicateProfileDiscovery;
+          }
+        } else if (verifiedAttribution && event.type === PUBLIC_PROFILE_CTA_EVENT) {
+          safePublicProfileCta = sanitizePublicProfileCtaEvent(event, {
+            verifiedAttribution,
+          });
+          if (safePublicProfileCta) {
+            const dedupe = stageAcquisitionDiscoverySession({
+              req,
+              discoveryAttributionToken: String(event.discoveryAttributionToken || ""),
+              verifiedAttribution,
+              safeEvent: safePublicProfileCta,
+              milestone: "cta",
+              ctaKind: safePublicProfileCta.ctaKind as PublicProfileCtaKind,
+            });
+            duplicatePublicProfileCta = dedupe.duplicateCta;
+          }
+        }
+      }
+
       // Avoid high-volume stdout logging in production.
       // If you need diagnostics, enable sampling via ANALYTICS_SHELL_LOG_SAMPLE_RATE (0..1).
       try {
@@ -392,23 +452,51 @@ export function registerAnalyticsRoutes(app: Express) {
           return;
         }
 
-        // Public discovery landing: allowlisted fields only. Do not attach raw
-        // IP / user-agent / full URL / query string (Contract attribution safety).
+        // Public discovery landing: allowlisted, signed, browser-like, and
+        // deduped. A business profile landing also produces the distinct
+        // profile-discovery milestone from the same verified envelope.
         if (event?.type === DISCOVERY_LANDING_EVENT) {
-          const anonymousSessionId = userId ? null : resolveAnonymousSessionId(req) || null;
-          const verifiedAttribution = verifyDiscoveryAttributionToken(
-            event.discoveryAttributionToken
-          );
-          const safeEvent = verifiedAttribution
-            ? sanitizeDiscoveryLandingEvent(event, {
-                anonymousSessionId,
-                verifiedAttribution,
-              })
-            : null;
-          if (safeEvent) {
-            void storage.logEvent(DISCOVERY_LANDING_EVENT, safeEvent).catch((persistError) => {
-              console.error("[Analytics][Shell] Failed to persist discovery_landing", persistError);
-            });
+          if (safeDiscoveryLanding && !duplicateDiscoveryLanding) {
+            void storage
+              .logEvent(DISCOVERY_LANDING_EVENT, safeDiscoveryLanding)
+              .catch((persistError) => {
+                console.error(
+                  "[Analytics][Shell] Failed to persist discovery_landing",
+                  persistError
+                );
+              });
+          }
+          if (
+            safeDiscoveryLanding &&
+            safeDiscoveryLanding.entityType !== "business_marketplace" &&
+            !duplicatePublicProfileDiscovery
+          ) {
+            const profileDiscoveryEvent = {
+              ...safeDiscoveryLanding,
+              type: PUBLIC_PROFILE_DISCOVERY_EVENT,
+            };
+            void storage
+              .logEvent(PUBLIC_PROFILE_DISCOVERY_EVENT, profileDiscoveryEvent)
+              .catch((persistError) => {
+                console.error(
+                  "[Analytics][Shell] Failed to persist public_profile_discovered",
+                  persistError
+                );
+              });
+          }
+          return;
+        }
+
+        if (event?.type === PUBLIC_PROFILE_CTA_EVENT) {
+          if (safePublicProfileCta && !duplicatePublicProfileCta) {
+            void storage
+              .logEvent(PUBLIC_PROFILE_CTA_EVENT, safePublicProfileCta)
+              .catch((persistError) => {
+                console.error(
+                  "[Analytics][Shell] Failed to persist public_profile_cta",
+                  persistError
+                );
+              });
           }
           return;
         }
@@ -448,6 +536,17 @@ export function registerAnalyticsRoutes(app: Express) {
           typeof event?.type === "string" && event.type.trim().length > 0
             ? event.type
             : "shell.unknown";
+
+        // Lifecycle projection names are server-reserved. Allowing a browser
+        // to write either name could occupy the per-user unique key before the
+        // canonical registration/onboarding writer records its projection.
+        if (
+          eventType === ACQUISITION_REGISTRATION_COMPLETED_EVENT ||
+          eventType === ACQUISITION_ACTIVATION_COMPLETED_EVENT ||
+          eventType === PUBLIC_PROFILE_DISCOVERY_EVENT
+        ) {
+          return;
+        }
 
         void storage.logEvent(eventType, enrichedEvent).catch((persistError) => {
           console.error("[Analytics][Shell] Failed to persist event", persistError);

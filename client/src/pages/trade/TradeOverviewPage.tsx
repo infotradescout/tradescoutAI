@@ -5,10 +5,28 @@ import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelme
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
 import { getTradeDisplay } from "./tradeSeoHelpers";
+import { useQuery } from "@tanstack/react-query";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
+
+type TradeStateNavigationResponse = {
+  states: Array<{ stateCode: string; coverageCount: number }>;
+};
 
 const TradeOverviewPage = memo(function TradeOverviewPage() {
   const { tradeSlug } = useParams<{ tradeSlug: string }>();
   const trade = useMemo(() => getTradeDisplay(tradeSlug), [tradeSlug]);
+  const { data, isLoading, isError } = useQuery<TradeStateNavigationResponse>({
+    queryKey: ["/api/public/seo/directory-navigation", trade?.canonicalSlug, "states"],
+    enabled: Boolean(trade?.canonicalSlug),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/public/seo/directory-navigation?tradeSlug=${encodeURIComponent(trade!.canonicalSlug)}`
+      );
+      if (!response.ok) throw new Error(`Failed to load trade states (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
 
   if (!trade) {
     return (
@@ -43,6 +61,19 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
     { name: "Trades", url: "/trade" },
     { name: trade.name, url: "" },
   ];
+  const activeStates = (data?.states || [])
+    .map((scope) => {
+      const state = US_STATES_COUNTIES.find(
+        (candidate) => candidate.code.toUpperCase() === scope.stateCode.toUpperCase()
+      );
+      return state ? { ...state, coverageCount: scope.coverageCount } : null;
+    })
+    .filter(Boolean) as Array<(typeof US_STATES_COUNTIES)[number] & { coverageCount: number }>;
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading,
+    hasError: isError,
+    itemCount: activeStates.length,
+  });
 
   return (
     <>
@@ -52,6 +83,8 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
         keywords={`${trade.name}, ${trade.canonicalSlug}, contractors, directory, counties, TradeScout`}
         canonical={`https://www.thetradescout.com/trade/${encodeURIComponent(trade.canonicalSlug)}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="bg-tsBg text-white">
@@ -78,7 +111,7 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
             </CardHeader>
             <CardContent className="p-6 pt-0">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {US_STATES_COUNTIES.map((state) => (
+                {activeStates.map((state) => (
                   <Link
                     key={state.code}
                     href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
@@ -92,6 +125,11 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
                   </Link>
                 ))}
               </div>
+              {!isLoading && activeStates.length === 0 ? (
+                <p className="text-sm text-white/60">
+                  No recent public coverage is available for this trade yet.
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

@@ -215,7 +215,17 @@ import {
   addPropertyLifecycleEvent,
   requirePropertyProgramAccess,
 } from "./services/propertyLifecycleService";
-import { recordAttributionConversionEvent } from "./utils/attributionConversionLedger";
+import {
+  recordAttributionConversionEvent,
+  type AttributionConversionLedgerEvent,
+} from "./utils/attributionConversionLedger";
+import {
+  isNewSocialRegistrationUser,
+  persistAcquisitionRegistrationEventOnce,
+  recordServerConfirmedRegistration,
+  stageAcquisitionDiscoveryTokenHandoff,
+  type RegistrationFlow,
+} from "./services/acquisitionMeasurement";
 import { handleUniversalAttributionClick } from "./utils/universalAttributionRef";
 import { buildMarketplaceConversationPresentation } from "./utils/conversationContext";
 import {
@@ -479,6 +489,7 @@ import {
   setReferralCookie,
   recordReferralClick,
   persistLifetimeReferralOwner,
+  recordSignupReferralAttribution,
   handleExplicitOrExistingReferral,
   attributeCleanPageViewToOwner,
 } from "./services/referralAttribution";
@@ -2720,6 +2731,67 @@ export async function registerRoutes(app: any) {
   app.post("/auth/login", loginLimiter, handleLocalLogin);
   app.post("/api/auth/login", loginLimiter, handleLocalLogin);
 
+  const persistSupplementalAttributionConversion = async (
+    event: AttributionConversionLedgerEvent
+  ) => {
+    await db.insert(affiliateAttributionConversions).values({
+      conversionEventId: event.conversionEventId,
+      affiliateTag: event.affiliateTag,
+      source: event.source,
+      attributionProofType: event.attributionProofType,
+      attributionProof: event.attributionProof,
+      conversionType: event.conversionType,
+      targetPath: event.targetPath,
+      targetId: event.targetId,
+      occurredAt: new Date(event.occurredAt),
+      status: event.status,
+      payoutEligible: false,
+      payoutCalculated: false,
+      paymentTriggered: false,
+    } as any);
+  };
+
+  const completeSuccessfulRegistration = async (args: {
+    req: Request;
+    userId: string;
+    flow: RegistrationFlow;
+    profileCount: number;
+    emailVerificationRequired: boolean;
+  }) => {
+    const cookieAttributionTag = getCookieValue(args.req, "ts_ref");
+    const sessionAttribution = (args.req as any).session?.referralAttribution || null;
+
+    const results = await Promise.allSettled([
+      recordServerConfirmedRegistration({
+        req: args.req,
+        userId: args.userId,
+        flow: args.flow,
+        profileCount: args.profileCount,
+        emailVerificationRequired: args.emailVerificationRequired,
+        discoveryAttributionToken: (args.req.body as any)?.discoveryAttributionToken,
+        persistEventOnce: persistAcquisitionRegistrationEventOnce,
+        sessionAttribution,
+        cookieAttributionTag,
+        persistAffiliateConversion: persistSupplementalAttributionConversion,
+      }),
+      recordSignupReferralAttribution({
+        req: args.req,
+        referredUserId: args.userId,
+        destination:
+          args.flow === "oauth_google"
+            ? "/api/auth/google/callback"
+            : args.flow === "oauth_facebook"
+              ? "/api/auth/facebook/callback"
+              : "/create-account",
+      }),
+    ]);
+    for (const result of results) {
+      if (result.status === "rejected") {
+        console.error("[acquisition] Registration measurement failed soft", result.reason);
+      }
+    }
+  };
+
   // New multi-profile registration handler (wizard flow)
   const handleRegisterMultiProfile = async (req: Request, res: Response) => {
     try {
@@ -2972,10 +3044,18 @@ export async function registerRoutes(app: any) {
         }
       }
 
-      req.login(created.user, (err) => {
+      req.login(created.user, async (err) => {
         if (err) {
           return res.status(500).json({ message: "Registration successful but login failed" });
         }
+
+        await completeSuccessfulRegistration({
+          req,
+          userId: created.user.id,
+          flow: "multi_profile",
+          profileCount: created.profiles.length,
+          emailVerificationRequired,
+        });
 
         return res.json({
           user: sanitizeUserForResponse(created.user),
@@ -3354,9 +3434,6 @@ export async function registerRoutes(app: any) {
         return sendAccountExistsConflict(res, existingUser);
       }
 
-      // Referral attribution (cookie-first) — best-effort, never blocks signup.
-      const referralCodeFromCookie = getCookieValue(req, "ts_ref");
-
       // CLAIM-FIRST: userTypes are now optional provisional preferences, not required identity
       // Empty array is valid - allows users to skip and define intent later
 
@@ -3549,33 +3626,18 @@ export async function registerRoutes(app: any) {
         createdViaScout: typeof body.source === "string" && body.source.toLowerCase() === "scout",
       });
 
-      // Convert referral (associate the most recent click with this new user)
-      if (referralCodeFromCookie) {
-        try {
-          await persistLifetimeReferralOwner({
-            referredUserId: user.id,
-            referralCode: referralCodeFromCookie,
-            conversionSource: "signup",
-            conversionType: "signup",
-            destination: "/create-account",
-          });
-          await recordReferralClick({
-            referralCode: referralCodeFromCookie,
-            destination: "/create-account",
-            source: "signup",
-            conversionType: "signup",
-          });
-          await storage.convertReferral(referralCodeFromCookie, user.id);
-        } catch (err) {
-          console.error("[affiliate] Failed to convert referral on signup", err);
-        }
-      }
-
       // Auto-login after registration
-      req.login(userForLogin, (err) => {
+      req.login(userForLogin, async (err) => {
         if (err) {
           return res.status(500).json({ message: "Registration successful but login failed" });
         }
+        await completeSuccessfulRegistration({
+          req,
+          userId: user.id,
+          flow: "standard",
+          profileCount: 1,
+          emailVerificationRequired,
+        });
         res.json({
           user: sanitizeUserForResponse(userForLogin),
           message: "Registration successful",
@@ -3896,12 +3958,19 @@ export async function registerRoutes(app: any) {
     try {
       const sessionAttribution = req.session?.referralAttribution || null;
       const cookieTag = getCookieValue(req as any, "ts_ref");
+      const conversionType = String(req.body?.conversionType || "");
+      if (conversionType === "signup_completed") {
+        return res.status(400).json({
+          code: "SERVER_CONFIRMED_SIGNUP_REQUIRED",
+          message: "Signup completion is recorded only by the registration server.",
+        });
+      }
 
       const result = await recordAttributionConversionEvent({
         input: {
           sessionAttribution,
           cookieAttributionTag: cookieTag,
-          conversionType: String(req.body?.conversionType || ""),
+          conversionType,
           source: String(req.body?.source || sessionAttribution?.source || ""),
           targetPath: String(req.body?.targetPath || ""),
           targetId: String(req.body?.targetId || ""),
@@ -3909,23 +3978,7 @@ export async function registerRoutes(app: any) {
           payoutCalculated: req.body?.payoutCalculated === true,
           paymentTriggered: req.body?.paymentTriggered === true,
         },
-        persist: async (event) => {
-          await db.insert(affiliateAttributionConversions).values({
-            conversionEventId: event.conversionEventId,
-            affiliateTag: event.affiliateTag,
-            source: event.source,
-            attributionProofType: event.attributionProofType,
-            attributionProof: event.attributionProof,
-            conversionType: event.conversionType,
-            targetPath: event.targetPath,
-            targetId: event.targetId,
-            occurredAt: new Date(event.occurredAt),
-            status: event.status,
-            payoutEligible: false,
-            payoutCalculated: false,
-            paymentTriggered: false,
-          } as any);
-        },
+        persist: persistSupplementalAttributionConversion,
       });
 
       if (!result.ok) {
@@ -5296,8 +5349,19 @@ export async function registerRoutes(app: any) {
     return fallbackFromEnv;
   };
 
+  const stageOAuthDiscoveryHandoff = (req: Request) => {
+    const rawToken =
+      typeof (req.query as any)?.ts_discovery === "string"
+        ? String((req.query as any).ts_discovery)
+        : "";
+    if (rawToken) {
+      stageAcquisitionDiscoveryTokenHandoff(req, rawToken);
+    }
+  };
+
   if (hasFacebookOAuth) {
     app.get("/api/auth/facebook", (req: Request, res: Response, next: any) => {
+      stageOAuthDiscoveryHandoff(req);
       try {
         const requestedNext =
           typeof (req.query as any)?.next === "string"
@@ -5387,7 +5451,16 @@ export async function registerRoutes(app: any) {
           return res.redirect(target);
         };
         getGeneralSetting<boolean>("email_verification_required", true)
-          .then((required) => {
+          .then(async (required) => {
+            if (user && isNewSocialRegistrationUser(user)) {
+              await completeSuccessfulRegistration({
+                req,
+                userId: String(user?.id || user?.claims?.sub || ""),
+                flow: "oauth_facebook",
+                profileCount: 1,
+                emailVerificationRequired: required,
+              });
+            }
             if (required && user && user.emailVerified !== true && email) {
               return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
@@ -5395,7 +5468,18 @@ export async function registerRoutes(app: any) {
             }
             return redirectWithSession(redirectBase);
           })
-          .catch(() => redirectWithSession(redirectBase));
+          .catch(async () => {
+            if (user && isNewSocialRegistrationUser(user)) {
+              await completeSuccessfulRegistration({
+                req,
+                userId: String(user?.id || user?.claims?.sub || ""),
+                flow: "oauth_facebook",
+                profileCount: 1,
+                emailVerificationRequired: true,
+              });
+            }
+            return redirectWithSession(redirectBase);
+          });
       }
     );
   }
@@ -5403,6 +5487,7 @@ export async function registerRoutes(app: any) {
   if (hasGoogleOAuth) {
     // Google OAuth entrypoint: request standard OpenID scopes
     app.get("/api/auth/google", (req: Request, res: Response, next: any) => {
+      stageOAuthDiscoveryHandoff(req);
       try {
         const requestedNext =
           typeof (req.query as any)?.next === "string"
@@ -5494,7 +5579,16 @@ export async function registerRoutes(app: any) {
           return res.redirect(target);
         };
         getGeneralSetting<boolean>("email_verification_required", true)
-          .then((required) => {
+          .then(async (required) => {
+            if (user && isNewSocialRegistrationUser(user)) {
+              await completeSuccessfulRegistration({
+                req,
+                userId: String(user?.id || user?.claims?.sub || ""),
+                flow: "oauth_google",
+                profileCount: 1,
+                emailVerificationRequired: required,
+              });
+            }
             if (required && user && user.emailVerified !== true && email) {
               return redirectWithSession(
                 `/check-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(redirectBase)}`
@@ -5502,7 +5596,18 @@ export async function registerRoutes(app: any) {
             }
             return redirectWithSession(redirectBase);
           })
-          .catch(() => redirectWithSession(redirectBase));
+          .catch(async () => {
+            if (user && isNewSocialRegistrationUser(user)) {
+              await completeSuccessfulRegistration({
+                req,
+                userId: String(user?.id || user?.claims?.sub || ""),
+                flow: "oauth_google",
+                profileCount: 1,
+                emailVerificationRequired: true,
+              });
+            }
+            return redirectWithSession(redirectBase);
+          });
       }
     );
   }

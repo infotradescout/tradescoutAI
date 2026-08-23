@@ -167,6 +167,44 @@ export async function persistLifetimeReferralOwner(params: {
   }
 }
 
+/**
+ * Supplemental referral attribution after the registration flow succeeds.
+ * This does not define account existence; the canonical users row does, while
+ * the acquisition lifecycle event is also only a fail-soft projection.
+ * Failures here never fail or roll back account creation.
+ */
+export async function recordSignupReferralAttribution(params: {
+  req: Request;
+  referredUserId: string;
+  destination?: string;
+}): Promise<boolean> {
+  const referralCode = getCookieValue(params.req, "ts_ref");
+  const referredUserId = String(params.referredUserId || "").trim();
+  if (!referralCode || !referredUserId) return false;
+
+  try {
+    const destination = params.destination || "/create-account";
+    await persistLifetimeReferralOwner({
+      referredUserId,
+      referralCode,
+      conversionSource: "signup",
+      conversionType: "signup",
+      destination,
+    });
+    await recordReferralClick({
+      referralCode,
+      destination,
+      source: "signup",
+      conversionType: "signup",
+    });
+    await storage.convertReferral(referralCode, referredUserId);
+    return true;
+  } catch (error) {
+    console.error("[affiliate] Failed to convert referral on signup", error);
+    return false;
+  }
+}
+
 // Handles an explicit ?ref=CODE on any request: records a click, and (if no
 // existing attribution cookie) sets the first-touch cookie. Also short-
 // circuits if the visitor already carries an attribution cookie (first-touch

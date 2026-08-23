@@ -13,6 +13,8 @@ interface SEOHelmetProps {
   ogImage?: string;
   structuredData?: Record<string, any>;
   noIndex?: boolean;
+  /** Keep the robots directive emitted by SSR while crawl truth is unresolved. */
+  preserveRobots?: boolean;
   /** Keep a deliberately shareable query (for example ?stone=...) in canonical/OG URLs. */
   preserveCanonicalQuery?: boolean;
 }
@@ -27,6 +29,7 @@ export function SEOHelmet({
   ogImage = "/tradescout-social-preview.png?v=12",
   structuredData,
   noIndex = false,
+  preserveRobots = false,
   preserveCanonicalQuery = false,
 }: SEOHelmetProps) {
   const [location] = useLocation();
@@ -50,7 +53,9 @@ export function SEOHelmet({
     // Update meta tags
     updateMetaTag("description", description);
     updateMetaTag("keywords", keywords);
-    updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
+    if (!preserveRobots) {
+      updateMetaTag("robots", noIndex ? "noindex, nofollow" : "index, follow");
+    }
 
     // Open Graph
     updateMetaTag("og:title", formattedSocialTitle, "property");
@@ -108,6 +113,7 @@ export function SEOHelmet({
     ogImageUrl,
     structuredData,
     noIndex,
+    preserveRobots,
     preserveCanonicalQuery,
   ]);
 

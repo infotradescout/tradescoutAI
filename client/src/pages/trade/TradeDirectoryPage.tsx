@@ -3,14 +3,38 @@ import { Link } from "wouter";
 import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PRIMARY_TRADE_SLUGS, getTradeBySlug } from "@shared/tradeSeo";
+import { getTradeBySlug } from "@shared/tradeSeo";
 import { localBrowseCopy } from "@/lib/userFacingCopy";
+import { useQuery } from "@tanstack/react-query";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
+
+type TradeNavigationResponse = {
+  trades: Array<{ tradeSlug: string; coverageCount: number }>;
+};
 
 const TradeDirectoryPage = memo(function TradeDirectoryPage() {
-  const items = PRIMARY_TRADE_SLUGS.map((slug) => {
-    const trade = getTradeBySlug(slug);
-    return trade ? { slug: trade.slug, name: trade.name } : null;
-  }).filter(Boolean) as Array<{ slug: string; name: string }>;
+  const { data, isLoading, isError } = useQuery<TradeNavigationResponse>({
+    queryKey: ["/api/public/seo/directory-navigation", "trades"],
+    queryFn: async () => {
+      const response = await fetch("/api/public/seo/directory-navigation");
+      if (!response.ok) throw new Error(`Failed to load trade navigation (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
+  const items = (data?.trades || [])
+    .map((scope) => {
+      const trade = getTradeBySlug(scope.tradeSlug);
+      return trade
+        ? { slug: trade.slug, name: trade.name, coverageCount: scope.coverageCount }
+        : null;
+    })
+    .filter(Boolean) as Array<{ slug: string; name: string; coverageCount: number }>;
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading,
+    hasError: isError,
+    itemCount: items.length,
+  });
 
   return (
     <>
@@ -19,6 +43,8 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
         description="Browse trades by category, then jump into the city or local market you care about."
         keywords="trades, contractors, directory, local services, TradeScout"
         canonical="https://www.thetradescout.com/trade"
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="bg-tsBg text-white">
@@ -54,6 +80,9 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
                   </Link>
                 ))}
               </div>
+              {!isLoading && items.length === 0 ? (
+                <p className="text-sm text-white/60">No recent public trade coverage yet.</p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

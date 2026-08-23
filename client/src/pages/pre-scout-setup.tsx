@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { buildApiUrl, getApiBaseUrl } from "@/lib/apiBaseUrl";
+import { DISCOVERY_ATTRIBUTION_HANDOFF_PARAM } from "@/lib/discoveryLanding";
 import { inferCountyForCityState } from "@/lib/countyInference";
 import type { ProfileDraft, PresenceType } from "@/types/profileDraft";
 import { SEOHelmet } from "@/components/SEOHelmet";
@@ -27,6 +28,7 @@ import { trackShellEvent } from "@/lib/analytics";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { resolvePreScoutAuthenticatedRoute, sanitizePreScoutNext } from "@/lib/preScoutAuthHandoff";
 import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
+import { normalizeDiscoveryAttributionToken } from "@shared/discoveryLanding";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
@@ -79,6 +81,9 @@ export default function PreScoutSetup() {
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const claimSlug = (searchParams.get("claim") || "").trim();
   const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
+  const discoveryAttributionToken = normalizeDiscoveryAttributionToken(
+    searchParams.get(DISCOVERY_ATTRIBUTION_HANDOFF_PARAM)
+  );
   const requestedAuthMode: AuthMode =
     parseAuthMode(windowSearchParams.get("mode")) ||
     parseAuthMode(locationSearchParams.get("mode")) ||
@@ -424,18 +429,23 @@ export default function PreScoutSetup() {
       } else if (claimSlug) {
         params.set("claim", claimSlug);
       }
+      if (discoveryAttributionToken) {
+        params.set(DISCOVERY_ATTRIBUTION_HANDOFF_PARAM, discoveryAttributionToken);
+      }
       return `/pre-scout-setup?${params.toString()}`;
     },
-    [postSetupNext, claimBusinessIdParam, claimSlug]
+    [postSetupNext, claimBusinessIdParam, claimSlug, discoveryAttributionToken]
   );
 
-  const beginOAuth = (provider: "google" | "facebook") => {
-    const next = encodeURIComponent(buildAuthReturnPath(authMode));
-    window.location.assign(`${apiBaseUrl}/api/auth/${provider}?next=${next}`);
-  };
   const oauthHref = (provider: "google" | "facebook") => {
-    const next = encodeURIComponent(buildAuthReturnPath(authMode));
-    return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
+    const params = new URLSearchParams({ next: buildAuthReturnPath(authMode) });
+    if (discoveryAttributionToken) {
+      params.set(DISCOVERY_ATTRIBUTION_HANDOFF_PARAM, discoveryAttributionToken);
+    }
+    return `${apiBaseUrl}/api/auth/${provider}?${params.toString()}`;
+  };
+  const beginOAuth = (provider: "google" | "facebook") => {
+    window.location.assign(oauthHref(provider));
   };
 
   const ensureSessionEstablished = async (): Promise<boolean> => {
@@ -606,6 +616,7 @@ export default function PreScoutSetup() {
         userIntent: "",
         acceptTerms: true,
         allowPhoneCalls: false,
+        ...(discoveryAttributionToken ? { discoveryAttributionToken } : {}),
         ...(claimBusinessId ? { claimBusinessId } : {}),
       });
 

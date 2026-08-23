@@ -1,7 +1,5 @@
 import {
   businesses,
-  businessCounties,
-  counties,
   homeScoutListings,
   marketplaceCategories,
   marketplaceListings,
@@ -12,10 +10,23 @@ import { INTERNAL_ADMIN_PROFILE_SLUGS } from "@shared/publicProfileIndexing";
 import { db, pool as neonPool } from "../db";
 import { and, asc, desc, eq, notInArray, or, sql } from "drizzle-orm";
 import {
-  canExposePublishedProfilePublicly,
+  canDiscoverPublishedProfilePublicly,
   type PublishedProfileExposureCandidate,
 } from "../services/ownerConfirmedDirectProfile";
-import { publicBusinessDetailExposureSqlPredicate } from "../publicationBusiness";
+import { assertSeoDirectorySnapshotReady } from "../services/seoDirectoryNavigationService";
+
+const NON_PRODUCTION_PUBLIC_SLUG_PATTERN = /^(?:qa|smoke|test)(?:-|$)/i;
+const NON_PRODUCTION_EXCHANGE_COPY_PATTERN =
+  /\b(smoke\s*market|unauthorized|demo\s*listing|test\s*listing|sample\s*listing|placeholder)\b/i;
+
+export function isProductionPublicSlug(value: unknown): boolean {
+  const slug = String(value || "").trim();
+  return slug.length > 0 && !NON_PRODUCTION_PUBLIC_SLUG_PATTERN.test(slug);
+}
+
+export function isProductionExchangeListingCopy(title: unknown, description: unknown): boolean {
+  return !NON_PRODUCTION_EXCHANGE_COPY_PATTERN.test(`${title || ""} ${description || ""}`);
+}
 
 export type ProfileSitemapEligibilityCandidate = Omit<
   PublishedProfileExposureCandidate,
@@ -27,7 +38,8 @@ export type ProfileSitemapEligibilityCandidate = Omit<
 export function shouldIncludePublicProfileInSitemap(
   candidate: ProfileSitemapEligibilityCandidate
 ): boolean {
-  return canExposePublishedProfilePublicly({
+  if (!isProductionPublicSlug(candidate.slug)) return false;
+  return canDiscoverPublishedProfilePublicly({
     ...candidate,
     profileSlug: candidate.slug,
     profileStatus: "published",
@@ -42,6 +54,9 @@ export class SitemapRepository {
         slug: profiles.slug,
         updatedAt: profiles.updatedAt,
         businessId: profiles.businessId,
+        profileRoleContext: profiles.roleContext,
+        profileHeadline: profiles.headline,
+        profileContentBlocks: profiles.contentBlocks,
         profileOwnerUserId: profiles.ownerUserId,
         ownerVerifiedBadge: users.verifiedBadge,
         ownerVerificationStatus: users.verificationStatus,
@@ -49,6 +64,9 @@ export class SitemapRepository {
         ownerRoles: users.roles,
         ownerProvider: users.provider,
         ownerPreferences: users.preferences,
+        profileServicesDescription: sql<
+          string | null
+        >`(${users.preferences} ->> 'servicesDescription')`,
         businessStatus: businesses.status,
         businessOwnerUserId: businesses.ownerUserId,
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
@@ -65,10 +83,12 @@ export class SitemapRepository {
         )
       )
       .orderBy(desc(profiles.updatedAt));
-    return rows.filter(shouldIncludePublicProfileInSitemap).map((row) => ({
-      slug: row.slug,
-      updatedAt: row.updatedAt ?? null,
-    }));
+    return rows
+      .filter((row) => Boolean(row.businessId) && shouldIncludePublicProfileInSitemap(row))
+      .map((row) => ({
+        slug: row.slug,
+        updatedAt: row.updatedAt ?? null,
+      }));
   }
 
   async listBusinessProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
@@ -99,194 +119,120 @@ export class SitemapRepository {
   }
 
   async countActiveDirectoryBusinessesForSitemap(): Promise<number> {
-    const rows = await db
-      .select({ count: sql<number>`count(DISTINCT ${businesses.id})` })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
-        )
-      );
-    const count = Number((rows[0] as any)?.count ?? 0);
-    return Number.isFinite(count) && count >= 0 ? count : 0;
+    await assertSeoDirectorySnapshotReady();
+    const result = await neonPool.query(
+      `select count(*)::int as count from ts_seo_directory_business_pages`
+    );
+    return Number(result.rows[0]?.count || 0);
   }
 
   async listActiveDirectoryBusinessesForSitemap(args?: {
     limit?: number;
     offset?: number;
   }): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
+    await assertSeoDirectorySnapshotReady();
     const limitRequested = Number(args?.limit ?? 40_000) || 40_000;
     const limit = Math.max(1, Math.min(50_000, limitRequested));
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
 
-    const rows = await db
-      .select({
-        slug: businesses.slug,
-        updatedAt: businesses.updatedAt,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
-        )
-      )
-      .orderBy(asc(businesses.slug))
-      .groupBy(businesses.slug, businesses.updatedAt)
-      .limit(limit)
-      .offset(offset);
-
-    return rows
-      .map((row) => ({
+    const result = await neonPool.query(
+      `select slug, lastmod
+         from ts_seo_directory_business_pages
+        order by slug asc
+        limit $1 offset $2`,
+      [limit, offset]
+    );
+    return result.rows
+      .map((row: any) => ({
         slug: String(row.slug || "").trim(),
-        updatedAt: row.updatedAt ?? null,
+        updatedAt: row.lastmod ?? null,
       }))
-      .filter((row) => row.slug.length > 0);
+      .filter((row) => isProductionPublicSlug(row.slug));
   }
 
   async countDirectoryCountiesForSitemap(): Promise<number> {
-    const rows = await db
-      .select({ count: sql<number>`count(DISTINCT ${counties.fips})` })
-      .from(counties)
-      .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
-      .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
-        )
-      );
-    const count = Number((rows[0] as any)?.count ?? 0);
-    return Number.isFinite(count) && count >= 0 ? count : 0;
+    await assertSeoDirectorySnapshotReady();
+    const result = await neonPool.query(
+      `select count(distinct county_id)::int as count
+         from ts_seo_trade_county_pages
+        where business_count > 0`
+    );
+    return Number(result.rows[0]?.count || 0);
   }
 
   async listDirectoryCountiesForSitemap(args?: {
     limit?: number;
     offset?: number;
   }): Promise<Array<{ fips: string; name: string; stateCode: string; updatedAt: Date | null }>> {
+    await assertSeoDirectorySnapshotReady();
     const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
     const limit = Math.max(1, Math.min(50_000, limitRequested));
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
 
-    const rows = await db
-      .select({
-        fips: counties.fips,
-        name: counties.name,
-        stateCode: counties.stateCode,
-        updatedAt: sql<Date | null>`max(${businesses.updatedAt})`,
-      })
-      .from(counties)
-      .innerJoin(businessCounties, eq(businessCounties.countyId, counties.id))
-      .innerJoin(businesses, eq(businesses.id, businessCounties.businessId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate()
-        )
-      )
-      .groupBy(counties.fips, counties.name, counties.stateCode)
-      .orderBy(asc(counties.fips))
-      .limit(limit)
-      .offset(offset);
-
-    return rows
-      .map((row) => ({
-        fips: String((row as any).fips || "").trim(),
-        name: String((row as any).name || "").trim(),
-        stateCode: String((row as any).stateCode || "")
-          .trim()
-          .toUpperCase(),
-        updatedAt: (row as any).updatedAt ?? null,
-      }))
-      .filter((row) => row.fips.length === 5 && row.stateCode.length === 2 && row.name.length > 0);
+    const result = await neonPool.query(
+      `select c.fips, c.name, upper(c.state_code) as state_code, max(p.lastmod) as lastmod
+         from ts_seo_trade_county_pages p
+         inner join counties c on c.id = p.county_id
+        where p.business_count > 0
+        group by c.fips, c.name, c.state_code
+        order by c.fips asc
+        limit $1 offset $2`,
+      [limit, offset]
+    );
+    return result.rows.map((row: any) => ({
+      fips: String(row.fips || "").trim(),
+      name: String(row.name || "").trim(),
+      stateCode: String(row.state_code || "")
+        .trim()
+        .toUpperCase(),
+      updatedAt: row.lastmod ?? null,
+    }));
   }
 
   async countDirectoryCitiesForSitemap(): Promise<number> {
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-
-    const rows = await db
-      .select({
-        count: sql<number>`count(*)`,
-      })
-      .from(
-        sql`(
-          select
-            ${counties.stateCode} as state_code,
-            ${citySlugExpr} as city_slug
-          from ${businesses}
-          inner join ${businessCounties} on ${businessCounties.businessId} = ${businesses.id}
-          inner join ${counties} on ${counties.id} = ${businessCounties.countyId}
-          left join ${users} on ${users.id} = ${businesses.ownerUserId}
-          where ${businesses.status} = 'active'
-            and ${businesses.publicDiscoveryEnabled} = true
-            and ${publicBusinessDetailExposureSqlPredicate()}
-            and coalesce(${businesses.profileData} ->> 'city', '') <> ''
-          group by ${counties.stateCode}, ${citySlugExpr}
-        ) as city_groups`
-      );
-
-    const count = Number((rows[0] as any)?.count ?? 0);
-    return Number.isFinite(count) && count >= 0 ? count : 0;
+    await assertSeoDirectorySnapshotReady();
+    const result = await neonPool.query(
+      `select count(*)::int as count
+         from (
+           select state_code, city_slug
+             from ts_seo_city_county_pages
+            where business_count > 0
+            group by state_code, city_slug
+         ) city_scopes`
+    );
+    return Number(result.rows[0]?.count || 0);
   }
 
   async listDirectoryCitiesForSitemap(args?: {
     limit?: number;
     offset?: number;
   }): Promise<Array<{ stateCode: string; citySlug: string; updatedAt: Date | null }>> {
+    await assertSeoDirectorySnapshotReady();
     const limitRequested = Number(args?.limit ?? 10_000) || 10_000;
     const limit = Math.max(1, Math.min(50_000, limitRequested));
     const offsetRequested = Number(args?.offset ?? 0) || 0;
     const offset = Math.max(0, offsetRequested);
 
-    const citySlugExpr = sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-
-    const rows = await db
-      .select({
-        stateCode: counties.stateCode,
-        citySlug: citySlugExpr,
-        updatedAt: sql<Date | null>`max(${businesses.updatedAt})`,
-      })
-      .from(businesses)
-      .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
-      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
-      .leftJoin(users, eq(users.id, businesses.ownerUserId))
-      .where(
-        and(
-          eq(businesses.status, "active" as any),
-          eq(businesses.publicDiscoveryEnabled, true as any),
-          publicBusinessDetailExposureSqlPredicate(),
-          sql`coalesce(${businesses.profileData} ->> 'city', '') <> ''`
-        )
-      )
-      .groupBy(counties.stateCode, citySlugExpr)
-      .orderBy(asc(counties.stateCode), asc(citySlugExpr))
-      .limit(limit)
-      .offset(offset);
-
-    return rows
-      .map((row) => ({
-        stateCode: String((row as any).stateCode || "")
-          .trim()
-          .toUpperCase(),
-        citySlug: String((row as any).citySlug || "")
-          .trim()
-          .toLowerCase(),
-        updatedAt: (row as any).updatedAt ?? null,
-      }))
-      .filter((row) => row.stateCode.length === 2 && row.citySlug.length > 0);
+    const result = await neonPool.query(
+      `select upper(state_code) as state_code, city_slug, max(lastmod) as lastmod
+         from ts_seo_city_county_pages
+        where business_count > 0
+        group by state_code, city_slug
+        order by state_code asc, city_slug asc
+        limit $1 offset $2`,
+      [limit, offset]
+    );
+    return result.rows.map((row: any) => ({
+      stateCode: String(row.state_code || "")
+        .trim()
+        .toUpperCase(),
+      citySlug: String(row.city_slug || "")
+        .trim()
+        .toLowerCase(),
+      updatedAt: row.lastmod ?? null,
+    }));
   }
 
   async listActiveHomeScoutListingsForSitemap(args?: {
@@ -372,10 +318,8 @@ export class SitemapRepository {
         }))
         .filter((row) => row.countySlug.length > 0);
     } catch (error: any) {
-      const code = String(error?.code || "");
-      if (code === "42P01") {
-        return [];
-      }
+      // This is an advertised crawl feed. Missing schema or transient storage
+      // failure must reach the route's retryable 503 path, never a 200 empty set.
       throw error;
     }
   }
@@ -393,6 +337,8 @@ export class SitemapRepository {
         id: marketplaceListings.id,
         sellerUserId: marketplaceListings.sellerId,
         categoryName: marketplaceCategories.name,
+        title: marketplaceListings.title,
+        description: marketplaceListings.description,
         updatedAt: marketplaceListings.updatedAt,
       })
       .from(marketplaceListings)
@@ -401,11 +347,13 @@ export class SitemapRepository {
       .orderBy(desc(marketplaceListings.updatedAt))
       .limit(limit);
 
-    return rows.map((row) => ({
-      id: row.id,
-      sellerUserId: String(row.sellerUserId || "").trim(),
-      categoryName: row.categoryName ?? "",
-      updatedAt: row.updatedAt ?? null,
-    }));
+    return rows
+      .filter((row) => isProductionExchangeListingCopy(row.title, row.description))
+      .map((row) => ({
+        id: row.id,
+        sellerUserId: String(row.sellerUserId || "").trim(),
+        categoryName: row.categoryName ?? "",
+        updatedAt: row.updatedAt ?? null,
+      }));
   }
 }

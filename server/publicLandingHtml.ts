@@ -220,6 +220,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     <nav aria-label="Public entry actions">
       <a href="/scout?source=landing_scout">Open Scout</a>
       <a href="/find-local-businesses">Find local businesses</a>
+      <a href="/trade">Browse trades</a>
       <a href="/direct-connect?source=landing_primary_cta">Make A Request</a>
       <a href="/claim-my-business?source=landing_business">Claim my business</a>
     </nav>

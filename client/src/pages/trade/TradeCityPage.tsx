@@ -6,6 +6,7 @@ import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelme
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getTradeDisplay } from "./tradeSeoHelpers";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
 
 type TradeCityCountyFacet = {
   countyFips: string;
@@ -85,7 +86,11 @@ const TradeCityPage = memo(function TradeCityPage() {
 
   const displayCity = data?.displayCity || titleizeCitySlug(city);
   const counties = Array.isArray(data?.counties) ? data!.counties : [];
-  const shouldNoIndex = !isLoading && (isError || counties.length === 0);
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading,
+    hasError: isError,
+    itemCount: counties.length,
+  });
   const stateRoute = `/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
     state.toLowerCase()
   )}`;
@@ -112,7 +117,8 @@ const TradeCityPage = memo(function TradeCityPage() {
           trade.canonicalSlug
         )}/${encodeURIComponent(state.toLowerCase())}/city/${encodeURIComponent(city)}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
-        noIndex={shouldNoIndex}
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="bg-tsBg text-white">

@@ -231,6 +231,8 @@ type WholesalerProfileThemeProps = {
   directConnectHref: string;
   preScoutCreateHref: string;
   preScoutSignInHref: string;
+  onDirectConnect?: () => void;
+  onAccountCreate?: () => void;
   recommendationsDirectory?: RecommendationEntry[];
   recommendationDirectorySummary?: RecommendationDirectorySummary;
   trustActions: ReactNode;
@@ -507,6 +509,8 @@ export default function WholesalerProfileTheme({
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
+  onDirectConnect,
+  onAccountCreate,
   recommendationsDirectory = [],
   recommendationDirectorySummary,
   trustActions,
@@ -1079,12 +1083,16 @@ export default function WholesalerProfileTheme({
     requestType?: ExpressDirectConnectRequestType | null,
     itemId?: string | null
   ) => {
+    onDirectConnect?.();
     if (useExpressDirectConnect) {
       setExpressStoneName(stoneName || null);
       setExpressItemId(itemId || null);
       setExpressRequestType(requestType || (stoneName || itemId ? "request_material" : null));
       setExpressPanelOpen(true);
       return;
+    }
+    if (!hasViewerSession) {
+      onAccountCreate?.();
     }
     if (requiresDocumentNavigation(ctaHref)) {
       window.location.assign(ctaHref);

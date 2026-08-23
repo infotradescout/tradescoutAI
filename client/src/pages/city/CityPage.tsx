@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
 
 type CityCountyFacet = {
   countyFips: string;
@@ -48,6 +49,11 @@ const CityPage = memo(function CityPage() {
 
   const displayCity = data?.displayCity || titleizeCitySlug(city);
   const counties = Array.isArray(data?.counties) ? data!.counties : [];
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading,
+    hasError: isError,
+    itemCount: counties.length,
+  });
 
   const title = `${displayCity}, ${state} Contractors Directory | TradeScout`;
   const description = `Browse contractors and businesses in ${displayCity}, ${state}. Select a county to view directory listings. Contact remains protected through TradeScout Direct Connect.`;
@@ -66,6 +72,8 @@ const CityPage = memo(function CityPage() {
           state.toLowerCase()
         )}/${encodeURIComponent(city)}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -6,6 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeDisplay, nameToSlug } from "./tradeSeoHelpers";
 import { localBrowseCopy, stripCountySuffix, toLocalMarketLabel } from "@/lib/userFacingCopy";
+import { useQuery } from "@tanstack/react-query";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
+
+type TradeCountyNavigationResponse = {
+  counties: Array<{ countySlug: string; businessCount: number }>;
+};
 
 const TradeStatePage = memo(function TradeStatePage() {
   const { tradeSlug, stateCode } = useParams<{ tradeSlug: string; stateCode: string }>();
@@ -15,7 +21,26 @@ const TradeStatePage = memo(function TradeStatePage() {
     [stateCode]
   );
 
-  const counties = useMemo(() => (state ? getCountiesByState(state.code) : []), [state]);
+  const allCounties = useMemo(() => (state ? getCountiesByState(state.code) : []), [state]);
+  const { data, isLoading, isError } = useQuery<TradeCountyNavigationResponse>({
+    queryKey: [
+      "/api/public/seo/directory-navigation",
+      trade?.canonicalSlug,
+      state?.code,
+      "counties",
+    ],
+    enabled: Boolean(trade?.canonicalSlug && state?.code),
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/public/seo/directory-navigation?tradeSlug=${encodeURIComponent(
+          trade!.canonicalSlug
+        )}&stateCode=${encodeURIComponent(state!.code)}`
+      );
+      if (!response.ok) throw new Error(`Failed to load trade counties (${response.status})`);
+      return response.json();
+    },
+    retry: 1,
+  });
 
   if (!trade || !state) {
     return (
@@ -51,6 +76,25 @@ const TradeStatePage = memo(function TradeStatePage() {
     { name: trade.name, url: `/trade/${trade.canonicalSlug}` },
     { name: state.name, url: "" },
   ];
+  const counties = (data?.counties || [])
+    .map((scope) => {
+      const county = allCounties.find(
+        (candidate) =>
+          nameToSlug(candidate.name.replace(/\s+County$/i, "").trim() || candidate.name) ===
+          scope.countySlug
+      );
+      return county
+        ? { ...county, countySlug: scope.countySlug, businessCount: scope.businessCount }
+        : null;
+    })
+    .filter(Boolean) as Array<
+    (typeof allCounties)[number] & { countySlug: string; businessCount: number }
+  >;
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading,
+    hasError: isError,
+    itemCount: counties.length,
+  });
 
   return (
     <>
@@ -62,6 +106,8 @@ const TradeStatePage = memo(function TradeStatePage() {
           trade.canonicalSlug
         )}/${encodeURIComponent(state.code.toLowerCase())}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="bg-tsBg text-white">
@@ -91,19 +137,19 @@ const TradeStatePage = memo(function TradeStatePage() {
             <CardContent className="p-6 pt-0">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {counties.map((county) => {
-                  const countySlug = nameToSlug(
-                    county.name.replace(/\s+County$/i, "").trim() || county.name
-                  );
                   return (
                     <Link
                       key={county.fipsCode}
                       href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
                         state.code.toLowerCase()
-                      )}/${encodeURIComponent(countySlug)}`}
+                      )}/${encodeURIComponent(county.countySlug)}`}
                     >
                       <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
                         <span>
                           {toLocalMarketLabel(stripCountySuffix(county.name), state.code)}
+                        </span>
+                        <span className="ml-auto mr-2 text-xs text-white/45">
+                          {county.businessCount.toLocaleString()}
                         </span>
                         <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
                       </a>
@@ -111,6 +157,11 @@ const TradeStatePage = memo(function TradeStatePage() {
                   );
                 })}
               </div>
+              {!isLoading && counties.length === 0 ? (
+                <p className="text-sm text-white/60">
+                  No recent public coverage is available in this state for this trade yet.
+                </p>
+              ) : null}
             </CardContent>
           </Card>
         </div>

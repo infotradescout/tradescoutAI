@@ -119,6 +119,8 @@ export async function buildPublicDatasetsLandingHtml(opts: PublicHtmlOptions): P
   <article>
     <h1>Open Datasets</h1>
     <p>${escapeHtml(meta.description)}</p>
+    <p>Each dataset is a public navigation view of TradeScout's governed directory graph. Trade categories lead to active market coverage; county and city rows appear only after a completed directory snapshot confirms crawlable local businesses.</p>
+    <p>These pages publish business names, service categories, and coarse market geography for discovery. They do not publish private street addresses, direct contact details, trust internals, or permission to contact a business.</p>
     <ul>
       <li><a href="/datasets/trades">Trades dataset</a></li>
       <li><a href="/datasets/counties">Counties dataset</a></li>

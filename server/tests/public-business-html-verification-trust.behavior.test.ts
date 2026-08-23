@@ -108,6 +108,8 @@ describe("public business HTML verification trust", () => {
     expect(html).not.toContain('"category"');
     expect(html).not.toContain('"areaServed"');
     expect(html).not.toContain('"hasCredential"');
+    expect(html).not.toContain('name="tradescout-business-slug"');
+    expect(html).not.toContain('name="tradescout-discovery-route"');
   });
 
   it("does not render an unverified legacy profile draft", async () => {
@@ -143,11 +145,128 @@ describe("public business HTML verification trust", () => {
     expect(html).toContain('data-seo-business="true"');
     expect(html).toContain("PRIVATE ONBOARDING DESCRIPTION");
     expect(html).toContain("electrician");
+    expect(html).toContain("PRIVATE ONBOARDING SERVICE");
     expect(html).toContain("Travis County");
     expect(html).not.toContain("private-onboarding.example");
+    expect(html).toContain('<meta name="tradescout-business-slug" content="pending-business" />');
+    expect(html).toContain(
+      '<meta name="tradescout-business-entity-type" content="business_profile" />'
+    );
+    expect(html).toContain(
+      '<meta name="tradescout-discovery-route" content="/business/pending-business" />'
+    );
   });
 
-  it("emits an external website only after explicit public-link consent and verification", async () => {
+  it("renders a substantive fact-bearing service-only directory record without PII", async () => {
+    mocks.ownerRows = [{ verificationStatus: "approved", addressVerified: true }];
+    mocks.getBusinessBySlugPublic.mockResolvedValue({
+      ...pendingBusiness,
+      name: "Gulf Coast Roof Response",
+      slug: "gulf-coast-roof-response",
+      profileData: {
+        services: [
+          "Roofing",
+          "Emergency roof leak repair",
+          "Storm-damaged shingle replacement",
+          "Residential roof inspection",
+        ],
+        city: "Austin",
+        stateCode: "TX",
+        address: "123 Private Street",
+        zipCode: "78701",
+        phone: "512-555-0199",
+        email: "roof@example.test",
+        website: "https://roof.example.test",
+      },
+    });
+
+    const html = await buildPublicBusinessHtml({
+      slug: "gulf-coast-roof-response",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain('data-seo-business="true"');
+    expect(html).toContain("Emergency roof leak repair");
+    expect(html).toContain('"@type":"Service"');
+    expect(html).toContain("/trade/roofing/tx/travis");
+    expect(html).not.toMatch(
+      /123 Private Street|78701|512-555-0199|roof@example\.test|roof\.example\.test/
+    );
+    const visibleText = String(html)
+      .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    expect(visibleText.length).toBeGreaterThanOrEqual(180);
+  });
+
+  it("prefers a governed directory record over a colliding verified legacy draft", async () => {
+    mocks.ownerRows = [{ verificationStatus: "approved", addressVerified: true }];
+    mocks.getBusinessProfileBySlug.mockResolvedValue({
+      userId: "legacy-owner",
+      slug: "pending-business",
+      name: "LEGACY COLLISION NAME",
+      visibility: "public",
+      verificationStatus: "approved",
+      verifiedBadge: true,
+      description: "LEGACY COLLISION DESCRIPTION",
+    });
+
+    const html = await buildPublicBusinessHtml({
+      slug: "pending-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain('data-seo-business="true"');
+    expect(html).toContain('content="index, follow');
+    expect(html).toContain("Pending Business");
+    expect(html).not.toContain("LEGACY COLLISION");
+  });
+
+  it("keeps an ineligible directory collision noindex instead of widening through legacy", async () => {
+    mocks.getBusinessProfileBySlug.mockResolvedValue({
+      userId: "legacy-owner",
+      slug: "pending-business",
+      name: "LEGACY COLLISION NAME",
+      visibility: "public",
+      verificationStatus: "approved",
+      verifiedBadge: true,
+      description: "LEGACY COLLISION DESCRIPTION",
+    });
+
+    const html = await buildPublicBusinessHtml({
+      slug: "pending-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain('data-seo-business="stale"');
+    expect(html).toContain('content="noindex,nofollow"');
+    expect(html).not.toContain("LEGACY COLLISION");
+  });
+
+  it("does not replace malformed publication timestamps with now", async () => {
+    mocks.ownerRows = [{ verificationStatus: "approved", addressVerified: true }];
+    mocks.getBusinessBySlugPublic.mockResolvedValue({
+      ...pendingBusiness,
+      updatedAt: "not-a-date",
+    });
+
+    const html = await buildPublicBusinessHtml({
+      slug: "pending-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain('data-seo-business="stale"');
+    expect(html).toContain('content="noindex,nofollow"');
+    expect(html).not.toContain('name="tradescout-business-slug"');
+  });
+
+  it("keeps external websites out of governed directory SSR even when source flags are true", async () => {
     mocks.ownerRows = [{ verificationStatus: "approved", addressVerified: true }];
     mocks.getBusinessBySlugPublic.mockResolvedValue({
       ...pendingBusiness,
@@ -163,7 +282,70 @@ describe("public business HTML verification trust", () => {
       templateHtml,
     });
 
-    expect(html).toContain("private-onboarding.example");
-    expect(html).toContain('"sameAs"');
+    expect(html).not.toContain("private-onboarding.example");
+    expect(html).not.toContain('"sameAs"');
+  });
+
+  it("uses the governed primary state and omits a foreign imported city link", async () => {
+    mocks.ownerRows = [{ verificationStatus: "approved", addressVerified: true }];
+    mocks.countyRows = [
+      { id: "county-al", name: "Baldwin County", stateCode: "AL", fips: "01003" },
+    ];
+    mocks.getBusinessBySlugPublic.mockResolvedValue({
+      ...pendingBusiness,
+      profileData: {
+        ...pendingBusiness.profileData,
+        city: "Pensacola",
+        stateCode: "FL",
+      },
+    });
+
+    const html = await buildPublicBusinessHtml({
+      slug: "pending-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain('data-seo-business="true"');
+    expect(html).toContain("Baldwin County");
+    expect(html).toContain("/county/al/baldwin");
+    expect(html).not.toContain("/city/al/pensacola");
+    expect(html).not.toContain("Browse Pensacola");
+  });
+
+  it("does not render imported street, ZIP, contact, maps, review, or arbitrary extras", async () => {
+    mocks.ownerRows = [{ verificationStatus: "approved", addressVerified: true }];
+    mocks.getBusinessBySlugPublic.mockResolvedValue({
+      ...pendingBusiness,
+      profileData: {
+        ...pendingBusiness.profileData,
+        tagline: "Call 850-555-0199",
+        description: "Email owner@private.example or visit private.example/contact",
+        address: "123 Private Street",
+        zipCode: "32501",
+        phone: "850-555-0199",
+        email: "owner@private.example",
+        publicLocationEnabled: null,
+        publicWebsiteEnabled: true,
+        importExtras: {
+          google_maps_url: "https://maps.example/private",
+          review_url: "https://reviews.example/private",
+          secret: "DO NOT PUBLISH",
+        },
+      },
+    });
+
+    const html = await buildPublicBusinessHtml({
+      slug: "pending-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain('data-seo-business="true"');
+    expect(html).toContain("Continue through TradeScout");
+    expect(html).not.toMatch(
+      /123 Private Street|32501|850-555-0199|owner@private\.example|private\.example|maps\.example|reviews\.example|DO NOT PUBLISH/
+    );
+    expect(html).not.toContain('"sameAs"');
   });
 });

@@ -7,11 +7,12 @@ import {
   type User,
 } from "@shared/schema";
 import { db } from "../db";
-import { and, desc, eq, inArray, like, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { readProfileBookingConfigBlock } from "../../shared/profileBookingConfig";
 import { readProfileSectionConfigBlock } from "../../shared/profileSectionConfig";
 import {
+  canDiscoverPublishedProfilePublicly,
   canExposeProviderProfileOnPublicMap,
   canServePublishedProfileAtDirectRoute,
   type PublishedProfileExposureCandidate,
@@ -41,6 +42,7 @@ export type PublicProfileRecord = {
   ownerState: string | null;
   ownerRoles: string[] | null;
   servicesDescription: string | null;
+  isDiscoverable: boolean;
 };
 
 export type PublicProfileSearchRecord = {
@@ -109,11 +111,19 @@ function slugify(input: string): string {
     .slice(0, 80);
 }
 
-/**
- * Public search is a discovery surface, not a route-availability shortcut.
- * Only explicitly released, active, discovery-enabled businesses with an
- * established owner verification signal may enter the search result set.
- */
+function publicProfileVisibilityPredicate() {
+  return sql`(
+    COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
+      @> jsonb_build_array(CAST(${profiles.id} AS text))
+  )`;
+}
+
+function publicProfileReleaseExposurePredicate() {
+  if (isSteelHomePackagesProfilePubliclyReleased()) return sql`true`;
+  return sql`${profiles.slug} <> ${STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug}`;
+}
+
+/** Conservative SQL prefilter; the canonical JS decision remains final. */
 function publicProfileSearchExposurePredicate() {
   return sql`(
     ${profiles.businessId} IS NOT NULL
@@ -126,16 +136,51 @@ function publicProfileSearchExposurePredicate() {
   )`;
 }
 
-function publicProfileVisibilityPredicate() {
-  return sql`(
-    COALESCE(${users.preferences} -> 'publicProfileIds', '[]'::jsonb)
-      @> jsonb_build_array(CAST(${profiles.id} AS text))
-  )`;
+function profileExposureCandidateFromRow(row: any): PublishedProfileExposureCandidate {
+  return {
+    profileId: row.id ?? row.profileId,
+    businessId: row.businessId,
+    profileSlug: row.slug,
+    profileStatus: row.profileStatus,
+    profileRoleContext: row.roleContext,
+    profileHeadline: row.headline,
+    profileServicesDescription: row.servicesDescription,
+    profileContentBlocks: row.contentBlocks,
+    profileOwnerUserId: row.profileOwnerUserId,
+    ownerVerifiedBadge: row.ownerVerifiedBadge,
+    ownerVerificationStatus: row.ownerVerificationStatus,
+    ownerRole: row.ownerRole,
+    ownerRoles: row.ownerRoles,
+    ownerProvider: row.ownerProvider,
+    ownerPreferences: row.ownerPreferences,
+    businessStatus: row.businessStatus,
+    businessOwnerUserId: row.businessOwnerUserId,
+    publicDiscoveryEnabled: row.publicDiscoveryEnabled,
+    businessSources: row.businessSources,
+    businessClaimStatus: row.businessClaimStatus,
+  };
 }
 
-function publicProfileReleaseExposurePredicate() {
-  if (isSteelHomePackagesProfilePubliclyReleased()) return sql`true`;
-  return sql`${profiles.slug} <> ${STEEL_HOME_PACKAGES_PROFILE_IDENTITY.slug}`;
+export async function collectEligibleProfileSearchRows<T>(args: {
+  loadPage: (offset: number, limit: number) => Promise<T[]>;
+  isEligible: (row: T) => boolean;
+  limit: number;
+  batchSize?: number;
+}): Promise<T[]> {
+  const limit = Math.max(1, Math.trunc(args.limit));
+  const batchSize = Math.max(1, Math.min(100, Math.trunc(args.batchSize ?? 100)));
+  const accepted: T[] = [];
+
+  for (let offset = 0; accepted.length < limit; offset += batchSize) {
+    const page = await args.loadPage(offset, batchSize);
+    for (const row of page) {
+      if (args.isEligible(row)) accepted.push(row);
+      if (accepted.length >= limit) break;
+    }
+    if (page.length < batchSize) break;
+  }
+
+  return accepted.slice(0, limit);
 }
 
 export class ProfileRepository {
@@ -186,6 +231,7 @@ export class ProfileRepository {
       .select({
         id: profiles.id,
         slug: profiles.slug,
+        profileStatus: profiles.status,
         displayName: profiles.displayName,
         headline: profiles.headline,
         roleContext: profiles.roleContext,
@@ -228,8 +274,12 @@ export class ProfileRepository {
   }
 
   private toPublicProfileRecord(row: any): PublicProfileRecord {
+    const isDiscoverable = canDiscoverPublishedProfilePublicly(
+      profileExposureCandidateFromRow(row)
+    );
     const {
       legacyProfileBooking,
+      profileStatus: _profileStatus,
       profileOwnerUserId: _profileOwnerUserId,
       ownerVerifiedBadge: _ownerVerifiedBadge,
       ownerVerificationStatus: _ownerVerificationStatus,
@@ -245,6 +295,7 @@ export class ProfileRepository {
     } = row;
     return {
       ...publicProfile,
+      isDiscoverable,
       profileSections:
         readProfileSectionConfigBlock(publicProfile.contentBlocks) ??
         publicProfile.profileSections ??
@@ -269,30 +320,7 @@ export class ProfileRepository {
   async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
     const row = await this.getProfileBySlugRecord(slug, true);
     if (!row) return undefined;
-    if (
-      !canServePublishedProfileAtDirectRoute({
-        profileId: row.id,
-        businessId: row.businessId,
-        profileSlug: row.slug,
-        profileStatus: "published",
-        profileRoleContext: row.roleContext,
-        profileHeadline: row.headline,
-        profileServicesDescription: row.servicesDescription,
-        profileContentBlocks: row.contentBlocks,
-        profileOwnerUserId: row.profileOwnerUserId,
-        ownerVerifiedBadge: row.ownerVerifiedBadge,
-        ownerVerificationStatus: row.ownerVerificationStatus,
-        ownerRole: row.ownerRole,
-        ownerRoles: row.ownerRoles,
-        ownerProvider: row.ownerProvider,
-        ownerPreferences: row.ownerPreferences,
-        businessStatus: row.businessStatus,
-        businessOwnerUserId: row.businessOwnerUserId,
-        publicDiscoveryEnabled: row.publicDiscoveryEnabled,
-        businessSources: row.businessSources,
-        businessClaimStatus: row.businessClaimStatus,
-      })
-    ) {
+    if (!canServePublishedProfileAtDirectRoute(profileExposureCandidateFromRow(row))) {
       return undefined;
     }
     return this.toPublicProfileRecord(row);
@@ -308,28 +336,62 @@ export class ProfileRepository {
     const limit = Math.max(1, Math.min(20, Number(args.limit ?? 8) || 8));
     const needle = `%${raw.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
 
-    return db
-      .select({
-        id: profiles.id,
-        slug: profiles.slug,
-        displayName: profiles.displayName,
-        headline: profiles.headline,
-        roleContext: profiles.roleContext,
-      })
-      .from(profiles)
-      .innerJoin(users, eq(profiles.ownerUserId, users.id))
-      .leftJoin(businesses, eq(profiles.businessId, businesses.id))
-      .where(
-        and(
-          eq(profiles.status, "published" as any),
-          publicProfileVisibilityPredicate(),
-          publicProfileReleaseExposurePredicate(),
-          sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`,
-          publicProfileSearchExposurePredicate()
+    const loadPage = async (offset: number, batchSize: number) =>
+      db
+        .select({
+          id: profiles.id,
+          slug: profiles.slug,
+          profileStatus: profiles.status,
+          displayName: profiles.displayName,
+          headline: profiles.headline,
+          roleContext: profiles.roleContext,
+          contentBlocks: profiles.contentBlocks,
+          businessId: profiles.businessId,
+          profileOwnerUserId: profiles.ownerUserId,
+          ownerVerifiedBadge: users.verifiedBadge,
+          ownerVerificationStatus: users.verificationStatus,
+          ownerRole: users.role,
+          ownerRoles: users.roles,
+          ownerProvider: users.provider,
+          ownerPreferences: users.preferences,
+          servicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
+          businessStatus: businesses.status,
+          businessOwnerUserId: businesses.ownerUserId,
+          publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+          businessSources: businesses.sources,
+          businessClaimStatus: businesses.claimStatus,
+        })
+        .from(profiles)
+        .innerJoin(users, eq(profiles.ownerUserId, users.id))
+        .leftJoin(businesses, eq(profiles.businessId, businesses.id))
+        .where(
+          and(
+            eq(profiles.status, "published" as any),
+            publicProfileVisibilityPredicate(),
+            publicProfileReleaseExposurePredicate(),
+            publicProfileSearchExposurePredicate(),
+            sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`
+          )
         )
-      )
-      .orderBy(desc(profiles.updatedAt))
-      .limit(limit);
+        .orderBy(desc(profiles.updatedAt), asc(profiles.id))
+        .limit(batchSize)
+        .offset(offset);
+
+    type SearchRow = Awaited<ReturnType<typeof loadPage>>[number];
+    const rows = await collectEligibleProfileSearchRows<SearchRow>({
+      loadPage,
+      isEligible: (row) =>
+        canDiscoverPublishedProfilePublicly(profileExposureCandidateFromRow(row)),
+      limit,
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      slug: row.slug,
+      displayName: row.displayName,
+      headline: row.headline,
+      roleContext: row.roleContext,
+    }));
   }
 
   async createProfileForOwner(ownerUserId: string, data: ProfileMutation): Promise<Profile> {

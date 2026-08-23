@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeDisplay, nameToSlug } from "./tradeSeoHelpers";
 import { localBrowseCopy, stripCountySuffix, toLocalMarketLabel } from "@/lib/userFacingCopy";
+import { getDiscoveryScopeRobotsDecision } from "@/lib/discoveryScopeIndexability";
 
 type PublicBusinessListItem = {
   id: string;
@@ -148,7 +149,11 @@ const TradeCountyPage = memo(function TradeCountyPage() {
   ];
 
   const items = Array.isArray(data?.items) ? data!.items : [];
-  const shouldNoIndex = !isLoading && (isError || items.length === 0);
+  const robotsDecision = getDiscoveryScopeRobotsDecision({
+    isLoading,
+    hasError: isError,
+    itemCount: items.length,
+  });
   const stateRoute = `/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
     state.code.toLowerCase()
   )}`;
@@ -170,7 +175,8 @@ const TradeCountyPage = memo(function TradeCountyPage() {
           trade.canonicalSlug
         )}/${encodeURIComponent(state.code.toLowerCase())}/${encodeURIComponent(countySlug)}`}
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
-        noIndex={shouldNoIndex}
+        noIndex={robotsDecision.noIndex}
+        preserveRobots={robotsDecision.preserveRobots}
       />
 
       <div className="min-h-full text-white">

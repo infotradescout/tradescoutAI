@@ -424,4 +424,3 @@ Disallow: /auth/
 Disallow: /api/
 
 Sitemap: https://www.thetradescout.com/sitemap.xml
-Sitemap: https://www.thetradescout.com/sitemap-index.xml

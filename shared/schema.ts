@@ -1886,18 +1886,28 @@ export const pricingData = pgTable("pricing_data", {
 });
 
 // System events and analytics
-export const events = pgTable("events", {
-  id: varchar("id")
-    .primaryKey()
-    .default(sql`gen_random_uuid()`),
-  eventType: varchar("event_type").notNull(),
-  userId: varchar("user_id"),
-  contractorId: varchar("contractor_id"),
-  data: jsonb("data"),
-  ipAddress: varchar("ip_address"),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+export const events = pgTable(
+  "events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    eventType: varchar("event_type").notNull(),
+    userId: varchar("user_id"),
+    contractorId: varchar("contractor_id"),
+    data: jsonb("data"),
+    ipAddress: varchar("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("idx_events_acquisition_lifecycle_user_unique")
+      .on(table.eventType, table.userId)
+      .where(
+        sql`${table.userId} is not null and ${table.eventType} in ('acquisition.registration_completed', 'acquisition.activation_completed')`
+      ),
+  ]
+);
 
 // Team member territories
 export const territories = pgTable("territories", {

@@ -7,10 +7,23 @@ import { getPublicationRules } from "./publicationRules";
 import { isPublicAndCrawlableBusiness } from "@shared/publication";
 import {
   buildPublicBusinessSignals,
+  deriveTradeSlugFromProfileData,
   derivePublicationTier,
   publicBusinessDetailExposureSqlPredicate,
+  publicBusinessTradeSqlPredicate,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import {
+  isCanonicalPublicCitySlug,
+  normalizePublicCitySlug,
+  publicBusinessCitySlugSql,
+  publicBusinessStateCodeSql,
+} from "./seoDirectoryCitySlug";
+import {
+  buildPublicDirectoryProfile,
+  hasPublicDirectoryOfferingFacts,
+  sanitizePublicDirectoryDisplayName,
+} from "./services/publicDirectoryBusinessPresentation";
 
 type PublicBestTradeCountyHtmlOptions = {
   origin: string;
@@ -58,6 +71,7 @@ function buildMeta(args: {
   title: string;
   description: string;
   keywords: string[];
+  indexable?: boolean;
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=12`;
@@ -66,6 +80,7 @@ function buildMeta(args: {
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
+    indexable: args.indexable !== false,
     keywords: args.keywords
       .map((v) => String(v || "").trim())
       .filter(Boolean)
@@ -90,7 +105,9 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   html = upsertTag(
     html,
     /<meta name="robots"[^>]*>/i,
-    `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+    meta.indexable
+      ? `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+      : `<meta name="robots" content="noindex,nofollow" />`
   );
   html = upsertTag(
     html,
@@ -140,17 +157,6 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   return html;
 }
 
-function sqlCitySlugExpr() {
-  return sql`lower(regexp_replace(coalesce(${businesses.profileData} ->> 'city', ''), '[^a-z0-9]+', '-', 'g'))`;
-}
-
-function isMissingColumnError(error: unknown, columnName: string): boolean {
-  const err = error as any;
-  const code = String(err?.code || "");
-  const message = String(err?.message || "");
-  return code === "42703" && message.toLowerCase().includes(String(columnName).toLowerCase());
-}
-
 export async function buildPublicBestTradeCountyHtml(
   opts: PublicBestTradeCountyHtmlOptions
 ): Promise<string | null> {
@@ -185,13 +191,9 @@ export async function buildPublicBestTradeCountyHtml(
     now.getTime() - rules.categoryPageRecencyWindowDays * 24 * 60 * 60 * 1000
   );
   const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
-  const keywordPatterns = match.keywords
-    .map((k) => String(k || "").trim())
-    .filter(Boolean)
-    .slice(0, 8)
-    .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
+  const tradeClause = publicBusinessTradeSqlPredicate(canonicalTradeSlug);
 
-  const runCountyQuery = (includeDiscovery: boolean) =>
+  const runCountyQuery = () =>
     db
       .select({
         id: businesses.id,
@@ -200,12 +202,11 @@ export async function buildPublicBestTradeCountyHtml(
         claimStatus: businesses.claimStatus,
         ownerUserId: businesses.ownerUserId,
         updatedAt: businesses.updatedAt,
-        publicDiscoveryEnabled: includeDiscovery
-          ? businesses.publicDiscoveryEnabled
-          : sql<boolean>`false`,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         ownerVerificationStatus: users.verificationStatus,
         ownerAddressVerified: users.addressVerified,
         countyName: counties.name,
+        profileData: businesses.profileData,
       })
       .from(businesses)
       .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
@@ -215,16 +216,10 @@ export async function buildPublicBestTradeCountyHtml(
         and(
           eq(businesses.status, "active" as any),
           publicBusinessDetailExposureSqlPredicate(),
-          ...(includeDiscovery ? [eq(businesses.publicDiscoveryEnabled, true as any)] : []),
+          eq(businesses.publicDiscoveryEnabled, true as any),
           eq(counties.fips, String((county as any).fipsCode || "")),
           sql`${businesses.updatedAt} >= ${recencyCutoff}`,
-          keywordPatterns.length
-            ? or(
-                ...keywordPatterns.map(
-                  (pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`
-                )
-              )
-            : sql`true`
+          tradeClause || sql`false`
         )
       )
       .orderBy(desc(businesses.updatedAt), asc(businesses.name))
@@ -232,14 +227,13 @@ export async function buildPublicBestTradeCountyHtml(
 
   let rows: any[] = [];
   try {
-    rows = await runCountyQuery(true);
+    rows = await runCountyQuery();
   } catch (error) {
-    if (isMissingColumnError(error, "public_discovery_enabled")) {
-      rows = await runCountyQuery(false);
-    } else {
-      console.error("[SEO] Best trade county query failed; serving page without listings", error);
-      rows = [];
-    }
+    console.error(
+      "[SEO] Best trade county query failed; preserving prior crawl truth via 5xx",
+      error
+    );
+    throw error;
   }
 
   const items = rows
@@ -258,10 +252,13 @@ export async function buildPublicBestTradeCountyHtml(
             : null,
       });
       if (tier !== "verified") return null;
+      const publicProfile = buildPublicDirectoryProfile((r as any).profileData || {});
+      if (deriveTradeSlugFromProfileData(publicProfile) !== canonicalTradeSlug) return null;
+      const publicName = sanitizePublicDirectoryDisplayName((r as any).name);
       const pub = isPublicAndCrawlableBusiness(
         buildPublicBusinessSignals({
           id: String((r as any).id),
-          name: String((r as any).name || ""),
+          name: publicName,
           slug: String((r as any).slug || ""),
           updatedAt,
           publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
@@ -269,13 +266,14 @@ export async function buildPublicBestTradeCountyHtml(
           countyName: String((county as any).name || ""),
           city: null,
           tradeSlug: canonicalTradeSlug,
+          hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
           tier,
         }),
         rules,
         now
       );
       if (!pub.ok) return null;
-      return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
+      return { slug: String((r as any).slug || ""), name: publicName };
     })
     .filter((r): r is { slug: string; name: string } => Boolean(r));
 
@@ -301,6 +299,7 @@ export async function buildPublicBestTradeCountyHtml(
       "directory",
       "TradeScout",
     ],
+    indexable: false,
   });
 
   const summary = `
@@ -355,11 +354,9 @@ export async function buildPublicBestTradeCityHtml(
   if (!match) return null;
 
   const stateCode = String(opts.stateCode || "").toUpperCase();
-  const citySlug = String(opts.citySlug || "")
-    .trim()
-    .toLowerCase();
+  const citySlug = normalizePublicCitySlug(opts.citySlug);
   if (!/^[A-Z]{2}$/.test(stateCode)) return null;
-  if (!/^[a-z0-9-]+$/.test(citySlug)) return null;
+  if (!isCanonicalPublicCitySlug(opts.citySlug)) return null;
 
   const rules = await getPublicationRules();
   const now = new Date();
@@ -368,11 +365,7 @@ export async function buildPublicBestTradeCityHtml(
   );
   const canonicalTradeSlug = normalizeTradeSlug(match.canonicalSlug);
 
-  const keywordPatterns = match.keywords
-    .map((k) => String(k || "").trim())
-    .filter(Boolean)
-    .slice(0, 8)
-    .map((k) => `%${k.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`);
+  const tradeClause = publicBusinessTradeSqlPredicate(canonicalTradeSlug);
 
   const rows = await db
     .select({
@@ -385,6 +378,8 @@ export async function buildPublicBestTradeCityHtml(
       publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       ownerVerificationStatus: users.verificationStatus,
       ownerAddressVerified: users.addressVerified,
+      countyName: counties.name,
+      profileData: businesses.profileData,
     })
     .from(businesses)
     .innerJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
@@ -396,15 +391,10 @@ export async function buildPublicBestTradeCityHtml(
         publicBusinessDetailExposureSqlPredicate(),
         eq(businesses.publicDiscoveryEnabled, true as any),
         eq(counties.stateCode, stateCode),
-        sql`${sqlCitySlugExpr()} = ${citySlug}`,
+        sql`${publicBusinessStateCodeSql()} = ${stateCode}`,
+        sql`${publicBusinessCitySlugSql()} = ${citySlug}`,
         sql`${businesses.updatedAt} >= ${recencyCutoff}`,
-        keywordPatterns.length
-          ? or(
-              ...keywordPatterns.map(
-                (pattern) => sql`${businesses.profileData}::text ILIKE ${pattern}`
-              )
-            )
-          : sql`true`
+        tradeClause || sql`false`
       )
     )
     .orderBy(desc(businesses.updatedAt), asc(businesses.name))
@@ -426,10 +416,13 @@ export async function buildPublicBestTradeCityHtml(
             : null,
       });
       if (tier !== "verified") return null;
+      const publicProfile = buildPublicDirectoryProfile((r as any).profileData || {});
+      if (deriveTradeSlugFromProfileData(publicProfile) !== canonicalTradeSlug) return null;
+      const publicName = sanitizePublicDirectoryDisplayName((r as any).name);
       const pub = isPublicAndCrawlableBusiness(
         buildPublicBusinessSignals({
           id: String((r as any).id),
-          name: String((r as any).name || ""),
+          name: publicName,
           slug: String((r as any).slug || ""),
           updatedAt,
           publicDiscoveryEnabled: Boolean((r as any).publicDiscoveryEnabled),
@@ -437,13 +430,14 @@ export async function buildPublicBestTradeCityHtml(
           countyName: String((r as any).countyName || ""),
           city: null,
           tradeSlug: canonicalTradeSlug,
+          hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
           tier,
         }),
         rules,
         now
       );
       if (!pub.ok) return null;
-      return { slug: String((r as any).slug || ""), name: String((r as any).name || "") };
+      return { slug: String((r as any).slug || ""), name: publicName };
     })
     .filter((r): r is { slug: string; name: string } => Boolean(r));
 
@@ -468,6 +462,7 @@ export async function buildPublicBestTradeCityHtml(
       "directory",
       "TradeScout",
     ],
+    indexable: false,
   });
 
   const summary = `

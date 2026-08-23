@@ -1,0 +1,142 @@
+{
+  "schemaVersion": "si.execution-contract.v1",
+  "binding": {
+    "projectId": "tradescout-platform",
+    "releaseId": "tradescout-organic-acquisition-recovery-r1",
+    "releaseVersion": "0.1.0",
+    "buildId": "tradescout-organic-acquisition-recovery-20260823",
+    "lockVersion": "manual_unverified"
+  },
+  "phase": "continuation",
+  "releaseControl": {
+    "status": "hold",
+    "baselineCommit": "764d56f0eb195d5597bd679b62d7d766fc1783fb",
+    "candidateIdentity": "The clean exact commit recorded by minimum-release evidence after implementation and review.",
+    "releaseAuthority": "implementation_and_pr_only"
+  },
+  "wholeProduct": {
+    "preserved": true,
+    "summary": "TradeScout earns organic discovery through a reachable canonical domain, a truthful crawl graph, substantive Trust/CVS-governed public profiles, authoritative acquisition telemetry, source-backed profile expansion, repeatable distribution, and measured conversion improvement.",
+    "complexity": "multi_deliverable"
+  },
+  "deliverables": [
+    {
+      "id": "D1",
+      "active": true,
+      "outcome": "A search or referral visitor can reach the canonical TradeScout domain, discover only valid indexable public surfaces, enter a truthful public profile or acquisition page, take a signup action, and produce authoritative server-confirmed acquisition and registration evidence without weakening Trust/CVS or contact gating.",
+      "entry": "A crawler or visitor requests the canonical TradeScout domain or a URL emitted by a TradeScout sitemap.",
+      "ending": "The visitor reaches a substantive canonical page; completed registration and activation are reconciled from authoritative server state, while any signed public-discovery attribution is recorded as a separately measured fail-soft projection.",
+      "journeySteps": [
+        "Resolve the apex and www hosts to one working HTTPS canonical domain.",
+        "Emit only canonical, rendered, substantive, internally linked, index-eligible URLs from sitemaps.",
+        "Apply one Trust/CVS-backed public discoverability contract consistently across SSR, sitemap, search, and client rendering.",
+        "Record landing, profile discovery, CTA, registration, and activation milestones with server-confirmed signup truth and bounded deduplication.",
+        "Verify the exact candidate through focused tests, minimum-release evidence, browser proof, independent objection, and production identity after any authorized release."
+      ],
+      "proof": [
+        {
+          "type": "artifact_inspection",
+          "procedure": "Recursively inspect the live sitemap graph, sample every route class, compare rendered robots and canonicals, and test apex and www HTTPS reachability.",
+          "expected": "Every emitted URL is canonical, reachable, rendered, substantive, internally linked, and index-eligible, and both public hosts complete HTTPS with one canonical destination.",
+          "observed": "The baseline inspection found malformed city URLs, county hydration failures, sitemap-listed noindex and test artifacts, empty or generic bot bodies, and a failing apex HTTPS handshake; implementation evidence is not yet recorded.",
+          "evidenceRef": "evidence.md#baseline-observation"
+        },
+        {
+          "type": "automated_test",
+          "procedure": "Run focused sitemap, SSR, discoverability, attribution, registration, and law-contract tests followed by the exact minimum-release gate and browser crawl-path proof.",
+          "expected": "The repaired crawl-to-signup loop passes with canonical server-side signup evidence and no Trust/CVS, contact, county, or authority regression.",
+          "observed": "At the baseline commit the reconciled recovery tests and exact-candidate release evidence do not yet exist, so this proof remains open.",
+          "evidenceRef": "evidence.md#verification-ledger"
+        }
+      ],
+      "constraints": [
+        "Reuse canonical TradeScout routing, Trust/CVS, signup, analytics, and release owners; do not create parallel public identity or contact authority.",
+        "Visibility never grants contact or power, and every contact path remains Intent to Decision Card to Contact.",
+        "Unclaimed or ineligible profiles remain direct-link-only or noindex according to the canonical exposure policy.",
+        "Do not manufacture business facts, claims, locations, reviews, inventory, demand, or availability for SEO volume.",
+        "Do not merge stale PR 426 or PR 427 independently; reconcile their supported intent on current main.",
+        "Do not merge to main or claim production correction without exact-commit release evidence and authorized production action."
+      ],
+      "requirementIds": [
+        "REQ-DOMAIN-REACHABILITY",
+        "REQ-CRAWL-GRAPH-TRUTH",
+        "REQ-PUBLIC-DISCOVERY-PARITY",
+        "REQ-ACQUISITION-MEASUREMENT",
+        "REQ-PLATFORM-LAW-PRESERVATION"
+      ],
+      "completionScope": "active_deliverable",
+      "completionClaims": [
+        {
+          "requirementId": "REQ-DOMAIN-REACHABILITY",
+          "scope": "active_deliverable",
+          "claim": "The apex and www hosts complete HTTPS and resolve to one explicit canonical TradeScout destination."
+        },
+        {
+          "requirementId": "REQ-CRAWL-GRAPH-TRUTH",
+          "scope": "active_deliverable",
+          "claim": "TradeScout sitemaps emit only valid canonical URLs whose server-rendered result is substantive and index-eligible."
+        },
+        {
+          "requirementId": "REQ-PUBLIC-DISCOVERY-PARITY",
+          "scope": "active_deliverable",
+          "claim": "SSR, sitemap, search, and client routing apply one canonical public-profile discoverability decision without widening access."
+        },
+        {
+          "requirementId": "REQ-ACQUISITION-MEASUREMENT",
+          "scope": "active_deliverable",
+          "claim": "Landing, discovery, and CTA projections are separated from authoritative completed-registration and activation state; projection and source-attribution coverage are reported without treating client intent or missing telemetry as a successful signup."
+        },
+        {
+          "requirementId": "REQ-PLATFORM-LAW-PRESERVATION",
+          "scope": "active_deliverable",
+          "claim": "Trust/CVS, visibility, county, contact, verification, and authority invariants remain enforced across the repaired acquisition path."
+        }
+      ],
+      "excludedFromActive": [
+        "Nationwide source-backed business profile creation and enrichment beyond repairing the current eligibility and discovery machinery.",
+        "Scaled partnership, media, outbound, referral, and content distribution campaigns.",
+        "Conversion-rate optimization, paid acquisition, lifecycle messaging, and growth experimentation after trustworthy traffic and funnel data exist.",
+        "Unrelated Community, JW Stone, Direct Connect, admin, marketplace, and product-surface changes."
+      ],
+      "informationComplete": true,
+      "fitsExecutionWindow": true,
+      "endToEnd": true
+    },
+    {
+      "id": "D2",
+      "active": false,
+      "outcome": "Expand source-backed, claimable, Trust/CVS-governed public business coverage without fabricated facts or automatic contact access."
+    },
+    {
+      "id": "D3",
+      "active": false,
+      "outcome": "Operate a repeatable distribution system across partnerships, editorial surfaces, earned links, referrals, and owned channels."
+    },
+    {
+      "id": "D4",
+      "active": false,
+      "outcome": "Use trustworthy impression, landing, signup, and activation data to improve conversion and retention."
+    }
+  ],
+  "executionTarget": {
+    "kind": "established_repository",
+    "productionIntent": true,
+    "establishedApplicationAvailable": true,
+    "repositoryFit": "fit",
+    "sitesRole": "none",
+    "rationale": "The canonical TradeScout repository owns public rendering, sitemap generation, profile eligibility, signup persistence, analytics, platform-law guards, and the Render production release path.",
+    "constraintsConsidered": [
+      "The recovery depends on real routing, database-backed identity, server-confirmed registration, custom-domain configuration, and exact production build identity.",
+      "A standalone marketing site cannot correct the canonical application's crawl graph, signup truth, or Trust/CVS exposure boundary."
+    ],
+    "coreValueDependsOn": {
+      "persistentOperationalData": true,
+      "complexPermissions": true,
+      "substantialBackendWorkflows": true,
+      "repositoryIntegration": true,
+      "businessStateImageProcessing": false,
+      "multiStageBusinessLogic": true,
+      "migrationsAuditOrSystemOfRecord": true
+    }
+  }
+}

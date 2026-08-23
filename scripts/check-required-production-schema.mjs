@@ -12,6 +12,10 @@ export const REQUIRED_MIGRATION_PATH = path.resolve(
   process.cwd(),
   "migrations/0072_seo_publication_rules_and_freshness.sql"
 );
+export const SEO_DIRECTORY_SCOPE_MIGRATION_PATH = path.resolve(
+  process.cwd(),
+  "migrations/0073_seo_directory_scope_pages.sql"
+);
 export const PROFILE_ACCOUNT_MIGRATION_PATH = path.resolve(
   process.cwd(),
   "migrations/0115_profile_accounts.sql"
@@ -23,6 +27,10 @@ export const ADMIN_LIVE_STREAM_MIGRATION_PATH = path.resolve(
 export const MANAGED_PARTNER_INTAKES_MIGRATION_PATH = path.resolve(
   process.cwd(),
   "migrations/0117_managed_partner_intakes.sql"
+);
+export const ORGANIC_ACQUISITION_MIGRATION_PATH = path.resolve(
+  process.cwd(),
+  "migrations/0121_organic_acquisition_measurement.sql"
 );
 
 const sha256 = (value) => crypto.createHash("sha256").update(value).digest("hex");
@@ -52,6 +60,10 @@ export const REQUIRED_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashe
   fs.readFileSync(REQUIRED_MIGRATION_PATH, "utf8")
 );
 export const REQUIRED_MIGRATION_HASH = REQUIRED_MIGRATION_HASHES[0];
+export const SEO_DIRECTORY_SCOPE_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
+  fs.readFileSync(SEO_DIRECTORY_SCOPE_MIGRATION_PATH, "utf8")
+);
+export const SEO_DIRECTORY_SCOPE_MIGRATION_HASH = SEO_DIRECTORY_SCOPE_MIGRATION_HASHES[0];
 export const PROFILE_ACCOUNT_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
   profileAccountMigrationSql
 );
@@ -65,6 +77,10 @@ export const MANAGED_PARTNER_INTAKES_MIGRATION_HASHES = buildLineEndingCompatibl
 );
 export const MANAGED_PARTNER_INTAKES_MIGRATION_HASH =
   MANAGED_PARTNER_INTAKES_MIGRATION_HASHES[0];
+export const ORGANIC_ACQUISITION_MIGRATION_HASHES = buildLineEndingCompatibleMigrationHashes(
+  fs.readFileSync(ORGANIC_ACQUISITION_MIGRATION_PATH, "utf8")
+);
+export const ORGANIC_ACQUISITION_MIGRATION_HASH = ORGANIC_ACQUISITION_MIGRATION_HASHES[0];
 
 export function evaluateRequiredProductionSchema(check) {
   const missing = [];
@@ -81,6 +97,12 @@ export function evaluateRequiredProductionSchema(check) {
   }
   if (check.migrationLedger && !check.managedPartnerIntakesMigrationRecorded) {
     missing.push("drizzle.__drizzle_migrations[0117 canonical hash]");
+  }
+  if (check.migrationLedger && !check.seoDirectoryScopeMigrationRecorded) {
+    missing.push("drizzle.__drizzle_migrations[0073 canonical hash]");
+  }
+  if (check.migrationLedger && !check.organicAcquisitionMigrationRecorded) {
+    missing.push("drizzle.__drizzle_migrations[0121 canonical hash]");
   }
   if (!check.publicationRules) missing.push("ts_publication_rules");
   if (!check.seoPruneLog) missing.push("ts_seo_prune_log");
@@ -113,6 +135,42 @@ export function evaluateRequiredProductionSchema(check) {
   if (!check.managedPartnerIntakes) missing.push("managed_partner_intakes");
   if (check.managedPartnerIntakes && !check.managedPartnerIntakesContract) {
     missing.push("managed_partner_intakes[canonical columns/constraints/indexes]");
+  }
+  if (!check.seoTradeCountyPages) missing.push("ts_seo_trade_county_pages");
+  if (check.seoTradeCountyPages && !check.seoTradeCountyPagesContract) {
+    missing.push("ts_seo_trade_county_pages[canonical columns/primary key]");
+  }
+  if (!check.seoTradeCityPages) missing.push("ts_seo_trade_city_pages");
+  if (check.seoTradeCityPages && !check.seoTradeCityPagesContract) {
+    missing.push("ts_seo_trade_city_pages[canonical columns/primary key]");
+  }
+  if (!check.seoTradeCityCountyPages) missing.push("ts_seo_trade_city_county_pages");
+  if (check.seoTradeCityCountyPages && !check.seoTradeCityCountyPagesContract) {
+    missing.push("ts_seo_trade_city_county_pages[canonical columns/constraints/index]");
+  }
+  if (!check.seoCityCountyPages) missing.push("ts_seo_city_county_pages");
+  if (check.seoCityCountyPages && !check.seoCityCountyPagesContract) {
+    missing.push("ts_seo_city_county_pages[canonical columns/constraints]");
+  }
+  if (!check.seoDirectoryBusinessPages) missing.push("ts_seo_directory_business_pages");
+  if (check.seoDirectoryBusinessPages && !check.seoDirectoryBusinessPagesContract) {
+    missing.push("ts_seo_directory_business_pages[canonical columns/constraints]");
+  }
+  if (!check.seoDirectoryBusinessCounties) {
+    missing.push("ts_seo_directory_business_counties");
+  }
+  if (
+    check.seoDirectoryBusinessCounties &&
+    !check.seoDirectoryBusinessCountiesContract
+  ) {
+    missing.push("ts_seo_directory_business_counties[canonical columns/constraints/index]");
+  }
+  if (!check.seoDirectorySnapshotStatus) missing.push("ts_seo_directory_snapshot_status");
+  if (check.seoDirectorySnapshotStatus && !check.seoDirectorySnapshotStatusContract) {
+    missing.push("ts_seo_directory_snapshot_status[canonical columns/constraints]");
+  }
+  if (!check.acquisitionLifecycleUniqueIndex) {
+    missing.push("events[idx_events_acquisition_lifecycle_user_unique]");
   }
   if (check.publicationRules && !check.defaultPublicationRule) {
     missing.push("ts_publication_rules[id=default]");
@@ -197,7 +255,64 @@ export async function verifyRequiredProductionSchema(client) {
         ('managed_partner_intakes', 'assigned_to_user_id', array['text']::text[], 'YES', null, null),
         ('managed_partner_intakes', 'created_at', array['timestamptz']::text[], 'NO', null, 'now()'),
         ('managed_partner_intakes', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
-        ('managed_partner_intakes', 'archived_at', array['timestamptz']::text[], 'YES', null, null)
+        ('managed_partner_intakes', 'archived_at', array['timestamptz']::text[], 'YES', null, null),
+
+        ('ts_seo_trade_county_pages', 'trade_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_trade_county_pages', 'county_id', array['varchar']::text[], 'NO', null, null),
+        ('ts_seo_trade_county_pages', 'state_code', array['varchar']::text[], 'NO', 2, null),
+        ('ts_seo_trade_county_pages', 'county_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_trade_county_pages', 'lastmod', array['timestamptz']::text[], 'NO', null, null),
+        ('ts_seo_trade_county_pages', 'business_count', array['int4']::text[], 'NO', null, '0'),
+        ('ts_seo_trade_county_pages', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
+
+        ('ts_seo_trade_city_pages', 'trade_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_trade_city_pages', 'state_code', array['varchar']::text[], 'NO', 2, null),
+        ('ts_seo_trade_city_pages', 'city_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_trade_city_pages', 'lastmod', array['timestamptz']::text[], 'NO', null, null),
+        ('ts_seo_trade_city_pages', 'business_count', array['int4']::text[], 'NO', null, '0'),
+        ('ts_seo_trade_city_pages', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
+
+        ('ts_seo_trade_city_county_pages', 'trade_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_trade_city_county_pages', 'state_code', array['varchar']::text[], 'NO', 2, null),
+        ('ts_seo_trade_city_county_pages', 'city_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_trade_city_county_pages', 'county_id', array['varchar']::text[], 'NO', null, null),
+        ('ts_seo_trade_city_county_pages', 'lastmod', array['timestamptz']::text[], 'NO', null, null),
+        ('ts_seo_trade_city_county_pages', 'business_count', array['int4']::text[], 'NO', null, '0'),
+        ('ts_seo_trade_city_county_pages', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
+
+        ('ts_seo_city_county_pages', 'state_code', array['varchar']::text[], 'NO', 2, null),
+        ('ts_seo_city_county_pages', 'city_slug', array['varchar']::text[], 'NO', 128, null),
+        ('ts_seo_city_county_pages', 'county_id', array['varchar']::text[], 'NO', null, null),
+        ('ts_seo_city_county_pages', 'lastmod', array['timestamptz']::text[], 'NO', null, null),
+        ('ts_seo_city_county_pages', 'business_count', array['int4']::text[], 'NO', null, '0'),
+        ('ts_seo_city_county_pages', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
+
+        ('ts_seo_directory_business_pages', 'business_id', array['varchar']::text[], 'NO', null, null),
+        ('ts_seo_directory_business_pages', 'slug', array['varchar']::text[], 'NO', 255, null),
+        ('ts_seo_directory_business_pages', 'display_name', array['varchar']::text[], 'NO', 180, null),
+        ('ts_seo_directory_business_pages', 'trade_slug', array['varchar']::text[], 'YES', 128, null),
+        ('ts_seo_directory_business_pages', 'tier', array['varchar']::text[], 'NO', 32, null),
+        ('ts_seo_directory_business_pages', 'claim_status', array['varchar']::text[], 'NO', 32, null),
+        ('ts_seo_directory_business_pages', 'primary_state_code', array['varchar']::text[], 'NO', 2, null),
+        ('ts_seo_directory_business_pages', 'city_slug', array['varchar']::text[], 'YES', 128, null),
+        ('ts_seo_directory_business_pages', 'lastmod', array['timestamptz']::text[], 'NO', null, null),
+        ('ts_seo_directory_business_pages', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
+
+        ('ts_seo_directory_business_counties', 'business_id', array['varchar']::text[], 'NO', null, null),
+        ('ts_seo_directory_business_counties', 'county_id', array['varchar']::text[], 'NO', null, null),
+        ('ts_seo_directory_business_counties', 'is_primary', array['bool']::text[], 'NO', null, 'false'),
+        ('ts_seo_directory_business_counties', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()'),
+
+        ('ts_seo_directory_snapshot_status', 'snapshot_key', array['varchar']::text[], 'NO', 64, null),
+        ('ts_seo_directory_snapshot_status', 'generation', array['int8']::text[], 'NO', null, '1'),
+        ('ts_seo_directory_snapshot_status', 'completed_at', array['timestamptz']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'source_row_count', array['int4']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'directory_business_count', array['int4']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'trade_county_page_count', array['int4']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'trade_city_page_count', array['int4']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'trade_city_county_page_count', array['int4']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'city_county_page_count', array['int4']::text[], 'NO', null, null),
+        ('ts_seo_directory_snapshot_status', 'updated_at', array['timestamptz']::text[], 'NO', null, 'now()')
     ),
     column_contracts as (
       select
@@ -263,7 +378,32 @@ export async function verifyRequiredProductionSchema(client) {
         ('managed_partner_intakes', 'managed_partner_intakes_control_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_contact_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'managed_partner_intakes_exposure_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
-        ('managed_partner_intakes', 'managed_partner_intakes_request_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1')
+        ('managed_partner_intakes', 'managed_partner_intakes_request_mode_check', 'c', null, null, null, null, 'tradescout-schema:0117:v1'),
+
+        ('ts_seo_trade_county_pages', 'ts_seo_trade_county_pages_pkey', 'p', array['trade_slug', 'county_id']::text[], null, null, null, null),
+        ('ts_seo_trade_city_pages', 'ts_seo_trade_city_pages_pkey', 'p', array['trade_slug', 'state_code', 'city_slug']::text[], null, null, null, null),
+
+        ('ts_seo_trade_city_county_pages', 'ts_seo_trade_city_county_pages_pkey', 'p', array['trade_slug', 'state_code', 'city_slug', 'county_id']::text[], null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_trade_city_county_pages', 'ts_seo_trade_city_county_pages_count_check', 'c', null, null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_trade_city_county_pages', 'ts_seo_trade_city_county_pages_county_fk', 'f', array['county_id']::text[], 'counties', array['id']::text[], 'c', 'tradescout-schema:0121:v1'),
+
+        ('ts_seo_city_county_pages', 'ts_seo_city_county_pages_pkey', 'p', array['state_code', 'city_slug', 'county_id']::text[], null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_city_county_pages', 'ts_seo_city_county_pages_count_check', 'c', null, null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_city_county_pages', 'ts_seo_city_county_pages_county_fk', 'f', array['county_id']::text[], 'counties', array['id']::text[], 'c', 'tradescout-schema:0121:v1'),
+
+        ('ts_seo_directory_business_pages', 'ts_seo_directory_business_pages_pkey', 'p', array['business_id']::text[], null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_pages', 'ts_seo_directory_business_pages_slug_unique', 'u', array['slug']::text[], null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_pages', 'ts_seo_directory_business_pages_business_fk', 'f', array['business_id']::text[], 'businesses', array['id']::text[], 'c', 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_pages', 'ts_seo_directory_business_pages_tier_check', 'c', null, null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_pages', 'ts_seo_directory_business_pages_state_check', 'c', null, null, null, null, 'tradescout-schema:0121:v1'),
+
+        ('ts_seo_directory_business_counties', 'ts_seo_directory_business_counties_pkey', 'p', array['business_id', 'county_id']::text[], null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_counties', 'ts_seo_directory_business_counties_business_fk', 'f', array['business_id']::text[], 'ts_seo_directory_business_pages', array['business_id']::text[], 'c', 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_counties', 'ts_seo_directory_business_counties_county_fk', 'f', array['county_id']::text[], 'counties', array['id']::text[], 'c', 'tradescout-schema:0121:v1'),
+
+        ('ts_seo_directory_snapshot_status', 'ts_seo_directory_snapshot_status_pkey', 'p', array['snapshot_key']::text[], null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_snapshot_status', 'ts_seo_directory_snapshot_status_key_check', 'c', null, null, null, null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_snapshot_status', 'ts_seo_directory_snapshot_status_counts_check', 'c', null, null, null, null, 'tradescout-schema:0121:v1')
     ),
     constraint_contracts as (
       select
@@ -342,7 +482,12 @@ export async function verifyRequiredProductionSchema(client) {
         ('admin_live_stream_snapshot_history', 'idx_admin_live_stream_snapshot_history_lookup', false, array['coalesce(source_filter,%', 'coalesce(state_code,%', 'coalesce(county_filter,%', 'computed_at%']::text[], array[false, false, false, true]::boolean[], null, 'tradescout-schema:0116:v1'),
         ('managed_partner_intakes', 'idx_managed_partner_intakes_slug_unique', true, array['lower(slug)%']::text[], array[false]::boolean[], '%slug is not null%and%length%> 0%and%archived_at is null%', 'tradescout-schema:0117:v1'),
         ('managed_partner_intakes', 'idx_managed_partner_intakes_active_queue', false, array['stage%', 'priority%', 'updated_at%']::text[], array[false, false, true]::boolean[], '%archived_at is null%', 'tradescout-schema:0117:v1'),
-        ('managed_partner_intakes', 'idx_managed_partner_intakes_created_by', false, array['created_by_user_id%', 'created_at%']::text[], array[false, true]::boolean[], null, 'tradescout-schema:0117:v1')
+        ('managed_partner_intakes', 'idx_managed_partner_intakes_created_by', false, array['created_by_user_id%', 'created_at%']::text[], array[false, true]::boolean[], null, 'tradescout-schema:0117:v1'),
+        ('ts_seo_directory_business_pages', 'idx_ts_seo_directory_business_pages_search', false, array['lower(display_name)%', 'slug%', 'business_id%']::text[], array[false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_pages', 'idx_ts_seo_directory_business_pages_scope', false, array['trade_slug%', 'primary_state_code%', 'city_slug%', 'slug%', 'business_id%']::text[], array[false, false, false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_directory_business_counties', 'idx_ts_seo_directory_business_counties_county', false, array['county_id%', 'business_id%']::text[], array[false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
+        ('ts_seo_trade_city_county_pages', 'idx_ts_seo_trade_city_county_pages_scope', false, array['state_code%', 'city_slug%', 'trade_slug%', 'county_id%']::text[], array[false, false, false, false]::boolean[], null, 'tradescout-schema:0121:v1'),
+        ('events', 'idx_events_acquisition_lifecycle_user_unique', true, array['event_type%', 'user_id%']::text[], array[false, false]::boolean[], '%user_id is not null%event_type%acquisition.registration_completed%acquisition.activation_completed%', 'tradescout-schema:0121:v1')
     ),
     index_contracts as (
       select
@@ -414,6 +559,13 @@ export async function verifyRequiredProductionSchema(client) {
       to_regclass('public.admin_live_stream_snapshots') is not null as admin_live_stream_snapshots,
       to_regclass('public.admin_live_stream_snapshot_history') is not null as admin_live_stream_snapshot_history,
       to_regclass('public.managed_partner_intakes') is not null as managed_partner_intakes,
+      to_regclass('public.ts_seo_trade_county_pages') is not null as seo_trade_county_pages,
+      to_regclass('public.ts_seo_trade_city_pages') is not null as seo_trade_city_pages,
+      to_regclass('public.ts_seo_trade_city_county_pages') is not null as seo_trade_city_county_pages,
+      to_regclass('public.ts_seo_city_county_pages') is not null as seo_city_county_pages,
+      to_regclass('public.ts_seo_directory_business_pages') is not null as seo_directory_business_pages,
+      to_regclass('public.ts_seo_directory_business_counties') is not null as seo_directory_business_counties,
+      to_regclass('public.ts_seo_directory_snapshot_status') is not null as seo_directory_snapshot_status,
       to_regclass('drizzle.__drizzle_migrations') is not null as migration_ledger,
       coalesce((select valid from column_contracts where table_name = 'profile_accounts'), false)
         and coalesce((select valid from constraint_contracts where table_name = 'profile_accounts'), false)
@@ -435,6 +587,32 @@ export async function verifyRequiredProductionSchema(client) {
         and coalesce((select valid from constraint_contracts where table_name = 'managed_partner_intakes'), false)
         and coalesce((select valid from index_contracts where table_name = 'managed_partner_intakes'), false)
         as managed_partner_intakes_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_trade_county_pages'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_trade_county_pages'), false)
+        as seo_trade_county_pages_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_trade_city_pages'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_trade_city_pages'), false)
+        as seo_trade_city_pages_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_trade_city_county_pages'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_trade_city_county_pages'), false)
+        and coalesce((select valid from index_contracts where table_name = 'ts_seo_trade_city_county_pages'), false)
+        as seo_trade_city_county_pages_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_city_county_pages'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_city_county_pages'), false)
+        as seo_city_county_pages_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_directory_business_pages'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_directory_business_pages'), false)
+        and coalesce((select valid from index_contracts where table_name = 'ts_seo_directory_business_pages'), false)
+        as seo_directory_business_pages_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_directory_business_counties'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_directory_business_counties'), false)
+        and coalesce((select valid from index_contracts where table_name = 'ts_seo_directory_business_counties'), false)
+        as seo_directory_business_counties_contract,
+      coalesce((select valid from column_contracts where table_name = 'ts_seo_directory_snapshot_status'), false)
+        and coalesce((select valid from constraint_contracts where table_name = 'ts_seo_directory_snapshot_status'), false)
+        as seo_directory_snapshot_status_contract,
+      coalesce((select valid from index_contracts where table_name = 'events'), false)
+        as acquisition_lifecycle_unique_index,
       exists (
         select 1
         from pg_trigger trigger_record
@@ -497,11 +675,30 @@ export async function verifyRequiredProductionSchema(client) {
     ),
     managedPartnerIntakes: Boolean(row.managed_partner_intakes),
     managedPartnerIntakesContract: Boolean(row.managed_partner_intakes_contract),
+    seoTradeCountyPages: Boolean(row.seo_trade_county_pages),
+    seoTradeCountyPagesContract: Boolean(row.seo_trade_county_pages_contract),
+    seoTradeCityPages: Boolean(row.seo_trade_city_pages),
+    seoTradeCityPagesContract: Boolean(row.seo_trade_city_pages_contract),
+    seoTradeCityCountyPages: Boolean(row.seo_trade_city_county_pages),
+    seoTradeCityCountyPagesContract: Boolean(row.seo_trade_city_county_pages_contract),
+    seoCityCountyPages: Boolean(row.seo_city_county_pages),
+    seoCityCountyPagesContract: Boolean(row.seo_city_county_pages_contract),
+    seoDirectoryBusinessPages: Boolean(row.seo_directory_business_pages),
+    seoDirectoryBusinessPagesContract: Boolean(row.seo_directory_business_pages_contract),
+    seoDirectoryBusinessCounties: Boolean(row.seo_directory_business_counties),
+    seoDirectoryBusinessCountiesContract: Boolean(
+      row.seo_directory_business_counties_contract
+    ),
+    seoDirectorySnapshotStatus: Boolean(row.seo_directory_snapshot_status),
+    seoDirectorySnapshotStatusContract: Boolean(row.seo_directory_snapshot_status_contract),
+    acquisitionLifecycleUniqueIndex: Boolean(row.acquisition_lifecycle_unique_index),
     migrationLedger: Boolean(row.migration_ledger),
     migrationRecorded: false,
+    seoDirectoryScopeMigrationRecorded: false,
     profileAccountMigrationRecorded: false,
     adminLiveStreamMigrationRecorded: false,
     managedPartnerIntakesMigrationRecorded: false,
+    organicAcquisitionMigrationRecorded: false,
     defaultPublicationRule: false,
   };
 
@@ -518,26 +715,41 @@ export async function verifyRequiredProductionSchema(client) {
             select 1
             from drizzle.__drizzle_migrations
             where hash = any($2::text[])
-          ) as profile_accounts_present,
+          ) as seo_directory_scope_present,
           exists (
             select 1
             from drizzle.__drizzle_migrations
             where hash = any($3::text[])
-          ) as admin_live_stream_present,
+          ) as profile_accounts_present,
           exists (
             select 1
             from drizzle.__drizzle_migrations
             where hash = any($4::text[])
-          ) as managed_partner_intakes_present
+          ) as admin_live_stream_present,
+          exists (
+            select 1
+            from drizzle.__drizzle_migrations
+            where hash = any($5::text[])
+          ) as managed_partner_intakes_present,
+          exists (
+            select 1
+            from drizzle.__drizzle_migrations
+            where hash = any($6::text[])
+          ) as organic_acquisition_present
       `,
       [
         REQUIRED_MIGRATION_HASHES,
+        SEO_DIRECTORY_SCOPE_MIGRATION_HASHES,
         PROFILE_ACCOUNT_MIGRATION_HASHES,
         ADMIN_LIVE_STREAM_MIGRATION_HASHES,
         MANAGED_PARTNER_INTAKES_MIGRATION_HASHES,
+        ORGANIC_ACQUISITION_MIGRATION_HASHES,
       ]
     );
     check.migrationRecorded = Boolean(migrationResult.rows?.[0]?.required_present);
+    check.seoDirectoryScopeMigrationRecorded = Boolean(
+      migrationResult.rows?.[0]?.seo_directory_scope_present
+    );
     check.profileAccountMigrationRecorded = Boolean(
       migrationResult.rows?.[0]?.profile_accounts_present
     );
@@ -546,6 +758,9 @@ export async function verifyRequiredProductionSchema(client) {
     );
     check.managedPartnerIntakesMigrationRecorded = Boolean(
       migrationResult.rows?.[0]?.managed_partner_intakes_present
+    );
+    check.organicAcquisitionMigrationRecorded = Boolean(
+      migrationResult.rows?.[0]?.organic_acquisition_present
     );
   }
 
@@ -563,9 +778,11 @@ export async function verifyRequiredProductionSchema(client) {
         `Required production schema is missing: ${missing.join(", ")}`,
         "Recover by reconciling any reported drift to the committed schema shape, then applying and recording the applicable canonical migrations",
         "migrations/0072_seo_publication_rules_and_freshness.sql and",
+        "migrations/0073_seo_directory_scope_pages.sql and",
         "migrations/0115_profile_accounts.sql and",
         "migrations/0116_admin_live_stream_snapshots.sql and",
-        "migrations/0117_managed_partner_intakes.sql before deployment.",
+        "migrations/0117_managed_partner_intakes.sql and",
+        "migrations/0121_organic_acquisition_measurement.sql before deployment.",
       ].join(" ")
     );
   }

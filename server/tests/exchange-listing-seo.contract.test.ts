@@ -368,13 +368,17 @@ describe("server/routes/profiles.ts sitemap-exchange-listings.xml", () => {
   });
 });
 
-// ─── 4. server/routes/profiles.ts — sitemap-index.xml includes exchange ──────
+// ─── 4. server/routes/profiles.ts — governed index omits unproven Exchange ──
 
-describe("server/routes/profiles.ts sitemap-index.xml includes exchange listings", () => {
+describe("server/routes/profiles.ts governed sitemap index", () => {
   const src = readFile("server/routes/profiles.ts");
 
-  it("sitemap-index.xml template includes sitemap-exchange-listings.xml", () => {
-    expect(src).toContain("sitemap-exchange-listings.xml");
+  it("does not advertise the Exchange feed until every emitted listing has renderer parity", () => {
+    const rootIndex = src.slice(
+      src.indexOf('router.get("/sitemap.xml"'),
+      src.indexOf('router.get("/sitemap-core.xml"')
+    );
+    expect(rootIndex).not.toContain("sitemap-exchange-listings.xml");
   });
 });
 
@@ -388,10 +392,14 @@ describe("server/routes/profiles.ts robots.txt", () => {
   });
 });
 
-// ─── 6. CORE_STATIC_PATHS includes all 15 exchange category pages ─────────────
+// ─── 6. CORE_STATIC_PATHS excludes SPA-shell Exchange categories ─────────────
 
 describe("server/routes/profiles.ts CORE_STATIC_PATHS", () => {
   const src = readFile("server/routes/profiles.ts");
+  const coreStaticPaths = src.slice(
+    src.indexOf("const CORE_STATIC_PATHS"),
+    src.indexOf("const COUNTY_SLUG_PATTERN")
+  );
 
   const expectedCategoryPaths = [
     "/exchange/vehicles",
@@ -412,8 +420,8 @@ describe("server/routes/profiles.ts CORE_STATIC_PATHS", () => {
   ];
 
   for (const p of expectedCategoryPaths) {
-    it(`CORE_STATIC_PATHS includes ${p}`, () => {
-      expect(src).toContain(`"${p}"`);
+    it(`CORE_STATIC_PATHS omits ${p}`, () => {
+      expect(coreStaticPaths).not.toContain(`"${p}"`);
     });
   }
 });
@@ -451,17 +459,17 @@ describe("client/public/robots.txt", () => {
   });
 });
 
-// ─── 9. client/public/sitemap-index.xml — includes sitemap-exchange-listings ─
+// ─── 9. client/public/sitemap-index.xml — omits Exchange until parity ────────
 
 describe("client/public/sitemap-index.xml", () => {
   const src = fs.readFileSync(path.resolve(CLIENT_PUBLIC_DIR, "sitemap-index.xml"), "utf-8");
 
-  it("includes sitemap-exchange-listings.xml", () => {
-    expect(src).toContain("sitemap-exchange-listings.xml");
+  it("does not advertise sitemap-exchange-listings.xml", () => {
+    expect(src).not.toContain("sitemap-exchange-listings.xml");
   });
 });
 
-// ─── 10. scripts/generate-sitemap.mjs — all 15 exchange category paths ────────
+// ─── 10. scripts/generate-sitemap.mjs — omits SPA-shell Exchange paths ───────
 
 describe("scripts/generate-sitemap.mjs", () => {
   const src = fs.readFileSync(path.resolve(SCRIPTS_DIR, "generate-sitemap.mjs"), "utf-8");
@@ -485,8 +493,8 @@ describe("scripts/generate-sitemap.mjs", () => {
   ];
 
   for (const p of expectedPaths) {
-    it(`STATIC_PUBLIC_ROUTES includes ${p}`, () => {
-      expect(src).toContain(`'${p}'`);
+    it(`STATIC_PUBLIC_ROUTES omits ${p}`, () => {
+      expect(src).not.toContain(`'${p}'`);
     });
   }
 });

@@ -11,6 +11,11 @@ import {
   deriveTradeSlugFromProfileData,
 } from "../publicationBusiness";
 import { isPublicAndCrawlableBusiness } from "../../shared/publication";
+import {
+  buildPublicDirectoryProfile,
+  hasPublicDirectoryOfferingFacts,
+  sanitizePublicDirectoryDisplayName,
+} from "./publicDirectoryBusinessPresentation";
 import { getTradeSeoMatch } from "../../shared/tradeSeo";
 import {
   computeSignalTruthState,
@@ -925,7 +930,8 @@ async function enrichEntryWithMarketInventory(
     if (!(updatedAt instanceof Date) || Number.isNaN(updatedAt.getTime())) return false;
     const profileData =
       row.profile_data && typeof row.profile_data === "object" ? row.profile_data : {};
-    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+    const publicProfile = buildPublicDirectoryProfile(profileData as any);
+    const tradeSlug = deriveTradeSlugFromProfileData(publicProfile);
     if (normalizedCategory && tradeSlug !== normalizedCategory) return false;
     const tier = derivePublicationTier({
       ownerUserId: row.owner_user_id ? String(row.owner_user_id) : null,
@@ -940,14 +946,15 @@ async function enrichEntryWithMarketInventory(
     return isPublicAndCrawlableBusiness(
       buildPublicBusinessSignals({
         id: String(row.id),
-        name: String(row.name || ""),
+        name: sanitizePublicDirectoryDisplayName(row.name),
         slug: String(row.slug || ""),
         updatedAt,
         publicDiscoveryEnabled: Boolean(row.public_discovery_enabled),
         stateCode: row.state_code ? String(row.state_code) : null,
         countyName: row.county_name ? String(row.county_name) : null,
-        city: profileData && typeof profileData.city === "string" ? String(profileData.city) : null,
+        city: publicProfile.city || null,
         tradeSlug,
+        hasPublicOfferingFacts: hasPublicDirectoryOfferingFacts(publicProfile),
         tier,
       }),
       publicationRules,
@@ -2061,11 +2068,12 @@ export async function getLiveStreamSnapshot(params?: {
     ? (row.stream_json as LiveStreamSnapshotEntry[])
     : [];
   if (!row || !computedAt || !Number.isFinite(computedAt.getTime())) {
-    throw new Error("No persisted live-stream snapshot is available; run the explicit refresh action.");
+    throw new Error(
+      "No persisted live-stream snapshot is available; run the explicit refresh action."
+    );
   }
 
-  const isStale =
-    Date.now() - computedAt.getTime() > maxSnapshotAgeMinutes * 60 * 1000;
+  const isStale = Date.now() - computedAt.getTime() > maxSnapshotAgeMinutes * 60 * 1000;
   const isWeak = shouldRefreshWeakSnapshot({ summary, stream, computedAt });
   const degradedSources = new Set(summary?.degradedSources || []);
   const degradedSourceReasons = { ...(summary?.degradedSourceReasons || {}) };
@@ -2084,30 +2092,33 @@ export async function getLiveStreamSnapshot(params?: {
       county: filters.county || null,
       limit: filters.limit,
     },
-    summary: summary ? {
-      ...summary,
-      degradedSources: Array.from(degradedSources),
-      degradedSourceReasons,
-    } : {
-      truthNow: "",
-      currentLeadCounty: null,
-      currentLeadState: null,
-      crawlerRequests24h: 0,
-      activeAlerts: 0,
-      botCrawlSignals: 0,
-      topBotCrawlHeadline: null,
-      sourceCounts: {},
-      degradedSources: [],
-      usabilityAccepted: 0,
-      usabilityRejected: 0,
-      usabilityAcceptedBySource: {},
-      usabilityRejectedBySource: {},
-      usabilityRejectionReasons: {},
-      usabilityRejectionReasonsBySource: {},
-    },
-    stream: isStale || isWeak
-      ? stream.map((entry) => ({ ...entry, truthStatus: "stale" as const }))
-      : stream,
+    summary: summary
+      ? {
+          ...summary,
+          degradedSources: Array.from(degradedSources),
+          degradedSourceReasons,
+        }
+      : {
+          truthNow: "",
+          currentLeadCounty: null,
+          currentLeadState: null,
+          crawlerRequests24h: 0,
+          activeAlerts: 0,
+          botCrawlSignals: 0,
+          topBotCrawlHeadline: null,
+          sourceCounts: {},
+          degradedSources: [],
+          usabilityAccepted: 0,
+          usabilityRejected: 0,
+          usabilityAcceptedBySource: {},
+          usabilityRejectedBySource: {},
+          usabilityRejectionReasons: {},
+          usabilityRejectionReasonsBySource: {},
+        },
+    stream:
+      isStale || isWeak
+        ? stream.map((entry) => ({ ...entry, truthStatus: "stale" as const }))
+        : stream,
   };
 }
 

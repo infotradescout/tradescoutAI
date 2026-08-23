@@ -61,6 +61,14 @@ import {
   createProfileGalleryItemShareMetadata,
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
+import { shouldNoIndexBusinessProfile } from "@/lib/businessProfileIndexability";
+import { slugifyCountyName } from "@shared/tradeSeo";
+import {
+  appendDiscoveryAttributionHandoff,
+  getPublishedDiscoveryCanonicalRoute,
+  trackDiscoveryLandingOnce,
+  trackPublicProfileCtaOnce,
+} from "@/lib/discoveryLanding";
 
 /**
  * PublicBusinessProfileView
@@ -140,27 +148,36 @@ export default function BusinessProfileView() {
     async function fetchProfile() {
       try {
         const response = await fetch(`/api/business-profile/slug/${slug}`);
+        const data = response.ok ? await response.json() : null;
+        const canonicalProfilePath =
+          typeof data?.canonicalProfilePath === "string" ? data.canonicalProfilePath.trim() : "";
+        if (canonicalProfilePath.startsWith("/u/")) {
+          const search = typeof window === "undefined" ? "" : window.location.search;
+          setLocation(`${canonicalProfilePath}${search}`);
+          return;
+        }
 
-        if (!response.ok) {
-          if (response.status !== 404) {
-            setError("Failed to load profile");
-            setLoading(false);
-            return;
-          }
-
-          // Fallback: directory listing (unclaimed/claimable businesses table).
-          const directoryRes = await fetch(`/api/public/businesses/${slug}`);
-          if (!directoryRes.ok) {
-            setError("Business profile not found");
-            setLoading(false);
-            return;
-          }
-
+        // The governed directory contract wins a slug collision. Legacy
+        // preference-backed profiles remain an exact-link/noindex fallback.
+        const directoryRes = await fetch(`/api/public/businesses/${slug}`);
+        if (directoryRes.ok) {
           const directoryData: any = await directoryRes.json();
           const counties = Array.isArray(directoryData?.counties) ? directoryData.counties : [];
           const primaryCounty = counties[0] || null;
           const publicProfile = directoryData?.profile || {};
+          const primaryStateCode = primaryCounty?.stateCode
+            ? String(primaryCounty.stateCode).trim().toUpperCase()
+            : null;
+          const publicProfileStateCode = publicProfile?.stateCode
+            ? String(publicProfile.stateCode).trim().toUpperCase()
+            : null;
+          const publicCity =
+            !primaryStateCode || publicProfileStateCode === primaryStateCode
+              ? publicProfile?.city || null
+              : null;
           const importExtras = publicProfile?.importExtras || {};
+          const directoryTier =
+            directoryData?.publication?.tier === "verified" ? "verified" : "unclaimed";
           const publicServices = Array.isArray(publicProfile?.services)
             ? publicProfile.services.filter((item: any) => typeof item === "string")
             : [];
@@ -173,28 +190,27 @@ export default function BusinessProfileView() {
             headline: publicProfile?.tagline || publicProfile?.category || null,
             description: publicProfile?.description ?? null,
             services: publicServices,
-            countyFips: primaryCounty?.fips || importExtras?.countyFips || null,
-            countyName: primaryCounty?.name || importExtras?.countyName || null,
-            city: publicProfile?.city || null,
-            stateCode: publicProfile?.stateCode || primaryCounty?.stateCode || null,
+            countyFips: primaryCounty?.fips || null,
+            countyName: primaryCounty?.name || null,
+            city: publicCity,
+            stateCode: primaryStateCode || publicProfileStateCode || null,
             serviceAreas: counties.map((c: any) => String(c?.name || "")).filter(Boolean),
             // Prevent contact bypass for directory shells; contact stays Scout-gated.
             website: null,
-            address: publicProfile?.address || null,
-            zipCode: publicProfile?.zipCode || null,
+            address: null,
+            zipCode: null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             publishedAt: null as any,
             // These optional fields are read by the view; keep safe defaults.
-            verificationStatus: "pending" as any,
-            addressVerified: false as any,
+            verificationStatus: (directoryTier === "verified" ? "approved" : "pending") as any,
+            addressVerified: (directoryTier === "verified") as any,
             cvsScore: null as any,
             googleRating:
               typeof importExtras?.averageRating === "number" ? importExtras.averageRating : null,
             googleReviewCount:
               typeof importExtras?.reviewCount === "number" ? importExtras.reviewCount : null,
-            googleMapsUrl:
-              typeof importExtras?.googleMapsUrl === "string" ? importExtras.googleMapsUrl : null,
+            googleMapsUrl: null,
             directoryPublication: directoryData?.publication || null,
             dataSource: importExtras?.source || "directory_import",
           } as any;
@@ -211,12 +227,15 @@ export default function BusinessProfileView() {
           return;
         }
 
-        const data = await response.json();
-        const canonicalProfilePath =
-          typeof data?.canonicalProfilePath === "string" ? data.canonicalProfilePath.trim() : "";
-        if (canonicalProfilePath.startsWith("/u/")) {
-          const search = typeof window === "undefined" ? "" : window.location.search;
-          setLocation(`${canonicalProfilePath}${search}`);
+        if (directoryRes.status !== 404) {
+          throw new Error(`Directory profile lookup failed (${directoryRes.status})`);
+        }
+
+        if (!response.ok) {
+          setError(
+            response.status === 404 ? "Business profile not found" : "Failed to load profile"
+          );
+          setLoading(false);
           return;
         }
         setProfileSource("published");
@@ -254,6 +273,20 @@ export default function BusinessProfileView() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [galleryShareMeta?.itemSlug]);
+
+  const directoryDiscoverable =
+    profileSource === "directory" && (profile as any)?.directoryPublication?.crawlable === true;
+
+  useEffect(() => {
+    if (!directoryDiscoverable || isOwner || typeof window === "undefined") return;
+    const canonicalRoute = getPublishedDiscoveryCanonicalRoute();
+    if (canonicalRoute !== `/business/${String(slug || "").toLowerCase()}`) return;
+    void trackDiscoveryLandingOnce({
+      canonicalRoute,
+      search: window.location.search,
+      referrer: document.referrer || null,
+    });
+  }, [directoryDiscoverable, isOwner, slug]);
 
   if (loading) {
     return (
@@ -298,6 +331,9 @@ export default function BusinessProfileView() {
   ]
     .filter(Boolean)
     .join(", ");
+  const publicCountySlug = profile.countyName
+    ? slugifyCountyName(stripCountySuffix(profile.countyName) || profile.countyName)
+    : "";
   const primaryServiceLabelRaw = String(serviceList[0] || profile.headline || "Local business");
   const primaryServiceLabel =
     primaryServiceLabelRaw.length > 44
@@ -574,7 +610,11 @@ export default function BusinessProfileView() {
 
   const canonicalUrl =
     galleryShareMeta?.canonical || `${window.location.origin}/business/${profile.slug}`;
-  const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
+  const showClaimCta =
+    !isOwner &&
+    profileSource === "directory" &&
+    directoryClaimStatus === "unclaimed" &&
+    Boolean(directoryBusinessId);
   const showUnclaimedBadge = profileSource === "directory" && directoryClaimStatus === "unclaimed";
   const showSuggestCta = profileSource === "directory" && Boolean(directoryBusinessId);
   const googleReviewCount =
@@ -599,7 +639,30 @@ export default function BusinessProfileView() {
   if (profile.countyFips) claimParams.set("countyFips", profile.countyFips);
   if (profile.stateCode) claimParams.set("stateCode", profile.stateCode);
   const claimUrl = `/claim-my-business?${claimParams.toString()}`;
-  const handleDirectConnect = () => setLocation(directConnectUrl);
+  const trackDirectoryCta = (
+    ctaKind: "direct_connect" | "business_claim" | "account_create" | "booking_request"
+  ) => {
+    if (!directoryDiscoverable) return;
+    void trackPublicProfileCtaOnce({
+      ctaKind,
+      canonicalRoute: `/business/${profile.slug}`,
+    });
+  };
+  const handleDirectConnect = () => {
+    trackDirectoryCta("direct_connect");
+    setLocation(directConnectUrl);
+  };
+  const handleDirectoryAccountCreate = () => {
+    trackDirectoryCta("account_create");
+    const next = `/business/${profile.slug}`;
+    setLocation(
+      directoryDiscoverable
+        ? appendDiscoveryAttributionHandoff(
+            `/pre-scout-setup?mode=create&next=${encodeURIComponent(next)}`
+          )
+        : "/auth"
+    );
+  };
   const profilePulse = [
     {
       label: "Work",
@@ -657,6 +720,10 @@ export default function BusinessProfileView() {
         ogImage={galleryShareMeta?.imageUrl || profile.seoMeta?.imageUrl || undefined}
         structuredData={structuredData}
         preserveCanonicalQuery={Boolean(galleryShareMeta)}
+        noIndex={shouldNoIndexBusinessProfile({
+          profileSource,
+          directoryCrawlable: (profile as any).directoryPublication?.crawlable === true,
+        })}
       />
 
       <section className="ts-card mb-4 overflow-hidden" style={themeStyle}>
@@ -729,7 +796,7 @@ export default function BusinessProfileView() {
                     ) : null}
                     {profile.countyName && profile.stateCode ? (
                       <a
-                        href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, "-")}`}
+                        href={`/county/${profile.stateCode.toLowerCase()}/${publicCountySlug}`}
                         className="text-white hover:text-ts-orange"
                       >
                         {stripCountySuffix(profile.countyName) || profile.countyName},{" "}
@@ -800,7 +867,10 @@ export default function BusinessProfileView() {
                     <Button
                       className="w-full border-ts-orange/40 bg-ts-orange/10 text-ts-orange hover:bg-ts-orange/15"
                       variant="outline"
-                      onClick={() => setLocation(claimUrl)}
+                      onClick={() => {
+                        trackDirectoryCta("business_claim");
+                        setLocation(claimUrl);
+                      }}
                     >
                       <Search className="h-4 w-4 mr-2" />
                       Claim with Google Maps
@@ -833,6 +903,7 @@ export default function BusinessProfileView() {
                           setLocation("/account?tab=verification");
                           return;
                         }
+                        trackDirectoryCta("direct_connect");
                         setShowCallDecisionCard(true);
                       }}
                     >
@@ -843,7 +914,7 @@ export default function BusinessProfileView() {
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
                     {!isAuthenticated ? (
-                      <Button variant="secondary" onClick={() => setLocation("/auth")}>
+                      <Button variant="secondary" onClick={handleDirectoryAccountCreate}>
                         <BadgeCheck className="h-4 w-4 mr-2" />
                         View member details
                       </Button>
@@ -1118,10 +1189,24 @@ export default function BusinessProfileView() {
               bookingStateCode={profile.stateCode || ""}
               hasViewerSession={isAuthenticated || Boolean(user?.id)}
               viewerCanManage={isOwner}
-              signInHref={`/pre-scout-setup?mode=create&next=${encodeURIComponent(
-                `/business/${profile.slug}?book=1`
-              )}`}
+              signInHref={
+                directoryDiscoverable
+                  ? appendDiscoveryAttributionHandoff(
+                      `/pre-scout-setup?mode=create&next=${encodeURIComponent(
+                        `/business/${profile.slug}?book=1`
+                      )}`
+                    )
+                  : `/pre-scout-setup?mode=create&next=${encodeURIComponent(
+                      `/business/${profile.slug}?book=1`
+                    )}`
+              }
               platformBaseHref=""
+              onAccountCreate={
+                directoryDiscoverable ? () => trackDirectoryCta("account_create") : undefined
+              }
+              onBookingRequest={
+                directoryDiscoverable ? () => trackDirectoryCta("booking_request") : undefined
+              }
             />
           </CardContent>
         </Card>
@@ -1350,7 +1435,7 @@ export default function BusinessProfileView() {
       {profile.countyName && profile.stateCode && (
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <a
-            href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, "-")}`}
+            href={`/county/${profile.stateCode.toLowerCase()}/${publicCountySlug}`}
             className="text-primary hover:underline"
           >
             Explore more businesses near{" "}

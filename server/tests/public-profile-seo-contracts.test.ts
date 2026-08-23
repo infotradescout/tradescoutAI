@@ -16,7 +16,13 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain("BING_INDEXNOW_KEY");
     expect(source).toContain("buildAutoSeoMeta");
     expect(source).toContain("seoMeta: effectiveSeoMeta");
-    expect(source).toContain("Best answer targets for AI search, Meta AI, and other assistants");
+    expect(source).toContain("Substantive answer targets for AI search and other assistants");
+    const llmsRoute = source.slice(
+      source.indexOf('router.get("/llms.txt"'),
+      source.indexOf('router.get("/sitemap.xml"')
+    );
+    expect(llmsRoute).toContain("${baseUrl}/trade");
+    expect(llmsRoute).not.toContain("${baseUrl}/exchange");
     expect(source).toContain("Visibility does not grant contact access or authority");
     expect(source).toContain("ISSA Build translucent onyx:");
     expect(source).toContain("/u/${ISSA_BUILD_PROFILE_SLUG}/categories/onyx");

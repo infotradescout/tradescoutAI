@@ -47,10 +47,17 @@ const PUBLIC_PERSONAL_PROFILE_ROLES = new Set([
   "renter",
 ]);
 
-const NON_CONTENT_PROFILE_BLOCK_TYPES = new Set([
-  "profilepresentation",
-  "profilesections",
-  "sitetemplate",
+const PUBLIC_CONTENT_PROFILE_BLOCK_TYPES = new Set([
+  "about",
+  "bio",
+  "faq",
+  "gallery",
+  "hero",
+  "portfolio",
+  "projects",
+  "services",
+  "testimonials",
+  "text",
 ]);
 
 export type OwnerConfirmedDirectProfileCandidate = {
@@ -119,15 +126,39 @@ function ownerRoles(candidate: { ownerRole?: unknown; ownerRoles?: unknown }): s
   ].filter(Boolean);
 }
 
+const PUBLIC_CONTENT_VALUE_KEYS = new Set([
+  "answer",
+  "alt",
+  "body",
+  "caption",
+  "content",
+  "description",
+  "headline",
+  "images",
+  "items",
+  "label",
+  "name",
+  "question",
+  "quote",
+  "services",
+  "summary",
+  "text",
+  "title",
+]);
+
 function hasMeaningfulValue(value: unknown, depth = 0): boolean {
   if (depth > 5 || value == null) return false;
   if (typeof value === "string") return value.trim().length > 0;
-  if (typeof value === "number") return Number.isFinite(value);
-  if (typeof value === "boolean") return false;
+  if (typeof value === "number" || typeof value === "boolean") return false;
   if (Array.isArray(value)) return value.some((item) => hasMeaningfulValue(item, depth + 1));
   if (typeof value !== "object") return false;
-  return Object.values(value as Record<string, unknown>).some((item) =>
-    hasMeaningfulValue(item, depth + 1)
+  return Object.entries(value as Record<string, unknown>).some(
+    ([key, item]) =>
+      PUBLIC_CONTENT_VALUE_KEYS.has(
+        String(key || "")
+          .trim()
+          .toLowerCase()
+      ) && hasMeaningfulValue(item, depth + 1)
   );
 }
 
@@ -147,7 +178,7 @@ export function hasMeaningfulPublicProfileContent(
     const type = String(source.type || "")
       .trim()
       .toLowerCase();
-    return Boolean(type) && !NON_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data);
+    return PUBLIC_CONTENT_PROFILE_BLOCK_TYPES.has(type) && hasMeaningfulValue(source.data);
   });
 }
 
@@ -331,6 +362,11 @@ export function derivePublishedProfileExposure(
     if (!isPubliclyVerifiedProfileOwner(candidate)) {
       return { mode: "private", reason: "business_trust_missing" };
     }
+    if (!hasMeaningfulPublicProfileContent(candidate)) {
+      // A trusted/linked identity is not by itself a substantive crawl page.
+      // Keep the exact route available without adding it to search or sitemaps.
+      return { mode: "direct_only", reason: "empty_profile" };
+    }
     if (candidate.publicDiscoveryEnabled === true) {
       return { mode: "public", reason: "public" };
     }
@@ -346,7 +382,10 @@ export function derivePublishedProfileExposure(
   if (!hasMeaningfulPublicProfileContent(candidate)) {
     return { mode: "private", reason: "empty_profile" };
   }
-  return { mode: "public", reason: "public" };
+  // D1 intentionally keeps released personal profiles reachable only by an
+  // exact link. A substantive public people hub is required before these URLs
+  // can become crawl/search discovery candidates without creating orphans.
+  return { mode: "direct_only", reason: "direct_only" };
 }
 
 /**
@@ -358,7 +397,10 @@ export function canExposePublishedProfilePublicly(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
   const decision = derivePublishedProfileExposure(candidate);
-  return decision.mode === "public" || (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate));
+  return (
+    decision.mode === "public" ||
+    (decision.mode === "direct_only" && isOwnerConfirmedDirectProfile(candidate))
+  );
 }
 
 export function canDiscoverPublishedProfilePublicly(
@@ -376,5 +418,7 @@ export function canServePublishedProfileAtDirectRoute(
 export function canExposeProviderProfileOnPublicMap(
   candidate: PublishedProfileExposureCandidate
 ): boolean {
-  return canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate);
+  return (
+    canDiscoverPublishedProfilePublicly(candidate) && isPubliclyVerifiedProfileOwner(candidate)
+  );
 }

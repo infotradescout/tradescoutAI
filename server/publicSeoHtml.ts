@@ -7,14 +7,12 @@ const BOOT_FALLBACK_PATTERN = /\s*<div id="ts-boot-fallback"[\s\S]*?<\/section>\
 const LANDING_FALLBACK_PATTERN = /\s*<div id="ts-landing-fallback"[\s\S]*?<\/div>\s*/i;
 const NOSCRIPT_FALLBACK_PATTERN =
   /\s*<noscript>\s*<div id="ts-boot-fallback-noscript"[\s\S]*?<\/noscript>\s*/i;
-const CLIENT_MODULE_SCRIPT_PATTERN =
-  /\s*<script\b[^>]*\btype\s*=\s*(["'])module\1[^>]*\bsrc\s*=\s*(["'])[^"']+\2[^>]*><\/script>\s*/gi;
 const SIGNED_SOCIAL_CARD_PATTERN = /\/images\/social\/card\//i;
 const JW_STONE_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-jw-stone-marketplace\b/i;
-const FACT_BEARING_PUBLIC_DISCOVERY_MARKER =
-  /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
+const FACT_BEARING_PUBLIC_DISCOVERY_MARKER = /\bdata-seo-(?:profile|business)\s*=\s*(["'])true\1/i;
 const DISCOVERY_ATTRIBUTION_META_PATTERN =
   /<meta\b[^>]*\bname\s*=\s*(['"])tradescout-discovery-attribution\1[^>]*>/i;
+export const DISCOVERY_ATTRIBUTION_CACHE_CONTROL = "private, no-store, max-age=0";
 const HTML_META_CONTENT_PATTERN = (name: string) =>
   new RegExp(
     `<meta\\b(?=[^>]*\\bname\\s*=\\s*(["'])${name}\\1)(?=[^>]*\\bcontent\\s*=\\s*(["'])([^"']*)\\2)[^>]*>`,
@@ -79,6 +77,41 @@ export function publicSocialMetadataCacheControl(html: string): string | null {
     : null;
 }
 
+type ResponseHeaderWriter = {
+  setHeader(name: string, value: string): unknown;
+  getHeader?(name: string): unknown;
+};
+
+/**
+ * SEO preparation deliberately differs by user-agent. Preserve any existing
+ * Vary dimensions and make that response variance explicit to shared caches.
+ */
+export function enforcePublicSeoUserAgentVariation(response: ResponseHeaderWriter): void {
+  const current = String(response.getHeader?.("Vary") || "").trim();
+  if (
+    current === "*" ||
+    current.split(",").some((value) => value.trim().toLowerCase() === "user-agent")
+  ) {
+    return;
+  }
+  response.setHeader("Vary", current ? `${current}, User-Agent` : "User-Agent");
+}
+
+/**
+ * A discovery envelope contains a fresh random entryRequestId. It must never
+ * be shared by browser, CDN, or surrogate caches across visitors.
+ */
+export function enforceDiscoveryAttributionResponsePrivacy(
+  html: string,
+  response: ResponseHeaderWriter
+): boolean {
+  if (!DISCOVERY_ATTRIBUTION_META_PATTERN.test(String(html || ""))) return false;
+  response.setHeader("Cache-Control", DISCOVERY_ATTRIBUTION_CACHE_CONTROL);
+  response.setHeader("CDN-Cache-Control", "no-store");
+  response.setHeader("Surrogate-Control", "no-store");
+  return true;
+}
+
 export function stripPublicSeoBootPlaceholders(html: string): string {
   return html
     .replace(BOOT_FALLBACK_PATTERN, "")
@@ -111,12 +144,19 @@ export function attachDiscoveryAttributionMeta(html: string): string {
     return source;
   }
 
+  const businessSlug = readHtmlMetaContent(source, "tradescout-business-slug") || "";
+  const profileSlug = readHtmlMetaContent(source, "tradescout-profile-slug") || "";
+  const entityType =
+    readHtmlMetaContent(source, "tradescout-business-entity-type") ||
+    readHtmlMetaContent(source, "tradescout-profile-entity-type") ||
+    "";
   const token = issueDiscoveryAttributionToken({
-    businessSlug: readHtmlMetaContent(source, "tradescout-business-slug") || "",
-    entityType: readHtmlMetaContent(source, "tradescout-business-entity-type") as
-      | "business_marketplace"
-      | "business_profile",
-    canonicalRoute: readCanonicalRoute(source) || "",
+    entitySlug: profileSlug || businessSlug,
+    businessSlug: businessSlug || undefined,
+    profileSlug: profileSlug || undefined,
+    entityType: entityType as "business_marketplace" | "business_profile" | "public_profile",
+    canonicalRoute:
+      readHtmlMetaContent(source, "tradescout-discovery-route") || readCanonicalRoute(source) || "",
   });
   if (!token) return source;
 
@@ -130,24 +170,31 @@ export function preparePublicSeoHtmlForResponse(
 ): string {
   const upgradedHtml = upgradePublicSocialPreviewHtml(html);
   if (options.retainSeoSummary) {
-    return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
+    // A cache that ignores Vary must still deliver an interactive document to
+    // a browser. Crawlers retain the SSR facts, while the module bootstrap is
+    // harmless for non-executing bots and a recovery path for people.
+    return stripPublicSeoBootPlaceholders(upgradedHtml);
   }
 
   return upgradedHtml.replace(SEO_ROOT_SUMMARY_PATTERN, '<div id="root"></div>');
 }
 
 export function preparePublicSeoHtmlForUserAgent(html: string, userAgent?: string | null): string {
-  const htmlWithDiscoveryAttribution = attachDiscoveryAttributionMeta(html);
   const actor = detectActorFromUserAgent(userAgent);
   const isBot = actor.actorType === "bot";
+  // The signed envelope carries a fresh per-entry request ID. Only an actual
+  // browser response can use it; crawler/social HTML must stay deterministic
+  // and eligible for the route's existing safe public cache policy.
+  const htmlWithDiscoveryAttribution =
+    actor.actorType === "human" ? attachDiscoveryAttributionMeta(html) : String(html || "");
   const upgradedHtml = upgradePublicSocialPreviewHtml(htmlWithDiscoveryAttribution);
 
   // Public facts must not depend on crawler UA retention. Bots keep crawlable
-  // visible SSR without client modules; browsers keep the same facts in the
-  // initial document while suppressing the SEO chrome until React mounts.
+  // visible SSR plus the cache-safety module bootstrap; browsers keep the same
+  // facts while suppressing the SEO chrome until React mounts.
   if (isFactBearingPublicDiscoveryHtml(htmlWithDiscoveryAttribution)) {
     if (isBot) {
-      return stripPublicSeoBootPlaceholders(upgradedHtml).replace(CLIENT_MODULE_SCRIPT_PATTERN, "");
+      return stripPublicSeoBootPlaceholders(upgradedHtml);
     }
     return isJwStonePublicDiscoveryHtml(htmlWithDiscoveryAttribution)
       ? suppressJwStoneSeoSummaryPaint(upgradedHtml)

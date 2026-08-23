@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  enforcePublicSeoUserAgentVariation,
   isJwStonePublicDiscoveryHtml,
   preparePublicSeoHtmlForResponse,
   preparePublicSeoHtmlForUserAgent,
@@ -25,6 +26,7 @@ describe("public SEO response HTML", () => {
     const serverSource = fs.readFileSync(path.resolve(process.cwd(), "server/index.ts"), "utf8");
 
     expect(serverSource).toContain("preparePublicSeoHtmlForUserAgent(");
+    expect(serverSource).toContain("enforcePublicSeoUserAgentVariation(res)");
     expect(serverSource).toContain("existingCacheControl");
     expect(serverSource).toContain("!\/\\b(?:no-store|private)\\b\/i.test(existingCacheControl)");
     expect(serverSource).toContain('String(req.headers["user-agent"] || "")');
@@ -62,7 +64,7 @@ describe("public SEO response HTML", () => {
     ["Cohere-AI", "cohere-ai"],
     ["Perplexity-User", "Perplexity-User/1.0"],
     ["MistralAI-User", "MistralAI-User/1.0"],
-  ])("retains SSR and removes boot placeholders for %s", (_name, userAgent) => {
+  ])("retains SSR, interactivity, and removes boot placeholders for %s", (_name, userAgent) => {
     const html = preparePublicSeoHtmlForUserAgent(
       seoHtml.replace(
         "</body>",
@@ -75,7 +77,7 @@ describe("public SEO response HTML", () => {
     expect(html).toContain("Verified profile");
     expect(html).not.toContain("TradeScout encountered a startup issue");
     expect(html).not.toContain("JavaScript is required");
-    expect(html).not.toContain('src="/assets/index-test.js"');
+    expect(html).toContain('src="/assets/index-test.js"');
   });
 
   it("keeps the browser recovery path for an ordinary human user agent", () => {
@@ -117,7 +119,7 @@ describe("public SEO response HTML", () => {
     expect(browserHtml).toContain('src="/assets/index-test.js"');
     expect(browserHtml).toContain("clip:rect(0,0,0,0)");
     expect(botHtml).toContain("Natural stone, selected at the source.");
-    expect(botHtml).not.toContain('src="/assets/index-test.js"');
+    expect(botHtml).toContain('src="/assets/index-test.js"');
     expect(botHtml).not.toContain("clip:rect(0,0,0,0)");
     expect(suppressJwStoneSeoSummaryPaint(jwHtml)).toContain("clip:rect(0,0,0,0)");
   });
@@ -128,13 +130,29 @@ describe("public SEO response HTML", () => {
     expect(stripPublicSeoBootPlaceholders(html)).toBe(html);
   });
 
-  it("removes the lightweight landing recovery placeholder from crawler responses", () => {
+  it("removes the lightweight landing placeholder but retains cached-client recovery", () => {
     const html = preparePublicSeoHtmlForResponse(landingTemplateHtml, {
       retainSeoSummary: true,
     });
 
     expect(html).not.toContain('id="ts-landing-fallback"');
-    expect(html).not.toContain('src="/src/landing-main.tsx"');
+    expect(html).toContain('src="/src/landing-main.tsx"');
+  });
+
+  it("merges User-Agent into Vary without losing existing cache dimensions", () => {
+    const headers = new Map<string, string>([["vary", "Accept-Encoding"]]);
+    const response = {
+      getHeader(name: string) {
+        return headers.get(name.toLowerCase());
+      },
+      setHeader(name: string, value: string) {
+        headers.set(name.toLowerCase(), value);
+      },
+    };
+
+    enforcePublicSeoUserAgentVariation(response);
+    enforcePublicSeoUserAgentVariation(response);
+    expect(headers.get("vary")).toBe("Accept-Encoding, User-Agent");
   });
 
   it("aligns signed-card HTML caching with the short opaque-token lifetime", () => {

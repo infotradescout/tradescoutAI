@@ -20,6 +20,7 @@ export type PublicBusinessSignals = {
   stateCode?: string | null;
   city?: string | null;
   tradeSlug?: string | null;
+  hasPublicOfferingFacts: boolean;
   tier: BusinessPublicationTier;
 };
 
@@ -60,16 +61,16 @@ function cutoffDate(now: Date, days: number): Date {
   return new Date(now.getTime() - ms);
 }
 
-export function isPublicAndCrawlableBusiness(
+export function isPublicAndCrawlableBusinessDetail(
   business: PublicBusinessSignals,
   rules: PublicationRules,
   now: Date
 ): PublicationCheck {
   if (!business.publicDiscoveryEnabled) return { ok: false, reason: "public_discovery_disabled" };
   if (!business.name || !business.slug) return { ok: false, reason: "missing_identity" };
+  if (!business.hasPublicOfferingFacts) return { ok: false, reason: "missing_offering_facts" };
   if (!business.stateCode || !business.countyName)
     return { ok: false, reason: "missing_geography" };
-  if (!business.tradeSlug) return { ok: false, reason: "missing_trade" };
   if (!(business.updatedAt instanceof Date) || Number.isNaN(business.updatedAt.getTime())) {
     return { ok: false, reason: "missing_updated_at" };
   }
@@ -85,6 +86,17 @@ export function isPublicAndCrawlableBusiness(
   const cutoff = cutoffDate(now, days);
   if (business.updatedAt < cutoff) return { ok: false, reason: "stale" };
   return { ok: true };
+}
+
+export function isPublicAndCrawlableBusiness(
+  business: PublicBusinessSignals,
+  rules: PublicationRules,
+  now: Date
+): PublicationCheck {
+  const detail = isPublicAndCrawlableBusinessDetail(business, rules, now);
+  if (!detail.ok) return detail;
+  if (!business.tradeSlug) return { ok: false, reason: "missing_trade" };
+  return detail;
 }
 
 export function isPublicAndCrawlableActivity(
