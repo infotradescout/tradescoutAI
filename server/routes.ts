@@ -111,6 +111,8 @@ import {
   sanitizePublicCommunityFeedPost,
   toPublicCommunityPost,
 } from "./publicCommunityPost";
+import { resolveUserCountyWriteContext } from "./locationContext";
+import { resolveRequestEffectiveUser } from "./utils/requestEffectiveUser";
 import {
   getHomeScoutAuthorityUserId,
   HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES,
@@ -20253,29 +20255,70 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   }
 
+  const requireCommunityPrincipalIdentity = (req: any, res: any, next: any) => {
+    const identityContext = resolveRequestEffectiveUser(req);
+    if (!identityContext.ok) {
+      return res.status(403).json({
+        message: "Unable to confirm the effective Community identity.",
+        code: "COMMUNITY_IDENTITY_CONTEXT_INVALID",
+      });
+    }
+
+    if (identityContext.isImpersonating) {
+      return res.status(409).json({
+        message: "Community posting is unavailable while acting as another user.",
+        code: "COMMUNITY_IMPERSONATION_WRITE_UNAVAILABLE",
+      });
+    }
+
+    req.communityCreateIdentity = identityContext;
+    return next();
+  };
+
   app.post(
     "/api/community/posts",
     isAuthenticated,
+    requireCommunityPrincipalIdentity,
     requireOnboardingComplete,
     async (req: any, res: any) => {
       try {
-        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const identityContext = req.communityCreateIdentity;
+        if (!identityContext?.ok || identityContext.isImpersonating) {
+          return res.status(403).json({
+            message: "Unable to confirm the effective Community identity.",
+            code: "COMMUNITY_IDENTITY_CONTEXT_INVALID",
+          });
+        }
+
+        const userId = identityContext.effectiveUserId;
         const user = await storage.getUser(userId);
 
         if (!user) {
           return res.status(401).json({ message: "User not found" });
         }
 
-        const { title, content, category, scope, stateCode, countyFips, images } = req.body;
+        const { title, content, category, images } = req.body;
         const imageUrls: string[] | undefined = Array.isArray(images)
           ? images
           : images
             ? [String(images)]
             : undefined;
 
-        const resolvedScope = scope || "county";
-        const resolvedStateCode = stateCode || (user.state as string | undefined);
-        const resolvedCountyFips = countyFips || ((user as any).countyFips as string | undefined);
+        const countyContext = await resolveUserCountyWriteContext(user, (countyFips) =>
+          storage.getCountyByFips(countyFips)
+        );
+        if (!countyContext) {
+          return res.status(400).json({
+            message: "Complete your county location before creating a Community post.",
+            code: "COMMUNITY_COUNTY_CONTEXT_REQUIRED",
+          });
+        }
+
+        const {
+          scope: resolvedScope,
+          stateCode: resolvedStateCode,
+          countyFips: resolvedCountyFips,
+        } = countyContext;
 
         const tags = deriveCommunityTagsFromContent(title, content, category);
 
@@ -20302,7 +20345,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           extra: {
             category: category || null,
             scope: resolvedScope,
-            countyFips: resolvedCountyFips || null,
+            stateCode: resolvedStateCode,
+            countyFips: resolvedCountyFips,
           },
         });
 

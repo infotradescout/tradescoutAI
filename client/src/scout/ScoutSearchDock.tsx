@@ -28,8 +28,40 @@ export function ScoutSearchDock({
   onSend,
   onTyping,
 }: ScoutSearchDockProps) {
+  const dockRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    if (placement !== "fixed") return;
+
+    const dock = dockRef.current;
+    const activeWorkspace = dock?.closest<HTMLElement>(".scout-shell--active-task");
+    if (!dock || !activeWorkspace) return;
+
+    const reserveProperty = "--scout-search-dock-h";
+    const publishRenderedHeight = () => {
+      const renderedHeight = Math.ceil(dock.getBoundingClientRect().height);
+      if (renderedHeight <= 0) return;
+
+      const nextReserve = `${renderedHeight}px`;
+      if (activeWorkspace.style.getPropertyValue(reserveProperty) !== nextReserve) {
+        activeWorkspace.style.setProperty(reserveProperty, nextReserve);
+      }
+    };
+
+    publishRenderedHeight();
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(publishRenderedHeight);
+    resizeObserver?.observe(dock);
+
+    return () => {
+      resizeObserver?.disconnect();
+      activeWorkspace.style.removeProperty(reserveProperty);
+    };
+  }, [placement]);
+
   return (
     <div
+      ref={dockRef}
       className={placement === "inline" ? "scout-search-dock-inline" : "scout-search-dock-fixed"}
       data-testid="scout-primary-outcome-input"
     >

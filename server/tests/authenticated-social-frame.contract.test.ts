@@ -95,7 +95,15 @@ describe("signed-in TradeScout OS shell", () => {
     );
     expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*nowrap;/s);
     expect(styles).toMatch(/\.ts-community-viewbar\s*\{[^}]*overflow-x:\s*auto;/s);
-    expect(styles).not.toMatch(/\.ts-community-viewbar\s*\{[^}]*flex-wrap:\s*wrap;/s);
+    expect(styles).toMatch(
+      /@media \(max-width: 640px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    flex-wrap: wrap;\r?\n    overflow-x: visible;\r?\n    overflow-y: visible;/
+    );
+    expect(styles).toMatch(
+      /\.ts-community-viewbar__divider \{\r?\n    display: block !important;\r?\n    flex: 0 0 100%;\r?\n    width: 100%;\r?\n    height: 0;/
+    );
+    expect(styles).toMatch(
+      /@media \(min-width: 641px\) \{\r?\n  \.ts-community-viewbar \{\r?\n    padding-top: 0\.25rem;\r?\n    padding-inline: 0\.25rem;/
+    );
     expect(styles).toMatch(/\.ts-community-viewbar__item\s*\{[^}]*min-height:\s*44px;/s);
     expect(community).toContain('data-testid="community-start-actions"');
     expect(community).toContain("<details");

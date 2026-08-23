@@ -1358,7 +1358,7 @@ const CommunityFeed = memo(function CommunityFeed() {
       />
       <div className="community-feed-page ts-community-workshop">
         <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
-          <div className="ts-community-workshop__inner mx-auto w-full max-w-[1180px] overflow-x-hidden px-3 pb-5 pt-2 sm:px-4 md:px-6 md:pb-8 md:pt-5">
+          <div className="ts-community-workshop__inner mx-auto w-full max-w-[1180px] overflow-x-clip px-3 pb-5 pt-2 sm:px-4 md:px-6 md:pb-8 md:pt-5">
             <Dialog
               open={Boolean(topicTagKey)}
               onOpenChange={(open) => {
@@ -1632,7 +1632,10 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </div>
                 </div>
                 {!isGlobalView && isComposerOpen ? (
-                  <Card className="ts-community-composer mb-5 overflow-hidden border border-white/[0.09] bg-white/[0.035] shadow-none md:sticky md:top-16">
+                  <Card
+                    className="ts-community-composer mb-5 overflow-hidden border border-white/[0.09] bg-white/[0.035] shadow-none md:sticky md:top-2"
+                    data-testid="community-post-composer"
+                  >
                     <CardContent className="p-3.5 md:p-5">
                       <div className="flex gap-3 md:gap-4">
                         <Avatar className="w-10 h-10 md:w-11 md:h-11">
@@ -1644,10 +1647,13 @@ const CommunityFeed = memo(function CommunityFeed() {
                             />
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 space-y-3">
+                        <div className="ts-community-composer__body min-w-0 flex-1 space-y-3">
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-white">
+                              <div
+                                className="text-sm font-semibold text-white"
+                                data-testid="community-composer-heading"
+                              >
                                 {selectedCategory === "request"
                                   ? "Describe what you need"
                                   : selectedCategory === "forsale"
@@ -1820,7 +1826,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           )}
 
                           <div className="ts-community-composer__actions flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center pt-1">
-                            <div className="flex flex-wrap gap-2">
+                            <div className="ts-community-composer__attachments flex min-w-0 flex-1 flex-wrap gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1851,7 +1857,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             </div>
 
                             <Button
-                              className="ts-community-submit-action min-h-11 w-full rounded-xl bg-ts-orange text-sm font-bold text-black hover:bg-ts-orange-dark sm:w-auto md:min-h-0"
+                              className="ts-community-submit-action min-h-11 w-full shrink-0 rounded-xl bg-ts-orange text-sm font-bold text-black hover:bg-ts-orange-dark sm:w-auto md:min-h-0"
                               onClick={handleCreatePost}
                               disabled={!newPostContent.trim() || createPostMutation.isPending}
                               data-testid="button-submit-post"
